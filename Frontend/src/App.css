@@ -42,7 +42,7 @@ body {
 }
 
 button {
-  background-color: green;
+  background-color: var(--secondary-color);
   border: none;
   border-radius: var(--general-radius);
   color: var(--light-color);
