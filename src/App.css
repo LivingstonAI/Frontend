@@ -1,0 +1,1480 @@
+/* Registration Page And Login Page and some Tell Us More CSS */
+
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;400;500;600;700;900&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+/* @import url('./header/header.css');
+@import url('./main/main.css');
+@import url('./footer/footer.css'); */
+
+:root {
+  --general-padding: 15px 20px;
+  --general-padding-lg: 15px 25px;
+  --general-radius: 20px;
+  --dark-color: #212529;
+  --padding-lg: 100px 128px;
+  --light-color: #fafafa;
+  --primary-color: #4169E1;
+  --primary-font-family: 'Inter', sans-serif;
+  --secondary-color: #F0667E;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.alt-background {
+  background-color: #f5f5f5;
+}
+
+.landing-page-login {
+    color: white;
+    text-decoration: none;
+}
+
+.secondary-color {
+  color: var(--secondary-color);
+}
+
+body {
+  font-family: var(--primary-font-family);
+  margin: 0;
+}
+
+button {
+  background-color: var(--secondary-color);
+  border: none;
+  border-radius: var(--general-radius);
+  color: var(--light-color);
+  cursor: pointer;
+  padding: 10px 15px;
+  transition: transform .5s;
+}
+
+button:hover {
+  transform: scaleX(1.1);
+}
+
+footer {
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    display: flex;
+    flex-direction: column;
+    padding: var(--general-padding);
+  }
+  
+  footer .content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+
+  header {
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    display: flex;
+    justify-content: space-between;
+    padding: var(--general-padding);
+  }
+  
+  @media screen and (min-width: 992px) {
+    header {
+      font-size: 18px;
+      padding: var(--general-padding-lg);
+    }
+  
+    .logo {
+      font-size: 25px;
+    }
+  }
+  
+  .action-buttons {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+  }
+  
+  @media screen and (min-width: 992px) {
+    .action-buttons {
+      gap: 30px;
+    }
+  }
+
+  #features {
+    padding: 0;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #features .content {
+      max-width: 500px;
+    }
+  }
+  
+  #features > * {
+    padding: var(--general-padding);
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #features > * {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      padding: var(--padding-lg);
+    }
+  }
+  
+  #features .img-cover {
+    aspect-ratio: 1/.75;
+    border-radius: var(--general-radius);
+    max-width: 100%;
+    margin-bottom: 20px;
+    width: 400px;
+  }
+  
+  /* #features h3 {
+    margin: 0;
+  } */
+
+  #hero-section {
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    justify-content: center;
+    min-height: 450px;
+    padding: var(--general-padding);
+    text-align: center;
+  }
+  
+  #hero-section h1 {
+    line-height: 45px;
+  }
+  
+  #hero-section > h1,
+  #hero-section > p {
+    margin: 0;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #hero-section {
+      gap: 25px;
+      min-height: 530px;
+      padding: var(--general-padding-lg);
+    }
+  
+    #hero-section > h1 {
+      font-size: 55px;
+      line-height: 65px;
+      max-width: 1100px;
+    }
+  
+    #hero-section > p {
+      /* line-height: 28px; */
+      max-width: 850px;
+    }
+  }
+
+  @media screen and (min-width: 992px) {
+    #introduction {
+      font-size: 18px;
+    }
+  }
+  
+  #introduction .right {
+    display: none;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #introduction .right {
+      display: flex;
+    }
+  
+    #introduction .right .img-cover {
+      cursor: pointer;
+      height: 350px;
+      width: 300px;
+      transition: border-radius 1s;
+      transition: transform 1s;
+    }
+  
+    #introduction .right .img-cover:hover {
+      transform: rotate(-90deg) scale(1.2, 1.4) translateY(-50px);
+      border-radius: 20px;
+    }
+  
+    #introduction .left {
+      max-width: 500px;
+    }
+  }
+
+main h3, 
+main h4,
+main p {
+  margin: 0;
+}
+
+main {
+  text-align: center;
+}
+
+main > * {
+  line-height: 30px;
+  padding: var(--general-padding);
+}
+
+main * {
+  transition: opacity 1.5s;
+}
+
+@media screen and (min-width: 992px) {
+  main > * {
+    font-size: 18px;
+    line-height: 35px;
+    padding: var(--padding-lg);
+  }
+}
+
+#introduction,
+#more {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.placeholder {
+  background-color: #d9d9d9;
+}
+
+.img-cover {
+  object-fit: cover;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+#more {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+  }
+  
+  #more .img-wrapper {
+    display: none;
+  }
+  
+  @media screen and (min-width: 768px) {
+    #more .img-wrapper {
+      display: block;
+    }
+  
+    #more .img-cover {
+      border-radius: var(--general-radius);
+      cursor: pointer;
+      height: 310px;
+      transition: transform .5s;
+      width: 500px;
+    }
+  
+    #more .img-cover:hover {
+      transform: scale(1.2);
+    }
+  
+    #more p {
+      margin: 16px;
+    }
+  
+    #more .content {
+      max-width: 500px;
+    }
+  }
+
+  #customer-reviews .content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .headshot {
+    background-color: #f0f;
+    border-radius: 50%;
+    height: 100px;
+    width: 100px;
+  }
+  
+  .review {
+    align-items: center;
+    background-color: #fafafa;
+    box-shadow: 0px 0px 10px 2px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex: 1 0 100%;
+    flex-direction: column;
+    gap: 30px;
+    padding: var(--general-padding);
+  }
+  
+  @media screen and (min-width: 768px) {
+    .review {
+      flex-basis: 0;
+      gap: 20px;
+    }
+  }
+  
+  blockquote {
+    margin: 0;
+    padding: 0;
+  }
+
+.our-mission, .feature {
+    text-align: left;
+}
+
+.balance-scale-img, .chatbot-landing-page, .journal-landing-page, .user {
+    width: 100%;
+    height: 100%;
+}
+
+.register-div, .login-div, .tell-us-div {
+    text-align: center;
+    /* align-items: center; */
+    justify-content: center;
+    position: absolute;
+    top: 80px;
+    left: 430px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 25px;
+    /* transform: translate(-50%, -50%); */
+    width: 35%;
+}
+
+
+.user-register-div, .user-login-div, .user-tell-us-div, .why-collect-info-div {
+    text-align: left;
+}
+
+
+.register-button, .login-button, .tell-us-button {
+    position: relative;
+    top: 15px;
+    width: 100%;
+}
+
+
+.user-register-div label, .user-login-div label, .user-tell-us-div label {
+    margin-top: 20px;
+}
+
+
+.login-div {
+    top: 150px;
+}
+
+.register-here, .login-here {
+    position: relative;
+    top: 25px;
+}
+
+.register-title, .tell-us-title {
+    text-align: center;
+    position: relative;
+}
+
+.error-message {
+    color:red;
+}
+
+
+/* Tell Us More CSS */
+.tell-us-div {
+    width: 40%;
+    position: relative;
+    top: 10px;
+    left: 400px;
+}
+
+.why-collect-info {
+    position: relative;
+    top: 30px;
+    text-align: left;
+}
+
+
+.why-collect-info-link {
+    text-decoration: none;
+}
+
+.why-collect-info-div {
+    position: relative;
+    top: 10px;
+    width: 100%;
+    left: 1px;
+}
+
+.why-collect-info-div h5 {
+    text-align: center;
+}
+
+.collection-explanation {
+    position: relative;
+    top: 20px;
+    margin-bottom: 20px;
+}
+
+.cancel-collection-explanation {
+    text-align: right;
+    position: relative;
+    left: 190px;
+    bottom: 10px;
+}
+
+.selected-assets {
+    margin-top: 15px;
+}
+
+.selected-asset-button {
+    margin-top: 5px;
+    margin-left: 5px;
+}
+
+.tell-us-textarea {
+    height: 200px;
+}
+
+.info-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.info-modal-content {
+    background-color: whitesmoke;
+    position: absolute;
+    top: 50%;
+    left: 51%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    border-radius: 5px;
+    max-height: 100%; /* Set the maximum height of the modal content */
+    overflow-y: auto; /* Enable vertical scrolling if content exceeds max height */
+    max-width: 40%;
+}
+
+.close-info-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+
+/* Main Page CSS */
+.header {
+    background-color:dodgerblue;
+    color: white;
+}
+
+.header-navigations {
+    display: flex;
+    gap: 10px;
+}
+
+.all-header-navs {
+    display: flex;
+    justify-content: space-between;
+}
+
+.sign-out-cta {
+    position: absolute;
+    right: 10px;
+}
+
+/* .side-navs {
+    position: relative;
+    top: 150px;
+    left: 50px;
+    gap: 100px;
+} */
+
+.side-navs {
+    display: flex;
+    top: 10px;
+    /* left: 0px; */
+    width: 100%;
+    /* gap: 10px; */
+}
+
+.side-navs-cellphone {
+    display: none;
+}
+
+.side-nav {
+    top: 200px;
+    text-decoration: none;
+    color:black;
+    /* font-size: 70px; */
+    width: 100%;
+}
+
+.side-navs h5 {
+    margin-top: 45px;
+}
+
+.main-body-info {
+    position: absolute;
+    /* top: 80px; */
+    /* left: 50px; */
+    top: 200px;
+    left: 450px;
+}
+
+.main-body-info h5 {
+    position: relative;
+    right: 0px;
+}
+
+.main-page-body {
+    display: flex;
+    /* gap: 450px; */
+}
+
+.enter-new-trade-cta {
+    text-decoration: none;
+}
+
+.all-trades-div {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 50px;
+    position: relative;
+    right: 200px;
+    width: 100%;
+    top: 0px;
+    left: -120px;
+}
+
+
+/* Enter New Trade CSS */
+.register-new-trade-whole-page {
+    position:relative;
+    top: 50px;
+}
+
+.register-new-trade {
+    position: relative;
+    left:335px;
+    width: 50%;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 20px;
+}
+
+
+.register-new-trade label {
+    margin-top: 15px;
+}
+
+.register-new-trade-heading {
+    text-align: center;
+}
+
+.register-new-trade-reflection {
+    height: 200px;
+    margin-bottom: 10px;
+}
+
+.register-new-trade-submit {
+    width: 100%;
+}
+
+
+/* Trade Analysis CSS */
+.main-page-header {
+    width: 100%;
+    padding-bottom: 15px;
+}
+
+.whole-trade-analysis-div {
+    position: relative;
+    top: 60px;
+}
+
+.whole-trade-analysis-div h4 {
+    text-align: center;
+}
+
+.trade-analysis-feedback-div, .trade-analysis-reflection,.trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 35px;
+}
+
+.trade-analysis-reflection {
+    width: 700px;
+}
+
+.trade-analysis-reflection h5 {
+    text-align: center;
+}
+
+.whole-trade-analysis-header, .whole-trade-analysis-stomach, .trade-analysis-footer {
+    display: flex;
+    position: absolute;
+    top: 80px;
+    left: 180px;
+    gap: 10px;
+}
+
+.whole-trade-analysis-stomach {
+    left: 0px;
+}
+
+.trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+    position: relative;
+    top: 320px;
+    width: 310px;
+    left: 180px;
+    text-align: center;
+}
+
+.whole-trade-analysis-stomach {
+    position: relative;
+}
+
+.trade-analysis-roi h5, .trade-analysis-equity-risked h5, .trade-analysis-emotional-bias h5 {
+    text-align: center;
+}
+
+.trade-analysis-footer {
+    position: absolute;
+    top: 575px;
+}
+
+.full_trades-main-page-cta {
+    position: relative;
+    width: 950px;
+    margin-bottom: 50px;
+    margin-top: 30px;
+    left: 5px;
+}
+
+/* Summary CSS */
+.summary-of-all-trades{
+    margin-top: 20px;
+}
+
+.summary-of-all-trades, .summary-upcoming-news {
+    margin-bottom: 55px;
+}
+
+.entire-summary-div {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 35px;
+    position: relative;
+    right: 150px;
+    width: 100%;
+}
+
+
+/* Trading History Analytics */
+.trading-history-analytics {
+    margin-bottom: 325px;
+}
+
+.trading-history-analytics h5 {
+    position: relative;
+    top: 50px;
+    text-align: center;
+}
+
+.top-history-header, .middle-history-header,.bottom-history-header {
+    display: flex;
+    gap: 10px;
+    text-align: center;
+    justify-content: center;
+    position: relative;
+    top: 100px;
+}
+
+.top-history-header div, .middle-history-header div, .bottom-history-header div {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 35px;
+    width: 27%;
+}
+
+.middle-history-header, .bottom-history-header {
+    top: 110px;
+    gap: 10px;
+}
+
+.middle-history-header div, .bottom-history-header div {
+    width: 41%;
+}
+
+.bottom-history-header {
+    top: 120px;
+}
+
+.middle-analytics {
+    display: flex;
+    position: relative;
+    top: 150px;
+    right: 130px;
+}
+
+.middle-analytics-equity-over-time, .middle-analytics-overall {
+    position: relative;
+    left: 250px;
+}
+
+.middle-analytics-overall {
+    left: 270px;
+}
+
+.analytics-footer {
+    text-align: center;
+    position: relative;
+    top: 175px;
+}
+
+.analytics-footer p {
+    text-align: left;
+    left: 100px;
+    right: 100px;
+    position: absolute;
+}
+
+.download-compiled-report {
+    text-decoration: none;
+    position: relative;
+    top: 150px;
+}
+
+.trading-history-links {
+    display: flex;
+    /* justify-content: space-evenly; */
+    position: relative;
+    top: 0px;
+    width: 100%;
+}
+
+.trading-history-link {
+    text-decoration: none;
+    border: 1px solid #ccc;
+    border-radius: 1px;
+    padding: 10px 15px;
+    width: 200%;
+    margin-top: 5px;
+    text-align: center;
+    color: black;
+}
+
+.overview-link {
+    text-decoration: none;
+    color: white;
+}
+
+.all-trades-header {
+    text-align: center;
+    position: relative;
+    left: -160px;
+    top: 0px;
+}
+
+.strategy {
+    display: flex;
+    width: 100%;
+}
+
+.best-strategy, .worst-strategy {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px 15px;
+    width: 245px;
+}
+
+.enter-new-trade-cta {
+    position: relative;
+    left: 110px;
+}
+
+
+
+/* Personal Journal CSS */
+.personal-journal-ckeditor {
+    position: absolute;
+    left: -300px;
+    height: 100px;
+    width: 150%;
+}
+
+.save-journal-button {
+    margin-top: 4px;
+    width: 100%;
+}
+
+.success-message {
+    color: green;
+}
+
+.all-journals-div {
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 30px 30px; 
+    left: -200px;  
+    width: 800px;
+}
+
+.create-new-journal-cta, .personal-journal-title {
+    position: relative;
+    text-decoration: none;
+    text-align: center;
+    left: 50px;
+}
+
+.create-new-journal-cta {
+    left: 290px;
+}
+
+.journal-div {
+    position: relative;
+    right: 200px;
+}
+
+
+/* Journal Content */
+.journal-content, .main-journal-nav-button {
+    position: relative;
+}
+
+.entire-journal-div {
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 30px 25px; 
+    top: 70px;
+    left: -150px;
+    width: 600px;
+}
+
+/* Live Clock CSS */
+.live-clock {
+    position: relative;
+    left: -100px;
+    top: -110px;
+    width: 650px;
+}
+
+/* Major Upcoming News Events CSS */
+.news-data {
+    position: relative;
+    left: -225px;
+}
+
+.news-event {
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    padding: 30px 25px; 
+    width: 800px;
+    left: -250px;
+}
+
+.vertical-hr {
+    border: none;
+    border-left: 1px solid black; /* You can adjust the color and width */
+    height: 100px; /* Adjust the height as needed */
+    margin: 0 10px; /* Add spacing around the vertical line */
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+
+/* ChatBot CSS */
+.chatbot-div {
+    position: absolute;
+    top: 200px;
+    right: 250px;
+    /* left: -550px; */
+    width: 70%;
+    margin-bottom: 20px;
+    height: 500px;
+}
+
+.user-message {
+    position: absolute;
+    left: 930px;
+}
+
+.clear-conversation-icon {
+    position: relative;
+    left: -50px;
+    bottom: 40px;
+    font-size: x-large;
+    cursor: pointer;
+}
+
+.conversations-div {
+    position: relative;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 30px 25px; 
+    /* right: 1000px; */
+    left: 1075px;
+    top: 75px;
+    width: 15%;
+    /* height: 1000px; */
+}
+
+.phone-conversations-div {
+    display: none;
+}
+
+.chat-links {
+    text-decoration: none;
+}
+
+.bi-trash3 {
+    position: relative;
+    left: 50px;
+    cursor: pointer;
+}
+
+.chatbot-liveclock {
+    position: absolute;
+    top: 110px;
+    left: 450px;
+
+}
+
+.bi-send {
+    font-size:small;
+}
+
+.ask-livingston-buttons {
+    position: relative;
+    top: 15px;
+}
+
+.ask-livingston-buttons button {
+    width: 50%;
+    border: 1px solid #ccc;
+}
+
+.journal-liveclock {
+    position: relative;
+    top: 100px;
+    /* left: -100px; */
+}
+
+.all-side-navs {
+    width: 100%;
+}
+
+.side-nav-btn {
+    width: 100%;
+}
+
+/* CellPhone CSS */
+@media screen and (max-width: 768px) {
+    .register-div, .login-div, .tell-us-div {
+        left: 20px;
+        width: 90%;
+    }
+    .info-modal {
+        width: 200%;
+    }
+    .info-modal-content {
+        left: 200px;
+    }
+    .main-page-body {
+        display: block;
+    }
+    .main-body-info {
+        position: relative;
+        top: 20px;
+        left: 0px;
+    }
+    .main-body-info h5 {
+        text-align: center;
+    }
+    .main-body-info h5 {
+        right: 0px;
+    } 
+    
+    .side-navs {
+        display: none;
+    }
+    
+    .side-navs-cellphone {
+        display: flex;
+        top: 0px;
+        left: 0px;
+        width: 100%;
+    }
+    
+    .side-nav {
+        font-size: x-large;
+        border: 1px solid #ccc;
+        border-radius: 1px;
+        padding: 5px 2px;
+        width: 110%;
+        text-align: center;
+    }
+    
+    /* All Trades CSS */
+    .all-trades-div {
+        width: 100%;
+        left: 0px;
+        top: 50px;
+    }
+    
+    .all-trades-header {
+        left: 0px;  
+        top: 30px;
+    }
+    
+    .enter-new-trade-cta {
+        text-align: center;
+        position: relative;
+        left: 130px;
+        top: 30px;
+    }
+
+    /* Overview CSS */
+    .entire-summary-div {
+        right: 0px;
+        top: 50px;
+    }
+
+    .overview-summary-title {
+        position: relative;
+        top: 50px;
+    }
+
+    .summary-upcoming-news h6, .summary-current-performance-eval h6 {
+        position: relative;
+        right: 12px;
+    }
+
+    .register-new-trade {
+        left: 17px;
+        width: 90%;
+    }
+
+    .whole-trade-analysis-header {
+        display: block;
+    }
+
+    .whole-trade-analysis-header {
+        left: 50px;
+    }
+    .trade-analysis-feedback-div, .trade-analysis-reflection {
+        width: 300px;
+    }
+    .trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+        top: 420px;
+        width: 300px;
+        left: 50px;
+        margin-top: 10px;
+    }
+    .trade-analysis-footer {
+        top: 965px;
+        width: 75%;
+        left: 45px;
+    }
+    .whole-trade-analysis-stomach {
+        display: block;
+        left: 0px;
+    }
+    .full_trades-main-page-cta {
+        position: relative;
+    }
+    .trade-analysis-reflection {
+        margin-top: 10px;
+    }
+    .top-history-header div {
+        width: 31%;
+    }
+    .middle-history-header div, .bottom-history-header div {
+        width: 48%;
+    }
+    .middle-analytics {
+        display: block;
+        right: 0px;
+    }
+    .middle-analytics-equity-over-time, .middle-analytics-overall {
+        left: 10px;
+    }
+    .download-compiled-report {
+        top: 270px;
+    }
+    .analytics-footer p {
+        left: 5px;
+        right: 5px;
+    }
+
+    /* Personal Journal CSS */
+    .journal-div {
+        position: relative;
+        top: 0px;
+        right: 0px;
+        left: -200px;
+        width: 100%;
+    }
+
+    .all-journals-div {
+        position: relative;
+        left: 0px;
+        top: 90px;
+        width: 100%;
+    }
+
+    .create-new-journal-cta, .personal-journal-title {
+        position: relative;
+        width: 100%;
+        left: 300px;
+        top: 60px;
+    }
+    .personal-journal-title {
+        left: 200px;
+    }
+
+    /* Journal Entry CSS */
+    .entire-journal-div {
+        width: 100%;
+        left: 0px;
+        top: 100px;
+    }
+
+    .view-journal-title {
+        left: 0px;
+        top: 150px;
+    }
+
+    /* New Journal Entry CSS */
+    .personal-journal-ckeditor {
+        width: 300px;
+        left: 40px;
+        /* height: 1000px; */
+        top: 120px;
+    }
+
+    .main-journal-nav-button {
+        top: 75px;
+        width:50%;
+        left: -24px;
+    }
+
+    .view-journal-title {
+        position: relative;
+        top: 50px;
+    }
+
+    /* Live Clock CSS */
+    .journal-liveclock {
+        display: none;
+    }
+
+    .live-clock {
+        display: block;
+        left: -425px;
+        width: 100%;
+        top: 20px;
+    }
+
+    .chatbot-liveclock {
+        left: 0px;
+        width: 100%;
+    }
+
+    /* Major News CSS */
+    .news-event {
+        width: 100%;
+        left: 1px;
+        top: 90px;
+    }
+
+    .major-upcoming-news-events-header {
+        position: absolute;
+        top: 30px;
+        left: 0px;
+    }
+
+    /* ChatBot CSS */
+    .chatbot-div {
+        top: 200px;
+        right: 0px;
+        width: 100%;
+    }
+
+    .conversations-div {
+        left: 0px;
+        display: none;
+    }
+
+    .phone-conversations-div {
+        display: none;
+        position: relative;
+        top: 10px;
+    }
+
+    .ask-livingston-buttons button {
+        width: 100%;   
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Adjust the transparency as needed */
+        z-index: 1000; /* Adjust the z-index value to position the modal correctly */
+    }
+    
+}
+
+
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    /* Your CSS rules for tablets go here */
+    /* These rules will apply when the screen width is between 768px and 1024px */
+    .register-div, .login-div, .tell-us-div {
+        left: 115px;
+        width: 70%;
+    }
+    .info-modal {
+        width: 200%;
+    }
+    .info-modal-content {
+        left: 200px;
+    }
+    .main-page-body {
+        display: block;
+    }
+    .main-body-info {
+        position: relative;
+        top: 5px;
+        left: 0px;
+    }
+    .main-body-info h5 {
+        text-align: center;
+    }
+    .main-body-info h5 {
+        right: 0px;
+    }
+    .all-trades-header {
+        left: 0px;
+    }
+    .side-navs {
+        display: none;
+    }
+    .side-navs-cellphone {
+        display: flex;
+        top: 0px;
+        left: 0px;
+        width: 100%;
+    }
+    .side-nav {
+        font-size: x-large;
+        border: 1px solid #ccc;
+        border-radius: 1px;
+        padding: 5px 2px;
+        width: 150px;
+        text-align: center;
+        width: 100%;
+    } 
+    .enter-new-trade-cta {
+        position: relative;
+        /* left: 355px; */
+        left: 43%;
+    }
+    .all-trades-div {
+        position: relative;
+        width: 90%;
+        left: 35px;
+    }
+    .entire-summary-div {
+        right: 0px;
+    }
+    .summary-upcoming-news h6, .summary-current-performance-eval h6 {
+        position: relative;
+        right: 12px;
+    }
+    .register-new-trade {
+        left: 40px;
+        width: 90%;
+    }
+    .whole-trade-analysis-header {
+        display: flex;
+        left: 20px;
+    }
+    .trade-analysis-feedback-div, .trade-analysis-reflection {
+        width: 300px;
+    }
+    .trade-analysis-reflection {
+    position: relative;
+    top: -10px;
+    }
+    .trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+        top: 310px;
+        width: 190px;
+        left: -30px;
+    }
+    .trade-analysis-footer {
+        top: 590px;
+        width: 100%;
+        left: 25px;
+    }
+    .whole-trade-analysis-stomach {
+        display: flex;
+        left: 60px;
+    }
+    .full_trades-main-page-cta {
+        position: relative;
+    }
+    .trade-analysis-reflection {
+        margin-top: 10px;
+    }
+    .top-history-header div {
+        width: 31%;
+    }
+    .middle-history-header div, .bottom-history-header div {
+        width: 48%;
+    }
+    .middle-analytics {
+        display: block;
+        right: 0px;
+    }
+    .middle-analytics-equity-over-time, .middle-analytics-overall {
+        left: 10px;
+    }
+    .download-compiled-report {
+        top: 150px;
+    }
+    .analytics-footer p {
+        left: 5px;
+        right: 5px;
+    }
+    .whole-trade-analysis-div {
+        position:absolute;
+        top: 130px;
+        left: 100px;
+    }
+    .best-strategy, .worst-strategy {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 15px;
+        width: 398px;
+    }
+     /* Personal Journal CSS */
+     .journal-div {
+        left: 0px;
+     }
+     .all-journals-div {
+        width: 100%;
+        left: 0px;
+        /* justify-content: center; */
+    }
+    .create-new-journal-cta, .personal-journal-title {
+        left: 0px;
+    }
+    .create-new-journal-cta {
+        position: relative;
+        left: 40%;
+    }
+
+    /* Journal Entry CSS */
+    .entire-journal-div {
+        width: 100%;
+        left: 0px;
+    }
+
+    /* New Journal Entry CSS */
+    .personal-journal-ckeditor {
+        width: 100%;
+        left: 0px;
+        height: 1000px;
+    }
+    .main-journal-nav-button {
+        top: 75px;
+        width:50%;
+        left: -24px;
+    }
+
+    /* LiveClock CSS */
+    /* .live-clock {
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+    } */
+    .live-clock h5,.chatbot-liveclock {
+        position: relative;
+        /* left: 130px; */
+        top: 20px;
+        display: none;
+    }
+    .chatbot-liveclock {
+        left: 70px;
+        top: 40px;
+        display: none;
+    }
+
+    /* ChatBot CSS */ 
+    .chatbot-div {
+        top: 200px;
+        right: 22%;
+        width: 70%;
+    }
+    .ask-livingston-buttons button {
+        width: 100%;   
+    }
+
+    .conversations-div {
+        left: 80%;
+        width: 20%;
+    }
+    /* News CSS */
+    .news-event{
+        left: 0px;
+        width: 100%;
+    }
+  }
+/* 
+@media screen and (min-width: 1024px) and (max-width: 1200px) {  
+    .chatbot-div {
+        display: none;
+    }
+}
+ */
