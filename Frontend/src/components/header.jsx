@@ -4,6 +4,7 @@ import {v4 as uuidv4} from 'uuid';
 
 export default function Header() {
     const uniqueID = uuidv4();
+    console.log('The git push works!');
     return (
         <div className="main-page-header"><br />
             {/* <img src="/Users/motin/Downloads/snowAI.png"></img> */}
