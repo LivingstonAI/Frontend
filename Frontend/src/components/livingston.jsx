@@ -278,6 +278,7 @@ export default function ChatBotInterface() {
                     </div> */}
                     <br />
             </div>
+            <i className="bi bi-brush clear-conversation-icon-phone" onClick={handleClearConversation}></i>
                 <div className={`chatbot-div ${isBlurred ? 'blur-content' : ''}`}>
                     <MainContainer>
                         <ChatContainer>
@@ -301,7 +302,6 @@ export default function ChatBotInterface() {
                         </ChatContainer>
                     </MainContainer>
                     <i className="bi bi-brush clear-conversation-icon" onClick={handleClearConversation}></i>
-                    <i className="bi bi-brush clear-conversation-icon-phone" onClick={handleClearConversation}></i>
                 </div>
             <div className="phone-conversations-div">
             <div class="collapse" id="navbarToggleExternalContent">
