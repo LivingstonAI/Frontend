@@ -8,8 +8,8 @@ import TellUsMore from './components/tell_us';
 import AllTrades from './components/all_trades';
 import EnterNewTrade from './components/enter_new_trade';
 import FullTrade from './components/full_trade';
+import TradingHistory from './components/trading_history';
 // import OverView from './components/overview';
-// import TradingHistory from './components/trading_history';
 // import TradingHistorySevenDays from './components/overview_seven_days';
 // import TradingHistoryOneMonth from './components/overview_one_month';
 // import TradingThreeMonths from './components/overview_three_months';
@@ -35,6 +35,7 @@ function App() {
         <Route path="/all_trades" element={<AllTrades />} />
         <Route path="/enter_new_trade" element={<EnterNewTrade />} />
         <Route path="/full_trade" element={<FullTrade />} />
+        <Route path="/trading_history_analytics" element={<TradingHistory />} />
         {/* <Route path="/overview" element={<OverView />} /> */}
         {/* <Route path="/trading_history_analytics" element={<TradingHistory />} />
         <Route path="/trading_history_analytics/seven_days" element={<TradingHistorySevenDays />} />

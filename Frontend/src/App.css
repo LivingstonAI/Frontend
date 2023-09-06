@@ -738,9 +738,21 @@ main * {
     right: 130px;
 }
 
-.middle-analytics-equity-over-time, .middle-analytics-overall {
+/* .middle-analytics-equity-over-time, .middle-analytics-overall {
     position: relative;
-    left: 250px;
+    /* left: 200px; */
+/* } */ 
+
+.middle-analytics-equity-over-time {
+    width: 90%;
+}
+
+#equityChart {
+    width: 90%;
+}
+
+.middle-analytics-equity-over-time h6 {
+    width: 100%;
 }
 
 .middle-analytics-overall {
@@ -928,8 +940,8 @@ th {
     /* right: 0px; */
     left: 100px;
     width: 70%;
-    margin-bottom: 100px;
-    height: 600px;
+    /* margin-bottom: 100px; */
+    height: 500px;
 }
 
 .user-message {
@@ -951,8 +963,8 @@ th {
     border-radius: 5px;
     padding: 30px 25px; 
     /* right: 1000px; */
-    left: 1075px;
-    top: -420px;
+    left: 1025px;
+    top: -400px;
     width: 15%;
     /* height: 1000px; */
 }
@@ -1467,17 +1479,24 @@ th {
 
     /* ChatBot CSS */ 
     .chatbot-div {
-        top: 200px;
-        right: 22%;
-        width: 70%;
+        top: 50px;
+        right: 30%;
+        width: 78%;
+        height: 400px;
+        left: 0px;
     }
     .ask-livingston-buttons button {
         width: 100%;   
     }
 
     .conversations-div {
-        left: 80%;
+        left: 79%;
         width: 20%;
+        top: -450px;
+    }
+
+    .clear-conversation-icon {
+        display: none;
     }
     /* News CSS */
     .news-event{

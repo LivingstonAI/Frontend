@@ -178,10 +178,6 @@ export default function EnterNewTrade () {
             return;
         }
         const currentDate = new Date;
-        // console.log(startDate);
-        // console.log(endDate);
-        // console.log(currentDate);
-        // console.log(startDate < currentDate.date)
         if (startDate > endDate) {
             setStartDateError("Please select a valid date taken input.");
             return;
