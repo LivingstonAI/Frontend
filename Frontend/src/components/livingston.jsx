@@ -27,13 +27,13 @@ export default function ChatBotInterface() {
     // Function to fetch the API key
     const fetchDataFromAPI = async () => {
         try {
-        const response = await fetch("/get_openai_key"); // Assuming your API endpoint is at '/get_openai_key'
+        const response = await fetch("https://backend-production-c0ab.up.railway.app/get_openai_key"); // Assuming your API endpoint is at '/get_openai_key'
         if (!response.ok) {
             throw new Error("Network response was not ok");
         }
-        const data = await response.json();
+        const { OPENAI_API_KEY } = await response.json();
         // Set the API key in state
-        setOPENAI_API_KEY(data.openai_key);
+        setOPENAI_API_KEY(OPENAI_API_KEY);
         } catch (error) {
         console.error("Error fetching data:", error);
         }
@@ -263,6 +263,8 @@ export default function ChatBotInterface() {
     const toggleModal = () => {
         setIsModalOpen(prevState => !prevState);
     };
+
+    // console.log(OPENAI_API_KEY);
         
     return (
         <div>

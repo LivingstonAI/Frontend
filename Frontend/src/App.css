@@ -923,7 +923,7 @@ th {
 
 /* ChatBot CSS */
 .chatbot-div {
-    position: absolute;
+    /* position: absolute; */
     top: 200px;
     right: 250px;
     /* left: -550px; */

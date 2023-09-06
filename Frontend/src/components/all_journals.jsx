@@ -14,6 +14,7 @@ export default function AllJournals() {
         async function fetchJournals() {
             try {
                 const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${userEmail}/`);
+                console.log(response);
                 const data = await response.json();
                 setJournals(data.journals);
             } catch (error) {
