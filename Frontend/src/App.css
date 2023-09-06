@@ -1243,7 +1243,7 @@ th {
         right: 0px;
         width: 100%;
         height: 400px;
-        margin-bottom: 350px;
+        /* margin-bottom: 350px; */
     }
 
     .conversations-div {
