@@ -276,6 +276,8 @@ export default function ChatBotInterface() {
                     {/* <div className="chatbot-liveclock">
                         <LiveClock />
                     </div> */}
+                    <br />
+            </div>
                 <div className={`chatbot-div ${isBlurred ? 'blur-content' : ''}`}>
                     <MainContainer>
                         <ChatContainer>
@@ -299,8 +301,8 @@ export default function ChatBotInterface() {
                         </ChatContainer>
                     </MainContainer>
                     <i className="bi bi-brush clear-conversation-icon" onClick={handleClearConversation}></i>
+                    <i className="bi bi-brush clear-conversation-icon-phone" onClick={handleClearConversation}></i>
                 </div>
-            </div>
             <div className="phone-conversations-div">
             <div class="collapse" id="navbarToggleExternalContent">
                 <div class="bg-dark p-4">

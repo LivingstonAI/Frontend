@@ -923,10 +923,10 @@ th {
 
 /* ChatBot CSS */
 .chatbot-div {
-    /* position: absolute; */
-    top: 200px;
-    right: 250px;
-    /* left: -550px; */
+    position: relative;
+    top: 100px;
+    /* right: 0px; */
+    left: 100px;
     width: 70%;
     margin-bottom: 20px;
     height: 500px;
@@ -952,7 +952,7 @@ th {
     padding: 30px 25px; 
     /* right: 1000px; */
     left: 1075px;
-    top: 75px;
+    top: -420px;
     width: 15%;
     /* height: 1000px; */
 }
@@ -976,6 +976,9 @@ th {
     top: 110px;
     left: 450px;
 
+}
+.clear-conversation-icon-phone {
+    display: none;
 }
 
 .bi-send {
@@ -1234,7 +1237,8 @@ th {
 
     /* ChatBot CSS */
     .chatbot-div {
-        top: 200px;
+        top: 0px;
+        left: 0px;
         right: 0px;
         width: 100%;
     }
@@ -1263,7 +1267,14 @@ th {
         background-color: rgba(0, 0, 0, 0.5); /* Adjust the transparency as needed */
         z-index: 1000; /* Adjust the z-index value to position the modal correctly */
     }
-    
+    .clear-conversation-icon {
+        bottom: -100px;
+    }
+    .clear-conversation-icon-phone {
+        display: block;
+        font-size: x-large;
+        cursor: pointer;
+    }
 }
 
 
