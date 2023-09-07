@@ -745,6 +745,10 @@ main * {
 
 .middle-analytics-equity-over-time {
     width: 90%;
+} 
+
+.top-phone-chat-div {
+    display: none;
 }
 
 #equityChart {
@@ -936,7 +940,7 @@ th {
 /* ChatBot CSS */
 .chatbot-div {
     position: relative;
-    top: 100px;
+    /* top: 100px; */
     /* right: 0px; */
     left: 100px;
     width: 70%;
@@ -962,12 +966,10 @@ th {
     border: 1px solid #ccc;
     border-radius: 5px;
     padding: 30px 25px; 
-    /* right: 1000px; */
-    left: 1025px;
-    top: -400px;
+    left: 10%;
     width: 15%;
-    /* height: 1000px; */
-}
+ } 
+
 
 .phone-conversations-div {
     display: none;
@@ -1007,6 +1009,12 @@ th {
     border: 1px solid #ccc;
 }
 
+.ai-div {
+    position: relative;
+    display: flex;
+    /* justify-content: space-between; */
+    top: 50px;
+}
 .journal-liveclock {
     position: relative;
     top: 100px;
@@ -1290,6 +1298,14 @@ th {
         font-size: x-large;
         cursor: pointer;
     }
+    .top-phone-chat-div {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .ai-div {
+        top: 0px;
+    }
 }
 
 
@@ -1479,20 +1495,19 @@ th {
 
     /* ChatBot CSS */ 
     .chatbot-div {
-        top: 50px;
-        right: 30%;
-        width: 78%;
-        height: 400px;
-        left: 0px;
+        /* top: 50px; */
+        /* right: 30%; */
+        width: 70%;
+        height: 500px;
+        left: 50px;
     }
     .ask-livingston-buttons button {
         width: 100%;   
     }
 
     .conversations-div {
-        left: 79%;
         width: 20%;
-        top: -450px;
+        left: 8%;
     }
 
     .clear-conversation-icon {
@@ -1504,10 +1519,4 @@ th {
         width: 100%;
     }
   }
-/* 
-@media screen and (min-width: 1024px) and (max-width: 1200px) {  
-    .chatbot-div {
-        display: none;
-    }
-}
- */
+

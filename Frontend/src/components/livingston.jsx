@@ -31,10 +31,11 @@ export default function ChatBotInterface() {
         if (!response.ok) {
             throw new Error("Network response was not ok");
         }
-        const { USER_EMAIL } = await response.json();
+        const USER_EMAIL  = await response.json();
         // Set the API key in state
         setUSER_EMAIL(USER_EMAIL);
-        console.log(`User Email is ${USER_EMAIL}`);
+        // console.log(`User Email is ${USER_EMAIL}`);
+        console.log(USER_EMAIL);
         } catch (error) {
         console.error("Error fetching data:", error);
         }
@@ -228,6 +229,8 @@ export default function ChatBotInterface() {
 
     const newChat = () => {
         setMessages([]);
+        document.querySelector('.chatbot-div').style.display = 'block';
+        document.querySelector('.phone-conversations-div').style.display = 'none';
     };
 
     const displayChat = async (chatID) => {
@@ -280,6 +283,11 @@ export default function ChatBotInterface() {
     const toggleModal = () => {
         setIsModalOpen(prevState => !prevState);
     };
+
+    const viewConversations = () =>  {
+        document.querySelector('.chatbot-div').style.display = 'none';
+        document.querySelector('.phone-conversations-div').style.display = 'block';
+    }
         
     return (
         <div>
@@ -293,7 +301,25 @@ export default function ChatBotInterface() {
                     </div> */}
                     <br />
             </div>
-            <i className="bi bi-brush clear-conversation-icon-phone" onClick={handleClearConversation}></i>
+            <div className="top-phone-chat-div">
+                <i className="bi bi-brush clear-conversation-icon-phone" onClick={handleClearConversation}></i>
+                <button type="button" className="btn btn-light" onClick={viewConversations}>View Conversations</button>
+            </div>
+             <div className="phone-conversations-div">
+            <h6>Chat History</h6>
+                <h6><Link to={`/conversation/${uniqueID}`} className="chat-links" onClick={newChat}>New Chat</Link></h6>
+                {conversations
+                    .sort((a, b) => a.id - b.id) // Sort conversations by ascending ID
+                    .map((conversation, index) => (
+                        <h6 key={conversation.id}>
+                            <Link onClick={() => displayChat(conversation.id)} to={`/conversation/${conversation.id}`} className="chat-links">
+                                Chat {index + 1}
+                            </Link>
+                            <i className="bi bi-trash3" onClick={() => deleteConversation(conversation.id)}></i>
+                        </h6>
+                    ))}
+            </div>
+            <div className="ai-div">
                 <div className={`chatbot-div ${isBlurred ? 'blur-content' : ''}`}>
                     <MainContainer>
                         <ChatContainer>
@@ -316,32 +342,8 @@ export default function ChatBotInterface() {
                             <MessageInput placeholder="Type message here" onSend={handleSend} />
                         </ChatContainer>
                     </MainContainer>
-                    <i className="bi bi-brush clear-conversation-icon" onClick={handleClearConversation}></i>
+                    {/* <i className="bi bi-brush clear-conversation-icon" onClick={handleClearConversation}></i> */}
                 </div>
-            <div className="phone-conversations-div">
-            <div class="collapse" id="navbarToggleExternalContent">
-                <div class="bg-dark p-4">
-                    <h5 class="text-white h4">Collapsed content</h5>
-                    <span class="text-muted">Toggleable via the navbar brand.</span>
-                </div>
-            </div>
-            <nav className="navbar navbar-dark bg-light">
-                <div className="container-fluid">
-                    <button
-                        className="btn btn-dark navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#navbarToggleExternalContent"
-                        aria-controls="navbarToggleExternalContent"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation"
-                        onClick={toggleBlur} // Toggle blur when the button is clicked
-                    >
-                        <span className="navbar-toggler-icon"></span>
-                    </button>
-                </div>
-            </nav>   
-            </div>
             <div className="conversations-div">
                 <h6>Chat History</h6>
                 <h6><Link to={`/conversation/${uniqueID}`} className="chat-links" onClick={newChat}>New Chat</Link></h6>
@@ -355,6 +357,7 @@ export default function ChatBotInterface() {
                             <i className="bi bi-trash3" onClick={() => deleteConversation(conversation.id)}></i>
                         </h6>
                     ))}
+            </div>
             </div>
         </div>
     )
