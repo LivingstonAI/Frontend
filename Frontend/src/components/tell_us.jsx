@@ -111,7 +111,7 @@ export default function TellUsMore() {
             });
             if (response.status === 201) {
                 // Navigate to the next page or show a success message
-                navigate(`/conversation/${uniqueID}`);
+                navigate(`/login`);
             } else {
                 console.error("Data save failed.");
             }
