@@ -60,6 +60,7 @@ export default function TradingHistory() {
             <div className="header">
                 <Header />
             </div>
+            <SideNavs />
             {/* <TradingHistoryLinks /> */}
             <div className="trading-history-analytics">
                 <h5>Trading History Analytics:</h5>

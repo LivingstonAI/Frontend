@@ -281,6 +281,7 @@ export default function EnterNewTrade () {
             <div className="header">
                 <Header />
             </div>
+            <SideNavs />
         <div className="register-new-trade-whole-page">
             <h4 className="register-new-trade-heading">Enter New Trade</h4>
             <div className="register-new-trade">

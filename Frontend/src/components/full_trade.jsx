@@ -29,6 +29,7 @@ export default function FullTrade() {
             <div className="header">
                 <Header />
             </div>
+            <SideNavs />
         <div className="whole-trade-analysis-div">
             <h4>Trade Analysis</h4>
             <div className="whole-trade-analysis-header">
