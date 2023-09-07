@@ -1275,6 +1275,7 @@ th {
         display: none;
         position: relative;
         top: 10px;
+        left: 2%;
     }
 
     .ask-livingston-buttons button {
