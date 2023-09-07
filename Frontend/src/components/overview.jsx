@@ -7,6 +7,7 @@ import axios from 'axios';
 
 export default function OverView() {
     const navigate = useNavigate();
+    console.log('')
 
     const registeredEmail = 'pythonappbrewery@gmail.com';
 
