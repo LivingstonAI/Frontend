@@ -23,6 +23,22 @@ export default function ChatBotInterface() {
     const [isBlurred, setIsBlurred] = useState(false);
 
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [USER_EMAIL, setUSER_EMAIL] = useState([]);
+
+    const fetchEmailDataFromAPI = async () => {
+        try {
+        const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const { USER_EMAIL } = await response.json();
+        // Set the API key in state
+        setUSER_EMAIL(USER_EMAIL);
+        console.log(`User Email is ${USER_EMAIL}`);
+        } catch (error) {
+        console.error("Error fetching data:", error);
+        }
+    };
 
     // Function to fetch the API key
     const fetchDataFromAPI = async () => {
@@ -41,6 +57,7 @@ export default function ChatBotInterface() {
 
     useEffect(() => {
         fetchDataFromAPI();
+        fetchEmailDataFromAPI();
     }, []);
 
     const toggleBlur = () => {
@@ -263,8 +280,6 @@ export default function ChatBotInterface() {
     const toggleModal = () => {
         setIsModalOpen(prevState => !prevState);
     };
-
-    // console.log(OPENAI_API_KEY);
         
     return (
         <div>
