@@ -763,8 +763,9 @@ main * {
     width: 90%;
 }
 
-.middle-analytics-equity-over-time h6 {
+.middle-analytics-equity-over-time h6, .middle-analytics-overall-heading {
     width: 100%;
+    text-align: center;
 }
 
 .analytics-footer {
