@@ -735,7 +735,13 @@ main * {
     display: flex;
     position: relative;
     top: 150px;
-    right: 130px;
+    /* left: 10px; */
+    /* right: 130px; */
+}
+
+.middle-analytics-overall {
+    position: relative;
+    left: 40px;
 }
 
 /* .middle-analytics-equity-over-time, .middle-analytics-overall {
@@ -744,7 +750,9 @@ main * {
 /* } */ 
 
 .middle-analytics-equity-over-time {
-    width: 90%;
+    position: relative;
+    width: 50%;
+    left: 40px;
 } 
 
 .top-phone-chat-div {
@@ -757,10 +765,6 @@ main * {
 
 .middle-analytics-equity-over-time h6 {
     width: 100%;
-}
-
-.middle-analytics-overall {
-    left: 270px;
 }
 
 .analytics-footer {
@@ -1160,6 +1164,9 @@ th {
     .middle-analytics-equity-over-time, .middle-analytics-overall {
         left: 10px;
     }
+    .middle-analytics-equity-over-time {
+        width: 100%;
+    }
     .download-compiled-report {
         top: 270px;
     }
@@ -1423,6 +1430,11 @@ th {
     .middle-analytics-equity-over-time, .middle-analytics-overall {
         left: 10px;
     }
+
+    .middle-analytics-equity-over-time {
+        width: 100%;
+    }
+
     .download-compiled-report {
         top: 150px;
     }

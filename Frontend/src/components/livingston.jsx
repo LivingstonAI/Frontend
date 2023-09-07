@@ -96,11 +96,6 @@ export default function ChatBotInterface() {
         }
     };
 
-    // Call the fetchUserConversations function to retrieve the conversations
-    useEffect(() => {
-        fetchUserConversations(); // Call fetchUserConversations when the component mounts
-    }, []);
-
 
     useEffect(() => {
         async function fetchUserData() {
@@ -290,7 +285,11 @@ export default function ChatBotInterface() {
         document.querySelector('.chatbot-div').style.display = 'none';
         document.querySelector('.phone-conversations-div').style.display = 'block';
     }
-        
+      // Call the fetchUserConversations function to retrieve the conversations
+      useEffect(() => {
+        fetchUserConversations(); // Call fetchUserConversations when the component mounts
+    }, []);    
+    // fetchUserConversations()
     return (
         <div>
              <div className="header">
