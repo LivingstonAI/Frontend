@@ -1,5 +1,6 @@
 import React, {useState} from "react";
 import { Link, useNavigate } from "react-router-dom";
+import SideNavs from "./side_navs";
 import Header from "./header";
 
 
@@ -34,6 +35,20 @@ export default function EnterNewTrade () {
     const [positionSizeError, setPositionSizeError] = useState("");
     const [emotionalBias, setEmotionalBias] = useState("");
     const [emotionalBiasError, setEmotionalBiasError] = useState("");
+
+    const fetchEmailDataFromAPI = async () => {
+        try {
+            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { USER_EMAIL }  = await response.json();
+            return USER_EMAIL;
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
 
     const handleAssetTraded = (event) => {
         setAssetTraded(event.target.value);
@@ -229,8 +244,10 @@ export default function EnterNewTrade () {
             }
         } 
 
+        const email = await fetchEmailDataFromAPI(); 
+
         // Send Data to Server
-        const registeredEmail = 'pythonappbrewery@gmail.com';
+        const registeredEmail = email;
         const data = {
             email: registeredEmail,
             asset: assetTraded,

@@ -10,10 +10,32 @@ export default function AllJournals() {
     const [journals, setJournals] = useState([]);
     console.log();
 
+    const fetchEmailDataFromAPI = async () => {
+        try {
+            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { USER_EMAIL }  = await response.json();
+            return USER_EMAIL;
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
+    // useEffect(() => {
+    //     (async () => {
+    //         // Call fetchUserConversations when the component mounts
+    //         setUSER_EMAIL(email);
+    //         console.log(email);
+    //     })();
+    // }, []);   
+
     useEffect(() => {
         async function fetchJournals() {
             try {
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${userEmail}/`);
+                const email = await fetchEmailDataFromAPI(); 
+                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${email}/`);
                 console.log(response);
                 const data = await response.json();
                 setJournals(data.journals);
@@ -45,7 +67,7 @@ export default function AllJournals() {
                             <div key={index}>
                                 {parse(`${journal.content}`)}
                                 <p className="journal-created-date">Saved On: {journal.created_date}</p>
-                                <Link className="btn btn-secondary" to={`/full_journal/${index+1}/`}>View Full Journal</Link>
+                                <Link className="btn btn-secondary" to={`/full_journal/${journal.id}/`}>View Full Journal</Link>
                                 <hr />
                             </div>
                         ))}

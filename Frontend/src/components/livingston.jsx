@@ -10,6 +10,7 @@ import {v4 as uuidv4} from 'uuid';
 
 
 export default function ChatBotInterface() {
+    const [USER_EMAIL, setUSER_EMAIL] = useState("");
     const {conversationID} = useParams();
     const [journals, setJournals] = useState([]);
     const userEmail = 'pythonappbrewery@gmail.com';
@@ -23,21 +24,17 @@ export default function ChatBotInterface() {
     const [isBlurred, setIsBlurred] = useState(false);
 
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
-    const [USER_EMAIL, setUSER_EMAIL] = useState([]);
 
     const fetchEmailDataFromAPI = async () => {
         try {
-        const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-        if (!response.ok) {
-            throw new Error("Network response was not ok");
-        }
-        const { USER_EMAIL }  = await response.json();
-        // Set the API key in state
-        setUSER_EMAIL(USER_EMAIL);
-        // console.log(`User Email is ${USER_EMAIL}`);
-        console.log(USER_EMAIL);
+            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { USER_EMAIL }  = await response.json();
+            return USER_EMAIL;
         } catch (error) {
-        console.error("Error fetching data:", error);
+            console.error("Error fetching data:", error);
         }
     };
 
@@ -56,10 +53,15 @@ export default function ChatBotInterface() {
         }
     };
 
+
     useEffect(() => {
-        fetchDataFromAPI();
-        fetchEmailDataFromAPI();
-    }, []);
+        async function fetchData() {
+            // await fetchEmailDataFromAPI(); // Fetch user email first
+            await fetchDataFromAPI(); // Then fetch other data
+        }
+        fetchData();
+    }, []);    
+
 
     const toggleBlur = () => {
         setIsBlurred(!isBlurred);
@@ -68,7 +70,8 @@ export default function ChatBotInterface() {
     // Inside your component
     const saveConversationToBackend = async (conversationData) => {
         try {
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/save_conversation/${USER_EMAIL}/${conversationID}/`, {
+            const email = await fetchEmailDataFromAPI(); 
+            const response = await fetch(`https://backend-production-c0ab.up.railway.app/save_conversation/${email}/${conversationID}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -81,11 +84,13 @@ export default function ChatBotInterface() {
         }
         
     };
-
     // Inside your component
     const fetchUserConversations = async () => {
+            console.log(`Fetching convs with email ${USER_EMAIL}`)
+
         try {
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/fetch_conversations/${USER_EMAIL}/`);
+            const email = await fetchEmailDataFromAPI(); 
+            const response = await fetch(`https://backend-production-c0ab.up.railway.app/fetch_conversations/${email}/`);
             const data = await response.json();
 
             const userConversations = data.conversations;
@@ -98,9 +103,11 @@ export default function ChatBotInterface() {
 
 
     useEffect(() => {
+
         async function fetchUserData() {
             try {
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/get_user_data/${USER_EMAIL}/`);
+                const email = await fetchEmailDataFromAPI(); 
+                const response = await fetch(`https://backend-production-c0ab.up.railway.app/get_user_data/${email}/`);
                 const data = await response.json();
                 setTellUsMore(data);
             } catch (error) {
@@ -112,32 +119,37 @@ export default function ChatBotInterface() {
 
 
     useEffect(() => {
+        
         async function fetchJournals() {
             try {
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${USER_EMAIL}/`);
+                const email = await fetchEmailDataFromAPI(); 
+                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${email}/`);
                 const data = await response.json();
                 setJournals(data.journals);
             } catch (error) {
                 console.error('Error fetching journals:', error);
-            }
         }
+    }
         fetchJournals();
     }, []);
 
     const [trades, setTrades] = useState([]);
 
     useEffect(() => {
+        
         const fetchTrades = async () => {
             try {
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_trades/${USER_EMAIL}/`);
+                const email = await fetchEmailDataFromAPI(); 
+                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_trades/${email}/`);
                 const parsedData = await response.json();
                 setTrades(parsedData);
                
             } catch (error) {
                 console.error('Error fetching trades:', error);
-            }
-        };
-        fetchTrades();
+            
+    };
+}
+    fetchTrades();
     }, []);
 
     const [messages, setMessages] = useState([
@@ -169,9 +181,9 @@ export default function ChatBotInterface() {
         let apiMessages = ChatMessages.map((messageObject) => {
             let role = "";
             if (messageObject.sender === 'ChatGPT') {
-                 role="assistant"
+                 role="assistant";
             } else {
-                role="user"
+                role="user";
             }
             return { role: role,  content: messageObject.message }
         });
@@ -229,7 +241,7 @@ export default function ChatBotInterface() {
     };
 
     const displayChat = async (chatID) => {
-        setChatID(chatID);
+        
         try {
             const response = await fetch(`https://backend-production-c0ab.up.railway.app/fetch_conversation/${chatID}/`);
             const data = await response.json();
@@ -260,7 +272,7 @@ export default function ChatBotInterface() {
             console.error('Error deleting conversation:', error);
         }
     };
-
+    
     useEffect(() => {
         if (messages.length > 1) {
             saveConversationToBackend(messages);
@@ -270,6 +282,7 @@ export default function ChatBotInterface() {
     }, [messages]);
         
     useEffect(() => {
+        setChatID(chatID);
         displayChat(conversationID);
     }, [])
 
@@ -284,11 +297,15 @@ export default function ChatBotInterface() {
     const viewConversations = () =>  {
         document.querySelector('.chatbot-div').style.display = 'none';
         document.querySelector('.phone-conversations-div').style.display = 'block';
+        // fetchUserConversations();
     }
+
       // Call the fetchUserConversations function to retrieve the conversations
       useEffect(() => {
         fetchUserConversations(); // Call fetchUserConversations when the component mounts
     }, []);    
+
+
     return (
         <div>
              <div className="header">

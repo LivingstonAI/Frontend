@@ -14,10 +14,24 @@ export default function TradingHistory() {
     const [analyticsData, setAnalyticsData] = useState({});
     const chartRef = useRef(null);
 
+    const fetchEmailDataFromAPI = async () => {
+        try {
+            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { USER_EMAIL }  = await response.json();
+            return USER_EMAIL;
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(`https://backend-production-c0ab.up.railway.app/user_overview/pythonappbrewery@gmail.com/`);
+                const email = await fetchEmailDataFromAPI(); 
+                const response = await axios.get(`https://backend-production-c0ab.up.railway.app/user_overview/${email}/`);
                 setAnalyticsData(response.data);
             } catch (error) {
                 console.error('Error fetching analytics data:', error);
