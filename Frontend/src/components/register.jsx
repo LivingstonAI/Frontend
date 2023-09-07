@@ -37,9 +37,6 @@ export default function Register() {
     }
     };
 
-    console.log('Yo!!!!!!!')
-
-
   // Form submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();

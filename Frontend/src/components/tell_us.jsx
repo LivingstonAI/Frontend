@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {v4 as uuidv4} from 'uuid';
 
 
-// let assetArray = []
 export default function TellUsMore() {
     const navigate = useNavigate();
     const [selectedAssets, setSelectedAssets] = useState([]);
@@ -13,7 +13,7 @@ export default function TellUsMore() {
     const [expectedBenefits, setExpectedBenefits] = useState("");
     let [finalData, setFinalData] = useState([]);
     const [userPrimaryKey, setUserPrimaryKey] = useState(null);
-
+    const uniqueID = uuidv4();
 
     const handleAssetSelect = (e) => {
         const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
@@ -99,10 +99,6 @@ export default function TellUsMore() {
     
 
         setFinalData([tradingExperience, [assetArray], initialCapital, tradingGoals, expectedBenefits]);
-        // Get the username from local storage
-
-        // Use the username as needed
-        // console.log("Registered username:", registeredEmail);
 
         try {
             const response = await fetch("https://backend-production-c0ab.up.railway.app/tell_us_more/create/", {
@@ -114,9 +110,8 @@ export default function TellUsMore() {
                 body: JSON.stringify(requestData),
             });
             if (response.status === 201) {
-                console.log("Data saved successfully!");
                 // Navigate to the next page or show a success message
-                navigate('/')
+                navigate(`/conversation/${uniqueID}`);
             } else {
                 console.error("Data save failed.");
             }
