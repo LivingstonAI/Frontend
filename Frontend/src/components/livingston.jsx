@@ -304,7 +304,7 @@ export default function ChatBotInterface() {
                     <br />
             </div>
             <div className="top-phone-chat-div">
-                <i className="bi bi-brush clear-conversation-icon-phone" onClick={handleClearConversation}></i>
+                <i className="bi bi-brush clear-conversation-icon-phone" onClick={newChat}></i>
                 <button type="button" className="btn btn-light" onClick={viewConversations}>View Conversations</button>
             </div>
              <div className="phone-conversations-div">
