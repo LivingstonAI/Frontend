@@ -60,7 +60,9 @@ export default function TradingHistory() {
                 },
             });
         }
+        console.log(analyticsData);
     }, [analyticsData]);
+
 
 
     return(
@@ -85,7 +87,7 @@ export default function TradingHistory() {
 
                     <div>
                         <h6>ROI</h6>
-                        <p>{analyticsData.roi >= 0 ? `+${analyticsData.roi.toFixed(2)}%` : `-${analyticsData.roi.toFixed(2)}%`}</p>
+                        <p>{analyticsData.roi && analyticsData.roi >= 0 ? `+${analyticsData.roi}%` : `-${analyticsData.roi}%`}</p>
                     </div>
 
                 </div>

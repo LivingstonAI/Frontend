@@ -1112,6 +1112,11 @@ th {
         left: 0px;
         top: 50px;
     }
+
+    .whole-trade-analysis-div {
+        align-items: center;
+        left: -10px;        
+    }
     
     .all-trades-header {
         left: 0px;  
