@@ -82,12 +82,12 @@ export default function TradingHistory() {
                     
                     <div>
                         <h6>Profit</h6>
-                        <p>{analyticsData.profit >= 0 ? `+R${analyticsData.profit}` : `-R${analyticsData.profit}`}</p>
+                        <p>{analyticsData.profit >= 0 ? `+R${analyticsData.profit}` : `R${analyticsData.profit}`}</p>
                     </div>
 
                     <div>
                         <h6>ROI</h6>
-                        <p>{analyticsData.roi && analyticsData.roi >= 0 ? `+${analyticsData.roi}%` : `-${analyticsData.roi}%`}</p>
+                        <p>{analyticsData.roi && analyticsData.roi >= 0 ? `+${analyticsData.roi}%` : `${analyticsData.roi}%`}</p>
                     </div>
 
                 </div>
