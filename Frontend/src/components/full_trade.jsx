@@ -8,11 +8,12 @@ import SideNavs from "./side_navs";
 export default function FullTrade() {
     const { tradeId } = useParams();
     const [tradeDetails, setTradeDetails] = useState({});
+    const baseURL = 'https://backend-production-c0ab.up.railway.app/';
 
     useEffect(() => {
         const fetchTradeDetails = async () => {
             try {
-                const response = await axios.get(`https://backend-production-c0ab.up.railway.app/full_trade/${tradeId}/`);
+                const response = await axios.get(`${baseURL}/full_trade/${tradeId}/`);
                 setTradeDetails(response.data);
             } catch (error) {
                 console.error('Error fetching trade details:', error);

@@ -15,14 +15,15 @@ export default function Register() {
   const [passwordError, setPasswordError] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [finalData, setFinalData] = useState([])
+  const [finalData, setFinalData] = useState([]);
+  const baseURL = 'https://backend-production-c0ab.up.railway.app';
   
 
   // ... other validation errors
 
   const checkEmailExists = async (email) => {
     try {
-        const response = await fetch('https://backend-production-c0ab.up.railway.app/check_email/', {
+        const response = await fetch(`${baseURL}/check_email/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -90,7 +91,7 @@ export default function Register() {
         password: password
     };
     try {
-        const response = await fetch('https://backend-production-c0ab.up.railway.app/register/', {
+        const response = await fetch(`${baseURL}/register/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

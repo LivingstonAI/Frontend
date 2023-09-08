@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SideNavs from "./side_navs";
 import Header from "./header";
+import Cookies from 'js-cookie';
 
 
 export default function EnterNewTrade () {
@@ -35,18 +36,10 @@ export default function EnterNewTrade () {
     const [positionSizeError, setPositionSizeError] = useState("");
     const [emotionalBias, setEmotionalBias] = useState("");
     const [emotionalBiasError, setEmotionalBiasError] = useState("");
+    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
 
-    const fetchEmailDataFromAPI = async () => {
-        try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { USER_EMAIL }  = await response.json();
-            return USER_EMAIL;
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
+    const fetchEmailDataFromAPI = () => {
+       return Cookies.get('email');
     };
 
 
@@ -244,7 +237,7 @@ export default function EnterNewTrade () {
             }
         } 
 
-        const email = await fetchEmailDataFromAPI(); 
+        const email = fetchEmailDataFromAPI(); 
 
         // Send Data to Server
         const registeredEmail = email;
@@ -268,7 +261,7 @@ export default function EnterNewTrade () {
         }
         console.log(data);
         try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/new_trade/", {
+            const response = await fetch(`${baseURL}/new_trade/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

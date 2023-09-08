@@ -4,23 +4,17 @@ import SideNavs from "./side_navs";
 import { Link } from "react-router-dom";
 import parse from 'html-react-parser';
 import LiveClock from "./view_clock";
+import Cookies from 'js-cookie';
 
 export default function AllJournals() {
     const userEmail = 'pythonappbrewery@gmail.com';
     const [journals, setJournals] = useState([]);
     console.log();
+    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
 
-    const fetchEmailDataFromAPI = async () => {
-        try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { USER_EMAIL }  = await response.json();
-            return USER_EMAIL;
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
+
+    const fetchEmailDataFromAPI = () => {
+       return Cookies.get('email');
     };
 
     // useEffect(() => {
@@ -34,9 +28,10 @@ export default function AllJournals() {
     useEffect(() => {
         async function fetchJournals() {
             try {
-                const email = await fetchEmailDataFromAPI(); 
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${email}/`);
-                console.log(response);
+                const email = fetchEmailDataFromAPI(); 
+                console.log(email);
+                const response = await fetch(`${baseURL}/all_journals/${email}/`);
+                // console.log(response);
                 const data = await response.json();
                 setJournals(data.journals);
             } catch (error) {

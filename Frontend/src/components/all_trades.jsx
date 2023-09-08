@@ -4,27 +4,21 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import LiveClock from "./view_clock";
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 export default function AllTrades() {
     const navigate = useNavigate();
+    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
 
-    const registeredEmail = 'pythonappbrewery@gmail.com';
+
+    // const registeredEmail = 'pythonappbrewery@gmail.com';
 
     const [trades, setTrades] = useState([]);
     // Calculate total ROI
     const totalROI = trades.reduce((total, trade) => total + trade.fields.roi, 0);
 
-    const fetchEmailDataFromAPI = async () => {
-        try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { USER_EMAIL }  = await response.json();
-            return USER_EMAIL;
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
+    const fetchEmailDataFromAPI = () => {
+       return Cookies.get('email');
     };
 
 
@@ -32,8 +26,8 @@ export default function AllTrades() {
     useEffect(() => {
         const fetchTrades = async () => {
             try {
-                const email = await fetchEmailDataFromAPI(); 
-                const response = await axios.get(`https://backend-production-c0ab.up.railway.app/all_trades/${email}/`);
+                const email = fetchEmailDataFromAPI(); 
+                const response = await axios.get(`${baseURL}/all_trades/${email}/`);
                 const parsedData = JSON.parse(response.data.trades); // Parse the JSON string
                 setTrades(parsedData);
                

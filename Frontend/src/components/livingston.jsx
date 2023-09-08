@@ -7,6 +7,7 @@ import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import '@chatscope/chat-ui-kit-react';
 import {MainContainer, ChatContainer, MessageList, Message, MessageInput, TypingIndicator} from '@chatscope/chat-ui-kit-react';
 import {v4 as uuidv4} from 'uuid';
+import Cookies from 'js-cookie';
 
 
 export default function ChatBotInterface() {
@@ -24,24 +25,16 @@ export default function ChatBotInterface() {
     const [isBlurred, setIsBlurred] = useState(false);
 
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const baseURL = 'http://127.0.0.1:8000/';
 
     const fetchEmailDataFromAPI = async () => {
-        try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { USER_EMAIL }  = await response.json();
-            return USER_EMAIL;
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
+        return Cookies.get('email');
     };
 
     // Function to fetch the API key
     const fetchDataFromAPI = async () => {
         try {
-        const response = await fetch("https://backend-production-c0ab.up.railway.app/get_openai_key"); // Assuming your API endpoint is at '/get_openai_key'
+        const response = await fetch(`${baseURL}/get_openai_key`); // Assuming your API endpoint is at '/get_openai_key'
         if (!response.ok) {
             throw new Error("Network response was not ok");
         }
@@ -71,7 +64,7 @@ export default function ChatBotInterface() {
     const saveConversationToBackend = async (conversationData) => {
         try {
             const email = await fetchEmailDataFromAPI(); 
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/save_conversation/${email}/${conversationID}/`, {
+            const response = await fetch(`${baseURL}/save_conversation/${email}/${conversationID}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -90,7 +83,7 @@ export default function ChatBotInterface() {
 
         try {
             const email = await fetchEmailDataFromAPI(); 
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/fetch_conversations/${email}/`);
+            const response = await fetch(`${baseURL}/fetch_conversations/${email}/`);
             const data = await response.json();
 
             const userConversations = data.conversations;
@@ -107,7 +100,7 @@ export default function ChatBotInterface() {
         async function fetchUserData() {
             try {
                 const email = await fetchEmailDataFromAPI(); 
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/get_user_data/${email}/`);
+                const response = await fetch(`${baseURL}/get_user_data/${email}/`);
                 const data = await response.json();
                 setTellUsMore(data);
             } catch (error) {
@@ -122,8 +115,8 @@ export default function ChatBotInterface() {
         
         async function fetchJournals() {
             try {
-                const email = await fetchEmailDataFromAPI(); 
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_journals/${email}/`);
+                const email = fetchEmailDataFromAPI(); 
+                const response = await fetch(`${baseURL}/all_journals/${email}/`);
                 const data = await response.json();
                 setJournals(data.journals);
             } catch (error) {
@@ -140,7 +133,7 @@ export default function ChatBotInterface() {
         const fetchTrades = async () => {
             try {
                 const email = await fetchEmailDataFromAPI(); 
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/all_trades/${email}/`);
+                const response = await fetch(`${baseURL}/all_trades/${email}/`);
                 const parsedData = await response.json();
                 setTrades(parsedData);
                
@@ -243,7 +236,7 @@ export default function ChatBotInterface() {
     const displayChat = async (chatID) => {
         
         try {
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/fetch_conversation/${chatID}/`);
+            const response = await fetch(`${baseURL}/fetch_conversation/${chatID}/`);
             const data = await response.json();
             const conversationArray = JSON.parse(data.conversations.conversation);
             // Set the parsed conversation data to your messages state
@@ -257,7 +250,7 @@ export default function ChatBotInterface() {
 
     const deleteConversation = async (conversationID) => {
         try {
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/delete_conversation/${conversationID}/`, {
+            const response = await fetch(`${baseURL}/delete_conversation/${conversationID}/`, {
                 method: 'POST',
             });
 

@@ -7,31 +7,25 @@ import axios from "axios";
 import { Line } from "react-chartjs-2";
 import { useRef } from "react";
 import { Chart } from "chart.js/auto"; // Import from "chart.js/auto" for correct import
+import Cookies from 'js-cookie';
 
 
 export default function TradingHistory() {
 
     const [analyticsData, setAnalyticsData] = useState({});
     const chartRef = useRef(null);
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
+
 
     const fetchEmailDataFromAPI = async () => {
-        try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { USER_EMAIL }  = await response.json();
-            return USER_EMAIL;
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
+        return Cookies.get('email');
     };
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const email = await fetchEmailDataFromAPI(); 
-                const response = await axios.get(`https://backend-production-c0ab.up.railway.app/user_overview/${email}/`);
+                const email = fetchEmailDataFromAPI(); 
+                const response = await axios.get(`${baseURL}/user_overview/${email}/`);
                 setAnalyticsData(response.data);
             } catch (error) {
                 console.error('Error fetching analytics data:', error);

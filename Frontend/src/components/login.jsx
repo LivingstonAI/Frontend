@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {v4 as uuidv4} from 'uuid';
+import Cookies from 'js-cookie';
 
 
 export default function Login() {
@@ -12,6 +13,7 @@ export default function Login() {
     const [finalData, setFinalData] = useState([]);
     const [error, setError] = useState("");
     const uniqueID = uuidv4();
+    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -38,7 +40,7 @@ export default function Login() {
             password: password
         };
         try {
-            const response = await fetch('https://backend-production-c0ab.up.railway.app/login/', {
+            const response = await fetch(`${baseURL}/login/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -48,6 +50,8 @@ export default function Login() {
     
             if (response.status === 200) {
                 console.log("Login successful");
+                const { email } = await response.json();
+                Cookies.set('email', email);
                 navigate(`/conversation/${uniqueID}`);
                 // Handle successful login, e.g., redirect or display a message
             } else {

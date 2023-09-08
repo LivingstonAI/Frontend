@@ -10,11 +10,12 @@ export default function ViewJournal() {
     const { journalId } = useParams();
     const [journalContent, setJournalContent] = useState("");
     const [journalDate, setJournalDate] = useState("");
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
     useEffect(() => {
         async function fetchJournalContent() {
             try {
-                const response = await fetch(`https://backend-production-c0ab.up.railway.app/view_journal/${journalId}/`);
+                const response = await fetch(`${baseURL}/view_journal/${journalId}/`);
                 const data = await response.json();
                 setJournalContent(data.journal.content);
                 setJournalDate(data.journal.created_date)

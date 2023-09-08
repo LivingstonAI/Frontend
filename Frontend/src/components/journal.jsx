@@ -5,6 +5,7 @@ import LiveClock from "./view_clock";
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 // import { Link } from "react-router-dom";
+import Cookies from 'js-cookie';
 
 
 export default function Journal() {
@@ -12,18 +13,10 @@ export default function Journal() {
     const [dataSaved, setDataSaved] = useState("");
     const [editorError, setEditorError] = useState("");
     const userEmail = 'pythonappbrewery@gmail.com';
+    const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
-    const fetchEmailDataFromAPI = async () => {
-        try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/fetch_user_email"); // Assuming your API endpoint is at '/get_openai_key'
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { USER_EMAIL }  = await response.json();
-            return USER_EMAIL;
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
+    const fetchEmailDataFromAPI = () => {
+        return Cookies.get('email');
     };
 
     const handleEditorChange = (event, editor) => {
@@ -41,8 +34,8 @@ export default function Journal() {
         }
 
         try {
-            const email = await fetchEmailDataFromAPI(); 
-            const response = await fetch(`https://backend-production-c0ab.up.railway.app/save_journal/${email}/`, {
+            const email = fetchEmailDataFromAPI(); 
+            const response = await fetch(`${baseURL}/save_journal/${email}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
