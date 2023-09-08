@@ -15,7 +15,7 @@ export default function SideNavs() {
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i> ChatBot</p></button></Link>
                 {/* <Link to="#" className="side-nav"><p><i className="bi bi-book"></i>Books</p></Link> */}
                 <Link to="/all_trades" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-info-circle-fill"></i> All Trades</p></button></Link>
-                <Link to="https://www.forexfactory.com/" className="side-nav" target="_blank"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-newspaper"></i> Upcoming News Events</p></button></Link>
+                <Link to="/major_news" className="side-nav" target="_blank"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-newspaper"></i> Upcoming News Events</p></button></Link>
                 {/* <Link to="/payment" className="side-nav"><i class="bi bi-credit-card-fill"></i>Market Dictionary</Link> */}
         </div>
         <div className="side-navs-cellphone">
@@ -25,7 +25,7 @@ export default function SideNavs() {
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><i className="bi bi-robot"></i></Link>
                 {/* <Link to="#" className="side-nav"><i className="bi bi-book"></i></Link> */}
                 <Link to="/all_trades" className="side-nav"><i class="bi bi-info-circle-fill"></i></Link>
-                <Link to="https://www.forexfactory.com/" className="side-nav"><i className="bi bi-newspaper"></i></Link>
+                <Link to="/major_news" className="side-nav"><i className="bi bi-newspaper"></i></Link>
         </div>
         </div>
     )
