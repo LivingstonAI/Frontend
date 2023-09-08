@@ -242,6 +242,8 @@ main * {
   }
 }
 
+headshot
+
 #introduction,
 #more {
   align-items: center;
@@ -306,6 +308,7 @@ main * {
     background-color: #f0f;
     border-radius: 50%;
     height: 100px;
+    overflow: hidden;
     width: 100px;
   }
   

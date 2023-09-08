@@ -9,6 +9,7 @@ import BalanceScaleImage from '../images/bubble-gum-scales-of-themis.png';
 import User1 from '../images/Seikano.jpg';
 import User2 from '../images/Refentse.jpg';
 import User3 from '../images/Q.jpg';
+import User4 from '../images/Screenshot_20230908_095139.jpg'
 import SnowAILogo from '../images/snowAI (1).png';
 
 
@@ -179,7 +180,7 @@ export default function LandingPage() {
               <blockquote>
                 It's a much needed help. It helps you keep track of your performance.
               </blockquote>
-              <div className="headshot img-cover"></div>
+              <div className="headshot img-cover"><img src={User4} alt="user2" className="user" /></div>
               <cite><em>M. Motingwe</em></cite>
             </div>
             <div className="review hidden" ref={(el) => hiddenElementsRef.current.push(el)}>
