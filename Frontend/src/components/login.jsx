@@ -56,7 +56,6 @@ export default function Login() {
                 // Handle successful login, e.g., redirect or display a message
             } else {
                 const responseData = await response.json();
-                console.log("Login failed:", responseData);
                 setError("Invalid Email or Password")
                 // Handle login failure, e.g., display an error message
             }
@@ -66,7 +65,6 @@ export default function Login() {
     };
 
     useEffect(() => {
-        console.log(`Final Data is ${finalData}`);
     }, [finalData]);
 
 
