@@ -840,6 +840,14 @@ main * {
 
 /* News Styling */
 
+.yellow-impact,
+.red-impact,
+.orange-impact {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+}
+
 .yellow-impact {
     background-color: yellow;
 }

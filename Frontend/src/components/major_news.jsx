@@ -86,97 +86,97 @@ export default function MajorNews() {
                                 <td>1:05am</td>
                                 <td>USD</td>
                                 <td>FOMC Member Logan Speaks</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:30am</td>
                                 <td>JPY</td>
                                 <td>Average Cash Earnings y/y</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
                                 <td>Bank Lending y/y</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
                                 <td>Current Account</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
                                 <td>Final GDP Price Index y/y</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
                                 <td>Final GDP q/q</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>7:00am</td>
                                 <td>JPY</td>
                                 <td>Economy Watchers Sentiment</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>8:00am</td>
                                 <td>EUR</td>
                                 <td>German Final CPI m/m</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>8:45am</td>
                                 <td>EUR</td>
                                 <td>French Industrial Production m/m</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>Tentative</td>
                                 <td>EUR</td>
                                 <td>EU Economic Forecasts</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>2:30pm</td>
                                 <td>CAD</td>
                                 <td>Employment Change</td>
-                                <td className="red-impact"></td>
+                                <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>2:30pm</td>
                                 <td>CAD</td>
                                 <td>Unemployment Rate</td>
-                                <td className="red-impact"></td>
+                                <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>2:30pm</td>
                                 <td>CAD</td>
                                 <td>Capacity Utilization Rate</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>3:00pm</td>
                                 <td>USD</td>
                                 <td>FOMC Member Barr Speaks</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>4:00pm</td>
                                 <td>USD</td>
                                 <td>Final Wholesale Inventories m/m</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>9:00pm</td>
                                 <td>USD</td>
                                 <td>Consumer Credit m/m</td>
-                                <td className="yellow-impact"></td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             {/* {newsData &&
                                 Object.keys(newsData).map((time, index) => {
