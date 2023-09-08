@@ -10,7 +10,7 @@ export default function AllJournals() {
     const userEmail = 'pythonappbrewery@gmail.com';
     const [journals, setJournals] = useState([]);
     console.log();
-    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
 
     const fetchEmailDataFromAPI = () => {

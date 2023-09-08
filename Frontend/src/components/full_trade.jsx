@@ -8,7 +8,7 @@ import SideNavs from "./side_navs";
 export default function FullTrade() {
     const { tradeId } = useParams();
     const [tradeDetails, setTradeDetails] = useState({});
-    const baseURL = 'https://backend-production-c0ab.up.railway.app/';
+    const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
         const fetchTradeDetails = async () => {

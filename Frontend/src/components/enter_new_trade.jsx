@@ -36,7 +36,7 @@ export default function EnterNewTrade () {
     const [positionSizeError, setPositionSizeError] = useState("");
     const [emotionalBias, setEmotionalBias] = useState("");
     const [emotionalBiasError, setEmotionalBiasError] = useState("");
-    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
     const fetchEmailDataFromAPI = () => {
        return Cookies.get('email');

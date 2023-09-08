@@ -8,7 +8,7 @@ import Cookies from 'js-cookie';
 
 export default function AllTrades() {
     const navigate = useNavigate();
-    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
 
     // const registeredEmail = 'pythonappbrewery@gmail.com';

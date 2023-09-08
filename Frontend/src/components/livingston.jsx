@@ -25,7 +25,7 @@ export default function ChatBotInterface() {
     const [isBlurred, setIsBlurred] = useState(false);
 
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
-    const baseURL = 'http://127.0.0.1:8000/';
+    const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
     const fetchEmailDataFromAPI = async () => {
         return Cookies.get('email');

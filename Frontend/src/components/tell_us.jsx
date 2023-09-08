@@ -14,6 +14,7 @@ export default function TellUsMore() {
     let [finalData, setFinalData] = useState([]);
     const [userPrimaryKey, setUserPrimaryKey] = useState(null);
     const uniqueID = uuidv4();
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
     const handleAssetSelect = (e) => {
         const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
@@ -101,7 +102,7 @@ export default function TellUsMore() {
         setFinalData([tradingExperience, [assetArray], initialCapital, tradingGoals, expectedBenefits]);
 
         try {
-            const response = await fetch("https://backend-production-c0ab.up.railway.app/tell_us_more/create/", {
+            const response = await fetch(`${baseURL}/tell_us_more/create/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

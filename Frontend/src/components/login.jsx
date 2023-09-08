@@ -13,7 +13,7 @@ export default function Login() {
     const [finalData, setFinalData] = useState([]);
     const [error, setError] = useState("");
     const uniqueID = uuidv4();
-    const baseURL = 'https://backend-production-c0ab.up.railway.app/'
+    const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
     const handleSubmit = async (e) => {
         e.preventDefault();
