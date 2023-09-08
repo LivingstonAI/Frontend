@@ -838,6 +838,22 @@ main * {
 
 
 
+/* News Styling */
+
+.yellow-impact {
+    background-color: yellow;
+}
+
+.red-impact {
+    background-color: red;
+}
+
+.orange-impact {
+    background-color: orange;
+}
+
+
+
 /* Personal Journal CSS */
 .personal-journal-ckeditor {
     position: absolute;
