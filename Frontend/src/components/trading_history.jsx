@@ -17,7 +17,7 @@ export default function TradingHistory() {
     const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
 
-    const fetchEmailDataFromAPI = async () => {
+    const fetchEmailDataFromAPI = () => {
         return Cookies.get('email');
     };
 
