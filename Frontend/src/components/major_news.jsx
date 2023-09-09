@@ -83,30 +83,30 @@ export default function MajorNews() {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>1:05am</td>
-                                <td>USD</td>
-                                <td>FOMC Member Logan Speaks</td>
-                                <td><div className="yellow-impact"></div></td>
+                                <td>3:30am</td>
+                                <td>CNY</td>
+                                <td>CPI y/y</td>
+                                <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>1:30am</td>
-                                <td>JPY</td>
-                                <td>Average Cash Earnings y/y</td>
-                                <td><div className="yellow-impact"></div></td>
+                                <td>3:30am</td>
+                                <td>CNY</td>
+                                <td>PPI y/y</td>
+                                <td><div className="orange-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>1:50am</td>
-                                <td>JPY</td>
-                                <td>Bank Lending y/y</td>
-                                <td><div className="yellow-impact"></div></td>
+                                <td>Day 1</td>
+                                <td>ALL</td>
+                                <td>G20 Meetings</td>
+                                <td><div className="orange-impact"></div></td>
                             </tr>
-                            <tr>
+                            {/* <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
                                 <td>Current Account</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
+                            </tr> */}
+                            {/* <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
                                 <td>Final GDP Price Index y/y</td>
@@ -117,8 +117,8 @@ export default function MajorNews() {
                                 <td>JPY</td>
                                 <td>Final GDP q/q</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
+                            </tr> */}
+                            {/* <tr>
                                 <td>7:00am</td>
                                 <td>JPY</td>
                                 <td>Economy Watchers Sentiment</td>
@@ -129,8 +129,8 @@ export default function MajorNews() {
                                 <td>EUR</td>
                                 <td>German Final CPI m/m</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
+                            </tr> */}
+                            {/* <tr>
                                 <td>8:45am</td>
                                 <td>EUR</td>
                                 <td>French Industrial Production m/m</td>
@@ -141,8 +141,8 @@ export default function MajorNews() {
                                 <td>EUR</td>
                                 <td>EU Economic Forecasts</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
+                            </tr> */}
+                            {/* <tr>
                                 <td>2:30pm</td>
                                 <td>CAD</td>
                                 <td>Employment Change</td>
@@ -177,7 +177,7 @@ export default function MajorNews() {
                                 <td>USD</td>
                                 <td>Consumer Credit m/m</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
+                            </tr> */}
                             {/* {newsData &&
                                 Object.keys(newsData).map((time, index) => {
                                     try {
