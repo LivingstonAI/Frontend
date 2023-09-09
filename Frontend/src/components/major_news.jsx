@@ -82,7 +82,7 @@ export default function MajorNews() {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
+                            {/* <tr>
                                 <td>3:30am</td>
                                 <td>CNY</td>
                                 <td>CPI y/y</td>
@@ -93,9 +93,9 @@ export default function MajorNews() {
                                 <td>CNY</td>
                                 <td>PPI y/y</td>
                                 <td><div className="orange-impact"></div></td>
-                            </tr>
+                            </tr> */}
                             <tr>
-                                <td>Day 1</td>
+                                <td>Day 2</td>
                                 <td>ALL</td>
                                 <td>G20 Meetings</td>
                                 <td><div className="orange-impact"></div></td>
