@@ -82,42 +82,42 @@ export default function MajorNews() {
                             </tr>
                         </thead>
                         <tbody>
-                            {/* <tr>
-                                <td>3:30am</td>
+                            <tr>
+                                <td>1:50am</td>
+                                <td>JPY</td>
+                                <td>M2 Money Stock y/y</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>8:00am</td>
+                                <td>JPY</td>
+                                <td>Prelim Machine Tool Orders y/y</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>10:00am</td>
+                                <td>EUR</td>
+                                <td>Italian Industrial Production m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>10:00am</td>
+                                <td>GBP</td>
+                                <td>MPC Member Pill Speaks</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>11th-15th</td>
                                 <td>CNY</td>
-                                <td>CPI y/y</td>
-                                <td><div className="red-impact"></div></td>
+                                <td>New Loans</td>
+                                <td><div className="orange-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>3:30am</td>
+                                <td>11th-15th</td>
                                 <td>CNY</td>
-                                <td>PPI y/y</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr> */}
-                            <tr>
-                                <td>Day 2</td>
-                                <td>ALL</td>
-                                <td>G20 Meetings</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            {/* <tr>
-                                <td>1:50am</td>
-                                <td>JPY</td>
-                                <td>Current Account</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr> */}
-                            {/* <tr>
-                                <td>1:50am</td>
-                                <td>JPY</td>
-                                <td>Final GDP Price Index y/y</td>
+                                <td>M2 Money Supply y/y</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
-                            <tr>
-                                <td>1:50am</td>
-                                <td>JPY</td>
-                                <td>Final GDP q/q</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr> */}
                             {/* <tr>
                                 <td>7:00am</td>
                                 <td>JPY</td>
