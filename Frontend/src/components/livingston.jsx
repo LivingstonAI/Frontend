@@ -297,7 +297,6 @@ export default function ChatBotInterface() {
         fetchUserConversations(); // Call fetchUserConversations when the component mounts
     }, []);    
 
-
     return (
         <div>
              <div className="header">
