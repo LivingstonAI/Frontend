@@ -55,11 +55,6 @@ export default function ChatBotInterface() {
         fetchData();
     }, []);    
 
-
-    const toggleBlur = () => {
-        setIsBlurred(!isBlurred);
-    };
-
     // Inside your component
     const saveConversationToBackend = async (conversationData) => {
         try {

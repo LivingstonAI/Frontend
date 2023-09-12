@@ -20,6 +20,7 @@ import MajorNews from './components/major_news';
 import ChatBotInterface from './components/livingston';
 // import Payment from './components/payment';
 import LandingPage from './components/landing_page';
+import ModifyPersonalInfo from './components/personal_info';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
         <Route path="/full_journal/:journalId" element={<ViewJournal />} />
         <Route path="/major_news" element={<MajorNews />} />
         <Route path="/conversation/:conversationID" element={<ChatBotInterface />} />
+        <Route path="personal_info" element={<ModifyPersonalInfo />} />
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
     </Routes>

@@ -1062,6 +1062,41 @@ th {
     width: 100%;
 }
 
+/* Personal Info CSS */
+
+.personal-info {
+    width: 50%;
+    height: 110%;
+    margin: 50px;
+    /* outline: solid 1px black; */
+    display: flex;
+    justify-content: center;
+    /* align-items: center; */
+    flex-direction: column;
+    margin-left: 25%;
+}
+
+.selected-assets {
+    max-width: 100%; /* Set a maximum width for the selected-assets div */
+    overflow: auto; /* Add horizontal scroll if necessary */
+}
+
+.personal-info-title {
+    text-align: center;
+}
+
+.personal-info-link {
+    position: relative;
+    color: white;
+    cursor: pointer;
+    left: 30px;
+    top: -5px;
+}
+
+.personal-info-link-icon {
+    font-size: x-large;
+}
+
 /* CellPhone CSS */
 @media screen and (max-width: 768px) {
     .register-div, .login-div, .tell-us-div {
@@ -1348,6 +1383,13 @@ th {
     .ai-div {
         top: 0px;
     }
+    /* Personal Info CSS */
+    .personal-info {
+        width: 100%;
+        margin: 0px;
+        margin-top: 50px;
+        margin-left: 0px;
+    }
 }
 
 
@@ -1564,6 +1606,13 @@ th {
     .news-event{
         left: 0px;
         width: 100%;
+    }
+    /* Personal Info CSS */
+    .personal-info {
+        width: 100%;
+        margin: 0px;
+        margin-top: 50px;
+        margin-left: 0px;
     }
   }
 

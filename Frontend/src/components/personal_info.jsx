@@ -1,20 +1,55 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {v4 as uuidv4} from 'uuid';
+import React, { useEffect, useState } from "react";
+import Header from "./header";
+import SideNavs from "./side_navs";
+import Cookies from 'js-cookie';
 
 
-export default function TellUsMore() {
-    const navigate = useNavigate();
+
+export default function ModifyPersonalInfo() {
+
+    const fetchEmailDataFromAPI = () => {
+        return Cookies.get('email');
+    };
+
+    const [tradingExperience, setTradingExperience] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
     let [assetArray, setAssetArray] = useState([]);
-    const [tradingExperience, setTradingExperience] = useState("");
     const [initialCapital, setInitialCapital] = useState("");
     const [tradingGoals, setTradingGoals] = useState("");
     const [expectedBenefits, setExpectedBenefits] = useState("");
+    const [tellUsMore, setTellUsMore] = useState([]);
+    let [tradingExp, setTradingExp] = useState("")
+    let [mainAssets, setMainAssets] = useState([]);
+    let [initialCap, setInitialCap] = useState(0);
+    let [goals, setGoals] = useState("");
+    let [benefits, setBenefits] = useState("");
     let [finalData, setFinalData] = useState([]);
-    const [userPrimaryKey, setUserPrimaryKey] = useState(null);
-    const uniqueID = uuidv4();
-    const baseURL = 'https://backend-production-c0ab.up.railway.app'
+    const baseURL = 'https://backend-production-c0ab.up.railway.app';
+
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const email = fetchEmailDataFromAPI(); 
+                const response = await fetch(`${baseURL}/get_user_data/${email}/`);
+                const data = await response.json();
+                setTellUsMore(data);
+                // console.log(data);
+                setTradingExp(data.trading_experience);
+                const mainAssets = data.main_assets.split(',').map(asset => asset.trim());
+                setAssetArray(mainAssets);
+                setInitialCap(data.initial_capital);
+                setGoals(data.trading_goals);
+                setBenefits(data.benefits);
+            } catch (error) {
+                console.error('Error fetching journals:', error);
+            }
+        }
+        fetchUserData();
+    }, []);
+
+    const handleTradingExperienceChange = (event) => {
+        setTradingExp(event.target.value);
+    };
 
     const handleAssetSelect = (e) => {
         const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
@@ -27,46 +62,29 @@ export default function TellUsMore() {
             assetArray.push(selectedOptions[0]);
         }   
     }
-    
+
     const handleRemoveAsset = (assetToRemove) => {
         const updatedAssets = assetArray.filter((asset) => asset !== assetToRemove);
         setAssetArray(updatedAssets);
     };
-    useEffect(() => {
-        const infoLink = document.querySelector('.why-collect-info-link');
-        const infoModal = document.querySelector('.info-modal');
-        const closeModal = document.querySelector('.close-info-modal');
-
-        infoLink.addEventListener('click', () => {
-            infoModal.style.display = 'block';
-        });
-        closeModal.addEventListener('click', () => {
-        infoModal.style.display = 'none';
-        });
-
-    }, [])
-
-
-    const handleTradingExperienceChange = (event) => {
-        setTradingExperience(event.target.value);
-    };
 
     const handleInitialCapitalChange = (event) => {
-        setInitialCapital(event.target.value);
+        setInitialCap(event.target.value);
     };
 
     const handleTradingGoalsChange = (event) => {
-        setTradingGoals(event.target.value);
+        setGoals(event.target.value);
     };
 
+
     const handleExpectedBenefitsChange = (event) => {
-        setExpectedBenefits(event.target.value);
+        setBenefits(event.target.value);
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         
-        if (tradingExperience === "") {
+        if (tradingExp === "") {
             alert('Please select your trading experience.');
             return;
         }
@@ -74,33 +92,34 @@ export default function TellUsMore() {
             alert('Please select main assets.')
             return;
         }
-        if (initialCapital === '') {
+        if (initialCap === '') {
             alert('Please enter an initial trading capital');
             return;
         }
-        if (tradingGoals.trim() === "") {
+        if (goals.trim() === "") {
             alert("Please enter your trading goals.");
             return;
         }
-        if (expectedBenefits.trim() === "") {
+        if (benefits.trim() === "") {
             alert("Please enter your expected benefits.");
             return;
         }
-        const registeredEmail = localStorage.getItem('registeredEmail');
+        
         const requestData = {
-            trading_experience: tradingExperience,
+            trading_experience: tradingExp,
             main_assets: assetArray.join(", "),  // Convert array to a string
-            initial_capital: parseFloat(initialCapital),
-            trading_goals: tradingGoals,
-            benefits: expectedBenefits,
-            user_email: registeredEmail
+            initial_capital: parseFloat(initialCap),
+            trading_goals: goals,
+            benefits: benefits,
+            user_email: fetchEmailDataFromAPI(),
         };
-    
+        
 
-        setFinalData([tradingExperience, [assetArray], initialCapital, tradingGoals, expectedBenefits]);
+        setFinalData([tradingExp, [assetArray], initialCap, goals, benefits]);
+        let email = fetchEmailDataFromAPI();
 
         try {
-            const response = await fetch(`${baseURL}/tell_us_more/create/`, {
+            const response = await fetch(`${baseURL}/update_user_data/${email}/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -121,33 +140,31 @@ export default function TellUsMore() {
         // Perform form submission logic
 
     };
-    
-    useEffect(() => {
-    }, [finalData]);
 
-    // closeModal.addEventListener('click', () => {
-    //     infoModal.style.display = 'none';
-    // });
-
-    
     return (
         <div>
-        <div className='tell-us-div'>
-            <h4 className='tell-us-title'><i className="bi bi-person"></i>Tell us more about you</h4>
-            <div className='user-tell-us-div'>
-            <label>What is your current trading experience?</label>
-            <select className='form-control trading-experience'
-                value={tradingExperience}
-                onChange={handleTradingExperienceChange}
-            >
-                <option value=''>Please select an option</option>
-                <option value='Beginner'>Beginner (I'm new to trading)</option>
-                <option value='0-1 years'>0-1 years</option>
-                <option value='1-5 years'>1-5 years</option>
-                <option value='5+ years'>5+ years</option>
-            </select>
+            <div className="header">
+                <Header />
+            </div>
+                <SideNavs/>
+            <div className="main-page-body">
+                <div className="personal-info">
+                    <div className="personal-info-content">
+                    <h4 className="personal-info-title"><i className="bi bi-person-circle personal-info-icon">Personal Information</i></h4><br />
+                    <h5>Trading Experience</h5>
+                    <label>What is your current trading experience?</label>
+                    <select className='form-control trading-experience'
+                        value={tradingExperience}
+                        onChange={handleTradingExperienceChange}
+                    >
+                        <option value=''>{tradingExp}</option>
+                        <option value='Beginner'>Beginner (I'm new to trading)</option>
+                        <option value='0-1 years'>0-1 years</option>
+                        <option value='1-5 years'>1-5 years</option>
+                        <option value='5+ years'>5+ years</option>
+                    </select>
 
-                <label>What are the main assets you trade?</label>
+                    <label>What are the main assets you trade?</label>
                 <select className="form-control" 
                 onChange={handleAssetSelect}
                     >
@@ -262,64 +279,47 @@ export default function TellUsMore() {
                 <option value="JPYHUF">JPYHUF</option>
                 <option value="JPYCZK">JPYCZK</option>
                 </select>
-                    
+
+                {/* {assetArray && mainAssets.length > 0 && ( */}
                 <div className="selected-assets">
-                {assetArray.map((asset, index) => (
+                    {assetArray.map((asset, index) => (
                     <span key={index} className="selected-asset">
-                        <button className="btn btn-secondary selected-asset-button" onClick={() => handleRemoveAsset(asset)}>{asset}<i className="bi bi-x-lg"></i></button>
+                        <button className="btn btn-secondary selected-asset-button" onClick={() => handleRemoveAsset(asset)}>
+                        {asset}
+                        <i className="bi bi-x-lg"></i>
+                        </button>
                     </span>
                     ))}
-
                 </div>
+                {/* )} */}
+
 
                 <label>What is your initial trading capital or equity (in USD)?</label>
                 <input type="number" className="form-control" 
-                    value={initialCapital}
+                    value={initialCap}
                     onChange={handleInitialCapitalChange}
+                    placeholder={initialCap}
                 />
-                
-                <label>What are your goals in trading? Please share your short-term and long-term objectives.</label>
-                <textarea className="form-control tell-us-textarea" 
-                    value={tradingGoals}
-                    onChange={handleTradingGoalsChange}
-                ></textarea>
 
+                <label>What are your goals in trading? Please share your short-term and long-term objectives.</label>
+                    <textarea className="form-control tell-us-textarea" 
+                        value={goals}
+                        onChange={handleTradingGoalsChange}
+                ></textarea>
 
                 <label>What specific outcomes or benefits are you hoping to achieve by using snowAI?</label>
-                <textarea className="form-control tell-us-textarea" 
-                    value={expectedBenefits}
-                    onChange={handleExpectedBenefitsChange}
+                    <textarea className="form-control tell-us-textarea" 
+                        value={benefits}
+                        onChange={handleExpectedBenefitsChange}
                 ></textarea>
+                
+                <button className="btn btn-success" onClick={handleSubmit}>Save</button>
 
 
-            </div>
-            <button className="btn btn-primary tell-us-button" onClick={handleSubmit}>Submit</button>
-           <p className="why-collect-info"><i class="bi bi-info-circle"></i><a href="#"className="why-collect-info-link">Why do we collect this information?</a></p>
-        </div>
-        <div className="info-modal">
-    <div className="info-modal-content">
-    <span className="close-info-modal">&times;</span>
-        <div className="why-collect-info-div">
-            {/* <i className="bi bi-x-lg cancel-collection-explanation"></i> */}
-            <h5><i className="bi bi-info-circle"></i>Why do we collect this information?</h5>
-            <div className="collection-explanation">
-            <p><i className="bi bi-check-lg"></i>We collect your trading experience data to first
-            find out what kind of user you are and to gain an insight into your trading history.</p>
-            <p><i className="bi bi-check-lg"></i>We collect the main assets you trade
-            to give you a better experience by providing you with only the main
-            options of the assets you trade on the app.</p>
-            <p><i className="bi bi-check-lg"></i>We ask your initial equity in order to provide
-            you with personalized trading history analytics and recommendations
-            /advice powered by our AI ChatBot.</p>
-            <p><i className="bi bi-check-lg"></i>We want to know your trading goals so we can
-            better understand your trading journey personally and understand your trading 
-            aspirations.</p>
-            <p><i className="bi bi-check-lg"></i>We want to know what you expect from snowAI
-            so we can build the best product for you and understand your painpoints.</p>
+                    </div>
+
+                </div>
             </div>
         </div>
-    </div>
-    </div>
-        </div>
-    );
+    )
 }
