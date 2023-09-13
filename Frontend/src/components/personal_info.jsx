@@ -174,6 +174,7 @@ export default function ModifyPersonalInfo() {
                 <option value="">
                     Select an option
                 </option>
+                <option value="VIX75">VIX 75</option>
                 <option value="EURUSD">EURUSD</option>
                 <option value="GBPUSD">GBPUSD</option>
                 <option value="USDJPY">USDJPY</option>
