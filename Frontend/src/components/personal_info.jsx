@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-
+import { useNavigate } from "react-router-dom";
+import {v4 as uuidv4} from 'uuid';
 
 
 export default function ModifyPersonalInfo() {
@@ -24,6 +25,8 @@ export default function ModifyPersonalInfo() {
     let [goals, setGoals] = useState("");
     let [benefits, setBenefits] = useState("");
     let [finalData, setFinalData] = useState([]);
+    const navigate = useNavigate();
+    const uniqueID = uuidv4();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
@@ -127,9 +130,9 @@ export default function ModifyPersonalInfo() {
                 },
                 body: JSON.stringify(requestData),
             });
-            if (response.status === 201) {
+            if (response.status === 200) {
                 // Navigate to the next page or show a success message
-                navigate(`/login`);
+                navigate(`/conversation/${uniqueID}`);
             } else {
                 console.error("Data save failed.");
             }
