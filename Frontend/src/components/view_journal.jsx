@@ -10,7 +10,23 @@ export default function ViewJournal() {
     const { journalId } = useParams();
     const [journalContent, setJournalContent] = useState("");
     const [journalDate, setJournalDate] = useState("");
+    const [journalTags, setJournalTags] = useState("");
     const baseURL = 'https://backend-production-c0ab.up.railway.app'
+
+    function parseCustomTags(tagsString) {
+        if (!tagsString) {
+            return [];
+        }
+    
+        // Remove leading and trailing square brackets and single quotes
+        const cleanedString = tagsString.replace(/[\[\]']/g, '');
+    
+        // Split the cleaned string by ', ' to create an array
+        const tagsArray = cleanedString.split(', ');
+    
+        return tagsArray;
+    }
+    
 
     useEffect(() => {
         async function fetchJournalContent() {
@@ -18,7 +34,9 @@ export default function ViewJournal() {
                 const response = await fetch(`${baseURL}/view_journal/${journalId}/`);
                 const data = await response.json();
                 setJournalContent(data.journal.content);
-                setJournalDate(data.journal.created_date)
+                setJournalDate(data.journal.created_date);
+                setJournalTags(data.journal.tags);
+                console.log(data);
             } catch (error) {
                 console.error('Error fetching journal content:', error);
             }
@@ -32,21 +50,34 @@ export default function ViewJournal() {
                 <Header />
             </div>
             <div className="main-page-body">
-                    <SideNavs />
+                <SideNavs />
                 <div className="main-body-info">
                     <div className="journal-liveclock">
                         <LiveClock />
                     </div>
                     <h5 className="view-journal-title">Journal Entry</h5>
                     <div className="entire-journal-div">
-                    <div className="journal-content">
-                        {parse(`${journalContent}`)}
-                        <p className="journal-created-date">Saved On: {journalDate}</p>
+                        <div className="journal-content">
+                            {parse(`${journalContent}`)}
+                        </div>
+                        {journalTags && (
+                            <div className="journal-tags">
+                            {parseCustomTags(journalTags).map((tag, index) => (
+                                // Check if the tag is not empty before rendering the button
+                                tag !== '' && (
+                                    <button key={index} className="btn btn-secondary tag-journal">{tag}</button>
+                                )
+                            ))}
+                        </div>
+                        
+                        
+                        )}<br/>
+                        <p className="journal-created-date">Saved On: {journalDate}</p><br />
+                        <Link className="btn btn-primary main-journal-nav-button" to={`/all_journals`}>Go Back</Link>
                     </div>
-                    <Link className="btn btn-secondary main-journal-nav-button" to={`/all_journals`}>Go Back</Link>
-                </div>
                 </div>
             </div>
         </div>
     );
+    
 }

@@ -16,14 +16,6 @@ export default function AllJournals() {
        return Cookies.get('email');
     };
 
-    // useEffect(() => {
-    //     (async () => {
-    //         // Call fetchUserConversations when the component mounts
-    //         setUSER_EMAIL(email);
-    //         console.log(email);
-    //     })();
-    // }, []);   
-
     useEffect(() => {
         async function fetchJournals() {
             try {
@@ -33,6 +25,7 @@ export default function AllJournals() {
                 // console.log(response);
                 const data = await response.json();
                 setJournals(data.journals);
+                console.log(data.journals);
             } catch (error) {
                 console.error('Error fetching journals:', error);
             }
@@ -57,15 +50,32 @@ export default function AllJournals() {
                         <Link to="/journal" className="create-new-journal-cta">Create New Journal Entry</Link>
                     </div>
                     <div className="all-journals-div">
-                        {journals.map((journal, index) => (
-                            <div key={index}>
-                                {parse(`${journal.content}`)}
-                                <p className="journal-created-date">Saved On: {journal.created_date}</p>
-                                <Link className="btn btn-secondary" to={`/full_journal/${journal.id}/`}>View Full Journal</Link>
-                                <hr />
-                            </div>
-                        ))}
-                    </div>
+        {journals.map((journal, index) => {
+        const tagsString = journal.tags.replace(/'/g, '"'); // Replace single quotes with double quotes
+        const tags = tagsString ? JSON.parse(tagsString) : []; // Parse the tags string into an array
+        return (
+            <div key={index}>
+                {parse(`${journal.content}`)}<br/>
+                <Link className="btn btn-primary" to={`/full_journal/${journal.id}/`}>View Journal</Link>
+                <div className="all-journals-bottom">
+                {tags && (
+                    <div className="tags">
+                    {tags.map((tag, tagIndex) => (
+                        // Check if the tag is not empty before rendering the button
+                        tag.trim() !== '' && (
+                            <button key={tagIndex} className="btn btn-secondary tag">{tag}</button>
+                        )
+                    ))}
+                </div>
+                
+                )}
+                <p className="journal-created-date">Saved On: {journal.created_date}</p>
+                </div>
+                <hr />
+            </div>
+                  );
+                })}
+            </div>
                 </div>
             </div>
         </div>

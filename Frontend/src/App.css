@@ -873,9 +873,29 @@ main * {
     width: 150%;
 }
 
+.personal-journal-tags-div {
+    display: flex;
+}
+
+.selected-tag-button,.tag {
+    border: 1px solid black;
+    margin-left: 5px;
+    margin-top: 10px;
+}
+
+.tag-journal {
+    margin-left: 5px;
+}
+
+/* .generate-ideas-personal-journal {
+    text-decoration: none;
+    margin-top: 100px;
+} */
+
 .save-journal-button {
-    margin-top: 4px;
+    /* margin-top: 5px; */
     width: 100%;
+    margin-bottom: 20px;
 }
 
 .success-message {
@@ -945,6 +965,12 @@ main * {
     width: 800px;
     left: -250px;
 }
+
+.all-journals-bottom {
+    display: flex;
+    justify-content: space-between;
+}
+
 
 .vertical-hr {
     border: none;
@@ -1114,7 +1140,7 @@ th {
     }
     .main-body-info {
         position: relative;
-        top: 20px;
+        top: 0px;
         left: 0px;
     }
     .main-body-info h5 {
@@ -1263,13 +1289,16 @@ th {
     .create-new-journal-cta, .personal-journal-title {
         position: relative;
         width: 100%;
-        left: 300px;
+        left: 75%;
         top: 60px;
     }
     .personal-journal-title {
         left: 200px;
     }
 
+    .all-journals-bottom {
+        display: block;
+    }
     /* Journal Entry CSS */
     .entire-journal-div {
         width: 100%;
@@ -1284,10 +1313,10 @@ th {
 
     /* New Journal Entry CSS */
     .personal-journal-ckeditor {
-        width: 300px;
-        left: 40px;
+        width: 80%;
+        left: 10%;
         /* height: 1000px; */
-        top: 120px;
+        top: 60px;
     }
 
     .main-journal-nav-button {
@@ -1532,30 +1561,44 @@ th {
      /* Personal Journal CSS */
      .journal-div {
         left: 0px;
+        top:50px;
      }
      .all-journals-div {
-        width: 100%;
-        left: 0px;
+        width: 80%;
+        left: 10%;
+        top: 150px;
+        
         /* justify-content: center; */
     }
     .create-new-journal-cta, .personal-journal-title {
         left: 0px;
+        width: 90%;
+        text-align: center;
     }
     .create-new-journal-cta {
         position: relative;
-        left: 40%;
+        left: 35%;
+    }
+
+    .all-journals-bottom {
+        display: block;
     }
 
     /* Journal Entry CSS */
     .entire-journal-div {
-        width: 100%;
-        left: 0px;
+        width: 80%;
+        left: 10%;
+        top:150px
     }
 
+    .view-journal-title {
+        top: 100px;
+    }
     /* New Journal Entry CSS */
     .personal-journal-ckeditor {
-        width: 100%;
-        left: 0px;
+        width: 80%;
+        left: 10%;
+        top: 50px;
         height: 1000px;
     }
     .main-journal-nav-button {
