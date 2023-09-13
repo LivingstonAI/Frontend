@@ -1123,6 +1123,9 @@ th {
     font-size: x-large;
 }
 
+.personal-info-save {
+    width: 100%;
+}
 /* CellPhone CSS */
 @media screen and (max-width: 768px) {
     .register-div, .login-div, .tell-us-div {

@@ -314,9 +314,9 @@ export default function ModifyPersonalInfo() {
                     <textarea className="form-control tell-us-textarea" 
                         value={benefits}
                         onChange={handleExpectedBenefitsChange}
-                ></textarea>
+                ></textarea><br />
                 
-                <button className="btn btn-primary" onClick={handleSubmit}>Save</button>
+                <button className="btn btn-primary personal-info-save" onClick={handleSubmit}>Save</button>
 
 
                     </div>
