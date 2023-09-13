@@ -55,7 +55,7 @@ export default function AllJournals() {
         const tags = tagsString ? JSON.parse(tagsString) : []; // Parse the tags string into an array
         return (
             <div key={index}>
-                {parse(`${journal.content}`)}<br/>
+                {parse(`${journal.content}`)}<br /><br />
                 <Link className="btn btn-primary" to={`/full_journal/${journal.id}/`}>View Journal</Link>
                 <div className="all-journals-bottom">
                 {tags && (
@@ -68,7 +68,7 @@ export default function AllJournals() {
                     ))}
                 </div>
                 
-                )}
+                )}<br />
                 <p className="journal-created-date">Saved On: {journal.created_date}</p>
                 </div>
                 <hr />

@@ -107,7 +107,7 @@ export default function Journal() {
                     {/* <Link to="/journal" className="create-new-journal-cta">Create New Journal Entry</Link> */}
                     <div className="personal-journal-ckeditor">
                     <div className="personal-journal-tags-div">
-                <label><h6>Tags</h6> i.e AI, News, Risk, Psychology (comma separated)</label>
+                <label><h6>Tags</h6> i.e AI, News, Risk, Psychology (Press Enter to seperate)</label>
             </div>
             <input
                 type="text"
