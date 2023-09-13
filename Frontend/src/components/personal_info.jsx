@@ -316,7 +316,7 @@ export default function ModifyPersonalInfo() {
                         onChange={handleExpectedBenefitsChange}
                 ></textarea>
                 
-                <button className="btn btn-success" onClick={handleSubmit}>Save</button>
+                <button className="btn btn-primary" onClick={handleSubmit}>Save</button>
 
 
                     </div>
