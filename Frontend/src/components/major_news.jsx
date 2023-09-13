@@ -83,126 +83,120 @@ export default function MajorNews() {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>12:45am</td>
-                                <td>NZD</td>
-                                <td>FPI m/m</td>
+                                <td>1:01am</td>
+                                <td>GBP</td>
+                                <td>RICS House Price Balance</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
-                                <td>BSI Manufacturing Index</td>
+                                <td>Core Machinery Orders m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>1:50am</td>
+                                <td>3:00am</td>
+                                <td>AUD</td>
+                                <td>MI Inflation Expectations</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>3:30am</td>
+                                <td>AUD</td>
+                                <td>Employment Change</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>3:30am</td>
+                                <td>AUD</td>
+                                <td>Unemployment Rate</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>6:30am</td>
                                 <td>JPY</td>
-                                <td>PPI y/y</td>
+                                <td>Revised Industrial Production m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>GDP m/m</td>
-                                <td><div className="red-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Construction Output m/m</td>
+                                <td>8:30am</td>
+                                <td>CHF</td>
+                                <td>PPI m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Goods Trade Balance</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Index of Services 3m/3m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Industrial Production m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Manufacturing Production m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>10:00am</td>
+                                <td>2:15pm</td>
                                 <td>EUR</td>
-                                <td>Italian Quarterly Unemployment Rate</td>
-                                <td><div className="yellow-impact"></div></td>
+                                <td>Main Refinancing Rate</td>
+                                <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>Tentative</td>
-                                <td>GBP</td>
-                                <td>10-y Bond Auction</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>Tentative</td>
+                                <td>2:15pm</td>
                                 <td>EUR</td>
-                                <td>German 30-y Bond Auction</td>
+                                <td>Monetary Policy Statement</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:30pm</td>
+                                <td>CAD</td>
+                                <td>Wholesale Sales m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>2:30pm</td>
                                 <td>USD</td>
-                                <td>Core CPI m/m</td>
+                                <td>Core PPI m/m</td>
                                 <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>2:30pm</td>
                                 <td>USD</td>
-                                <td>CPI m/m</td>
+                                <td>Core Retail Sales m/m</td>
                                 <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>2:30pm</td>
                                 <td>USD</td>
-                                <td>CPI y/y</td>
+                                <td>PPI m/m</td>
                                 <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>Tentative</td>
-                                <td>GBP</td>
-                                <td>NIESR GDP Estimate</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>3:30pm</td>
-                                <td>GBP</td>
-                                <td>CB Leading Index m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>4:30pm</td>
+                                <td>2:30pm</td>
                                 <td>USD</td>
-                                <td>Crude Oil Inventories</td>
+                                <td>Retail Sales m/m</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:30pm</td>
+                                <td>USD</td>
+                                <td>Unemployment Claims</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:45am</td>
+                                <td>EUR</td>
+                                <td>ECB Press Conference</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>4:00pm</td>
+                                <td>USD</td>
+                                <td>Business Inventories m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
 
                             <tr>
-                                <td>7:01pm</td>
+                                <td>4:00pm</td>
                                 <td>USD</td>
-                                <td>30-y Bond Auction</td>
+                                <td>Natural Gas Storage</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
-                            <tr>
+                            {/* <tr>
                                 <td>8:00pm</td>
                                 <td>USD</td>
                                 <td>Federal Budget Balance</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
+                            </tr> */}
                             {/* {newsData &&
                                 Object.keys(newsData).map((time, index) => {
                                     try {
