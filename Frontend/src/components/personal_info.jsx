@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
+import AssetsTraded from "./assets";
 import Cookies from 'js-cookie';
 import { useNavigate } from "react-router-dom";
 import {v4 as uuidv4} from 'uuid';
@@ -27,6 +28,8 @@ export default function ModifyPersonalInfo() {
     let [finalData, setFinalData] = useState([]);
     const navigate = useNavigate();
     const uniqueID = uuidv4();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currencyModal, setCurrencyModal] = useState(false);
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
@@ -83,6 +86,17 @@ export default function ModifyPersonalInfo() {
     const handleExpectedBenefitsChange = (event) => {
         setBenefits(event.target.value);
     };
+
+
+  // ... (existing code)
+
+  const toggleModal = () => {
+    setIsModalOpen(!isModalOpen);
+  };
+
+  const toggleCurrenyModal = () => {
+    setCurrencyModal(!currencyModal);
+  }
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -171,7 +185,7 @@ export default function ModifyPersonalInfo() {
                 <select className="form-control" 
                 onChange={handleAssetSelect}
                     >
-                <option value="">
+                <option value="" onClick={toggleModal}>
                     Select an option
                 </option>
                 <option value="VIX75">VIX 75</option>
@@ -318,6 +332,10 @@ export default function ModifyPersonalInfo() {
                 ></textarea><br />
                 
                 <button className="btn btn-primary personal-info-save" onClick={handleSubmit}>Save</button>
+                <br />
+                {isModalOpen && (
+                    <AssetsTraded />
+                )}
 
 
                     </div>
@@ -327,3 +345,4 @@ export default function ModifyPersonalInfo() {
         </div>
     )
 }
+

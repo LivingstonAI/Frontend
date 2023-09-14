@@ -1126,6 +1126,48 @@ th {
 .personal-info-save {
     width: 100%;
 }
+
+/* Select Category CSS */
+
+.select-category-modal, .select-currencies-modal {
+    margin-top: 50px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}
+
+.select-category-title, .select-category-assets {
+    text-align: center;
+}
+
+.select-category-top {
+    /* display: flex; */
+    display: flex;
+    justify-content: center;
+}
+
+.select-category-top button {
+    width: 40%;
+}
+
+.select-currencies-search {
+    position: relative;
+    width: 50%;
+    left: 20%;
+}
+
+.select-search-input {
+    display: flex;
+}
+
+.select-category-search-button {
+    position: relative;
+    left: 20%;
+}
+
+.assets-offered button {
+    margin-right: 10px;  
+}
+
 /* CellPhone CSS */
 @media screen and (max-width: 768px) {
     .register-div, .login-div, .tell-us-div {
