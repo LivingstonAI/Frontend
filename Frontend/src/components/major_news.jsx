@@ -83,7 +83,7 @@ export default function MajorNews() {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>12:30amam</td>
+                                <td>12:30am</td>
                                 <td>NZD</td>
                                 <td>BusinessNZ Manufacturing Index</td>
                                 <td><div className="yellow-impact"></div></td>
