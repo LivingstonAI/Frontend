@@ -1129,7 +1129,16 @@ th {
 
 /* Select Category CSS */
 
-.select-category-modal, .select-currencies-modal {
+
+
+
+.select-category-modal, 
+.select-currencies-modal, 
+.select-stocks-modal, 
+.select-commodities-modal, 
+.select-indices-modal, 
+.select-futures-modal, 
+.select-options-modal {
     margin-top: 50px;
     border: 1px solid #ccc;
     border-radius: 10px;
@@ -1146,10 +1155,14 @@ th {
 }
 
 .select-category-top button {
-    width: 40%;
+    width: 50%;
 }
 
-.select-currencies-search {
+.select-currencies-search,.select-stocks-search,
+.select-commodities-search, 
+.select-indices-search, 
+.select-futures-search, 
+.select-options-search {
     position: relative;
     width: 50%;
     left: 20%;
@@ -1157,6 +1170,7 @@ th {
 
 .select-search-input {
     display: flex;
+    margin-bottom: 30px;
 }
 
 .select-category-search-button {
@@ -1165,11 +1179,58 @@ th {
 }
 
 .assets-offered button {
-    margin-right: 10px;  
+    margin-right: 5px;  
 }
 
-/* CellPhone CSS */
-@media screen and (max-width: 768px) {
+.assets-offered, .selected-assets {
+    display: flex;
+    flex-wrap: wrap;
+    /* overflow: auto; */
+}
+
+/* .select-category-modal , .select-category-modal, 
+.select-currencies-modal, 
+.select-stocks-modal, 
+.select-commodities-modal, 
+.select-indices-modal, 
+.select-futures-modal, 
+.select-options-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 90%;
+    /* background-color: rgba(0, 0, 0, 0.5); Semi-transparent background */
+    /* display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's above other content */
+    /* left: 25%; */
+    /* background-color: white; */
+    /* } */ 
+    
+    /* .select-modal-headings i {
+        position: relative;
+        left: 95%;
+        top: -30px;
+        cursor: pointer;
+        /* display: flex; */
+        /* justify-content: center;
+        justify-content: space-between; */
+        /* CellPhone CSS */
+
+.select-category-left-arrow {
+    cursor: pointer;
+    font-size: large;
+}
+.highlighted-button {
+    background-color: #007bff; /* Change the background color to a desired highlight color */
+    color: white; /* Change the text color for better visibility */
+    /* Add any other styling you want for the highlight effect */
+  }
+  
+
+    @media screen and (max-width: 768px) {
     .register-div, .login-div, .tell-us-div {
         left: 20px;
         width: 90%;

@@ -336,8 +336,6 @@ export default function ModifyPersonalInfo() {
                 {isModalOpen && (
                     <AssetsTraded />
                 )}
-
-
                     </div>
 
                 </div>
