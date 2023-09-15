@@ -1546,7 +1546,7 @@ th {
 .select-options-modal {
     width: 90%;
     left: 5%;
-    height: 90%;
+    height: 100%;
 }
 }
 
@@ -1796,7 +1796,7 @@ th {
     .select-options-modal {
         width: 90%;
         left: 5%;
-        height: 90%;
+        height: 100%;
     }
   }
 
