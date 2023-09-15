@@ -9,8 +9,8 @@ export default function SideNavs() {
     return(
         <div className="all-side-navs">
         <div className="side-navs trading-history-links">
-                {/* <Link to="/overview" className="side-nav"><p><i className="bi bi-plus-lg"></i>Overview</p></Link> */}
-              <Link to="/trading_history_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i> Trading History Analytics</p></button></Link>
+                <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person"></i>Personal Information</p></button></Link>
+              <Link to="/trading_history_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i> Trading Analytics</p></button></Link>
                 <Link to="/all_journals" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-journal-bookmark-fill"></i> Personal Journal</p></button></Link>
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i> ChatBot</p></button></Link>
                 {/* <Link to="#" className="side-nav"><p><i className="bi bi-book"></i>Books</p></Link> */}
@@ -20,6 +20,7 @@ export default function SideNavs() {
         </div>
         <div className="side-navs-cellphone">
                 {/* <Link to="/overview" className="side-nav"><i className="bi bi-plus-lg"></i></Link> */}
+                <Link to="/personal_info" className="side-nav"><i className="bi bi-person"></i></Link>
                 <Link to="/trading_history_analytics" className="side-nav"><i className="bi bi-bar-chart-line-fill"></i></Link>
                 <Link to="/all_journals" className="side-nav"><i className="bi bi-journal-bookmark-fill"></i></Link>
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><i className="bi bi-robot"></i></Link>
