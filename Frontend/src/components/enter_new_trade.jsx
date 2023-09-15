@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SideNavs from "./side_navs";
 import Header from "./header";
@@ -36,6 +36,7 @@ export default function EnterNewTrade () {
     const [positionSizeError, setPositionSizeError] = useState("");
     const [emotionalBias, setEmotionalBias] = useState("");
     const [emotionalBiasError, setEmotionalBiasError] = useState("");
+    const [selectedAssets, setSelectedAssets] = useState([]);
     const baseURL = 'https://backend-production-c0ab.up.railway.app'
 
     const fetchEmailDataFromAPI = () => {
@@ -284,7 +285,24 @@ export default function EnterNewTrade () {
 
         // navigate('/all_trades')
 
-    }    
+    }   
+    
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const email = fetchEmailDataFromAPI(); 
+                const response = await fetch(`${baseURL}/get_user_data/${email}/`);
+                const data = await response.json();
+                const mainAssets = data.main_assets.split(',').map(asset => asset.trim());
+                setSelectedAssets(mainAssets);
+            } catch (error) {
+                console.error('Error fetching journals:', error);
+            }
+        }
+        fetchUserData();
+        console.log(selectedAssets);
+    }, []);
+    
 
     return (
         <div>
@@ -301,114 +319,12 @@ export default function EnterNewTrade () {
             onChange={handleAssetTraded}
             >
                 <option value=''>Please select an option</option>
-                <option value="VIX75">VIX 75</option>
-                <option value="EURUSD">EURUSD</option>
-                <option value="GBPUSD">GBPUSD</option>
-                <option value="USDJPY">USDJPY</option>
-                <option value="XAUUSD">XAUUSD</option>
-                <option value="AUDUSD">AUDUSD</option>
-                <option value="USDCHF">USDCHF</option>
-                <option value="NZDUSD">NZDUSD</option>
-                <option value="USDCAD">USDCAD</option>
-                <option value="EURJPY">EURJPY</option>
-                <option value="GBPJPY">GBPJPY</option>
-                <option value="AUDJPY">AUDJPY</option>
-                <option value="CADJPY">CADJPY</option>
-                <option value="CHFJPY">CHFJPY</option>
-                <option value="NZDJPY">NZDJPY</option>
-                <option value="EURAUD">EURAUD</option>
-                <option value="EURGBP">EURGBP</option>
-                <option value="EURNZD">EURNZD</option>
-                <option value="EURCAD">EURCAD</option>
-                <option value="GBPAUD">GBPAUD</option>
-                <option value="GBPCAD">GBPCAD</option>
-                <option value="GBPNZD">GBPNZD</option>
-                <option value="AUDCAD">AUDCAD</option>
-                <option value="AUDCHF">AUDCHF</option>
-                <option value="AUDNZD">AUDNZD</option>
-                <option value="CADCHF">CADCHF</option>
-                <option value="CADNZD">CADNZD</option>
-                <option value="NAS100">NASDAQ (NAS100)</option>
-                <option value="US30">US30</option>
-                <option value="GER40">GER40</option>
-                <option value="CHFJPY">CHFJPY</option>
-                <option value="CHFUSD">CHFUSD</option>
-                <option value="EURCHF">EURCHF</option>
-                <option value="EURDKK">EURDKK</option>
-                <option value="EURHKD">EURHKD</option>
-                <option value="EURHUF">EURHUF</option>
-                <option value="EURNOK">EURNOK</option>
-                <option value="EURPLN">EURPLN</option>
-                <option value="EURSEK">EURSEK</option>
-                <option value="EURTRY">EURTRY</option>
-                <option value="EURZAR">EURZAR</option>
-                <option value="GBPCHF">GBPCHF</option>
-                <option value="GBPHKD">GBPHKD</option>
-                <option value="GBPNOK">GBPNOK</option>
-                <option value="GBPSGD">GBPSGD</option>
-                <option value="AUDSGD">AUDSGD</option>
-                <option value="NZDSGD">NZDSGD</option>
-                <option value="CADSGD">CADSGD</option>
-                <option value="CHFSGD">CHFSGD</option>
-                <option value="CHFZAR">CHFZAR</option>
-                <option value="USDMXN">USDMXN</option>
-                <option value="USDZAR">USDZAR</option>
-                <option value="USDHKD">USDHKD</option>
-                <option value="USDSGD">USDSGD</option>
-                <option value="USDNOK">USDNOK</option>
-                <option value="USDSEK">USDSEK</option>
-                <option value="USDDKK">USDDKK</option>
-                <option value="USDCNH">USDCNH</option>
-                <option value="USDTHB">USDTHB</option>
-                <option value="USDPLN">USDPLN</option>
-                <option value="USDCZK">USDCZK</option>
-                <option value="USDHUF">USDHUF</option>
-                <option value="USDBRL">USDBRL</option>
-                <option value="USDRUB">USDRUB</option>
-                <option value="USDKRW">USDKRW</option>
-                <option value="USDCAD">USDCAD</option>
-                <option value="AUDNZD">AUDNZD</option>
-                <option value="NZDCAD">NZDCAD</option>
-                <option value="AUDCHF">AUDCHF</option>
-                <option value="AUDJPY">AUDJPY</option>
-                <option value="AUDCAD">AUDCAD</option>
-                <option value="AUDUSD">AUDUSD</option>
-                <option value="AUDSGD">AUDSGD</option>
-                <option value="AUDHKD">AUDHKD</option>
-                <option value="NZDUSD">NZDUSD</option>
-                <option value="NZDJPY">NZDJPY</option>
-                <option value="NZDCHF">NZDCHF</option>
-                <option value="NZDSGD">NZDSGD</option>
-                <option value="NZDHKD">NZDHKD</option>
-                <option value="CADCHF">CADCHF</option>
-                <option value="CADJPY">CADJPY</option>
-                <option value="CADSGD">CADSGD</option>
-                <option value="CADHKD">CADHKD</option>
-                <option value="CADNOK">CADNOK</option>
-                <option value="CADSEK">CADSEK</option>
-                <option value="CADDKK">CADDKK</option>
-                <option value="CHFJPY">CHFJPY</option>
-                <option value="CHFAUD">CHFAUD</option>
-                <option value="CHFNZD">CHFNZD</option>
-                <option value="CHFUSD">CHFUSD</option>
-                <option value="CHFEUR">CHFEUR</option>
-                <option value="CHFGBP">CHFGBP</option>
-                <option value="CHFSEK">CHFSEK</option>
-                <option value="CHFDKK">CHFDKK</option>
-                <option value="CHFNOK">CHFNOK</option>
-                <option value="CHFPLN">CHFPLN</option>
-                <option value="CHFHUF">CHFHUF</option>
-                <option value="CHFCZK">CHFCZK</option>
-                <option value="CHFTRY">CHFTRY</option>
-                <option value="CHFZAR">CHFZAR</option>
-                <option value="JPYSGD">JPYSGD</option>
-                <option value="JPYHKD">JPYHKD</option>
-                <option value="JPYNOK">JPYNOK</option>
-                <option value="JPYSEK">JPYSEK</option>
-                <option value="JPYDKK">JPYDKK</option>
-                <option value="JPYPLN">JPYPLN</option>
-                <option value="JPYHUF">JPYHUF</option>
-                <option value="JPYCZK">JPYCZK</option>
+                {selectedAssets.map((asset, index) => (
+                <option key={index} value={asset}>
+                {asset}
+                </option>
+                ))}
+
             </select>
             {assetTradedError && <p className="error-message">{assetTradedError}</p>}
             <label>Order Type</label>

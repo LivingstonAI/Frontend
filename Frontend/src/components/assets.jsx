@@ -2,7 +2,6 @@ import React, {useState, useEffect} from "react";
 import Cookies from 'js-cookie';
 import { useNavigate, redirect } from "react-router-dom";
 import useForceUpdate from 'use-force-update';
-import ModifyPersonalInfo from './personal_info.jsx'; // Import ModifyPersonalInfo
 
 
 

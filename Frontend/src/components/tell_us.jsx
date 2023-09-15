@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AssetsTraded from "./assets";
+
 import {v4 as uuidv4} from 'uuid';
 
 
