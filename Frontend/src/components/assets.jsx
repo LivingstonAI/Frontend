@@ -1,7 +1,13 @@
 import React, {useState, useEffect} from "react";
+import Cookies from 'js-cookie';
+import { useNavigate, redirect } from "react-router-dom";
+import useForceUpdate from 'use-force-update';
+import ModifyPersonalInfo from './personal_info.jsx'; // Import ModifyPersonalInfo
 
 
-export default function AssetsTraded() {
+
+
+export default function AssetsTraded({ assets, setAssets }) {
     const [isModalOpen, setIsModalOpen] = useState(true);
     const [currencyModal, setCurrencyModal] = useState(false);
     const [stocksModal, setStocksModal] = useState(false);
@@ -11,6 +17,28 @@ export default function AssetsTraded() {
     const [optionsModal, setOptionsModal] = useState(false);
     const [selectedAssets, setSelectedAssets] = useState([]);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
+    const navigate = useNavigate();
+    const forceUpdate = useForceUpdate();
+    const baseURL = 'https://backend-production-c0ab.up.railway.app';
+
+    const fetchEmailDataFromAPI = () => {
+        return Cookies.get('email');
+    };
+
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const email = fetchEmailDataFromAPI(); 
+                const response = await fetch(`${baseURL}/get_user_data/${email}/`);
+                const data = await response.json();
+                const mainAssets = data.main_assets.split(',').map(asset => asset.trim());
+                setSelectedAssets(mainAssets);
+            } catch (error) {
+                console.error('Error fetching journals:', error);
+            }
+        }
+        fetchUserData();
+    }, []);
 
 
     const handleSearch = (event) => {
@@ -99,6 +127,7 @@ export default function AssetsTraded() {
 
 
     const toggleModal = () => {
+        forceUpdate();
         setIsModalOpen(!isModalOpen);
       };
     
@@ -150,6 +179,47 @@ export default function AssetsTraded() {
       const closeModals = () => {
             checkOtherModals('all');
       }
+
+    //   useEffect(() => {
+    //     // Update the assets variable using setAssets
+    //     setAssets(selectedAssets);
+    //   }, []); // Add selectedAssets as a dependency
+
+
+    const updateUserAssets = async () => {
+        const requestData = {
+          new_assets: selectedAssets.join(", "), // Include the 'new_assets' field with the selected assets
+        };
+      
+        // Assuming you have the user's email stored in a variable userEmail
+        const email = fetchEmailDataFromAPI();
+      
+        try {
+          const response = await fetch(`${baseURL}/update_assets/${email}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json', // Set the content type to JSON
+            },
+            body: JSON.stringify(requestData), // Convert requestData to JSON format
+          });
+      
+          if (response.ok) {
+            // Handle success
+            console.log('User assets updated successfully.');
+            window.location.reload();
+
+            toggleModal();
+            // this.forceUpdate();
+          } else {
+            // Handle errors
+            console.error('Failed to update user assets.');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      };
+      
+      
       
       
 
@@ -158,11 +228,11 @@ export default function AssetsTraded() {
             {isModalOpen && (
 
         
-                            
+                <div className="modal-overlay">
                 <div className="select-category-modal">
                         <h4 className="select-category-title">Select Category</h4>
                         
-                        <button className="btn btn-light" onClick={toggleModal}><i className="bi bi-x-lg"></i>Close</button>
+                        <button className="btn btn-light" onClick={updateUserAssets}><i className="bi bi-x-lg"></i></button>
                         <div className="select-category-top">
                             <button className="btn btn-light" onClick={toggleCurrenyModal}>Forex</button>
                             <button className="btn btn-light" onClick={toggleStocksModal}>Stocks</button>
@@ -187,11 +257,12 @@ export default function AssetsTraded() {
                         </div>
 
                 </div>
+                </div>
                 )}
 
                 
                 {currencyModal && (
-
+                    <div className="modal-overlay">
                     <div className="select-currencies-modal">
                         <div className="select-modal-headings">
                         <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
@@ -262,10 +333,11 @@ export default function AssetsTraded() {
                     <button className="btn btn-light" onClick={() => handleAssetSelection("AUDCHF")}>AUDCHF</button>
                 </div>
                     </div>
+                    </div>
             )}
 
             {stocksModal && (
-
+            <div className="modal-overlay">
             <div className="select-stocks-modal">
             <div className="select-modal-headings">
                             <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
@@ -318,9 +390,10 @@ export default function AssetsTraded() {
             </div>
 
             </div>
+            </div>
             )}
         {commoditiesModal && (
-
+            <div className="modal-overlay">
             <div className="select-commodities-modal">
                     <div className="select-modal-headings">
                             <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
@@ -361,10 +434,11 @@ export default function AssetsTraded() {
             </div>
 
         </div>
+        </div>
         )}
 
         {indicesModal && (
-
+            <div className="modal-overlay">
             <div className="select-indices-modal">
                     <div className="select-modal-headings">
                             <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
@@ -401,11 +475,12 @@ export default function AssetsTraded() {
                 <button className="btn btn-light" onClick={() => handleAssetSelection("CN50")}>Shanghai Composite (CN50)</button>
             </div>
         </div>
+        </div>
 
         )}
 
         {futuresModal && (
-
+            <div className="modal-overlay">
             <div className="select-futures-modal">
             <div className="select-modal-headings">
                             <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
@@ -442,10 +517,12 @@ export default function AssetsTraded() {
                 <button className="btn btn-light" onClick={() => handleAssetSelection("VX")}>VIX Futures (VX)</button>
             </div>
         </div>
+        </div>
 
             )}
 
         {optionsModal && (
+            <div className="modal-overlay">
             <div className="select-options-modal">
             <div className="select-modal-headings">
                             <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
@@ -481,6 +558,7 @@ export default function AssetsTraded() {
                 <button className="btn btn-light" onClick={() => handleAssetSelection("JPM Call")}>JPMorgan Chase & Co. Call Option (JPM Call)</button>
                 <button className="btn btn-light" onClick={() => handleAssetSelection("GE Put")}>General Electric Company Put Option (GE Put)</button>
             </div>
+        </div>
         </div>
         )}
 
