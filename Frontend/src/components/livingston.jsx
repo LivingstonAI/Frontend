@@ -143,7 +143,7 @@ export default function ChatBotInterface() {
         {
             message: 'Hello! My name is Livingston!', 
             sender: 'ChatGPT',
-            direction: 'outgoing'
+            direction: 'incoming'
         }
     ]);
 
@@ -153,6 +153,8 @@ export default function ChatBotInterface() {
         const newMessage = {
             message: message,
             sender: "user",
+            direction: "outgoing",
+            
         }
         const newMessages = [...messages, newMessage];
 
@@ -228,7 +230,7 @@ export default function ChatBotInterface() {
                 ...ChatMessages, {
                     message: data.choices[0].message.content,
                     sender: "ChatGPT",
-                    direction:"outgoing"
+                    direction:"incoming"
                 }
             ])
 
