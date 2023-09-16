@@ -77,7 +77,7 @@ export default function Journal() {
             if (newTag) {
                 // Check if the newTag already exists in the tags array
                 if (!tags.includes(newTag.toLowerCase())) {
-                    setTags([...tags, newTag]); // Add the new tag to the array
+                    setTags([...tags, newTag.toLowerCase()]); // Add the new tag to the array
                     setTagInput(""); // Clear the input field
                 }
             }
