@@ -76,15 +76,15 @@ export default function MajorNews() {
                     <div className="impact-legend">
     <div className="legend-item">
         <div className="impact-indicator red-impact"></div>
-        <span>High Impact</span>
+        <span>High</span>
     </div>
     <div className="legend-item">
         <div className="impact-indicator orange-impact"></div>
-        <span>Medium Impact</span>
+        <span>Medium</span>
     </div>
     <div className="legend-item">
         <div className="impact-indicator yellow-impact"></div>
-        <span>Low Impact</span>
+        <span>Low</span>
     </div>
 </div>
 < br />
