@@ -546,7 +546,7 @@ main * {
     /* top: 80px; */
     /* left: 50px; */
     top: 200px;
-    left: 450px;
+    left: 35%;
 }
 
 .main-body-info h5 {
@@ -975,9 +975,6 @@ main * {
     left: -250px;
 }
 
-.legend-item div {
-   
-}
 
 .all-journals-bottom {
     display: flex;
@@ -1614,7 +1611,7 @@ th {
     }
     .main-body-info {
         position: relative;
-        top: 5px;
+        top: 50px;
         left: 0px;
     }
     .main-body-info h5 {
