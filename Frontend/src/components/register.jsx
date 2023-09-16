@@ -106,6 +106,10 @@ export default function Register() {
         } else {
             const responseData = await response.json();
             console.log("Registration failed:", responseData);
+            console.log(responseData['username'])
+            if (responseData['username']) {
+                setUsernameError(responseData['username']);
+            }
         }
     } catch (error) {
         console.error("Error during registration:", error);
