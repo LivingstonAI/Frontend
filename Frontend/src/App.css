@@ -855,10 +855,10 @@ main * {
     border-radius: 50%;
 }
 
-.impact-legend {
+/* .impact-legend {
     display: flex;
     gap: 10px;
-}
+} */
 
 .yellow-impact {
     background-color: yellow;
@@ -973,6 +973,10 @@ main * {
     padding: 30px 25px; 
     width: 800px;
     left: -250px;
+}
+
+.legend-item div {
+   
 }
 
 .all-journals-bottom {
@@ -1250,6 +1254,27 @@ th {
     color: white; /* Change the text color for better visibility */
     /* Add any other styling you want for the highlight effect */
   }
+
+
+
+  .impact-legend {
+    display: flex;
+    gap: 10px;
+}
+
+.legend-item {
+    display: flex;
+}
+
+.impact-indicator {
+    width: 20px; /* Adjust as needed */
+    height: 20px; /* Adjust as needed */
+    margin-right: 5px;
+    /* Additional styling for the color indicators */
+}
+
+/* Add your color styles for .red-impact, .orange-impact, and .yellow-impact here */
+
   
 
     @media screen and (max-width: 768px) {

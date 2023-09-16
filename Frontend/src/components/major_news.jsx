@@ -74,19 +74,20 @@ export default function MajorNews() {
                     <h5 className="major-upcoming-news-events-header">Major Upcoming News Events:(forexfactory.com)</h5><br />
                     {/* I want to put the 'Impact'Legend here */}
                     <div className="impact-legend">
-                    <div className="legend-item">
-                        <div className="red-impact"></div>
-                        <span>High Impact</span>
-                    </div>
-                    <div className="legend-item">
-                        <div className="orange-impact"></div>
-                        <span>Medium Impact</span>
-                    </div>
-                    <div className="legend-item">
-                        <div className="yellow-impact"></div>
-                        <span>Low Impact</span>
-                    </div>
-                    </div>< br />
+    <div className="legend-item">
+        <div className="impact-indicator red-impact"></div>
+        <span>High Impact</span>
+    </div>
+    <div className="legend-item">
+        <div className="impact-indicator orange-impact"></div>
+        <span>Medium Impact</span>
+    </div>
+    <div className="legend-item">
+        <div className="impact-indicator yellow-impact"></div>
+        <span>Low Impact</span>
+    </div>
+</div>
+< br />
 
                     <table className="news-event">
                         <thead>
