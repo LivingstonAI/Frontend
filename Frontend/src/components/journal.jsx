@@ -21,8 +21,6 @@ export default function Journal() {
     `);
     const [dataSaved, setDataSaved] = useState("");
     const [editorError, setEditorError] = useState("");
-    let [assetArray, setAssetArray] = useState([]);
-    const [selectedAssets, setSelectedAssets] = useState([]);
     const [tags, setTags] = useState([]);
     const [tagInput, setTagInput] = useState("");
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
@@ -71,16 +69,22 @@ export default function Journal() {
         }
     };
 
+    
     const handleTagInputKeyPress = (e) => {
         if (e.key === "Enter" || e.key === ",") {
             e.preventDefault(); // Prevent the default behavior (e.g., form submission or newline)
             const newTag = tagInput.trim();
             if (newTag) {
-                setTags([...tags, newTag]); // Add the new tag to the array
-                setTagInput(""); // Clear the input field
+                // Check if the newTag already exists in the tags array
+                if (!tags.includes(newTag.toLowerCase())) {
+                    setTags([...tags, newTag]); // Add the new tag to the array
+                    setTagInput(""); // Clear the input field
+                }
             }
         }
     };
+    
+
     const handleRemoveTag = (tagToRemove) => {
         // Filter the tags array to exclude the tag to be removed
         const updatedTags = tags.filter((tag) => tag !== tagToRemove);
@@ -123,7 +127,7 @@ export default function Journal() {
                 {tags.map((tag, index) => (
                     <span key={index} className="selected-tag">
                         <button
-                            className="btn btn-secondary selected-tag-button"
+                            className="btn btn-light selected-tag-button"
                             onClick={() => handleRemoveTag(tag)}
                         >{tag.toLowerCase()}
                             <i className="bi bi-x"></i>
