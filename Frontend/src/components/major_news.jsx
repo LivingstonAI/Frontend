@@ -83,12 +83,12 @@ export default function MajorNews() {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>12:30am</td>
-                                <td>NZD</td>
-                                <td>BusinessNZ Manufacturing Index</td>
+                                <td>All Day</td>
+                                <td>EUR</td>
+                                <td>ECOFIN Meetings</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
-                            <tr>
+                            {/* <tr>
                                 <td>4:00am</td>
                                 <td>CNY</td>
                                 <td>Industrial Production y/y</td>
@@ -220,7 +220,7 @@ export default function MajorNews() {
                                 <td>EUR</td>
                                 <td>ECOFIN Meetings</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
+                            </tr> */}
                             {/* {newsData &&
                                 Object.keys(newsData).map((time, index) => {
                                     try {
