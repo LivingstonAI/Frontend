@@ -855,6 +855,11 @@ main * {
     border-radius: 50%;
 }
 
+.impact-legend {
+    display: flex;
+    gap: 10px;
+}
+
 .yellow-impact {
     background-color: yellow;
 }
@@ -1474,13 +1479,22 @@ th {
     .news-event {
         width: 100%;
         left: 1px;
-        top: 90px;
+        top: 170px;
     }
 
     .major-upcoming-news-events-header {
         position: absolute;
         top: 30px;
         left: 0px;
+    }
+
+    .impact-legend {
+        display: flex;
+        /* position: relative; */
+        gap: 10px;
+        margin-top: 20px;
+        /* margin-top: 50px; */
+        justify-content: center;
     }
 
     /* ChatBot CSS */
@@ -1784,7 +1798,25 @@ th {
     .news-event{
         left: 0px;
         width: 100%;
+        top: 170px;
     }
+
+    .major-upcoming-news-events-header {
+        position: absolute;
+        top: 30px;
+        left: 0px;
+    }
+
+    .impact-legend {
+        display: flex;
+        /* position: relative; */
+        gap: 10px;
+        margin-top: 20px;
+        /* margin-top: 50px; */
+        justify-content: center;
+    }
+
+    
     /* Personal Info CSS */
     .personal-info {
         width: 100%;
