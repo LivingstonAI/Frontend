@@ -452,6 +452,10 @@ main * {
     height: 200px;
 }
 
+.tell-us-more-assets {
+    margin-right: 10px;
+}
+
 .info-modal {
     display: none;
     position: fixed;

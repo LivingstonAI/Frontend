@@ -16,7 +16,63 @@ export default function TellUsMore() {
     let [finalData, setFinalData] = useState([]);
     const [userPrimaryKey, setUserPrimaryKey] = useState(null);
     const uniqueID = uuidv4();
-    const baseURL = 'https://backend-production-c0ab.up.railway.app'
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currencyModal, setCurrencyModal] = useState(false);
+    const [stocksModal, setStocksModal] = useState(false);
+    const [commoditiesModal,setCommoditiesModal] = useState(false);
+    const [indicesModal, setIndicesModal] = useState(false);
+    const [futuresModal, setFuturesModal] = useState(false);
+    const [optionsModal, setOptionsModal] = useState(false);
+    const [isButtonClicked, setIsButtonClicked] = useState(false);
+    const baseURL = 'https://backend-production-c0ab.up.railway.app';
+
+
+    const currencyArray = [
+        "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD", "USDCAD", "EURJPY",
+        "GBPJPY", "AUDJPY", "CADJPY", "CHFJPY", "NZDJPY", "EURAUD", "EURGBP", "EURNZD",
+        "EURCAD", "GBPAUD", "GBPCAD", "GBPNZD", "AUDCAD", "AUDCHF", "AUDNZD", "CADCHF",
+        "CADNZD", "CHFJPY", "EURCHF", "EURDKK", "EURHKD", "EURHUF", "EURNOK", "EURPLN",
+        "EURZAR", "GBPCHF", "AUDSGD", "CHFZAR", "USDZAR", "AUDNZD", "NZDCAD", "AUDCHF",
+        "AUDJPY", "AUDCAD", "NZDCHF", "CADCHF", "CADJPY", "AUDCHF"
+      ];
+
+      const stockArray = [
+        "$AAPL", "$GOOGL", "$AMZN", "$TSLA", "$MSFT", "$FB", "$NFLX", "$NVDA", "$INTC",
+        "$CSCO", "$AAP", "$JPM", "$GS", "$V", "$DIS", "$KO", "$PEP", "$WMT", "$PG",
+        "$UNH", "$HD", "$NKE", "$MCD", "$BA", "$VZ", "$T", "$IBM"
+      ];
+
+      const commodityArray = [
+        "Gold (XAUUSD)", "Silver (XAGUSD)", "Crude Oil (USOIL)", "Brent Crude Oil (UKOIL)",
+        "Natural Gas (NGAS)", "Copper (COPPER)", "Platinum (XPTUSD)", "Palladium (XPDUSD)",
+        "Corn (CORN)", "Wheat (WHEAT)", "Soybeans (SOYBEAN)", "Coffee (COFFEE)",
+        "Cocoa (COCOA)", "Sugar (SUGAR)", "Cotton (COTTON)"
+      ];
+
+      const indicesArray = [
+        "S&P 500 (SP500)", "Dow Jones Industrial Average (US30)", "DAX 30 (GER30)",
+        "NASDAQ Composite (NAS100)", "FTSE 100 (UK100)", "CAC 40 (FR40)",
+        "Nikkei 225 (JP225)", "Hang Seng Index (HK50)", "ASX 200 (AUS200)",
+        "Euro Stoxx 50 (EU50)", "S&P/TSX Composite (CA60)", "Shanghai Composite (CN50)"
+      ];
+
+      const futuresArray = [
+        "E-mini S&P 500 Futures (ES)", "Crude Oil Futures (CL)", "Gold Futures (GC)",
+        "Euro FX Futures (6E)", "Natural Gas Futures (NG)", "Copper Futures (HG)",
+        "10-Year Treasury Note Futures (ZN)", "30-Year Treasury Bond Futures (ZB)",
+        "E-mini Nasdaq-100 Futures (NQ)", "E-mini Dow Jones Futures (YM)",
+        "Mini Russell 2000 Futures (RTY)", "VIX Futures (VX)"
+      ];
+
+      const optionsArray = [
+        "Apple Inc. Call Option (AAPL Call)", "Amazon.com Inc. Put Option (AMZN Put)",
+        "Google LLC Call Option (GOOGL Call)", "Tesla Inc. Put Option (TSLA Put)",
+        "Microsoft Corporation Call Option (MSFT Call)", "Facebook Inc. Put Option (FB Put)",
+        "Netflix Inc. Call Option (NFLX Call)", "Alphabet Inc. Put Option (GOOG Put)",
+        "Bank of America Corporation Call Option (BAC Call)", "Johnson & Johnson Put Option (JNJ Put)",
+        "JPMorgan Chase & Co. Call Option (JPM Call)", "General Electric Company Put Option (GE Put)"
+      ];
+
 
     const handleAssetSelect = (e) => {
         const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
@@ -29,11 +85,17 @@ export default function TellUsMore() {
             assetArray.push(selectedOptions[0]);
         }   
     }
+
+    const toggleModal = () => {
+        setIsModalOpen(!isModalOpen);
+        console.log(selectedAssets);
+      };
     
-    const handleRemoveAsset = (assetToRemove) => {
-        const updatedAssets = assetArray.filter((asset) => asset !== assetToRemove);
-        setAssetArray(updatedAssets);
-    };
+      const handleRemoveAsset = (assetToRemove) => {
+        const updatedAssets = selectedAssets.filter((selected) => selected !== assetToRemove);
+        setSelectedAssets(updatedAssets);
+      };
+
     useEffect(() => {
         const infoLink = document.querySelector('.why-collect-info-link');
         const infoModal = document.querySelector('.info-modal');
@@ -46,7 +108,132 @@ export default function TellUsMore() {
         infoModal.style.display = 'none';
         });
 
-    }, [])
+    }, []);
+
+    const handleSearch = (event) => {
+        const searchQuery = event.target.value.toLowerCase(); // Convert input to lowercase for case-insensitive search
+        const currencyButtons = document.querySelectorAll(".assets-offered button");
+    
+        currencyButtons.forEach((button) => {
+            const currencyName = button.textContent.toLowerCase();
+            if (currencyName.includes(searchQuery)) {
+                button.style.display = "block"; // Show the button if it matches the search query
+            } else {
+                button.style.display = "none"; // Hide the button if it doesn't match the search query
+            }
+        });
+    };
+
+    const checkOtherModals = (modalCategory) => {
+        if (modalCategory === "currency") {
+            // Close all other modals except the currency modal
+            setStocksModal(false);
+            setCommoditiesModal(false);
+            setIndicesModal(false);
+            setFuturesModal(false);
+            setOptionsModal(false);
+            setIsModalOpen(false);
+
+        } else if (modalCategory === "stocks") {
+            // Close all other modals except the stocks modal
+            setCurrencyModal(false);
+            setCommoditiesModal(false);
+            setIndicesModal(false);
+            setFuturesModal(false);
+            setOptionsModal(false);
+            setIsModalOpen(false);
+
+        } else if (modalCategory === "commodities") {
+            // Close all other modals except the commodities modal
+            setCurrencyModal(false);
+            setStocksModal(false);
+            setIndicesModal(false);
+            setFuturesModal(false);
+            setOptionsModal(false);
+            setIsModalOpen(false);
+
+        } else if (modalCategory === "indices") {
+            // Close all other modals except the indices modal
+            setCurrencyModal(false);
+            setStocksModal(false);
+            setCommoditiesModal(false);
+            setFuturesModal(false);
+            setOptionsModal(false);
+            setIsModalOpen(false);
+
+        } else if (modalCategory === "futures") {
+            // Close all other modals except the futures modal
+            setCurrencyModal(false);
+            setStocksModal(false);
+            setCommoditiesModal(false);
+            setIndicesModal(false);
+            setOptionsModal(false);
+            setIsModalOpen(false);
+
+        } else if (modalCategory === "options") {
+            // Close all other modals except the options modal
+            setCurrencyModal(false);
+            setStocksModal(false);
+            setCommoditiesModal(false);
+            setIndicesModal(false);
+            setFuturesModal(false);
+            setIsModalOpen(false);
+
+        } else if (modalCategory === "all") {
+            setCurrencyModal(false);
+            setStocksModal(false);
+            setCommoditiesModal(false);
+            setIndicesModal(false);
+            setFuturesModal(false);
+            setOptionsModal(false);
+            setIsModalOpen(true);
+        }
+    };
+    
+      const toggleCurrenyModal = () => {
+        setCurrencyModal(!currencyModal);
+        checkOtherModals("currency");
+
+      };
+
+      const toggleStocksModal = () => {
+        setStocksModal(!stocksModal);
+        checkOtherModals("stocks");
+      };
+
+      const toggleCommoditiesModal = () => {
+        setCommoditiesModal(!commoditiesModal);
+        checkOtherModals("commodities");
+      };
+
+      const toggleIndicesModal = () => {
+        setIndicesModal(!indicesModal);
+        checkOtherModals("indices");
+      };
+
+      const toggleFuturesModal = () => {
+        setFuturesModal(!futuresModal);
+        checkOtherModals("futures");
+      };
+
+      const toggleOptionsModal = () => {
+        setOptionsModal(!optionsModal);
+        checkOtherModals("options");
+      };
+
+      const handleAssetSelection = (asset) => {
+        // Check if the asset is already selected
+        if (!selectedAssets.includes(asset)) {
+          // Add the asset to the selectedAssets array
+          setSelectedAssets([...selectedAssets, asset]);
+          setIsButtonClicked(true);
+        }
+      };
+
+      const closeModals = () => {
+            checkOtherModals('all');
+      }
+    
 
 
     const handleTradingExperienceChange = (event) => {
@@ -91,7 +278,7 @@ export default function TellUsMore() {
         const registeredEmail = localStorage.getItem('registeredEmail');
         const requestData = {
             trading_experience: tradingExperience,
-            main_assets: assetArray.join(", "),  // Convert array to a string
+            main_assets: selectedAssets.join(", "),  // Convert array to a string
             initial_capital: parseFloat(initialCapital),
             trading_goals: tradingGoals,
             benefits: expectedBenefits,
@@ -99,7 +286,7 @@ export default function TellUsMore() {
         };
     
 
-        setFinalData([tradingExperience, [assetArray], initialCapital, tradingGoals, expectedBenefits]);
+        setFinalData([tradingExperience, [selectedAssets], initialCapital, tradingGoals, expectedBenefits]);
 
         try {
             const response = await fetch(`${baseURL}/tell_us_more/create/`, {
@@ -150,121 +337,283 @@ export default function TellUsMore() {
             </select>
 
                 <label>What are the main assets you trade?</label>
-                <select className="form-control" 
-                onChange={handleAssetSelect}
+                <button className="btn btn-light" onClick={toggleModal}>Choose Options</button>
+                <br />
+                {selectedAssets.map((asset, index) => (
+                <button className="btn btn-light tell-us-more-assets" onClick={() => handleRemoveAsset(asset)}>{asset} <i className="bi bi-x"></i></button>
+            ))}
+
+                {isModalOpen && (
+                    <div className="modal-overlay">
+                    <div className="select-category-modal">
+                            <h4 className="select-category-title">Select Category</h4>
+
+                            {/* Closing the modal is handled here */}
+                            <button className="btn btn-light" onClick={toggleModal}><i className="bi bi-x-lg"></i></button>
+                            <div className="select-category-top">
+                                <button className="btn btn-light" onClick={toggleCurrenyModal}>Forex</button>
+                                <button className="btn btn-light" onClick={toggleStocksModal}>Stocks</button>
+                            </div>
+                            <div className="select-category-top">
+                                <button className="btn btn-light" onClick={toggleCommoditiesModal}>Commodities</button>
+                                <button className="btn btn-light" onClick={toggleIndicesModal}>Indices</button>
+                            </div>
+                            <div className="select-category-top">
+                                <button className="btn btn-light" onClick={toggleFuturesModal}>Futures</button>
+                                <button className="btn btn-light" onClick={toggleOptionsModal}>Options</button>
+                            </div>
+    
+                            <h5 className="select-category-assets">Selected Assets:</h5>
+                            <div className="selected-assets">
+                                {/* // Display selected assets with remove buttons */}
+                                {selectedAssets.map((asset) => (
+                                    <div key={asset}>
+                                    <button className="btn btn-light" onClick={() => handleRemoveAsset(asset)}>{asset} <i className="bi bi-x"></i></button>
+                                </div>
+                                ))}
+                            </div>
+    
+                    </div>
+                    </div>
+                    )}
+    
+                    
+                    {currencyModal && (
+                        <div className="modal-overlay">
+                        <div className="select-currencies-modal">
+                            <div className="select-modal-headings">
+                            <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
+                                <h4 className="select-category-title">Select Currencies</h4>
+                        </div>
+    
+                    <div className="select-search-input">
+                        <div className="select-currencies-search">
+                            <input
+                                type="search"
+                                className="form-control"
+                                placeholder="Search..."
+                                aria-label="Search"
+                                aria-describedby="basic-addon2"
+                                onChange={handleSearch}
+                            />
+                        </div>
+                        <button className="btn btn-outline-secondary select-category-search-button" type="button">
+                    <i className="bi bi-search"></i>
+                    </button>
+                    </div>
+                    <div className="assets-offered">
+                    {currencyArray.map((currency, index) => (
+                        <button
+                        key={index}
+                        className="btn btn-light"
+                        onClick={() => handleAssetSelection(currency)}
+                        >
+                        {currency}
+                        </button>
+                    ))}
+                    </div>
+                        </div>
+                        </div>
+                )}
+    
+                {stocksModal && (
+                <div className="modal-overlay">
+                <div className="select-stocks-modal">
+                <div className="select-modal-headings">
+                                <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
+                                <h4 className="select-category-title">Select Stocks</h4>
+                        </div>
+    
+                <div className="select-search-input">
+                    <div className="select-stocks-search">
+                        <input
+                            type="search"
+                            className="form-control"
+                            placeholder="Search..."
+                            aria-label="Search"
+                            aria-describedby="basic-addon2"
+                            onChange={handleSearch}
+                        />
+                    </div>
+                    <button className="btn btn-outline-secondary select-category-search-button" type="button">
+                        <i className="bi bi-search"></i>
+                    </button>
+                </div>
+                
+                <div className="assets-offered">
+                {stockArray.map((stock, index) => (
+                    <button
+                    key={index}
+                    className="btn btn-light"
+                    onClick={() => handleAssetSelection(stock)}
                     >
-                <option value="">
-                    Select an option
-                </option>
-                <option value="VIX75">VIX 75</option>
-                <option value="EURUSD">EURUSD</option>
-                <option value="GBPUSD">GBPUSD</option>
-                <option value="USDJPY">USDJPY</option>
-                <option value="XAUUSD">XAUUSD</option>
-                <option value="AUDUSD">AUDUSD</option>
-                <option value="USDCHF">USDCHF</option>
-                <option value="NZDUSD">NZDUSD</option>
-                <option value="USDCAD">USDCAD</option>
-                <option value="EURJPY">EURJPY</option>
-                <option value="GBPJPY">GBPJPY</option>
-                <option value="AUDJPY">AUDJPY</option>
-                <option value="CADJPY">CADJPY</option>
-                <option value="CHFJPY">CHFJPY</option>
-                <option value="NZDJPY">NZDJPY</option>
-                <option value="EURAUD">EURAUD</option>
-                <option value="EURGBP">EURGBP</option>
-                <option value="EURNZD">EURNZD</option>
-                <option value="EURCAD">EURCAD</option>
-                <option value="GBPAUD">GBPAUD</option>
-                <option value="GBPCAD">GBPCAD</option>
-                <option value="GBPNZD">GBPNZD</option>
-                <option value="AUDCAD">AUDCAD</option>
-                <option value="AUDCHF">AUDCHF</option>
-                <option value="AUDNZD">AUDNZD</option>
-                <option value="CADCHF">CADCHF</option>
-                <option value="CADNZD">CADNZD</option>
-                <option value="NAS100">NASDAQ (NAS100)</option>
-                <option value="US30">US30</option>
-                <option value="GER40">GER40</option>
-                <option value="CHFJPY">CHFJPY</option>
-                <option value="CHFUSD">CHFUSD</option>
-                <option value="EURCHF">EURCHF</option>
-                <option value="EURDKK">EURDKK</option>
-                <option value="EURHKD">EURHKD</option>
-                <option value="EURHUF">EURHUF</option>
-                <option value="EURNOK">EURNOK</option>
-                <option value="EURPLN">EURPLN</option>
-                <option value="EURSEK">EURSEK</option>
-                <option value="EURTRY">EURTRY</option>
-                <option value="EURZAR">EURZAR</option>
-                <option value="GBPCHF">GBPCHF</option>
-                <option value="GBPHKD">GBPHKD</option>
-                <option value="GBPNOK">GBPNOK</option>
-                <option value="GBPSGD">GBPSGD</option>
-                <option value="AUDSGD">AUDSGD</option>
-                <option value="NZDSGD">NZDSGD</option>
-                <option value="CADSGD">CADSGD</option>
-                <option value="CHFSGD">CHFSGD</option>
-                <option value="CHFZAR">CHFZAR</option>
-                <option value="USDMXN">USDMXN</option>
-                <option value="USDZAR">USDZAR</option>
-                <option value="USDHKD">USDHKD</option>
-                <option value="USDSGD">USDSGD</option>
-                <option value="USDNOK">USDNOK</option>
-                <option value="USDSEK">USDSEK</option>
-                <option value="USDDKK">USDDKK</option>
-                <option value="USDCNH">USDCNH</option>
-                <option value="USDTHB">USDTHB</option>
-                <option value="USDPLN">USDPLN</option>
-                <option value="USDCZK">USDCZK</option>
-                <option value="USDHUF">USDHUF</option>
-                <option value="USDBRL">USDBRL</option>
-                <option value="USDRUB">USDRUB</option>
-                <option value="USDKRW">USDKRW</option>
-                <option value="USDCAD">USDCAD</option>
-                <option value="AUDNZD">AUDNZD</option>
-                <option value="NZDCAD">NZDCAD</option>
-                <option value="AUDCHF">AUDCHF</option>
-                <option value="AUDJPY">AUDJPY</option>
-                <option value="AUDCAD">AUDCAD</option>
-                <option value="AUDUSD">AUDUSD</option>
-                <option value="AUDSGD">AUDSGD</option>
-                <option value="AUDHKD">AUDHKD</option>
-                <option value="NZDUSD">NZDUSD</option>
-                <option value="NZDJPY">NZDJPY</option>
-                <option value="NZDCHF">NZDCHF</option>
-                <option value="NZDSGD">NZDSGD</option>
-                <option value="NZDHKD">NZDHKD</option>
-                <option value="CADCHF">CADCHF</option>
-                <option value="CADJPY">CADJPY</option>
-                <option value="CADSGD">CADSGD</option>
-                <option value="CADHKD">CADHKD</option>
-                <option value="CADNOK">CADNOK</option>
-                <option value="CADSEK">CADSEK</option>
-                <option value="CADDKK">CADDKK</option>
-                <option value="CHFJPY">CHFJPY</option>
-                <option value="CHFAUD">CHFAUD</option>
-                <option value="CHFNZD">CHFNZD</option>
-                <option value="CHFUSD">CHFUSD</option>
-                <option value="CHFEUR">CHFEUR</option>
-                <option value="CHFGBP">CHFGBP</option>
-                <option value="CHFSEK">CHFSEK</option>
-                <option value="CHFDKK">CHFDKK</option>
-                <option value="CHFNOK">CHFNOK</option>
-                <option value="CHFPLN">CHFPLN</option>
-                <option value="CHFHUF">CHFHUF</option>
-                <option value="CHFCZK">CHFCZK</option>
-                <option value="CHFTRY">CHFTRY</option>
-                <option value="CHFZAR">CHFZAR</option>
-                <option value="JPYSGD">JPYSGD</option>
-                <option value="JPYHKD">JPYHKD</option>
-                <option value="JPYNOK">JPYNOK</option>
-                <option value="JPYSEK">JPYSEK</option>
-                <option value="JPYDKK">JPYDKK</option>
-                <option value="JPYPLN">JPYPLN</option>
-                <option value="JPYHUF">JPYHUF</option>
-                <option value="JPYCZK">JPYCZK</option>
-                </select>
+                    {stock}
+                    </button>
+                ))}
+                </div>
+                
+                </div>
+                </div>
+                )}
+            {commoditiesModal && (
+                <div className="modal-overlay">
+                <div className="select-commodities-modal">
+                        <div className="select-modal-headings">
+                                <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
+                                <h4 className="select-category-title">Select Commodities</h4>
+                        </div>
+    
+                <div className="select-search-input">
+                    <div className="select-commodities-search">
+                        <input
+                            type="search"
+                            className="form-control"
+                            placeholder="Search..."
+                            aria-label="Search"
+                            aria-describedby="basic-addon2"
+                            onChange={handleSearch}
+                        />
+                    </div>
+                    <button className="btn btn-outline-secondary select-category-search-button" type="button">
+                        <i className="bi bi-search"></i>
+                    </button>
+                </div>
+                <div className="assets-offered">
+                {commodityArray.map((commodity, index) => (
+                    <button
+                    key={index}
+                    className="btn btn-light"
+                    onClick={() => handleAssetSelection(commodity)}
+                    >
+                    {commodity}
+                    </button>
+                ))}
+                </div>            
+    
+            </div>
+            </div>
+            )}
+    
+            {indicesModal && (
+                <div className="modal-overlay">
+                <div className="select-indices-modal">
+                        <div className="select-modal-headings">
+                                <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
+                                <h4 className="select-category-title">Select Stock Market Indices</h4>
+                        </div>
+    
+                <div className="select-search-input">
+                    <div className="select-indices-search">
+                        <input
+                            type="search"
+                            className="form-control"
+                            placeholder="Search..."
+                            aria-label="Search"
+                            aria-describedby="basic-addon2"
+                            onChange={handleSearch}
+                        />
+                    </div>
+                    <button className="btn btn-outline-secondary select-category-search-button" type="button">
+                        <i className="bi bi-search"></i>
+                    </button>
+                </div>
+    
+                <div className="assets-offered">
+                {indicesArray.map((indexName, index) => (
+                    <button
+                    key={index}
+                    className="btn btn-light"
+                    onClick={() => handleAssetSelection(indexName)}
+                    >
+                    {indexName}
+                    </button>
+                ))}
+                </div>
+    
+                
+            </div>
+            </div>
+    
+            )}
+    
+            {futuresModal && (
+                <div className="modal-overlay">
+                <div className="select-futures-modal">
+                <div className="select-modal-headings">
+                                <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
+                                <h4 className="select-category-title">Select Futures</h4>
+                        </div>
+    
+                <div className="select-search-input">
+                    <div className="select-futures-search">
+                        <input
+                            type="search"
+                            className="form-control"
+                            placeholder="Search..."
+                            aria-label="Search"
+                            aria-describedby="basic-addon2"
+                            onChange={handleSearch}
+                        />
+                    </div>
+                    <button className="btn btn-outline-secondary select-category-search-button" type="button">
+                        <i className="bi bi-search"></i>
+                    </button>
+                </div>
+                <div className="assets-offered">
+                {futuresArray.map((futuresName, index) => (
+                    <button
+                    key={index}
+                    className="btn btn-light"
+                    onClick={() => handleAssetSelection(futuresName)}
+                    >
+                    {futuresName}
+                    </button>
+                ))}
+                </div>
+            </div>
+            </div>
+    
+                )}
+    
+            {optionsModal && (
+                <div className="modal-overlay">
+                <div className="select-options-modal">
+                <div className="select-modal-headings">
+                                <i className="bi bi-arrow-left select-category-left-arrow" onClick={closeModals}></i>
+                                <h4 className="select-category-title">Select Options</h4>
+                        </div>
+    
+                <div className="select-search-input">
+                    <div className="select-options-search">
+                        <input
+                            type="search"
+                            className="form-control"
+                            placeholder="Search..."
+                            aria-label="Search"
+                            aria-describedby="basic-addon2"
+                            onChange={handleSearch}
+                        />
+                    </div>
+                    <button className="btn btn-outline-secondary select-category-search-button" type="button">
+                        <i className="bi bi-search"></i>
+                    </button>
+                </div>
+    
+                <div className="assets-offered">
+                {optionsArray.map((optionName, index) => (
+                    <button
+                    key={index}
+                    className="btn btn-light"
+                    onClick={() => handleAssetSelection(optionName)}
+                    >
+                    {optionName}
+                    </button>
+                ))}
+                </div>
+                
+            </div>
+            </div>
+                )}
                     
                 <div className="selected-assets">
                 {assetArray.map((asset, index) => (
@@ -272,7 +621,6 @@ export default function TellUsMore() {
                         <button className="btn btn-secondary selected-asset-button" onClick={() => handleRemoveAsset(asset)}>{asset}<i className="bi bi-x-lg"></i></button>
                     </span>
                     ))}
-
                 </div>
 
                 <label>What is your initial trading capital or equity (in USD)?</label>

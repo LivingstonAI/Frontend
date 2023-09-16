@@ -20,6 +20,52 @@ export default function AssetsTraded({ assets, setAssets }) {
     const forceUpdate = useForceUpdate();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
+    const currencyArray = [
+        "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD", "USDCAD", "EURJPY",
+        "GBPJPY", "AUDJPY", "CADJPY", "CHFJPY", "NZDJPY", "EURAUD", "EURGBP", "EURNZD",
+        "EURCAD", "GBPAUD", "GBPCAD", "GBPNZD", "AUDCAD", "AUDCHF", "AUDNZD", "CADCHF",
+        "CADNZD", "CHFJPY", "EURCHF", "EURDKK", "EURHKD", "EURHUF", "EURNOK", "EURPLN",
+        "EURZAR", "GBPCHF", "AUDSGD", "CHFZAR", "USDZAR", "AUDNZD", "NZDCAD", "AUDCHF",
+        "AUDJPY", "AUDCAD", "NZDCHF", "CADCHF", "CADJPY", "AUDCHF"
+      ];
+
+      const stockArray = [
+        "$AAPL", "$GOOGL", "$AMZN", "$TSLA", "$MSFT", "$FB", "$NFLX", "$NVDA", "$INTC",
+        "$CSCO", "$AAP", "$JPM", "$GS", "$V", "$DIS", "$KO", "$PEP", "$WMT", "$PG",
+        "$UNH", "$HD", "$NKE", "$MCD", "$BA", "$VZ", "$T", "$IBM"
+      ];
+
+      const commodityArray = [
+        "Gold (XAUUSD)", "Silver (XAGUSD)", "Crude Oil (USOIL)", "Brent Crude Oil (UKOIL)",
+        "Natural Gas (NGAS)", "Copper (COPPER)", "Platinum (XPTUSD)", "Palladium (XPDUSD)",
+        "Corn (CORN)", "Wheat (WHEAT)", "Soybeans (SOYBEAN)", "Coffee (COFFEE)",
+        "Cocoa (COCOA)", "Sugar (SUGAR)", "Cotton (COTTON)"
+      ];
+
+      const indicesArray = [
+        "S&P 500 (SP500)", "Dow Jones Industrial Average (US30)", "DAX 30 (GER30)",
+        "NASDAQ Composite (NAS100)", "FTSE 100 (UK100)", "CAC 40 (FR40)",
+        "Nikkei 225 (JP225)", "Hang Seng Index (HK50)", "ASX 200 (AUS200)",
+        "Euro Stoxx 50 (EU50)", "S&P/TSX Composite (CA60)", "Shanghai Composite (CN50)"
+      ];
+
+      const futuresArray = [
+        "E-mini S&P 500 Futures (ES)", "Crude Oil Futures (CL)", "Gold Futures (GC)",
+        "Euro FX Futures (6E)", "Natural Gas Futures (NG)", "Copper Futures (HG)",
+        "10-Year Treasury Note Futures (ZN)", "30-Year Treasury Bond Futures (ZB)",
+        "E-mini Nasdaq-100 Futures (NQ)", "E-mini Dow Jones Futures (YM)",
+        "Mini Russell 2000 Futures (RTY)", "VIX Futures (VX)"
+      ];
+
+      const optionsArray = [
+        "Apple Inc. Call Option (AAPL Call)", "Amazon.com Inc. Put Option (AMZN Put)",
+        "Google LLC Call Option (GOOGL Call)", "Tesla Inc. Put Option (TSLA Put)",
+        "Microsoft Corporation Call Option (MSFT Call)", "Facebook Inc. Put Option (FB Put)",
+        "Netflix Inc. Call Option (NFLX Call)", "Alphabet Inc. Put Option (GOOG Put)",
+        "Bank of America Corporation Call Option (BAC Call)", "Johnson & Johnson Put Option (JNJ Put)",
+        "JPMorgan Chase & Co. Call Option (JPM Call)", "General Electric Company Put Option (GE Put)"
+      ];
+
     const fetchEmailDataFromAPI = () => {
         return Cookies.get('email');
     };
@@ -218,10 +264,6 @@ export default function AssetsTraded({ assets, setAssets }) {
         }
       };
       
-      
-      
-      
-
     return (
         <div>
             {isModalOpen && (
@@ -284,52 +326,15 @@ export default function AssetsTraded({ assets, setAssets }) {
                 </button>
                 </div>
                 <div className="assets-offered">
-                    <button className={`btn btn-light ${isButtonClicked ? 'highlighted-button' : ''}`} onClick={() => handleAssetSelection("EURUSD")}>EURUSD</button>
-                    <button className={`btn btn-light ${isButtonClicked ? 'highlighted-button' : ''}`} onClick={() => handleAssetSelection("GBPUSD")}>GBPUSD</button>
-                    <button className={`btn btn-light ${isButtonClicked ? 'highlighted-button' : ''}`} onClick={() => handleAssetSelection("USDJPY")}>USDJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDUSD")}>AUDUSD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("USDCHF")}>USDCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("NZDUSD")}>NZDUSD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("USDCAD")}>USDCAD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURJPY")}>EURJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("GBPJPY")}>GBPJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDJPY")}>AUDJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CADJPY")}>CADJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CHFJPY")}>CHFJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("NZDJPY")}>NZDJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURAUD")}>EURAUD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURGBP")}>EURGBP</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURNZD")}>EURNZD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURCAD")}>EURCAD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("GBPAUD")}>GBPAUD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("GBPCAD")}>GBPCAD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("GBPNZD")}>GBPNZD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDCAD")}>AUDCAD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDCHF")}>AUDCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDNZD")}>AUDNZD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CADCHF")}>CADCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CADNZD")}>CADNZD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CHFJPY")}>CHFJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURCHF")}>EURCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURDKK")}>EURDKK</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURHKD")}>EURHKD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURHUF")}>EURHUF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURNOK")}>EURNOK</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURPLN")}>EURPLN</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("EURZAR")}>EURZAR</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("GBPCHF")}>GBPCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDSGD")}>AUDSGD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CHFZAR")}>CHFZAR</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("USDZAR")}>USDZAR</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDNZD")}>AUDNZD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("NZDCAD")}>NZDCAD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDCHF")}>AUDCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDJPY")}>AUDJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDCAD")}>AUDCAD</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("NZDCHF")}>NZDCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CADCHF")}>CADCHF</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("CADJPY")}>CADJPY</button>
-                    <button className="btn btn-light" onClick={() => handleAssetSelection("AUDCHF")}>AUDCHF</button>
+                {currencyArray.map((currency, index) => (
+                    <button
+                    key={index}
+                    className="btn btn-light"
+                    onClick={() => handleAssetSelection(currency)}
+                    >
+                    {currency}
+                    </button>
+                ))}
                 </div>
                     </div>
                     </div>
@@ -358,36 +363,19 @@ export default function AssetsTraded({ assets, setAssets }) {
                     <i className="bi bi-search"></i>
                 </button>
             </div>
+            
             <div className="assets-offered">
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$AAPL")}>$AAPL</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$GOOGL")}>$GOOGL</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$AMZN")}>$AMZN</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$TSLA")}>$TSLA</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$MSFT")}>$MSFT</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$FB")}>$FB</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$NFLX")}>$NFLX</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$NVDA")}>$NVDA</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$INTC")}>$INTC</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$CSCO")}>$CSCO</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$AAP")}>$AAP</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$JPM")}>$JPM</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$GS")}>$GS</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$V")}>$V</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$DIS")}>$DIS</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$KO")}>$KO</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$PEP")}>$PEP</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$WMT")}>$WMT</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$PG")}>$PG</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$UNH")}>$UNH</button>
-                <button className="btn btn-light"onClick={() => handleAssetSelection("$HD")}>$HD</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$NKE")}>$NKE</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$MCD")}>$MCD</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$BA")}>$BA</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$VZ")}>$VZ</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$T")}>$T</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("$IBM")}>$IBM</button>
+            {stockArray.map((stock, index) => (
+                <button
+                key={index}
+                className="btn btn-light"
+                onClick={() => handleAssetSelection(stock)}
+                >
+                {stock}
+                </button>
+            ))}
             </div>
-
+            
             </div>
             </div>
             )}
@@ -415,22 +403,16 @@ export default function AssetsTraded({ assets, setAssets }) {
                 </button>
             </div>
             <div className="assets-offered">
-                <button className="btn btn-light" onClick={() => handleAssetSelection("XAUUSD")}>Gold (XAUUSD)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("XAGUSD")}>Silver (XAGUSD)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("USOIL")}>Crude Oil (USOIL)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("UKOIL")}>Brent Crude Oil (UKOIL)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("NGAS")}>Natural Gas (NGAS)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("COPPER")}>Copper (COPPER)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("XPTUSD")}>Platinum (XPTUSD)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("XPDUSD")}>Palladium (XPDUSD)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("CORN")}>Corn (CORN)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("WHEAT")}>Wheat (WHEAT)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("SOYBEAN")}>Soybeans (SOYBEAN)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("COFFEE")}>Coffee (COFFEE)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("COCOA")}>Cocoa (COCOA)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("SUGAR")}>Sugar (SUGAR)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("COTTON")}>Cotton (COTTON)</button>
-            </div>
+            {commodityArray.map((commodity, index) => (
+                <button
+                key={index}
+                className="btn btn-light"
+                onClick={() => handleAssetSelection(commodity)}
+                >
+                {commodity}
+                </button>
+            ))}
+            </div>            
 
         </div>
         </div>
@@ -459,20 +441,20 @@ export default function AssetsTraded({ assets, setAssets }) {
                     <i className="bi bi-search"></i>
                 </button>
             </div>
+
             <div className="assets-offered">
-                <button className="btn btn-light" onClick={() => handleAssetSelection("SP500")}>S&P 500 (SP500)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("US30")}>Dow Jones Industrial Average (US30)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("GER30")}>DAX 30 (GE30)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("NAS100")}>NASDAQ Composite (NAS100)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("UK100")}>FTSE 100 (UK100)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("FR40")}>CAC 40 (FR40)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("JP225")}>Nikkei 225 (JP225)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("HK50")}>Hang Seng Index (HK50)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("AUS200")}>ASX 200 (AUS200)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("EU50")}>Euro Stoxx 50 (EU50)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("CA60")}>S&P/TSX Composite (CA60)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("CN50")}>Shanghai Composite (CN50)</button>
+            {indicesArray.map((indexName, index) => (
+                <button
+                key={index}
+                className="btn btn-light"
+                onClick={() => handleAssetSelection(indexName)}
+                >
+                {indexName}
+                </button>
+            ))}
             </div>
+
+            
         </div>
         </div>
 
@@ -502,18 +484,15 @@ export default function AssetsTraded({ assets, setAssets }) {
                 </button>
             </div>
             <div className="assets-offered">
-                <button className="btn btn-light" onClick={() => handleAssetSelection("ES")}>E-mini S&P 500 Futures (ES)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("CL")}>Crude Oil Futures (CL)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("GC")}>Gold Futures (GC)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("6E")}>Euro FX Futures (6E)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("NG")}>Natural Gas Futures (NG)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("HG")}>Copper Futures (HG)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("ZN")}>10-Year Treasury Note Futures (ZN)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("ZB")}>30-Year Treasury Bond Futures (ZB)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("NQ")}>E-mini Nasdaq-100 Futures (NQ)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("YM")}>E-mini Dow Jones Futures (YM)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("RTY")}>Mini Russell 2000 Futures (RTY)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("VX")}>VIX Futures (VX)</button>
+            {futuresArray.map((futuresName, index) => (
+                <button
+                key={index}
+                className="btn btn-light"
+                onClick={() => handleAssetSelection(futuresName)}
+                >
+                {futuresName}
+                </button>
+            ))}
             </div>
         </div>
         </div>
@@ -543,20 +522,19 @@ export default function AssetsTraded({ assets, setAssets }) {
                     <i className="bi bi-search"></i>
                 </button>
             </div>
+
             <div className="assets-offered">
-                <button className="btn btn-light" onClick={() => handleAssetSelection("AAPL CALL")}>Apple Inc. Call Option (AAPL Call)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("AMZN Put")}>Amazon.com Inc. Put Option (AMZN Put)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("GOOGLE Call")}>Google LLC Call Option (GOOGL Call)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("TSLA Put")}>Tesla Inc. Put Option (TSLA Put)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("MSFT Call")}>Microsoft Corporation Call Option (MSFT Call)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("FB Put")}>Facebook Inc. Put Option (FB Put)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("NFLX Call")}>Netflix Inc. Call Option (NFLX Call)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("GOOG Put")}>Alphabet Inc. Put Option (GOOG Put)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("BAC Call")}>Bank of America Corporation Call Option (BAC Call)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("JNJ Put")}>Johnson & Johnson Put Option (JNJ Put)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("JPM Call")}>JPMorgan Chase & Co. Call Option (JPM Call)</button>
-                <button className="btn btn-light" onClick={() => handleAssetSelection("GE Put")}>General Electric Company Put Option (GE Put)</button>
+            {optionsArray.map((optionName, index) => (
+                <button
+                key={index}
+                className="btn btn-light"
+                onClick={() => handleAssetSelection(optionName)}
+                >
+                {optionName}
+                </button>
+            ))}
             </div>
+            
         </div>
         </div>
         )}
