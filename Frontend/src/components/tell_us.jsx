@@ -259,7 +259,7 @@ export default function TellUsMore() {
             alert('Please select your trading experience.');
             return;
         }
-        if (assetArray.length < 1) {
+        if (selectedAssets.length < 1) {
             alert('Please select main assets.')
             return;
         }
