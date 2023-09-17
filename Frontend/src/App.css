@@ -1860,3 +1860,240 @@ th {
     }
   }
 
+
+  @media screen and (min-width: 1024px) {
+    /* Styles for larger screens go here */
+    .register-div, .login-div, .tell-us-div {
+        position: relative;
+        left: 350px;
+        width: 45%;
+    }
+    .info-modal {
+        width: 200%;
+    }
+    .info-modal-content {
+        left: 200px;
+    }
+    .main-page-body {
+        display: block;
+    }
+    .main-body-info {
+        position: relative;
+        top: 50px;
+        left: 0px;
+    }
+    .main-body-info h5 {
+        text-align: center;
+    }
+    .main-body-info h5 {
+        right: 0px;
+    }
+    .all-trades-header {
+        left: 0px;
+    }
+
+    .enter-new-trade-cta {
+        position: relative;
+        /* left: 355px; */
+        left: 43%;
+    }
+    .all-trades-div {
+        position: relative;
+        width: 80%;
+        left: 150px;
+    }
+    .entire-summary-div {
+        right: 0px;
+    }
+    .summary-upcoming-news h6, .summary-current-performance-eval h6 {
+        position: relative;
+        right: 12px;
+    }
+    .register-new-trade {
+        left: 225px;
+        width: 70%;
+    }
+    .whole-trade-analysis-header {
+        display: flex;
+        left: 20px;
+    }
+    .trade-analysis-reflection {
+    position: relative;
+    top: -10px;
+    }
+    
+    .trade-analysis-footer {
+        top: 590px;
+        width: 100%;
+        left: 25px;
+    }
+    .whole-trade-analysis-stomach {
+        display: flex;
+        left: 60px;
+    }
+    .full_trades-main-page-cta {
+        position: relative;
+    }
+    .trade-analysis-reflection {
+        margin-top: 10px;
+    }
+    
+    
+    .download-compiled-report {
+        top: 150px;
+    }
+    .analytics-footer p {
+        left: 5px;
+        right: 5px;
+    }
+    .whole-trade-analysis-div {
+        position:absolute;
+        top: 200px;
+        left: 10%;
+        justify-content: center;
+    }
+    /* .best-strategy, .worst-strategy {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 15px;
+        width: 398px;
+    } */
+     /* Personal Journal CSS */
+     .journal-div {
+        left: 0px;
+        top:50px;
+     }
+     .all-journals-div {
+        width: 80%;
+        left: 10%;
+        top: 150px;
+        
+    }
+    .create-new-journal-cta, .personal-journal-title {
+        left: 0px;
+        width: 90%;
+        text-align: center;
+    }
+    .create-new-journal-cta {
+        position: relative;
+        left: 35%;
+    }
+
+    .all-journals-bottom {
+        display: block;
+    }
+
+    /* Journal Entry CSS */
+    .entire-journal-div {
+        width: 80%;
+        left: 10%;
+        top:150px
+    }
+
+    .view-journal-title {
+        top: 100px;
+    }
+    /* New Journal Entry CSS */
+    .personal-journal-ckeditor {
+        width: 80%;
+        left: 10%;
+        top: 50px;
+        height: 1000px;
+    }
+    .main-journal-nav-button {
+        top: 75px;
+        width:50%;
+        left: -24px;
+    }
+
+    /* LiveClock CSS */
+    /* .live-clock {
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+    } */
+    .live-clock h5,.chatbot-liveclock {
+        position: relative;
+        /* left: 130px; */
+        top: 20px;
+        display: none;
+    }
+    .chatbot-liveclock {
+        left: 70px;
+        top: 40px;
+        display: none;
+    }
+
+    /* ChatBot CSS */ 
+    .chatbot-div {
+        /* top: 50px; */
+        /* right: 30%; */
+        width: 70%;
+        height: 600px;
+        left: 10%;
+    }
+    .ask-livingston-buttons button {
+        width: 100%;   
+    }
+
+    .conversations-div {
+        width: 13%;
+        left:15%;
+    }
+
+    .clear-conversation-icon {
+        display: none;
+    }
+    /* News CSS */
+    .news-event{
+        left: 10%;
+        width: 80%;
+        top: 170px;
+    }
+
+    .major-upcoming-news-events-header {
+        position: absolute;
+        top: 30px;
+        left: 0px;
+    }
+
+    .impact-legend {
+        display: flex;
+        /* position: relative; */
+        gap: 10px;
+        margin-top: 20px;
+        /* margin-top: 50px; */
+        justify-content: center;
+    }
+
+    
+    /* Personal Info CSS */
+    .personal-info {
+        width: 100%;
+        margin: 0px;
+        margin-top: 50px;
+        margin-left: 0px;
+    }
+    /* Select Category CSS */
+    .select-category-modal, 
+    .select-currencies-modal, 
+    .select-stocks-modal, 
+    .select-commodities-modal, 
+    .select-indices-modal, 
+    .select-futures-modal, 
+    .select-options-modal {
+        width: 70%;
+        left: 80px;
+        height: 100%;
+    }
+
+
+    .personal-info-content {
+        position: relative;
+        width: 70%;
+        left: 200px;
+    }
+
+
+ }
+ 

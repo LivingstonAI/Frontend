@@ -100,11 +100,57 @@ export default function MajorNews() {
                         </thead>
                         <tbody>
                             <tr>
-                                <td>All Day</td>
-                                <td>EUR</td>
-                                <td>ECOFIN Meetings</td>
+                                <td>12:30am</td>
+                                <td>NZD</td>
+                                <td>BusinessNZ Services Index</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
+                            <tr>
+                                <td>1:01am</td>
+                                <td>GBP</td>
+                                <td>Rightmove HPI m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>Tentative</td>
+                                <td>EUR</td>
+                                <td>German Buba Monthly Report</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:15pm</td>
+                                <td>CAD</td>
+                                <td>Housing Starts</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:30pm</td>
+                                <td>CAD</td>
+                                <td>IPPI m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+
+                            <tr>
+                                <td>2:15pm</td>
+                                <td>CAD</td>
+                                <td>RMPI m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>4:00pm</td>
+                                <td>USD</td>
+                                <td>NAHB Housing Market Index</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+
+                            <tr>
+                                <td>10:00pm</td>
+                                <td>USD</td>
+                                <td>TIC Long-Term Purchases</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                         
+                         
                             {/* <tr>
                                 <td>4:00am</td>
                                 <td>CNY</td>
