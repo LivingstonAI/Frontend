@@ -2029,7 +2029,7 @@ th {
         /* top: 50px; */
         /* right: 30%; */
         width: 70%;
-        height: 600px;
+        height: 420px;
         left: 10%;
     }
     .ask-livingston-buttons button {
@@ -2082,8 +2082,8 @@ th {
     .select-indices-modal, 
     .select-futures-modal, 
     .select-options-modal {
-        width: 70%;
-        left: 80px;
+        width: 60%;
+        left: 240px;
         height: 100%;
     }
 
