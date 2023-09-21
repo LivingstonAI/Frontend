@@ -11,6 +11,7 @@ import Cookies from 'js-cookie';
 
 
 export default function ChatBotInterface() {
+    const [newsData, setNewsData] = useState([]); // State to store news data
     const [USER_EMAIL, setUSER_EMAIL] = useState("");
     const {conversationID} = useParams();
     const [journals, setJournals] = useState([]);
@@ -53,7 +54,28 @@ export default function ChatBotInterface() {
             await fetchDataFromAPI(); // Then fetch other data
         }
         fetchData();
-    }, []);    
+    }, []); 
+
+
+    async function fetchNewsData() {
+        try {
+            const response = await fetch(`${baseURL}/fetch_news_data/`);
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const data = await response.json();
+            setNewsData(data);
+        } catch (error) {
+            console.error("Error fetching news data:", error);
+        }
+    }
+
+    useEffect(() => {
+        // Call the async function to fetch news data
+        fetchNewsData();
+        console.log(newsData);
+    }, []);
+
 
     // Inside your component
     const saveConversationToBackend = async (conversationData) => {

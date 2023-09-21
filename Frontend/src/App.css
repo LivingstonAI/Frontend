@@ -1891,6 +1891,9 @@ th {
     .all-trades-header {
         left: 0px;
     }
+    .whole-trade-analysis-stomach {
+        left: -190px;
+    }
 
     .enter-new-trade-cta {
         position: relative;

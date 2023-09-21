@@ -241,7 +241,6 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                     <AssetsTraded />
                 )}
                     </div>
-
                 </div>
             </div>
         </div>

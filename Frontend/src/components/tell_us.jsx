@@ -36,6 +36,11 @@ export default function TellUsMore() {
         "AUDJPY", "AUDCAD", "NZDCHF", "CADCHF", "CADJPY", "AUDCHF"
       ];
 
+      const arrayToUse = [
+        "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD", "USDCAD",
+        "EURGBP", "AUDCAD", "EURZAR","Gold",
+      ]
+
       const stockArray = [
         "$AAPL", "$GOOGL", "$AMZN", "$TSLA", "$MSFT", "$FB", "$NFLX", "$NVDA", "$INTC",
         "$CSCO", "$AAP", "$JPM", "$GS", "$V", "$DIS", "$KO", "$PEP", "$WMT", "$PG",
