@@ -99,7 +99,7 @@ export default function MajorNews() {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
+                            {/* <tr>
                                 <td>12:45am</td>
                                 <td>NZD</td>
                                 <td>Trade Balance</td>
@@ -235,7 +235,7 @@ export default function MajorNews() {
                                 <td>Foreign Securities Purchases</td>
                                 <td><div className="-impact"></div></td>
                             </tr> */}
-                            <tr>
+                            {/* <tr>
                                 <td>2:50pm</td>
                                 <td>USD</td>
                                 <td>FOMC Member Cook Speaks</td>
@@ -259,7 +259,7 @@ export default function MajorNews() {
                                 <td>USD</td>
                                 <td>FOMC Member Kashkari Speaks</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr>
+                            </tr> */}
                             {/* <tr>
                                 <td>3:15pm</td>
                                 <td>USD</td>
