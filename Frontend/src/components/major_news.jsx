@@ -235,31 +235,31 @@ export default function MajorNews() {
                                 <td>Foreign Securities Purchases</td>
                                 <td><div className="-impact"></div></td>
                             </tr> */}
-                            {/* <tr>
-                                <td>2:50pm</td>
-                                <td>USD</td>
-                                <td>FOMC Member Cook Speaks</td>
-                                <td><div className="yellow-impact"></div></td>
+                            <tr>
+                                <td>10:00am</td>
+                                <td>EUR</td>
+                                <td>German ifo Business Climate</td>
+                                <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>    
-                                <td>3:45pm</td>
-                                <td>USD</td>
-                                <td>Flash Manufacturing PMI</td>
-                                <td><div className="red-impact"></div></td>
+                                <td>12:00pm</td>
+                                <td>GBP</td>
+                                <td>CBI Realized Sale</td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
 
                             <tr>
-                                <td>3:45pm</td>
-                                <td>USD</td>
-                                <td>Flash Services PMI</td>
-                                <td><div className="red-impact"></div></td>
+                                <td>3:00pm</td>
+                                <td>EUR</td>
+                                <td>ECB President Lagarde Speaks</td>
+                                <td><div className="orange-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>7:00pm</td>
-                                <td>USD</td>
-                                <td>FOMC Member Kashkari Speaks</td>
+                                <td>3:00pm</td>
+                                <td>EUR</td>
+                                <td>Belgian NBB Business Climate</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr> */}
+                            </tr>
                             {/* <tr>
                                 <td>3:15pm</td>
                                 <td>USD</td>
