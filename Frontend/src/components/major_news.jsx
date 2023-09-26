@@ -236,54 +236,54 @@ export default function MajorNews() {
                                 <td><div className="-impact"></div></td>
                             </tr> */}
                             <tr>
-                                <td>10:00am</td>
-                                <td>EUR</td>
-                                <td>German ifo Business Climate</td>
-                                <td><div className="red-impact"></div></td>
+                                <td>Tentative</td>
+                                <td>GBP</td>
+                                <td>10-y Bond Auction</td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>    
-                                <td>12:00pm</td>
-                                <td>GBP</td>
-                                <td>CBI Realized Sale</td>
+                                <td>3:00pm</td>
+                                <td>CNY</td>
+                                <td>CB Leading Index m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
 
                             <tr>
                                 <td>3:00pm</td>
-                                <td>EUR</td>
-                                <td>ECB President Lagarde Speaks</td>
+                                <td>USD</td>
+                                <td>S&P/CS Composite-20 HPI y/y</td>
                                 <td><div className="orange-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>3:00pm</td>
-                                <td>EUR</td>
-                                <td>Belgian NBB Business Climate</td>
+                                <td>USD</td>
+                                <td>HPI m/m</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
-                            {/* <tr>
-                                <td>3:15pm</td>
-                                <td>USD</td>
-                                <td>Capacity Utilization Rate</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr> */}
-                            {/* <tr>
+                            <tr>
                                 <td>4:00pm</td>
                                 <td>USD</td>
-                                <td>Prelim UoM Consumer Sentiment</td>
+                                <td>CB Consumer Confidence</td>
                                 <td><div className="red-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>4:00pm</td>
                                 <td>USD</td>
-                                <td>Prelim UoM Inflation Expectations</td>
+                                <td>New Home Sales</td>
                                 <td><div className="orange-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>All Day</td>
-                                <td>EUR</td>
-                                <td>ECOFIN Meetings</td>
+                                <td>4:00pm</td>
+                                <td>USD</td>
+                                <td>Richmond Manufacturing Index</td>
+                                <td><div className="orange-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>7:30pm</td>
+                                <td>USD</td>
+                                <td>FOMC Member Bowman Speaks</td>
                                 <td><div className="yellow-impact"></div></td>
-                            </tr> */}
+                            </tr>
                             {/* {newsData &&
                                 Object.keys(newsData).map((time, index) => {
                                     try {
