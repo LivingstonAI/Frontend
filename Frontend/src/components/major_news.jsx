@@ -284,78 +284,90 @@ export default function MajorNews() {
                                 <td>FOMC Member Bowman Speaks</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr> */}
-                            <tr>
-                                <td>1:50am</td>
-                                <td>JPY</td>
-                                <td>Monetary Policy Meeting Minutes</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>3:30am</td>
-                                <td>AUD</td>
-                                <td>CPI y/y</td>
-                                <td><div className="red-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>EUR</td>
-                                <td>German GfK Consumer Climate</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>10:00am</td>
-                                <td>CHF</td>
-                                <td>Credit Suisse Economic Expectations</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>10:00am</td>
-                                <td>EUR</td>
-                                <td>M3 Money Supply y/y</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>10:00am</td>
-                                <td>EUR</td>
-                                <td>Private Loans y/y</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>Tentative</td>
-                                <td>EUR</td>
-                                <td>German 10-y Bond Auction</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Core Durable Goods Orders m/m</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Durable Goods Orders m/m</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>3:00pm</td>
-                                <td>CHF</td>
-                                <td>SNB Quarterly Bulletin</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>4:30pm</td>
-                                <td>USD</td>
-                                <td>Crude Oil Inventories</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>6:45pm</td>
-                                <td>CHF</td>
-                                <td>SNB Chairman Jordan Speaks</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
+                             <tr>
+                                    <td>2:00am</td>
+                                    <td>NZD</td>
+                                    <td>ANZ Business Confidence</td>
+                                    <td><div className="yellow-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>3:30am</td>
+                                    <td>AUD</td>
+                                    <td>Retail Sales m/m</td>
+                                    <td><div className="orange-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>All Day</td>
+                                    <td>EUR</td>
+                                    <td>German Prelim CPI m/m</td>
+                                    <td><div className="red-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>9:00am</td>
+                                    <td>EUR</td>
+                                    <td>Spanish Flash CPI y/y</td>
+                                    <td><div className="red-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>10:00am</td>
+                                    <td>EUR</td>
+                                    <td>ECB Economic Bulletin</td>
+                                    <td><div className="yellow-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>Tentative</td>
+                                    <td>EUR</td>
+                                    <td>Italian 10-y Bond Auction</td>
+                                    <td><div className="yellow-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>2:30pm</td>
+                                    <td>USD</td>
+                                    <td>Final GDP q/q</td>
+                                    <td><div className="red-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>2:30pm</td>
+                                    <td>USD</td>
+                                    <td>Unemployment Claims</td>
+                                    <td><div className="red-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>2:30pm</td>
+                                    <td>USD</td>
+                                    <td>Final GDP Price Index q/q</td>
+                                    <td><div className="orange-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>3:00pm</td>
+                                    <td>USD</td>
+                                    <td>FOMC Member Goolsbee Speaks</td>
+                                    <td><div className="yellow-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>4:00pm</td>
+                                    <td>USD</td>
+                                    <td>Pending Home Sales m/m</td>
+                                    <td><div className="orange-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>4:30pm</td>
+                                    <td>USD</td>
+                                    <td>Natural Gas Storage</td>
+                                    <td><div className="yellow-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>7:00pm</td>
+                                    <td>USD</td>
+                                    <td>FOMC Member Cook Speaks</td>
+                                    <td><div className="yellow-impact"></div></td>
+                                </tr>
+                                <tr>
+                                    <td>10:00pm</td>
+                                    <td>USD</td>
+                                    <td>Fed Chair Powell Speaks</td>
+                                    <td><div className="red-impact"></div></td>
+                                </tr>
                             {/* {newsData &&
                                 Object.keys(newsData).map((time, index) => {
                                     try {
