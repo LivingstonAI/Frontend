@@ -285,195 +285,171 @@ export default function MajorNews() {
                                 <td><div className="yellow-impact"></div></td>
                             </tr> */}
                               <tr>
-                                <td>1:30am</td>
+                                <td>1:50am</td>
                                 <td>JPY</td>
-                                <td>Tokyo Core CPI y/y</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>1:30am</td>
-                                <td>JPY</td>
-                                <td>Unemployment Rate</td>
+                                <td>BOJ Summary of Opinions</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
-                                <td>Prelim Industrial Production m/m</td>
+                                <td>Tankan Manufacturing Index</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>1:50am</td>
                                 <td>JPY</td>
+                                <td>Tankan Non-Manufacturing Index</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:00am</td>
+                                <td>AUD</td>
+                                <td>MI Inflation Gauge m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>2:30am</td>
+                                <td>JPY</td>
+                                <td>Final Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>7:30am</td>
+                                <td>AUD</td>
+                                <td>Commodity Prices y/y</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>8:00am</td>
+                                <td>GBP</td>
+                                <td>Nationwide HPI m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>8:30am</td>
+                                <td>CHF</td>
                                 <td>Retail Sales y/y</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>3:30am</td>
-                                <td>AUD</td>
-                                <td>Private Sector Credit m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>7:00am</td>
-                                <td>JPY</td>
-                                <td>Consumer Confidence</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>7:00am</td>
-                                <td>JPY</td>
-                                <td>Housing Starts y/y</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>EUR</td>
-                                <td>German Import Prices m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>EUR</td>
-                                <td>German Retail Sales m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Current Account</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Final GDP q/q</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:00am</td>
-                                <td>GBP</td>
-                                <td>Revised Business Investment q/q</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:45am</td>
-                                <td>EUR</td>
-                                <td>French Consumer Spending m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>8:45am</td>
-                                <td>EUR</td>
-                                <td>French Prelim CPI m/m</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            <tr>
                                 <td>9:00am</td>
-                                <td>CHF</td>
-                                <td>KOF Economic Barometer</td>
+                                <td>EUR</td>
+                                <td>Spanish Unemployment Change</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>9:40am</td>
+                                <td>9:15am</td>
                                 <td>EUR</td>
-                                <td>ECB President Lagarde Speaks</td>
-                                <td><div className="orange-impact"></div></td>
+                                <td>Spanish Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>9:30am</td>
+                                <td>CHF</td>
+                                <td>Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>9:45am</td>
+                                <td>EUR</td>
+                                <td>Italian Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>9:50am</td>
+                                <td>EUR</td>
+                                <td>French Final Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>9:55am</td>
                                 <td>EUR</td>
-                                <td>German Unemployment Change</td>
+                                <td>German Final Manufacturing PMI</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>Tentative</td>
+                                <td>10:00am</td>
                                 <td>EUR</td>
-                                <td>ECB Economic Bulletin</td>
+                                <td>Final Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>10:00am</td>
+                                <td>EUR</td>
+                                <td>Italian Monthly Unemployment Rate</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>10:30am</td>
                                 <td>GBP</td>
-                                <td>M4 Money Supply m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>10:30am</td>
-                                <td>GBP</td>
-                                <td>Mortgage Approvals</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>10:30am</td>
-                                <td>GBP</td>
-                                <td>Net Lending to Individuals m/m</td>
+                                <td>Final Manufacturing PMI</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>11:00am</td>
                                 <td>EUR</td>
-                                <td>Core CPI Flash Estimate y/y</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>11:00am</td>
-                                <td>EUR</td>
-                                <td>CPI Flash Estimate y/y</td>
-                                <td><div className="orange-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>11:00am</td>
-                                <td>EUR</td>
-                                <td>Italian Prelim CPI m/m</td>
+                                <td>Unemployment Rate</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
-                                <td>2:30pm</td>
+                                <td>3:30pm</td>
                                 <td>CAD</td>
-                                <td>GDP m/m</td>
-                                <td><div className="red-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Core PCE Price Index m/m</td>
-                                <td><div className="red-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Goods Trade Balance</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Personal Income m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Personal Spending m/m</td>
-                                <td><div className="yellow-impact"></div></td>
-                            </tr>
-                            <tr>
-                                <td>2:30pm</td>
-                                <td>USD</td>
-                                <td>Prelim Wholesale Inventories m/m</td>
+                                <td>Manufacturing PMI</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>3:45pm</td>
                                 <td>USD</td>
-                                <td>Chicago PMI</td>
+                                <td>Final Manufacturing PMI</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>4:00pm</td>
+                                <td>USD</td>
+                                <td>ISM Manufacturing PMI</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>4:00pm</td>
+                                <td>USD</td>
+                                <td>ISM Manufacturing Prices</td>
                                 <td><div className="orange-impact"></div></td>
                             </tr>
                             <tr>
                                 <td>4:00pm</td>
                                 <td>USD</td>
-                                <td>Revised UoM Consumer Sentiment</td>
+                                <td>Construction Spending m/m</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>5:00pm</td>
+                                <td>GBP</td>
+                                <td>MPC Member Mann Speaks</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>5:00pm</td>
+                                <td>USD</td>
+                                <td>Fed Chair Powell Speaks</td>
+                                <td><div className="red-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>5:00pm</td>
+                                <td>USD</td>
+                                <td>FOMC Member Harker Speaks</td>
+                                <td><div className="orange-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>7:00pm</td>
+                                <td>USD</td>
+                                <td>FOMC Member Barr Speaks</td>
+                                <td><div className="yellow-impact"></div></td>
+                            </tr>
+                            <tr>
+                                <td>Tentative</td>
+                                <td>NZD</td>
+                                <td>NZIER Business Confidence</td>
                                 <td><div className="yellow-impact"></div></td>
                             </tr>
                             {/* {newsData &&
