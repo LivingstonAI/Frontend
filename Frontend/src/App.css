@@ -1758,6 +1758,12 @@ th {
     /* left: 0; */
 }
 
+.candlestick-models button, .technical-models button, .ml-models button, .dl-models button {
+    width: 100%;
+}
+
+/* Market Makers Section */
+
 .market-maker-section {
     position: relative;
     top: 50px;
