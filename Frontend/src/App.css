@@ -1272,22 +1272,152 @@ th {
 
 /* Add your color styles for .red-impact, .orange-impact, and .yellow-impact here */
 
-  
 
-    @media screen and (max-width: 768px) {
+.upper-models-div, .middle-models-div {
+    display: flex;
+    gap: 10px;
+}
+
+.middle-models-div {
+    margin-top: 20px;
+}
+
+.candlestick-models, .technical-models, .ml-models, .dl-models, .chosen-models, .set-moving-average-model, .set-bbands-model, .set-rsi-model, .model-performance, .timeframe-period {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 30px 50px;   
+    width: 100%;
+}
+
+.candlestick-models h6, .technical-models h6, .ml-models h6, .dl-models h6, .chosen-models h6, .set-moving-average-model h6, .set-moving-average-model p, .set-bbands-model h6, .set-bbands-model p, .set-rsi-model h6, .set-rsi-model p, .model-performance p, .timeframe-period p {
+    text-align: center;
+}
+
+
+.set-moving-average-model select, .set-moving-average-model input, .set-moving-average-model button, .set-bbands-model button, .set-bbands-model select, .set-bbands-model input, .set-rsi-model button, .set-rsi-model select, .set-rsi-model input, .timeframe-period select, .backtest-button {
+    justify-content: center;
+    width: 40%;
+    position: relative;
+    left: 370px;
+}
+
+.candlestick-models button, .technical-models button, .ml-models button, .dl-models button {
+    width: 50%;
+    /* margin-right: 1px; */
+}
+
+.chosen-models button {
+    width: 33%;
+}
+
+.backtest-button {
+    width: 35%;
+    left: 33%;
+}
+
+
+.create-models-next {
+    text-align: right;
+    position: relative;
+    left: 35%;    
+    width: 30%;
+}
+
+.backtest-header {
+    text-align: center;
+};
+
+.candlestick-button {
+    position: relative !important;
+    left: 35% !important;
+}
+
+.update-news-div {
+    position: relative;
+    width: 50%;
+    left: 27%;
+}
+
+.update-currency {
+    position: relative;
+    left: 10px;
+    cursor: pointer;
+}
+
+.updated-success {
+    color: green;
+}
+
+.updated-error {
+    color: red;
+}
+
+
+/* Market Maker Section */
+.global-interest-rates-header {
+    text-align: center;
+}
+
+.interest-rates-bar-chart-container {
+    position: relative;
+    width: 60%;
+    left: 18%;
+}
+
+.interest-rate-differentials {
+    text-align: center;
+}
+
+.select-rate-diff {
+    position: relative;
+    left: 25%;
+    width: 50%;
+}
+
+.chosen-central-banks {
+    position: relative;
+    left: 25%;
+}
+
+.submit-interest-rate-calculation {
+    width: 50%;
+}
+
+/* COT Data DIV */
+
+/* .cot-data-explanation {
+    
+    /* justify-content: center; */
+
+/* } */ 
+
+.cot-explanation-link {
+    
+}
+
+.close-cot-modal {
+
+}
+
+@media screen and (max-width: 768px) {
+
     .register-div, .login-div, .tell-us-div {
         left: 20px;
         width: 90%;
     }
+
     .info-modal {
         width: 200%;
     }
+
     .info-modal-content {
         left: 200px;
     }
+
     .main-page-body {
         display: block;
     }
+
     .main-body-info {
         position: relative;
         top: 0px;
@@ -1521,13 +1651,13 @@ th {
 
     /* ChatBot CSS */
     .chatbot-div {
-        /* position: relative/; */
+        position: relative;
         top: 0px;
         left: 0px;
         right: 0px;
         width: 100%;
         height: 400px;
-        /* margin-bottom: 350px; */
+        margin-bottom: 200px;
     }
 
     .conversations-div {
@@ -1590,6 +1720,55 @@ th {
     left: 5%;
     height: 100%;
 }
+
+/* Model Creation Div */
+
+.create-new-models {
+    position: relative;
+    top: 40px;
+    margin-bottom: 350px;
+}
+
+.upper-models-div, .middle-models-div  {
+    display: block;
+}
+
+/* Backtest Models Section */
+
+.backtest-models {
+    position: relative;
+    top: 50px;
+}
+
+.set-moving-average-model select, .set-moving-average-model input, .set-moving-average-model button, .set-bbands-model button, .set-bbands-model select, .set-bbands-model input, .set-rsi-model button, .set-rsi-model select, .set-rsi-model input, .timeframe-period select, .backtest-button {
+    width: 100%;
+    left: 0px;
+}
+.chosen-models button {
+    width: 100%;
+}
+
+.create-models-next {
+    left: 0%;
+    width: 100%;
+}
+
+.download-bot-file {
+    width: 100%;
+    /* left: 0; */
+}
+
+.market-maker-section {
+    position: relative;
+    top: 50px;
+    margin-bottom: 150px;
+}
+
+.interest-rates-bar-chart-container {
+    width: 100%;
+    left: 0;
+}
+
 }
 
 
@@ -1858,6 +2037,28 @@ th {
         left: 5%;
         height: 100%;
     }
+
+    .loading-icon {
+        animation: spin 5s linear infinite;
+        color: green;
+        cursor: pointer;
+    }
+
+    @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+    }
+
+.download-bot-file {
+        width: 100%;
+        /* left: 0; */
+    }
+    
+
   }
 
 
@@ -2093,7 +2294,32 @@ th {
         width: 70%;
         left: 200px;
     }
+    @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+    }
+    .loading-icon {
+        animation-delay: 5s;
+        animation: spin 5s linear infinite;
+        color: green;
+        cursor: pointer;
+    }
 
 
+    .momentum button, .candlestick-button { 
+        position: relative;
+        left: 41%;
+    }
+
+    .download-bot-file {
+        position: relative;
+        /* justify-content: center; */
+        left: 43%;
+    }
  }
  
+

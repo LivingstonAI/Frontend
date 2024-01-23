@@ -22,6 +22,9 @@ import ChatBotInterface from './components/livingston';
 import LandingPage from './components/landing_page';
 import ModifyPersonalInfo from './components/personal_info';
 import AssetsTraded from './components/assets';
+import Models from './components/models';
+import UpdateNews from './components/update_news';
+import MarketMakers from './components/quant_analysis';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import { useState } from 'react';
 
@@ -37,6 +40,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/tell_us_more" element={<TellUsMore />} />
         <Route path="/all_trades" element={<AllTrades />} />
+        <Route path="/update_news" element={<UpdateNews />} />
         <Route path="/enter_new_trade" element={<EnterNewTrade />} />
         <Route path="/full_trade" element={<FullTrade />} />
         <Route path="/trading_history_analytics" element={<TradingHistory />} />
@@ -52,7 +56,9 @@ function App() {
         <Route path="/major_news" element={<MajorNews />} />
         <Route path="/conversation/:conversationID" element={<ChatBotInterface />} />
         <Route path="/assets" element={<AssetsTraded />} />
-        <Route path="personal_info" element={<ModifyPersonalInfo selectedAssets={assets} />} />
+        <Route path="/personal_info" element={<ModifyPersonalInfo selectedAssets={assets} />} />
+        <Route path="/models" element={<Models />} />
+        <Route path='/market_makers' element={<MarketMakers/>} />
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
     </Routes>

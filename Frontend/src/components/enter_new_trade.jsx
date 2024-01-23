@@ -324,7 +324,6 @@ export default function EnterNewTrade () {
                 {asset}
                 </option>
                 ))}
-
             </select>
             {assetTradedError && <p className="error-message">{assetTradedError}</p>}
             <label>Order Type</label>

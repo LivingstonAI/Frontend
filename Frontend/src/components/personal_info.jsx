@@ -86,7 +86,6 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     };
 
 
-  // ... (existing code)
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
