@@ -30,10 +30,10 @@ export default function COTModal({ assets, setAssets }) {
 
         
                 <div className="modal-overlay">
-                <div className="select-category-modal">
-                        <h4 className="select-category-title">Select Category</h4>
+                <div className="select-category-modal"><br />
+                        <h4 className="select-category-title">Commitment of Traders</h4><br />
                         
-                        <button className="btn btn-light close-cot-modal" onClick={closeModal}><i className="bi bi-x-lg"></i>Close</button>
+                        <button className="btn btn-light close-cot-modal" onClick={closeModal}>Close</button>
                         <p><b>The Commitments of Traders (COT)</b> report is a weekly publication that showcases the positioning of different types of
              traders in the futures markets. Essentially, it provides a snapshot of how the big players—such as 
              hedge funds, institutional investors, and commercial companies—are positioned in various financial 
@@ -70,7 +70,7 @@ export default function COTModal({ assets, setAssets }) {
                 </div>
                 </div>
                 )}
-
+              
                 <br />
         </div>
     )
