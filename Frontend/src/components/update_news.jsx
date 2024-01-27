@@ -111,6 +111,7 @@ export default function UpdateNews() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Update News Data</h5><br /><br />
+                    
                     <div className="update-news-div">
                         <select className='form-control' onChange={handleCurrencyChange}>
                             {currencyArray.map((currency, index) => (
@@ -128,6 +129,7 @@ export default function UpdateNews() {
                                     </li>
                                 ))}
                             </ul>
+                            
                             <button className="btn btn-primary" onClick={updateNewsData}>{updateStatus}</button><br /><br />
                             <p className={colorOutcome}>{outcome}</p>
                         </div>

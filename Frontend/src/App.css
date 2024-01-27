@@ -1321,6 +1321,10 @@ th {
     position: relative;
     left: 35%;    
     width: 30%;
+} 
+
+.create-new-models-note {
+    text-align: center;
 }
 
 .backtest-header {

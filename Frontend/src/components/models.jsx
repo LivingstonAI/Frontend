@@ -23,8 +23,8 @@ export default function Models() {
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
   
 
-    const candlestickModels = ["Engulfing", "Pin Bar", "Morning Star", "Matching", "Three White Soldiers", "Doji Star", "Methods"];
-    const technicalModels = ["Moving Averages", "BBands", "Relative Strength Index (RSI)", "Momentum Trading Bot"];
+    const candlestickModels = ["Engulfing", "Pin Bar", "Morning Star", "Three White Soldiers", "Doji Star", "Methods"];
+    const technicalModels = ["Moving Averages", "BBands", "Momentum Trading Bot"];
     const mlModels = ["LSTM Neural Network", "News Sentiment Analysis"];
     const dlModels = ["Reinforcement Learning with Moving Averages", "Reinforcement Learning with Stochastics", "Reinforcement Learning with Momentum", "Reinforcement Learning with MACD", "Reinforcement Learning with RSI", "Reinforcement Learning with all indicators"];
 
@@ -93,7 +93,7 @@ export default function Models() {
 
     const [momentumProcess, setMomentumProcess] = useState('Backtest Momentum Model');
 
-    const [timeFrame, setTimeFrame] = useState('5Min');
+    const [timeFrame, setTimeFrame] = useState('1D');
 
     const [backtestPeriod, setBacktestPeriod] = useState('0-25');
 
@@ -549,6 +549,7 @@ export default function Models() {
                 console.log(bbandsStd);
                 chosenParams['bbandsLength'] = bbandsLength;
                 chosenParams['bbandsStd'] = bbandsStd;
+                console.log('Chosen Params for BBANDS Set!');
               };
 
         console.log('Chosen Params:');
@@ -599,6 +600,8 @@ export default function Models() {
                 {availableModels && (
                     <div className="create-new-models">
                         <h5>Create New Models</h5>
+                        <p className="create-new-models-note">Please not that for Moving Average and Bollinger Bands Bot, you cannot combine them with other models yet😊</p>
+                        
                         <div className="upper-models-div">
                             <div className="candlestick-models">
                                 <h6>Candlestick Patterns</h6>
@@ -625,7 +628,7 @@ export default function Models() {
                                 ))}
                             </div>
                         </div>
-                        <div className="middle-models-div">
+                        {/* <div className="middle-models-div">
                             <div className="ml-models">
                                 <h6>Machine Learning Models</h6>
                                 {mlButtons.map((button, index) => (
@@ -650,7 +653,7 @@ export default function Models() {
                                     </button>
                                 ))}
                             </div>
-                        </div>
+                        </div> */}
                         <div className="chosen-models">
                             <h6>Chosen Models</h6>
                             {chosenModels.map((chosen, index) => (
@@ -700,7 +703,7 @@ export default function Models() {
                                 <input className="form-control" type="number" value={ma2} onChange={changeMA2}></input><br />
                                 {/* <i className="bi bi-arrow-clockwise loading-icon"></i> */}
 
-                                <button className="btn btn-primary" onClick={saveParams}> {modelProcess}</button>
+                                {/* <button className="btn btn-primary" onClick={saveParams}> {modelProcess}</button> */}
 
                             </div>
                             <br />
@@ -721,7 +724,7 @@ export default function Models() {
                                         <p>Enter Standard Deviation Multiplier</p>
                                         <input className="form-control" type="number" value={bbandsStd} onChange={changeBBStd}></input><br />
                                         
-                                        {/* <button className="btn btn-primary" onClick={saveBbandsParams}><i className="bi bi-arrow-clockwise"></i> {modelProcess}</button> */}
+                                        {/* <button className="btn btn-primary" onClick={saveBbandsParams}> {modelProcess}</button> */}
                                     </div><br /> 
                                 </div>
                             )}
@@ -782,8 +785,19 @@ export default function Models() {
                                 </div>
                                 <br />
 
+                        <div className="backtest-buttons-div">
+                            {(!movingAverages && !bbands) && (
 
-                        <button className="btn btn-primary backtest-button" onClick={sendParameters}>{process}</button>
+                            <button className="btn btn-primary backtest-button" onClick={sendParameters}>{process}</button>
+                            )}
+
+                            {bbands && (
+                                <button className="btn btn-primary backtest-button" onClick={saveBbandsParams}> {modelProcess}</button>
+                            )}
+                            {movingAverages && (
+                                <button className="btn btn-primary backtest-button" onClick={saveParams}> {modelProcess}</button>
+                            )}
+                        </div>
 
                                 <br /><br />
 
@@ -793,7 +807,7 @@ export default function Models() {
                                 <div className="model-performance">
                                     <p className="success-message">{modelDone}</p>
                                     {/* <p><a className='link' href="./moving-average-bot.mq4" download target="_blank" rel="noreferrer">Download Model</a></p> */}
-                                    <button onClick={downloadFile} className="btn btn-success download-bot-file">Download Model</button><br /><br />
+                                    <button className="btn btn-success download-bot-file">Download Model<i class="bi bi-lock-fill"></i></button><br /><br />
                                     <p><h5>Model Performance: {testedModel}</h5></p>
                                     <p># Trades: {modelPerformance.Output['# Trades']}</p>
                                     <p>Start: {modelPerformance.Output.Start}</p>
