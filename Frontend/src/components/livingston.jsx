@@ -328,6 +328,8 @@ export default function ChatBotInterface() {
           
         
         const filteredMessages = apiMessages.filter(message => typeof message.content === 'string');
+        console.log('Messages are:');
+        console.log(filteredMessages);
         const apiRequestBody = {
             "model": "gpt-4-1106-preview",
             "messages": [
@@ -366,14 +368,15 @@ export default function ChatBotInterface() {
         }
     else if (typeInput == "image") {
             // await delay(5000);
+            // console.log(imageReadResponse);
             setMessages([
             ...ChatMessages, {
                 message: imageReadResponse,
                 sender: "ChatGPT",
                 direction:"incoming"
             }
-        ])
-
+        ]);
+        console.log(ChatMessages)
         setTyping(false);
     }
     }
@@ -472,13 +475,13 @@ export default function ChatBotInterface() {
 
 
     const handleSend = async (message) => {
-        const newMessage = {
-            message: message,
-            sender: "user",
-            direction: "outgoing",
-        };
+        // const newMessage = {
+        //     message: message,
+        //     sender: "user",
+        //     direction: "outgoing",
+        // };
         
-        const newMessages = [...messages, newMessage];
+        const newMessages = [...messages];
     
         // If an image was sent, it will be added as a message
         if (message instanceof HTMLImageElement) {
@@ -488,16 +491,17 @@ export default function ChatBotInterface() {
                 direction: "outgoing",
                 isImage: true,
             };
-    
+            
+            // console.log(imageMessage);
             // Add the image message to the array
             newMessages.push(imageMessage);
     
             // Update the state with the newMessages array
             setMessages(newMessages);
             setTyping(true);
-            console.log(`Response is: : ${imageReadResponse}`);
+            // console.log(`Response is: : ${imageReadResponse}`);
             await sendImageToServer(message.src);
-            console.log(`New Response is: ${imageReadResponse}`);
+            // console.log(`New Response is: ${imageReadResponse}`);
 
             // await delay(5000);
             await processMessageLivingston(newMessages, 'image');
@@ -560,10 +564,10 @@ export default function ChatBotInterface() {
             .then(response => response.json())
             .then(data => {
                 // Handle the response from the server
-                console.log(data);
-                const serverResponse = data.result
+                // console.log(data);
+                const serverResponse = data.result;
                 imageReadResponse = serverResponse;
-                console.log(serverResponse);
+                // console.log(serverResponse);
             })
             .catch(error => {
                 console.error('Error sending image to server:', error);
@@ -576,7 +580,7 @@ export default function ChatBotInterface() {
         const imgElement = document.createElement('img');
         imgElement.src = imageDataUrl;
         imgElement.style.maxWidth = '100%'; // Optional: Set max width for responsiveness
-        imgElement.style.height = '70%';   // Optional: Set height to auto for responsiveness
+        imgElement.style.height = '50%';   // Optional: Set height to auto for responsiveness
 
         // Send the image data to the Django server
 

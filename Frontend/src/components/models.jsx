@@ -600,7 +600,7 @@ export default function Models() {
                 {availableModels && (
                     <div className="create-new-models">
                         <h5>Create New Models</h5>
-                        <p className="create-new-models-note">Please not that for Moving Average and Bollinger Bands Bot, you cannot combine them with other models yet😊</p>
+                        <p className="create-new-models-note">Please note that for Moving Average and Bollinger Bands Bots, you cannot combine them with other models yet.😊</p>
                         
                         <div className="upper-models-div">
                             <div className="candlestick-models">

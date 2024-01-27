@@ -131,9 +131,9 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="content hidden" style={{ order: 1 }} ref={(el) => hiddenElementsRef.current.push(el)}>
-              <h3>Personal Journal</h3>
+              <h3>Market Maker Data</h3>
               <p className="feature">
-              Your trading journey, your journal. Our 'Personal Journal' feature is your space to record thoughts, strategies, and insights. It's more than a journal; it's your trading companion, helping you track progress, learn from experiences, and evolve as a trader.
+              Access Market Maker Data to see how the "big players" position themselves! 
               </p>
             </div>
           </div>
