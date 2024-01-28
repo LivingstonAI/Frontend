@@ -475,13 +475,13 @@ export default function ChatBotInterface() {
 
 
     const handleSend = async (message) => {
-        // const newMessage = {
-        //     message: message,
-        //     sender: "user",
-        //     direction: "outgoing",
-        // };
+        const newMessage = {
+            message: message,
+            sender: "user",
+            direction: "outgoing",
+        };
         
-        const newMessages = [...messages];
+        const newMessages = [...messages, newMessage];
     
         // If an image was sent, it will be added as a message
         if (message instanceof HTMLImageElement) {
