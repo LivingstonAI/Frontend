@@ -117,9 +117,9 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="content hidden" ref={(el) => hiddenElementsRef.current.push(el)}>
-              <h3>Upcoming News Events</h3>
+              <h3>Market Maker Data</h3>
               <p className="feature">
-                Stay ahead of the curve with our 'Upcoming News Events' feature. Get real-time updates on market-moving news, economic events, and announcements that could impact your trades. Knowledge is power, and we're here to keep you informed.
+              Access Market Maker Data to see how the "big players" position themselves. Get a glimpse into global interest rates and a link to view the Commitment of Traders Report!
               </p>
             </div>
           </div>
@@ -131,9 +131,9 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="content hidden" style={{ order: 1 }} ref={(el) => hiddenElementsRef.current.push(el)}>
-              <h3>Market Maker Data</h3>
+              <h3>Autonomous Bot Creation</h3>
               <p className="feature">
-              Access Market Maker Data to see how the "big players" position themselves! 
+              Select and drop bots to autonomously backtest. View how a single model, or a combination of your choice, would perform over time!
               </p>
             </div>
           </div>

@@ -480,8 +480,19 @@ export default function ChatBotInterface() {
             sender: "user",
             direction: "outgoing",
         };
+
+        // console.log('New Message:');
+        // console.log(message);
+        // console.log('Message Type:');
+        // console.log(typeof message);
+
+        // if (typeof message === "string") {
+
+        //     const newMessages = [...messages, newMessage];
+        // }
+
+        const newMessages = [...messages, newMessages]
         
-        const newMessages = [...messages, newMessage];
     
         // If an image was sent, it will be added as a message
         if (message instanceof HTMLImageElement) {
