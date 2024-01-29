@@ -71,7 +71,8 @@ export default function ChatBotInterface() {
     useEffect(() => {
         async function fetchNewsData() {
             try {
-                const response = await fetch(`${baseURL}/fetch_news_data/`);
+                const email = await fetchEmailDataFromAPI();
+                const response = await fetch(`${baseURL}/fetch_news_data/${email}`);
                 if (!response.ok) {
                     throw new Error("Network response was not ok");
                 }

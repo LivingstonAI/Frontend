@@ -12,6 +12,11 @@ export default function UpdateNews() {
     const [selectedCurrencies, setSelectedCurrencies] = useState([]);
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
+    const fetchEmailDataFromAPI = async () => {
+        return Cookies.get('email');
+    };
+
+
     // Function to handle select change and update selected currencies
     const handleCurrencyChange = (e) => {
         const selectedCurrency = e.target.value;
@@ -27,7 +32,8 @@ export default function UpdateNews() {
     useEffect(() => {
         async function fetchNewsData() {
             try {
-                const response = await fetch(`${baseUrl}/fetch_news_data/`);
+                const email = await fetchEmailDataFromAPI();
+                const response = await fetch(`${baseUrl}/fetch_news_data/${email}`);
                 if (!response.ok) {
                     throw new Error("Network response was not ok");
                 }
@@ -71,7 +77,8 @@ export default function UpdateNews() {
             setUpdateStatus('Updating...');
             setOutcome('');
             try {
-                const response = await fetch(`${baseUrl}/update-news-data`, {
+                const email = await fetchEmailDataFromAPI();
+                const response = await fetch(`${baseUrl}/update-news-data/${email}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
