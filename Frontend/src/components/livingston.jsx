@@ -609,7 +609,7 @@ export default function ChatBotInterface() {
             </div>
             {/* <ChatScope.FileInput onChange={handleFileUpload} /> */}
             <div className="top-phone-chat-div">
-                <i className="bi bi-brush clear-conversation-icon-phone" onClick={newChat}></i>
+                <Link to={`/conversation/${uniqueID}`} onClick={newChat}><i className="bi bi-brush clear-conversation-icon-phone"></i></Link>
                 <button type="button" className="btn btn-light" onClick={viewConversations}>View Conversations</button>
             </div>
              <div className="phone-conversations-div">
