@@ -476,37 +476,16 @@ export default function ChatBotInterface() {
 
     const handleSend = async (message) => {
 
-        // if (typeof message !== 'string') {
-        //     console.log(message);
-        // }
         const newMessage = {
             message: message,
             sender: "user",
             direction: "outgoing",
         };
 
-        // console.log('New Message:');
-        // console.log(message);
-        // console.log('Message Type:');
-        // console.log(typeof message);
-
-        // if (typeof message === "string") {
-
-        //     const newMessages = [...messages, newMessage];
-        // }
-
         const newMessages = [...messages, newMessage];
-        console.log('New Messages are: ')
-        console.log(newMessages);
-
         
-            // Filter out messages that are not of type string
+        // Filter out messages that are not of type string
         const filteredMessages = newMessages.filter((msg) => typeof msg.message === 'string');
-
-        console.log('Filtered Messages are: ')
-        console.log(filteredMessages);
-
-
         
     
         // If an image was sent, it will be added as a message
