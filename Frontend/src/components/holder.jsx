@@ -13,6 +13,7 @@ import openai from 'openai';
 
 
 
+
 export default function ChatBotInterface() {
     let imageReadResponse = "";
     const [selectedFile, setSelectedFile] = useState(null);
