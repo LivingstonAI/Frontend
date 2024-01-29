@@ -475,6 +475,10 @@ export default function ChatBotInterface() {
 
 
     const handleSend = async (message) => {
+
+        // if (typeof message !== 'string') {
+        //     console.log(message);
+        // }
         const newMessage = {
             message: message,
             sender: "user",
@@ -491,7 +495,18 @@ export default function ChatBotInterface() {
         //     const newMessages = [...messages, newMessage];
         // }
 
-        const newMessages = [...messages, newMessages]
+        const newMessages = [...messages, newMessage];
+        console.log('New Messages are: ')
+        console.log(newMessages);
+
+        
+            // Filter out messages that are not of type string
+        const filteredMessages = newMessages.filter((msg) => typeof msg.message === 'string');
+
+        console.log('Filtered Messages are: ')
+        console.log(filteredMessages);
+
+
         
     
         // If an image was sent, it will be added as a message
@@ -505,25 +520,25 @@ export default function ChatBotInterface() {
             
             // console.log(imageMessage);
             // Add the image message to the array
-            newMessages.push(imageMessage);
+            filteredMessages.push(imageMessage);
     
             // Update the state with the newMessages array
-            setMessages(newMessages);
+            setMessages(filteredMessages);
             setTyping(true);
             // console.log(`Response is: : ${imageReadResponse}`);
             await sendImageToServer(message.src);
             // console.log(`New Response is: ${imageReadResponse}`);
 
             // await delay(5000);
-            await processMessageLivingston(newMessages, 'image');
+            await processMessageLivingston(filteredMessages, 'image');
         }
 
         else {
             // New Messages are set over here.
-        setMessages(newMessages);
+        setMessages(filteredMessages);
     
         setTyping(true);
-        await processMessageLivingston(newMessages, 'text');
+        await processMessageLivingston(filteredMessages, 'text');
         }
     
         // Continue with processing the message
