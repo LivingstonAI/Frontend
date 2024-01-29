@@ -170,6 +170,14 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         console.log('isModalOpen in ModifyPersonalInfo:', ModalOpen);
     })
 
+    const closeModal = async () => {  
+        // Handle success
+        window.location.reload();
+
+        toggleModal();
+        // this.forceUpdate();
+    }
+
     return (
         <div>
             <div className="header">

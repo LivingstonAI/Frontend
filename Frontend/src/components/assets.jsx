@@ -238,6 +238,10 @@ export default function AssetsTraded({ assets, setAssets }) {
       
         // Assuming you have the user's email stored in a variable userEmail
         const email = fetchEmailDataFromAPI();
+
+        // window.location.reload();
+
+        // toggleModal();
       
         try {
           const response = await fetch(`${baseURL}/update_assets/${email}/`, {
@@ -258,9 +262,15 @@ export default function AssetsTraded({ assets, setAssets }) {
           } else {
             // Handle errors
             console.error('Failed to update user assets.');
+            window.location.reload();
+
+            toggleModal();
           }
         } catch (error) {
           console.error('Error:', error);
+          window.location.reload();
+
+          toggleModal();
         }
       };
       
