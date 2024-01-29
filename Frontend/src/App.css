@@ -1397,13 +1397,6 @@ th {
 
 /* } */ 
 
-.cot-explanation-link {
-    
-}
-
-.close-cot-modal {
-
-}
 
 @media screen and (max-width: 768px) {
 
@@ -1476,7 +1469,7 @@ th {
     .enter-new-trade-cta {
         text-align: center;
         position: relative;
-        left: 130px;
+        left: 100px;
         top: 30px;
     }
 
