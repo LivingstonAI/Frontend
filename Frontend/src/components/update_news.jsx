@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
+import Cookies from 'js-cookie';
 
 
 export default function UpdateNews() {
@@ -28,6 +29,11 @@ export default function UpdateNews() {
             };
         }
     };
+
+    useEffect(() => {
+        console.log('Selected Currencies are:')
+        console.log(selectedCurrencies);   
+    })
 
     useEffect(() => {
         async function fetchNewsData() {
@@ -107,7 +113,6 @@ export default function UpdateNews() {
             setUpdateStatus('Update');
         };
     };
-
 
     return (
         <div>
