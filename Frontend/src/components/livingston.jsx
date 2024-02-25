@@ -286,6 +286,11 @@ export default function ChatBotInterface() {
               3: View of Market Maker data by viewing a bar chart that consists of central bank global interest rates and a link to barchart.com
               to view COT(Commitment of Traders) Reports.
               4: The ability to mix and combine bots to backtest and see how they would perform over time.
+              5: Access to 'Risk Bot', a meta trader 5 bot that they can install on their terminal which asks for 
+              their initial capital and the maximum loss they are willing to endure. If a trade (which is 
+                a loss) exceeds or equals the set maximum loss, then Risk Bot automatically 
+                closes the trade for them, 
+                ensuring risk management and discipline.
             `
           };
 

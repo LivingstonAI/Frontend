@@ -622,7 +622,7 @@ export default function Models() {
                             
                         </div>
                         <div className="technical-models">
-                                <h6>Risk Bot</h6>
+                                <h6>Risk Bot (for MT5)</h6>
                                     <Link className="risk-bot-installation" to='/risk_bot'><p>How can I install risk bot?</p></Link><br />
                                     <button className='btn btn-light' onClick={downloadFile}>
                                         Download Risk Bot
