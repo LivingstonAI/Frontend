@@ -5,11 +5,7 @@ import Cookies from 'js-cookie';
 
 
 export default function UpdateNews() {
-<<<<<<< HEAD
-    const currencyArray = ['Select Currencies', 'EURUSD', 'GBPUSD', 'EURGBP', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'USDZAR', 'EURAUD'];
-=======
     const currencyArray = ['Select Currencies', 'EURUSD', 'GBPUSD', 'EURGBP', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'USDZAR', 'EURAUD','GBPJPY'];
->>>>>>> 339fdad6cf3d3d78f79767bb0c39899d8a8b91de
     const [outcome, setOutcome] = useState('');
     const [colorOutcome, setColorOutcome] = useState('');
     const [updateStatus, setUpdateStatus] = useState('Update');
