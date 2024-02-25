@@ -18,6 +18,7 @@ export default function AssetsTraded({ assets, setAssets }) {
     const [isButtonClicked, setIsButtonClicked] = useState(false);
     const navigate = useNavigate();
     const forceUpdate = useForceUpdate();
+    const [updateStatus, setUpdateStatus] = useState('');
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
     const currencyArray = [
@@ -242,6 +243,8 @@ export default function AssetsTraded({ assets, setAssets }) {
         // window.location.reload();
 
         // toggleModal();
+
+        setUpdateStatus('Updating...');
       
         try {
           const response = await fetch(`${baseURL}/update_assets/${email}/`, {
@@ -544,6 +547,8 @@ export default function AssetsTraded({ assets, setAssets }) {
                 </button>
             ))}
             </div>
+
+            {updateStatus}
             
         </div>
         </div>

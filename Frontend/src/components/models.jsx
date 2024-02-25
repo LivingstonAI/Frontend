@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
+import { Link } from "react-router-dom";
 // import movingAverageBot from "./moving-average-bot.mq4";
 // import movingAverageBot from ""
 // import Loader from 'react-loader-spinner';
@@ -19,7 +20,6 @@ export default function Models() {
         return Cookies.get('email');
     };
 
-    const [downloadedFile, setDownloadedFile] = useState('');
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
   
 
@@ -61,6 +61,8 @@ export default function Models() {
     const [rlMaCD, setRlMaCD] = useState(false);
     const [rlRsi, setRlRsi] = useState(false);
     const [rlAll, setRlAll] = useState(false);
+
+    const [riskBot, setRiskBot] = useState(false);
 
     const [mainPage, setMainPage] = useState(true);
 
@@ -406,18 +408,21 @@ export default function Models() {
 
 
     const nextModel = () => {
-        console.log('Next Button has been clicked!');
         setAvailableModels(!availableModels);
         setModelPerformance("");
     };
 
+    const riskBotExplanation = () => {
+        setRiskBot(!riskBot);
+    }
+
     
     const goBack = () => {
+        setRiskBot(!riskBot);
         setAvailableModels(!availableModels);
         setModelPerformance("");
         window.location.reload();
     }
-
 
     // let [chosenParams, setChosenParams] = useState({});
 
@@ -425,8 +430,8 @@ export default function Models() {
         
         try {
           // Fetch the file content (replace with your actual API call)
-          const response = await fetch(`${baseURL}/download-mq4`);
-          const fileContent = await response.text();
+          const response = await fetch(`${baseURL}/download-mq4/risk-bot`);
+          const fileContent = await response.blob();
       
           // Create a Blob from the file content
           const blob = new Blob([fileContent], { type: 'text/plain' });
@@ -437,7 +442,7 @@ export default function Models() {
           // Create a link element
           const link = document.createElement('a');
           link.href = url;
-          link.download = 'bot.mq4'; // Set the desired filename
+          link.download = 'risk-bot.ex5'; // Set the desired filename
       
           // Append the link to the body
           document.body.appendChild(link);
@@ -448,77 +453,73 @@ export default function Models() {
           // Clean up and remove the link
           document.body.removeChild(link);
           
-          console.log(`Selected Models are: ${chosenModels}`);
-          const data = chosenModels;
+        //   console.log(`Selected Models are: ${chosenModels}`);
+        //   const data = chosenModels;
 
-          const magicNumber = generateMagicNumber();
-          console.log('Magic Number is: ')
-          console.log(magicNumber);
+        //   const magicNumber = generateMagicNumber();
 
             
           const userEmail = await fetchEmailDataFromAPI();
-          console.log('User email is');
-          console.log(userEmail);
 
           
         //   Uncaught Error: Objects are not valid as a React child (found: object with keys {bbandsLength, bbandsStd}). If you meant to render a collection of children, use an array instead.
 
 
-        let chosenParams = {};
+        // let chosenParams = {};
         //   let [chosenParams, setChosenParams] = usestate({});
-          try {
+        //   try {
               
-              if (bbands) {
-                console.log(bbandsLength);
-                console.log(bbandsStd);
-                chosenParams['bbandsLength'] = bbandsLength;
-                chosenParams['bbandsStd'] = bbandsStd;
-              };
+        //       if (bbands) {
+        //         console.log(bbandsLength);
+        //         console.log(bbandsStd);
+        //         chosenParams['bbandsLength'] = bbandsLength;
+        //         chosenParams['bbandsStd'] = bbandsStd;
+        //       };
     
-              if (rsi) {
-                console.log(rsiPeriod);
-                console.log(rsiOverbought);
-                console.log(rsiOversold);
-                chosenParams['rsiPeriod'] = rsiPeriod;
-                chosenParams['rsiOverbought'] = rsiOverbought;
-                chosenParams['rsiOversold'] = rsiOversold;
-              }
-              if (movingAverages) {
-                console.log(ma1Type);
-                console.log(ma1);
-                console.log(ma2Type);
-                console.log(ma2);
-                chosenParams['ma1Type'] = ma1Type;
-                chosenParams['ma1'] = ma1;
-                chosenParams['ma2Type'] = ma2Type;
-                chosenParams['ma2'] = ma2;
+        //       if (rsi) {
+        //         console.log(rsiPeriod);
+        //         console.log(rsiOverbought);
+        //         console.log(rsiOversold);
+        //         chosenParams['rsiPeriod'] = rsiPeriod;
+        //         chosenParams['rsiOverbought'] = rsiOverbought;
+        //         chosenParams['rsiOversold'] = rsiOversold;
+        //       }
+        //       if (movingAverages) {
+        //         console.log(ma1Type);
+        //         console.log(ma1);
+        //         console.log(ma2Type);
+        //         console.log(ma2);
+        //         chosenParams['ma1Type'] = ma1Type;
+        //         chosenParams['ma1'] = ma1;
+        //         chosenParams['ma2Type'] = ma2Type;
+        //         chosenParams['ma2'] = ma2;
     
-              };
-              console.log('Chosen Params: ');
-              console.log(chosenParams);
-              data.push(chosenParams);
-          } catch (error) {
-            //  do nothing
-          }
+        //       };
+        //       console.log('Chosen Params: ');
+        //       console.log(chosenParams);
+        //       data.push(chosenParams);
+        //   } catch (error) {
+        //     //  do nothing
+        //   }
         
 
           // Make an HTTP POST request
-        fetch(`${baseURL}/chosen-models/${userEmail}/${magicNumber}`, {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        })
-            .then(response => response.json())
-            .then(data => {
-            // Handle the response from the server
-            console.log('Data from API is:');
-            console.log(data);
-            })
-            .catch(error => {
-            console.error('Error:', error);
-            });
+        // fetch(`${baseURL}/chosen-models/${userEmail}/${magicNumber}`, {
+        //     method: 'POST',
+        //     headers: {
+        //     'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify(data),
+        // })
+            // .then(response => response.json())
+            // .then(data => {
+            // // Handle the response from the server
+            // console.log('Data from API is:');
+            // console.log(data);
+            // })
+            // .catch(error => {
+            // console.error('Error:', error);
+            // });
         } catch (error) {
           console.error('Error sending data to server:', error);
         }
@@ -545,15 +546,9 @@ export default function Models() {
         let chosenParams = {};
 
         if (bbands) {
-                console.log(bbandsLength);
-                console.log(bbandsStd);
                 chosenParams['bbandsLength'] = bbandsLength;
                 chosenParams['bbandsStd'] = bbandsStd;
-                console.log('Chosen Params for BBANDS Set!');
-              };
-
-        console.log('Chosen Params:');
-        console.log(chosenParams);          
+              };   
               
         try {
             // data.push(chosenParams);
@@ -561,7 +556,6 @@ export default function Models() {
             console.log("Error: " + err);
           }
 
-        console.log(data);
         
         // Make an HTTP POST request
         fetch(url, {
@@ -574,8 +568,6 @@ export default function Models() {
         .then(response => response.json())
             .then(data => {
             // Handle the response from the server
-            console.log('Data from API is:');
-            console.log(data);
             setModelPerformance(data);
             setModelDone('Model Done Backtesting!');
             setProcess('Run Backtest');
@@ -627,7 +619,15 @@ export default function Models() {
                                     </button>
                                 ))}
                             </div>
+                            
                         </div>
+                        <div className="technical-models">
+                                <h6>Risk Bot</h6>
+                                    <Link className="risk-bot-installation" to='/risk_bot'><p>How can I install risk bot?</p></Link><br />
+                                    <button className='btn btn-light' onClick={downloadFile}>
+                                        Download Risk Bot
+                                    </button>
+                            </div>
                         {/* <div className="middle-models-div">
                             <div className="ml-models">
                                 <h6>Machine Learning Models</h6>

@@ -1398,6 +1398,20 @@ th {
 /* } */ 
 
 
+/* Risk Bot Div */
+.risk-bot-installation {
+    text-align: center;
+    text-decoration: none;
+}
+
+.risk-bot-header {
+    text-align: center;
+}
+/* 
+.risk-bot-p {
+    text-align: center;
+} */
+
 @media screen and (max-width: 768px) {
 
     .register-div, .login-div, .tell-us-div {

@@ -25,6 +25,7 @@ import AssetsTraded from './components/assets';
 import Models from './components/models';
 import UpdateNews from './components/update_news';
 import MarketMakers from './components/quant_analysis';
+import RiskBot from './components/risk_bot';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import { useState } from 'react';
 
@@ -59,6 +60,7 @@ function App() {
         <Route path="/personal_info" element={<ModifyPersonalInfo selectedAssets={assets} />} />
         <Route path="/models" element={<Models />} />
         <Route path='/market_makers' element={<MarketMakers/>} />
+        <Route path='/risk_bot' element={<RiskBot />}></Route>
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
     </Routes>

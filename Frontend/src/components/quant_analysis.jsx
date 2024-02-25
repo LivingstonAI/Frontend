@@ -86,16 +86,11 @@ export default function MarketMakers() {
 
         // Extracting data for the chart
         const centralBankRates = JSON.parse(data['Interest Rates']).central_bank_rates;
-        console.log('Central Bank Rates');
-        console.log(centralBankRates);
         const labels = centralBankRates.map((rate) => rate.central_bank);
         setCentralBanksArray(labels);
-        
-        console.log('Labels');
-        console.log(labels);
+    
         const interestRates = centralBankRates.map((rate) => rate.rate_pct);
-        console.log('Interest Rates');
-        console.log(interestRates);
+
         setRatesArray(interestRates);
 
         setChartData({
