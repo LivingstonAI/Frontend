@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 import { Link } from "react-router-dom";
+import parse from 'html-react-parser';
+// import { embed } from '@bokeh/bokehjs;
+import { embed } from '@bokeh/bokehjs';
+
+// const Bokeh = window.Bokeh;
+
+
+
+// import ReactHtmlParser from 'react-html-parser';
 // import movingAverageBot from "./moving-average-bot.mq4";
 // import movingAverageBot from ""
 // import Loader from 'react-loader-spinner';
@@ -13,6 +22,7 @@ import { Link } from "react-router-dom";
 
 
 export default function Models() {
+    const myPlotRef = useRef(null);
 
     // ['BBands', 'Momentum Trading Bot', {'bbandsLength': 200, 'bbandsStd': 2}]
 
@@ -100,6 +110,17 @@ export default function Models() {
     const [backtestPeriod, setBacktestPeriod] = useState('0-25');
 
     const [modelDone, setModelDone] = useState('');
+
+    const [imageHTML, setImageHTML] = useState('');
+
+    let dummyData = ``;
+    const [parsedContent, setParsedContent] = useState('');
+
+    // Store a reference to the current plot (null initially)
+    const [currentPlot, setCurrentPlot] = useState(null);
+
+    const numPlots = 0;
+
 
     // Function to handle adding or removing a model from chosenModels and set the corresponding boolean value
     const handleModelSelection = (model) => {
@@ -311,8 +332,7 @@ export default function Models() {
             .then(response => response.json())
             .then(data => {
             // Handle the response from the server
-            // console.log('Data from API is: ')
-            // console.log(data);
+            console.log(data);
             setModelPerformance(data);
             setTestedModel('Momentum Model');
             setMomentumProcess('Backtest Momentum Model');
@@ -532,11 +552,12 @@ export default function Models() {
 
       const [process, setProcess] = useState('Run Backtest');
 
-
+       // Assuming you have a Bokeh plot JSON output (replace with your actual data)
+    const bokehPlotJSON = {
+        // Your Bokeh plot JSON data
+    };
 
       const sendParameters = () => {
-        console.log('Chosen Models are: ');
-        console.log(chosenModels);
 
         const url = `${baseURL}/run-backtest/${timeFrame}/${backtestPeriod}`;
         const data = chosenModels;
@@ -568,16 +589,39 @@ export default function Models() {
         .then(response => response.json())
             .then(data => {
             // Handle the response from the server
-            setModelPerformance(data);
+            // setImageHTML(data['Output'][1]);
+            dummyData = '';
+            dummyData = data['Output'][1];
+            dummyData = JSON.parse(dummyData);
+            // console.log(dummyData);
+            // console.log(typeof JSON.parse(dummyData));
+
+            // Embed the Bokeh plot
+
+            // console.log(currentPlot);
+
+            if (currentPlot) {
+                const children = myPlotRef.current.children;
+                const len = children.length;
+                for (let i = 0; i < len; i++) {
+                    children[i].remove();
+                }
+            }
+
+            // Embed the new plot
+            setCurrentPlot(embed.embed_item(dummyData, 'myplot'));
+            
+            // data variable returns first the model performance and then the image html.
+            setModelPerformance(data['Output'][0]);
             setModelDone('Model Done Backtesting!');
             setProcess('Run Backtest');
             })
             .catch(error => {
-            setProcess('Error occured')
+            setProcess('Error occured');
             console.error('Error:', error);
-
             });
       }
+      
       
 
     return (
@@ -803,39 +847,50 @@ export default function Models() {
 
                                 {/* Conditional rendering of modelPerformance */}
                                 {modelPerformance && (
-                                    
+                                
                                 <div className="model-performance">
+
+                                    <div>
+                                        {/* {parsedContent} */}
+                                        {/* <div dangerouslySetInnerHTML={{ __html: imageHTML }} /> */}
+                                    </div>
+                                     
+                                     <div ref={myPlotRef} id="myplot" className="bk-root">
+
+                                     </div>
+                                    {/* {imageHTML} */}
+                                    {/* {ReactHtmlParser(imageHTML)} */}
                                     <p className="success-message">{modelDone}</p>
                                     {/* <p><a className='link' href="./moving-average-bot.mq4" download target="_blank" rel="noreferrer">Download Model</a></p> */}
                                     <button className="btn btn-success download-bot-file">Download Model<i class="bi bi-lock-fill"></i></button><br /><br />
                                     <p><h5>Model Performance: {testedModel}</h5></p>
-                                    <p># Trades: {modelPerformance.Output['# Trades']}</p>
-                                    <p>Start: {modelPerformance.Output.Start}</p>
-                                    <p>End: {modelPerformance.Output.End}</p>
-                                    <p>Duration: {modelPerformance.Output.Duration}</p>
-                                    <p>Return [%]: {modelPerformance.Output['Return [%]']}</p>
-                                    <p>Return (Ann.) [%]: {modelPerformance.Output['Return (Ann.) [%]']}</p>
-                                    <p>Win Rate [%]: {modelPerformance.Output['Win Rate [%]']}</p>
-                                    <p>Best Trade [%]: {modelPerformance.Output['Best Trade [%]']}</p>
-                                    <p>Worst Trade [%]: {modelPerformance.Output['Worst Trade [%]']}</p>
-                                    <p>Equity Final [$]: {modelPerformance.Output['Equity Final [$]']}</p>
-                                    <p>Equity Peak [$]: {modelPerformance.Output['Equity Peak [$]']}</p>
-                                    <p>Max. Drawdown Duration: {modelPerformance.Output['Max. Drawdown Duration']}</p>
-                                    <p>Avg. Drawdown Duration: {modelPerformance.Output['Avg. Drawdown Duration']}</p>
-                                    <p>Avg. Drawdown [%]: {modelPerformance.Output['Avg. Drawdown [%]']}</p>
-                                    <p>Avg. Trade Duration: {modelPerformance.Output['Avg. Trade Duration']}</p>
-                                    <p>Avg. Trade [%]: {modelPerformance.Output['Avg. Trade [%]']}</p>
-                                    <p>Buy & Hold Return [%]: {modelPerformance.Output['Buy & Hold Return [%]']}</p>
-                                    <p>Calmar Ratio: {modelPerformance.Output['Calmar Ratio']}</p>
-                                    <p>Expectancy [%]: {modelPerformance.Output['Expectancy [%]']}</p>
-                                    <p>Exposure Time [%]: {modelPerformance.Output['Exposure Time [%]']}</p>
-                                    <p>Max. Drawdown [%]: {modelPerformance.Output['Max. Drawdown [%]']}</p>
-                                    <p>Max. Trade Duration: {modelPerformance.Output['Max. Trade Duration']}</p>
-                                    <p>Profit Factor: {modelPerformance.Output['Profit Factor']}</p>
-                                    <p>SQN: {modelPerformance.Output.SQN}</p>
-                                    <p>Sharpe Ratio: {modelPerformance.Output['Sharpe Ratio']}</p>
-                                    <p>Sortino Ratio: {modelPerformance.Output['Sortino Ratio']}</p>
-                                    <p>Volatility (Ann.) [%]: {modelPerformance.Output['Volatility (Ann.) [%]']}</p>
+                                    <p># Trades: {modelPerformance['# Trades']}</p>
+                                    <p>Start: {modelPerformance.Start}</p>
+                                    <p>End: {modelPerformance.End}</p>
+                                    <p>Duration: {modelPerformance.Duration}</p>
+                                    <p>Return [%]: {modelPerformance['Return [%]']}</p>
+                                    <p>Return (Ann.) [%]: {modelPerformance['Return (Ann.) [%]']}</p>
+                                    <p>Win Rate [%]: {modelPerformance['Win Rate [%]']}</p>
+                                    <p>Best Trade [%]: {modelPerformance['Best Trade [%]']}</p>
+                                    <p>Worst Trade [%]: {modelPerformance['Worst Trade [%]']}</p>
+                                    <p>Equity Final [$]: {modelPerformance['Equity Final [$]']}</p>
+                                    <p>Equity Peak [$]: {modelPerformance['Equity Peak [$]']}</p>
+                                    <p>Max. Drawdown Duration: {modelPerformance['Max. Drawdown Duration']}</p>
+                                    <p>Avg. Drawdown Duration: {modelPerformance['Avg. Drawdown Duration']}</p>
+                                    <p>Avg. Drawdown [%]: {modelPerformance['Avg. Drawdown [%]']}</p>
+                                    <p>Avg. Trade Duration: {modelPerformance['Avg. Trade Duration']}</p>
+                                    <p>Avg. Trade [%]: {modelPerformance['Avg. Trade [%]']}</p>
+                                    <p>Buy & Hold Return [%]: {modelPerformance['Buy & Hold Return [%]']}</p>
+                                    <p>Calmar Ratio: {modelPerformance['Calmar Ratio']}</p>
+                                    <p>Expectancy [%]: {modelPerformance['Expectancy [%]']}</p>
+                                    <p>Exposure Time [%]: {modelPerformance['Exposure Time [%]']}</p>
+                                    <p>Max. Drawdown [%]: {modelPerformance['Max. Drawdown [%]']}</p>
+                                    <p>Max. Trade Duration: {modelPerformance['Max. Trade Duration']}</p>
+                                    <p>Profit Factor: {modelPerformance['Profit Factor']}</p>
+                                    <p>SQN: {modelPerformance.SQN}</p>
+                                    <p>Sharpe Ratio: {modelPerformance['Sharpe Ratio']}</p>
+                                    <p>Sortino Ratio: {modelPerformance['Sortino Ratio']}</p>
+                                    <p>Volatility (Ann.) [%]: {modelPerformance['Volatility (Ann.) [%]']}</p>
                                 </div>
                                 
                                 )}
