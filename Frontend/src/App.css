@@ -1412,6 +1412,12 @@ th {
     text-align: center;
 } */
 
+/* Plot from backtesting */
+#myplot {
+    width: 100%;
+}
+
+
 @media screen and (max-width: 768px) {
 
     .register-div, .login-div, .tell-us-div {
@@ -1786,6 +1792,10 @@ th {
 .interest-rates-bar-chart-container {
     width: 100%;
     left: 0;
+}
+
+.model-performance {
+    padding: 5px 5px;
 }
 
 }

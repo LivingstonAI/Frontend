@@ -590,7 +590,6 @@ export default function Models() {
             .then(data => {
             // Handle the response from the server
             // setImageHTML(data['Output'][1]);
-            dummyData = '';
             dummyData = data['Output'][1];
             dummyData = JSON.parse(dummyData);
             // console.log(dummyData);
@@ -849,11 +848,6 @@ export default function Models() {
                                 {modelPerformance && (
                                 
                                 <div className="model-performance">
-
-                                    <div>
-                                        {/* {parsedContent} */}
-                                        {/* <div dangerouslySetInnerHTML={{ __html: imageHTML }} /> */}
-                                    </div>
                                      
                                      <div ref={myPlotRef} id="myplot" className="bk-root">
 
