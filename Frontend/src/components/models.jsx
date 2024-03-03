@@ -211,7 +211,7 @@ export default function Models() {
         // console.log(data);
 
         setIsLoading(true);
-        setModelProcess('Backtesting Moving Average Model');
+        setModelProcess('Backtesting Moving Average Model...');
 
         // Make an HTTP POST request
         fetch(`${baseURL}/create-bot/${ma1Type}/${ma2Type}/${ma1}/${ma2}/${timeFrame}/${backtestPeriod}`, {
@@ -273,7 +273,7 @@ export default function Models() {
 
         // console.log(data);
 
-        setModelProcess('Backtesting BBands Model');
+        setModelProcess('Backtesting BBands Model...');
 
         // Make an HTTP POST request
         fetch(`${baseURL}/create-bot/bbands/${bbandsLength}/${bbandsStd}/${timeFrame}/${backtestPeriod}`, {
