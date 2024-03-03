@@ -245,6 +245,7 @@ export default function Models() {
             // Embed the new plot
             setCurrentPlot(embed.embed_item(imageData, 'myplot'));
 
+            // setIsLoading(false); // Request completed
             // Handle the response from the server
 
             setModelPerformance(data['Output'][0]);
@@ -259,6 +260,7 @@ export default function Models() {
             setModelProcess('Error Occured');
             });
     }
+
 
 
     const saveBbandsParams = () => {
@@ -290,7 +292,6 @@ export default function Models() {
     
             imageData = JSON.parse(data['Output'][1]);
 
-            console.log(imageData);
             // console.log(typeof JSON.parse(dummyData));
 
             // Embed the Bokeh plot

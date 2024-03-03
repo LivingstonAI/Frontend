@@ -122,7 +122,10 @@ export default function UpdateNews() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Update News Data</h5><br /><br />
+                    <h5 className="major-upcoming-news-events-header">Update News Data</h5>
+                   
+                    <br />
+                    <p className="to-ask-livingston">(to ask Livingston)</p><br />
                     
                     <div className="update-news-div">
                         <select className='form-control' onChange={handleCurrencyChange}>
