@@ -111,16 +111,8 @@ export default function Models() {
 
     const [modelDone, setModelDone] = useState('');
 
-    const [imageHTML, setImageHTML] = useState('');
-
-    let dummyData = ``;
-    const [parsedContent, setParsedContent] = useState('');
-
     // Store a reference to the current plot (null initially)
     const [currentPlot, setCurrentPlot] = useState(null);
-
-    const numPlots = 0;
-
 
     // Function to handle adding or removing a model from chosenModels and set the corresponding boolean value
     const handleModelSelection = (model) => {
@@ -232,10 +224,30 @@ export default function Models() {
             .then(response => response.json())
             .then(data => {
 
-            setIsLoading(false); // Request completed
+            // Handle the response from the server
+            let imageData = '';
+    
+            imageData = JSON.parse(data['Output'][1]);
+
+            // console.log(typeof JSON.parse(dummyData));
+
+            // Embed the Bokeh plot
+
+            // console.log(currentPlot);
+            if (currentPlot) {
+                const children = myPlotRef.current.children;
+                const len = children.length;
+                for (let i = 0; i < len; i++) {
+                    children[i].remove();
+                }
+            }
+
+            // Embed the new plot
+            setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+
             // Handle the response from the server
 
-            setModelPerformance(data);
+            setModelPerformance(data['Output'][0]);
             setTestedModel("Moving Average");
             // console.log(modelPerformance);
             setModelProcess('Submit Model Parameters');
@@ -271,8 +283,33 @@ export default function Models() {
         })
             .then(response => response.json())
             .then(data => {
+
+            
             // Handle the response from the server
-            setModelPerformance(data);
+            let imageData = '';
+    
+            imageData = JSON.parse(data['Output'][1]);
+
+            console.log(imageData);
+            // console.log(typeof JSON.parse(dummyData));
+
+            // Embed the Bokeh plot
+
+            // console.log(currentPlot);
+
+            if (currentPlot) {
+                const children = myPlotRef.current.children;
+                const len = children.length;
+                for (let i = 0; i < len; i++) {
+                    children[i].remove();
+                }
+            }
+
+            // Embed the new plot
+            setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+
+            // Handle the response from the server
+            setModelPerformance(data['Output'][0]);
             setTestedModel('BBANDS');
             setModelProcess('Submit Model Parameters');
             setModelDone('Model Done Backtesting!');
@@ -589,10 +626,11 @@ export default function Models() {
         .then(response => response.json())
             .then(data => {
             // Handle the response from the server
-            // setImageHTML(data['Output'][1]);
-            dummyData = data['Output'][1];
-            dummyData = JSON.parse(dummyData);
-            // console.log(dummyData);
+            let imageData = '';
+    
+            imageData = JSON.parse(data['Output'][1]);
+
+            console.log(imageData);
             // console.log(typeof JSON.parse(dummyData));
 
             // Embed the Bokeh plot
@@ -608,7 +646,7 @@ export default function Models() {
             }
 
             // Embed the new plot
-            setCurrentPlot(embed.embed_item(dummyData, 'myplot'));
+            setCurrentPlot(embed.embed_item(imageData, 'myplot'));
             
             // data variable returns first the model performance and then the image html.
             setModelPerformance(data['Output'][0]);
