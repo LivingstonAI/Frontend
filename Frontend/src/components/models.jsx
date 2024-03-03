@@ -896,6 +896,8 @@ export default function Models() {
                                 {modelPerformance && (
                                 
                                 <div className="model-performance">
+
+                                    <p><b>*Plots only available for 4H and 1D timeframes for now.</b></p>
                                      
                                      <div ref={myPlotRef} id="myplot" className="bk-root">
 
