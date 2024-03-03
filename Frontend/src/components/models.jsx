@@ -251,7 +251,6 @@ export default function Models() {
                         // Embed the new plot
                         setCurrentPlot(embed.embed_item(imageData, 'myplot'));
                     }, 100);
-    
                 }    
 
             // setIsLoading(false); // Request completed
