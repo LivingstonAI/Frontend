@@ -245,7 +245,12 @@ export default function Models() {
                     imageData = JSON.parse(data['Output'][1]);
                 
                     // Embed the new plot
-                    setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    // setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    // Delay rendering the plot slightly to allow the DOM to stabilize
+                    setTimeout(() => {
+                        // Embed the new plot
+                        setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    }, 100);
     
                 }    
 
@@ -310,7 +315,12 @@ export default function Models() {
                     imageData = JSON.parse(data['Output'][1]);
 
                     // Embed the new plot
-                    setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    // setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    // Delay rendering the plot slightly to allow the DOM to stabilize
+                    setTimeout(() => {
+                        // Embed the new plot
+                        setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    }, 100);
     
                 }
         
@@ -596,10 +606,7 @@ export default function Models() {
 
       const [process, setProcess] = useState('Run Backtest');
 
-       // Assuming you have a Bokeh plot JSON output (replace with your actual data)
-    const bokehPlotJSON = {
-        // Your Bokeh plot JSON data
-    };
+      
 
       const sendParameters = () => {
 
@@ -653,7 +660,12 @@ export default function Models() {
                 imageData = JSON.parse(data['Output'][1]);  
 
                 // Embed the new plot
-                setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                // setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                // Delay rendering the plot slightly to allow the DOM to stabilize
+                setTimeout(() => {
+                    // Embed the new plot
+                    setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                }, 100);
 
             }
     
@@ -668,9 +680,7 @@ export default function Models() {
             console.error('Error:', error);
             });
       }
-      
-      
-
+    
     return (
         <div>
             <div className="header">
