@@ -224,26 +224,30 @@ export default function Models() {
             .then(response => response.json())
             .then(data => {
 
-            // Handle the response from the server
-            let imageData = '';
+                let imageData = '';
+                const jsonData = data['Output'][1]
     
-            imageData = JSON.parse(data['Output'][1]);
-
-            // console.log(typeof JSON.parse(dummyData));
-
-            // Embed the Bokeh plot
-
-            // console.log(currentPlot);
-            if (currentPlot) {
-                const children = myPlotRef.current.children;
-                const len = children.length;
-                for (let i = 0; i < len; i++) {
-                    children[i].remove();
+                // console.log(typeof data['Output'][1]);
+                const jsonLength = Object.keys(jsonData).length;
+                // console.log(Object.keys(jsonData).length)
+    
+                if (currentPlot) {
+                    const children = myPlotRef.current.children;
+                    const len = children.length;
+                    for (let i = 0; i < len; i++) {
+                        children[i].remove();
+                    }
                 }
-            }
-
-            // Embed the new plot
-            setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+    
+                if (jsonLength !== 0) {
+    
+                        
+                    imageData = JSON.parse(data['Output'][1]);
+                
+                    // Embed the new plot
+                    setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+    
+                }    
 
             // setIsLoading(false); // Request completed
             // Handle the response from the server
@@ -286,28 +290,30 @@ export default function Models() {
             .then(response => response.json())
             .then(data => {
 
-            
-            // Handle the response from the server
-            let imageData = '';
+                let imageData = '';
+                const jsonData = data['Output'][1]
     
-            imageData = JSON.parse(data['Output'][1]);
-
-            // console.log(typeof JSON.parse(dummyData));
-
-            // Embed the Bokeh plot
-
-            // console.log(currentPlot);
-
-            if (currentPlot) {
-                const children = myPlotRef.current.children;
-                const len = children.length;
-                for (let i = 0; i < len; i++) {
-                    children[i].remove();
+                // console.log(typeof data['Output'][1]);
+                const jsonLength = Object.keys(jsonData).length;
+                // console.log(Object.keys(jsonData).length)
+    
+                if (currentPlot) {
+                    const children = myPlotRef.current.children;
+                    const len = children.length;
+                    for (let i = 0; i < len; i++) {
+                        children[i].remove();
+                    }
                 }
-            }
+    
+                if (jsonLength !== 0) {
+    
+                    imageData = JSON.parse(data['Output'][1]);
 
-            // Embed the new plot
-            setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+                    // Embed the new plot
+                    setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+    
+                }
+        
 
             // Handle the response from the server
             setModelPerformance(data['Output'][0]);
@@ -628,15 +634,11 @@ export default function Models() {
             .then(data => {
             // Handle the response from the server
             let imageData = '';
-    
-            imageData = JSON.parse(data['Output'][1]);
+            const jsonData = data['Output'][1]
 
-            console.log(imageData);
-            // console.log(typeof JSON.parse(dummyData));
-
-            // Embed the Bokeh plot
-
-            // console.log(currentPlot);
+            // console.log(typeof data['Output'][1]);
+            const jsonLength = Object.keys(jsonData).length;
+            // console.log(Object.keys(jsonData).length)
 
             if (currentPlot) {
                 const children = myPlotRef.current.children;
@@ -646,8 +648,15 @@ export default function Models() {
                 }
             }
 
-            // Embed the new plot
-            setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+            if (jsonLength !== 0) {
+           
+                imageData = JSON.parse(data['Output'][1]);  
+
+                // Embed the new plot
+                setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+
+            }
+    
             
             // data variable returns first the model performance and then the image html.
             setModelPerformance(data['Output'][0]);
