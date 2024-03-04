@@ -55,12 +55,12 @@ export default function Login() {
                 navigate(`/conversation/${uniqueID}`);
                 // Handle successful login, e.g., redirect or display a message
             } else {
-                const responseData = await response.json();
-                setError("Invalid Email or Password")
+                // const responseData = await response.json();
+                setError("Invalid Email or Password");
                 // Handle login failure, e.g., display an error message
             }
         } catch (error) {
-            console.error("Error during login:", error);
+            // do nothing
         }
     };
 
