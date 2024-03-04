@@ -66,7 +66,7 @@ boundary you've set, Risk Bot springs into action, closing the trade automatical
 without any intervention on your part and won't impact your profitable trades, allowing them the 
 freedom to grow. <br /><br />
 
-<h6 className="risk-bot-header">How to Install Risk Bot (On your computer)</h6>
+<h6 className="risk-bot-header">How to Install Risk Bot (On your computer):</h6>
 
 <p>1. Open your MT5 terminal.</p>
 <p>2. Navigate to "File" in the top menu bar.</p>
