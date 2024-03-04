@@ -23,8 +23,7 @@ export default function FullTrade() {
         fetchTradeDetails();
     }, [tradeId]);
 
-    console.log(tradeDetails.trade);
-
+    
     return (
         <div>
             <div className="header">

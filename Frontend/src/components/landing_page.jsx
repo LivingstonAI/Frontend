@@ -16,7 +16,6 @@ import SnowAILogo from '../images/snowAI (1).png';
 export default function LandingPage() {
   const navigate = useNavigate();
   const hiddenElementsRef = useRef([]);
-  console.log('The git push works!');
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {

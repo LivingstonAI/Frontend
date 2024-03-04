@@ -49,7 +49,6 @@ export default function Login() {
             });
     
             if (response.status === 200) {
-                console.log("Login successful");
                 const { email } = await response.json();
                 Cookies.set('email', email);
                 navigate(`/conversation/${uniqueID}`);

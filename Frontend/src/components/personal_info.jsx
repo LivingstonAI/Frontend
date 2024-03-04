@@ -89,7 +89,6 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
-    console.log('Modal Toggled')
     // setModalClosed(!modalClosed);
   };
 
@@ -158,25 +157,13 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     };
 
     useEffect(() => {
-        console.log('The Component has mounted.');
         fetchUserData();
     }, [modalClosed]);
 
     useEffect(() => {
-        console.log('The Component has mounted two');
         fetchUserData();
     }, []);
-    useEffect(() => {
-        console.log('isModalOpen in ModifyPersonalInfo:', ModalOpen);
-    })
 
-    const closeModal = async () => {  
-        // Handle success
-        window.location.reload();
-
-        toggleModal();
-        // this.forceUpdate();
-    }
 
     return (
         <div>

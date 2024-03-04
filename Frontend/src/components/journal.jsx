@@ -10,6 +10,7 @@ import Cookies from 'js-cookie';
 
 export default function Journal() {
     const [editorContent, setEditorContent] = useState(`
+
     Today I entered a trade at [time].<br/ ><br/ >
     My Strategy was [strategy] and the outcome was [outcome].<br/><br/ >
 
@@ -19,6 +20,7 @@ export default function Journal() {
 
     My confidence level in the trade was [confidence level]%.
     `);
+
     const [dataSaved, setDataSaved] = useState("");
     const [editorError, setEditorError] = useState("");
     const [tags, setTags] = useState([]);
@@ -91,10 +93,6 @@ export default function Journal() {
         setTags(updatedTags); // Update the state with the filtered array
     };
 
-    useEffect(() => {
-        console.log(editorContent);
-        console.log(tags)
-    })
 
     return (
         <div>

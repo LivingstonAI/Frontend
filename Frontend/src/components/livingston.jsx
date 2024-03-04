@@ -126,12 +126,7 @@ export default function ChatBotInterface() {
             console.error('Error fetching user conversations:', error);
         }
     };
-    
-    const delay = ms => new Promise(
-        resolve => setTimeout(resolve, ms)
-      );
       
-
     useEffect(() => {
 
         async function fetchUserData() {
@@ -173,7 +168,6 @@ export default function ChatBotInterface() {
                 const response = await fetch(`${baseURL}/all_trades/${email}/`);
                 const parsedData = await response.json();
                 setTrades(parsedData);
-               
             } catch (error) {
                 console.error('Error fetching trades:', error);
             
@@ -190,28 +184,6 @@ export default function ChatBotInterface() {
         }
     ]);
 
-    // (6) [{…}, {…}, {…}, {…}, {…}, {…}]
-// 0
-// : 
-// {role: 'user', content: 'Hey!'}
-// 1
-// : 
-// {role: 'assistant', content: 'Hello! How can I assist you with your trading today?'}
-// 2
-// : 
-// {role: 'user', content: 'Hows it going?'}
-// 3
-// : 
-// {role: 'assistant', content: "It's going well, thank you for asking! How about y…hing particular you'd like assistance with today?"}
-// 4
-// : 
-// {role: 'user', content: img}
-// 5
-// : 
-// {role: 'user', content: '<img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABA…AAAAAAf/Z" style="max-width: 100%; height: 70%;">'}
-// length
-// : 
-// 6
 
     const [gptMessages, setGptMessages] = useState([
         {
@@ -329,8 +301,6 @@ export default function ChatBotInterface() {
           
         
         const filteredMessages = apiMessages.filter(message => typeof message.content === 'string');
-        console.log('Messages are:');
-        console.log(filteredMessages);
         const apiRequestBody = {
             "model": "gpt-4-1106-preview",
             "messages": [
@@ -339,11 +309,8 @@ export default function ChatBotInterface() {
             ]        
         }
 
-        // console.log(apiMessages);
         // Filter messages with content of type string
 
-        // console.log(filteredMessages);
-        // alert(`input type is: ${typeInput}`)
         if (typeInput == "text"){
 
             await fetch("https://api.openai.com/v1/chat/completions", {
@@ -377,7 +344,6 @@ export default function ChatBotInterface() {
                 direction:"incoming"
             }
         ]);
-        console.log(ChatMessages)
         setTyping(false);
     }
     }
@@ -449,16 +415,6 @@ export default function ChatBotInterface() {
         setChatID(chatID);
         displayChat(conversationID);
     }, [])
-
-
-    const askLivingston = async (content) => {
-        handleSend(content);
-    }
-
-
-    const toggleModal = () => {
-        setIsModalOpen(prevState => !prevState);
-    };
 
 
     const viewConversations = () =>  {
@@ -589,11 +545,7 @@ export default function ChatBotInterface() {
         imgElement.style.height = '50%';   // Optional: Set height to auto for responsiveness
 
         // Send the image data to the Django server
-
-        // Call the main function with the image URL
-        // main(imageUrl);
         
-    
         // Append the img element to the message list as a message
         handleSend(imgElement);
         // main(imageDataUrl); 

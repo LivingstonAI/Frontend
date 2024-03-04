@@ -4,8 +4,6 @@ import { useNavigate, redirect } from "react-router-dom";
 import useForceUpdate from 'use-force-update';
 
 
-
-
 export default function AssetsTraded({ assets, setAssets }) {
     const [isModalOpen, setIsModalOpen] = useState(true);
     const [currencyModal, setCurrencyModal] = useState(false);
@@ -102,8 +100,6 @@ export default function AssetsTraded({ assets, setAssets }) {
     };
     
 
-
-    
     const checkOtherModals = (modalCategory) => {
         if (modalCategory === "currency") {
             // Close all other modals except the currency modal
@@ -257,20 +253,19 @@ export default function AssetsTraded({ assets, setAssets }) {
       
           if (response.ok) {
             // Handle success
-            console.log('User assets updated successfully.');
             window.location.reload();
 
             toggleModal();
             // this.forceUpdate();
           } else {
             // Handle errors
-            console.error('Failed to update user assets.');
+            // console.error('Failed to update user assets.');
             window.location.reload();
 
             toggleModal();
           }
         } catch (error) {
-          console.error('Error:', error);
+        //   console.error('Error:', error);
           window.location.reload();
 
           toggleModal();

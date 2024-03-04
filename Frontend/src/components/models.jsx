@@ -385,7 +385,6 @@ export default function Models() {
             .then(response => response.json())
             .then(data => {
             // Handle the response from the server
-            console.log(data);
             setModelPerformance(data);
             setTestedModel('Momentum Model');
             setMomentumProcess('Backtest Momentum Model');

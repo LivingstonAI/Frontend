@@ -31,11 +31,6 @@ export default function UpdateNews() {
     };
 
     useEffect(() => {
-        console.log('Selected Currencies are:')
-        console.log(selectedCurrencies);   
-    })
-
-    useEffect(() => {
         async function fetchNewsData() {
             try {
                 const email = await fetchEmailDataFromAPI();
@@ -93,7 +88,6 @@ export default function UpdateNews() {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
                     // console.log('Response is: ');
                     // console.log(data);
                     setOutcome('News Data updated successfully!');

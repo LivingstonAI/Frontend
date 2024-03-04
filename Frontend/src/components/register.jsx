@@ -100,13 +100,10 @@ export default function Register() {
         });
 
         if (response.status === 201) {
-            console.log("Registration successful");
             localStorage.setItem('registeredEmail', email);
             navigate('/tell_us_more'); // Navigate to the next page
         } else {
             const responseData = await response.json();
-            console.log("Registration failed:", responseData);
-            console.log(responseData['username'])
             if (responseData['username']) {
                 setUsernameError(responseData['username']);
             }

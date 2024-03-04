@@ -186,7 +186,7 @@ export default function EnterNewTrade () {
             setEmotionalBiasError('Please select an emotional bias.');
             return;
         }
-        const currentDate = new Date;
+        // const currentDate = new Date;
         if (startDate > endDate) {
             setStartDateError("Please select a valid date taken input.");
             return;
@@ -271,11 +271,10 @@ export default function EnterNewTrade () {
                 body: JSON.stringify(data),
             });
             if (response.status === 201) {
-                console.log("Data saved successfully!");
                 // Navigate to the next page or show a success message
                 navigate('/all_trades');
             } else {
-                console.error("Data save failed.");
+                // console.error("Data save failed.");
                 navigate('/all_trades');
             }
         } catch (error) {
@@ -300,10 +299,9 @@ export default function EnterNewTrade () {
             }
         }
         fetchUserData();
-        console.log(selectedAssets);
     }, []);
     
-
+    
     return (
         <div>
             <div className="header">
