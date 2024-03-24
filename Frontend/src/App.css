@@ -1639,7 +1639,7 @@ th {
     }
 
     .legodi-latest-news-div-contents, .legodi-our-services-div-contents {
-        margin-left: 110px;
+        margin-left: 100px;
         /* text-align: center; */
     }
     .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
@@ -1650,6 +1650,9 @@ th {
     }
     .legodi-footer-contents{
         /* text-align: center; */
+    }
+    .legodi-latest-news-div-contents hr {
+        width: 70%;
     }
     .register-div, .login-div, .tell-us-div {
         left: 20px;
