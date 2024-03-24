@@ -1635,21 +1635,21 @@ th {
     .legodi-get-in-touch-contact-info-div {
         display: block;
 
-        text-align: center;
+        /* text-align: center; */
     }
 
     .legodi-latest-news-div-contents, .legodi-our-services-div-contents {
-        margin-left: 120px;
+        margin-left: 110px;
         /* text-align: center; */
     }
     .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
         margin-left: 0px;
     }
     .legodi-get-in-touch-header {
-        text-align: center;
+        /* text-align: center; */
     }
     .legodi-footer-contents{
-        text-align: center;
+        /* text-align: center; */
     }
     .register-div, .login-div, .tell-us-div {
         left: 20px;
