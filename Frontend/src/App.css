@@ -1421,9 +1421,236 @@ th {
     text-align: center;
 }
 
+/* Scratch-like Interface CSS */
+
+.scratch-interface {
+    display: flex;
+}
+
+.scratch-side-nav {
+    width: 40%;
+}
+
+.scratch-playbox {
+    width: 60%;
+}
+
+
+.scratch-candlestick-patterns, .scratch-technical-indicators {
+    gap: 100px;
+    margin-left: 20px;
+}
+
+.scratch-technical-indicators {
+    margin-top: 20px;
+}
+
+.scratch-technical-indicators {
+
+}
+
+.scratch-candlestick-patterns-div button, .scratch-technical-indicators button, .scratch-actions-div {
+    margin-left: 5px;
+    margin-bottom: 15px;
+}
+
+.fill-height {
+    height: 100%;
+}
+
+.injectionDiv {
+    overflow: visible;
+    height: 400px;
+}
+
+.generated-code-example {
+    display: flex;
+    gap: 300px;
+}
+
+
+
+
+/* Legodi Technologies CSS */
+
+
+
+/* .legodi-body {
+    background-color:#f2f2f2;
+    height:800px;
+    width: 100%;
+} */
+
+.legodi-logo {
+    height: 50px;
+    border-radius: 5px;
+}
+
+.upper-nav-legodi {
+    display: flex;
+    justify-content: space-between;
+    /* gap: 600px; */
+    /* position: relative; */
+    /* left: 50px; */
+}
+
+.legodi-logo-and-title {
+    display: flex;
+}
+
+
+.legodi-geofence-image {
+    width: 90%;
+    /* margin-left: 50px; */
+    height: 10%;
+}
+
+/* DON'T FORGET TO CHECK THIS!! */
+.upper-nav-legodi-search {
+    /* left: 600px; */
+    
+    display: flex;
+    gap: 10px;
+    
+    /* align-items: ; */
+}
+
+.upper-mid-nav-legodi {
+    display: flex;
+    gap: 30px;
+    margin-left: 80px;
+    /* left: 50px; */
+}
+
+.legodi-latest-news-div-contents, .legodi-our-services-div-contents, .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
+    margin-left: 50px;
+}
+
+.transforming-agriculture-div {
+    /* margin-left: 150px; */
+    text-align: center;
+    /* width: 50%; */
+}
+
+.legodi-contact-us-button {
+    height: 80%;
+}
+
+
+.legodi-latest-news-div {
+    background-color:lightblue;
+}
+
+.legodi-latest-news-div-contents hr {
+    width: 90%;
+}
+
+.legodi-latest-news-news {
+    display: flex;
+    gap: 20px;
+}
+
+.legodi-latest-news-pic1, .legodi-latest-news-pic2, .legodi-latest-news-pic3 {
+    width: 60%;
+}
+
+
+.news-pic1, .news-pic2, .news-pic3 {
+    width: 90%;
+    height: 60%;
+}
+
+.legodi-our-services-div {
+    background-color: midnightblue;
+    color: white;
+}
+
+.legodi-offered-services {
+    display: flex;
+}
+
+.s1, .s2, .s3 {
+    width: 30%;
+}
+
+.s1 hr, .s2 hr, .s3 hr {
+    width: 70%;
+}
+
+.legodi-about-section-div-contents {
+    display: flex;
+    gap: 100px;
+}
+
+.legodi-about-image {
+    /* width: 100%; */
+    height: 100%;
+}
+.legodi-about-section-explanation {
+    /* width: 30%; */
+}
+
+.legodi-about-section-image {
+    /* width: %; */
+}
+
+.legodi-about-section-explanation i {
+    /* margin-left: 5px; */
+}
+
+.legodi-get-in-touch-header {
+    width: 50%;
+}
+
+.legodi-get-in-touch-contact-info-div {
+    display: flex;
+    /* gap: 400px; */
+    justify-content: space-between;
+}
+
+.legodi-footer {
+    background-color: lightblue;
+}
+
+.legodi-footer-header {
+    display: flex;
+    /* gap: 300px; */
+    justify-content: space-between;
+}
+
+.legodi-footer-email-input {
+    width: 30%;
+}
 
 @media screen and (max-width: 768px) {
 
+    .legodi-latest-news-news {
+        display: block;
+    }
+
+    .legodi-offered-services {
+        display: block;
+    }
+    
+    .legodi-get-in-touch-contact-info-div {
+        display: block;
+
+        text-align: center;
+    }
+
+    .legodi-latest-news-div-contents, .legodi-our-services-div-contents {
+        margin-left: 120px;
+        /* text-align: center; */
+    }
+    .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
+        margin-left: 0px;
+    }
+    .legodi-get-in-touch-header {
+        text-align: center;
+    }
+    .legodi-footer-contents{
+        text-align: center;
+    }
     .register-div, .login-div, .tell-us-div {
         left: 20px;
         width: 90%;
