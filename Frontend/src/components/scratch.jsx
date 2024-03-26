@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-import { Link } from "react-router-dom";
+import { Link, json } from "react-router-dom";
 import * as Blockly from 'blockly/core';
 import { BlocklyWorkspace, useBlocklyWorkspace } from 'react-blockly';
 import 'blockly/blocks';
@@ -28,6 +28,10 @@ export default function ScratchInterFace () {
 
     const [generatedCode, setGeneratedCode] = useState('');
     const [jsCode, setJsCode] = useState('');
+
+    const [modelPerformance, setModelPerformance] = useState('');
+
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
     // const workspaceTest = useBlocklyWorkspace();
     // const workspaceRef = useRef(null); // Create a ref to store the workspace object
@@ -92,7 +96,7 @@ export default function ScratchInterFace () {
       number = '';
     }
 
-    return [`moving_average(type=${type}, number=${number})\n`, Order.NONE];
+    return [`moving_average(type=${type}, number=${number})`, Order.NONE];
 
   };
 
@@ -109,7 +113,7 @@ export default function ScratchInterFace () {
       number = '';
     }
 
-    return [`moving_average(type=${type}, number=${number})\n`, Order.NONE];
+    return [`moving_average(type=${type}, number=${number})`, Order.NONE];
     
   };
 
@@ -117,7 +121,7 @@ export default function ScratchInterFace () {
 
     let operator = block.getFieldValue('OPERATOR');
     let band = block.getFieldValue('BAND');
-    return [`bbands(condition=${operator}, band=${band})\n`, Order.NONE];
+    return [`bbands(condition=${operator}, band=${band})`, Order.NONE];
 
   };
 
@@ -125,7 +129,7 @@ export default function ScratchInterFace () {
 
     let operator = block.getFieldValue('OPERATOR');
     let band = block.getFieldValue('BAND');
-    return [`bbands(condition=${operator}, band=${band})\n`, Order.NONE];
+    return [`bbands(condition=${operator}, band=${band})`, Order.NONE];
 
   };
 
@@ -133,7 +137,7 @@ export default function ScratchInterFace () {
 
     let comparison = block.getFieldValue('COMPARISON');
     let threshold = block.getFieldValue('THRESHOLD');
-    return [`momentum(comparison=${comparison}, threshold=${threshold})\n`, Order.NONE];
+    return [`momentum(comparison=${comparison}, threshold=${threshold})`, Order.NONE];
 
   };
 
@@ -141,7 +145,7 @@ export default function ScratchInterFace () {
 
     let comparison = block.getFieldValue('COMPARISON');
     let threshold = block.getFieldValue('THRESHOLD');
-    return [`momentum(comparison=${comparison}, threshold=${threshold})\n`, Order.NONE];
+    return [`momentum(comparison=${comparison}, threshold=${threshold})`, Order.NONE];
     
   };
 
@@ -149,7 +153,7 @@ export default function ScratchInterFace () {
     
     let comparison = block.getFieldValue('COMPARISON');
     let rsi_level = block.getFieldValue('RSI_LEVEL');
-    return [`rsi(comparison=${comparison}, rsi_level=${rsi_level})\n`, Order.NONE];
+    return [`rsi(comparison=${comparison}, rsi_level=${rsi_level})`, Order.NONE];
 
   };
 
@@ -157,7 +161,7 @@ export default function ScratchInterFace () {
 
     let comparison = block.getFieldValue('COMPARISON');
     let rsi_level = block.getFieldValue('RSI_LEVEL');
-    return [`rsi(comparison=${comparison}, rsi_level=${rsi_level})\n`, Order.NONE];
+    return [`rsi(comparison=${comparison}, rsi_level=${rsi_level})`, Order.NONE];
     
   };
 
@@ -165,7 +169,12 @@ export default function ScratchInterFace () {
 
     let engulfingType = block.getFieldValue('TYPE');
 
-    return [`engulfing(type=${engulfingType})`, Order.NONE];
+    if (engulfingType === 'bullish') {
+      return [`is_bullish_engulfing(data=dataset)`, Order.NONE];
+    } else if (engulfingType === 'bearish'){
+      return [`is_bearish_engulfing(data=dataset)`, Order.NONE];
+    }
+
 
   };
 
@@ -174,32 +183,16 @@ export default function ScratchInterFace () {
     
     let engulfingType = block.getFieldValue('TYPE');
 
-    return [`engulfing(type=${engulfingType})`, Order.NONE];
+    return [`engulfing(type='${engulfingType}')`, Order.NONE];
 
   };
 
-  pythonGenerator['forBlock']['pin_bar_block'] = function(block, generator) {
-
-    let pinBarType = block.getFieldValue('TYPE');
-
-    return [`pinbar(type=${pinBarType})\n`, Order.NONE];
-
-  };
-
-  javascriptGenerator['forBlock']['pin_bar_block'] = function(block, generator) {
-
-    
-    let pinBarType = block.getFieldValue('TYPE');
-
-    return [`pinbar(type=${pinBarType})\n`, Order.NONE];
-
-  };
 
   pythonGenerator['forBlock']['morning_star_block'] = function(block, generator) {
 
     let morningStarType = block.getFieldValue('TYPE');
 
-    return [`morning_star(type=${morningStarType})\n`, Order.NONE];
+    return [`morning_star(type=${morningStarType})`, Order.NONE];
 
   };
 
@@ -207,7 +200,7 @@ export default function ScratchInterFace () {
 
     let morningStarType = block.getFieldValue('TYPE');
 
-    return [`morning_star(type=${morningStarType})\n`, Order.NONE];
+    return [`morning_star(type=${morningStarType})`, Order.NONE];
 
   };
 
@@ -223,7 +216,7 @@ export default function ScratchInterFace () {
 
     let threeType = block.getFieldValue('TYPE');
 
-    return [`soldiers(type=${threeType})\n`, Order.NONE];
+    return [`soldiers(type=${threeType})`, Order.NONE];
 
   };
 
@@ -231,7 +224,7 @@ export default function ScratchInterFace () {
 
     let dojiType = block.getFieldValue('TYPE');
 
-    return [`doji_star(type=${dojiType})\n`, Order.NONE];
+    return [`doji_star(type=${dojiType})`, Order.NONE];
 
   };
 
@@ -239,7 +232,7 @@ export default function ScratchInterFace () {
 
     let dojiType = block.getFieldValue('TYPE');
 
-    return [`doji_star(type=${dojiType})\n`, Order.NONE];
+    return [`doji_star(type=${dojiType})`, Order.NONE];
 
   };
 
@@ -247,7 +240,7 @@ export default function ScratchInterFace () {
 
     let risingMethodsType = block.getFieldValue('TYPE');
 
-    return [`rising_methods(type=${risingMethodsType})\n`, Order.NONE];
+    return [`rising_methods(type=${risingMethodsType})`, Order.NONE];
 
   };
 
@@ -255,7 +248,7 @@ export default function ScratchInterFace () {
 
     let risingMethodsType = block.getFieldValue('TYPE');
 
-    return [`rising_methods(type=${risingMethodsType})\n`, Order.NONE];
+    return [`rising_methods(type=${risingMethodsType})`, Order.NONE];
 
   };
 
@@ -291,38 +284,6 @@ export default function ScratchInterFace () {
 
   };
 
-  pythonGenerator['forBlock']['dragonfly_doji_block'] = function(block, generator) {
-
-    let dragonFlyType = block.getFieldValue('TYPE');
-
-    return [`dragonfly_doji(type=${dragonFlyType})`, Order.NONE];
-
-  };
-
-  javascriptGenerator['forBlock']['dragonfly_doji_block'] = function(block, generator) {
-
-    let dragonFlyType = block.getFieldValue('TYPE');
-
-    return [`dragonfly_doji(type=${dragonFlyType})`, Order.NONE];
-
-  };
-
-  pythonGenerator['forBlock']['spinning_top_block'] = function(block, generator) {
-
-    let spinningTopType = block.getFieldValue('TYPE');
-
-    return [`spinning_top(type=${spinningTopType})`, Order.NONE];
-
-  };
-
-  javascriptGenerator['forBlock']['spinning_top_block'] = function(block, generator) {
-
-    let spinningTopType = block.getFieldValue('TYPE');
-
-    return [`spinning_top(type=${spinningTopType})`, Order.NONE];
-
-  };
-
   pythonGenerator['forBlock']['kicker_block'] = function(block, generator) {
 
     let kickerType = block.getFieldValue('TYPE');
@@ -353,55 +314,6 @@ export default function ScratchInterFace () {
 
     return [`harami(type=${haramiType})`, Order.NONE];
 
-  };
-
-  pythonGenerator['forBlock']['piercing_line_block'] = function(block, generator) {
-
-    let piercingLineType = block.getFieldValue('TYPE');
-
-    return [`piercing_line(type=${piercingLineType})`, Order.NONE];
-
-  };
-
-  javascriptGenerator['forBlock']['piercing_line_block'] = function(block, generator) {
-
-    let piercingLineType = block.getFieldValue('TYPE');
-
-    return [`piercing_line(type=${piercingLineType})`, Order.NONE];
-
-  };
-
-  pythonGenerator['forBlock']['tweezer_block'] = function(block, generator) {
-
-    let tweezerType = block.getFieldValue('TYPE');
-
-    return [`tweezer(type=${tweezerType})`, Order.NONE];
-
-  };
-
-  javascriptGenerator['forBlock']['tweezer_block'] = function(block, generator) {
-
-    let tweezerType = block.getFieldValue('TYPE');
-
-    return [`tweezer(type=${tweezerType})`, Order.NONE];
-    
-  };
-
-  pythonGenerator['forBlock']['abandoned_baby_block'] = function(block, generator) {
-
-    let abandonedBabyType = block.getFieldValue('TYPE');
-
-    return [`abandoned_baby(type=${abandonedBabyType})`, Order.NONE];
-
-  };
-
-  javascriptGenerator['forBlock']['abandoned_baby_block'] = function(block, generator) {
-
-    
-    let abandonedBabyType = block.getFieldValue('TYPE');
-
-    return [`abandoned_baby(type=${abandonedBabyType})`, Order.NONE];
-    
   };
 
   pythonGenerator['forBlock']['three_line_strike_block'] = function(block, generator) {
@@ -484,21 +396,6 @@ Blockly.Blocks['engulfing_block'] = {
   }
 };
 
-// Blockly block definition for "Pin Bar" block
-Blockly.Blocks['pin_bar_block'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([
-          ['Bullish', 'bullish'],
-          ['Bearish', 'bearish']
-        ]), 'TYPE')
-        .appendField('Pin Bar');
-    this.setOutput(true, 'Boolean');
-    this.setColour(330); // Orange color
-    this.setTooltip('This block represents a pin bar candlestick pattern');
-    this.setHelpUrl('');
-  }
-};
 
 // Blockly block definition for "Morning Star" block
 Blockly.Blocks['morning_star_block'] = {
@@ -597,38 +494,6 @@ Blockly.Blocks['shooting_star_block'] = {
   }
 };
 
-// Blockly block definition for "Dragonfly/Gravestone Doji" block
-Blockly.Blocks['dragonfly_doji_block'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([
-          ['Bullish', 'bullish'],
-          ['Bearish', 'bearish']
-        ]), 'TYPE')
-        .appendField('DragonFly Doji');
-    this.setOutput(true, 'Boolean');
-    this.setColour(330); // Orange color
-    this.setTooltip('This block represents a dragonfly/gravestone doji candlestick pattern');
-    this.setHelpUrl('');
-  }
-};
-
-// Blockly block definition for "Bullish/Bearish Spinning Top" block
-Blockly.Blocks['spinning_top_block'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([
-          ['Bullish', 'bullish'],
-          ['Bearish', 'bearish']
-        ]), 'TYPE')
-        .appendField('Spinning Top');
-    this.setOutput(true, 'Boolean');
-    this.setColour(330); // Orange color
-    this.setTooltip('This block represents a spinning top candlestick pattern');
-    this.setHelpUrl('');
-  }
-};
-
 // Blockly block definition for "Bullish/Bearish Kicker" block
 Blockly.Blocks['kicker_block'] = {
   init: function() {
@@ -661,53 +526,6 @@ Blockly.Blocks['harami_block'] = {
   }
 };
 
-// Blockly block definition for "Piercing Line/Dark Cloud" block
-Blockly.Blocks['piercing_line_block'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([
-          ['Bullish', 'bullish'],
-          ['Bearish', 'bearish']
-        ]), 'TYPE')
-        .appendField('Piercing Line/Dark Cloud Cover');
-    this.setOutput(true, 'Boolean');
-    this.setColour(330); // Orange color
-    this.setTooltip('This block represents a Piercing Line/Dark Cloud Cover candlestick pattern');
-    this.setHelpUrl('');
-  }
-};
-
-// Blockly block definition for "Tweezer Top/Bottom" block
-Blockly.Blocks['tweezer_block'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([
-          ['Bullish', 'bullish'],
-          ['Bearish', 'bearish']
-        ]), 'TYPE')
-        .appendField('Tweezer Top/Bottom');
-    this.setOutput(true, 'Boolean');
-    this.setColour(330); // Orange color
-    this.setTooltip('This block represents a Tweezer Top/Bottom candlestick pattern');
-    this.setHelpUrl('');
-  }
-};
-
-// Blockly block definition for "Abandoned Baby" block
-Blockly.Blocks['abandoned_baby_block'] = {
-  init: function() {
-    this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([
-          ['Bullish', 'bullish'],
-          ['Bearish', 'bearish']
-        ]), 'TYPE')
-        .appendField('Abandoned Baby');
-    this.setOutput(true, 'Boolean');
-    this.setColour(330); // Orange color
-    this.setTooltip('This block represents a Abandoned Baby candlestick pattern');
-    this.setHelpUrl('');
-  }
-};
 
 // Blockly block definition for "Three Line Strike" block
 Blockly.Blocks['three_line_strike_block'] = {
@@ -939,10 +757,6 @@ Blockly.Blocks['rsi_block'] = {
             },
             {
               "kind": "block",
-              "type": "pin_bar_block" // Add the "Pin Bar" block here
-            },
-            {
-              "kind": "block",
               "type": "morning_star_block" // Add the "Morning Star" block here
             },
             
@@ -968,31 +782,11 @@ Blockly.Blocks['rsi_block'] = {
             },
             {
               "kind": "block",
-              "type": "dragonfly_doji_block"
-            },
-            {
-              "kind": "block",
-              "type": "spinning_top_block"
-            },
-            {
-              "kind": "block",
               "type": "kicker_block"
             },
             {
               "kind": "block",
               "type": "harami_block"
-            },
-            {
-              "kind": "block",
-              "type": "piercing_line_block"
-            },
-            {
-              "kind": "block",
-              "type": "tweezer_block"
-            },
-            {
-              "kind": "block",
-              "type": "abandoned_baby_block"
             },
             {
               "kind": "block",
@@ -1028,14 +822,36 @@ Blockly.Blocks['rsi_block'] = {
       ]
     }
       
-      const compileModelFunction = () => {
-        if (compile == 'Compile Model') {
-          setCompile('Compiling Model...')
-        }
-        else {
-          setCompile('Compile Model')
-        }
-      }
+    const compileModelFunction = () => {
+      setCompile('Compiling Model for Backtest...');
+      console.log(generatedCode);
+      fetch(`${baseUrl}/genesys`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 'generatedCode': generatedCode }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          // Replace "nan" with null
+          const jsonStringFixed = data.message.replace(/'nan'/g, 'null');
+          
+          // Replace single quotes with double quotes
+          const jsonStringDoubleQuoted = jsonStringFixed.replace(/'/g, '"');
+          
+          // Parse the JSON string into a JavaScript object
+          const jsonData = JSON.parse(jsonStringDoubleQuoted);
+      
+          setModelPerformance(jsonData);
+
+          setCompile('Compile Model');
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          setCompile('Error Occured');
+        });
+    };
 
       return (
         <div>
@@ -1053,11 +869,11 @@ Blockly.Blocks['rsi_block'] = {
                     <h3>Python</h3>
                     <pre>{generatedCode}</pre>
                   </div>
-                  <div>
+                  {/* <div>
                     
                     <h3>JavaScript</h3>
                     <pre>{jsCode}</pre>
-                  </div>
+                  </div> */}
                 </div><br />
                 <BlocklyWorkspace
                 className="" // you can use whatever classes are appropriate for your app's CSS
@@ -1068,7 +884,41 @@ Blockly.Blocks['rsi_block'] = {
               <button className="btn btn-primary backtest-button" onClick={compileModelFunction}>{compile}</button>
               <br /><br />
             </div>
+            </div><br /><br />
+
+            {modelPerformance && (
+
+              <div className="model-performance">
+              {/* {modelResult} */}
+              <p># Trades: {modelPerformance['# Trades']}</p>
+              <p>Start: {modelPerformance.Start}</p>
+              <p>End: {modelPerformance.End}</p>
+              <p>Duration: {modelPerformance.Duration}</p>
+              <p>Return [%]: {modelPerformance['Return [%]']}</p>
+              <p>Return (Ann.) [%]: {modelPerformance['Return (Ann.) [%]']}</p>
+              <p>Win Rate [%]: {modelPerformance['Win Rate [%]']}</p>
+              <p>Best Trade [%]: {modelPerformance['Best Trade [%]']}</p>
+              <p>Worst Trade [%]: {modelPerformance['Worst Trade [%]']}</p>
+              <p>Equity Final [$]: {modelPerformance['Equity Final [$]']}</p>
+              <p>Equity Peak [$]: {modelPerformance['Equity Peak [$]']}</p>
+              <p>Max. Drawdown Duration: {modelPerformance['Max. Drawdown Duration']}</p>
+              <p>Avg. Drawdown Duration: {modelPerformance['Avg. Drawdown Duration']}</p>
+              <p>Avg. Drawdown [%]: {modelPerformance['Avg. Drawdown [%]']}</p>
+              <p>Avg. Trade Duration: {modelPerformance['Avg. Trade Duration']}</p>
+              <p>Avg. Trade [%]: {modelPerformance['Avg. Trade [%]']}</p>
+              <p>Buy & Hold Return [%]: {modelPerformance['Buy & Hold Return [%]']}</p>
+              <p>Calmar Ratio: {modelPerformance['Calmar Ratio']}</p>
+              <p>Expectancy [%]: {modelPerformance['Expectancy [%]']}</p>
+              <p>Exposure Time [%]: {modelPerformance['Exposure Time [%]']}</p>
+              <p>Max. Drawdown [%]: {modelPerformance['Max. Drawdown [%]']}</p>
+              <p>Max. Trade Duration: {modelPerformance['Max. Trade Duration']}</p>
+              <p>Profit Factor: {modelPerformance['Profit Factor']}</p>
+              {/* <p>SQN: {modelPerformance.SQN}</p> */}
+              <p>Sharpe Ratio: {modelPerformance['Sharpe Ratio']}</p>
+              <p>Sortino Ratio: {modelPerformance['Sortino Ratio']}</p>
+              <p>Volatility (Ann.) [%]: {modelPerformance['Volatility (Ann.) [%]']}</p>
             </div>
+            )}
         </div>
     )
 }
