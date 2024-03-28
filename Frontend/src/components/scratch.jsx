@@ -834,6 +834,9 @@ Blockly.Blocks['rsi_block'] = {
       })
         .then(response => response.json())
         .then(data => {
+
+          console.log('Returned Data');
+          console.log(data);
           // Replace "nan" with null
           const jsonStringFixed = data.message.replace(/'nan'/g, 'null');
           
@@ -860,7 +863,7 @@ Blockly.Blocks['rsi_block'] = {
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info">  
+                <div className="main-body-info">  <br />
                 <h5>Genesys Interface:</h5><br />
                 <h2>Generated Code:</h2>
                 <div className="generated-code-example">
