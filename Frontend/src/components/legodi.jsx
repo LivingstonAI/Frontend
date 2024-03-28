@@ -30,11 +30,13 @@ export default function Legodi() {
                 {/* <img src={GeofenceImage} alt="legodi-geofence-image" className="legodi-geofence-image" /> */}
                 <div className="legodi-innovative-technology-div">
                     <h4>with Innovative Technology</h4><br />
-                    <h6 className="legodi-innovative-technology-div-text">
-                        We provide South African farmers with cutting-edge ear tags and tracking devices to
-                        monitor livestock. Discover our innovative solutions designed to transform the way you deal 
-                        with agriculture.
-                    </h6><br />
+                    <div className="legodi-innovative-technology-div-text">
+                        <h6>
+                            We provide South African farmers with cutting-edge ear tags and tracking devices to
+                            monitor livestock. Discover our innovative solutions designed to transform the way you deal 
+                            with agriculture.
+                        </h6>
+                    </div><br />
                     <button className="btn btn-primary">Contact Us</button><br /><br />
                 </div>
                 </div>
@@ -171,7 +173,7 @@ export default function Legodi() {
                             
                         </div>
                         
-                    </div>
+                    </div><br />
                     <b><p>Stay informed, <br />join our newsletter</p></b><br />
                     <b><p>Enter your email here *</p></b>
                     {/* <label>Email*<//> */}
