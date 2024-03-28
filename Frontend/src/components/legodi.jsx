@@ -3,7 +3,7 @@ import Logo from '../images/legodi_logo.jpg';
 import GeofenceImage from '../images/cow.jpg';
 import news1 from '../images/pic1.jpg';
 import news2 from '../images/pic2.jpg';
-import news3 from '../images/carseg.png';
+import news3 from '../images/pic3.jpg';
 import aboutImage from '../images/feedbck.jpg'
 
 
@@ -44,64 +44,73 @@ export default function Legodi() {
             </div>
 
             <div className="legodi-about-section-div">
-            <br /><br />
+            <br />
+            <img src={GeofenceImage} alt="logo" className="legodi-about-image" />
                 <div className="legodi-about-section-div-contents">
                     <div className="legodi-about-section-explanation">
                         <h1>Our Vision</h1><br /><br />
-                        <h5>At LEGODI Future Technologies, we are revolutionizing the Agritech industry by 
+                        <p>At LEGODI Future Technologies, we are revolutionizing the Agritech industry by 
                             leveraging cutting-edge technology to enhance livestock management. Our innovative solutions, 
                             such as ear tags and geofencing, enable farmers to track and monitor their livestock with ease. 
                             With our advanced systems, farmers can optimize their operations, improve animal welfare, 
                             and increase productivity.
-                            Join us on our mission to transform the future of agriculture.</h5>
-                            <i class="bi bi-facebook" /><i class="bi bi-twitter" /><i class="bi bi-linkedin" /><i class="bi bi-instagram" />
+                            Join us on our mission to transform the future of agriculture.</p>
+                            <div className="legodi-social-media-icons">
+                                <i className="bi bi-facebook" /><i className="bi bi-twitter" /><i className="bi bi-linkedin" /><i className="bi bi-instagram" />
+                            </div>
                             <br /><br />
                             <button className="btn btn-primary">Learn More</button>
                     </div>
-                    <div className="legodi-about-section-image">
-                    {/* <img src={aboutImage} alt="about image" className="legodi-about-image" /> */}
-                    </div>
+                    
                 </div>
-            </div><br /><br />
+            </div>
 
             <div className="legodi-our-services-div">
-            <br /><br />
+            
                 <div className="legodi-our-services-div-contents">
-                    <h1>Our Services</h1><br /><br />
+                    <h1>Our Services</h1><br /><br /><br />
                     <div className="legodi-offered-services">
                         <div className="s1">
                             <h5>Service 1</h5>
                             <hr /><br />
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vehicula massa at nisi rutrum, vel lacinia
+                                 nulla pretium. Nam hendrerit diam et libero interdum, a gravida quam 
+                                 condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
+                                 nec at magna. </p>
                             <p>US$80</p>
                             <button className="btn btn-primary">BOOK NOW</button>
-                            <hr />
-                        </div>
+                        </div><br />
                         <div className="s2">
                             <h5>Service 2</h5>
                             <hr /><br />
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vehicula massa at nisi rutrum, vel lacinia
+                                 nulla pretium. Nam hendrerit diam et libero interdum, a gravida quam 
+                                 condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
+                                 nec at magna. </p>
                             <p>US$60</p>
                             <button className="btn btn-primary">BOOK NOW</button>
-                            <hr />
-                        </div>
+                            {/* <br /> */}
+                        </div><br />
                         <div className="s3">
                             <h5>Service 3</h5>
                             <hr /><br />
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vehicula massa at nisi rutrum, vel lacinia
+                                 nulla pretium. Nam hendrerit diam et libero interdum, a gravida quam 
+                                 condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
+                                 nec at magna. </p>
                             <p>US$35</p>
                             <button className="btn btn-primary">BOOK NOW</button>
-                            <hr />
                         </div>
                         
                     </div>
                 </div>
-                <br /><br /><br /><br />
             </div>
             
 
             <div className="legodi-latest-news-div">
                 <div className="legodi-latest-news-div-contents">
-                    <br /><br /><br /><br />
                     <h1>Latest News</h1>
-                    <hr /><br />
+                    <br />
                     <div className="legodi-latest-news-news">
                         <div className="legodi-latest-news-pic1">
                             <img src={news1} alt="news image 1" className="news-pic1" /><br /><br />
@@ -109,7 +118,6 @@ export default function Legodi() {
                             <p>In today's rapidly evolving world, technology has become an integral part
                                 of almost every industry...
                             </p>
-                            <hr />
                         </div>
                         <div className="legodi-latest-news-pic2">
                             <img src={news2} alt="news image 2" className="news-pic2" /><br /><br />
@@ -117,7 +125,6 @@ export default function Legodi() {
                             <p>Revolutionizing Farming: The Future Livestock Tracking in today's
                                 fast-paced world, technology
                             </p>
-                            <hr />
                         </div>
                         <div className="legodi-latest-news-pic3">
                             <img src={news3} alt="news image 3" className="news-pic3" /><br /><br />
@@ -126,18 +133,16 @@ export default function Legodi() {
                                 In today's rapidly evolving world, technology is constantly evolving
                                 and revolutionizing various...
                             </p>
-                            <hr />
                         </div>
                     </div>
                 </div>
             </div>
-            <br />
             <div className="legodi-get-in-touch-div">
                 <div className="legodi-get-in-touch-contents"><br />
                     <div className="legodi-get-in-touch-header">
                         <h1>Get in Touch</h1><br />
-                        <h5>We would love to hear from you! If you have any questions or comments, 
-                            please feel free to reach out to us. Our team is here to assist you.</h5>
+                        {/* <h5>We would love to hear from you! If you have any questions or comments, 
+                            please feel free to reach out to us. Our team is here to assist you.</h5> */}
                     </div><br /><br />
                     <div className="legodi-get-in-touch-contact-info-div">
                         <div className="legodi-contact-info">

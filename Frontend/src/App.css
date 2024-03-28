@@ -1473,13 +1473,11 @@ th {
 
 /* Legodi Technologies CSS */
 
-
-
-/* .legodi-body {
-    background-color:#f2f2f2;
-    height:800px;
-    width: 100%;
-} */
+.legodi-body {
+    font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
 
 .legodi-hero-section {
     background-color:rgb(3, 3, 53);
@@ -1501,16 +1499,38 @@ th {
     /* left: 50px; */
 }
 
-.legodi-logo-and-title {
+.legodi-logo-and-title, .legodi-about-section-div {
     display: flex;
 }
 
+.legodi-about-section-div {
+    margin-top: 75px;
+    margin-bottom: 75px;
+    padding: 30px;
+    /* padding-left: 30px;
+    padding-top: 3 0px; */
+}
 
+.legodi-social-media-icons {
+    display: flex;
+    gap: 20px;
+    font-size: 20px;
+    justify-content: center;
+    align-items: center;
+}
+
+.legodi-social-media-icons i, .upper-nav-legodi-right h6 {
+    cursor: pointer;
+}
 
 .legodi-geofence-image {
-    width: 90%;
+    width: 40%;
     /* margin-left: 50px; */
-    height: 10%;
+    height: 100%;
+}
+
+.legodi-about-image {
+    width: 50%;
 }
 
 /* DON'T FORGET TO CHECK THIS!! */
@@ -1523,11 +1543,6 @@ th {
     /* align-items: ; */
 }
 
-.legodi-innovative-technology-div {
-    /* text-align: center; */
-    /* justify-content: center; */
-    /* align-items: center; */
-}
 
 .legodi-innovative-technology-div-text {
     max-width: 800px;
@@ -1540,8 +1555,15 @@ th {
 }
 
 
-.legodi-latest-news-div-contents, .legodi-our-services-div-contents, .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
+.legodi-latest-news-div-contents, .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
     margin-left: 50px;
+}
+
+.legodi-offered-services{
+    gap: 15px;
+    /* padding: 10px; */
+    
+
 }
 
 .transforming-agriculture-div {
@@ -1558,8 +1580,6 @@ th {
 /* .legodi-latest-news-div {
     background-color:lightblue;
 } */
-
-
 
 
 .legodi-latest-news-news {
@@ -1582,12 +1602,24 @@ th {
     color: white;
 }
 
-.legodi-offered-services {
-    display: flex;
+.legodi-our-services-div-contents {
+    padding-top: 50px;
+    padding-bottom: 50px;
 }
 
+.legodi-our-services-div-contents h1 {
+    text-align: center;
+}
+
+.legodi-offered-services {
+    display: flex;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+
 .s1, .s2, .s3 {
-    width: 30%;
+    width: 33%;
 }
 
 .s1 hr, .s2 hr, .s3 hr {
@@ -1608,13 +1640,26 @@ th {
     height: 100%;
 }
 
+.legodi-latest-news-div-contents {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+ 
+.legodi-latest-news-div-contents h1 {
+    text-align: center;
+}
+
 .legodi-get-in-touch-div {
     background-color: rgb(3, 3, 53);
     color: white;
 }
 
-.legodi-get-in-touch-header {
+/* .legodi-get-in-touch-header {
     width: 50%;
+} */
+
+.legodi-get-in-touch-header h1 { 
+    text-align: center;
 }
 
 .legodi-get-in-touch-contact-info-div {
@@ -1623,21 +1668,17 @@ th {
     justify-content: space-between;
 }
 
-.legodi-footer {
-    background-color: lightblue;
-}
 
-.legodi-footer-header {
-    display: flex;
-    /* gap: 300px; */
-    justify-content: space-between;
-}
-
-.legodi-footer-email-input {
-    width: 30%;
-}
 
 @media screen and (max-width: 768px) {
+
+    .legodi-about-section-div {
+        display: block;
+    }
+
+    .legodi-about-image {
+        width: 100%;
+    }
 
     .legodi-latest-news-news {
         display: block;
@@ -1645,6 +1686,15 @@ th {
 
     .legodi-offered-services {
         display: block;
+    }
+
+    .s1, .s2, .s3 {
+        width: 100%;
+    }
+
+
+    .s1 hr, .s2 hr, .s3 hr {
+        width: 100%;
     }
     
     .legodi-get-in-touch-contact-info-div {
@@ -1654,18 +1704,23 @@ th {
     }
 
     .legodi-latest-news-div-contents, .legodi-our-services-div-contents {
-        margin-left: 100px;
+        margin-left: auto;
         /* text-align: center; */
     }
-    .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
+
+    .legodi-latest-news-div-contents {
+        padding-top: 50px;
+        padding-bottom: 50px;
+    }
+    
+    .legodi-about-section-div-contents, .legodi-get-in-touch-contents {
         margin-left: 0px;
     }
-    .legodi-get-in-touch-header {
-        /* text-align: center; */
+
+    .legodi-latest-news-pic1, .legodi-latest-news-pic2, .legodi-latest-news-pic3 {
+        width: 100%;
     }
-    .legodi-footer-contents{
-        /* text-align: center; */
-    }
+    
     .legodi-latest-news-div-contents hr {
         width: 70%;
     }
@@ -2054,6 +2109,15 @@ th {
 @media screen and (min-width: 768px) and (max-width: 1024px) {
     /* Your CSS rules for tablets go here */
     /* These rules will apply when the screen width is between 768px and 1024px */
+
+    .legodi-about-section-div {
+        display: block;
+    }
+
+    .legodi-about-image {
+        width: 100%;
+    }
+
     .register-div, .login-div, .tell-us-div {
         left: 115px;
         width: 70%;
