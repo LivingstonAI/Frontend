@@ -190,8 +190,12 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['morning_star_block'] = function(block, generator) {
 
     let morningStarType = block.getFieldValue('TYPE');
+    if (morningStarType === 'bullish') {
+      return [`is_morning_star(data=dataset)`, Order.NONE];
+    } else if (morningStarType === 'bearish') {
+      return [`is_evening_star(data=dataset)`, Order.NONE];
+    }
 
-    return [`morning_star(type=${morningStarType})`, Order.NONE];
 
   };
 
@@ -206,8 +210,12 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['three_soldiers_block'] = function(block, generator) {
 
     let threeType = block.getFieldValue('TYPE');
+    if (threeType === 'bullish') {
+      return [`is_three_white_soldiers(data=dataset)`, Order.NONE];
+    } else if (threeType === 'bearish') {
+      return [`is_three_black_crows(data=dataset)`, Order.NONE];
+    }
 
-    return [`soldiers(type=${threeType})\n`, Order.NONE];
 
   };
 
