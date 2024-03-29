@@ -61,25 +61,25 @@ export default function ScratchInterFace () {
 
   pythonGenerator['forBlock']['buy_block'] = function(block, generator) {
 
-    return 'buy()\n';
+    return 'self.buy()\n';
 
   };
 
   javascriptGenerator['forBlock']['buy_block'] = function(block, generator) {
     
-    return 'buy()\n';
+    return 'self.buy()\n';
 
   };
 
   pythonGenerator['forBlock']['sell_block'] = function(block, generator) {
     
-    return 'sell()\n';
+    return 'self.sell()\n';
 
   };
 
   javascriptGenerator['forBlock']['sell_block'] = function(block, generator) {
     
-    return 'sell()\n';
+    return 'self.sell()\n';
 
   };
   
@@ -179,7 +179,6 @@ export default function ScratchInterFace () {
   };
 
   javascriptGenerator['forBlock']['engulfing_block'] = function(block, generator) {
-
     
     let engulfingType = block.getFieldValue('TYPE');
 
