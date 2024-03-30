@@ -326,9 +326,9 @@ export default function ScratchInterFace () {
 
     let haramiType = block.getFieldValue('TYPE');
 
-    if (hammerType === 'bullish') {
+    if (haramiType === 'bullish') {
       return [`is_bullish_harami(data=dataset)`, Order.NONE];
-    } else if (hammerType === 'bearish') {
+    } else if (haramiType === 'bearish') {
       return [`is_bearish_harami(data=dataset)`, Order.NONE];
     }
 
