@@ -96,7 +96,7 @@ export default function ScratchInterFace () {
       number = '';
     }
 
-    return [`moving_average(type=${type}, number=${number})`, Order.NONE];
+    return [`moving_average(type='${type}', number=${number}, data=dataset)`, Order.NONE];
 
   };
 
@@ -121,7 +121,7 @@ export default function ScratchInterFace () {
 
     let operator = block.getFieldValue('OPERATOR');
     let band = block.getFieldValue('BAND');
-    return [`bbands(condition=${operator}, band=${band})`, Order.NONE];
+    return [`bbands(condition='${operator}', band='${band}', data=dataset)`, Order.NONE];
 
   };
 
@@ -137,7 +137,7 @@ export default function ScratchInterFace () {
 
     let comparison = block.getFieldValue('COMPARISON');
     let threshold = block.getFieldValue('THRESHOLD');
-    return [`momentum(comparison=${comparison}, threshold=${threshold})`, Order.NONE];
+    return [`momentum(comparison='${comparison}', threshold=${threshold}, data=dataset)`, Order.NONE];
 
   };
 
@@ -145,7 +145,7 @@ export default function ScratchInterFace () {
 
     let comparison = block.getFieldValue('COMPARISON');
     let threshold = block.getFieldValue('THRESHOLD');
-    return [`momentum(comparison=${comparison}, threshold=${threshold})`, Order.NONE];
+    return [`momentum(comparison='${comparison}', threshold=${threshold}, data=dataset)`, Order.NONE];
     
   };
 
@@ -153,7 +153,7 @@ export default function ScratchInterFace () {
     
     let comparison = block.getFieldValue('COMPARISON');
     let rsi_level = block.getFieldValue('RSI_LEVEL');
-    return [`rsi(comparison=${comparison}, rsi_level=${rsi_level})`, Order.NONE];
+    return [`rsi(comparison='${comparison}', rsi_level=${rsi_level}, data=dataset)`, Order.NONE];
 
   };
 
@@ -584,14 +584,14 @@ Blockly.Blocks['bbands_block'] = {
         .appendField(new Blockly.FieldDropdown([
           ['<', 'LT'],
           ['>', 'GT'],
-          ['=', 'EQ']
         ]), 'OPERATOR');
     this.appendDummyInput()
         .appendField('the');
     this.appendDummyInput()
         .appendField(new Blockly.FieldDropdown([
           ['upper band', 'UPPER'],
-          ['lower band', 'LOWER']
+          ['middle band', 'MIDDLE'],
+          ['lower band', 'LOWER'],
         ]), 'BAND');
     this.setOutput(true, 'Boolean');
     this.setColour(210); // Light blue color
