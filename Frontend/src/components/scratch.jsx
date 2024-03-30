@@ -196,7 +196,6 @@ export default function ScratchInterFace () {
       return [`is_evening_star(data=dataset)`, Order.NONE];
     }
 
-
   };
 
   javascriptGenerator['forBlock']['morning_star_block'] = function(block, generator) {
@@ -230,8 +229,11 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['doji_star_block'] = function(block, generator) {
 
     let dojiType = block.getFieldValue('TYPE');
-
-    return [`doji_star(type=${dojiType})`, Order.NONE];
+    if (dojiType === 'bullish') {
+      return [`is_morning_doji_star(data=dataset)`, Order.NONE];
+    } else if (dojiType === 'bearish') {
+      return [`is_evening_doji_star(data=dataset)`, Order.NONE];
+    }
 
   };
 
@@ -246,9 +248,12 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['rising_methods_block'] = function(block, generator) {
 
     let risingMethodsType = block.getFieldValue('TYPE');
-
-    return [`rising_methods(type=${risingMethodsType})`, Order.NONE];
-
+    if (risingMethodsType === 'bullish') {
+      return [`is_rising_three_methods(data=dataset)`, Order.NONE];
+    } else if (risingMethodsType === 'bearish') {
+      return [`is_falling_three_methods(data=dataset)`, Order.NONE];
+    }
+    
   };
 
   javascriptGenerator['forBlock']['rising_methods_block'] = function(block, generator) {
@@ -262,8 +267,13 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['hammer_block'] = function(block, generator) {
 
     let hammerType = block.getFieldValue('TYPE');
+    if (hammerType === 'bullish') {
+      return [`is_hammer(data=dataset)`, Order.NONE];
+    } else if (hammerType === 'bearish') {
+      return [`is_hanging_man(data=dataset)`, Order.NONE];
+    }
+    // is_hammer(df)
 
-    return [`hammer(type=${hammerType})`, Order.NONE];
 
   };
 
@@ -278,8 +288,11 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['shooting_star_block'] = function(block, generator) {
 
     let shootingStarType = block.getFieldValue('TYPE');
-
-    return [`shooting_star(type=${shootingStarType})`, Order.NONE];
+    if (shootingStarType === 'bullish') {
+      return [`is_inverted_hammer(data=dataset)`, Order.NONE];
+    } else if (shootingStarType === 'bearish') {
+      return [`is_shooting_star(data=dataset)`, Order.NONE];
+    }
 
   };
 
@@ -294,9 +307,11 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['kicker_block'] = function(block, generator) {
 
     let kickerType = block.getFieldValue('TYPE');
-
-    return [`kicker(type=${kickerType})`, Order.NONE];
-
+    if (kickerType === 'bullish') {
+      return [`is_bullish_kicker(data=dataset)`, Order.NONE];
+    } else if (kickerType === 'bearish') {
+      return [`is_bearish_kicker(data=dataset)`, Order.NONE];
+    }
   };
 
   javascriptGenerator['forBlock']['kicker_block'] = function(block, generator) {
@@ -311,7 +326,11 @@ export default function ScratchInterFace () {
 
     let haramiType = block.getFieldValue('TYPE');
 
-    return [`harami(type=${haramiType})`, Order.NONE];
+    if (hammerType === 'bullish') {
+      return [`is_bullish_harami(data=dataset)`, Order.NONE];
+    } else if (hammerType === 'bearish') {
+      return [`is_bearish_harami(data=dataset)`, Order.NONE];
+    }
 
   };
 
@@ -326,8 +345,12 @@ export default function ScratchInterFace () {
   pythonGenerator['forBlock']['three_line_strike_block'] = function(block, generator) {
 
     let threeLineStrikeType = block.getFieldValue('TYPE');
+    if (threeLineStrikeType === 'bullish') {
+      return [`is_bullish_three_line_strike(data=dataset)`, Order.NONE];
+    } else if (threeLineStrikeType === 'bearish') {
+      return [`is_bearish_three_line_strike(data=dataset)`, Order.NONE];
+    }
 
-    return [`three_line_strike(type=${threeLineStrikeType})`, Order.NONE];
 
   };
 
@@ -410,7 +433,7 @@ Blockly.Blocks['morning_star_block'] = {
     this.appendDummyInput()
         .appendField(new Blockly.FieldDropdown([
           ['Bullish', 'bullish'],
-          ['Bearing', 'bearing']
+          ['Bearish', 'bearish']
         ]), 'TYPE')
         .appendField('Morning Star');
     this.setOutput(true, 'Boolean');
