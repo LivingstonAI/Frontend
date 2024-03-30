@@ -215,7 +215,6 @@ export default function ScratchInterFace () {
       return [`is_three_black_crows(data=dataset)`, Order.NONE];
     }
 
-
   };
 
   javascriptGenerator['forBlock']['three_soldiers_block'] = function(block, generator) {
@@ -853,7 +852,7 @@ Blockly.Blocks['rsi_block'] = {
     }
       
     const compileModelFunction = () => {
-      setCompile('Compiling Model for Backtest...');
+      setCompile('Backtesting model...');
       console.log(generatedCode);
       fetch(`${baseUrl}/genesys`, {
         method: 'POST',
