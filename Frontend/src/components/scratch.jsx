@@ -888,6 +888,8 @@ Blockly.Blocks['rsi_block'] = {
       })
       .catch(error => {
         console.error('Error:', error);
+        setCompile('Error Occured while saving dataset');
+        return
       });
 
 
