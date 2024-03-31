@@ -34,7 +34,7 @@ export default function ScratchInterFace () {
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
-    const [isDataSetModalOpen, setIsDataSetModalOpen] = useState(true);
+    const [isDataSetModalOpen, setIsDataSetModalOpen] = useState(false);
 
     const forceUpdate = useForceUpdate();
     const [xauuData, setXauusd] = useState(['XAUUSD5M.csv', 'XAUUSD15M.csv', 'XAUUSD30M.csv', 
