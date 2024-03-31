@@ -864,67 +864,60 @@ Blockly.Blocks['rsi_block'] = {
       ]
     }
       
-    const compileModelFunction = () => {
-
-      setCompile('Backtesting model...');
-
-      fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
-        method: 'POST', // or 'GET' depending on your Django view
-        headers: {
-          'Content-Type': 'application/json',
-          // You might need to include CSRF token if required by your Django setup
-          // 'X-CSRFToken': csrfToken, // Include CSRF token if required
-        },
-        // body: JSON.stringify({ dataset }), // Include data in the body if required
-      })
-      .then(response => {
-        if (!response.ok) {
+    const compileModelFunction = async () => {
+      try {
+        setCompile('Backtesting model...');
+        
+        // First fetch request
+        const response1 = await fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // body: JSON.stringify({ dataset }),
+        });
+        
+        if (!response1.ok) {
           throw new Error('Network response was not ok');
         }
-        return response.json();
-      })
-      .then(data => {
-        console.log(data); // Do something with the response data
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        setCompile('Error Occured while saving dataset');
-        return
-      });
-
-
-
-      console.log(generatedCode);
-      fetch(`${baseUrl}/genesys`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 'generatedCode': generatedCode }),
-      })
-        .then(response => response.json())
-        .then(data => {
-
-          console.log('Returned Data');
-          console.log(data);
-          // Replace "nan" with null
-          const jsonStringFixed = data.message.replace(/'nan'/g, 'null');
-          
-          // Replace single quotes with double quotes
-          const jsonStringDoubleQuoted = jsonStringFixed.replace(/'/g, '"');
-          
-          // Parse the JSON string into a JavaScript object
-          const jsonData = JSON.parse(jsonStringDoubleQuoted);
-      
-          setModelPerformance(jsonData);
-
-          setCompile('Compile Model');
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          setCompile('Error Occured');
+        
+        const data1 = await response1.json();
+        console.log(data1); // Do something with the response data from the first request
+        
+        console.log(generatedCode);
+        
+        // Second fetch request
+        const response2 = await fetch(`${baseUrl}/genesys`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 'generatedCode': generatedCode }),
         });
+        
+        if (!response2.ok) {
+          throw new Error('Network response was not ok');
+        }
+        
+        const data2 = await response2.json();
+        console.log('Returned Data');
+        console.log(data2);
+        
+        // Replace "nan" with null
+        const jsonStringFixed = data2.message.replace(/'nan'/g, 'null');
+        // Replace single quotes with double quotes
+        const jsonStringDoubleQuoted = jsonStringFixed.replace(/'/g, '"');
+        // Parse the JSON string into a JavaScript object
+        const jsonData = JSON.parse(jsonStringDoubleQuoted);
+        
+        setModelPerformance(jsonData);
+        setCompile('Compile Model');
+      } catch (error) {
+        console.error('Error:', error);
+        setCompile('Error Occurred');
+      }
     };
+    
 
     const toggleModal = () => {
       // forceUpdate();
