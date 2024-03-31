@@ -166,8 +166,6 @@ export default function AssetsTraded({ assets, setAssets }) {
         }
     };
     
-
-
     const toggleModal = () => {
         forceUpdate();
         setIsModalOpen(!isModalOpen);

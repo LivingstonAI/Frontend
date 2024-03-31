@@ -10,6 +10,9 @@ import locale from 'blockly/msg/en';
 import 'blockly/python';
 import {pythonGenerator} from 'blockly/python';
 import {javascriptGenerator, Order} from 'blockly/javascript';
+import DataSetsModal from "./datasets_modal";
+import useForceUpdate from 'use-force-update';
+
 import 'blockly/javascript';
 // Initialize Python generator
 // Blockly.Python.initialize();
@@ -24,22 +27,32 @@ export default function ScratchInterFace () {
 
     const [compile, setCompile] = useState('Compile Model');
     
-    // useEffect(() => {
-
     const [generatedCode, setGeneratedCode] = useState('');
     const [jsCode, setJsCode] = useState('');
 
     const [modelPerformance, setModelPerformance] = useState('');
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
-    
-    // const workspaceTest = useBlocklyWorkspace();
-    // const workspaceRef = useRef(null); // Create a ref to store the workspace object
+
+    const [isDataSetModalOpen, setIsDataSetModalOpen] = useState(true);
+
+    const forceUpdate = useForceUpdate();
+    const [xauuData, setXauusd] = useState(['XAUUSD5M.csv', 'XAUUSD15M.csv', 'XAUUSD30M.csv', 
+    'XAUUSD1H.csv', 'XAUUSD4H.csv', 'XAUUSD1D.csv']);
+
+    const [eurusdData, setEurusdData] = useState(['EURUSD5M.csv', 'EURUSD15M.csv', 'EURUSD30M.csv',
+    'EURUSD1H.csv', 'EURUSD4H.csv', 'EURUSD1D.csv']);
+
+    const [gbpusdData, setGbpusdData] = useState(['GBPUSD5M.csv', 'GBPUSD15M.csv', 'GBPUSD30M.csv',
+    'GBPUSD1H.csv','GBPUSD4H.csv', 'GBPUSD1D.csv']);
+
+    const [usdjpyData, setUjpyusdData] = useState(['USDJPY5M.csv', 'USDJPY15M.csv', 'USDJPY30M.csv',
+    'USDJPY1H.csv','USDJPY4H.csv', 'USDJPY1D.csv']);
+
+    const [chosenDataSet, setChosenDataSet] = useState('');
+
 
     const handleXmlChange =  (xml) => {
-      // Handle the XML code here
-      // Convert XML to JavaScript/Python code if needed
-      // Convert XML to JavaScript code
 
       const workspace = new Blockly.Workspace();
 
@@ -852,7 +865,33 @@ Blockly.Blocks['rsi_block'] = {
     }
       
     const compileModelFunction = () => {
+
       setCompile('Backtesting model...');
+
+      fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
+        method: 'POST', // or 'GET' depending on your Django view
+        headers: {
+          'Content-Type': 'application/json',
+          // You might need to include CSRF token if required by your Django setup
+          // 'X-CSRFToken': csrfToken, // Include CSRF token if required
+        },
+        // body: JSON.stringify({ dataset }), // Include data in the body if required
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log(data); // Do something with the response data
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
+
+
       console.log(generatedCode);
       fetch(`${baseUrl}/genesys`, {
         method: 'POST',
@@ -885,6 +924,21 @@ Blockly.Blocks['rsi_block'] = {
         });
     };
 
+    const toggleModal = () => {
+      // forceUpdate();
+      setIsDataSetModalOpen(!isDataSetModalOpen);
+    };
+
+    const closeModal = async () => {  
+      // Handle success
+      // window.location.reload();
+      toggleModal();
+    };
+
+    const handleButtonClick = (data) => {
+      setChosenDataSet(data);
+    };
+
       return (
         <div>
             <div className="header">
@@ -901,12 +955,74 @@ Blockly.Blocks['rsi_block'] = {
                     <h3>Python</h3>
                     <pre>{generatedCode}</pre>
                   </div>
+                  
                   {/* <div>
                     
                     <h3>JavaScript</h3>
                     <pre>{jsCode}</pre>
                   </div> */}
-                </div><br />
+                </div>
+                <div className="choose-dataset">
+                    <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br /><br />
+                    <p>Chosen dataset: {chosenDataSet}</p>
+                    {isDataSetModalOpen && (
+                <div className="modal-overlay">
+                    <div className="select-category-modal">
+                        <br />
+                        <h4 className="select-category-title">Choose Dataset</h4><br />
+                        <button className="btn btn-light close-cot-modal" onClick={closeModal}>Close</button><br /><br />
+                        {isDataSetModalOpen && (
+                            <p>Chosen dataset: {chosenDataSet}</p>
+                        )}
+                        <p><b>XAUUSD</b></p>
+                        
+                            {xauuData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}<br /><br />
+                            <p><b>EURUSD</b></p>
+                            {eurusdData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                        <br /><br />
+                            <p><b>GBPUSD</b></p>
+                            {gbpusdData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                            <br /><br />
+                            <p><b>USDJPY</b></p>
+                            {usdjpyData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                        <br /><br /><br /><br /><br />
+                    </div>
+                </div>
+            )}
+
+                  </div><br />
                 <BlocklyWorkspace
                 className="" // you can use whatever classes are appropriate for your app's CSS
                 toolboxConfiguration={MY_TOOLBOX} // this must be a JSON toolbox definition

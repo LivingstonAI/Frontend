@@ -3,9 +3,8 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
-import { Modal, Button } from 'react-bootstrap';
 import COTModal from "./cot_modal";
-import AssetsTraded from "./assets";
+
 
 export default function MarketMakers() {
 

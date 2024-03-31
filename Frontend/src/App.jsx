@@ -28,7 +28,7 @@ import MarketMakers from './components/quant_analysis';
 import RiskBot from './components/risk_bot';
 import Photo from './components/photo';
 import ScratchInterFace from './components/scratch';
-import Legodi from './components/legodi'
+import Legodi from './components/legodi';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import { useState } from 'react';
 import Blockly from 'blockly';
@@ -68,6 +68,7 @@ function App() {
         <Route path='/risk_bot' element={<RiskBot />}></Route>
         <Route path='/photo' element={<Photo />}></Route>
         <Route path='/scratch' element={<ScratchInterFace />}></Route>
+        
         <Route path='/legodi' element={<Legodi />}></Route>
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
