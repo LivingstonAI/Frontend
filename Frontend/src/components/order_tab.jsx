@@ -111,7 +111,7 @@ export default function OrderTab() {
                 </select><br />
                 <label>Email:</label>
                 <input type="email" className="form-control" onChange={manageEmail}/><br />
-                <button className="btn btn-primary" onClick={submitDetails}>{submitButton}</button>
+                <button className="btn btn-primary legodi-send-button" onClick={submitDetails}>{submitButton}</button>
             </div>
             <br /><br />
         </div>
