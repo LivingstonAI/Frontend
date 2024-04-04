@@ -41,7 +41,7 @@ export default function OrderTab() {
 
     const submitDetails = async () => {
         // Check if any field is empty
-        setSubmitButton('Submitting Details..')
+        setSubmitButton('Submitting Details...')
         if (firstName === '' || lastName === '' || userEmail === '' || chosenProduct === '') {
             alert('Please fill in all details before sending a message.');
             setSubmitButton('Submit Details');

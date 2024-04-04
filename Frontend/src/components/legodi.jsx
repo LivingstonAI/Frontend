@@ -17,6 +17,8 @@ export default function Legodi() {
     const [lastName, setLastName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [userMessage, setUserMessage] = useState('');
+
+    const [send, setSendMessage] = useState('Send Message');
     const navigate = useNavigate();
 
     const manageFirstName = (event) => {
@@ -48,10 +50,11 @@ export default function Legodi() {
         console.log(lastName);
         console.log(userEmail);
         console.log(userMessage);
-    
+        setSendMessage('Sending Message...')
         // Check if any field is empty
         if (firstName === '' || lastName === '' || userEmail === '' || userMessage === '') {
             alert('Please fill in all details before sending a message.');
+            setSendMessage('Send Message')
             return;
         }
     
@@ -74,7 +77,9 @@ export default function Legodi() {
             if (response.ok) {
                 const responseData = await response.json();
                 console.log(responseData['message']);
-                alert('Message Sent Successfully!')
+                setSendMessage('Send Message');
+                alert('Message Sent Successfully!');
+                
                 // Handle response data as needed
             } else {
                 // Handle specific error cases based on status codes
@@ -83,6 +88,7 @@ export default function Legodi() {
         } catch (error) {
             // Handle network errors or other unexpected errors
             console.error("Error sending email:", error);
+            setSendMessage('Send Message');
         }
     };
     
@@ -141,7 +147,6 @@ export default function Legodi() {
                             <div className="legodi-social-media-icons">
                                 <Link to="https://www.instagram.com/legodifuturetech?igsh=ZHI2bWRrN2QxZXRx" target="_blank"><i className="bi bi-instagram"/></Link>
                             </div>
-                            <br />
                             {/* <button className="btn btn-primary">Learn More</button> */}
                     </div>
                     
@@ -186,7 +191,7 @@ export default function Legodi() {
                         </div>
                         
                     </div>
-                    <button className="btn btn-primary">Order Now</button>
+                    <button className="btn btn-primary" onClick={bookNavigate}>Order Now</button>
                 </div>
             </div>
             
