@@ -29,9 +29,23 @@ export default function OrderTab() {
             
             <br /><br /><br /><br />
             <div className="book-order-div">
-                <h2>Book an Order</h2>
+                <h2>Book an Order</h2><br />
+                <label>First Name:</label>
+                <input type="text" className="form-control" /><br />
+                <label>Last Name:</label>
+                <input type="text" className="form-control" /><br />
+                <label>Which of our products are you interested in?</label>
+                <select class="form-select" aria-label="Default select example">
+                    <option value="1">One</option>
+                    <option value="2">Two</option>
+                    <option value="3">Three</option>
+                    <option value="4">Four</option>
+                </select><br />
+                <label>Email:</label>
+                <input type="email" className="form-control" /><br />
+                <button className="btn btn-primary">Submit Details</button>
             </div>
-            
+            <br /><br />
         </div>
     )
 

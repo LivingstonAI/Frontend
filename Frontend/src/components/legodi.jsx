@@ -51,7 +51,7 @@ export default function Legodi() {
     
         // Check if any field is empty
         if (firstName === '' || lastName === '' || userEmail === '' || userMessage === '') {
-            alert('Please fill in all details before sending message.');
+            alert('Please fill in all details before sending a message.');
             return;
         }
     
