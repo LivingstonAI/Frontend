@@ -263,7 +263,7 @@ export default function Legodi() {
                                 <label for="exampleFormControlTextarea1">Message</label>
                                 <textarea className="form-control" id="exampleFormControlTextarea1" rows="3" onChange={manageMessage}></textarea>
                             </div><br />
-                            <button className="btn btn-primary legodi-send-button" onClick={sendMessage}>Send</button>
+                            <button className="btn btn-primary legodi-send-button" onClick={sendMessage}>{send}</button>
                             
                         </div>
                         
