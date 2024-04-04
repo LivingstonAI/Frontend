@@ -16,6 +16,7 @@ export default function OrderTab() {
     const [lastName, setLastName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [chosenProduct, setChosenProduct] = useState('');
+    const [submitButton, setSubmitButton] = useState('Submit Details');
 
     const manageFirstName = (event) => {
         setFirstName(event.target.value)
@@ -40,8 +41,10 @@ export default function OrderTab() {
 
     const submitDetails = async () => {
         // Check if any field is empty
+        setSubmitButton('Submitting Details..')
         if (firstName === '' || lastName === '' || userEmail === '' || chosenProduct === '') {
             alert('Please fill in all details before sending a message.');
+            setSubmitButton('Submit Details');
             return;
         }
 
@@ -66,15 +69,18 @@ export default function OrderTab() {
                 setLastName('');
                 setUserEmail('');
                 setChosenProduct('');
+                setSubmitButton('Submit Details')
             } else {
                 throw new Error("Failed to book order");
             }
         } catch (error) {
+            setSubmitButton('Submit Details')
             console.error("Error booking order:", error);
             alert("Failed to book order. Please try again later.");
+            
         }
     }
-    
+
     return (
         <div>
 
