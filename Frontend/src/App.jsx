@@ -29,6 +29,7 @@ import RiskBot from './components/risk_bot';
 import Photo from './components/photo';
 import ScratchInterFace from './components/scratch';
 import Legodi from './components/legodi';
+import OrderTab from './components/order_tab';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import { useState } from 'react';
 import Blockly from 'blockly';
@@ -70,6 +71,7 @@ function App() {
         <Route path='/scratch' element={<ScratchInterFace />}></Route>
         
         <Route path='/legodi' element={<Legodi />}></Route>
+        <Route path='/order_tab' element={<OrderTab />}></Route>
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
     </Routes>

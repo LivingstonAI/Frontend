@@ -4,10 +4,53 @@ import GeofenceImage from '../images/cow.jpg';
 import news1 from '../images/pic1.jpg';
 import news2 from '../images/pic2.jpg';
 import news3 from '../images/pic3.jpg';
-import aboutImage from '../images/feedbck.jpg'
+import aboutImage from '../images/feedbck.jpg';
+import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 
 export default function Legodi() {
+
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+
+    const navigate = useNavigate();
+
+    const scrollToContactForm = () => {
+        const contactForm = document.getElementById("contactForm");
+        if (contactForm) {
+            contactForm.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
+    const sendMessage = async () => {
+        console.log('Send Message Button clicked!')
+        try {
+          const response = await fetch(`${baseUrl}/contact-us`, {
+            method: "POST",
+          });
+
+          console.log('Making API Request')
+      
+          if (response.ok) {
+            const responseData = await response.json();
+            console.log(responseData['response_content']);
+            // Handle response data as needed
+          } else {
+            // Handle specific error cases based on status codes
+            // ...
+          }
+        } catch (error) {
+          // Handle network errors or other unexpected errors
+          console.error("Error sending email:", error);
+          setErrorMessage("Failed to send email. Please try again later.");
+        }
+      };
+
+      const bookNavigate = () => {
+            navigate('/order_tab');
+      }
+    
+
     return (
         <div className="legodi-body">
             <div className="legodi-hero-section">
@@ -19,9 +62,8 @@ export default function Legodi() {
                 </div>
                 <div className="upper-nav-legodi-right">
                     <h6>Home</h6>
-                    <h6>Blog</h6>
-                    <h6>Book Online</h6>
-                <h6>Contact Us</h6>
+                    <h6 onClick={bookNavigate}>Book Order</h6>
+                    <h6 onClick={scrollToContactForm}>Contact Us</h6>
                 </div>
             </div><br /><br /><br /><br />
 
@@ -37,7 +79,7 @@ export default function Legodi() {
                             with agriculture.
                         </h6>
                     </div><br />
-                    <button className="btn btn-primary">Contact Us</button><br /><br />
+                    <button className="btn btn-primary" onClick={scrollToContactForm}>Contact Us</button><br /><br />
                 </div>
                 </div>
                 <br /><br /><br /><br />
@@ -56,10 +98,10 @@ export default function Legodi() {
                             and increase productivity.
                             Join us on our mission to transform the future of agriculture.</p>
                             <div className="legodi-social-media-icons">
-                                <i className="bi bi-facebook" /><i className="bi bi-twitter" /><i className="bi bi-linkedin" /><i className="bi bi-instagram" />
+                                <Link to="https://www.instagram.com/legodifuturetech?igsh=ZHI2bWRrN2QxZXRx" target="_blank"><i className="bi bi-instagram"/></Link>
                             </div>
-                            <br /><br />
-                            <button className="btn btn-primary">Learn More</button>
+                            <br />
+                            {/* <button className="btn btn-primary">Learn More</button> */}
                     </div>
                     
                 </div>
@@ -78,7 +120,7 @@ export default function Legodi() {
                                  condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
                                  nec at magna. </p>
                             <p>US$80</p>
-                            <button className="btn btn-primary">BOOK NOW</button>
+                            {/* <button className="btn btn-primary">BOOK NOW</button> */}
                         </div><br />
                         <div className="s2">
                             <h5>Service 2</h5>
@@ -88,7 +130,7 @@ export default function Legodi() {
                                  condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
                                  nec at magna. </p>
                             <p>US$60</p>
-                            <button className="btn btn-primary">BOOK NOW</button>
+                            {/* <button className="btn btn-primary">BOOK NOW</button> */}
                             {/* <br /> */}
                         </div><br />
                         <div className="s3">
@@ -99,7 +141,7 @@ export default function Legodi() {
                                  condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
                                  nec at magna. </p>
                             <p>US$35</p>
-                            <button className="btn btn-primary">BOOK NOW</button>
+                            {/* <button className="btn btn-primary">BOOK NOW</button> */}
                         </div>
                         
                     </div>
@@ -107,7 +149,7 @@ export default function Legodi() {
             </div>
             
 
-            <div className="legodi-latest-news-div">
+            {/* <div className="legodi-latest-news-div">
                 <div className="legodi-latest-news-div-contents">
                     <h1>Latest News</h1>
                     <br />
@@ -136,8 +178,8 @@ export default function Legodi() {
                         </div>
                     </div>
                 </div>
-            </div>
-            <div className="legodi-get-in-touch-div">
+            </div> */}
+            <div id="contactForm" className="legodi-get-in-touch-div">
                 <div className="legodi-get-in-touch-contents"><br />
                     <div className="legodi-get-in-touch-header">
                         <h1>Get in Touch</h1><br />
@@ -174,21 +216,49 @@ export default function Legodi() {
                                 <label for="exampleFormControlTextarea1">Message</label>
                                 <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
                             </div><br />
-                            <button className="btn btn-primary">Send</button>
+                            <button className="btn btn-primary" onClick={sendMessage}>Send</button>
                             
                         </div>
                         
                     </div><br />
-                    <b><p>Stay informed, <br />join our newsletter</p></b><br />
-                    <b><p>Enter your email here *</p></b>
-                    {/* <label>Email*<//> */}
-                    <div className="legodi-footer-email-input">
-                    <input type="email" className="form-control" />
-                    </div><br />
-                    <button className="btn btn-primary">Submit</button><br /><br />
                 </div>
             </div>
             
         </div>
     )
 }
+
+
+
+// send_simple_message()
+// /import requests
+
+// def send_simple_message():
+//     # Replace with your Mailgun domain and API key
+//     domain = "YOUR_DOMAIN_NAME"
+//     api_key = "YOUR_API_KEY"
+
+//     # Mailgun API endpoint for sending messages
+//     url = f"https://api.mailgun.net/v3/{domain}/messages"
+
+//     # Email details
+//     sender = "Excited User <bb@sandbox6247218655a94010b9840c23c2688fc7.mailgun.org>"
+//     recipients = ["bb@outlook.com", "bb4@gmail.com"]
+//     subject = "Hello from Mailgun"
+//     message_text = "Testing some Mailgun awesomeness!"
+
+//     # Send the email
+//     response = requests.post(url, auth=("api", api_key), data={
+//         "from": sender,
+//         "to": recipients,
+//         "subject": subject,
+//         "text": message_text
+//     })
+
+//     if response.status_code == 200:
+//         print("Email sent successfully!")
+//     else:
+//         print(f"Error sending email. Status code: {response.status_code}")
+
+// # Call the function to send the email
+// send_simple_message()
