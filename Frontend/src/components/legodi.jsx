@@ -13,7 +13,27 @@ export default function Legodi() {
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+    const [userMessage, setUserMessage] = useState('');
     const navigate = useNavigate();
+
+    const manageFirstName = (event) => {
+        setFirstName(event.target.value)
+    }
+
+    const manageLastName = (event) => {
+        setLastName(event.target.value);
+    }
+
+    const manageEmail = (event) => {
+        setUserEmail(event.target.value);
+    }
+
+    const manageMessage = (event) => {
+        setUserMessage(event.target.value)
+    }
 
     const scrollToContactForm = () => {
         const contactForm = document.getElementById("contactForm");
@@ -23,28 +43,49 @@ export default function Legodi() {
     };
 
     const sendMessage = async () => {
-        console.log('Send Message Button clicked!')
-        try {
-          const response = await fetch(`${baseUrl}/contact-us`, {
-            method: "POST",
-          });
-
-          console.log('Making API Request')
-      
-          if (response.ok) {
-            const responseData = await response.json();
-            console.log(responseData['response_content']);
-            // Handle response data as needed
-          } else {
-            // Handle specific error cases based on status codes
-            // ...
-          }
-        } catch (error) {
-          // Handle network errors or other unexpected errors
-          console.error("Error sending email:", error);
-          setErrorMessage("Failed to send email. Please try again later.");
+        console.log('Send Message Button clicked!');
+        console.log(firstName);
+        console.log(lastName);
+        console.log(userEmail);
+        console.log(userMessage);
+    
+        // Check if any field is empty
+        if (firstName === '' || lastName === '' || userEmail === '' || userMessage === '') {
+            alert('Please fill in all details before sending message.');
+            return;
         }
-      };
+    
+        try {
+            const response = await fetch(`${baseUrl}/contact-us`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: userEmail,
+                    message: userMessage,
+                }),
+            });
+    
+            console.log('Making API Request');
+    
+            if (response.ok) {
+                const responseData = await response.json();
+                console.log(responseData['message']);
+                alert('Message Sent Successfully!')
+                // Handle response data as needed
+            } else {
+                // Handle specific error cases based on status codes
+                // ...
+            }
+        } catch (error) {
+            // Handle network errors or other unexpected errors
+            console.error("Error sending email:", error);
+        }
+    };
+    
 
       const bookNavigate = () => {
             navigate('/order_tab');
@@ -145,6 +186,7 @@ export default function Legodi() {
                         </div>
                         
                     </div>
+                    <button className="btn btn-primary">Order Now</button>
                 </div>
             </div>
             
@@ -198,23 +240,23 @@ export default function Legodi() {
                         <div className="legodi-contact-form">
                             <h5>Send us a Message:</h5><br />
                             <form>
-                            <div class="row">
+                            <div className="row">
                                 <div class="col">
                                     <label>First Name</label>
-                                <input type="text" class="form-control" placeholder="First name" />
+                                <input type="text" className="form-control" placeholder="First name" onChange={manageFirstName}/>
                                 </div>
                                 <div class="col">
                                     <label>Last Name</label>
-                                <input type="text" class="form-control" placeholder="Last name" /><br />
+                                <input type="text" className="form-control" placeholder="Last name" onChange={manageLastName}/><br />
                                 
                                 </div>
                             </div>
                             </form>
                             <label>Email *</label>
-                            <input type="email" className="form-control" /><br />
-                            <div class="form-group">
+                            <input type="email" className="form-control" onChange={manageEmail}/><br />
+                            <div className="form-group">
                                 <label for="exampleFormControlTextarea1">Message</label>
-                                <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+                                <textarea className="form-control" id="exampleFormControlTextarea1" rows="3" onChange={manageMessage}></textarea>
                             </div><br />
                             <button className="btn btn-primary" onClick={sendMessage}>Send</button>
                             
