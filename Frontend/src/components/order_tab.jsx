@@ -10,10 +10,71 @@ export default function OrderTab() {
 
     const navigate = useNavigate();
 
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+    const [chosenProduct, setChosenProduct] = useState('');
+
+    const manageFirstName = (event) => {
+        setFirstName(event.target.value)
+    }
+
+    const manageLastName = (event) => {
+        setLastName(event.target.value);
+    }
+
+    const manageEmail = (event) => {
+        setUserEmail(event.target.value);
+    }
+
+    const manageChosenProduct = (event) => {
+        setChosenProduct(event.target.value)
+    }
+
+
     const HomePageNav = () => {
         navigate('/legodi');
     }
 
+    const submitDetails = async () => {
+        // Check if any field is empty
+        if (firstName === '' || lastName === '' || userEmail === '' || chosenProduct === '') {
+            alert('Please fill in all details before sending a message.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/book-order`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: userEmail,
+                    interested_product: chosenProduct,
+                }),
+            });
+
+            if (response.ok) {
+                alert("Order booked successfully!");
+                // Clear form fields
+                setFirstName('');
+                setLastName('');
+                setUserEmail('');
+                setChosenProduct('');
+            } else {
+                throw new Error("Failed to book order");
+            }
+        } catch (error) {
+            console.error("Error booking order:", error);
+            alert("Failed to book order. Please try again later.");
+        }
+    }
+    
     return (
         <div>
 
@@ -27,23 +88,24 @@ export default function OrderTab() {
   </div>
 </nav>
             
-            <br /><br /><br /><br />
+            <br /><br />
             <div className="book-order-div">
                 <h2>Book an Order</h2><br />
                 <label>First Name:</label>
-                <input type="text" className="form-control" /><br />
+                <input type="text" className="form-control" onChange={manageFirstName} /><br />
                 <label>Last Name:</label>
-                <input type="text" className="form-control" /><br />
+                <input type="text" className="form-control" onChange={manageLastName} /><br />
                 <label>Which of our products are you interested in?</label>
-                <select class="form-select" aria-label="Default select example">
-                    <option value="1">One</option>
-                    <option value="2">Two</option>
-                    <option value="3">Three</option>
-                    <option value="4">Four</option>
+                <select class="form-select" aria-label="Default select example" onChange={manageChosenProduct}>
+                    <option value=""></option>
+                    <option value="One">One</option>
+                    <option value="Two">Two</option>
+                    <option value="Three">Three</option>
+                    <option value="Four">Four</option>
                 </select><br />
                 <label>Email:</label>
-                <input type="email" className="form-control" /><br />
-                <button className="btn btn-primary">Submit Details</button>
+                <input type="email" className="form-control" onChange={manageEmail}/><br />
+                <button className="btn btn-primary" onClick={submitDetails}>Submit Details</button>
             </div>
             <br /><br />
         </div>
