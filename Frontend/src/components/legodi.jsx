@@ -109,8 +109,7 @@ export default function Legodi() {
                 </div>
                 <div className="upper-nav-legodi-right">
                     <h6>Home</h6>
-                    <h6 onClick={bookNavigate}>Book Order</h6>
-                    <h6 onClick={scrollToContactForm}>Contact Us</h6>
+                    <h6 onClick={bookNavigate}>Order</h6>
                 </div>
             </div><br /><br /><br /><br />
 
