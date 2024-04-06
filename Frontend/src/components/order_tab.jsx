@@ -104,10 +104,8 @@ export default function OrderTab() {
                 <label>Which of our products are you interested in?</label>
                 <select class="form-select" aria-label="Default select example" onChange={manageChosenProduct}>
                     <option value=""></option>
-                    <option value="One">One</option>
-                    <option value="Two">Two</option>
-                    <option value="Three">Three</option>
-                    <option value="Four">Four</option>
+                    <option value="LFT Solar Eartag Tracking Device">LFT Solar Eartag Tracking Device</option>
+                
                 </select><br />
                 <label>Email:</label>
                 <input type="email" className="form-control" onChange={manageEmail}/><br />

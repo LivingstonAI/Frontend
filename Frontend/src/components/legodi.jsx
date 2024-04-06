@@ -158,36 +158,12 @@ export default function Legodi() {
                     <h1>Our Services</h1><br /><br /><br />
                     <div className="legodi-offered-services">
                         <div className="s1">
-                            <h5>Service 1</h5>
+                            <h5>LFT Solar Eartag Tracking Device</h5>
                             <hr /><br />
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vehicula massa at nisi rutrum, vel lacinia
-                                 nulla pretium. Nam hendrerit diam et libero interdum, a gravida quam 
-                                 condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
-                                 nec at magna. </p>
-                            <p>US$80</p>
+                            <p>Track your livestock using our eartags that create and map a geofence for you. </p>
+                            {/* <p>US$80</p> */}
                             {/* <button className="btn btn-primary">BOOK NOW</button> */}
                         </div><br />
-                        <div className="s2">
-                            <h5>Service 2</h5>
-                            <hr /><br />
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vehicula massa at nisi rutrum, vel lacinia
-                                 nulla pretium. Nam hendrerit diam et libero interdum, a gravida quam 
-                                 condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
-                                 nec at magna. </p>
-                            <p>US$60</p>
-                            {/* <button className="btn btn-primary">BOOK NOW</button> */}
-                            {/* <br /> */}
-                        </div><br />
-                        <div className="s3">
-                            <h5>Service 3</h5>
-                            <hr /><br />
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vehicula massa at nisi rutrum, vel lacinia
-                                 nulla pretium. Nam hendrerit diam et libero interdum, a gravida quam 
-                                 condimentum. Nulla facilisi. Duis ac libero eget lectus lacinia aliquet 
-                                 nec at magna. </p>
-                            <p>US$35</p>
-                            {/* <button className="btn btn-primary">BOOK NOW</button> */}
-                        </div>
                         
                     </div>
                     <button className="btn btn-primary" onClick={bookNavigate}>Order Now</button>
@@ -235,11 +211,11 @@ export default function Legodi() {
                     <div className="legodi-get-in-touch-contact-info-div">
                         <div className="legodi-contact-info">
                             <h5>Phone:</h5>
-                            <b><p>123-456-7890</p></b><br />
+                            <b><p>+27 64 665 9727</p></b><br />
                             <h5>Email:</h5>
-                            <b><p>info@legoditech.com</p></b><br />
+                            <b><p>info@legodifuturetech.com</p></b><br />
                             <h5>Address:</h5>
-                            <b><p>123 Greenfield Road, Agritech City, 12345</p></b><br />
+                            <b><p>106 Apple Road, Olifansfontein, Midrand</p></b><br />
                         </div>
                         <div className="legodi-contact-form">
                             <h5>Send us a Message:</h5><br />
