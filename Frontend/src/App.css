@@ -1617,19 +1617,19 @@ th {
 }
 
 .legodi-offered-services {
-    display: flex;
+    /* display: flex; */
     padding-left: 20px;
     padding-right: 20px;
 }
 
 
-.s1, .s2, .s3 {
-    width: 33%;
+.s1, .legodi-offered-services {
+    text-align: center;
 }
 
-.s1 hr, .s2 hr, .s3 hr {
-    width: 70%;
-}
+/* .s1 hr, .s2 hr, .s3 hr { */
+    /* width: 70; */
+
 
 .legodi-about-section-div-contents {
     display: flex;
