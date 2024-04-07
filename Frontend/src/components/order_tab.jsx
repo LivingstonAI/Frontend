@@ -16,6 +16,8 @@ export default function OrderTab() {
     const [lastName, setLastName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [chosenProduct, setChosenProduct] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [numUnits,setNumUnits] = useState('');
     const [submitButton, setSubmitButton] = useState('Submit Details');
 
     const manageFirstName = (event) => {
@@ -34,6 +36,13 @@ export default function OrderTab() {
         setChosenProduct(event.target.value)
     }
 
+    const managePhoneNumber = (event) => {
+        setPhoneNumber(event.target.value);
+    }
+
+    const manageNumUnits = (event) => {
+        setNumUnits(event.target.value);
+    }
 
     const HomePageNav = () => {
         navigate('/legodi');
@@ -42,7 +51,7 @@ export default function OrderTab() {
     const submitDetails = async () => {
         // Check if any field is empty
         setSubmitButton('Submitting Details...')
-        if (firstName === '' || lastName === '' || userEmail === '' || chosenProduct === '') {
+        if (firstName === '' || lastName === '' || userEmail === '' || chosenProduct === '' || numUnits === '' || phoneNumber === '') {
             alert('Please fill in all details before sending a message.');
             setSubmitButton('Submit Details');
             return;
@@ -59,17 +68,14 @@ export default function OrderTab() {
                     last_name: lastName,
                     email: userEmail,
                     interested_product: chosenProduct,
+                    number_of_units: numUnits,
+                    phone_number: phoneNumber,
                 }),
             });
 
             if (response.ok) {
                 alert("Order booked successfully!");
                 // Clear form fields
-                setFirstName('');
-                setLastName('');
-                setUserEmail('');
-                setChosenProduct('');
-                setSubmitButton('Submit Details')
             } else {
                 throw new Error("Failed to book order");
             }
@@ -107,8 +113,12 @@ export default function OrderTab() {
                     <option value="LFT Solar Eartag Tracking Device">LFT Solar Eartag Tracking Device</option>
                 
                 </select><br />
+                <label>Number of Units:</label>
+                <input type="number" className="form-control" onChange={manageNumUnits} /><br />
                 <label>Email:</label>
                 <input type="email" className="form-control" onChange={manageEmail}/><br />
+                <label>Phone Number:</label>
+                <input type="number" className="form-control" onChange={managePhoneNumber} /><br />
                 <button className="btn btn-primary legodi-send-button" onClick={submitDetails}>{submitButton}</button>
             </div>
             <br /><br />
