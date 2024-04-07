@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 export default function LegodiRegistration() {
     return (
         <div><br /><br /><br />
-            <div className="container">
+            <div className="containers">
     <input type="checkbox" id="flip" />
     
     <div className="forms">
