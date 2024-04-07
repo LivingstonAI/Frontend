@@ -161,6 +161,7 @@ export default function Legodi() {
                             <h5>LFT Solar Eartag Tracking Device</h5>
                             <hr /><br />
                             <p>Track your livestock using our eartags that create and map a geofence for you. </p>
+                            <Link to='youtube.com'><p>View Demo</p></Link>
                             {/* <p>US$80</p> */}
                             {/* <button className="btn btn-primary">BOOK NOW</button> */}
                         </div><br />
