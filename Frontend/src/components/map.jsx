@@ -37,7 +37,7 @@ const GeofenceMap = () =>  {
         google={window.google} // Make sure the Google Maps API is loaded
         zoom={14}
         style={mapStyles}
-        initialCenter={{ lat: -1.2884, lng: 36.8233 }} // Set your desired initial center
+        initialCenter={{ lat: -25.7522, lng: 28.2245 }} // Set your desired initial center
       />
     </div>
 
