@@ -74,8 +74,12 @@ export default function OrderTab() {
             });
 
             if (response.ok) {
+                const responseData = await response.json(); // Await here
+                console.log(responseData); // Log the response data
                 alert("Order booked successfully!");
+                
                 // Clear form fields
+                setSubmitButton('Submit Details')
             } else {
                 throw new Error("Failed to book order");
             }
@@ -118,7 +122,7 @@ export default function OrderTab() {
                 <label>Email:</label>
                 <input type="email" className="form-control" onChange={manageEmail}/><br />
                 <label>Phone Number:</label>
-                <input type="number" className="form-control" onChange={managePhoneNumber} /><br />
+                <input type="text" className="form-control" onChange={managePhoneNumber} /><br />
                 <button className="btn btn-primary legodi-send-button" onClick={submitDetails}>{submitButton}</button>
             </div>
             <br /><br />
