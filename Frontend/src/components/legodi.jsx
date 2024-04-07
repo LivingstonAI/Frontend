@@ -166,8 +166,11 @@ export default function Legodi() {
                         </div><br />
                         
                     </div>
-                    <button className="btn btn-primary" onClick={bookNavigate}>Order Now</button>
+                    <div className="order-now-button">
+                        <button className="btn btn-primary" onClick={bookNavigate}>Order Now</button>
+                    </div>
                 </div>
+
             </div>
             
 

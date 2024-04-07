@@ -1677,6 +1677,14 @@ th {
     cursor: pointer;
 }
 
+.order-now-button {
+        /* height: 100vh; Set the container height to the viewport height */
+        display: flex;
+        justify-content: center; /* Horizontally center the content */
+        align-items: center; /* Vertically center the content */
+    
+}
+
 .book-order-div {
     text-align: center;
     /* align-items: center; */
