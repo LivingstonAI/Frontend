@@ -221,7 +221,7 @@ export default function Legodi() {
                             <h5>Email:</h5>
                             <b><p>info@legodifuturetech.com</p></b><br />
                             <h5>Address:</h5>
-                            <b><p>106 Apple Road, Olifansfontein, Midrand</p></b><br />
+                            <b><p>106 Apple Road, Olifantsfontein, Midrand</p></b><br />
                         </div>
                         <div className="legodi-contact-form">
                             <h5>Send us a Message:</h5><br />
