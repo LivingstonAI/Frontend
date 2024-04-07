@@ -1845,6 +1845,10 @@ th {
 
 
   @media (max-width: 730px) {
+
+    .containers {
+        width: 100%;
+    }
     
     .form-content .login-form,
     .form-content .signup-form{
