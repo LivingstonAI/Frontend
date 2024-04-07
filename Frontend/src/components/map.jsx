@@ -11,7 +11,7 @@ const GeofenceMap = () =>  {
     };
 
     const mapStyles = {
-        width: '70%',
+        width: '75%',
         height: '75%',
         margin: 'auto', // Center the map horizontally
         position: 'absolute',
