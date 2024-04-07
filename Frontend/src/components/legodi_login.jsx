@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 import Logo from '../images/legodi_logo.jpg';
 import { Link } from "react-router-dom";
 
-export default function LegodiRegistration() {
+
+export default function LegodiLogin() {
     return (
         <div><br /><br /><br />
             <div className="container">
@@ -15,14 +16,10 @@ export default function LegodiRegistration() {
     <div className="forms">
         <div className="form-content">
           
-        <div className="signup-form">
-          <div className="title">Signup</div>
-        <form action="#">
+        <div className="login-form">
+            <div className="title">Login</div>
+          <form action="#">
             <div className="input-boxes">
-              <div className="input-box">
-                <i className="fas fa-user"></i>
-                <input type="text" placeholder="Enter your name" required />
-              </div>
               <div className="input-box">
                 <i className="fas fa-envelope"></i>
                 <input type="text" placeholder="Enter your email" required />
@@ -31,15 +28,16 @@ export default function LegodiRegistration() {
                 <i className="fas fa-lock"></i>
                 <input type="password" placeholder="Enter your password" required />
               </div>
+              <div className="text"><a href="#">Forgot password?</a></div>
               <div className="button input-box">
                 <input type="submit" value="Sumbit" />
               </div>
               <div className="text sign-up-text">
-                  <Link to="/legodi-login">Already have an account? Login here</Link>
+                <Link to="/regr">Don't have an account? Sigup now</Link>
               </div>
             </div>
-      </form>
-    </div>
+        </form>
+      </div>
     </div>
     </div>
   </div>

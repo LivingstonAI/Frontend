@@ -95,6 +95,14 @@ export default function Legodi() {
 
       const bookNavigate = () => {
             navigate('/order_tab');
+      };
+
+      const regrNavigate = () => {
+        navigate('/regr');
+      }
+
+      const loginNavigate = () => {
+        navigate('/legodi-login')
       }
     
 
@@ -110,8 +118,8 @@ export default function Legodi() {
                 <div className="upper-nav-legodi-right">
                     <h6>Home</h6>
                     <h6 onClick={bookNavigate}>Order</h6>
-                    <h6>Register</h6>
-                    <h6>Sign in</h6>
+                    <h6 onClick={regrNavigate}>Register</h6>
+                    <h6 onClick={loginNavigate}>Sign in</h6>
                 </div>
             </div><br /><br /><br /><br />
 

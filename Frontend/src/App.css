@@ -1708,7 +1708,7 @@ th {
 
 .container{
     position: relative;
-    /* max-width: 850px; */
+    max-width: 850px;
     width: 50%;
     background: #fff;
     padding: 40px 30px;
@@ -1834,6 +1834,8 @@ th {
   .container #flip{
     display: none;
   }
+
+
   @media (max-width: 730px) {
     
     .form-content .login-form,
@@ -1841,9 +1843,7 @@ th {
       width: 100%;
     }
    
-    .container #flip:checked ~ .forms .signup-form{
-      display: block;
-    }
+
     
   }
 

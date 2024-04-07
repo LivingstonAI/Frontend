@@ -32,6 +32,7 @@ import Legodi from './components/legodi';
 import OrderTab from './components/order_tab';
 import GeofenceMap from './components/map';
 import LegodiRegistration from './components/legodi_registration';
+import LegodiLogin from './components/legodi_login';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import { useState } from 'react';
 import Blockly from 'blockly';
@@ -76,6 +77,7 @@ function App() {
         <Route path='/order_tab' element={<OrderTab />}></Route>
         <Route path='/map' element={<GeofenceMap />}></Route>
         <Route path='/regr' element={<LegodiRegistration />}></Route>
+        <Route path='/legodi-login' element={<LegodiLogin />}></Route>
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
     </Routes>
