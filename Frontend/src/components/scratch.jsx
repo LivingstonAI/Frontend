@@ -376,6 +376,30 @@ export default function ScratchInterFace () {
     
   };
 
+  pythonGenerator['forBlock']['close_position'] = function(block, generator) {
+
+      return `self.position.close()\n`;
+
+  };
+
+  javascriptGenerator['forBlock']['close_position'] = function(block, generator) {
+
+    return `self.position.close()\n`;
+    
+  };
+
+  pythonGenerator['forBlock']['check_position'] = function(block, generator) {
+
+    return [`self.position`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['check_position'] = function(block, generator) {
+
+  return [`self.position`, Order.NONE];
+  
+};
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -657,6 +681,33 @@ Blockly.Blocks['rsi_block'] = {
   }
 };
 
+
+  // Blocly Definition for 'Close Position'
+  Blockly.Blocks['close_position'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Close Position");
+      this.setPreviousStatement(true, null);  // Allow this block to be connected to the previous block
+      this.setNextStatement(true, null);  // Allow next blocks to be connected to this block
+      this.setColour(160);
+      this.setTooltip("Close the current position");
+      this.setHelpUrl("");
+    }
+  };
+
+  
+  Blockly.Blocks['check_position'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Position");
+      this.setOutput(true, 'Boolean');
+      this.setColour(210);
+      this.setTooltip("Check if a position exists");
+      this.setHelpUrl("");
+    }
+  };
+    
+
     const MY_TOOLBOX = {
       "kind": "categoryToolbox",
       "contents": [
@@ -788,6 +839,14 @@ Blockly.Blocks['rsi_block'] = {
               "kind": "block",
               "type": "sell_block" // Add the custom "Sell" block here
             },
+            {
+              "kind": 'block',
+              "type": "close_position"
+            },
+            {
+              "kind": "block",
+              "type": "check_position"
+            }
           ]
         },
         {

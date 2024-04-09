@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Header from "./header";
-import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 import { useNavigate } from "react-router-dom";
 import Logo from '../images/legodi_logo.jpg';
 

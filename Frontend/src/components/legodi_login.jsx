@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import Axios or use the fetch API directly
+import Cookies from 'js-cookie';
+import { useEffect } from "react";
+
 
 export default function LegodiLogin() {
 
@@ -17,11 +20,29 @@ export default function LegodiLogin() {
         password: "",
     });
 
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
+    async function getCsrfToken() {
+        try {
+            const response = await fetch(`${baseUrl}/api/csrf_token/`, {
+                credentials: 'include', // Include cookies
+            });
+            const data = await response.json();
+            // const csrfToken = data.csrfToken;
+            console.log('CSRF Token:', data);
+
+            return data;
+            // Store the token (e.g., in state or local storage)
+        } catch (error) {
+            console.error(error);
+        }
     }
+
+    useEffect(() =>{
+        // Call the function to get the CSRF token
+        getCsrfToken();
+    })
+
+    
+    // const csrftoken = getCookie('csrftoken');
     
 
     const handleSubmit = async (e) => {
@@ -29,30 +50,31 @@ export default function LegodiLogin() {
         e.preventDefault();
         try {
             // Get the CSRF token from the cookie (assuming it's named 'csrftoken')
-            const csrfToken = getCookie('csrftoken'); // Implement the getCookie function
+            const csrfToken = Cookies.get('csrftoken'); // Implement the getCookie function
+            const csrftoken2 = getCookie('csrftoken');
 
-            console.log('CSRF Token');
-            console.log(csrfToken);
+           
+
     
-            // Make a POST request to your login endpoint
-            const response = await axios.post(`${baseUrl}/api/login/`, formData, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-            });
+            // // Make a POST request to your login endpoint
+            // const response = await axios.post(`${baseUrl}/api/login/`, formData, {
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //         'X-CSRFToken': csrfToken,
+            //     },
+            // });
             
 
-            const responseData = response.data;
-            console.log(responseData);
+            // const responseData = response.data;
+            // console.log(responseData);
             
 
-            navigate('/map');
+            // navigate('/map');
     
             // Store the token (e.g., in local storage or state)
             // Redirect to the desired page (e.g., dashboard)
         } catch (error) {
-            console.error('Login failed:', error.response.data);
+            // console.error('Login failed:', error.response.data);
             alert('Error occurred. Please try again.');
             setSubmitButton('Submit');
             // Handle error (e.g., display error message to the user)

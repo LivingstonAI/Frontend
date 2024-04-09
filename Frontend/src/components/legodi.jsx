@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Logo from '../images/legodi_logo.jpg';
 import GeofenceImage from '../images/cow.jpg';
-import news1 from '../images/pic1.jpg';
-import news2 from '../images/pic2.jpg';
-import news3 from '../images/pic3.jpg';
-import aboutImage from '../images/feedbck.jpg';
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
