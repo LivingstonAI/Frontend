@@ -49,5 +49,5 @@ const GeofenceMap = () =>  {
 
 
 export default GoogleApiWrapper({
-    apiKey: 'AIzaSyDdboULTlv0q_ypduRZDGuxSP8OXKl-zHE',
+    apiKey: '',
   })(GeofenceMap);
