@@ -12,6 +12,9 @@ import {pythonGenerator} from 'blockly/python';
 import {javascriptGenerator, Order} from 'blockly/javascript';
 import DataSetsModal from "./datasets_modal";
 import useForceUpdate from 'use-force-update';
+import axios from "axios";
+import { embed } from '@bokeh/bokehjs';
+
 
 import 'blockly/javascript';
 // Initialize Python generator
@@ -25,6 +28,11 @@ Blockly.setLocale(locale);
 
 export default function ScratchInterFace () { 
 
+    const myPlotRef = useRef(null);
+
+    // Store a reference to the current plot (null initially)
+    const [currentPlot, setCurrentPlot] = useState(null);
+
     const [xml, setXml] = useState('');
 
     const [compile, setCompile] = useState('Compile Model');
@@ -37,6 +45,8 @@ export default function ScratchInterFace () {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     const [isDataSetModalOpen, setIsDataSetModalOpen] = useState(false);
+
+    const [isSplitDataSetModalOpen, setIsSplitDataSetModalOpen] = useState(false);
 
     const forceUpdate = useForceUpdate();
     const [xauuData, setXauusd] = useState(['XAUUSD5M.csv', 'XAUUSD15M.csv', 'XAUUSD30M.csv', 
@@ -53,6 +63,12 @@ export default function ScratchInterFace () {
 
     const [chosenDataSet, setChosenDataSet] = useState('');
 
+    const [availableYears, setAvailableYears] = useState(['2008', '2009', '2010',
+    '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021',
+    '2022', '2023', '2024']);
+
+    const [startYear, setStartYear] = useState('');
+    const [endYear, setEndYear] = useState('');
 
     const handleXmlChange =  (xml) => {
 
@@ -405,7 +421,7 @@ pythonGenerator['forBlock']['stop_loss'] = function(block, generator) {
   const slNumber = block.getFieldValue('VALUE');
   const slType = block.getFieldValue('TYPE');
 
-  return [`self.set_stop_loss(number=${slNumber}, type='${slType}')`, Order.NONE];
+  return [`self.set_stop_loss(number=${slNumber}, type_of_setting='${slType}')`, Order.NONE];
 
 };
 
@@ -420,7 +436,7 @@ pythonGenerator['forBlock']['take_profit'] = function(block, generator) {
   const tpNumber = block.getFieldValue('VALUE');
   const tpType = block.getFieldValue('TYPE');
 
-  return [`self.set_take_profit(number=${tpNumber}, type='${tpType}')`, Order.NONE];
+  return [`self.set_take_profit(number=${tpNumber}, type_of_setting='${tpType}')`, Order.NONE];
 
 };
 
@@ -1032,17 +1048,33 @@ Blockly.Blocks['rsi_block'] = {
         }
         
         const data2 = await response2.json();
-        console.log('Returned Data');
-        console.log(data2);
         
-        // Replace "nan" with null
-        const jsonStringFixed = data2.message.replace(/'nan'/g, 'null');
-        // Replace single quotes with double quotes
-        const jsonStringDoubleQuoted = jsonStringFixed.replace(/'/g, '"');
-        // Parse the JSON string into a JavaScript object
-        const jsonData = JSON.parse(jsonStringDoubleQuoted);
+        let imageData = '';
+        const jsonData = data2.message[1]
+    
+        const jsonLength = Object.keys(jsonData).length;
+    
+        if (currentPlot) {
+              const children = myPlotRef.current.children;
+              const len = children.length;
+              for (let i = 0; i < len; i++) {
+                    children[i].remove();
+                }
+          }
+
+          if (jsonLength !== 0) {
+    
+            imageData = JSON.parse(data2.message[1]);
+
+            // Delay rendering the plot slightly to allow the DOM to stabilize
+            setTimeout(() => {
+                // Embed the new plot
+                setCurrentPlot(embed.embed_item(imageData, 'myplot'));
+            }, 100);
+
+        }
         
-        setModelPerformance(jsonData);
+        setModelPerformance(data2.message[0]);
         setCompile('Compile Model');
       } catch (error) {
         console.error('Error:', error);
@@ -1059,12 +1091,56 @@ Blockly.Blocks['rsi_block'] = {
     const closeModal = async () => {  
       // Handle success
       // window.location.reload();
+      // First fetch request
+      const response = await fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // body: JSON.stringify({ dataset }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      
+      const data = await response.json();
+      console.log(data); // Do something with the response data from the first request
       toggleModal();
     };
 
     const handleButtonClick = (data) => {
       setChosenDataSet(data);
     };
+
+    const toggleSplitModal = () => {
+      setIsSplitDataSetModalOpen(!isSplitDataSetModalOpen);
+    };
+
+    const closeSplitModal = async () => {
+
+      try {
+        const response = await axios.post(`${baseUrl}/split-dataset`, {
+          start_year: startYear,
+          end_year: endYear
+        });
+        console.log(response.data); // Handle success response
+      } catch (error) {
+        console.error('Error:', error); // Handle error
+      }
+      toggleSplitModal();
+    };
+
+    
+
+    const handleEndYearChange = (e) => {
+      setEndYear(e.target.value)
+    };
+
+    const handleStartYearChange = (e) => {
+      setStartYear(e.target.value)
+    }
 
       return (
         <div>
@@ -1079,7 +1155,7 @@ Blockly.Blocks['rsi_block'] = {
                 <div className="generated-code-example">
                 
                   <div>
-                    <h3>Python</h3>
+                    <h3>Python</h3><br />
                     <pre>{generatedCode}</pre>
                   </div>
                   
@@ -1090,14 +1166,14 @@ Blockly.Blocks['rsi_block'] = {
                   </div> */}
                 </div>
                 <div className="choose-dataset">
-                    <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br /><br />
+                    <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />
                     <p>Chosen dataset: {chosenDataSet}</p>
                     {isDataSetModalOpen && (
                 <div className="modal-overlay">
                     <div className="select-category-modal">
                         <br />
-                        <h4 className="select-category-title">Choose Dataset</h4><br />
                         <button className="btn btn-light close-cot-modal" onClick={closeModal}>Close</button><br /><br />
+                        <h4 className="select-category-title">Choose Dataset</h4><br />
                         {isDataSetModalOpen && (
                             <p>Chosen dataset: {chosenDataSet}</p>
                         )}
@@ -1145,7 +1221,52 @@ Blockly.Blocks['rsi_block'] = {
                                 </button>
                             ))}
                         <br /><br /><br /><br /><br />
+                        
                     </div>
+                    
+                </div>
+                
+            )}
+            <br /><button className="btn btn-light" onClick={toggleSplitModal}>Split Dataset (Optional)</button><br />
+            <p>Start Year: {startYear}</p>
+            <p>End Year: {endYear}</p>
+            <br /><br />
+
+            {isSplitDataSetModalOpen && (
+              <div className="modal-overlay">
+              <div className="select-category-modal">
+                  <br />
+                  <button className="btn btn-light close-cot-modal" onClick={closeSplitModal}>Close</button><br /><br />
+                  <h4 className="select-category-title">Split Dataset</h4><br /><br />
+                  <div className="split-dataset-div">
+                    <h5>Start Year</h5>
+                    <select className='form-control'
+                      value={startYear}
+                      onChange={handleStartYearChange}
+                      >
+                          <option value=''>Please select an option</option>
+                          {availableYears.map((asset, index) => (
+                          <option key={index} value={asset}>
+                          {asset}
+                          </option>
+                          ))}
+                      </select>
+                    <br /><br />
+                    <h5>End Year</h5>
+                    <select className='form-control'
+                      value={endYear}
+                      onChange={handleEndYearChange}
+                      >
+                          <option value=''>Please select an option</option>
+                          {availableYears.map((asset, index) => (
+                          <option key={index} value={asset}>
+                          {asset}
+                          </option>
+                          ))}
+                      </select>
+
+                  </div>
+                </div>
                 </div>
             )}
 
@@ -1162,8 +1283,11 @@ Blockly.Blocks['rsi_block'] = {
             </div><br /><br />
 
             {modelPerformance && (
-
+                
               <div className="model-performance">
+                {/* <p><b>*Plots only available for 4H and 1D timeframes for now.</b></p> */}
+                                     
+               <div ref={myPlotRef} id="myplot" className="bk-root"></div><br />
               {/* {modelResult} */}
               <p># Trades: {modelPerformance['# Trades']}</p>
               <p>Start: {modelPerformance.Start}</p>
