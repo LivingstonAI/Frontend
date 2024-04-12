@@ -70,6 +70,10 @@ export default function ScratchInterFace () {
     const [startYear, setStartYear] = useState('');
     const [endYear, setEndYear] = useState('');
 
+    const [initialCapitalProcess, setInitialCapitalProcess] = useState('Set Initial Capital');
+
+    const [initCapital, setInitCapital] = useState(10000);
+
     const handleXmlChange =  (xml) => {
 
       const workspace = new Blockly.Workspace();
@@ -1048,6 +1052,8 @@ Blockly.Blocks['rsi_block'] = {
         }
         
         const data2 = await response2.json();
+
+        console.log(data2);
         
         let imageData = '';
         const jsonData = data2.message[1]
@@ -1140,7 +1146,37 @@ Blockly.Blocks['rsi_block'] = {
 
     const handleStartYearChange = (e) => {
       setStartYear(e.target.value)
-    }
+    };
+
+    const saveInitialCapital = async () => {
+      setInitialCapitalProcess('Setting Initial Capital...');
+      try {
+          const response = await fetch(`${baseUrl}/set-init-capital`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 'initialCapital':initCapital }), // Send initialCapital in the request body
+          });
+          if (response.ok) {
+            const responseData = await response.json();
+            console.log('Initial Capital Function');
+            console.log(responseData);
+              console.log('Initial capital saved successfully');
+              setInitialCapitalProcess('Set Initial Capital');
+          } else {
+              console.error('Failed to save initial capital');
+              setInitialCapitalProcess('Error Occured');
+          }
+      } catch (error) {
+          console.error('Error saving initial capital:', error);
+          setInitialCapitalProcess('Error Occured');
+      }
+  };
+
+    const handleInitCapitalChange = (e) => {
+      setInitCapital(e.target.value);
+    };
 
       return (
         <div>
@@ -1228,9 +1264,20 @@ Blockly.Blocks['rsi_block'] = {
                 
             )}
             <br /><button className="btn btn-light" onClick={toggleSplitModal}>Split Dataset (Optional)</button><br />
-            <p>Start Year: {startYear}</p>
-            <p>End Year: {endYear}</p>
+            <label>Start Year: {startYear}</label><br />
+            <label>End Year: {endYear}</label>
             <br /><br />
+            <div className="set-initial-capital-backtest-input">
+              <label>Set Initial Capital</label>
+              <input className="form-control" type="number" 
+                  value={initCapital}
+                  onChange={handleInitCapitalChange}
+              ></input><br />
+              <label>Initial Capital: {initCapital}</label>
+            </div><br />
+            <button className="btn btn-primary" onClick={saveInitialCapital}>{initialCapitalProcess}</button>
+            <br />
+
 
             {isSplitDataSetModalOpen && (
               <div className="modal-overlay">

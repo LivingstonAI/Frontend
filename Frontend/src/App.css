@@ -1473,6 +1473,9 @@ th {
     text-align: center;
 }
 
+.set-initial-capital-backtest-input {
+    width: 15%;
+}
 
 
 /* Legodi Technologies CSS */
@@ -1865,6 +1868,10 @@ th {
 
 
 @media screen and (max-width: 768px) {
+
+    .set-initial-capital-backtest-input {
+        width: 100%;
+    }
 
     .book-order-div {
         left: 0px;
