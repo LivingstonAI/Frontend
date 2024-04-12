@@ -76,25 +76,25 @@ export default function ScratchInterFace () {
 
   pythonGenerator['forBlock']['buy_block'] = function(block, generator) {
 
-    return 'self.buy()\n';
+    return 'self.buy()\nself.init_equity = self.equity\n';
 
   };
 
   javascriptGenerator['forBlock']['buy_block'] = function(block, generator) {
     
-    return 'self.buy()\n';
+    return 'self.buy()\nself.init_equity = self.equity\n';
 
   };
 
   pythonGenerator['forBlock']['sell_block'] = function(block, generator) {
     
-    return 'self.sell()\n';
+    return 'self.sell()\nself.init_equity = self.equity\n';
 
   };
 
   javascriptGenerator['forBlock']['sell_block'] = function(block, generator) {
     
-    return 'self.sell()\n';
+    return 'self.sell()\nself.init_equity = self.equity\n';
 
   };
   
@@ -400,6 +400,36 @@ javascriptGenerator['forBlock']['check_position'] = function(block, generator) {
   
 };
 
+pythonGenerator['forBlock']['stop_loss'] = function(block, generator) {
+
+  const slNumber = block.getFieldValue('VALUE');
+  const slType = block.getFieldValue('TYPE');
+
+  return [`self.set_stop_loss(number=${slNumber}, type='${slType}')`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['stop_loss'] = function(block, generator) {
+
+return [`self.position`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['take_profit'] = function(block, generator) {
+
+  const tpNumber = block.getFieldValue('VALUE');
+  const tpType = block.getFieldValue('TYPE');
+
+  return [`self.set_take_profit(number=${tpNumber}, type='${tpType}')`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['take_profit'] = function(block, generator) {
+
+return [`self.position`, Order.NONE];
+
+};
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -695,7 +725,7 @@ Blockly.Blocks['rsi_block'] = {
     }
   };
 
-  
+  // Blockly Definition for 'Check Position'
   Blockly.Blocks['check_position'] = {
     init: function() {
       this.appendDummyInput()
@@ -706,7 +736,40 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
-    
+
+  // Blockly Definition for 'Take Profit'
+  Blockly.Blocks['take_profit'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Set Take Profit");
+      this.appendDummyInput()
+          .appendField(new Blockly.FieldNumber(0), "VALUE")
+          .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENT"], ["Number", "NUMBER"]]), "TYPE");
+      this.setInputsInline(true);
+      this.setOutput(true, "Number");
+      this.setColour(210);
+      this.setTooltip("Set Take Profit");
+      this.setHelpUrl("");
+    }
+  };
+  
+  
+  // Blockly Definition for 'Stop Loss'
+  Blockly.Blocks['stop_loss'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Stop Loss");
+      this.appendDummyInput()
+          .appendField(new Blockly.FieldNumber(0), "VALUE")
+          .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENT"], ["Number", "NUMBER"]]), "TYPE");
+      this.setInputsInline(true);
+      this.setOutput(true, "Number");
+      this.setColour(210);
+      this.setTooltip("Set Stop Loss");
+      this.setHelpUrl("");
+    }
+  };
+  
 
     const MY_TOOLBOX = {
       "kind": "categoryToolbox",
@@ -846,6 +909,14 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "check_position"
+            },
+            {
+              "kind": "block",
+              "type": "take_profit"
+            },
+            {
+              "kind": "block",
+              "type": "stop_loss"
             }
           ]
         },
