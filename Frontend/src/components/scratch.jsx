@@ -744,7 +744,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("Set Take Profit");
       this.appendDummyInput()
           .appendField(new Blockly.FieldNumber(0), "VALUE")
-          .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENT"], ["Number", "NUMBER"]]), "TYPE");
+          .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENTAGE"], ["Number", "NUMBER"]]), "TYPE");
       this.setInputsInline(true);
       this.setOutput(true, "Number");
       this.setColour(210);
@@ -761,7 +761,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("Stop Loss");
       this.appendDummyInput()
           .appendField(new Blockly.FieldNumber(0), "VALUE")
-          .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENT"], ["Number", "NUMBER"]]), "TYPE");
+          .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENTAGE"], ["Number", "NUMBER"]]), "TYPE");
       this.setInputsInline(true);
       this.setOutput(true, "Number");
       this.setColour(210);
