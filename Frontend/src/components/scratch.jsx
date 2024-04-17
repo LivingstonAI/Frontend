@@ -96,7 +96,7 @@ export default function ScratchInterFace () {
 
   pythonGenerator['forBlock']['buy_block'] = function(block, generator) {
 
-    return 'self.buy()\nself.current_equity = self.equity\n';
+    return 'self.current_equity = self.equity\nself.buy()\n';
 
   };
 
@@ -108,7 +108,7 @@ export default function ScratchInterFace () {
 
   pythonGenerator['forBlock']['sell_block'] = function(block, generator) {
     
-    return 'self.sell()\nself.current_equity = self.equity\n';
+    return 'self.current_equity = self.equity\nself.sell()\n';
 
   };
 
