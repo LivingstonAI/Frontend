@@ -1850,6 +1850,10 @@ th {
       transform: translate(-50%, -50%); 
   }
 
+.generated-code-example div {
+    max-width: 100%;
+}  
+
 
   @media (max-width: 730px) {
 
@@ -1872,6 +1876,10 @@ th {
     .set-initial-capital-backtest-input {
         width: 100%;
     }
+
+    /* .generated-code-example div {
+        max-width: 100%;
+    } */
 
     .book-order-div {
         left: 0px;
