@@ -74,6 +74,12 @@ export default function ScratchInterFace () {
 
     const [initCapital, setInitCapital] = useState(10000);
 
+    const [modelProcess, setModelProcess] = useState('');
+
+    const [modelID, setModelID] = useState('');
+
+    const [downloadModel, setDownloadModel] = useState('Download Model');
+
     const handleXmlChange =  (xml) => {
 
       const workspace = new Blockly.Workspace();
@@ -1081,6 +1087,7 @@ Blockly.Blocks['rsi_block'] = {
         }
         
         setModelPerformance(data2.message[0]);
+        setModelProcess('Model Done Backtesting!')
         setCompile('Compile Model');
       } catch (error) {
         console.error('Error:', error);
@@ -1178,6 +1185,57 @@ Blockly.Blocks['rsi_block'] = {
       setInitCapital(e.target.value);
     };
 
+    const SaveModel = () => {
+      const min = 1000000; // Minimum 5-digit number
+      const max = 9999999; // Maximum 5-digit number
+      const magicNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+      console.log('Magic Number', magicNumber);
+      console.log('Model Code', cleanedPythonCode);
+      console.log('Initial Capital', initCapital);
+  
+      // Construct the request body
+      const requestBody = {
+          model_id: magicNumber,
+          model_code: cleanedPythonCode,
+          true_initial_equity: initCapital
+      };
+  
+      console.log('Request Body', requestBody);
+  
+      // Send the POST request using fetch
+      setDownloadModel('Downloading Model...');
+      setModelID(magicNumber);
+      fetch(`${baseUrl}/save-genesys-model`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+      })
+      .then(response => response.json()) // Parse the JSON response
+      .then(data => {
+          console.log('Server Response:', data.message); // Log the message from Django
+          alert('Model Downloaded!');
+          setDownloadModel('Download Model');
+      })
+      .catch(error => {
+          console.error('Error saving model:', error);
+          setDownloadModel('Error occured');
+      });
+  };
+  
+    
+    let cleanedPythonCode = '';
+    // Remove "self." references
+    cleanedPythonCode = generatedCode.replace(/self\./g, "");
+
+    // Replace buy and sell commands with return statements
+    cleanedPythonCode = cleanedPythonCode.replace(/buy\(\)/g, "return_statement = 'buy'");
+    cleanedPythonCode = cleanedPythonCode.replace(/sell\(\)/g, "return_statement = 'sell'");
+    cleanedPythonCode = cleanedPythonCode.replace(/current_equity\s*=\s*equity\s*\n/g, "");
+    // cleanedPythonCode = cleanedPythonCode.replace("\n", "");
+
+
       return (
         <div>
             <div className="header">
@@ -1197,9 +1255,9 @@ Blockly.Blocks['rsi_block'] = {
                   
                   {/* <div>
                     
-                    <h3>JavaScript</h3>
-                    <pre>{jsCode}</pre>
-                  </div> */}
+                    <h3>Clean Code</h3>
+                    <pre>{cleanedPythonCode}</pre>
+                  </div>  */}
                 </div>
                 <div className="choose-dataset">
                     <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />
@@ -1335,7 +1393,9 @@ Blockly.Blocks['rsi_block'] = {
                 {/* <p><b>*Plots only available for 4H and 1D timeframes for now.</b></p> */}
                                      
                <div ref={myPlotRef} id="myplot" className="bk-root"></div><br />
-              {/* {modelResult} */}
+              <p className="success-message">{modelProcess}</p>
+              <button className="btn btn-success download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
+              <p>Model ID: {modelID}</p>
               <p># Trades: {modelPerformance['# Trades']}</p>
               <p>Start: {modelPerformance.Start}</p>
               <p>End: {modelPerformance.End}</p>
