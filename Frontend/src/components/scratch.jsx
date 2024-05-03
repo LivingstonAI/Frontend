@@ -416,7 +416,7 @@ export default function ScratchInterFace () {
 
   pythonGenerator['forBlock']['check_position'] = function(block, generator) {
 
-    return [`self.position`, Order.NONE];
+    return [`self.position.size`, Order.NONE];
 
 };
 
