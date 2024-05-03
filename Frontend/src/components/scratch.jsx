@@ -1233,6 +1233,8 @@ Blockly.Blocks['rsi_block'] = {
     cleanedPythonCode = cleanedPythonCode.replace(/buy\(\)/g, "return_statement = 'buy'");
     cleanedPythonCode = cleanedPythonCode.replace(/sell\(\)/g, "return_statement = 'sell'");
     cleanedPythonCode = cleanedPythonCode.replace(/current_equity\s*=\s*equity\s*\n/g, "");
+    cleanedPythonCode = cleanedPythonCode.replace(/\(position\.size\)/g, "num_positions");
+
     // cleanedPythonCode = cleanedPythonCode.replace("\n", "");
 
 
@@ -1252,8 +1254,8 @@ Blockly.Blocks['rsi_block'] = {
                     <h3>Python</h3><br />
                     <pre>{generatedCode}</pre>
                   </div>
-                  
-                  {/* <div>
+{/*                   
+                  <div>
                     
                     <h3>Clean Code</h3>
                     <pre>{cleanedPythonCode}</pre>
