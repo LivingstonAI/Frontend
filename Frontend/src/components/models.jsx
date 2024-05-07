@@ -514,7 +514,7 @@ export default function Models() {
           // Create a link element
           const link = document.createElement('a');
           link.href = url;
-          link.download = 'risk-bot.ex5'; // Set the desired filename
+          link.download = 'model.ex5'; // Set the desired filename
       
           // Append the link to the body
           document.body.appendChild(link);

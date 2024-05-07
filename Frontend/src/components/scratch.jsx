@@ -1185,44 +1185,68 @@ Blockly.Blocks['rsi_block'] = {
       setInitCapital(e.target.value);
     };
 
-    const SaveModel = () => {
-      const min = 1000000; // Minimum 5-digit number
-      const max = 9999999; // Maximum 5-digit number
-      const magicNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-      console.log('Magic Number', magicNumber);
-      console.log('Model Code', cleanedPythonCode);
-      console.log('Initial Capital', initCapital);
-  
-      // Construct the request body
-      const requestBody = {
+    const SaveModel = async () => {
+      try {
+
+        setDownloadModel('Downloading Model...');
+        // Send the POST request to save the model
+        const min = 1000000; // Minimum 5-digit number
+        const max = 9999999; // Maximum 5-digit number
+        const magicNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+    
+        const requestBody = {
           model_id: magicNumber,
           model_code: cleanedPythonCode,
           true_initial_equity: initCapital
-      };
-  
-      console.log('Request Body', requestBody);
-  
-      // Send the POST request using fetch
-      setDownloadModel('Downloading Model...');
-      setModelID(magicNumber);
-      fetch(`${baseUrl}/save-genesys-model`, {
+        };
+
+        setModelID(magicNumber);
+
+    
+        const saveModelResponse = await fetch(`${baseUrl}/save-genesys-model`, {
           method: 'POST',
           headers: {
-              'Content-Type': 'application/json'
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(requestBody)
-      })
-      .then(response => response.json()) // Parse the JSON response
-      .then(data => {
-          console.log('Server Response:', data.message); // Log the message from Django
-          alert('Model Downloaded!');
-          setDownloadModel('Download Model');
-      })
-      .catch(error => {
-          console.error('Error saving model:', error);
-          setDownloadModel('Error occured');
-      });
-  };
+        });
+    
+        const saveModelData = await saveModelResponse.json();
+    
+        console.log('Server Response:', saveModelData.message);
+        
+        // Fetch the file content
+        const downloadResponse = await fetch(`${baseUrl}/download-mq4/trading-model`);
+        const fileBlob = await downloadResponse.blob();
+        
+        // Create a Blob from the file content
+        const blob = new Blob([fileBlob], { type: 'text/plain' });
+    
+        // Create a URL for the Blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a link element
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'model.ex5'; // Set the desired filename
+        
+        // Append the link to the body
+        document.body.appendChild(link);
+    
+        // Trigger the download
+        link.click();
+        
+        // Clean up and remove the link
+        document.body.removeChild(link);
+        // alert('Model Downloaded!');
+        setDownloadModel('Download Model');
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error occurred while downloading model.');
+        setDownloadModel('Download Model');
+      }
+    };
+    
   
     
     let cleanedPythonCode = '';
