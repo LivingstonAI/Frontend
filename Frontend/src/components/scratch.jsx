@@ -456,6 +456,73 @@ return [`self.position`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['support'] = function(block, generator) {
+
+
+  return [`is_support_level(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['support'] = function(block, generator) {
+
+return [`is_support_level(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['resistance'] = function(block, generator) {
+
+
+  return [`is_resistance_level(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['resistance'] = function(block, generator) {
+
+return [`is_resistance_level(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['uptrend'] = function(block, generator) {
+
+
+  return [`is_uptrend(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['uptrend'] = function(block, generator) {
+
+return [`is_uptrend(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['downtrend'] = function(block, generator) {
+
+
+  return [`is_downtrend(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['downtrend'] = function(block, generator) {
+
+return [`is_downtrend(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['ranging_market'] = function(block, generator) {
+
+
+  return [`is_ranging_market(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['ranging_market'] = function(block, generator) {
+
+return [`is_ranging_market(data=dataset)`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -795,6 +862,67 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+  Blockly.Blocks['support'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Support")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Support Level");
+      this.setHelpUrl("");
+    }
+  };
+  
+  Blockly.Blocks['resistance'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Resistance")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Resistance Level");
+      this.setHelpUrl("");
+    }
+  };
+  
+  Blockly.Blocks['uptrend'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Uptrend")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's an Uptrend");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['downtrend'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Downtrend")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's a Downtrend");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['ranging_market'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Ranging Market")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's a Ranging Market");
+      this.setHelpUrl("");
+    }
+  };
+
   
 
     const MY_TOOLBOX = {
@@ -1017,6 +1145,32 @@ Blockly.Blocks['rsi_block'] = {
               "type": "rsi_block" // Add the custom "RSI" block here
             }
             
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Other",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "support"
+            },
+            {
+              "kind": "block",
+              "type": "resistance"
+            },
+            {
+              "kind": "block",
+              "type": "uptrend"
+            },
+            {
+              "kind": "block",
+              "type": "downtrend"            
+            },
+            {
+              "kind": "block",
+              "type": "ranging_market"
+            }
           ]
         },
       ]
