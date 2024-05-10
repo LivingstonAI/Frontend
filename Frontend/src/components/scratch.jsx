@@ -1408,8 +1408,8 @@ Blockly.Blocks['rsi_block'] = {
     cleanedPythonCode = generatedCode.replace(/self\./g, "");
 
     // Replace buy and sell commands with return statements
-    cleanedPythonCode = cleanedPythonCode.replace(/buy\(\)/g, "return JsonResponse({'message': 'buy'})");
-    cleanedPythonCode = cleanedPythonCode.replace(/sell\(\)/g, "return JsonResponse({'message': 'sell'})");
+    cleanedPythonCode = cleanedPythonCode.replace(/buy\(\)/g, "return_statement = 'buy'");
+    cleanedPythonCode = cleanedPythonCode.replace(/sell\(\)/g, "return_statement = 'sell'");
     cleanedPythonCode = cleanedPythonCode.replace(/current_equity\s*=\s*equity\s*\n/g, "");
     cleanedPythonCode = cleanedPythonCode.replace(/\(position\.size\)/g, "num_positions");
 
@@ -1432,12 +1432,12 @@ Blockly.Blocks['rsi_block'] = {
                     <h3>Python</h3><br />
                     <pre>{generatedCode}</pre>
                   </div>
-{/*                   
+                  
                   <div>
                     
                     <h3>Clean Code</h3>
                     <pre>{cleanedPythonCode}</pre>
-                  </div>  */}
+                  </div> 
                 </div>
                 <div className="choose-dataset">
                     <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />
