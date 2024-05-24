@@ -1433,11 +1433,11 @@ Blockly.Blocks['rsi_block'] = {
                     <pre>{generatedCode}</pre>
                   </div>
                   
-                  <div>
+                  {/* <div>
                     
                     <h3>Clean Code</h3>
                     <pre>{cleanedPythonCode}</pre>
-                  </div> 
+                  </div>  */}
                 </div>
                 <div className="choose-dataset">
                     <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />

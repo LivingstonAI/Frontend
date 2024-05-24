@@ -1854,6 +1854,13 @@ th {
     max-width: 100%;
 }  
 
+.timezones {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
 
   @media (max-width: 730px) {
 
