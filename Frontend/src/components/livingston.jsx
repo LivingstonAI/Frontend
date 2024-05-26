@@ -211,15 +211,15 @@ export default function ChatBotInterface() {
         setGptMessages(messages);
         // console.log(`gpt messages are: ${gptMessages}`);
         // console.log(gptMessages)
+        // Your job is to assist me as I trade.
+        // My context: ${JSON.stringify(tellUsMore)}
+        // My Trades: ${JSON.stringify(trades)}
+        // News Data: ${JSON.stringify(newsData)}
         
         const systemMessage = {
             role: "system",
             content: `
             Your name is Livingston. You are an intelligent investment assistant.
-              Your job is to assist me as I trade.
-              My context: ${JSON.stringify(tellUsMore)}
-              My Trades: ${JSON.stringify(trades)}
-              News Data: ${JSON.stringify(newsData)}
 
               My name is Tlotlo Motingwe. I am 21 years old. I have built a this trading system that uses your api. 
               I have integrated the ability the view different news articles on the platform and send them to you 
