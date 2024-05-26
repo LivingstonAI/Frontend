@@ -302,7 +302,7 @@ export default function ChatBotInterface() {
         
         const filteredMessages = apiMessages.filter(message => typeof message.content === 'string');
         const apiRequestBody = {
-            "model": "gpt-4-1106-preview",
+            "model": "gpt-4o",
             "messages": [
                 systemMessage,
                 ...filteredMessages
