@@ -522,6 +522,31 @@ return [`is_ranging_market(data=dataset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['asian_range_buy'] = function(block, generator) {
+
+
+  return [`is_asian_range_buy(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['asian_range_buy'] = function(block, generator) {
+
+return [`is_asian_range_buy(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['asian_range_sell'] = function(block, generator) {
+
+
+  return [`is_asian_range_sell(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['asian_range_sell'] = function(block, generator) {
+
+return [`is_asian_range_sell(asset=asset)`, Order.NONE];
+
+};
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -923,6 +948,29 @@ Blockly.Blocks['rsi_block'] = {
     }
   };
 
+  Blockly.Blocks['asian_range_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Asian Range Buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's an Asian Range Buy");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['asian_range_sell'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Asian Range Sell")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's an Asian Range Sell");
+      this.setHelpUrl("");
+    }
+  };
   
 
     const MY_TOOLBOX = {
@@ -1170,6 +1218,14 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "ranging_market"
+            },
+            {
+              "kind": "block",
+              "type": "asian_range_buy"
+            }, 
+            {
+              "kind": "block",
+              "type": "asian_range_sell"
             }
           ]
         },
@@ -1566,7 +1622,10 @@ Blockly.Blocks['rsi_block'] = {
               <br /><br />
             </div>
             </div><br /><br />
-
+            <div className="model-performance">
+            <button className="btn btn-success download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
+            <p>Model ID: {modelID}</p>
+            </div>
             {modelPerformance && (
                 
               <div className="model-performance">
@@ -1574,8 +1633,6 @@ Blockly.Blocks['rsi_block'] = {
                                      
                <div ref={myPlotRef} id="myplot" className="bk-root"></div><br />
               <p className="success-message">{modelProcess}</p>
-              <button className="btn btn-success download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
-              <p>Model ID: {modelID}</p>
               <p># Trades: {modelPerformance['# Trades']}</p>
               <p>Start: {modelPerformance.Start}</p>
               <p>End: {modelPerformance.End}</p>
