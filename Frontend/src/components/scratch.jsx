@@ -1468,9 +1468,12 @@ Blockly.Blocks['rsi_block'] = {
     cleanedPythonCode = cleanedPythonCode.replace(/sell\(\)/g, "return_statement = 'sell'");
     cleanedPythonCode = cleanedPythonCode.replace(/current_equity\s*=\s*equity\s*\n/g, "");
     cleanedPythonCode = cleanedPythonCode.replace(/\(position\.size\)/g, "num_positions");
+    cleanedPythonCode = cleanedPythonCode.replace("set_take_profit(number=2, type_of_setting='PERCENTAGE')", "");
+    cleanedPythonCode = cleanedPythonCode.replace("set_stop_loss(number=1, type_of_setting='PERCENTAGE')", "")
 
     // cleanedPythonCode = cleanedPythonCode.replace("\n", "");
 
+  
 
       return (
         <div>
@@ -1480,7 +1483,7 @@ Blockly.Blocks['rsi_block'] = {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">  <br />
-                <h5>Genesys Interface:</h5><br />
+                <h5>Genesys Interface</h5><br />
                 <h2>Generated Code:</h2>
                 <div className="generated-code-example">
                 
@@ -1489,11 +1492,11 @@ Blockly.Blocks['rsi_block'] = {
                     <pre>{generatedCode}</pre>
                   </div>
                   
-                  {/* <div>
+                  <div>
                     
                     <h3>Clean Code</h3>
                     <pre>{cleanedPythonCode}</pre>
-                  </div>  */}
+                  </div> 
                 </div>
                 <div className="choose-dataset">
                     <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />

@@ -73,7 +73,7 @@ export default function TradingHistory() {
             <SideNavs />
             {/* <TradingHistoryLinks /> */}
             <div className="trading-history-analytics">
-                <h5>Trading History Analytics:</h5>
+                <h5>Trading History Analytics</h5>
                 <div className="top-history-header">
                     <div>
                         <h6>Equity Amount</h6>

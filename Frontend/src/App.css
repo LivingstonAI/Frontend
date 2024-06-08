@@ -1861,6 +1861,10 @@ th {
     padding-right: 50px;
 }
 
+.genesys-model-performance {
+    padding-left: 25px;
+}
+
 
   @media (max-width: 730px) {
 

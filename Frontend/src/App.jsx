@@ -28,6 +28,9 @@ import MarketMakers from './components/quant_analysis';
 import RiskBot from './components/risk_bot';
 import Photo from './components/photo';
 import ScratchInterFace from './components/scratch';
+import ModelPerformance from './components/model_performance';
+
+
 import Legodi from './components/legodi';
 import OrderTab from './components/order_tab';
 // import GeofenceMap from './components/map';
@@ -73,6 +76,7 @@ function App() {
         <Route path='/risk_bot' element={<RiskBot />}></Route>
         <Route path='/photo' element={<Photo />}></Route>
         <Route path='/scratch' element={<ScratchInterFace />}></Route>
+        <Route path='/model_performance' element={<ModelPerformance />}></Route>
         
         <Route path='/legodi' element={<Legodi />}></Route>
         <Route path='/order_tab' element={<OrderTab />}></Route>
