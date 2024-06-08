@@ -65,7 +65,7 @@ const handleToggleModelCode = (index) => {
                         <p>Volume: {model.volume}</p>
                         <p>Type of Trade: {model.type_of_trade}</p>
                         <p>Timeframe: {model.timeframe}</p>
-                        {showModelIndex === index && <p>Model Code: {model.model_code}</p>}
+                        {showModelIndex === index && <p>Model Code: <br /> {model.model_code}</p>}
                         <button onClick={() => handleToggleModelCode(index)} className="btn btn-primary">
                             {showModelIndex === index ? "Hide Model Code" : "View Model Code"}
                         </button>
