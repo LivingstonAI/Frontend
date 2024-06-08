@@ -30,11 +30,7 @@ export default function ModelPerformance () {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5>Model Performance</h5><br />
-<<<<<<< HEAD
                     <h5>Loading...</h5>
-=======
-                    <p>Loading...</p>
->>>>>>> origin/main
                     </div>
                     </div>
         </div>;
