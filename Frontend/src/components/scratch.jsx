@@ -547,6 +547,23 @@ javascriptGenerator['forBlock']['asian_range_sell'] = function(block, generator)
 return [`is_asian_range_sell(asset=asset)`, Order.NONE];
 
 };
+// fibonacci_level
+pythonGenerator['forBlock']['fibonacci_level'] = function(block, generator) {
+
+  const trend = block['inputList'][1]['fieldRow'][1]['selectedOption'][1].toLowerCase();
+  const level = block['inputList'][2]['fieldRow'][1]['selectedOption'][1].toLowerCase();
+  // console.log(block['inputList'][2]['fieldRow'][1]['selectedOption'][1]);
+  // console.log(`Trend: ${trend}`);
+  // console.log(`Level: ${level}`);
+  return [`is_fibonacci_level(data=dataset, trend='${trend}', level=${level})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['fibonacci_level'] = function(block, generator) {
+
+return [`is_fibonacci_level(df=dataset, trend=trend, level=level)`, Order.NONE];
+
+};
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -971,6 +988,35 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+  Blockly.Blocks['fibonacci_level'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Fibonacci Level")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.appendDummyInput()
+          .appendField("Trend")
+          .appendField(new Blockly.FieldDropdown([
+            ["Uptrend", "UPTREND"],
+            ["Downtrend", "DOWNTREND"]
+          ]), "TREND");
+      this.appendDummyInput()
+          .appendField("Level")
+          .appendField(new Blockly.FieldDropdown([
+            ["0", "0"],
+            ["23.6", "23.6"],
+            ["38.2", "38.2"],
+            ["50", "50"],
+            ["61.8", "61.8"],
+            ["100", "100"]
+          ]), "LEVEL");
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Checks the Fibonacci level for the specified trend.");
+      this.setHelpUrl("");
+    }
+  };
+  
   
 
     const MY_TOOLBOX = {
@@ -1226,6 +1272,10 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "asian_range_sell"
+            },
+            {
+              "kind": "block",
+              "type": "fibonacci_level"
             }
           ]
         },
