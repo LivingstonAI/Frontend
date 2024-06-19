@@ -78,7 +78,7 @@ export default function ModelPerformance () {
                         onChange={handleFilterChange}
                         className="filter-input form-control"
                     /><br />
-                    <button onClick={handleCalculateTotalProfitLoss} className="btn btn-primary calculate-pl-button">Calculate Total Profit/Loss</button><br />
+                    <button onClick={handleCalculateTotalProfitLoss} className="btn btn-primary calculate-pl-button">Calculate Total Profit/Loss</button><br /><br />
                     {totalProfitLoss !== null && <p>Total Profit/Loss: {totalProfitLoss}</p>}
                     <hr />
                     {filteredModels.map((model, index) => (
