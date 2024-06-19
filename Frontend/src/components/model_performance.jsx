@@ -5,7 +5,10 @@ import Cookies from 'js-cookie';
 
 export default function ModelPerformance () {
     const [modelsData, setModelsData] = useState([]);
-    const [showModelCode, setShowModelCode] = useState(null);
+    const [filteredModels, setFilteredModels] = useState([]);
+    const [filterValue, setFilterValue] = useState('');
+    const [showModelIndex, setShowModelIndex] = useState(null);
+    const [totalProfitLoss, setTotalProfitLoss] = useState(null);
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
@@ -17,16 +20,30 @@ export default function ModelPerformance () {
             }
         })
         .then(response => response.json())
-        .then(data => setModelsData(data))
+        .then(data => {
+            setModelsData(data);
+            setFilteredModels(data);
+        })
         .catch(error => console.error('Error fetching model performance:', error));
     }, []);
 
-    const [showModelIndex, setShowModelIndex] = useState(null);
+    const handleToggleModelCode = (index) => {
+        setShowModelIndex(prevIndex => prevIndex === index ? null : index);
+    };
 
-const handleToggleModelCode = (index) => {
-    setShowModelIndex(prevIndex => prevIndex === index ? null : index);
-};
+    const handleFilterChange = (event) => {
+        setFilterValue(event.target.value);
+        if (event.target.value === '') {
+            setFilteredModels(modelsData);
+        } else {
+            setFilteredModels(modelsData.filter(model => model.model_id.toString().includes(event.target.value)));
+        }
+    };
 
+    const handleCalculateTotalProfitLoss = () => {
+        const total = filteredModels.reduce((acc, model) => acc + parseFloat(model.profit), 0);
+        setTotalProfitLoss(total);
+    };
 
     if (modelsData.length === 0) {
         return (
@@ -54,24 +71,33 @@ const handleToggleModelCode = (index) => {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5>Model Performance</h5><br />
+                    <input
+                        type="text"
+                        placeholder="Filter by Model ID"
+                        value={filterValue}
+                        onChange={handleFilterChange}
+                        className="filter-input form-control"
+                    /><br />
+                    <button onClick={handleCalculateTotalProfitLoss} className="btn btn-primary calculate-pl-button">Calculate Total Profit/Loss</button><br />
+                    {totalProfitLoss !== null && <p>Total Profit/Loss: {totalProfitLoss}</p>}
                     <hr />
-                    {modelsData.map((model, index) => (
-                    <div key={model.model_id} className="genesys-model-performance">
-                        <p>Model ID: {model.model_id}</p>
-                        <p>Initial Equity: {model.initial_equity}</p>
-                        <p>Order Ticket: {model.order_ticket}</p>
-                        <p>Asset: {model.asset}</p>
-                        <p>Profit: {model.profit}</p>
-                        <p>Volume: {model.volume}</p>
-                        <p>Type of Trade: {model.type_of_trade}</p>
-                        <p>Timeframe: {model.timeframe}</p>
-                        {showModelIndex === index && <p>Model Code: <br /> {model.model_code}</p>}
-                        <button onClick={() => handleToggleModelCode(index)} className="btn btn-primary">
-                            {showModelIndex === index ? "Hide Model Code" : "View Model Code"}
-                        </button>
-                        <hr />
-                    </div>
-                ))}
+                    {filteredModels.map((model, index) => (
+                        <div key={model.model_id} className="genesys-model-performance">
+                            <p>Model ID: {model.model_id}</p>
+                            <p>Initial Equity: {model.initial_equity}</p>
+                            <p>Order Ticket: {model.order_ticket}</p>
+                            <p>Asset: {model.asset}</p>
+                            <p>Profit: {model.profit}</p>
+                            <p>Volume: {model.volume}</p>
+                            <p>Type of Trade: {model.type_of_trade}</p>
+                            <p>Timeframe: {model.timeframe}</p>
+                            {showModelIndex === index && <p>Model Code: <br /> {model.model_code}</p>}
+                            <button onClick={() => handleToggleModelCode(index)} className="btn btn-primary">
+                                {showModelIndex === index ? "Hide Model Code" : "View Model Code"}
+                            </button>
+                            <hr />
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

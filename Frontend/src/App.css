@@ -1865,6 +1865,9 @@ th {
     padding-left: 25px;
 }
 
+.filter-input {
+    width: 50%;
+}
 
   @media (max-width: 730px) {
 
@@ -2326,6 +2329,11 @@ th {
 .model-performance {
     padding: 5px 5px;
 }
+
+.filter-input, .calculate-pl-button {
+    width: 100%;
+}
+
 
 }
 
