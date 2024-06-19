@@ -82,7 +82,7 @@ export default function TradingHistory() {
                     
                     <div>
                         <h6>Profit</h6>
-                        <p>{analyticsData.profit >= 0 ? `+R${analyticsData.profit}` : `R${analyticsData.profit}`}</p>
+                        <p>{analyticsData.profit >= 0 ? `+$${analyticsData.profit}` : `$${analyticsData.profit}`}</p>
                     </div>
 
                     <div>
