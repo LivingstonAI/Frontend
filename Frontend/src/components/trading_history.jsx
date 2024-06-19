@@ -77,7 +77,7 @@ export default function TradingHistory() {
                 <div className="top-history-header">
                     <div>
                         <h6>Equity Amount</h6>
-                        <p>R{analyticsData.equity_amount}</p>
+                        <p>${analyticsData.equity_amount}</p>
                     </div>
                     
                     <div>
