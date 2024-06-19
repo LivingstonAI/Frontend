@@ -71,6 +71,7 @@ export default function ModelPerformance () {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5>Model Performance</h5><br />
+                    <p>Filter by Model ID</p><br />
                     <input
                         type="text"
                         placeholder="Filter by Model ID"
