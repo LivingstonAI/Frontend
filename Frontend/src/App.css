@@ -1874,11 +1874,36 @@ th {
     text-align: center;
 }
 
+.model-performance-summary {
+    display: flex;
+    padding-left: 25px;
+}
+
+.model-summary-chart {
+    height: 300px;
+    width: 60%;
+    position: relative;
+}
+
+.model-performance-metrics {
+    text-align: left;
+}
+
 
   @media (max-width: 730px) {
 
     .containers {
         width: 100%;
+    }
+
+    .model-performance-summary {
+        display: block;
+    }
+
+    .model-summary-chart {
+        height: 300px;
+        width: 100%;
+        position: relative;
     }
     
     .form-content .login-form,
@@ -1900,6 +1925,16 @@ th {
     /* .generated-code-example div {
         max-width: 100%;
     } */
+
+    .model-performance-summary {
+        display: block;
+    }
+
+    .model-summary-chart {
+        height: 300px;
+        width: 100%;
+        position: relative;
+    }
 
     .book-order-div {
         left: 0px;
