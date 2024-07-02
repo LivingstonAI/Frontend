@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
+import { format } from 'date-fns';
 
 export default function ModelPerformance () {
     const [modelsData, setModelsData] = useState([]);
@@ -23,6 +24,7 @@ export default function ModelPerformance () {
         .then(data => {
             setModelsData(data);
             setFilteredModels(data);
+            console.log(data);
         })
         .catch(error => console.error('Error fetching model performance:', error));
     }, []);
@@ -43,6 +45,11 @@ export default function ModelPerformance () {
     const handleCalculateTotalProfitLoss = () => {
         const total = filteredModels.reduce((acc, model) => acc + parseFloat(model.profit), 0);
         setTotalProfitLoss(total);
+    };
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return format(date, 'EEEE, d MMMM yyyy');
     };
 
     if (modelsData.length === 0) {
@@ -92,6 +99,7 @@ export default function ModelPerformance () {
                             <p>Volume: {model.volume}</p>
                             <p>Type of Trade: {model.type_of_trade}</p>
                             <p>Timeframe: {model.timeframe}</p>
+                            <p>Date Taken: {formatDate(model.date_taken)}</p>
                             {showModelIndex === index && <p>Model Code: <br /> {model.model_code}</p>}
                             <button onClick={() => handleToggleModelCode(index)} className="btn btn-primary">
                                 {showModelIndex === index ? "Hide Model Code" : "View Model Code"}
