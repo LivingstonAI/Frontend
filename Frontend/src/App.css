@@ -1869,6 +1869,12 @@ th {
     width: 50%;
 }
 
+
+.model-dates {
+    text-align: center;
+}
+
+
   @media (max-width: 730px) {
 
     .containers {

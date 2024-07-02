@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
-export default function ModelPerformance () {
+export default function ModelPerformance() {
     const [modelsData, setModelsData] = useState([]);
     const [filteredModels, setFilteredModels] = useState([]);
     const [filterValue, setFilterValue] = useState('');
@@ -20,13 +20,13 @@ export default function ModelPerformance () {
                 'X-CSRFToken': Cookies.get('csrftoken') // Ensure CSRF token is sent with the request if required
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            setModelsData(data);
-            setFilteredModels(data);
-            console.log(data);
-        })
-        .catch(error => console.error('Error fetching model performance:', error));
+            .then(response => response.json())
+            .then(data => {
+                setModelsData(data);
+                setFilteredModels(data);
+                console.log(data);
+            })
+            .catch(error => console.error('Error fetching model performance:', error));
     }, []);
 
     const handleToggleModelCode = (index) => {
@@ -48,9 +48,22 @@ export default function ModelPerformance () {
     };
 
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
+        const date = parseISO(dateString);
         return format(date, 'EEEE, d MMMM yyyy');
     };
+
+    const groupModelsByDate = (models) => {
+        return models.reduce((groupedModels, model) => {
+            const formattedDate = formatDate(model.date_taken);
+            if (!groupedModels[formattedDate]) {
+                groupedModels[formattedDate] = [];
+            }
+            groupedModels[formattedDate].push(model);
+            return groupedModels;
+        }, {});
+    };
+
+    const groupedModels = groupModelsByDate(filteredModels);
 
     if (modelsData.length === 0) {
         return (
@@ -87,24 +100,29 @@ export default function ModelPerformance () {
                         className="filter-input form-control"
                     /><br />
                     <button onClick={handleCalculateTotalProfitLoss} className="btn btn-primary calculate-pl-button">Calculate Total Profit/Loss</button><br /><br />
-                    {totalProfitLoss !== null && <p>Total Profit/Loss: {totalProfitLoss}</p>}
-                    <hr />
-                    {filteredModels.map((model, index) => (
-                        <div key={model.model_id} className="genesys-model-performance">
-                            <p>Model ID: {model.model_id}</p>
-                            <p>Initial Equity: {model.initial_equity}</p>
-                            <p>Order Ticket: {model.order_ticket}</p>
-                            <p>Asset: {model.asset}</p>
-                            <p>Profit: {model.profit}</p>
-                            <p>Volume: {model.volume}</p>
-                            <p>Type of Trade: {model.type_of_trade}</p>
-                            <p>Timeframe: {model.timeframe}</p>
-                            <p>Date Taken: {formatDate(model.date_taken)}</p>
-                            {showModelIndex === index && <p>Model Code: <br /> {model.model_code}</p>}
-                            <button onClick={() => handleToggleModelCode(index)} className="btn btn-primary">
-                                {showModelIndex === index ? "Hide Model Code" : "View Model Code"}
-                            </button>
+                    {totalProfitLoss !== null && <p>Total Profit/Loss: {totalProfitLoss}</p>} 
+                    {Object.keys(groupedModels).map((date, index) => (
+                        <div key={index}>
+                            <h5 className="model-dates">{date}</h5>
                             <hr />
+                            {groupedModels[date].map((model, modelIndex) => (
+                                <div key={model.model_id} className="genesys-model-performance">
+                                    <p>Model ID: {model.model_id}</p>
+                                    <p>Initial Equity: {model.initial_equity}</p>
+                                    <p>Order Ticket: {model.order_ticket}</p>
+                                    <p>Asset: {model.asset}</p>
+                                    <p>Profit: {model.profit}</p>
+                                    <p>Volume: {model.volume}</p>
+                                    <p>Type of Trade: {model.type_of_trade}</p>
+                                    <p>Timeframe: {model.timeframe}</p>
+                                    <p>Date Taken: {formatDate(model.date_taken)}</p>
+                                    {showModelIndex === modelIndex && <p>Model Code: <br /> {model.model_code}</p>}
+                                    <button onClick={() => handleToggleModelCode(modelIndex)} className="btn btn-primary">
+                                        {showModelIndex === modelIndex ? "Hide Model Code" : "View Model Code"}
+                                    </button>
+                                    <hr />
+                                </div>
+                            ))}
                         </div>
                     ))}
                 </div>
