@@ -13,6 +13,9 @@ export default function ModelPerformance() {
     const [showModelIndex, setShowModelIndex] = useState(null);
     const [totalProfitLoss, setTotalProfitLoss] = useState(null);
     const [equityChart, setEquityChart] = useState(null);
+    const [overallReturn, setOverallReturn] = useState(0);
+    const [winRate, setWinRate] = useState(0);
+    const [lossRate, setLossRate] = useState(0);
     const chartContainer = useRef(null); // useRef hook for Canvas element
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -78,13 +81,45 @@ export default function ModelPerformance() {
         setShowModelIndex(prevIndex => prevIndex === index ? null : index);
     };
 
+    
     const handleFilterChange = (event) => {
         const { value } = event.target;
         setFilterValue(value);
+    
         // Filter models based on model_id matching filterValue
         const filtered = modelsData.filter(model => model.model_id.toString().includes(value));
         setFilteredModels(filtered);
+    
+        // Extract profits into an array and filter out -1 values
+        const profitsArray = filtered
+            .map(model => parseFloat(model.profit))
+            .filter(profit => profit !== -1);
+        
+        // Calculate total profit
+        const totalProfit = profitsArray.reduce((acc, profit) => acc + profit, 0);
+        setOverallReturn(totalProfit);
+    
+        // Initialize counters for wins and losses
+        let numWins = 0;
+        let numLosses = 0;
+    
+        // Loop over profitsArray to count wins and losses
+        profitsArray.forEach(profit => {
+            if (profit > 0) {
+                numWins++;
+            } else if (profit < 0) {
+                numLosses++;
+            }
+        });
+    
+        let totalTrades = numWins + numLosses;
+        let winPercentage = (numWins / (totalTrades)) * 100;
+        let lossPercentage = (numLosses / (totalTrades)) * 100;
+        setWinRate(winPercentage);
+        setLossRate(lossPercentage);
     };
+    
+    
 
     const handleCalculateTotalProfitLoss = () => {
         const total = filteredModels.reduce((acc, model) => acc + parseFloat(model.profit), 0);
@@ -96,8 +131,9 @@ export default function ModelPerformance() {
         // Filter models by modelId and extract profits
         const filteredProfits = filteredModels
             .filter(model => model.model_id.toString() === modelId)
-            .map(model => parseFloat(model.profit));
-    
+
+            .map(model => parseFloat(model.profit))
+            .filter(profit => profit !== -1);
     
         return filteredProfits;
     };
@@ -129,6 +165,8 @@ export default function ModelPerformance() {
     };
 
     const groupedModels = groupModelsByDate(filteredModels);
+
+    const sortedDates = Object.keys(groupedModels).sort((a, b) => new Date(b) - new Date(a));
 
     if (modelsData.length === 0) {
         return (
@@ -175,12 +213,12 @@ export default function ModelPerformance() {
                             <p>Worst Weekday: Tuesday</p>
                             <p>Best Timeframe: 1d</p>
                             <p>Worst Timeframe: 1H</p>
-                            <p>Win Rate: 50%</p>
-                            <p>Loss Rate: 50%</p>
-                            <p>Overall Return: $1000</p>
+                            <p>Win Rate: {winRate}%</p>
+                            <p>Loss Rate: {lossRate}%</p>
+                            <p>Overall Return: ${overallReturn}</p>
                         </div>
                     </div><br />
-                    {Object.keys(groupedModels).map((date, index) => (
+                    {sortedDates.map((date, index) => (
                         <div key={index}>
                             <h5 className="model-dates">{date}</h5>
                             <hr />
@@ -200,7 +238,6 @@ export default function ModelPerformance() {
                                         {showModelIndex === modelIndex ? "Hide Model Code" : "View Model Code"}
                                     </button>
                                     <hr />
-                                   
                                 </div>
                             ))}
                         </div>
