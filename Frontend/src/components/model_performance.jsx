@@ -218,10 +218,6 @@ export default function ModelPerformance() {
                             <canvas ref={chartContainer}></canvas>
                         </div>
                         <div className="model-performance-metrics">
-                            <p>Best Weekday: Monday</p>
-                            <p>Worst Weekday: Tuesday</p>
-                            <p>Best Timeframe: 1d</p>
-                            <p>Worst Timeframe: 1H</p>
                             <p>Win Rate: {winRate}%</p>
                             <p>Loss Rate: {lossRate}%</p>
                             <p>Overall Return: ${overallReturn}</p>
