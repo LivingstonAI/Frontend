@@ -18,6 +18,7 @@ export default function ModelPerformance() {
     const [lossRate, setLossRate] = useState(0);
     const chartContainer = useRef(null); // useRef hook for Canvas element
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [showModelSummary, setShowModelSummary] = useState(false);
 
     useEffect(() => {
         fetch(`${baseUrl}/get-model-performance`, {
@@ -85,6 +86,13 @@ export default function ModelPerformance() {
     const handleFilterChange = (event) => {
         const { value } = event.target;
         setFilterValue(value);
+        console.log('Filter Value', value);
+    
+        // Check if any model_id is exactly equal to filterValue
+        const modelFound = modelsData.some(model => model.model_id === parseInt(value));
+    
+        console.log('Model Found:', modelFound);
+        setShowModelSummary(modelFound);
     
         // Filter models based on model_id matching filterValue
         const filtered = modelsData.filter(model => model.model_id.toString().includes(value));
@@ -113,12 +121,11 @@ export default function ModelPerformance() {
         });
     
         let totalTrades = numWins + numLosses;
-        let winPercentage = (numWins / (totalTrades)) * 100;
-        let lossPercentage = (numLosses / (totalTrades)) * 100;
+        let winPercentage = (numWins / totalTrades) * 100;
+        let lossPercentage = (numLosses / totalTrades) * 100;
         setWinRate(winPercentage);
         setLossRate(lossPercentage);
     };
-    
     
 
     const handleCalculateTotalProfitLoss = () => {
@@ -204,6 +211,8 @@ export default function ModelPerformance() {
                     /><br />
                     <button onClick={handleCalculateTotalProfitLoss} className="btn btn-primary calculate-pl-button">Calculate Total Profit/Loss</button><br /><br />
                     {totalProfitLoss !== null && <p>Total Profit/Loss: {totalProfitLoss}</p>} 
+                    {/* Conditional rendering based on showModelSummary */}
+                {showModelSummary && (
                     <div className="model-performance-summary">
                         <div className="model-summary-chart">
                             <canvas ref={chartContainer}></canvas>
@@ -217,7 +226,9 @@ export default function ModelPerformance() {
                             <p>Loss Rate: {lossRate}%</p>
                             <p>Overall Return: ${overallReturn}</p>
                         </div>
-                    </div><br />
+                    </div>
+                )}
+                <br />
                     {sortedDates.map((date, index) => (
                         <div key={index}>
                             <h5 className="model-dates">{date}</h5>
