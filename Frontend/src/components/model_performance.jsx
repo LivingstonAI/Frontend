@@ -217,7 +217,11 @@ export default function ModelPerformance() {
                         <div className="model-summary-chart">
                             <canvas ref={chartContainer}></canvas>
                         </div>
+                        {/* Filter Value here is the model id that I insert into the input */}
                         <div className="model-performance-metrics">
+                            <br />
+                            <br />
+                            <p>Model ID: {filterValue}</p>
                             <p>Win Rate: {winRate}%</p>
                             <p>Loss Rate: {lossRate}%</p>
                             <p>Overall Return: ${overallReturn}</p>
