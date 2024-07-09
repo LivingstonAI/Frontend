@@ -565,6 +565,34 @@ return [`is_fibonacci_level(df=dataset, trend=trend, level=level)`, Order.NONE];
 
 };
 
+
+pythonGenerator['forBlock']['ote_buy'] = function(block, generator) {
+
+
+  return [`is_ote_buy(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['ote_buy'] = function(block, generator) {
+
+return [`is_ote_buy(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['ote_sell'] = function(block, generator) {
+
+
+  return [`is_ote_sell(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['ote_sell'] = function(block, generator) {
+
+return [`is_ote_sell(asset=asset)`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -1016,6 +1044,30 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+  Blockly.Blocks['ote_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Optimal Trade Entry Buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's an Optimal Trade Entry Buy");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['ote_sell'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Optimal Trade Entry Sell")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's an Optimal Trade Entry Sell");
+      this.setHelpUrl("");
+    }
+  };
   
   
 
@@ -1276,6 +1328,14 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "fibonacci_level"
+            },
+            {
+              "kind": "block",
+              "type": "ote_buy"
+            },
+            {
+              "kind": "block",
+              "type": "ote_sell"
             }
           ]
         },
