@@ -593,6 +593,35 @@ return [`is_ote_sell(asset=asset)`, Order.NONE];
 };
 
 
+
+pythonGenerator['forBlock']['bullish_orderblock'] = function(block, generator) {
+
+
+  return [`is_bullish_orderblock(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['bullish_orderblock'] = function(block, generator) {
+
+return [`is_bullish_orderblock(asset=asset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['bearish_orderblock'] = function(block, generator) {
+
+
+  return [`is_bearish_orderblock(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['bearish_orderblock'] = function(block, generator) {
+
+return [`is_bearish_orderblock(asset=asset)`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -1068,6 +1097,32 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+
+  Blockly.Blocks['bullish_orderblock'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Bullish Orderblock")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's a Bullish Orderblock");
+      this.setHelpUrl("");
+    }
+  };
+
+  
+  Blockly.Blocks['bearish_orderblock'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Bearish Orderblock")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's a Bearish Orderblock");
+      this.setHelpUrl("");
+    }
+  };
   
   
 
@@ -1336,6 +1391,14 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "ote_sell"
+            },
+            {
+              "kind": "block",
+              "type": "bullish_orderblock"
+            },
+            {
+              "kind": "block",
+              "type": "bearish_orderblock"
             }
           ]
         },
