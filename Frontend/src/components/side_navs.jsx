@@ -39,8 +39,8 @@ export default function SideNavs() {
                 {/* <Link to="#" className="side-nav"><p><i className="bi bi-book"></i>Books</p></Link> */}
                 <Link to='/daily_brief' className="side-nav"><button className="btn btn-light side-nave-btn"><p><i className="bi bi-briefcase-fill"></i> Daily Brief</p></button></Link>
                 <Link to="/update_news" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-newspaper"></i> Update News</p></button></Link>
-                <Link to="/all_trades" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-info-circle-fill"></i> Enter Trades</p></button></Link>
-                <Link to="/scratch" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i> Create Models</p></button></Link>
+                <Link to="/all_trades" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-info-circle-fill"></i> Trade Update</p></button></Link>
+                <Link to="/scratch" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i> Model Lab</p></button></Link>
                 <Link to="/model_performance" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pen-fill"></i> Performances</p></button></Link>
                 {/* <Link to="/payment" className="side-nav"><i class="bi bi-credit-card-fill"></i>Market Dictionary</Link> */}
         </div>
