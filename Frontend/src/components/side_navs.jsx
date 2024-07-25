@@ -34,10 +34,10 @@ export default function SideNavs() {
         <div className="side-navs trading-history-links">
                 <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person"></i>Personal Info</p></button></Link>
               <Link to="/trading_history_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i> Analytics</p></button></Link>
-                <Link to="/market_makers" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-journal-bookmark-fill"></i> Market Makers</p></button></Link>
+                <Link to="/market_makers" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-journal-bookmark-fill"></i> Macros</p></button></Link>
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-chat-square-dots"></i> ChatBot</p></button></Link>
                 {/* <Link to="#" className="side-nav"><p><i className="bi bi-book"></i>Books</p></Link> */}
-                <Link to='/daily_brief' className="side-nav"><button className="btn btn-light side-nave-btn"><p><i className="bi bi-briefcase-fill"></i>Daily Brief</p></button></Link>
+                <Link to='/daily_brief' className="side-nav"><button className="btn btn-light side-nave-btn"><p><i className="bi bi-briefcase-fill"></i> Daily Brief</p></button></Link>
                 <Link to="/update_news" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-newspaper"></i> Update News</p></button></Link>
                 <Link to="/all_trades" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-info-circle-fill"></i> Enter Trades</p></button></Link>
                 <Link to="/scratch" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i> Create Models</p></button></Link>
