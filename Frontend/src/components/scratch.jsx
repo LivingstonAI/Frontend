@@ -611,13 +611,13 @@ return [`is_bullish_orderblock(asset=asset)`, Order.NONE];
 pythonGenerator['forBlock']['bearish_orderblock'] = function(block, generator) {
 
 
-  return [`is_bearish_orderblock(asset=asset)`, Order.NONE];
+  return [`is_bearish_orderblock(asset=asset, timeframe=interval)`, Order.NONE];
 
 };
 
 javascriptGenerator['forBlock']['bearish_orderblock'] = function(block, generator) {
 
-return [`is_bearish_orderblock(asset=asset)`, Order.NONE];
+return [`is_bearish_orderblock(asset=asset, timeframe=interval)`, Order.NONE];
 
 };
 
