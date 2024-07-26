@@ -1478,6 +1478,13 @@ th {
 }
 
 
+.daily-brief-div {
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+
+
 /* Legodi Technologies CSS */
 
 .legodi-body {
@@ -1904,6 +1911,11 @@ th {
         height: 300px;
         width: 100%;
         position: relative;
+    }
+
+    .daily-brief-div {
+        padding-left: 30px;
+        padding-right: 30px;
     }
     
     .form-content .login-form,

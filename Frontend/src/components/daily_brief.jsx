@@ -4,7 +4,7 @@ import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
 export default function DailyBrief() {
-    const [dailyBriefData, setDailyBriefData] = useState(null);
+    const [dailyBriefData, setDailyBriefData] = useState([]);
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
@@ -30,15 +30,20 @@ export default function DailyBrief() {
                 <div className="main-body-info">
                     <h5>Daily Brief</h5>
                     <hr />
-                    {dailyBriefData ? (
-                        <>
-                            <p>Asset: {dailyBriefData.asset}</p>
-                            <p>{dailyBriefData.summary}</p>
-                            <p>{new Date(dailyBriefData.last_update).toLocaleString()}</p>
-                        </>
-                    ) : (
-                        <p>Loading...</p>
-                    )}
+                    <div className="daily-brief-div">
+                        {dailyBriefData.length > 0 ? (
+                            dailyBriefData.map((brief, index) => (
+                                <div key={index}>
+                                    <p><b>Asset</b>: {brief.asset}</p>
+                                    <p><b>Summary</b>: <br />{brief.summary}</p>
+                                    <p><b>Latest Update</b>: {new Date(brief.last_update).toLocaleString()}</p>
+                                    <hr />
+                                </div>
+                            ))
+                        ) : (
+                            <p>Loading...</p>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
