@@ -8,7 +8,7 @@ export default function DailyBrief() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
-        fetch('/fetch-daily-brief-data', {
+        fetch(`${baseUrl}/fetch-daily-brief-data`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
