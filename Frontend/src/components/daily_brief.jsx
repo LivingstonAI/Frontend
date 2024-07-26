@@ -8,6 +8,7 @@ export default function DailyBrief() {
     const [filter, setFilter] = useState("");
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [updateStatus, setUpdateStatus] = useState("Manually Update");
+    const [expandedSummaries, setExpandedSummaries] = useState({});
 
     useEffect(() => {
         fetchDailyBriefData();
@@ -64,6 +65,13 @@ export default function DailyBrief() {
         }
     };
 
+    const toggleSummary = (index) => {
+        setExpandedSummaries((prevState) => ({
+            ...prevState,
+            [index]: !prevState[index]
+        }));
+    };
+
     const filteredBriefData = dailyBriefData.filter(brief =>
         brief.asset.toLowerCase().includes(filter.toLowerCase())
     );
@@ -97,7 +105,25 @@ export default function DailyBrief() {
                             filteredBriefData.map((brief, index) => (
                                 <div key={index}>
                                     <p><b>Asset</b>: {brief.asset}</p>
-                                    <p><b>Summary</b>: <br />{brief.summary}</p>
+                                    <p><b>Summary</b>: <br />
+                                        {expandedSummaries[index] ? (
+                                            <>
+                                                {brief.summary}<br />
+                                                <button className="btn btn-primary" onClick={() => toggleSummary(index)}>Read less</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {brief.summary.length > 500 ? (
+                                                    <>
+                                                        {brief.summary.substring(0, 500)}...
+                                                        <br /><button className="btn btn-primary" onClick={() => toggleSummary(index)}>Read more</button>
+                                                    </>
+                                                ) : (
+                                                    brief.summary
+                                                )}
+                                            </>
+                                        )}
+                                    </p>
                                     <p><b>Latest Update</b>: {new Date(brief.last_update).toLocaleString()}</p>
                                     <hr />
                                 </div>
