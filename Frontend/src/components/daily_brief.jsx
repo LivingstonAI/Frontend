@@ -35,14 +35,19 @@ export default function DailyBrief() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5>Daily Brief</h5>
-                    <div className="daily-brief-asset-filter">
-                        <input
-                            type="text"
-                            placeholder="Filter by Asset"
-                            className="filter-input form-control"
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                        /><br />
+                    <div className="daily-brief-upper-section">
+                        <div className="daily-brief-asset-filter">
+                            <input
+                                type="text"
+                                placeholder="Filter by Asset"
+                                className="filter-input form-control"
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                            /><br />
+                        </div>
+                        <div className="manually-update">
+                            <button className="btn btn-primary">Manually Update</button>
+                        </div>
                     </div>
                     <hr />
                     <div className="daily-brief-div">

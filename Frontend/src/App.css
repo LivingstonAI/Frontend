@@ -1483,6 +1483,14 @@ th {
     padding-right: 50px;
 }
 
+.daily-brief-upper-section {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 10px;
+    padding-right: 10px;
+
+}
+
 .daily-brief-asset-filter {
     width: 20%;
 }
@@ -1919,6 +1927,10 @@ th {
     .daily-brief-div {
         padding-left: 30px;
         padding-right: 30px;
+    }
+
+    .daily-brief-upper-section {
+        display: block;
     }
     
     .form-content .login-form,
