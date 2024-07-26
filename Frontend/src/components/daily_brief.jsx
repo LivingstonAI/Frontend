@@ -7,8 +7,17 @@ export default function DailyBrief() {
     const [dailyBriefData, setDailyBriefData] = useState([]);
     const [filter, setFilter] = useState("");
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [updateStatus, setUpdateStatus] = useState("Manually Update");
 
     useEffect(() => {
+        fetchDailyBriefData();
+    }, []);
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    const fetchDailyBriefData = () => {
         fetch(`${baseUrl}/fetch-daily-brief-data`, {
             method: 'GET',
             headers: {
@@ -16,12 +25,45 @@ export default function DailyBrief() {
                 'X-CSRFToken': Cookies.get('csrftoken')
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => setDailyBriefData(data))
         .catch(error => console.error('Error fetching daily brief data:', error));
-    }, []);
+    };
 
-    // Filter the briefings based on the filter input
+    const handleManualUpdate = async () => {
+        setUpdateStatus('Updating Daily Brief Data...');
+        try {
+            const response = await fetch(`${baseUrl}/daily-brief`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': Cookies.get('csrftoken')
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            console.log(data.message);
+            setUpdateStatus('Daily Brief Updated Successfully!');
+            await sleep(2000);
+            fetchDailyBriefData();  // Refresh the data after manual update
+        } catch (error) {
+            console.error('Error updating daily brief:', error);
+            setUpdateStatus('Error Occurred');
+        } finally {
+            await sleep(2000);
+            setUpdateStatus('Manually Update');
+        }
+    };
+
     const filteredBriefData = dailyBriefData.filter(brief =>
         brief.asset.toLowerCase().includes(filter.toLowerCase())
     );
@@ -46,7 +88,7 @@ export default function DailyBrief() {
                             /><br />
                         </div>
                         <div className="manually-update">
-                            <button className="btn btn-primary">Manually Update</button>
+                            <button className="btn btn-primary" onClick={handleManualUpdate}>{updateStatus}</button>
                         </div>
                     </div>
                     <hr />
