@@ -1932,6 +1932,10 @@ th {
     .daily-brief-upper-section {
         display: block;
     }
+
+    .daily-brief-asset-filter {
+        width: 40%;
+    }
     
     .form-content .login-form,
     .form-content .signup-form{
