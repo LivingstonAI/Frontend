@@ -1483,7 +1483,7 @@ th {
     padding-right: 50px;
 }
 
-.daily-brief-upper-section {
+.daily-brief-upper-section, .performance-review-div {
     display: flex;
     justify-content: space-between;
     padding-left: 10px;
@@ -1494,6 +1494,17 @@ th {
 .daily-brief-asset-filter {
     width: 20%;
 }
+
+
+
+.performance_review_asset {
+    text-decoration: none;
+}
+
+
+
+
+
 
 
 /* Legodi Technologies CSS */

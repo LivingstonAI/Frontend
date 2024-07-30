@@ -30,6 +30,7 @@ import Photo from './components/photo';
 import ScratchInterFace from './components/scratch';
 import ModelPerformance from './components/model_performance';
 import DailyBrief from './components/daily_brief';
+import PerformanceReview from './components/performance_review';
 
 
 import Legodi from './components/legodi';
@@ -79,6 +80,7 @@ function App() {
         <Route path='/scratch' element={<ScratchInterFace />}></Route>
         <Route path='/model_performance' element={<ModelPerformance />}></Route>
         <Route path='/daily_brief' element={<DailyBrief />}></Route>
+        <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
         
         <Route path='/legodi' element={<Legodi />}></Route>
         <Route path='/order_tab' element={<OrderTab />}></Route>
