@@ -1964,6 +1964,10 @@ th {
     .personal-asset-review {
         display: block;
     }
+
+    .personal-asset-review-line-chart {
+        width: 100%;
+    }
    
 
     
