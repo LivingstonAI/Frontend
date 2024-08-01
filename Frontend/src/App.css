@@ -1502,6 +1502,18 @@ th {
 }
 
 
+.performance-select-asset {
+    cursor: pointer;
+}
+
+.personal-asset-review {
+    display: flex;
+}
+
+.personal-asset-review-line-chart {
+    width: 70%;
+}
+
 
 
 
@@ -1947,6 +1959,10 @@ th {
     .form-content .login-form,
     .form-content .signup-form{
       width: 100%;
+    }
+
+    .personal-asset-review {
+        display: block;
     }
    
 
