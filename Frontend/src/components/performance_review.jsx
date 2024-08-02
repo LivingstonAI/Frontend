@@ -12,6 +12,7 @@ export default function PerformanceReview() {
     const [winRate, setWinRate] = useState(0);
     const [lossRate, setLossRate] = useState(0);
     const [overallReturn, setOverallReturn] = useState(0);
+    const [modelData, setModelData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingAssets, setLoadingAssets] = useState(true);
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
@@ -51,7 +52,18 @@ export default function PerformanceReview() {
                 }
             }
 
+            async function fetchModelData() {
+                try {
+                    const response = await axios.get(`${baseURL}/fetch-asset-data-from-models/${selectedAsset}`);
+                    const data = response.data.data;
+                    setModelData(data);
+                } catch (error) {
+                    console.error('Error fetching model data:', error);
+                }
+            }
+
             fetchAssetData();
+            fetchModelData();
         }
     }, [selectedAsset]);
 
@@ -111,7 +123,7 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <p>Performance Review for {selectedAsset.toUpperCase()}</p>
+                            <h6>Performance Review for {selectedAsset.toUpperCase()}</h6>
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
@@ -126,6 +138,31 @@ export default function PerformanceReview() {
                                         <p>Win Rate: {winRate}%</p>
                                         <p>Loss Rate: {lossRate}%</p>
                                         <p>Overall Return: {overallReturn}</p>
+                                    </div>
+                                    <div>
+                                        <h6>Model Performance Data</h6>
+                                        {modelData.map((model, index) => (
+                                            <div key={index}>
+                                                <h6>Model ID: {model.model_id}</h6>
+                                                <Line
+                                                    data={{
+                                                        labels: model.equity_curve.map((_, idx) => idx + 1),
+                                                        datasets: [
+                                                            {
+                                                                label: 'Equity Curve',
+                                                                data: model.equity_curve,
+                                                                fill: false,
+                                                                backgroundColor: 'rgba(75,192,192,0.6)',
+                                                                borderColor: 'rgba(75,192,192,1)',
+                                                            },
+                                                        ],
+                                                    }}
+                                                />
+                                                <p>Win Rate: {model.win_rate}%</p>
+                                                <p>Loss Rate: {model.loss_rate}%</p>
+                                                <p>Overall Return: {model.overall_return}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
