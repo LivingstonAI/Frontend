@@ -123,7 +123,7 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <h6>Performance Review for {selectedAsset.toUpperCase()}</h6>
+                            <h6 className="performance-review-header">Performance Review for {selectedAsset.toUpperCase()}</h6>
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
@@ -140,10 +140,10 @@ export default function PerformanceReview() {
                                         <p>Overall Return: {overallReturn}</p>
                                     </div>
                                     <div>
-                                        <h6>Model Performance Data</h6>
+                                        <h6 className="performance-review-header">Model Performance Data</h6>
                                         {modelData.map((model, index) => (
                                             <div key={index}>
-                                                <h6>Model ID: {model.model_id}</h6>
+                                                <h6 className="performance-review-header">Model ID: {model.model_id}</h6>
                                                 <Line
                                                     data={{
                                                         labels: model.equity_curve.map((_, idx) => idx + 1),
