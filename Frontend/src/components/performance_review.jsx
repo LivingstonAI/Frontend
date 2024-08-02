@@ -13,8 +13,10 @@ export default function PerformanceReview() {
     const [lossRate, setLossRate] = useState(0);
     const [overallReturn, setOverallReturn] = useState(0);
     const [modelData, setModelData] = useState([]);
+    const [assetSummary, setAssetSummary] = useState('');
     const [loading, setLoading] = useState(false);
     const [loadingAssets, setLoadingAssets] = useState(true);
+    const [isSummaryExpanded, setIsSummaryExpanded] = useState(false); // State to handle expanded view
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
     const initialEquity = 10000;
 
@@ -62,8 +64,19 @@ export default function PerformanceReview() {
                 }
             }
 
+            async function fetchAssetSummary() {
+                try {
+                    const response = await axios.get(`${baseURL}/get-asset-summary/${selectedAsset}`);
+                    const data = response.data.message;
+                    setAssetSummary(data);
+                } catch (error) {
+                    console.error('Error fetching asset summary:', error);
+                }
+            }
+
             fetchAssetData();
             fetchModelData();
+            fetchAssetSummary();
         }
     }, [selectedAsset]);
 
@@ -88,6 +101,10 @@ export default function PerformanceReview() {
                 borderColor: 'rgba(75,192,192,1)',
             },
         ],
+    };
+
+    const toggleSummary = () => {
+        setIsSummaryExpanded(!isSummaryExpanded);
     };
 
     return (
@@ -128,7 +145,6 @@ export default function PerformanceReview() {
                                 <p>Loading data...</p>
                             ) : (
                                 <div className="personal-asset-review">
-                                    {/* <h4>Equity Curve Chart</h4> */}
                                     <div className="personal-asset-review-line-chart">
                                         <Line data={data} />
                                     </div>
@@ -166,6 +182,17 @@ export default function PerformanceReview() {
                                     </div>
                                 </div>
                             )}
+                                    <div className="daily-brief-div">
+                                        <h6 className="performance-review-header">Daily Brief Summary</h6>
+                                        <p>
+                                            {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
+                                            {assetSummary.length > 500 && (
+                                                <button onClick={toggleSummary} className="btn btn-link">
+                                                    {isSummaryExpanded ? "Read Less" : "Read More"}
+                                                </button>
+                                            )}
+                                        </p>
+                                    </div><br />
                         </div>
                     )}
                 </div>
