@@ -4,7 +4,6 @@ import SideNavs from "./side_navs";
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
-import { Link } from 'react-router-dom'; // Make sure you have 'react-router-dom' installed
 
 export default function PerformanceReview() {
     const [assets, setAssets] = useState([]);
@@ -141,9 +140,7 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <h6 className="performance-review-header">
-                                Performance Review for <a href={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`}>{selectedAsset.toUpperCase()}</a>
-                            </h6>
+                            <h6 className="performance-review-header">Performance Review for {selectedAsset.toUpperCase()}</h6>
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
@@ -183,7 +180,9 @@ export default function PerformanceReview() {
                                             </div>
                                         ))}
                                     </div>
-                                    <div>
+                                </div>
+                            )}
+                                    <div className="daily-brief-div">
                                         <h6 className="performance-review-header">Daily Brief Summary</h6>
                                         <p>
                                             {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
@@ -193,9 +192,7 @@ export default function PerformanceReview() {
                                                 </button>
                                             )}
                                         </p>
-                                    </div>
-                                </div>
-                            )}
+                                    </div><br />
                         </div>
                     )}
                 </div>
