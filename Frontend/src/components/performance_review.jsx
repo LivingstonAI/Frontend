@@ -4,6 +4,7 @@ import SideNavs from "./side_navs";
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
 import 'chart.js/auto';
+import { Link } from "react-router-dom";
 
 export default function PerformanceReview() {
     const [assets, setAssets] = useState([]);
@@ -140,7 +141,7 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <h6 className="performance-review-header">Performance Review for <a href={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`}>{selectedAsset.toUpperCase()}</a></h6>
+                            <h6 className="performance-review-header">Performance Review for <Link to={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`} target="_blank" className="performance-review-header-tradingview">{selectedAsset.toUpperCase()}</Link></h6>
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
