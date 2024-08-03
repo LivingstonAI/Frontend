@@ -186,8 +186,8 @@ export default function PerformanceReview() {
                                     <div>
                                         <h6 className="performance-review-header">Daily Brief Summary</h6>
                                         <p>
-                                            {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 100)}...`}
-                                            {assetSummary.length > 100 && (
+                                            {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
+                                            {assetSummary.length > 500 && (
                                                 <button onClick={toggleSummary} className="btn btn-link">
                                                     {isSummaryExpanded ? "Read Less" : "Read More"}
                                                 </button>
