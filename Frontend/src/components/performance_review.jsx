@@ -140,7 +140,7 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <h6 className="performance-review-header">Performance Review for {selectedAsset.toUpperCase()}</h6>
+                            <h6 className="performance-review-header">Performance Review for <a href={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`}>{selectedAsset.toUpperCase()}</a></h6>
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
