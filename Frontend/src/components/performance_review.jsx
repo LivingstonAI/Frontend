@@ -13,6 +13,7 @@ export default function PerformanceReview() {
     const [winRate, setWinRate] = useState(0);
     const [lossRate, setLossRate] = useState(0);
     const [overallReturn, setOverallReturn] = useState(0);
+    const [strategyMetrics, setStrategyMetrics] = useState({});
     const [modelData, setModelData] = useState([]);
     const [assetSummary, setAssetSummary] = useState('');
     const [loading, setLoading] = useState(false);
@@ -44,10 +45,11 @@ export default function PerformanceReview() {
                 try {
                     const response = await axios.get(`${baseURL}/fetch-asset-data/${selectedAsset}`);
                     const data = response.data;
-                    setProfitList(data.profit_list);
-                    setWinRate(data.win_rate);
-                    setLossRate(data.loss_rate);
-                    setOverallReturn(data.overall_return);
+                    setProfitList(data.overall.profit_list);
+                    setWinRate(data.overall.win_rate);
+                    setLossRate(data.overall.loss_rate);
+                    setOverallReturn(data.overall.overall_return);
+                    setStrategyMetrics(data.strategy_metrics);
                 } catch (error) {
                     console.error('Error fetching asset data:', error);
                 } finally {
@@ -157,6 +159,31 @@ export default function PerformanceReview() {
                                         <p>Overall Return: {overallReturn}</p>
                                     </div>
                                     <div>
+                                        <h6 className="performance-review-header">Strategy Performance Data</h6>
+                                        {Object.keys(strategyMetrics).map((strategy, index) => (
+                                            <div key={index}>
+                                                <h6 className="performance-review-header">Strategy: {strategy}</h6>
+                                                <Line
+                                                    data={{
+                                                        labels: strategyMetrics[strategy].profit_list.map((_, idx) => idx + 1),
+                                                        datasets: [
+                                                            {
+                                                                label: 'Equity Curve',
+                                                                data: calculateEquityCurve(strategyMetrics[strategy].profit_list),
+                                                                fill: false,
+                                                                backgroundColor: 'rgba(75,192,192,0.6)',
+                                                                borderColor: 'rgba(75,192,192,1)',
+                                                            },
+                                                        ],
+                                                    }}
+                                                />
+                                                <p>Win Rate: {strategyMetrics[strategy].win_rate}%</p>
+                                                <p>Loss Rate: {strategyMetrics[strategy].loss_rate}%</p>
+                                                <p>Overall Return: {strategyMetrics[strategy].overall_return}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div>
                                         <h6 className="performance-review-header">Model Performance Data</h6>
                                         {modelData.map((model, index) => (
                                             <div key={index}>
@@ -183,17 +210,17 @@ export default function PerformanceReview() {
                                     </div>
                                 </div>
                             )}
-                                    <div className="daily-brief-div">
-                                        <h6 className="performance-review-header">Daily Brief Summary</h6>
-                                        <p>
-                                            {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
-                                            {assetSummary.length > 500 && (
-                                                <button onClick={toggleSummary} className="btn btn-link">
-                                                    {isSummaryExpanded ? "Read Less" : "Read More"}
-                                                </button>
-                                            )}
-                                        </p>
-                                    </div><br />
+                            <div className="daily-brief-div">
+                                <h6 className="performance-review-header">Daily Brief Summary</h6>
+                                <p>
+                                    {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
+                                    {assetSummary.length > 500 && (
+                                        <button onClick={toggleSummary} className="btn btn-link">
+                                            {isSummaryExpanded ? "Read Less" : "Read More"}
+                                        </button>
+                                    )}
+                                </p>
+                            </div><br />
                         </div>
                     )}
                 </div>
