@@ -36,12 +36,19 @@ export default function MarketMakers() {
 
   const [calculatedRate, setCalculatedRate] = useState('');
 
+  const [firstRate, setFirstRate] = useState();
+  const [secondRate, setSecondRate] = useState();
+
 
   const changeBankOne = (e) => {
     if (e.target.value !== 'Select Central Bank') {
       let firstBank = e.target.value;
       // let firstBankPercentage
       setBankOne(firstBank);
+      
+    const bankOneIndex = centralBanksArray.indexOf(firstBank);
+    const rateOne = ratesArray[bankOneIndex];
+    setFirstRate(rateOne);
     }
   }
   
@@ -49,6 +56,9 @@ export default function MarketMakers() {
     if (e.target.value !== 'Select Central Bank') {
       let secondBank = e.target.value;
       setBankTwo(secondBank);
+      const bankTwoIndex = centralBanksArray.indexOf(secondBank);
+      const rateTwo = ratesArray[bankTwoIndex];
+      setSecondRate(rateTwo);
     }
   }
 
@@ -60,6 +70,8 @@ export default function MarketMakers() {
     const bankTwoIndex = centralBanksArray.indexOf(bankTwo);
     const rateOne = ratesArray[bankOneIndex];
     const rateTwo = ratesArray[bankTwoIndex];
+    // setFirstRate(rateOne);
+    // setSecondRate(rateTwo);
 
     if (rateOne > rateTwo) {
       calculation = rateOne - rateTwo;
@@ -158,8 +170,8 @@ export default function MarketMakers() {
             <div className="selected-central-banks">
                   <b><p>Selected Central Banks</p></b>
                   {/* <ol className="chosen-central-banks"> */}
-                    <li>{bankOne}</li>
-                    <li>{bankTwo}</li>
+                    <li>{bankOne}: {firstRate}%</li>
+                    <li>{bankTwo}: {secondRate}%</li>
                   {/* </ol> */}
             </div><br />
 
