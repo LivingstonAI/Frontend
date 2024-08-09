@@ -87,7 +87,8 @@ export default function PerformanceReview() {
                     console.error('Error fetching reflections summary:', error);
                 }
             }
-
+            setReflectionsSummary('');
+            setAssetSummary('');
             fetchAssetData();
             fetchModelData();
             fetchAssetSummary();
