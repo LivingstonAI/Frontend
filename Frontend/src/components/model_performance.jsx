@@ -185,7 +185,7 @@ export default function ModelPerformance() {
                     <SideNavs />
                     <div className="main-body-info">
                         <h5>Model Performance</h5><br />
-                        <p>Loading...</p>
+                        <p className="loading-animation-text">Loading...</p>
                     </div>
                 </div>
             </div>
