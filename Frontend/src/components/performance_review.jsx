@@ -20,6 +20,7 @@ export default function PerformanceReview() {
     const [loadingAssets, setLoadingAssets] = useState(true);
     const [reflectionsSummary, setReflectionsSummary] = useState('');
     const [isSummaryExpanded, setIsSummaryExpanded] = useState(false); // State to handle expanded view
+    const [isReflectionsExpanded, setIsReflectionsExpanded] = useState(false);
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
     const initialEquity = 10000;
 
@@ -122,6 +123,11 @@ export default function PerformanceReview() {
     const toggleSummary = () => {
         setIsSummaryExpanded(!isSummaryExpanded);
     };
+    
+    const toggleReflections = () => {
+        setIsReflectionsExpanded(!isReflectionsExpanded);
+    };
+    
 
     return (
         <div>
@@ -226,7 +232,12 @@ export default function PerformanceReview() {
                             <div className="daily-brief-div">
                                 <h6 className="performance-review-header">Reflections Summary</h6>
                                 <p>
-                                    {reflectionsSummary}
+                                    {isReflectionsExpanded ? reflectionsSummary : `${reflectionsSummary.slice(0, 500)}...`}
+                                    {reflectionsSummary.length > 500 && (
+                                        <button onClick={toggleReflections} className="btn btn-link">
+                                            {isReflectionsExpanded ? "Read Less" : "Read More"}
+                                        </button>
+                                    )}
                                 </p>
                             </div>
                             <div className="daily-brief-div">
@@ -240,6 +251,7 @@ export default function PerformanceReview() {
                                     )}
                                 </p>
                             </div><br />
+
                         </div>
                     )}
                 </div>
