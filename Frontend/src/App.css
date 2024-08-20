@@ -1529,6 +1529,10 @@ th {
     margin-bottom: 1rem; /* Adds some space below the table */
     width: 100%; /* Ensures the container takes up full width */
   }
+
+  .cot-data-container h5 {
+    text-align: center;
+  }
   
   .cot-data-table {
     min-width: 600px; /* Adjust this width based on your table's content */
