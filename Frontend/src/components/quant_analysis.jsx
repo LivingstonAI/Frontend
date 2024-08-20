@@ -10,6 +10,9 @@ export default function MarketMakers() {
 
   const [showModal, setShowModal] = useState(false);
 
+  const [cotData, setCotData] = useState({});
+
+
   const [centralBanksArray, setCentralBanksArray] = useState([]);
   const [ratesArray, setRatesArray] = useState([]);
 
@@ -128,6 +131,21 @@ export default function MarketMakers() {
     setShowModal(!showModal);
   }
 
+  useEffect(() => {
+    const fetchCOTData = async () => {
+      try {
+        const response = await fetch(`${baseUrl}/generate-cot-data`);
+        const data = await response.json();
+        setCotData(data);
+      } catch (error) {
+        console.error("Error fetching COT data:", error);
+      }
+    };
+  
+    fetchCOTData();
+  }, []);
+  
+
   return (
     <div>
       <div className="header">
@@ -191,6 +209,34 @@ export default function MarketMakers() {
           </div>
 
         </div><br />
+        <div className="cot-data-container">
+          <h5>COT Data</h5>
+          <table className="cot-data-table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Date</th>
+                <th>Noncommercial Long (%)</th>
+                <th>Noncommercial Short (%)</th>
+                <th>Commercial Long (%)</th>
+                <th>Commercial Short (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(cotData).map((asset) => (
+                <tr key={asset}>
+                  <td>{asset}</td>
+                  <td>{cotData[asset].Date}</td>
+                  <td>{cotData[asset]['Percentage Noncommercial Long']}</td>
+                  <td>{cotData[asset]['Percentage Noncommercial Short']}</td>
+                  <td>{cotData[asset]['Percentage Commercial Long']}</td>
+                  <td>{cotData[asset]['Percentage Commercial Short']}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </div>
   );

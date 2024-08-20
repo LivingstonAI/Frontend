@@ -1523,6 +1523,29 @@ th {
 }
 
 
+.cot-data-container {
+    overflow-x: auto; /* Enables horizontal scrolling */
+    -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
+    margin-bottom: 1rem; /* Adds some space below the table */
+    width: 100%; /* Ensures the container takes up full width */
+  }
+  
+  .cot-data-table {
+    min-width: 600px; /* Adjust this width based on your table's content */
+    border-collapse: collapse;
+    width: 100%; /* Ensures the table takes up full width of the container */
+  }
+  
+  .cot-data-table th, .cot-data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .cot-data-table th {
+    background-color: #f4f4f4;
+  }
+  
 
 
 
