@@ -1530,7 +1530,7 @@ th {
     width: 100%; /* Ensures the container takes up full width */
   }
 
-  .cot-data-container h5 {
+  .cot-data-container h6 {
     text-align: center;
   }
   

@@ -210,7 +210,7 @@ export default function MarketMakers() {
 
         </div><br />
         <div className="cot-data-container">
-          <h5>COT Data</h5>
+          <h6>COT Data</h6>
           <table className="cot-data-table">
             <thead>
               <tr>
