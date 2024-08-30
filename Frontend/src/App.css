@@ -1964,11 +1964,28 @@ th {
     text-align: left;
 }
 
+.plots-container {
+    width: 60%;
+    margin: 0 auto; /* Center the container horizontally */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center images horizontally */
+    justify-content: center; /* Center images vertically (if needed) */
+    text-align: center; /* Optional: Center text if needed */
+}
+
+.plot-item {
+    margin-bottom: 20px; /* Add spacing between images */
+}
+
 
   @media (max-width: 730px) {
 
     .containers {
         width: 100%;
+    }
+    .plots-container {
+        width: 100%;   
     }
 
     .model-performance-summary {

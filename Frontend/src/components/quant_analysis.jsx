@@ -137,6 +137,7 @@ export default function MarketMakers() {
         const response = await fetch(`${baseUrl}/generate-cot-data`);
         const data = await response.json();
         setCotData(data);
+        console.log('Cot Data', cotData);
       } catch (error) {
         console.error("Error fetching COT data:", error);
       }
@@ -231,10 +232,22 @@ export default function MarketMakers() {
                   <td>{cotData[asset]['Percentage Noncommercial Short']}</td>
                   <td>{cotData[asset]['Percentage Commercial Long']}</td>
                   <td>{cotData[asset]['Percentage Commercial Short']}</td>
+                  {/* <img src={cotData[asset].PlotURL} alt={`Plot for ${asset}`} style={{ width: '100%', height: 'auto' }} /> */}
+
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table><br />
+          <div className="plots-container">
+            {Object.keys(cotData).map(asset => (
+              <div key={asset} className="plot-item">
+                <br />
+                <h6>{asset}</h6>
+                <img src={cotData[asset]['Plot URL']} alt={`Plot for ${asset}`} style={{ width: '100%', height: 'auto' }} />
+                
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>
