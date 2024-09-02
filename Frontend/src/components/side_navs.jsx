@@ -43,6 +43,8 @@ export default function SideNavs() {
                 <Link to="/all_trades" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-info-circle-fill"></i> Trade U</p></button></Link>
                 <Link to="/scratch" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i> Model Lab</p></button></Link>
                 <Link to="/model_performance" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pen-fill"></i> MP</p></button></Link>
+                <Link to="/risk_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-exchange"></i> RB</p></button></Link>
+
                 {/* <Link to="/payment" className="side-nav"><i class="bi bi-credit-card-fill"></i>Market Dictionary</Link> */}
         </div>
         <div className="side-navs-cellphone">
@@ -59,6 +61,7 @@ export default function SideNavs() {
                 <Link to="/all_trades" className="side-nav"><i className="bi bi-info-circle-fill"></i></Link>
                 <Link to="/scratch" className="side-nav"><i className="bi bi-robot"></i></Link>
                 <Link to="/model_performance" className="side-nav"><i className="bi bi-pen-fill"></i></Link>
+                <Link to="/risk_bot" className="side-nav"><i className="bi bi-currency-exchange"></i></Link>
         </div>
         <br />
         <div className="timezones">

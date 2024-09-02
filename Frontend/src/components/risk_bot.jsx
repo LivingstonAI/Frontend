@@ -23,7 +23,7 @@ export default function RiskBot () {
           // Create a link element
           const link = document.createElement('a');
           link.href = url;
-          link.download = 'risk-bot.ex5'; // Set the desired filename
+          link.download = 'risk-bot-v2.ex5'; // Set the desired filename
   
           // Append the link to the body
           document.body.appendChild(link);
@@ -47,7 +47,7 @@ export default function RiskBot () {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info"><br />  
-                    <h5>Risk Bot (for MT5)</h5>
+                    <h5>Risk Bot V2 (for MT5)</h5>
                     <h5><button className="btn btn-success" onClick={downloadFile}><i className="bi bi-download"></i> Download Risk Bot</button></h5><br />
                     <h6 className="risk-bot-header">What is Risk Bot?</h6>
 
