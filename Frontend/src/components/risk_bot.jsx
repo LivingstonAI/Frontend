@@ -23,7 +23,7 @@ export default function RiskBot () {
           // Create a link element
           const link = document.createElement('a');
           link.href = url;
-          link.download = 'risk-bot-v2.ex5'; // Set the desired filename
+          link.download = 'Risk-Bot-V2.ex5'; // Set the desired filename
   
           // Append the link to the body
           document.body.appendChild(link);
