@@ -622,6 +622,33 @@ return [`is_bearish_orderblock(asset=asset, timeframe=interval)`, Order.NONE];
 };
 
 
+pythonGenerator['forBlock']['is_bullish_weekly_profile'] = function(block, generator) {
+
+
+  return [`is_bullish_weekly_profile(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bullish_weekly_profile'] = function(block, generator) {
+
+return [`is_bullish_weekly_profile(asset=asset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_bearish_weekly_profile'] = function(block, generator) {
+
+
+  return [`is_bearish_weekly_profile(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_weekly_profile'] = function(block, generator) {
+
+return [`is_bearish_weekly_profile(asset=asset)`, Order.NONE];
+
+};
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -1123,6 +1150,31 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+  Blockly.Blocks['is_bullish_weekly_profile'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Bullish Weekly Profile")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's a Bullish Weekly Profile");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_bearish_weekly_profile'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("Bearish Weekly Profile")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if it's a Bearish Weekly Profile");
+      this.setHelpUrl("");
+    }
+  };
+
   
   
 
@@ -1399,6 +1451,14 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "bearish_orderblock"
+            },
+            {
+              "kind": "block",
+              "type": "is_bullish_weekly_profile"
+            },
+            {
+              "kind": "block",
+              "type": "is_bearish_weekly_profile"
             }
           ]
         },
