@@ -1576,13 +1576,16 @@ body.dark .btn {
     border: 1px solid #555; /* Dark border */
 }
 
-.navbar-light {
-    background-color: #f8f9fa;
+body.dark .side-nav-btn {
+    background-color: #444; /* Darker side-nav buttons */
+    color: #fff;
+    border: 1px solid #555;
 }
 
-.navbar-dark {
-    background-color: #343a40;
-    color: #fff;
+/* Adjust the navbar-dark color for better icon visibility */
+body.dark {
+    background-color: #3c3c3c; /* Lighter dark color for better contrast */
+    color: #ffffff;
 }
 
 /* Optional: Add hover effect for better user experience */
