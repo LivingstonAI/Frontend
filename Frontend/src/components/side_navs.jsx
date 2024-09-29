@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
+import { FaSun, FaMoon } from 'react-icons/fa';
+
 
 
 export default function SideNavs() {
@@ -29,6 +31,24 @@ export default function SideNavs() {
 
         return () => clearInterval(interval);
     }, []);
+
+    // Theme state: 'light' or 'dark'
+  const [theme, setTheme] = useState('light');
+
+  // Load theme preference from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    document.body.className = savedTheme; // Apply theme to body
+  }, []);
+
+  // Toggle theme handler
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    document.body.className = newTheme;
+    localStorage.setItem('theme', newTheme);
+  };
     return(
         <div className="all-side-navs">
         <div className="side-navs trading-history-links">
@@ -78,6 +98,16 @@ export default function SideNavs() {
                     <p>{timeTokyo}</p>
                 </div>
             </div>
+            {/* Theme Toggle Button */}
+      <nav className="navbar navbar-expand-lg">
+          <div className="container-fluid">
+            {/* <a className="navbar-brand" href="/">YourApp</a> */}
+            <button className="btn btn-outline-secondary" onClick={toggleTheme}>
+              {theme === 'light' ? <FaMoon /> : <FaSun />}
+            </button>
+          </div>
+        </nav>
+            
         </div>
     )
 }

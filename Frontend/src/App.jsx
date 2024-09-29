@@ -31,6 +31,8 @@ import ScratchInterFace from './components/scratch';
 import ModelPerformance from './components/model_performance';
 import DailyBrief from './components/daily_brief';
 import PerformanceReview from './components/performance_review';
+import React, { useState, useEffect } from 'react';
+import { FaSun, FaMoon } from 'react-icons/fa';
 
 
 import Legodi from './components/legodi';
@@ -39,16 +41,22 @@ import OrderTab from './components/order_tab';
 import LegodiRegistration from './components/legodi_registration';
 import LegodiLogin from './components/legodi_login';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
-import { useState } from 'react';
 import Blockly from 'blockly';
 import 'blockly/python';
 
 
 function App() {
   const [assets, setAssets] = useState([]);
+
   return (
+
+    
     <Router>
     <div>
+
+      
+
+        {/* Define Routes */}
       {/* <li><Link to="/tell_us_more">Tell us more</Link></li> */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
