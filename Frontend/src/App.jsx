@@ -31,6 +31,7 @@ import ScratchInterFace from './components/scratch';
 import ModelPerformance from './components/model_performance';
 import DailyBrief from './components/daily_brief';
 import PerformanceReview from './components/performance_review';
+import Chill from './components/chill';
 import React, { useState, useEffect } from 'react';
 import { FaSun, FaMoon } from 'react-icons/fa';
 
@@ -89,6 +90,7 @@ function App() {
         <Route path='/model_performance' element={<ModelPerformance />}></Route>
         <Route path='/daily_brief' element={<DailyBrief />}></Route>
         <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
+        <Route path='/chill' element={<Chill />}></Route>
         
         <Route path='/legodi' element={<Legodi />}></Route>
         <Route path='/order_tab' element={<OrderTab />}></Route>

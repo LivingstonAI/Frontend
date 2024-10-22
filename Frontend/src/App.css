@@ -1593,6 +1593,41 @@ body.dark {
     opacity: 0.8;
 }
 
+.section-links {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap onto the next line */
+    gap: 10px; /* Space between items */
+}
+
+.section-link {
+    flex: 1 1 calc(33.333% - 10px); /* 3 items in a row, adjust based on the gap */
+    text-align: center;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-decoration: none;
+    color: black;
+}
+
+.section-link:hover {
+    background-color: #ddd; /* Change background on hover */
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .section-link {
+        flex: 1 1 100%; /* Full width on smaller screens */
+    }
+}
+
+
+
+
+
+
+
+
   
 
 
