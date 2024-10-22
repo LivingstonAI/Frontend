@@ -1614,6 +1614,32 @@ body.dark {
     background-color: #ddd; /* Change background on hover */
 }
 
+.loading {
+    text-align: center;
+    font-size: 1.2em;
+    color: #555; /* Adjust the color as needed */
+    margin: 20px; /* Add some margin */
+}
+
+/* Optionally, add a spinner or other loading animation */
+.loading::before {
+    content: ''; /* Create a spinner */
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #ccc; /* Spinner background */
+    border-top: 3px solid #3498db; /* Spinner foreground */
+    border-radius: 50%;
+    animation: spin 1s linear infinite; /* Animation */
+    margin-right: 10px; /* Space between spinner and text */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
 /* Responsive styles */
 @media (max-width: 768px) {
     .section-link {
