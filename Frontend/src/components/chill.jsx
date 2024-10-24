@@ -16,7 +16,7 @@ export default function Chill() {
                 const response = await fetch(`${baseUrl}/fetch-chill-sections`);
                 const data = await response.json();
                 if (response.ok) {
-                    setSections(data.sections);
+                    setSections(data.sections); // Already ordered by 'id' in the backend
                 } else {
                     console.error(data.message);
                 }
@@ -33,7 +33,7 @@ export default function Chill() {
     const fetchSectionData = async (section) => {
         try {
             setLoading(true);
-            const response = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section)}`);
+            const response = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section.section)}`);
             const data = await response.json();
             if (response.ok) {
                 setSelectedSection(data);
@@ -140,7 +140,7 @@ export default function Chill() {
                             <div className="section-links">
                                 {sections.map((section, index) => (
                                     <a key={index} href="#" onClick={() => fetchSectionData(section)} className="section-link">
-                                        {section}
+                                        {section.section}
                                     </a>
                                 ))}
                             </div>
