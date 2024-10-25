@@ -6,8 +6,12 @@ export default function Chill() {
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedSection, setSelectedSection] = useState(null);
-    const [editing, setEditing] = useState(false); // New state for editing mode
-    const [editedText, setEditedText] = useState(""); // State to store edited content
+    const [editing, setEditing] = useState(false);
+    const [editedText, setEditedText] = useState("");
+    const [newSection, setNewSection] = useState("");
+    const [newText, setNewText] = useState("");
+    const [showNewEntryForm, setShowNewEntryForm] = useState(false);
+    const [showAddEntryButton, setShowAddEntryButton] = useState(true);
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     useEffect(() => {
@@ -16,7 +20,8 @@ export default function Chill() {
                 const response = await fetch(`${baseUrl}/fetch-chill-sections`);
                 const data = await response.json();
                 if (response.ok) {
-                    setSections(data.sections); // Already ordered by 'id' in the backend
+                    setSections(data.sections);
+                    setShowAddEntryButton(true);
                 } else {
                     console.error(data.message);
                 }
@@ -33,11 +38,12 @@ export default function Chill() {
     const fetchSectionData = async (section) => {
         try {
             setLoading(true);
+            setShowNewEntryForm(false);
             const response = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section.section)}`);
             const data = await response.json();
             if (response.ok) {
                 setSelectedSection(data);
-                setEditedText(data.text); // Initialize the editedText with fetched content
+                setEditedText(data.text);
             } else {
                 console.error(data.message);
             }
@@ -50,7 +56,7 @@ export default function Chill() {
 
     const handleBack = () => {
         setSelectedSection(null);
-        setEditing(false); // Exit editing mode on going back
+        setEditing(false);
     };
 
     const handleSave = async () => {
@@ -69,7 +75,7 @@ export default function Chill() {
             const data = await response.json();
             if (response.ok) {
                 setSelectedSection({ ...selectedSection, text: editedText });
-                setEditing(false); // Exit editing mode after save
+                setEditing(false);
             } else {
                 console.error(data.message);
             }
@@ -80,7 +86,62 @@ export default function Chill() {
         }
     };
 
-    // Function to render formatted content
+    const handleDelete = async (section) => {
+        if (!window.confirm("Are you sure you want to delete this entry?")) return;
+
+        try {
+            setLoading(true);
+            const response = await fetch(`${baseUrl}/delete-chill-entry`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ section }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setSections(sections.filter((s) => s.section !== section));
+                setSelectedSection(null);
+                setEditing(false);
+            } else {
+                console.error(data.message);
+            }
+        } catch (error) {
+            console.error('Error deleting entry:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateNewEntry = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`${baseUrl}/create-chill-data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    section: newSection,
+                    text: newText,
+                }),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setSections([...sections, { section: newSection }]);
+                setNewSection("");
+                setNewText("");
+                setShowNewEntryForm(false);
+            } else {
+                console.error(data.message);
+            }
+        } catch (error) {
+            console.error('Error creating new entry:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const renderFormattedText = (text) => {
         const lines = text.split('\n');
         return lines.map((line, index) => {
@@ -109,6 +170,7 @@ export default function Chill() {
                 <div className="main-body-info">
                     <div className="chill-div">
                         <h5>C.H.I.L.L Interface</h5><br />
+
                         {loading ? (
                             <div className="loading">
                                 <p>Loading C.H.I.L.L data...</p>
@@ -132,8 +194,9 @@ export default function Chill() {
                                         <button onClick={handleSave}>Save</button>
                                     ) : (
                                         <button onClick={() => setEditing(true)}>Edit</button>
-                                    )}
-                                    <button onClick={handleBack}>Back</button>
+                                    )}<br /><br />
+                                    <button onClick={handleBack}>Back</button><br /><br />
+                                    <button onClick={() => handleDelete(selectedSection.section)}>Delete</button>
                                 </div>
                             </div>
                         ) : (
@@ -143,6 +206,31 @@ export default function Chill() {
                                         {section.section}
                                     </a>
                                 ))}
+                            </div>
+                        )} <br />
+                        <button onClick={() => setShowNewEntryForm(!showNewEntryForm)}>
+                            {showNewEntryForm ? "Cancel" : "Add New Entry"}
+                        </button>
+
+                        {showNewEntryForm && (
+                            <div>
+                                <br /><h6>Create New Section</h6>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Section Name"
+                                    value={newSection}
+                                    onChange={(e) => setNewSection(e.target.value)}
+                                    style={{ width: '100%', marginBottom: '10px' }}
+                                />
+                                <textarea
+                                    placeholder="Section Content"
+                                    className="form-control"
+                                    value={newText}
+                                    onChange={(e) => setNewText(e.target.value)}
+                                    style={{ width: '100%', height: '150px' }}
+                                />
+                                <button onClick={handleCreateNewEntry}>Save New Entry</button>
                             </div>
                         )}
                     </div>
