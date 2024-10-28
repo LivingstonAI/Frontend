@@ -46,6 +46,7 @@ export default function Chill() {
             if (response.ok) {
                 setSelectedSection(data);
                 setEditedText(data.text);
+                setIsSpeaking(false); // Reset speaking status
             } else {
                 console.error(data.message);
             }
@@ -168,17 +169,27 @@ export default function Chill() {
     
     const readTextAloud = (text) => {
         if ('speechSynthesis' in window) {
-            // Remove '##' from the text before adding it to the queue
+            // Stop any ongoing speech before starting a new one
+            window.speechSynthesis.cancel(); // Stop current speech
+
+            // Clean the text
             const cleanText = text.replace(/#{1,3}/g, ''); // Matches 1 to 3 '#' characters
-            // Add cleaned text to queue
-            setIsSpeaking(true); // Set speaking status to true
+            
+            // Speak the new text
+            const utterance = new SpeechSynthesisUtterance(cleanText);
             speechQueue.push(cleanText);
             processQueue();
+            utterance.onend = () => {
+                setIsSpeaking(false); // Reset speaking status when done
+            };
+            setIsSpeaking(true); // Set speaking status to true
+            window.speechSynthesis.speak(utterance);
         } else {
             console.error("Text-to-speech is not supported in this browser.");
         }
     };
-    
+
+
     const processQueue = () => {
         if (speaking || speechQueue.length === 0) {
             return; // Exit if already speaking or nothing in the queue
