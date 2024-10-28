@@ -12,7 +12,9 @@ export default function Chill() {
     const [newText, setNewText] = useState("");
     const [showNewEntryForm, setShowNewEntryForm] = useState(false);
     const [showAddEntryButton, setShowAddEntryButton] = useState(true);
+    const [isSpeaking, setIsSpeaking] = useState(false); // New state to track speaking status
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+
 
     useEffect(() => {
         const fetchSections = async () => {
@@ -162,77 +164,92 @@ export default function Chill() {
 
 
     const speechQueue = []; // Array to hold queued text
-let speaking = false; // Flag to check if currently speaking
-
-const readTextAloud = (text) => {
-    if ('speechSynthesis' in window) {
-        // Add text to queue
-        speechQueue.push(text);
-        processQueue();
-    } else {
-        console.error("Text-to-speech is not supported in this browser.");
-    }
-};
-
-const processQueue = () => {
-    if (speaking || speechQueue.length === 0) {
-        return; // Exit if already speaking or nothing in the queue
-    }
-
-    const text = speechQueue.shift(); // Get the next text to speak
-    const utterance = new SpeechSynthesisUtterance(text);
-    console.log("Text to speak:", text); // Log the text
-
-    // Set properties for the utterance
-    utterance.volume = 1; // Range: 0 to 1
-    utterance.pitch = 1;  // Range: 0 to 2
-    utterance.rate = 1;   // Range: 0.1 to 10
-
-    // Add event listeners
-    utterance.onstart = () => {
-        speaking = true; // Set speaking flag
-        console.log("Speech started.");
+    let speaking = false; // Flag to check if currently speaking
+    
+    const readTextAloud = (text) => {
+        if ('speechSynthesis' in window) {
+            // Remove '##' from the text before adding it to the queue
+            const cleanText = text.replace(/#{1,3}/g, ''); // Matches 1 to 3 '#' characters
+            // Add cleaned text to queue
+            setIsSpeaking(true); // Set speaking status to true
+            speechQueue.push(cleanText);
+            processQueue();
+        } else {
+            console.error("Text-to-speech is not supported in this browser.");
+        }
     };
     
-    utterance.onend = () => {
-        speaking = false; // Reset speaking flag
-        console.log("Speech finished.");
-        processQueue(); // Process next item in queue
-    };
+    const processQueue = () => {
+        if (speaking || speechQueue.length === 0) {
+            return; // Exit if already speaking or nothing in the queue
+        }
     
-    utterance.onerror = (event) => console.error("Speech error:", event.error);
-
-    // Ensure voices are available
-    const voices = window.speechSynthesis.getVoices();
+        const text = speechQueue.shift(); // Get the next text to speak
+        const utterance = new SpeechSynthesisUtterance(text);
+        console.log("Text to speak:", text); // Log the text
     
-    // Log available voices for debugging
-    console.log("Available voices:", voices);
+        // Set properties for the utterance
+        utterance.volume = 1; // Range: 0 to 1
+        utterance.pitch = 1;  // Range: 0 to 2
+        utterance.rate = 1;   // Range: 0.1 to 10
     
-    if (voices.length > 0) {
-        utterance.voice = voices[0]; // Select the first voice
-    } else {
-        // If voices are not loaded, wait for the voiceschanged event
-        window.speechSynthesis.onvoiceschanged = () => {
-            const voices = window.speechSynthesis.getVoices();
-            console.log("Voices changed:", voices); // Log voices after change
-            if (voices.length > 0) {
-                utterance.voice = voices[0]; // Select the first voice
-                window.speechSynthesis.speak(utterance); // Speak after voices are loaded
-            } else {
-                console.error("No voices available after voices changed.");
-            }
+        // Add event listeners
+        utterance.onstart = () => {
+            speaking = true; // Set speaking flag
+            console.log("Speech started.");
         };
-        return; // Prevent speaking until voices are loaded
-    }
-
-    // Attempt to speak the utterance
-    try {
-        window.speechSynthesis.speak(utterance);
-    } catch (error) {
-        console.error("Error speaking the utterance:", error);
-    }
-};
         
+        utterance.onend = () => {
+            speaking = false; // Reset speaking flag
+            console.log("Speech finished.");
+            processQueue(); // Process next item in queue
+        };
+        
+        utterance.onerror = (event) => console.error("Speech error:", event.error);
+    
+        // Ensure voices are available
+        const voices = window.speechSynthesis.getVoices();
+        
+        // Log available voices for debugging
+        console.log("Available voices:", voices);
+        
+        if (voices.length > 0) {
+            utterance.voice = voices[0]; // Select the first voice
+        } else {
+            // If voices are not loaded, wait for the voiceschanged event
+            window.speechSynthesis.onvoiceschanged = () => {
+                const voices = window.speechSynthesis.getVoices();
+                console.log("Voices changed:", voices); // Log voices after change
+                if (voices.length > 0) {
+                    utterance.voice = voices[0]; // Select the first voice
+                    window.speechSynthesis.speak(utterance); // Speak after voices are loaded
+                } else {
+                    console.error("No voices available after voices changed.");
+                }
+            };
+            return; // Prevent speaking until voices are loaded
+        }
+    
+        // Attempt to speak the utterance
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.error("Error speaking the utterance:", error);
+        }
+    };
+    
+    // Function to stop speech synthesis
+    const stopSpeech = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Stop any ongoing speech
+            setIsSpeaking(false); // Reset speaking flag
+
+            speaking = false; // Reset speaking flag
+            console.log("Speech stopped.");
+        } else {
+            console.error("Text-to-speech is not supported in this browser.");
+        }
+    };        
     
 
     return (
@@ -272,8 +289,16 @@ const processQueue = () => {
                                     )}<br /><br />
                                     <button onClick={handleBack}>Back</button><br /><br />
                                     <button onClick={() => handleDelete(selectedSection.section)}>Delete</button><br /><br />
+                                    {!isSpeaking && (
                                     <button onClick={() => readTextAloud(selectedSection.text)}>Read Aloud</button>
+                                )}
                                 </div>
+                                {/* Stop Speech Button */}
+                                {isSpeaking && (
+                                        <button onClick={stopSpeech}>
+                                            Stop Speech
+                                        </button>
+                                    )}
                             </div>
                         ) : (
                             <div className="section-links">
