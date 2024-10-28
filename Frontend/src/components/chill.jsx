@@ -160,6 +160,81 @@ export default function Chill() {
         });
     };
 
+
+    const speechQueue = []; // Array to hold queued text
+let speaking = false; // Flag to check if currently speaking
+
+const readTextAloud = (text) => {
+    if ('speechSynthesis' in window) {
+        // Add text to queue
+        speechQueue.push(text);
+        processQueue();
+    } else {
+        console.error("Text-to-speech is not supported in this browser.");
+    }
+};
+
+const processQueue = () => {
+    if (speaking || speechQueue.length === 0) {
+        return; // Exit if already speaking or nothing in the queue
+    }
+
+    const text = speechQueue.shift(); // Get the next text to speak
+    const utterance = new SpeechSynthesisUtterance(text);
+    console.log("Text to speak:", text); // Log the text
+
+    // Set properties for the utterance
+    utterance.volume = 1; // Range: 0 to 1
+    utterance.pitch = 1;  // Range: 0 to 2
+    utterance.rate = 1;   // Range: 0.1 to 10
+
+    // Add event listeners
+    utterance.onstart = () => {
+        speaking = true; // Set speaking flag
+        console.log("Speech started.");
+    };
+    
+    utterance.onend = () => {
+        speaking = false; // Reset speaking flag
+        console.log("Speech finished.");
+        processQueue(); // Process next item in queue
+    };
+    
+    utterance.onerror = (event) => console.error("Speech error:", event.error);
+
+    // Ensure voices are available
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Log available voices for debugging
+    console.log("Available voices:", voices);
+    
+    if (voices.length > 0) {
+        utterance.voice = voices[0]; // Select the first voice
+    } else {
+        // If voices are not loaded, wait for the voiceschanged event
+        window.speechSynthesis.onvoiceschanged = () => {
+            const voices = window.speechSynthesis.getVoices();
+            console.log("Voices changed:", voices); // Log voices after change
+            if (voices.length > 0) {
+                utterance.voice = voices[0]; // Select the first voice
+                window.speechSynthesis.speak(utterance); // Speak after voices are loaded
+            } else {
+                console.error("No voices available after voices changed.");
+            }
+        };
+        return; // Prevent speaking until voices are loaded
+    }
+
+    // Attempt to speak the utterance
+    try {
+        window.speechSynthesis.speak(utterance);
+    } catch (error) {
+        console.error("Error speaking the utterance:", error);
+    }
+};
+        
+    
+
     return (
         <div>
             <div className="header">
@@ -196,7 +271,8 @@ export default function Chill() {
                                         <button onClick={() => setEditing(true)}>Edit</button>
                                     )}<br /><br />
                                     <button onClick={handleBack}>Back</button><br /><br />
-                                    <button onClick={() => handleDelete(selectedSection.section)}>Delete</button>
+                                    <button onClick={() => handleDelete(selectedSection.section)}>Delete</button><br /><br />
+                                    <button onClick={() => readTextAloud(selectedSection.text)}>Read Aloud</button>
                                 </div>
                             </div>
                         ) : (
