@@ -16,6 +16,8 @@ export default function Chill() {
     const [imageFolders, setImageFolders] = useState(null);
     const [selectedFolder, setSelectedFolder] = useState(null);
     const [expandedImage, setExpandedImage] = useState(null); // Initialize state for expanded image
+    const [folderState, setFolderState] = useState(false);
+    const [imageViewState, setImageViewState] = useState(true);
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -43,6 +45,7 @@ export default function Chill() {
 
     const fetchSectionData = async (section) => {
         try {
+            setImageViewState(false);
             setLoading(true);
             setShowNewEntryForm(false);
             const response = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section.section)}`);
@@ -51,6 +54,7 @@ export default function Chill() {
                 setSelectedSection(data);
                 setEditedText(data.text);
                 setIsSpeaking(false); // Reset speaking status
+                
             } else {
                 console.error(data.message);
             }
@@ -64,6 +68,7 @@ export default function Chill() {
     const handleBack = () => {
         setSelectedSection(null);
         setEditing(false);
+        setImageViewState(true);
     };
 
     const handleSave = async () => {
@@ -291,7 +296,12 @@ export default function Chill() {
 
     const handleFolderClick = (folder) => {
         setSelectedFolder(folder);
-    };     
+        setFolderState(true);
+    };   
+    
+    const closeFolder = () => {
+        setFolderState(false);
+    };
 
 
     const handleImageClick = (imageData) => {
@@ -301,6 +311,12 @@ export default function Chill() {
     const handleCloseExpandedImage = () => {
         setExpandedImage(null); // Close the expanded image
     };
+
+
+    const imageStateClear = () => {
+        setImageViewState(false);
+    }
+
 
     return (
         <div>
@@ -312,28 +328,33 @@ export default function Chill() {
                 <div className="main-body-info">
                     <div className="chill-div">
                         <h5>C.H.I.L.L Interface</h5><br />
+                        {imageViewState && (
+                    <div>
                         <button onClick={fetchImages}>View Images</button>
-            <br /><br />
+                        {imageFolders && (
+                            <div>
+                                <h6>Image Folders</h6>
+                                {Object.keys(imageFolders).map((folder, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => handleFolderClick(folder)}
+                                        style={{ marginRight: "10px" }}
+                                    >
+                                        {folder}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
-            {imageFolders && (
-                <div>
-                    <h6>Image Folders</h6>
-                    {Object.keys(imageFolders).map((folder, index) => (
-                        <button
-                            key={index}
-                            onClick={() => handleFolderClick(folder)}
-                            style={{ marginRight: "10px" }}
-                        >
-                            {folder}
-                        </button>
-                    ))}
-                </div>
-            )}
             <br /><br />
+            
 
-            {selectedFolder && (
+            {selectedFolder && folderState && (
                 <div>
                     <h6>Images in {selectedFolder}</h6>
+                    <button onClick={closeFolder}>Close Folder</button>
                     <div className="images-container">
                         {imageFolders[selectedFolder].map((imageData, index) => (
                             <div
@@ -347,8 +368,11 @@ export default function Chill() {
                                     className="thumbnail"
                                 />
                             </div>
+                            
                         ))}
+                        
                     </div>
+                    
                 </div>
             )}
 
@@ -363,11 +387,8 @@ export default function Chill() {
                     </div>
                 </div>
             )}
-            <br /><br />
-
-            
-                
-                        
+            <br />
+      
                         {loading ? (
                             <div className="loading">
                                 <p>Loading C.H.I.L.L data...</p>
