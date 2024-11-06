@@ -1668,6 +1668,9 @@ body.dark {
     .images-container {
         grid-template-columns: 1fr; /* 1 image per row */
     }
+    .image-folder-button {
+        margin-bottom: 10px;
+    }
 }
 
 .image-item {

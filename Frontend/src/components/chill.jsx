@@ -339,6 +339,7 @@ export default function Chill() {
                                         key={index}
                                         onClick={() => handleFolderClick(folder)}
                                         style={{ marginRight: "10px" }}
+                                        className="image-folder-button"
                                     >
                                         {folder}
                                     </button>
@@ -366,7 +367,7 @@ export default function Chill() {
                                     src={imageData.data}
                                     alt={imageData.filename || "Trading Image"}
                                     className="thumbnail"
-                                />
+                                /> 
                             </div>
                             
                         ))}
