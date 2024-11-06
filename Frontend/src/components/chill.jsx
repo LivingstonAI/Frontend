@@ -13,6 +13,10 @@ export default function Chill() {
     const [showNewEntryForm, setShowNewEntryForm] = useState(false);
     const [showAddEntryButton, setShowAddEntryButton] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false); // New state to track speaking status
+    const [imageFolders, setImageFolders] = useState(null);
+    const [selectedFolder, setSelectedFolder] = useState(null);
+    const [expandedImage, setExpandedImage] = useState(null); // Initialize state for expanded image
+
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
 
@@ -260,8 +264,43 @@ export default function Chill() {
         } else {
             console.error("Text-to-speech is not supported in this browser.");
         }
-    };        
+    };   
+
+    const fetchImages = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/fetch-trading-images`);
+            const data = await response.json();
+            if (response.ok) {
+                // Only update state if the folders are different to avoid duplicates
+                setImageFolders(prevState => {
+                    // Check if data.folders is different from the previous state
+                    if (JSON.stringify(prevState) !== JSON.stringify(data.folders)) {
+                        return data.folders;
+                    }
+                    return prevState; // Return the same state if no change
+                });
+                console.log(data.folders);
+            } else {
+                console.error(data.error);
+            }
+        } catch (error) {
+            console.error("Error fetching images:", error);
+        }
+    };
     
+
+    const handleFolderClick = (folder) => {
+        setSelectedFolder(folder);
+    };     
+
+
+    const handleImageClick = (imageData) => {
+        setExpandedImage(imageData); // Set clicked image to be expanded
+    };
+
+    const handleCloseExpandedImage = () => {
+        setExpandedImage(null); // Close the expanded image
+    };
 
     return (
         <div>
@@ -273,13 +312,72 @@ export default function Chill() {
                 <div className="main-body-info">
                     <div className="chill-div">
                         <h5>C.H.I.L.L Interface</h5><br />
+                        <button onClick={fetchImages}>View Images</button>
+            <br /><br />
 
+            {imageFolders && (
+                <div>
+                    <h6>Image Folders</h6>
+                    {Object.keys(imageFolders).map((folder, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handleFolderClick(folder)}
+                            style={{ marginRight: "10px" }}
+                        >
+                            {folder}
+                        </button>
+                    ))}
+                </div>
+            )}
+            <br /><br />
+
+            {selectedFolder && (
+                <div>
+                    <h6>Images in {selectedFolder}</h6>
+                    <div className="images-container">
+                        {imageFolders[selectedFolder].map((imageData, index) => (
+                            <div
+                                key={index}
+                                className="image-item"
+                                onClick={() => handleImageClick(imageData)} // Set the image to be expanded
+                            >
+                                <img
+                                    src={imageData.data}
+                                    alt={imageData.filename || "Trading Image"}
+                                    className="thumbnail"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {expandedImage && (
+                <div className="expanded-image-container" onClick={handleCloseExpandedImage}>
+                    <div className="expanded-image">
+                        <img
+                            src={expandedImage.data}
+                            alt="Expanded Trading Image"
+                            className="expanded-thumbnail"
+                        />
+                    </div>
+                </div>
+            )}
+            <br /><br />
+
+            
+                
+                        
                         {loading ? (
                             <div className="loading">
                                 <p>Loading C.H.I.L.L data...</p>
+                                <div>
+                                
+                            </div>
                             </div>
                         ) : selectedSection ? (
                             <div>
+                                
                                 <h6>{selectedSection.section}</h6>
 
                                 {editing ? (
