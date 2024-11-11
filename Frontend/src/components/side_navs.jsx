@@ -77,11 +77,11 @@ export default function SideNavs() {
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><i className="bi bi-chat-square-dots"></i></Link>
                 {/* <Link to="#" className="side-nav"><i className="bi bi-book"></i></Link> */}
                 <Link to='/daily_brief' className="side-nav"><i className="bi bi-briefcase-fill"></i></Link>
-                <Link to='/performance_review/asset' className="side-nav"><i className="bi bi-journal-bookmark"></i></Link>
+                <Link to='/performance_review/asset' className="side-nav"><i className="bi bi-journal-bookmark-fill"></i></Link>
                 <Link to="/update_news" className="side-nav"><i class="bi bi-newspaper"></i></Link>
                 <Link to="/all_trades" className="side-nav"><i className="bi bi-info-circle-fill"></i></Link>
                 <Link to="/scratch" className="side-nav"><i className="bi bi-robot"></i></Link>
-                <Link to="/model_performance" className="side-nav"><i className="bi bi-pen"></i></Link>
+                <Link to="/model_performance" className="side-nav"><i className="bi bi-pen-fill"></i></Link>
                 <Link to="/risk_bot" className="side-nav"><i className="bi bi-currency-exchange"></i></Link>
                 <Link to="/chill" className="side-nav"><i className="bi bi-activity"></i></Link>
         </div>
