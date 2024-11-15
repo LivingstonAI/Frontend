@@ -317,6 +317,27 @@ export default function Chill() {
         setImageViewState(false);
     }
 
+    const cleanText = (text) => {
+        // Use regex to remove all hashes and leading/trailing whitespace
+        const cleanText = text.replace(/#{1,3}/g, ''); // Matches 1 to 3 '#' characters
+        return cleanText;
+    };
+
+
+    const quizMe = async () => {
+        try {
+            // Copy the `editedText` data to the clipboard
+            const cleanedText = cleanText(editedText);
+
+            await navigator.clipboard.writeText(cleanedText);
+    
+            // Open the desired URL in a new tab
+            window.open("https://opexams.com/ai-quiz-generator/", "_blank");
+        } catch (error) {
+            console.error("Failed to copy text or open the link:", error);
+        }
+    };
+
 
     return (
         <div>
@@ -422,7 +443,9 @@ export default function Chill() {
                                     <button onClick={() => handleDelete(selectedSection.section)}>Delete</button><br /><br />
                                     {!isSpeaking && (
                                     <button onClick={() => readTextAloud(selectedSection.text)}>Read Aloud</button>
-                                )}
+                                )}<br /><br />
+                                    <button onClick={quizMe}>Quiz Me</button>
+
                                 </div>
                                 {/* Stop Speech Button */}
                                 {isSpeaking && (
