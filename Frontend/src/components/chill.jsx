@@ -95,10 +95,12 @@ export default function Chill() {
     };
 
     const handleBack = () => {
+        setChatOpen(false);
         setSelectedSection(null);
         setMessages([]);
         setEditing(false);
         setImageViewState(true);
+
     };
 
     const handleSave = async () => {
