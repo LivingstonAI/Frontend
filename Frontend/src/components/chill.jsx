@@ -18,6 +18,11 @@ export default function Chill() {
     const [expandedImage, setExpandedImage] = useState(null); // Initialize state for expanded image
     const [folderState, setFolderState] = useState(false);
     const [imageViewState, setImageViewState] = useState(true);
+    const [chatOpen, setChatOpen] = useState(false);
+    const [messages, setMessages] = useState([]);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [userInput, setUserInput] = useState('');
+
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -43,6 +48,30 @@ export default function Chill() {
         fetchSections();
     }, []);
 
+    // Function to fetch the API key
+    const fetchDataFromAPI = async () => {
+        try {
+        const response = await fetch(`${baseUrl}/get_openai_key`); // Assuming your API endpoint is at '/get_openai_key'
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const { OPENAI_API_KEY } = await response.json();
+        // Set the API key in state
+        setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+        console.error("Error fetching data:", error);
+        }
+    };
+
+    useEffect(() => {
+        async function fetchData() {
+            // await fetchEmailDataFromAPI(); // Fetch user email first
+            await fetchDataFromAPI(); // Then fetch other data
+        }
+        fetchData();
+    }, []); 
+
+
     const fetchSectionData = async (section) => {
         try {
             setImageViewState(false);
@@ -67,6 +96,7 @@ export default function Chill() {
 
     const handleBack = () => {
         setSelectedSection(null);
+        setMessages([]);
         setEditing(false);
         setImageViewState(true);
     };
@@ -338,8 +368,41 @@ export default function Chill() {
         }
     };
 
+    const handleHelperClick = () => {
+        // setSelectedSection(sectionData);
+        setChatOpen(true);
+      };
 
-    return (
+      const handleSendMessage = async (userInput) => {
+        setUserInput('');
+        const response = await askAIHelper(selectedSection, userInput); // Call the AI function
+        setMessages((prev) => [...prev, { role: "user", content: userInput }, { role: "assistant", content: response }]);
+      };
+
+      const askAIHelper = async (sectionData, userInput) => {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + OPENAI_API_KEY,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: `Hello! My name is Tlotlo Motingwe and I am 21 years old. I am the creator of this snowAI system, a private trading system to make my trading efficient. 
+                I am learning Korean and Chinese. I practice Shotokan and Taekwondo. I am a guitar player. 
+                I also am a kpop dancer. The system is very complex, but your job here is to answer my questions based on the data I provide you. I also aim to manage a hedge fund in the future :). Let's make magic together!
+                You are an AI expert called Livingston and answer questions for the following section: ${editedText}. This is a trading platform.` },
+              { role: "user", content: userInput },
+            ],
+          }),
+        });
+        const data = await response.json();
+        return data.choices[0].message.content;
+      };
+      
+
+return (
         <div>
             <div className="header">
                 <Header />
@@ -347,7 +410,34 @@ export default function Chill() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
+                    
                     <div className="chill-div">
+                <div>
+                    </div>        
+
+      {chatOpen && (
+        <div className="chat-window">
+          <h3>Livingston</h3>
+          <div className="messages">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={msg.role}>
+                {msg.content}
+              </div>
+            ))}
+          </div>
+          <input
+            type="text"
+            placeholder="Ask me something..."
+            value={userInput} // Control the value of the input
+            onChange={(e) => setUserInput(e.target.value)} // Update the state as the user types
+            onKeyDown={(e) => {
+                if (e.key === "Enter") handleSendMessage(e.target.value);
+            }}
+            />
+
+          <button onClick={() => setChatOpen(false)}>Close Chat</button>
+        </div>
+      )}
                         <h5>C.H.I.L.L Interface</h5><br />
                         {imageViewState && (
                     <div>
@@ -439,20 +529,26 @@ export default function Chill() {
                                     ) : (
                                         <button onClick={() => setEditing(true)}>Edit</button>
                                     )}<br /><br />
+                                    <button onClick={handleHelperClick}>AI Helper</button><br /><br />
                                     <button onClick={handleBack}>Back</button><br /><br />
                                     <button onClick={() => handleDelete(selectedSection.section)}>Delete</button><br /><br />
                                     {!isSpeaking && (
                                     <button onClick={() => readTextAloud(selectedSection.text)}>Read Aloud</button>
                                 )}<br /><br />
-                                    <button onClick={quizMe}>Quiz Me</button>
+                                    
 
                                 </div>
                                 {/* Stop Speech Button */}
                                 {isSpeaking && (
-                                        <button onClick={stopSpeech}>
-                                            Stop Speech
-                                        </button>
-                                    )}
+                                        <div> 
+                                            <button onClick={stopSpeech}>
+                                                Stop Speech
+                                            </button>
+                                            <br /><br />
+                                        </div>
+                                        
+                                    )} 
+                                    <button onClick={quizMe}>Quiz Me</button>
                             </div>
                         ) : (
                             <div className="section-links">

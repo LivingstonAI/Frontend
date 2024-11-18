@@ -1738,7 +1738,47 @@ body.dark {
 
 
 
-
+.chat-window {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 300px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+  }
+  
+  .messages {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+  
+  .user {
+    text-align: right;
+    background: #d1f7d6;
+    padding: 5px 10px;
+    margin: 5px 0;
+    border-radius: 10px;
+  }
+  
+  .assistant {
+    text-align: left;
+    background: #f0f0f0;
+    padding: 5px 10px;
+    margin: 5px 0;
+    border-radius: 10px;
+  }
+  
+  input {
+    width: calc(100% - 20px);
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
 
 
 
@@ -2174,6 +2214,14 @@ body.dark {
 
 
   @media (max-width: 730px) {
+
+    .chat-window {
+        position: fixed;
+        bottom: 0px;
+        right: 10px;
+        width: 95%;
+        height: 80%;
+    }
 
     .containers {
         width: 100%;
