@@ -430,6 +430,7 @@ return (
           <input
             type="text"
             placeholder="Ask me something..."
+            className="form-control"
             value={userInput} // Control the value of the input
             onChange={(e) => setUserInput(e.target.value)} // Update the state as the user types
             onKeyDown={(e) => {
