@@ -2222,6 +2222,12 @@ body.dark {
         width: 95%;
         height: 80%;
     }
+    
+    .messages {
+        /* max-height: 300px; */
+        /* overflow-y: auto; */
+        margin-bottom: 0px;
+      }
 
     .containers {
         width: 100%;
