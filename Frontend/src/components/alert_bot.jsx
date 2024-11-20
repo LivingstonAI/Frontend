@@ -7,7 +7,6 @@ export default function AlertBot() {
     const [assetArray, setAssetArray] = useState([]);
     const [outcome, setOutcome] = useState("");
     const [colorOutcome, setColorOutcome] = useState("");
-    const [updateStatus, setUpdateStatus] = useState("Update");
     const [selectedAssets, setSelectedAssets] = useState([]);
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
 
@@ -42,7 +41,11 @@ export default function AlertBot() {
     }, []);
 
     // Add an asset with its price and condition
-    const addAssetWithCondition = (asset, price, condition) => {
+    const addAsset = () => {
+        const asset = document.getElementById("asset-select").value;
+        const price = document.getElementById("price-input").value;
+        const condition = document.getElementById("condition-select").value;
+
         if (!asset || !price || !condition) {
             setOutcome("Please provide all fields for the asset.");
             setColorOutcome("text-danger");
@@ -60,6 +63,40 @@ export default function AlertBot() {
     // Remove an asset
     const removeAsset = (index) => {
         setSelectedAssets((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    // Send selected assets to the backend
+    const updateAssetsInBackend = async () => {
+        if (selectedAssets.length === 0) {
+            setOutcome("No assets to update.");
+            setColorOutcome("text-danger");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/alert-bot`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(selectedAssets),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setOutcome("Alerts updated successfully!");
+                setColorOutcome("text-success");
+                setSelectedAssets([]); // Clear the list after successful update
+            } else {
+                console.error(data.error);
+                setOutcome("Failed to update alerts.");
+                setColorOutcome("text-danger");
+            }
+        } catch (error) {
+            console.error("Error updating alerts:", error);
+            setOutcome("Error updating alerts.");
+            setColorOutcome("text-danger");
+        }
     };
 
     return (
@@ -105,7 +142,11 @@ export default function AlertBot() {
                         <br />
                         <div>
                             <label htmlFor="condition-select">Select Condition:</label>
-                            <select className="form-control" id="condition-select" defaultValue="">
+                            <select
+                                className="form-control"
+                                id="condition-select"
+                                defaultValue=""
+                            >
                                 <option value="" disabled>
                                     Select condition
                                 </option>
@@ -116,16 +157,7 @@ export default function AlertBot() {
                         </div>
                         <br />
                         <div>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() =>
-                                    addAssetWithCondition(
-                                        document.getElementById("asset-select").value,
-                                        document.getElementById("price-input").value,
-                                        document.getElementById("condition-select").value
-                                    )
-                                }
-                            >
+                            <button className="btn btn-primary" onClick={addAsset}>
                                 Add Asset
                             </button>
                         </div>
@@ -137,7 +169,6 @@ export default function AlertBot() {
                                     {entry.asset} {entry.condition} {entry.price.toFixed(2)}
                                     <i
                                         onClick={() => removeAsset(index)}
-                                        // className="bi bi-x update-currency"
                                         style={{ marginLeft: "10px", cursor: "pointer" }}
                                     >
                                         ❌
@@ -145,7 +176,16 @@ export default function AlertBot() {
                                 </li>
                             ))}
                         </ul>
-                        <p className={colorOutcome}>{outcome}</p><br />
+                        <br />
+                        <button
+                            className="btn btn-success"
+                            onClick={updateAssetsInBackend}
+                        >
+                            Update Backend
+                        </button>
+                        <br />
+                        <p className={colorOutcome}>{outcome}</p>
+                        <br />
                     </div>
                 </div>
             </div>
