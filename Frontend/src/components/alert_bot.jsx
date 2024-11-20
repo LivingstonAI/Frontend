@@ -166,7 +166,7 @@ export default function AlertBot() {
                         <ul>
                             {selectedAssets.map((entry, index) => (
                                 <li key={index}>
-                                    {entry.asset} {entry.condition} {entry.price.toFixed(2)}
+                                    {entry.asset} {entry.condition} {entry.price}
                                     <i
                                         onClick={() => removeAsset(index)}
                                         style={{ marginLeft: "10px", cursor: "pointer" }}
