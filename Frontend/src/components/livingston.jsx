@@ -274,7 +274,7 @@ export default function ChatBotInterface() {
         
         const filteredMessages = apiMessages.filter(message => typeof message.content === 'string');
         const apiRequestBody = {
-            "model": "ft:gpt-4o-mini-2024-07-18:personal:tradergptv1:AYF1QzJu",
+            "model": "ft:gpt-4o-mini-2024-07-18:personal:tradergptv2:AYFhBnww",
             "messages": [
                 systemMessage,
                 ...filteredMessages

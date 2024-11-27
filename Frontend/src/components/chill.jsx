@@ -389,7 +389,7 @@ export default function Chill() {
             Authorization: "Bearer " + OPENAI_API_KEY,
           },
           body: JSON.stringify({
-            model: "ft:gpt-4o-mini-2024-07-18:personal:tradergptv1:AYF1QzJu",
+            model: "ft:gpt-4o-mini-2024-07-18:personal:tradergptv2:AYFhBnww",
             messages: [
               { role: "system", content: `Hello! My name is Tlotlo Motingwe and I am 21 years old. I am the creator of this snowAI system, a private trading system to make my trading efficient. 
                 I am learning Korean and Chinese. I practice Shotokan and Taekwondo. I am a guitar player. 
