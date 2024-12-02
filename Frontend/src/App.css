@@ -2213,6 +2213,13 @@ body.dark {
 }
 
 
+
+
+
+
+
+
+
   @media (max-width: 730px) {
 
     .chat-window {
@@ -3301,3 +3308,209 @@ body.dark {
  }
  
 
+
+/* Base styles scoped to Zhenya */
+.zhenya-landing-page {
+    text-align: center;
+    padding: 20px;
+    font-family: "Arial", sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+  }
+  
+  .zhenya-header {
+    background-color: #2e3b4e;
+    color: #fff;
+    padding: 40px 20px;
+  }
+  
+  .zhenya-title {
+    font-size: 2.5rem;
+    margin: 0;
+  }
+  
+  .zhenya-subtitle {
+    font-size: 1.2rem;
+    margin-top: 10px;
+  }
+  
+  .zhenya-main-content {
+    padding: 20px;
+  }
+  
+  .zhenya-intro-section {
+    margin: 20px 0;
+  }
+  
+  .zhenya-intro-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+  }
+  
+  .zhenya-intro-section p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  .zhenya-cta-section {
+    margin: 40px 0;
+  }
+  
+  .zhenya-cta-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .zhenya-cta-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #2e3b4e;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .zhenya-cta-button:hover {
+    background-color: #475d7e;
+  }
+  
+  .zhenya-footer {
+    margin-top: 40px;
+    padding: 10px 20px;
+    background-color: #2e3b4e;
+    color: #fff;
+    font-size: 0.9rem;
+  }
+
+
+  .sections-page {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .sections-page h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .back-button {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: white;
+    background-color: #555;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .back-button:hover {
+    background-color: #333;
+  }
+  
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    justify-items: center;
+  }
+  
+  .category-card {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .category-card h2 {
+    font-size: 1.5rem;
+    color: #444;
+  }
+  
+  .category-card p {
+    font-size: 1rem;
+    color: #666;
+  }
+  
+
+  
+  
+  .ww2-page {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .ww2-page h1 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 30px;
+  }
+  
+  .profiles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    justify-items: center;
+  }
+  
+  .profile-card {
+    width: 250px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f9f9f9;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .profile-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+  
+  .profile-card h2 {
+    font-size: 1.2rem;
+    margin: 15px 0 10px;
+    color: #444;
+  }
+  
+  .profile-card p {
+    font-size: 0.9rem;
+    color: #666;
+    padding: 0 10px 15px;
+  }
+  
+  .back-button {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: white;
+    background-color: #555;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .back-button:hover {
+    background-color: #333;
+  }

@@ -32,7 +32,11 @@ import ModelPerformance from './components/model_performance';
 import DailyBrief from './components/daily_brief';
 import PerformanceReview from './components/performance_review';
 import Chill from './components/chill';
-import AlertBot from './components/alert_bot'
+import AlertBot from './components/alert_bot';
+import Zhenya from './components/zhenya';
+import Sections from './components/sections';
+import WW2 from './components/ww2';
+
 
 import React, { useState, useEffect } from 'react';
 import { FaSun, FaMoon } from 'react-icons/fa';
@@ -100,8 +104,15 @@ function App() {
         {/* <Route path='/map' element={<GeofenceMap />}></Route> */}
         <Route path='/regr' element={<LegodiRegistration />}></Route>
         <Route path='/legodi-login' element={<LegodiLogin />}></Route>
+
+        <Route path='/zhenya' element={<Zhenya />}></Route>
+        <Route path='/sections' element={<Sections />}></Route>
+        <Route path='/sections/ww2' element={<WW2 />}></Route>
+
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />
+
+
     </Routes>
 
     </div>
