@@ -1,28 +1,36 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import anne_frank from "../images/anne_frank.jpg";
-import janusz_korczak from "../images/janusz_korczak.png";
-import margot_frank from '../images/margot_frank.jpeg';
-import edith_frank from '../images/edith_frank.jpeg';
+import { useState } from "react";
 import sophie_scholl from '../images/sophie_scholl.jpeg';
-import max_kolbe from '../images/max_kolbe.jpeg';
-import hana_brady from '../images/hana_brady.jpg';
-
+import major_bronisław_bohatyrewicz from '../images/major_bronisław_bohatyrewicz.jpg';
+import akiko_takakura from '../images/akiko_takakura.jpg';
+import tom_derrick from '../images/tom_derrick.jpg';
+import no_profile_img from '../images/no_profile_picture.jpg';
 
 
 export default function WW2() {
   const navigate = useNavigate();
 
   const profiles = [
-    { id: 1, name: "Anne Frank", description: "Anne Frank, born in Frankfurt, Germany, in 1929, was a Jewish girl who gained worldwide recognition through her diary. During WW2, her family went into hiding in Amsterdam's 'secret annex' to escape Nazi persecution. Her diary,, 'The Diary of a Young Girl', provides an account of life under Nazi occupation. She and her sister Margot were arrested in 1944 and later tried at the Bergen-Belsen concentration camp.", image: anne_frank },
-    { id: 2, name: "Janusz Korczak", description: "Janusz Korzak was a compassionate Polish-Jewish educator, peditrician and children's author whose unwavering dedication to the welfare of the children left a mark on History. He ran an orphange in the Warsaw Ghetto during WW2, where he cared for the kids under his charge. Despite numerous chances to escape, he chose to remain with his wards when they were deported to the Treblinka extermination camp in 1942.", image: janusz_korczak },
-    { id:3, name: "Margot Frank", description: "Margot Frank was born in Frankfurt, Germany, in 1926. During WW2, they went into hiding in a secret annex to avoid deportation. Margot, like her sister, kept a diary during this time, although hers was never recovered. Tragically, they were betrayed, arrested, and deported to Auschwitz concentration camp, where both Margot and Anne died of typhus shortly before liberation.", image: margot_frank },
-    {id: 4, name: "Edith Frank", description: "Edith Frank, the mother of Anne Frank, was born in Aachen, Germany, and later married Otto Frank. They had 2 children, Anne and  Margot. During WW2, the family went into hiding in Amsterdam to escape the persecution of Jews by the Nazis. They were arrested in 1944. Edith Frank died in the Auschwitz concentration camp in January 1945.", image: edith_frank},
-    { id: 5, name: "Sophie Scholl", description: "Sophie Scholl was a courageous student in Nazi Germany. Alongside her brother Hans and other members of the White Rose resistance group, she bravely spoke out against the Nazi regime through the distribution of anti-war leaflets at the University of Munich. Her unwavering defiance of tyranny ultimately led to her arrest, trial, and tragic execution by guillotine in 1943 at the age of 21.", image: sophie_scholl},
-    { id: 6, name: "Maximilian Kolbe", description: "Maximilian Kolbe was a Polish Franciscan friar who exemplified selfless courage and compassion during the horrors of the Holocaust. In 1941,, Kolbe volunteered to take the place of a stranger at the Auschwitz concentration camp, demonstrating his unwavering dedication to his faith and his commitment to the sanctity of human life. His act of sacrificial love earned him recognition as a martyr, and he continues to be revered as a symbol of courage, compassion, and resistance against evil.", image: max_kolbe},
-    { id: 7, name: "Hana Brady", description: "Hana Brady was a young Jewish girl from Czechoslovakia. She was imprisoned and eventually killed in Auschwitz during the Holocaust. Her story became widely known through the book 'Hana's Suitcase',  which details her life and the search to uncover her identity after a suitcase with her name on it was discovered in a Holocaust museum.", image: hana_brady},
+    { id: 1, name: "Sophie Scholl", description: "Sophie Scholl was a courageous student in Nazi Germany. Alongside her brother Hans and other members of the White Rose resistance group, she bravely spoke out against the Nazi regime through the distribution of anti-war leaflets at the University of Munich. Her unwavering defiance of tyranny ultimately led to her arrest, trial, and tragic execution by guillotine in 1943 at the age of 21.", image: sophie_scholl, country: "Germany"},
+    { id: 2, name: "Major Bronisław Bohatyrewicz", description: "Major Bronisław Bohatyrewicz was a distinguished Polish military commander born on February 24, 1870, in Grodno. He joined the Imperial Russian Army before transferring to the Polish Army in 1918. Bohatyrewicz played a significant role in the Polish-Bolshevik War and was the commander of the 81st Infantry Regiment. After retiring from active duty, he was arrested by the NKVD in 1939 and tragically murdered during the Katyn massacre in 1940. His legacy is honored with several military awards, including the Silver Cross of the Order of Virtuti Militari.", image: major_bronisław_bohatyrewicz, country: "Poland"},
+    { id: 3, name: "Friedrich Reichert", description: "Friedrich Reichert was a 14-year-old boy who was killed during the Allied bombing of Dresden in World War II. The bombing occurred between February 13 and 15, 1945, and resulted in the deaths of thousands of civilians, causing extensive destruction throughout the city. Friedrich's life was among those tragically cut short during this devastating event.", image: no_profile_img, country: "Germany"},
+    { id: 4, name: "Akiko Takakura", description: "Akiko Takakura was a 20-year-old woman working at the Bank of Hiroshima when the atomic bomb was dropped on August 6, 1945. She was only 300 meters away from the hypocenter and miraculously survived despite sustaining over 100 lacerated wounds on her back. Akiko is one of the few survivors who were within such close proximity to the blast. She has since shared her harrowing experience and continues to educate others about the impact of the bombing.", image: akiko_takakura, country: "Japan" },
+    { id: 5, name: "Lieutenant Thomas Currie Derrick", description: "Lieutenant Thomas Currie Derrick, commonly known as 'Diver,' was an Australian soldier born on March 20, 1914, in Adelaide, South Australia. He enlisted in the Second Australian Imperial Force in 1940 and served with the 2/48th Battalion. Derrick was awarded the Victoria Cross for his extraordinary bravery during the assault on Sattelberg, New Guinea, in November 1943. He led his platoon in a daring attack, scaling cliffs under heavy fire and neutralizing multiple machine gun posts. Tragically, he was mortally wounded during the Battle of Tarakan on May 24, 1945, and passed away later that day.", image: tom_derrick, country: "Australia"},
+    
     // Add more profiles
   ];
+
+  const [expandedProfiles, setExpandedProfiles] = useState([]);
+
+  const toggleReadMore = (id) => {
+    if (expandedProfiles.includes(id)) {
+      setExpandedProfiles(expandedProfiles.filter((profileId) => profileId !== id));
+    } else {
+      setExpandedProfiles([...expandedProfiles, id]);
+    }
+  };
+
 
   return (
     <div className="ww2-page">
@@ -31,14 +39,27 @@ export default function WW2() {
       </button>
       <h1>World War II</h1>
       <div className="profiles-grid">
-        {profiles.map((profile) => (
-          <div key={profile.id} className="profile-card">
-            <img src={profile.image} alt={profile.name} />
-            <h2>{profile.name}</h2>
-            <p>{profile.description}</p>
-          </div>
-        ))}
+        {profiles.map((profile) => {
+          const isExpanded = expandedProfiles.includes(profile.id);
+          const displayedText = isExpanded
+            ? profile.description
+            : profile.description.slice(0, 50) + "...";
+          return (
+            <div key={profile.id} className="profile-card">
+              <img src={profile.image} alt={profile.name} />
+              <h2>{profile.name}</h2>
+              <p>
+                {displayedText}
+                <span
+                  className="read-more-link"
+                  onClick={() => toggleReadMore(profile.id)}
+                >
+                  {isExpanded ? " Read Less" : " Read More"}
+                </span>
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
-  );
-}
+  );}

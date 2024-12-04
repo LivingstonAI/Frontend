@@ -36,7 +36,7 @@ import AlertBot from './components/alert_bot';
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
 import WW2 from './components/ww2';
-
+import Holocaust from './components/holocaust';
 
 import React, { useState, useEffect } from 'react';
 import { FaSun, FaMoon } from 'react-icons/fa';
@@ -98,6 +98,8 @@ function App() {
         <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
         <Route path='/chill' element={<Chill />}></Route>
         <Route path='/alert_bot' element={<AlertBot />}></Route>
+
+
         
         <Route path='/legodi' element={<Legodi />}></Route>
         <Route path='/order_tab' element={<OrderTab />}></Route>
@@ -105,9 +107,13 @@ function App() {
         <Route path='/regr' element={<LegodiRegistration />}></Route>
         <Route path='/legodi-login' element={<LegodiLogin />}></Route>
 
+
+
         <Route path='/zhenya' element={<Zhenya />}></Route>
         <Route path='/sections' element={<Sections />}></Route>
         <Route path='/sections/ww2' element={<WW2 />}></Route>
+        <Route path='/sections/holocaust' element={<Holocaust />}></Route>
+
 
         {/* <Route path="/payment" element={<Payment />} /> */}
         <Route path="*" element={<h1>404: page not found</h1>} />

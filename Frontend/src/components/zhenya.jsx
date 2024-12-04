@@ -17,7 +17,7 @@ export default function Zhenya() {
 
       <main className="zhenya-main-content">
         <section className="zhenya-intro-section">
-          <h2>Welcome</h2>
+          <h2>WELCOME</h2>
           <p>
             This platform is dedicated to preserving the stories and legacies
             of individuals who suffered in some of the darkest chapters of human

@@ -3514,3 +3514,15 @@ body.dark {
   .back-button:hover {
     background-color: #333;
   }
+
+  .read-more-link {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: underline;
+  }
+  
+  .read-more-link:hover {
+    color: #0056b3;
+  }
+  
