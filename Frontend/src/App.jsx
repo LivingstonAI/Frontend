@@ -36,6 +36,7 @@ import AlertBot from './components/alert_bot';
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
 import WW2 from './components/ww2';
+import WW1 from './components/ww1';
 import Holocaust from './components/holocaust';
 
 import React, { useState, useEffect } from 'react';
@@ -112,7 +113,9 @@ function App() {
         <Route path='/zhenya' element={<Zhenya />}></Route>
         <Route path='/sections' element={<Sections />}></Route>
         <Route path='/sections/ww2' element={<WW2 />}></Route>
+        <Route path='/sections/ww1' element={<WW1 />}></Route>
         <Route path='/sections/holocaust' element={<Holocaust />}></Route>
+        
 
 
         {/* <Route path="/payment" element={<Payment />} /> */}
