@@ -39,7 +39,7 @@ export default function StalinistSovietUnion() {
       <button className="back-button" onClick={() => navigate(-1)}>
         ← Back
       </button>
-      <h1>Holocaust</h1>
+      <h1>Soviet Union Atrocities</h1>
       <div className="profiles-grid">
         {profiles.map((profile) => {
           const isExpanded = expandedProfiles.includes(profile.id);
