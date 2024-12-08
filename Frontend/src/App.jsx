@@ -38,6 +38,7 @@ import Sections from './components/sections';
 import WW2 from './components/ww2';
 import WW1 from './components/ww1';
 import Holocaust from './components/holocaust';
+import StalinistSovietUnion from './components/stalin_soviet_union';
 
 import Michelle from './components/michelle';
 import FloatingFlowers from './components/floating_flowers';
@@ -119,6 +120,7 @@ function App() {
         <Route path='/sections/ww2' element={<WW2 />}></Route>
         <Route path='/sections/ww1' element={<WW1 />}></Route>
         <Route path='/sections/holocaust' element={<Holocaust />}></Route>
+        <Route path='/sections/stalin_soviet_union' element={<StalinistSovietUnion />}></Route>
 
 
         <Route path='/michelle' element={<Michelle />}></Route>
