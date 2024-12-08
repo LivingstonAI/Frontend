@@ -39,6 +39,10 @@ import WW2 from './components/ww2';
 import WW1 from './components/ww1';
 import Holocaust from './components/holocaust';
 
+import Michelle from './components/michelle';
+import FloatingFlowers from './components/floating_flowers';
+import PoetryCollection from './components/poetry_collection';
+
 import React, { useState, useEffect } from 'react';
 import { FaSun, FaMoon } from 'react-icons/fa';
 
@@ -115,7 +119,12 @@ function App() {
         <Route path='/sections/ww2' element={<WW2 />}></Route>
         <Route path='/sections/ww1' element={<WW1 />}></Route>
         <Route path='/sections/holocaust' element={<Holocaust />}></Route>
-        
+
+
+        <Route path='/michelle' element={<Michelle />}></Route>
+        <Route path='/floating_flowers' element={<FloatingFlowers />}></Route>
+        <Route path="/poetry_collection" element={<PoetryCollection />} />
+
 
 
         {/* <Route path="/payment" element={<Payment />} /> */}

@@ -3525,4 +3525,135 @@ body.dark {
   .read-more-link:hover {
     color: #0056b3;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /* Michelle's website */
+  /* Flower Particle Style */
+.flower {
+    position: absolute;
+    bottom: 0;
+    background-color: pink;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    animation: float 8s ease-in-out infinite, sway 3s ease-in-out infinite;
+  }
   
+  /* Keyframe Animation for Floating */
+  @keyframes float {
+    0% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-200px) rotate(360deg);
+    }
+    100% {
+      transform: translateY(0) rotate(720deg);
+    }
+  }
+  
+  /* Swaying Effect */
+  @keyframes sway {
+    0% {
+      left: 0;
+    }
+    50% {
+      left: 2px;
+    }
+    100% {
+      left: 0;
+    }
+  }
+
+  .centered-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: bold;
+    /* color: white; */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    pointer-events: none; /* Makes clicks pass through to the canvas below */
+  }
+
+
+
+/* General Back Button */
+.michelle-back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: black;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .michelle-back-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+  }
+  
+
+  /* Header */
+.poetry-header {
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  .poetry-header h1 {
+    color: #7a4a42; /* Maroon */
+    font-size: 2.5rem;
+  }
+  
+  /* Poetry List */
+  .poetry-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px;
+  }
+  
+  /* Individual Poem Cards */
+  .poem-card {
+    background-color: #dcb897; /* Light Brown */
+    color: #4b3b2f; /* Darker Brown */
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    width: 300px;
+    transition: transform 0.2s ease;
+  }
+  
+  .poem-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .poem-title {
+    font-size: 1.4rem;
+    color: #9c3e52; /* Pink Maroon */
+    margin-bottom: 8px;
+  }
+  
+  .poem-content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #533a2f; /* Deeper Brown */
+  }
