@@ -3607,6 +3607,173 @@ body.dark {
   }
   
   
+  /* Background and container styling */
+.snowai-landing-page {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    background: linear-gradient(180deg, #0a0f1f, #1c2235); /* Cool blue gradient */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: "Arial", sans-serif;
+  }
+  
+  /* Title styling */
+  .snowai-title {
+    font-size: 5rem;
+    color: #ffffff;
+    text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    z-index: 10;
+    animation: pulse 3s infinite;
+    margin-bottom: 20px; /* Space between title and button */
+  }
+  
+  /* Pulse effect for "snowAI" */
+  @keyframes pulse {
+    0%, 100% {
+      text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    }
+    50% {
+      text-shadow: 0 0 20px #68a6db, 0 0 30px #68a6db;
+    }
+  }
+  
+  /* Snowflake styling */
+  .snowflake {
+    position: absolute;
+    top: -5%;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 50%;
+    animation: fall linear infinite;
+  }
+  
+  /* Snowflake falling animation */
+  @keyframes fall {
+    to {
+      transform: translateY(110vh);
+    }
+  }
+  
+  /* Snowflake styling */
+.snowflake {
+    position: absolute;
+    top: -5%;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: fall linear infinite;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  
+  /* Snowflake falling animation */
+  @keyframes fall {
+    to {
+      transform: translateY(110vh);
+    }
+  }
+  
+  /* Snowflake hover effect */
+  .snowflake:hover {
+    transform: scale(1.5) rotate(15deg);
+    opacity: 0.5;
+  }
+  
+  /* Background and container styling */
+  .snowai-landing-page {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    background: linear-gradient(180deg, #0a0f1f, #1c2235);
+    background-size: 400% 400%;
+    animation: gradientShift 10s infinite ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: white;
+    font-family: "Arial", sans-serif;
+  }
+  
+  /* Gradient shift animation */
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Title styling */
+  .snowai-title {
+    font-size: 5rem;
+    color: #ffffff;
+    text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    z-index: 10;
+    animation: typewriter 3s steps(8) 1s forwards, blink 0.8s step-end infinite;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: 2px solid #ffffff;
+  }
+  
+  
+  
+  /* Blinking cursor effect */
+  @keyframes blink {
+    from, to {
+      border-color: transparent;
+    }
+    50% {
+      border-color: #ffffff;
+    }
+  }
+  
+  /* Button styling */
+  .snowai-button {
+    font-size: 1.2rem;
+    color: #ffffff;
+    text-decoration: none;
+    background-color: #2979ff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    z-index: 10;
+    animation: glow 3s infinite ease-in-out;
+  }
+  
+  /* Button glow animation */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 18px rgba(41, 121, 255, 0.5);
+    }
+  }
+  
+  /* Button hover effect */
+  .snowai-button:hover {
+    background-color: #68a6db;
+    box-shadow: 0 4px 20px rgba(41, 121, 255, 0.6);
+  }
+  
+  /* Slower falling duration for snowflakes */
+  .snowflake {
+    animation-duration: 10s; /* Increased from default */
+  }
+  
+  
   
 
 

@@ -33,6 +33,9 @@ import DailyBrief from './components/daily_brief';
 import PerformanceReview from './components/performance_review';
 import Chill from './components/chill';
 import AlertBot from './components/alert_bot';
+import SnowAILandingPage from './components/snowai_lp';
+
+
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
 import WW2 from './components/ww2';
@@ -72,7 +75,8 @@ function App() {
         {/* Define Routes */}
       {/* <li><Link to="/tell_us_more">Tell us more</Link></li> */}
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path='/' element={<SnowAILandingPage />}></Route>
+        {/* <Route path="/" element={<LandingPage />} /> */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/tell_us_more" element={<TellUsMore />} />
@@ -100,10 +104,11 @@ function App() {
         <Route path='/photo' element={<Photo />}></Route>
         <Route path='/scratch' element={<ScratchInterFace />}></Route>
         <Route path='/model_performance' element={<ModelPerformance />}></Route>
+        <Route path='/alert_bot' element={<AlertBot />}></Route>
         <Route path='/daily_brief' element={<DailyBrief />}></Route>
         <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
         <Route path='/chill' element={<Chill />}></Route>
-        <Route path='/alert_bot' element={<AlertBot />}></Route>
+
 
 
         
