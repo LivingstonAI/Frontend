@@ -3774,7 +3774,82 @@ body.dark {
   }
   
   
-  
+
+  /* Account CSS */
+  .new-account-section {
+    width: 100%;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.new-account-section h3 {
+    color: #34495e;
+    font-size: 24px;
+}
+
+.new-account-section input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.new-account-section button {
+    width: 100%;
+    padding: 12px;
+    background-color: #3498db;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.new-account-section button:hover {
+    background-color: #2980b9;
+}
+
+.account-list {
+    margin-top: 20px;
+}
+
+.account-list h4 {
+    font-size: 20px;
+    color: #34495e;
+}
+
+.account-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.account-list li {
+    background-color: #ecf0f1;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+}
+
+.account-list button {
+    padding: 6px 12px;
+    background-color: #e74c3c;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.account-list button:hover {
+    background-color: #c0392b;
+}
 
 
 
