@@ -3607,6 +3607,8 @@ body.dark {
   }
   
   
+
+  
   /* Background and container styling */
 .snowai-landing-page {
     position: relative;
@@ -3619,8 +3621,13 @@ body.dark {
     align-items: center;
     overflow: hidden;
     font-family: "Arial", sans-serif;
+    border: 10px solid transparent;
+    background-clip: padding-box, border-box;
+    background-origin: border-box;
+    box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.2) inset;
   }
   
+
   /* Title styling */
   .snowai-title {
     font-size: 5rem;
@@ -3726,6 +3733,22 @@ body.dark {
     border-right: 2px solid #ffffff;
   }
   
+
+  .snowai-title span {
+    animation: glow-letter 1.5s infinite;
+  }
+  
+  @keyframes glow-letter {
+    0%, 100% {
+      color: #ffffff;
+      text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    }
+    50% {
+      color: #2979ff;
+      text-shadow: 0 0 20px #68a6db, 0 0 30px #68a6db;
+    }
+  }
+  
   
   
   /* Blinking cursor effect */
@@ -3761,6 +3784,9 @@ body.dark {
       box-shadow: 0 4px 18px rgba(41, 121, 255, 0.5);
     }
   }
+
+  
+  
   
   /* Button hover effect */
   .snowai-button:hover {
@@ -3768,10 +3794,20 @@ body.dark {
     box-shadow: 0 4px 20px rgba(41, 121, 255, 0.6);
   }
   
-  /* Slower falling duration for snowflakes */
-  .snowflake {
-    animation-duration: 10s; /* Increased from default */
+  
+
+  .mouse-glow {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 80%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    transition: transform 0.1s ease;
   }
+
+  
+
   
   
 
