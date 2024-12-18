@@ -9,6 +9,7 @@ import axios from "axios";
 import useForceUpdate from 'use-force-update';
 
 
+
 export default function ModifyPersonalInfo({ ModalOpen }) {
 
 
@@ -43,6 +44,10 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
 
 
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
+
+    const fetchAccountDataFromAPI = () => {
+        return Cookies.get('account_name');
+    };
 
     
         async function fetchUserData() {
@@ -174,6 +179,9 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
 
     useEffect(() => {
         fetchUserData();
+        const acc_name = fetchAccountDataFromAPI(); 
+        console.log("Account Name is", acc_name);
+
     }, []);
 
     // Fetch accounts from backend
@@ -285,6 +293,15 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
             console.error("Error updating account:", error);
         }
     };
+
+    //  Cookies.set('email', email);
+    const handleUpdateSelectedAccount = async (account_name) => {
+        Cookies.set('account_name', account_name);
+    }
+    
+
+
+    
     
 
     return (
@@ -398,6 +415,15 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                     >
                         Delete
                     </button>
+
+                    
+                    <button
+                        className="btn btn-danger"
+                        onClick={() => handleUpdateSelectedAccount(account.name)} // Define Select Account logic
+                    >
+                        Select Account
+                    </button>
+
                 </div>
             </li>
         ))}

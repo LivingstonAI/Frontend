@@ -1,6 +1,7 @@
-Just some old code for nostalgia, lol!
+// Just some old code for nostalgia, lol!
 
 
+// Old Personal Info code :)
 <div className="personal-info">
                     <div className="personal-info-content">
                     <h5>Trading Experience</h5>
