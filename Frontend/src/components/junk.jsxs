@@ -1,0 +1,66 @@
+Just some old code for nostalgia, lol!
+
+
+<div className="personal-info">
+                    <div className="personal-info-content">
+                    <h5>Trading Experience</h5>
+                    <label>What is your current trading experience?</label>
+                    <select className='form-control trading-experience'
+                        value={tradingExperience}
+                        onChange={handleTradingExperienceChange}
+                    >
+                        <option value=''>{tradingExp}</option>
+                        <option value='Beginner'>Beginner (I'm new to trading)</option>
+                        <option value='0-1 years'>0-1 years</option>
+                        <option value='1-5 years'>1-5 years</option>
+                        <option value='5+ years'>5+ years</option>
+                    </select>
+
+                    <label>What are the main assets you trade?</label>
+                {/* <select className="form-control" 
+                onChange={handleAssetSelect}
+                onClick={toggleModal}
+                    >
+                </select> */}
+                <button className="btn btn-light" onClick={toggleModal}>Choose Options</button>
+
+                {/* {assetArray && mainAssets.length > 0 && ( */}
+                <div className="selected-assets">
+                    {assetArray.map((asset, index) => (
+                    <span key={index} className="selected-asset">
+                        <button className="btn btn-light selected-asset-button" onClick={() => handleRemoveAsset(asset)}>
+                        {asset}
+                        <i className="bi bi-x-lg"></i>
+                        </button>
+                    </span>
+                    ))}
+                </div>
+                {/* )} */}
+
+
+                <label>What is your initial trading capital or equity (in USD)?</label>
+                <input type="number" className="form-control" 
+                    value={initialCap}
+                    onChange={handleInitialCapitalChange}
+                    placeholder={initialCap}
+                />
+
+                <label>What are your goals in trading? Please share your short-term and long-term objectives.</label>
+                    <textarea className="form-control tell-us-textarea" 
+                        value={goals}
+                        onChange={handleTradingGoalsChange}
+                ></textarea>
+
+                <label>What specific outcomes or benefits are you hoping to achieve by using snowAI?</label>
+                    <textarea className="form-control tell-us-textarea" 
+                        value={benefits}
+                        onChange={handleExpectedBenefitsChange}
+                ></textarea><br />
+                
+                <button className="btn btn-primary personal-info-save" onClick={handleSubmit}>Save</button>
+                <br />
+                {isModalOpen && (
+                    <AssetsTraded />
+                )}
+                    </div>
+                </div>
