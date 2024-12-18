@@ -38,6 +38,9 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     const [editingAccount, setEditingAccount] = useState(null);
     const [editingName, setEditingName] = useState("");
     const [editingBalance, setEditingBalance] = useState("");
+    const [editingAssets,setEditingAssets] = useState("");
+    const [assets, setAssets] = useState("");  // Add this state for assets
+
 
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
@@ -179,31 +182,35 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
             const response = await fetch(`${baseURL}/accounts/`);
             const data = await response.json();
             setAccounts(data);
+            console.log('Accounts data is:', data);
         } catch (error) {
             console.error("Error fetching accounts:", error);
         }
     }
 
-    // Add a new account
     const handleAddAccount = async () => {
-        if (!accountName.trim() || accountBalance <= 0) {
-            alert("Please enter a valid account name and balance.");
+        if (!accountName.trim() || accountBalance <= 0 || !assets.trim()) {
+            alert("Please enter a valid account name, balance, and assets.");
             return;
         }
+    
         const newAccount = {
             name: accountName,
             initial_capital: parseFloat(accountBalance),
+            main_assets: assets.trim(),  // Include assets
         };
-
+    
         try {
             const response = await fetch(`${baseURL}/create_account/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newAccount),
             });
+    
             if (response.ok) {
                 setAccountName(""); // Reset input fields
                 setAccountBalance(0);
+                setAssets(""); // Clear the assets input
                 fetchAccounts(); // Refresh account list
             } else {
                 alert("Error adding account.");
@@ -212,7 +219,7 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
             console.error("Error adding account:", error);
         }
     };
-
+    
     // Delete an account
     const handleDeleteAccount = async (accountId) => {
         try {
@@ -235,46 +242,50 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     }, []);
 
 
-     const handleUpdateAccount = async () => {
-    if (!editingAccount) {
-        console.error("No account selected for editing.");
-        return;
-    }
-
-    try {
-        const response = await fetch(`${baseURL}/accounts/update/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                id: editingAccount.id,  // Make sure to include the ID of the account you're updating
+    const handleUpdateAccount = async () => {
+        console.log("Handle Update Account Function triggered.");
+        if (!editingAccount) {
+            console.error("No account selected for editing.");
+            return;
+        }
+    
+        try {
+            const updatedAccountData = {
+                id: editingAccount.id,  // Include the ID of the account you're updating
                 name: editingName,
                 initial_capital: editingBalance,
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to update the account.");
+                main_assets: editingAssets,  // Include the updated main_assets
+            };
+    
+            const response = await fetch(`${baseURL}/accounts/update/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedAccountData),
+            });
+    
+            if (!response.ok) {
+                throw new Error("Failed to update the account.");
+            }
+    
+            const updatedAccount = await response.json();
+    
+            // Update the accounts list with the updated account
+            setAccounts(accounts.map((acc) =>
+                acc.id === updatedAccount.id ? updatedAccount : acc
+            ));
+    
+            // Reset the form and editing state
+            setEditingAccount(null);
+            setEditingName("");
+            setEditingBalance("");
+            setEditingAssets(""); // Reset assets field after updating
+        } catch (error) {
+            console.error("Error updating account:", error);
         }
-
-        const updatedAccount = await response.json();
-
-        // Update the accounts list with the updated account
-        setAccounts(accounts.map((acc) =>
-            acc.id === updatedAccount.id ? updatedAccount : acc
-        ));
-
-        // Reset the form and editing state
-        setEditingAccount(null);
-        setEditingName("");
-        setEditingBalance("");
-    } catch (error) {
-        console.error("Error updating account:", error);
-    }
-};
-
-
+    };
+    
 
     return (
         <div>
@@ -288,65 +299,119 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
 
 
                  {/* New Account Section */}
-                <div className="new-account-section">
-                    <h3>Manage Accounts</h3>
-                    <div>
-                        <label>Account Name:</label>
-                        <input
-                            type="text"
-                            value={accountName}
-                            onChange={(e) => setAccountName(e.target.value)}
-                            placeholder="Enter account name"
-                            className="form-control"
-                        />
-                    </div>
-                    <div>
-                        <label>Initial Capital:</label>
-                        <input
-                            type="number"
-                            value={accountBalance}
-                            onChange={(e) => setAccountBalance(e.target.value)}
-                            placeholder="Enter initial balance"
-                            className="form-control"
-                        />
-                    </div>
-                    <button className="btn btn-primary" onClick={handleAddAccount}>
-                        Add Account
-                    </button>
+            <div className="new-account-section">
+                <h3>Manage Accounts</h3>
+                <div>
+                    <label>Account Name:</label>
+                    <input
+                        type="text"
+                        value={accountName}
+                        onChange={(e) => setAccountName(e.target.value)}
+                        placeholder="Enter account name"
+                        className="form-control"
+                    />
+                </div>
+                <div>
+                    <label>Initial Capital:</label>
+                    <input
+                        type="number"
+                        value={accountBalance}
+                        onChange={(e) => setAccountBalance(e.target.value)}
+                        placeholder="Enter initial balance"
+                        className="form-control"
+                    />
+                </div>
+                <div>
+                    <label>Main Assets:</label>
+                    <input
+                        type="text"
+                        value={assets}
+                        onChange={(e) => setAssets(e.target.value)}  // Update assets state
+                        placeholder="Enter assets (comma separated)"
+                        className="form-control"
+                    />
+                </div>
+                <button className="btn btn-primary" onClick={handleAddAccount}>
+                    Add Account
+                </button>
+            </div>
+
+            {/* Account List */}
+<div className="account-list">
+    <h4>Existing Accounts</h4>
+    <ul>
+        {accounts.map((account) => (
+            <li key={account.id} className="account-item">
+                <div className="account-details">
+                    <span className="account-name">{account.name}</span> 
+                    <span className="account-balance">(${account.initial_capital})</span>
                 </div>
 
-                {/* Account List */}
-                <div className="account-list">
-                    <h4>Existing Accounts</h4>
-                    <ul>
-                        {accounts.map((account) => (
-                            <li key={account.id}>
-                                {account.name} (${account.initial_capital})
-                                <button
-                                    className="btn btn-warning"
-                                    onClick={() => {
-                                        setEditingAccount(account);
-                                        setEditingName(account.name);
-                                        setEditingBalance(account.initial_capital);
-                                    }}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() => handleDeleteAccount(account.id)}
-                                >
-                                    Delete
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
+                <div className="account-assets">
+                    {account.main_assets && account.main_assets.length > 0 ? (
+                        // Check if main_assets is a string or an array
+                        Array.isArray(account.main_assets) ? (
+                            // If it's an array, map through the assets and display them
+                            <ul>
+                                {account.main_assets.map((asset, index) => (
+                                    <li key={index} className="asset-item">{asset.trim()}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            // If it's a comma-separated string, split it by commas and display
+                            <ul>
+                                {account.main_assets.split(",").map((asset, index) => (
+                                    <li key={index} className="asset-item">{asset.trim()}</li>
+                                ))}
+                            </ul>
+                        )
+                    ) : (
+                        <span>No assets added</span> // Display message if no assets
+                    )}
                 </div>
+
+                <div className="account-actions">
+                    <button
+                        className="btn btn-warning"
+                        onClick={() => {
+                            // Set the account to be edited
+                            setEditingAccount(account);  // Set the account to be edited
+                            setEditingName(account.name);  // Pre-fill the account name
+                            setEditingBalance(account.initial_capital);  // Pre-fill the initial capital
+
+                            // Check if main_assets is a string or array and handle accordingly
+                            if (Array.isArray(account.main_assets)) {
+                                setEditingAssets(account.main_assets.join(", "));  // If it's an array, join into a string
+                            } else if (typeof account.main_assets === "string") {
+                                setEditingAssets(account.main_assets);  // If it's already a string, use it as is
+                            } else {
+                                setEditingAssets("");  // If no assets are provided, set it to an empty string
+                            }
+                        }}
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        className="btn btn-danger"
+                        onClick={() => handleDeleteAccount(account.id)} // Define delete logic
+                    >
+                        Delete
+                    </button>
+                </div>
+            </li>
+        ))}
+    </ul>
+</div>
+
+
 
                 {/* Edit Account Section */}
                 {editingAccount && (
                     <div className="edit-account-section">
                         <h4>Edit Account</h4>
+                        
+                        {/* Account Name */}
                         <div>
                             <label>Account Name:</label>
                             <input
@@ -356,6 +421,8 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                                 className="form-control"
                             />
                         </div>
+                        
+                        {/* Initial Capital */}
                         <div>
                             <label>Initial Capital:</label>
                             <input
@@ -365,12 +432,28 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                                 className="form-control"
                             />
                         </div>
-                        <button className="btn btn-success" onClick={handleUpdateAccount}>
-                            Save Changes
-                        </button>
-                        <button className="btn btn-secondary" onClick={() => setEditingAccount(null)}>
-                            Cancel
-                        </button>
+                        
+                        {/* Main Assets (Comma-separated) */}
+                        <div>
+                            <label>Main Assets (comma-separated):</label>
+                            <input
+                                type="text"
+                                value={editingAssets}
+                                onChange={(e) => setEditingAssets(e.target.value)}
+                                className="form-control"
+                                placeholder="Enter assets, e.g., EURUSD, GBPUSD, Gold"
+                            />
+                        </div>
+
+                        {/* Buttons to Save or Cancel */}
+                        <div>
+                            <button className="btn btn-success" onClick={handleUpdateAccount}>
+                                Save Changes
+                            </button>
+                            <button className="btn btn-secondary" onClick={() => setEditingAccount(null)}>
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 )}
 
