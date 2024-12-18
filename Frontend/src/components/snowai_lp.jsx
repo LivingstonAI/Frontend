@@ -37,7 +37,9 @@ export default function SnowAILandingPage() {
     const body = document.querySelector(".snowai-landing-page");
   
     if (hours < 12) {
-      body.style.background = "linear-gradient(180deg, #4a90e2, #6eb1f7)";
+      // body.style.background = "linear-gradient(180deg, #4a90e2, #6eb1f7)";
+      body.style.background = "linear-gradient(180deg, #355c7d, #6c5b7b)";
+
     } else if (hours < 18) {
       body.style.background = "linear-gradient(180deg, #355c7d, #6c5b7b)";
     } else {
