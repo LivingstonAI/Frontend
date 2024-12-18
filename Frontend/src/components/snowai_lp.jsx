@@ -80,3 +80,4 @@ export default function SnowAILandingPage() {
     </div>
   );
 }
+
