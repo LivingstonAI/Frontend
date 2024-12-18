@@ -23,6 +23,7 @@ export default function SnowAILandingPage() {
     }
   };
 
+  
   const createSnowflakes = () => {
     const container = document.getElementById("snowflake-container");
 
