@@ -34,6 +34,7 @@ import PerformanceReview from './components/performance_review';
 import Chill from './components/chill';
 import AlertBot from './components/alert_bot';
 import SnowAILandingPage from './components/snowai_lp';
+import AccountAnalytics from './components/account_analytics.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -108,6 +109,8 @@ function App() {
         <Route path='/daily_brief' element={<DailyBrief />}></Route>
         <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
         <Route path='/chill' element={<Chill />}></Route>
+        <Route path='/account_analytics' element={<AccountAnalytics />}></Route>
+
 
 
 

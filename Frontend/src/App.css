@@ -3888,6 +3888,31 @@ body.dark {
 }
 
 
+.account-info {
+    background-color: #f4f4f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.trade-card {
+    background-color: #fff;
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.trade-card h6 {
+    font-size: 1.2em;
+}
+
+.trade-list {
+    margin-top: 20px;
+}
+
+
+
 
 
 

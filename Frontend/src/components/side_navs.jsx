@@ -53,7 +53,7 @@ export default function SideNavs() {
         <div className="all-side-navs">
         <div className="side-navs trading-history-links">
                 <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person-fill"></i></p></button></Link>
-              <Link to="/trading_history_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i></p></button></Link>
+              <Link to="/account_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i></p></button></Link>
                 <Link to="/market_makers" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bank"></i></p></button></Link>
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-chat-square-dots"></i></p></button></Link>
                 {/* <Link to="#" className="side-nav"><p><i className="bi bi-book"></i>Books</p></Link> */}
@@ -72,7 +72,7 @@ export default function SideNavs() {
         <div className="side-navs-cellphone">
                 {/* <Link to="/overview" className="side-nav"><i className="bi bi-plus-lg"></i></Link> */}
                 <Link to="/personal_info" className="side-nav"><i className="bi bi-person-fill"></i></Link>
-                <Link to="/trading_history_analytics" className="side-nav"><i className="bi bi-bar-chart-line-fill"></i></Link>
+                <Link to="/account_analytics" className="side-nav"><i className="bi bi-bar-chart-line-fill"></i></Link>
                 <Link to="/market_makers" className="side-nav"><i className="bi bi-bank" /></Link>
                 {/* <Link to="/all_journals" className="side-nav"><i className="bi bi-journal-bookmark-fill"></i></Link> */}
                 <Link to={`/conversation/${uniqueID}`} className="side-nav"><i className="bi bi-chat-square-dots"></i></Link>

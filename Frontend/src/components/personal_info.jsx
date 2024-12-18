@@ -354,81 +354,81 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
             </div>
 
             {/* Account List */}
-<div className="account-list">
-    <h4>Existing Accounts</h4>
-    <ul>
-        {accounts.map((account) => (
-            <li key={account.id} className="account-item">
-                <div className="account-details">
-                    <span className="account-name">{account.name}</span> 
-                    <span className="account-balance">(${account.initial_capital})</span>
-                </div>
+            <div className="account-list">
+                <h4>Existing Accounts</h4>
+                <ul>
+                    {accounts.map((account) => (
+                        <li key={account.id} className="account-item">
+                            <div className="account-details">
+                                <span className="account-name">{account.name}</span> 
+                                <span className="account-balance">(${account.initial_capital})</span>
+                            </div>
 
-                <div className="account-assets">
-                    {account.main_assets && account.main_assets.length > 0 ? (
-                        // Check if main_assets is a string or an array
-                        Array.isArray(account.main_assets) ? (
-                            // If it's an array, map through the assets and display them
-                            <ul>
-                                {account.main_assets.map((asset, index) => (
-                                    <li key={index} className="asset-item">{asset.trim()}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            // If it's a comma-separated string, split it by commas and display
-                            <ul>
-                                {account.main_assets.split(",").map((asset, index) => (
-                                    <li key={index} className="asset-item">{asset.trim()}</li>
-                                ))}
-                            </ul>
-                        )
-                    ) : (
-                        <span>No assets added</span> // Display message if no assets
-                    )}
-                </div>
+                            <div className="account-assets">
+                                {account.main_assets && account.main_assets.length > 0 ? (
+                                    // Check if main_assets is a string or an array
+                                    Array.isArray(account.main_assets) ? (
+                                        // If it's an array, map through the assets and display them
+                                        <ul>
+                                            {account.main_assets.map((asset, index) => (
+                                                <li key={index} className="asset-item">{asset.trim()}</li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        // If it's a comma-separated string, split it by commas and display
+                                        <ul>
+                                            {account.main_assets.split(",").map((asset, index) => (
+                                                <li key={index} className="asset-item">{asset.trim()}</li>
+                                            ))}
+                                        </ul>
+                                    )
+                                ) : (
+                                    <span>No assets added</span> // Display message if no assets
+                                )}
+                            </div>
 
-                <div className="account-actions">
-                    <button
-                        className="btn btn-warning"
-                        onClick={() => {
-                            // Set the account to be edited
-                            setEditingAccount(account);  // Set the account to be edited
-                            setEditingName(account.name);  // Pre-fill the account name
-                            setEditingBalance(account.initial_capital);  // Pre-fill the initial capital
+                            <div className="account-actions">
+                                <button
+                                    className="btn btn-warning"
+                                    onClick={() => {
+                                        // Set the account to be edited
+                                        setEditingAccount(account);  // Set the account to be edited
+                                        setEditingName(account.name);  // Pre-fill the account name
+                                        setEditingBalance(account.initial_capital);  // Pre-fill the initial capital
 
-                            // Check if main_assets is a string or array and handle accordingly
-                            if (Array.isArray(account.main_assets)) {
-                                setEditingAssets(account.main_assets.join(", "));  // If it's an array, join into a string
-                            } else if (typeof account.main_assets === "string") {
-                                setEditingAssets(account.main_assets);  // If it's already a string, use it as is
-                            } else {
-                                setEditingAssets("");  // If no assets are provided, set it to an empty string
-                            }
-                        }}
-                    >
-                        Edit
-                    </button>
+                                        // Check if main_assets is a string or array and handle accordingly
+                                        if (Array.isArray(account.main_assets)) {
+                                            setEditingAssets(account.main_assets.join(", "));  // If it's an array, join into a string
+                                        } else if (typeof account.main_assets === "string") {
+                                            setEditingAssets(account.main_assets);  // If it's already a string, use it as is
+                                        } else {
+                                            setEditingAssets("");  // If no assets are provided, set it to an empty string
+                                        }
+                                    }}
+                                >
+                                    Edit
+                                </button>
 
-                    <button
-                        className="btn btn-danger"
-                        onClick={() => handleDeleteAccount(account.id)} // Define delete logic
-                    >
-                        Delete
-                    </button>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={() => handleDeleteAccount(account.id)} // Define delete logic
+                                >
+                                    Delete
+                                </button>
 
-                    
-                    <button
-                        className="btn btn-danger"
-                        onClick={() => handleUpdateSelectedAccount(account.name)} // Define Select Account logic
-                    >
-                        Select Account
-                    </button>
+                                
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={() => handleUpdateSelectedAccount(account.name)} // Define Select Account logic
+                                >
+                                    Select Account
+                                </button>
 
-                </div>
-            </li>
-        ))}
-    </ul>
-</div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
 
 
 
