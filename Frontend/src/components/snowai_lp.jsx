@@ -23,22 +23,21 @@ export default function SnowAILandingPage() {
     }
   };
 
-  
   const createSnowflakes = () => {
     const container = document.getElementById("snowflake-container");
 
     if (container) {
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < 25; i++) { // Reduced to 25 snowflakes
         const snowflake = document.createElement("div");
         snowflake.className = "snowflake";
 
         // Randomize position, size, animation duration, and delay
-        snowflake.style.left = `${Math.random() * 100}vw`;
-        snowflake.style.width = `${Math.random() * 5 + 5}px`;
+        snowflake.style.left = `${Math.random() * 100}vw`; 
+        snowflake.style.width = `${Math.random() * 5 + 5}px`; // Random size (5px to 10px)
         snowflake.style.height = snowflake.style.width;
-        snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`;
-        snowflake.style.animationDelay = `${Math.random() * 6}s`;
-        snowflake.style.opacity = Math.random() * 0.8 + 0.2;
+        snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`; // Longer duration (10s to 16s)
+        snowflake.style.animationDelay = `${Math.random() * 6}s`; // Random delay
+        snowflake.style.opacity = Math.random() * 0.8 + 0.2; // Random opacity (0.2 to 1)
 
         container.appendChild(snowflake);
 
