@@ -1,0 +1,82 @@
+import React, { useEffect, useRef, useState } from "react";
+import jingleBells from '../jingle_bells.mp3';  // Import your audio file
+
+export default function SnowAILandingPage() {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false); // State to track if music is playing
+
+  useEffect(() => {
+    createSnowflakes();
+  }, []);
+
+  const handlePlayToggle = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      if (isPlaying) {
+        audio.pause();  // Pause the audio if it's currently playing
+        audio.currentTime = 0;  // Reset the audio to start from the beginning
+      } else {
+        audio.volume = 0.2; // Set volume to a low level (e.g., 20%)
+        audio.play();  // Play the audio if it's currently paused
+      }
+      setIsPlaying(!isPlaying); // Toggle the play state
+    }
+  };
+
+  const createSnowflakes = () => {
+    const container = document.getElementById("snowflake-container");
+
+    if (container) {
+      for (let i = 0; i < 40; i++) {
+        const snowflake = document.createElement("div");
+        snowflake.className = "snowflake";
+
+        // Randomize position, size, animation duration, and delay
+        snowflake.style.left = `${Math.random() * 100}vw`;
+        snowflake.style.width = `${Math.random() * 5 + 5}px`;
+        snowflake.style.height = snowflake.style.width;
+        snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`;
+        snowflake.style.animationDelay = `${Math.random() * 6}s`;
+        snowflake.style.opacity = Math.random() * 0.8 + 0.2;
+
+        container.appendChild(snowflake);
+
+        // Remove snowflake after animation ends
+        snowflake.addEventListener("animationend", () => {
+          snowflake.remove();
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const glow = document.createElement("div");
+    glow.className = "mouse-glow";
+    document.body.appendChild(glow);
+
+    const handleMouseMove = (e) => {
+      glow.style.transform = `translate(${e.clientX - 25}px, ${e.clientY - 25}px)`;
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => document.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  return (
+    <div className="snowai-landing-page">
+      <div id="snowflake-container"></div>
+      <h1 className="snowai-title">
+        {["s", "n", "o", "w", "A", "I"].map((letter, idx) => (
+          <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
+        ))}
+      </h1>
+      <a href="/login" className="snowai-button">
+        Log In
+      </a><br />
+      <button className="snowai-button" onClick={handlePlayToggle}>
+        {isPlaying ? "Stop Music" : "Play Music"}
+      </button>
+      <audio ref={audioRef} src={jingleBells} loop />
+    </div>
+  );
+}

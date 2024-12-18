@@ -1,0 +1,4050 @@
+/* Registration Page And Login Page and some Tell Us More CSS */
+
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;400;500;600;700;900&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+/* @import url('./header/header.css');
+@import url('./main/main.css');
+@import url('./footer/footer.css'); */
+
+:root {
+  --general-padding: 15px 20px;
+  --general-padding-lg: 15px 25px;
+  --general-radius: 20px;
+  --dark-color: #212529;
+  --padding-lg: 100px 128px;
+  --light-color: #fafafa;
+  --primary-color: #4169E1;
+  --primary-font-family: 'Inter', sans-serif;
+  --secondary-color: #F0667E;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.alt-background {
+  background-color: #f5f5f5;
+}
+
+.landing-page-login {
+    color: white;
+    text-decoration: none;
+}
+
+.secondary-color {
+  color: var(--secondary-color);
+}
+
+body {
+  font-family: var(--primary-font-family);
+  margin: 0;
+}
+
+button {
+  background-color: var(--secondary-color);
+  border: none;
+  border-radius: var(--general-radius);
+  color: var(--light-color);
+  cursor: pointer;
+  padding: 10px 15px;
+  transition: transform .5s;
+}
+
+button:hover {
+  transform: scaleX(1.1);
+}
+
+footer {
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    display: flex;
+    flex-direction: column;
+    padding: var(--general-padding);
+  }
+  
+  footer .content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+
+  header {
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    display: flex;
+    justify-content: space-between;
+    padding: var(--general-padding);
+  }
+  
+  @media screen and (min-width: 992px) {
+    header {
+      font-size: 18px;
+      padding: var(--general-padding-lg);
+    }
+  
+    .logo {
+      font-size: 25px;
+    }
+  }
+  
+  .action-buttons {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+  }
+  
+  @media screen and (min-width: 992px) {
+    .action-buttons {
+      gap: 30px;
+    }
+  }
+
+  #features {
+    padding: 0;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #features .content {
+      max-width: 500px;
+    }
+  }
+  
+  #features > * {
+    padding: var(--general-padding);
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #features > * {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      padding: var(--padding-lg);
+    }
+  }
+  
+  #features .img-cover {
+    aspect-ratio: 1/.75;
+    border-radius: var(--general-radius);
+    max-width: 100%;
+    margin-bottom: 20px;
+    width: 400px;
+  }
+  
+  /* #features h3 {
+    margin: 0;
+  } */
+
+  #hero-section {
+    align-items: center;
+    background-color: var(--primary-color);
+    color: var(--light-color);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    justify-content: center;
+    min-height: 450px;
+    padding: var(--general-padding);
+    text-align: center;
+  }
+  
+  #hero-section h1 {
+    line-height: 45px;
+  }
+  
+  #hero-section > h1,
+  #hero-section > p {
+    margin: 0;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #hero-section {
+      gap: 25px;
+      min-height: 530px;
+      padding: var(--general-padding-lg);
+    }
+  
+    #hero-section > h1 {
+      font-size: 55px;
+      line-height: 65px;
+      max-width: 1100px;
+    }
+  
+    #hero-section > p {
+      /* line-height: 28px; */
+      max-width: 850px;
+    }
+  }
+
+  @media screen and (min-width: 992px) {
+    #introduction {
+      font-size: 18px;
+    }
+  }
+  
+  #introduction .right {
+    display: none;
+  }
+  
+  @media screen and (min-width: 992px) {
+    #introduction .right {
+      display: flex;
+    }
+  
+    #introduction .right .img-cover {
+      cursor: pointer;
+      height: 350px;
+      width: 300px;
+      transition: border-radius 1s;
+      transition: transform 1s;
+    }
+  
+    #introduction .right .img-cover:hover {
+      transform: rotate(-90deg) scale(1.2, 1.4) translateY(-50px);
+      border-radius: 20px;
+    }
+  
+    #introduction .left {
+      max-width: 500px;
+    }
+  }
+
+main h3, 
+main h4,
+main p {
+  margin: 0;
+}
+
+main {
+  text-align: center;
+}
+
+main > * {
+  line-height: 30px;
+  padding: var(--general-padding);
+}
+
+main * {
+  transition: opacity 1.5s;
+}
+
+@media screen and (min-width: 992px) {
+  main > * {
+    font-size: 18px;
+    line-height: 35px;
+    padding: var(--padding-lg);
+  }
+}
+
+/* headshot */
+
+#introduction,
+#more {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.placeholder {
+  background-color: #d9d9d9;
+}
+
+.img-cover {
+  object-fit: cover;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+#more {
+    background-color: var(--primary-color);
+    color: var(--light-color);
+  }
+  
+  #more .img-wrapper {
+    display: none;
+  }
+  
+  @media screen and (min-width: 768px) {
+    #more .img-wrapper {
+      display: block;
+    }
+  
+    #more .img-cover {
+      border-radius: var(--general-radius);
+      cursor: pointer;
+      height: 310px;
+      transition: transform .5s;
+      width: 500px;
+    }
+  
+    #more .img-cover:hover {
+      transform: scale(1.2);
+    }
+  
+    #more p {
+      margin: 16px;
+    }
+  
+    #more .content {
+      max-width: 500px;
+    }
+  }
+
+  #customer-reviews .content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .headshot {
+    background-color: #f0f;
+    border-radius: 50%;
+    height: 100px;
+    overflow: hidden;
+    width: 100px;
+  }
+  
+  .review {
+    align-items: center;
+    background-color: #fafafa;
+    box-shadow: 0px 0px 10px 2px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex: 1 0 100%;
+    flex-direction: column;
+    gap: 30px;
+    padding: var(--general-padding);
+  }
+  
+  @media screen and (min-width: 768px) {
+    .review {
+      flex-basis: 0;
+      gap: 20px;
+    }
+  }
+  
+  blockquote {
+    margin: 0;
+    padding: 0;
+  }
+
+.our-mission, .feature {
+    text-align: left;
+}
+
+.balance-scale-img, .chatbot-landing-page, .journal-landing-page, .user {
+    width: 100%;
+    height: 100%;
+}
+
+.register-div, .login-div, .tell-us-div {
+    text-align: center;
+    /* align-items: center; */
+    justify-content: center;
+    position: absolute;
+    top: 80px;
+    left: 430px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 25px;
+    /* transform: translate(-50%, -50%); */
+    width: 35%;
+}
+
+
+.user-register-div, .user-login-div, .user-tell-us-div, .why-collect-info-div {
+    text-align: left;
+}
+
+
+.register-button, .login-button, .tell-us-button {
+    position: relative;
+    top: 15px;
+    width: 100%;
+}
+
+
+.user-register-div label, .user-login-div label, .user-tell-us-div label {
+    margin-top: 20px;
+}
+
+
+.login-div {
+    top: 150px;
+}
+
+.register-here, .login-here {
+    position: relative;
+    top: 25px;
+}
+
+.register-title, .tell-us-title {
+    text-align: center;
+    position: relative;
+}
+
+.error-message {
+    color:red;
+}
+
+
+/* Tell Us More CSS */
+.tell-us-div {
+    width: 40%;
+    position: relative;
+    top: 10px;
+    left: 400px;
+}
+
+.why-collect-info {
+    position: relative;
+    top: 30px;
+    text-align: left;
+}
+
+
+.why-collect-info-link {
+    text-decoration: none;
+}
+
+.why-collect-info-div {
+    position: relative;
+    top: 10px;
+    width: 100%;
+    left: 1px;
+}
+
+.why-collect-info-div h5 {
+    text-align: center;
+}
+
+.collection-explanation {
+    position: relative;
+    top: 20px;
+    margin-bottom: 20px;
+}
+
+.cancel-collection-explanation {
+    text-align: right;
+    position: relative;
+    left: 190px;
+    bottom: 10px;
+}
+
+.selected-assets {
+    margin-top: 15px;
+}
+
+.selected-asset-button {
+    margin-top: 5px;
+    margin-left: 5px;
+}
+
+.tell-us-textarea {
+    height: 200px;
+}
+
+.tell-us-more-assets {
+    margin-right: 10px;
+}
+
+.info-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.info-modal-content {
+    background-color: whitesmoke;
+    position: absolute;
+    top: 50%;
+    left: 51%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    border-radius: 5px;
+    max-height: 100%; /* Set the maximum height of the modal content */
+    overflow-y: auto; /* Enable vertical scrolling if content exceeds max height */
+    max-width: 40%;
+}
+
+.close-info-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+
+/* Main Page CSS */
+.header {
+    background-color:dodgerblue;
+    color: white;
+}
+
+.header-navigations {
+    display: flex;
+    gap: 10px;
+}
+
+.all-header-navs {
+    display: flex;
+    justify-content: space-between;
+}
+
+.sign-out-cta {
+    position: absolute;
+    right: 10px;
+}
+
+/* .side-navs {
+    position: relative;
+    top: 150px;
+    left: 50px;
+    gap: 100px;
+} */
+
+.side-navs {
+    display: flex;
+    top: 10px;
+    /* left: 0px; */
+    width: 100%;
+    /* gap: 10px; */
+}
+
+.side-navs-cellphone {
+    display: none;
+}
+
+.side-nav {
+    top: 200px;
+    text-decoration: none;
+    color:black;
+    /* font-size: 70px; */
+    width: 100%;
+}
+
+.side-navs h5 {
+    margin-top: 45px;
+}
+
+.main-body-info {
+    position: absolute;
+    /* top: 80px; */
+    /* left: 50px; */
+    top: 200px;
+    left: 35%;
+}
+
+.main-body-info h5 {
+    position: relative;
+    right: 0px;
+}
+
+.main-page-body {
+    display: flex;
+    /* gap: 450px; */
+}
+
+.enter-new-trade-cta {
+    text-decoration: none;
+}
+
+.all-trades-div {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 50px;
+    position: relative;
+    right: 200px;
+    width: 100%;
+    top: 0px;
+    left: -120px;
+}
+
+
+/* Enter New Trade CSS */
+.register-new-trade-whole-page {
+    position:relative;
+    top: 50px;
+}
+
+.register-new-trade {
+    position: relative;
+    left:335px;
+    width: 50%;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 20px;
+}
+
+
+.register-new-trade label {
+    margin-top: 15px;
+}
+
+.register-new-trade-heading {
+    text-align: center;
+}
+
+.register-new-trade-reflection {
+    height: 200px;
+    margin-bottom: 10px;
+}
+
+.register-new-trade-submit {
+    width: 100%;
+}
+
+
+/* Trade Analysis CSS */
+.main-page-header {
+    width: 100%;
+    padding-bottom: 15px;
+}
+
+.whole-trade-analysis-div {
+    position: relative;
+    top: 60px;
+}
+
+.whole-trade-analysis-div h4 {
+    text-align: center;
+}
+
+.trade-analysis-feedback-div, .trade-analysis-reflection,.trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 35px;
+}
+
+.trade-analysis-reflection {
+    width: 700px;
+}
+
+.trade-analysis-reflection h5 {
+    text-align: center;
+}
+
+.whole-trade-analysis-header, .whole-trade-analysis-stomach, .trade-analysis-footer {
+    display: flex;
+    position: absolute;
+    top: 80px;
+    left: 180px;
+    gap: 10px;
+}
+
+.whole-trade-analysis-stomach {
+    left: 0px;
+}
+
+.trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+    position: relative;
+    top: 320px;
+    width: 310px;
+    left: 180px;
+    text-align: center;
+}
+
+.whole-trade-analysis-stomach {
+    position: relative;
+}
+
+.trade-analysis-roi h5, .trade-analysis-equity-risked h5, .trade-analysis-emotional-bias h5 {
+    text-align: center;
+}
+
+.trade-analysis-footer {
+    position: absolute;
+    top: 575px;
+}
+
+.full_trades-main-page-cta {
+    position: relative;
+    width: 950px;
+    margin-bottom: 50px;
+    margin-top: 30px;
+    left: 5px;
+}
+
+/* Summary CSS */
+.summary-of-all-trades{
+    margin-top: 20px;
+}
+
+.summary-of-all-trades, .summary-upcoming-news {
+    margin-bottom: 55px;
+}
+
+.entire-summary-div {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 35px;
+    position: relative;
+    right: 150px;
+    width: 100%;
+}
+
+
+/* Trading History Analytics */
+.trading-history-analytics {
+    margin-bottom: 325px;
+}
+
+.trading-history-analytics h5 {
+    position: relative;
+    top: 50px;
+    text-align: center;
+}
+
+.top-history-header, .middle-history-header,.bottom-history-header {
+    display: flex;
+    gap: 10px;
+    text-align: center;
+    justify-content: center;
+    position: relative;
+    top: 100px;
+}
+
+.top-history-header div, .middle-history-header div, .bottom-history-header div {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 35px;
+    width: 27%;
+}
+
+.middle-history-header, .bottom-history-header {
+    top: 110px;
+    gap: 10px;
+}
+
+.middle-history-header div, .bottom-history-header div {
+    width: 41%;
+}
+
+.bottom-history-header {
+    top: 120px;
+}
+
+.middle-analytics {
+    display: flex;
+    position: relative;
+    top: 150px;
+    /* left: 10px; */
+    /* right: 130px; */
+}
+
+.middle-analytics-overall {
+    position: relative;
+    left: 40px;
+}
+
+/* .middle-analytics-equity-over-time, .middle-analytics-overall {
+    position: relative;
+    /* left: 200px; */
+/* } */ 
+
+.middle-analytics-equity-over-time {
+    position: relative;
+    width: 50%;
+    left: 40px;
+} 
+
+.top-phone-chat-div {
+    display: none;
+}
+
+#equityChart {
+    width: 90%;
+}
+
+.middle-analytics-equity-over-time h6, .middle-analytics-overall-heading {
+    width: 100%;
+    text-align: center;
+    
+}
+
+.analytics-footer {
+    text-align: center;
+    position: relative;
+    top: 175px;
+}
+
+.analytics-footer p {
+    text-align: left;
+    left: 100px;
+    right: 100px;
+    position: absolute;
+}
+
+.download-compiled-report {
+    text-decoration: none;
+    position: relative;
+    top: 150px;
+}
+
+.trading-history-links {
+    display: flex;
+    /* justify-content: space-evenly; */
+    position: relative;
+    top: 0px;
+    width: 100%;
+}
+
+.trading-history-link {
+    text-decoration: none;
+    border: 1px solid #ccc;
+    border-radius: 1px;
+    padding: 10px 15px;
+    width: 200%;
+    margin-top: 5px;
+    text-align: center;
+    color: black;
+}
+
+.overview-link {
+    text-decoration: none;
+    color: white;
+}
+
+.all-trades-header {
+    text-align: center;
+    position: relative;
+    left: -160px;
+    top: 0px;
+}
+
+.strategy {
+    display: flex;
+    width: 100%;
+}
+
+.best-strategy, .worst-strategy {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px 15px;
+    width: 245px;
+}
+
+.enter-new-trade-cta {
+    position: relative;
+    left: 110px;
+}
+
+
+
+/* News Styling */
+
+.yellow-impact,
+.red-impact,
+.orange-impact {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+}
+
+/* .impact-legend {
+    display: flex;
+    gap: 10px;
+} */
+
+.yellow-impact {
+    background-color: yellow;
+}
+
+.red-impact {
+    background-color: red;
+}
+
+.orange-impact {
+    background-color: orange;
+}
+
+
+
+/* Personal Journal CSS */
+.personal-journal-ckeditor {
+    position: absolute;
+    left: -300px;
+    height: 100px;
+    width: 150%;
+}
+
+.personal-journal-tags-div {
+    display: flex;
+}
+
+.selected-tag-button,.tag {
+    border: 1px solid black;
+    margin-left: 5px;
+    margin-top: 10px;
+}
+
+.tag-journal {
+    margin-left: 5px;
+}
+
+/* .generate-ideas-personal-journal {
+    text-decoration: none;
+    margin-top: 100px;
+} */
+
+.save-journal-button {
+    /* margin-top: 5px; */
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.success-message {
+    color: green;
+}
+
+.all-journals-div {
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 30px 30px; 
+    left: -200px;  
+    width: 800px;
+}
+
+.create-new-journal-cta, .personal-journal-title {
+    position: relative;
+    text-decoration: none;
+    text-align: center;
+    left: 50px;
+}
+
+.create-new-journal-cta {
+    left: 290px;
+}
+
+.journal-div {
+    position: relative;
+    right: 200px;
+}
+
+
+/* Journal Content */
+.journal-content, .main-journal-nav-button {
+    position: relative;
+}
+
+.entire-journal-div {
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 30px 25px; 
+    top: 70px;
+    left: -150px;
+    width: 600px;
+}
+
+/* Live Clock CSS */
+.live-clock {
+    position: relative;
+    left: -100px;
+    top: -110px;
+    width: 650px;
+}
+
+/* Major Upcoming News Events CSS */
+.news-data {
+    position: relative;
+    left: -225px;
+}
+
+.news-event {
+    position: absolute;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    padding: 30px 25px; 
+    width: 800px;
+    left: -250px;
+}
+
+
+.all-journals-bottom {
+    display: flex;
+    justify-content: space-between;
+}
+
+
+.vertical-hr {
+    border: none;
+    border-left: 1px solid black; /* You can adjust the color and width */
+    height: 100px; /* Adjust the height as needed */
+    margin: 0 10px; /* Add spacing around the vertical line */
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+
+/* ChatBot CSS */
+.chatbot-div {
+    position: relative;
+    /* top: 100px; */
+    /* right: 0px; */
+    left: 100px;
+    width: 70%;
+    /* margin-bottom: 100px; */
+    height: 500px;
+}
+
+.user-message {
+    position: absolute;
+    left: 930px;
+}
+
+.clear-conversation-icon {
+    position: relative;
+    left: -50px;
+    bottom: 40px;
+    font-size: x-large;
+    cursor: pointer;
+}
+
+.conversations-div {
+    position: relative;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 30px 25px; 
+    left: 10%;
+    width: 15%;
+ } 
+
+
+.phone-conversations-div {
+    display: none;
+}
+
+.chat-links {
+    text-decoration: none;
+}
+
+.bi-trash3 {
+    position: relative;
+    left: 50px;
+    cursor: pointer;
+}
+
+.chatbot-liveclock {
+    position: absolute;
+    top: 110px;
+    left: 450px;
+
+}
+.clear-conversation-icon-phone {
+    display: none;
+}
+
+.bi-send {
+    font-size:small;
+}
+
+.ask-livingston-buttons {
+    position: relative;
+    top: 15px;
+}
+
+.ask-livingston-buttons button {
+    width: 50%;
+    border: 1px solid #ccc;
+}
+
+.ai-div {
+    position: relative;
+    display: flex;
+    /* justify-content: space-between; */
+    top: 50px;
+}
+.journal-liveclock {
+    position: relative;
+    top: 100px;
+    /* left: -100px; */
+}
+
+.all-side-navs {
+    width: 100%;
+}
+
+.side-nav-btn {
+    width: 100%;
+}
+
+/* Personal Info CSS */
+
+.personal-info {
+    width: 50%;
+    height: 110%;
+    margin: 50px;
+    /* outline: solid 1px black; */
+    display: flex;
+    justify-content: center;
+    /* align-items: center; */
+    flex-direction: column;
+    margin-left: 25%;
+}
+
+.selected-assets {
+    max-width: 100%; /* Set a maximum width for the selected-assets div */
+    overflow: auto; /* Add horizontal scroll if necessary */
+}
+
+.personal-info-title {
+    text-align: center;
+}
+
+.personal-info-link {
+    position: relative;
+    color: white;
+    cursor: pointer;
+    left: 30px;
+    top: -5px;
+}
+
+.personal-info-link-icon {
+    font-size: x-large;
+}
+
+.personal-info-save {
+    width: 100%;
+}
+
+/* Select Category CSS */
+
+.select-category-modal, 
+.select-currencies-modal, 
+.select-stocks-modal, 
+.select-commodities-modal, 
+.select-indices-modal, 
+.select-futures-modal, 
+.select-options-modal {
+    margin-top: 50px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}
+
+.select-category-title, .select-category-assets {
+    text-align: center;
+}
+
+.select-category-top {
+    /* display: flex; */
+    display: flex;
+    justify-content: center;
+}
+
+.select-category-top button {
+    width: 40%;
+    margin-right: 10px;
+}
+
+.select-currencies-search,.select-stocks-search,
+.select-commodities-search, 
+.select-indices-search, 
+.select-futures-search, 
+.select-options-search {
+    position: relative;
+    width: 50%;
+    left: 20%;
+}
+
+.select-search-input {
+    display: flex;
+    margin-bottom: 30px;
+}
+
+.select-category-search-button {
+    position: relative;
+    left: 20%;
+}
+
+.assets-offered button {
+    margin-right: 5px;  
+}
+
+.assets-offered, .selected-assets {
+    display: flex;
+    flex-wrap: wrap;
+    /* overflow: auto; */
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+ .select-category-modal , .select-category-modal, 
+.select-currencies-modal, 
+.select-stocks-modal, 
+.select-commodities-modal, 
+.select-indices-modal, 
+.select-futures-modal, 
+.select-options-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 90%;
+     /* display: flex; */
+    justify-content: center;
+    align-items: center;
+     z-index: 1000; 
+    left: 25%;
+    /* background-color: rgba(0, 0, 0, 0.5); */
+    background-color: white;
+    /* max-height: 80%; */
+    overflow-y: scroll;
+    } 
+    
+    /* .select-modal-headings i {
+        position: relative;
+        left: 95%;
+        top: -30px;
+        cursor: pointer;
+        /* display: flex; */
+        /* justify-content: center;
+        justify-content: space-between; */
+        /* CellPhone CSS */
+
+.select-category-left-arrow {
+    cursor: pointer;
+    font-size: large;
+}
+.highlighted-button {
+    background-color: #007bff; /* Change the background color to a desired highlight color */
+    color: white; /* Change the text color for better visibility */
+    /* Add any other styling you want for the highlight effect */
+  }
+
+
+
+  .impact-legend {
+    display: flex;
+    gap: 10px;
+}
+
+.legend-item {
+    display: flex;
+}
+
+.impact-indicator {
+    width: 20px; /* Adjust as needed */
+    height: 20px; /* Adjust as needed */
+    margin-right: 5px;
+    /* Additional styling for the color indicators */
+}
+
+/* Add your color styles for .red-impact, .orange-impact, and .yellow-impact here */
+
+
+.upper-models-div, .middle-models-div {
+    display: flex;
+    gap: 10px;
+}
+
+.middle-models-div {
+    margin-top: 20px;
+}
+
+.candlestick-models, .technical-models, .ml-models, .dl-models, .chosen-models, .set-moving-average-model, .set-bbands-model, .set-rsi-model, .model-performance, .timeframe-period {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 30px 50px;   
+    width: 100%;
+}
+
+.candlestick-models h6, .technical-models h6, .ml-models h6, .dl-models h6, .chosen-models h6, .set-moving-average-model h6, .set-moving-average-model p, .set-bbands-model h6, .set-bbands-model p, .set-rsi-model h6, .set-rsi-model p, .model-performance p, .timeframe-period p {
+    text-align: center;
+}
+
+
+.set-moving-average-model select, .set-moving-average-model input, .set-moving-average-model button, .set-bbands-model button, .set-bbands-model select, .set-bbands-model input, .set-rsi-model button, .set-rsi-model select, .set-rsi-model input, .timeframe-period select, .backtest-button {
+    justify-content: center;
+    width: 40%;
+    position: relative;
+    left: 370px;
+}
+
+.candlestick-models button, .technical-models button, .ml-models button, .dl-models button {
+    width: 50%;
+    /* margin-right: 1px; */
+}
+
+.chosen-models button {
+    width: 33%;
+}
+
+.backtest-button {
+    width: 35%;
+    left: 33%;
+}
+
+
+.create-models-next {
+    text-align: right;
+    position: relative;
+    left: 35%;    
+    width: 30%;
+} 
+
+
+
+.create-new-models-note {
+    text-align: center;
+}
+
+.backtest-header {
+    text-align: center;
+};
+
+.candlestick-button {
+    position: relative !important;
+    left: 35% !important;
+}
+
+.update-news-div {
+    position: relative;
+    width: 50%;
+    left: 27%;
+}
+
+.update-currency {
+    position: relative;
+    left: 10px;
+    cursor: pointer;
+}
+
+.updated-success {
+    color: green;
+}
+
+.updated-error {
+    color: red;
+}
+
+
+/* Market Maker Section */
+.global-interest-rates-header {
+    text-align: center;
+}
+
+.interest-rates-bar-chart-container {
+    position: relative;
+    width: 60%;
+    left: 18%;
+}
+
+.interest-rate-differentials {
+    text-align: center;
+}
+
+.select-rate-diff {
+    position: relative;
+    left: 25%;
+    width: 50%;
+}
+
+.chosen-central-banks {
+    position: relative;
+    left: 25%;
+}
+
+.submit-interest-rate-calculation {
+    width: 50%;
+}
+
+/* COT Data DIV */
+
+/* .cot-data-explanation {
+    
+    /* justify-content: center; */
+
+/* } */ 
+
+
+/* Risk Bot Div */
+.risk-bot-installation {
+    text-align: center;
+    text-decoration: none;
+}
+
+.risk-bot-header {
+    text-align: center;
+}
+/* 
+.risk-bot-p {
+    text-align: center;
+} */
+
+/* Plot from backtesting */
+#myplot {
+    width: 100%;
+}
+
+.to-ask-livingston {
+    text-align: center;
+}
+
+/* Scratch-like Interface CSS */
+
+.scratch-interface {
+    display: flex;
+}
+
+.scratch-side-nav {
+    width: 40%;
+}
+
+.scratch-playbox {
+    width: 60%;
+}
+
+
+.scratch-candlestick-patterns, .scratch-technical-indicators {
+    gap: 100px;
+    margin-left: 20px;
+}
+
+.scratch-technical-indicators {
+    margin-top: 20px;
+}
+
+.scratch-technical-indicators {
+
+}
+
+.scratch-candlestick-patterns-div button, .scratch-technical-indicators button, .scratch-actions-div {
+    margin-left: 5px;
+    margin-bottom: 15px;
+}
+
+.fill-height {
+    height: 100%;
+}
+
+.injectionDiv {
+    overflow: visible;
+    height: 400px;
+}
+
+.generated-code-example {
+    display: flex;
+    gap: 300px;
+}
+
+
+.split-dataset-div {
+    text-align: center;
+}
+
+.set-initial-capital-backtest-input {
+    width: 15%;
+}
+
+
+.daily-brief-div {
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+.daily-brief-upper-section, .performance-review-div {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 10px;
+    padding-right: 10px;
+
+}
+
+.daily-brief-asset-filter {
+    width: 20%;
+}
+
+
+
+.performance_review_asset, .performance-review-header-tradingview {
+    text-decoration: none;
+}
+
+
+.performance-select-asset {
+    cursor: pointer;
+}
+
+.personal-asset-review {
+    display: flex;
+}
+
+.personal-asset-review-line-chart {
+    width: 70%;
+}
+
+.performance-review-header {
+    text-align: center;
+}
+
+.loading-animation-text {
+    text-align: center;
+}
+
+
+.cot-data-container {
+    overflow-x: auto; /* Enables horizontal scrolling */
+    -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
+    margin-bottom: 1rem; /* Adds some space below the table */
+    width: 100%; /* Ensures the container takes up full width */
+  }
+
+  .cot-data-container h6 {
+    text-align: center;
+  }
+  
+  .cot-data-table {
+    min-width: 600px; /* Adjust this width based on your table's content */
+    border-collapse: collapse;
+    width: 100%; /* Ensures the table takes up full width of the container */
+  }
+  
+  .cot-data-table th, .cot-data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .cot-data-table th {
+    background-color: #f4f4f4;
+  }
+
+
+/* Theme styles */
+/* Default light theme */
+body.light {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+body.light .side-nav-btn {
+    background-color: #f8f9fa; /* Light button background */
+    color: #000; /* Light text */
+    border: 1px solid #ddd; /* Light border */
+}
+
+/* Dark theme */
+body.dark {
+    background-color: #2c2c2c;
+    color: #ffffff;
+}
+
+body.dark .btn {
+    background-color: #444; /* Dark button background */
+    color: #fff; /* Dark text */
+    border: 1px solid #555; /* Dark border */
+}
+
+body.dark .side-nav-btn {
+    background-color: #444; /* Darker side-nav buttons */
+    color: #fff;
+    border: 1px solid #555;
+}
+
+/* Adjust the navbar-dark color for better icon visibility */
+body.dark {
+    background-color: #3c3c3c; /* Lighter dark color for better contrast */
+    color: #ffffff;
+}
+
+/* Optional: Add hover effect for better user experience */
+.side-nav-btn:hover {
+    opacity: 0.8;
+}
+
+.section-links {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap onto the next line */
+    gap: 10px; /* Space between items */
+}
+
+.section-link {
+    flex: 1 1 calc(33.333% - 10px); /* 3 items in a row, adjust based on the gap */
+    text-align: center;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-decoration: none;
+    color: black;
+}
+
+.section-link:hover {
+    background-color: #ddd; /* Change background on hover */
+}
+
+.loading {
+    text-align: center;
+    font-size: 1.2em;
+    color: #555; /* Adjust the color as needed */
+    margin: 20px; /* Add some margin */
+}
+
+/* Optionally, add a spinner or other loading animation */
+.loading::before {
+    content: ''; /* Create a spinner */
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #ccc; /* Spinner background */
+    border-top: 3px solid #3498db; /* Spinner foreground */
+    border-radius: 50%;
+    animation: spin 1s linear infinite; /* Animation */
+    margin-right: 10px; /* Space between spinner and text */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .section-link {
+        flex: 1 1 100%; /* Full width on smaller screens */
+    }
+}
+
+
+/* Styling for the image container */
+.images-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Default: 2 images per row */
+    gap: 10px;
+    padding: 10px;
+}
+
+/* For large screens (laptops and desktops), show 4 images per row */
+@media (min-width: 768px) {
+    .images-container {
+        grid-template-columns: repeat(4, 1fr); /* 4 images per row */
+    }
+}
+
+/* For smaller screens (phones), show 1 image per row */
+@media (max-width: 767px) {
+    .images-container {
+        grid-template-columns: 1fr; /* 1 image per row */
+    }
+    .image-folder-button {
+        margin-bottom: 10px;
+    }
+}
+
+.image-item {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+/* Zoom effect on hover */
+.image-item:hover .thumbnail {
+    transform: scale(1.1); /* Slight zoom on hover */
+}
+
+/* Styling for the expanded image view */
+.expanded-image-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.expanded-image {
+    max-width: 100%; /* Allow the image to occupy 90% of the screen width */
+    max-height: 100%; /* Allow the image to occupy 90% of the screen height */
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    transform: scale(1); /* Default scale */
+    transition: transform 0.3s ease, max-width 0.3s ease, max-height 0.3s ease; /* Smooth transition */
+}
+
+.expanded-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* Add a smooth close effect when clicking outside the image */
+.expanded-image-container:hover {
+    cursor: pointer;
+}
+
+.expanded-image-container:hover .expanded-thumbnail {
+    transform: scale(1.05); /* Slight zoom for effect */
+}
+
+
+
+
+
+.chat-window {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 300px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+  }
+  
+  .messages {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+  
+  .user {
+    text-align: right;
+    background: #d1f7d6;
+    padding: 5px 10px;
+    margin: 5px 0;
+    border-radius: 10px;
+  }
+  
+  .assistant {
+    text-align: left;
+    background: #f0f0f0;
+    padding: 5px 10px;
+    margin: 5px 0;
+    border-radius: 10px;
+  }
+  
+  input {
+    width: calc(100% - 20px);
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+
+
+
+
+  
+
+
+
+/* Legodi Technologies CSS */
+
+.legodi-body {
+    font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.legodi-hero-section {
+    background-color:rgb(3, 3, 53);
+    color: white;
+}
+
+.legodi-logo {
+    height: 100px;
+    border-radius: 5px;
+}
+
+.upper-nav-legodi {
+    display: flex;
+    justify-content: space-between;
+    margin-left: 20px;
+    margin-right: 20px;
+    /* gap: 600px; */
+    /* position: relative; */
+    /* left: 50px; */
+}
+
+.legodi-logo-and-title, .legodi-about-section-div {
+    display: flex;
+}
+
+.legodi-about-section-div {
+    margin-top: 75px;
+    margin-bottom: 75px;
+    padding: 30px;
+    /* padding-left: 30px;
+    padding-top: 3 0px; */
+}
+
+.legodi-social-media-icons {
+    display: flex;
+    gap: 20px;
+    font-size: 20px;
+    justify-content: center;
+    align-items: center;
+}
+
+.legodi-social-media-icons i {
+    cursor: pointer;
+    color: black;
+}
+
+.upper-nav-legodi-right h6 {
+    cursor: pointer;
+}
+
+.legodi-geofence-image {
+    width: 40%;
+    /* margin-left: 50px; */
+    height: 100%;
+}
+
+.legodi-about-image {
+    width: 50%;
+}
+
+/* DON'T FORGET TO CHECK THIS!! */
+.upper-nav-legodi-right {
+    /* left: 600px; */
+    
+    display: flex;
+    gap: 15px;
+    
+    /* align-items: ; */
+}
+
+
+.legodi-innovative-technology-div-text {
+    max-width: 800px;
+    position: relative;
+      top: 50%;
+      left: 50%;
+      margin-right: -50%;
+      transform: translate(-50%, -50%);
+
+}
+
+
+.legodi-latest-news-div-contents, .legodi-about-section-div-contents, .legodi-get-in-touch-contents, .legodi-footer-contents {
+    margin-left: 50px;
+}
+
+.legodi-offered-services{
+    gap: 15px;
+    /* padding: 10px; */
+    
+
+}
+
+.transforming-agriculture-div {
+    /* margin-left: 150px; */
+    text-align: center;
+    /* width: 50%; */
+}
+
+.legodi-contact-us-button {
+    height: 80%;
+}
+
+
+/* .legodi-latest-news-div {
+    background-color:lightblue;
+} */
+
+
+.legodi-latest-news-news {
+    display: flex;
+    gap: 20px;
+}
+
+.legodi-latest-news-pic1, .legodi-latest-news-pic2, .legodi-latest-news-pic3 {
+    width: 60%;
+}
+
+
+.news-pic1, .news-pic2, .news-pic3 {
+    width: 90%;
+    height: 60%;
+}
+
+.legodi-our-services-div {
+    /* background-color: rgb(3, 3, 53);
+    color: white; */
+}
+
+.legodi-our-services-div-contents {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.legodi-our-services-div-contents h1 {
+    text-align: center;
+}
+
+.legodi-offered-services {
+    /* display: flex; */
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+
+.s1, .legodi-offered-services {
+    text-align: center;
+}
+
+/* .s1 hr, .s2 hr, .s3 hr { */
+    /* width: 70; */
+
+
+.legodi-about-section-div-contents {
+    display: flex;
+    gap: 100px;
+}
+
+.legodi-about-section-explanation {
+    text-align: center;
+}   
+
+.legodi-about-image {
+    /* width: 100%; */
+    height: 100%;
+}
+
+.legodi-latest-news-div-contents {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+ 
+.legodi-latest-news-div-contents h1 {
+    text-align: center;
+}
+
+.legodi-get-in-touch-div {
+    background-color: rgb(3, 3, 53);
+    color: white;
+}
+
+/* .legodi-get-in-touch-header {
+    width: 50%;
+} */
+
+.legodi-get-in-touch-header h1 { 
+    text-align: center;
+}
+
+.legodi-get-in-touch-contact-info-div {
+    display: flex;
+    /* gap: 400px; */
+    justify-content: space-between;
+}
+
+.legodi-home-page-link{
+    cursor: pointer;
+}
+
+.order-now-button {
+        /* height: 100vh; Set the container height to the viewport height */
+        display: flex;
+        justify-content: center; /* Horizontally center the content */
+        align-items: center; /* Vertically center the content */
+    
+}
+
+.book-order-div {
+    text-align: center;
+    /* align-items: center; */
+    justify-content: center;
+    position: absolute;
+    /* top: 100px; */
+    left: 350px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 30px 25px;
+    /* transform: translate(-50%, -50%); */
+    width: 50%;
+    margin-bottom: 50px;
+}
+
+.legodi-send-button {
+    width: 100%;
+}
+
+
+.containers {
+    position: relative;
+    max-width: 850px;
+    width: 55%;
+    background: #fff;
+    padding: 40px 30px;
+    box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+    perspective: 2700px;
+  }
+  
+   .containers .cover .front,
+   .containers .cover .back{
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 50%;
+  }
+  
+
+  .cover{
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .containers .forms{
+    height: 100%;
+    width: 100%;
+    background: #fff;
+  }
+  
+  .form-content .login-form,
+  .form-content .signup-form{
+    width: 100%;
+  }
+  .forms .form-content .title{
+    position: relative;
+    font-size: 24px;
+    font-weight: 500;
+    color: #333;
+  }
+
+  .forms .form-content .title:before{
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 25px;
+    background: #000c75;
+  }
+  .forms .signup-form  .title:before{
+    width: 20px;
+  }
+
+  .forms .form-content .input-boxes{
+    margin-top: 30px;
+  }
+
+  .forms .form-content .input-box{
+    /* display: flex; */
+    align-items: center;
+    height: 50px;
+    width: 100%;
+    margin: 10px 0;
+    position: relative;
+  }
+  .form-content .input-box input{
+    height: 100%;
+    width: 100%;
+    outline: none;
+    border: none;
+    padding: 0 30px;
+    font-size: 16px;
+    font-weight: 500;
+    border-bottom: 2px solid rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+  }
+  .form-content .input-box input:focus,
+  .form-content .input-box input:valid{
+    border-color: #000c75;
+  }
+  .form-content .input-box i{
+    position: absolute;
+    color: #000c75;
+    font-size: 17px;
+  }
+  .forms .form-content .text{
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+  }
+  .forms .form-content .text a{
+    text-decoration: none;
+  }
+  .forms .form-content .text a:hover{
+    text-decoration: underline;
+  }
+  .forms .form-content .button{
+    color: #fff;
+    margin-top: 40px;
+  }
+  .forms .form-content .button input{
+    color: #fff;
+    background: #000c75;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.4s ease;
+  }
+  .forms .form-content .button input:hover{
+    background: #000c75;
+  }
+  .forms .form-content label{
+    color: #000c75;
+    cursor: pointer;
+  }
+  .forms .form-content label:hover{
+    text-decoration: underline;
+  }
+  .forms .form-content .login-text,
+  .forms .form-content .sign-up-text{
+    text-align: center;
+    margin-top: 25px;
+  }
+  .containers #flip{
+    display: none;
+  }
+
+  .containers {
+    position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-right: -50%;
+      transform: translate(-50%, -50%); 
+  }
+
+.generated-code-example div {
+    max-width: 100%;
+}  
+
+.timezones {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+.genesys-model-performance {
+    padding-left: 25px;
+}
+
+.filter-input {
+    width: 50%;
+}
+
+
+.model-dates {
+    text-align: center;
+}
+
+.model-performance-summary {
+    display: flex;
+    padding-left: 25px;
+}
+
+.model-summary-chart {
+    height: 300px;
+    width: 60%;
+    position: relative;
+}
+
+.model-performance-metrics {
+    text-align: left;
+}
+
+.plots-container {
+    width: 60%;
+    margin: 0 auto; /* Center the container horizontally */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center images horizontally */
+    justify-content: center; /* Center images vertically (if needed) */
+    text-align: center; /* Optional: Center text if needed */
+}
+
+.plot-item {
+    margin-bottom: 20px; /* Add spacing between images */
+}
+
+
+
+
+
+
+
+
+
+  @media (max-width: 730px) {
+
+    .chat-window {
+        position: fixed;
+        bottom: 0px;
+        right: 10px;
+        width: 95%;
+        height: 80%;
+    }
+    
+    .messages {
+        /* max-height: 300px; */
+        /* overflow-y: auto; */
+        margin-bottom: 0px;
+      }
+
+    .containers {
+        width: 100%;
+    }
+    .plots-container {
+        width: 100%;   
+    }
+
+    .model-performance-summary {
+        display: block;
+    }
+
+    .model-summary-chart {
+        height: 300px;
+        width: 100%;
+        position: relative;
+    }
+
+    .daily-brief-div {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+
+    .daily-brief-asset-filter {
+        width: 40%;
+    }
+    
+    .form-content .login-form,
+    .form-content .signup-form{
+      width: 100%;
+    }
+
+    .personal-asset-review {
+        display: block;
+    }
+
+    .personal-asset-review-line-chart {
+        width: 100%;
+    }
+   
+
+    
+  }
+
+
+@media screen and (max-width: 768px) {
+
+    .set-initial-capital-backtest-input {
+        width: 100%;
+    }
+
+    /* .generated-code-example div {
+        max-width: 100%;
+    } */
+
+    .model-performance-summary {
+        display: block;
+    }
+
+    .model-summary-chart {
+        height: 200px;
+        width: 100%;
+        position: relative;
+    }
+
+    .book-order-div {
+        left: 0px;
+        width: 100%;
+    }
+    .legodi-about-section-div {
+        display: block;
+    }
+
+    .legodi-about-image {
+        width: 100%;
+    }
+
+    .legodi-latest-news-news {
+        display: block;
+    }
+
+    .legodi-offered-services {
+        display: block;
+    }
+
+    .s1, .s2, .s3 {
+        width: 100%;
+    }
+
+
+    .s1 hr, .s2 hr, .s3 hr {
+        width: 100%;
+    }
+    
+    .legodi-get-in-touch-contact-info-div {
+        display: block;
+
+        /* text-align: center; */
+    }
+
+    .legodi-latest-news-div-contents, .legodi-our-services-div-contents {
+        margin-left: auto;
+        /* text-align: center; */
+    }
+
+    .legodi-latest-news-div-contents {
+        padding-top: 50px;
+        padding-bottom: 50px;
+    }
+    
+    .legodi-about-section-div-contents, .legodi-get-in-touch-contents {
+        margin-left: 0px;
+    }
+
+    .legodi-latest-news-pic1, .legodi-latest-news-pic2, .legodi-latest-news-pic3 {
+        width: 100%;
+    }
+    
+    .legodi-latest-news-div-contents hr {
+        width: 70%;
+    }
+
+    .register-div, .login-div, .tell-us-div {
+        left: 20px;
+        width: 90%;
+    }
+
+    .info-modal {
+        width: 200%;
+    }
+
+    .info-modal-content {
+        left: 160px;
+    }
+
+    .main-page-body {
+        display: block;
+    }
+
+    .main-body-info {
+        position: relative;
+        top: 0px;
+        left: 0px;
+    }
+    .main-body-info h5 {
+        text-align: center;
+    }
+    .main-body-info h5 {
+        right: 0px;
+    } 
+    
+    .side-navs {
+        display: none;
+    }
+    
+    .side-navs-cellphone {
+        display: flex;
+        top: 0px;
+        left: 0px;
+        width: 100%;
+    }
+    
+    .side-nav {
+        font-size: x-large;
+        border: 1px solid #ccc;
+        border-radius: 1px;
+        padding: 5px 2px;
+        width: 110%;
+        text-align: center;
+    }
+    
+    /* All Trades CSS */
+    .all-trades-div {
+        width: 100%;
+        left: 0px;
+        top: 50px;
+    }
+
+    .whole-trade-analysis-div {
+        align-items: center;
+        left: -10px;        
+    }
+    
+    .all-trades-header {
+        left: 0px;  
+        top: 30px;
+    }
+    
+    .enter-new-trade-cta {
+        text-align: center;
+        position: relative;
+        left: 90px;
+        top: 30px;
+    }
+
+    /* Overview CSS */
+    .entire-summary-div {
+        right: 0px;
+        top: 50px;
+    }
+
+    .overview-summary-title {
+        position: relative;
+        top: 50px;
+    }
+
+    .summary-upcoming-news h6, .summary-current-performance-eval h6 {
+        position: relative;
+        right: 12px;
+    }
+
+    .register-new-trade {
+        left: 17px;
+        width: 90%;
+    }
+
+    .whole-trade-analysis-header {
+        display: block;
+    }
+
+    .whole-trade-analysis-header {
+        left: 50px;
+    }
+    .trade-analysis-feedback-div, .trade-analysis-reflection {
+        width: 300px;
+    }
+    .trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+        top: 420px;
+        width: 300px;
+        left: 50px;
+        margin-top: 10px;
+    }
+    .trade-analysis-footer {
+        top: 965px;
+        width: 75%;
+        left: 45px;
+    }
+    .whole-trade-analysis-stomach {
+        display: block;
+        left: 0px;
+    }
+    .full_trades-main-page-cta {
+        position: relative;
+    }
+    .trade-analysis-reflection {
+        margin-top: 10px;
+    }
+    .top-history-header div {
+        width: 31%;
+    }
+    .middle-history-header div, .bottom-history-header div {
+        width: 48%;
+    }
+    .middle-analytics {
+        display: block;
+        right: 0px;
+    }
+    .middle-analytics-equity-over-time, .middle-analytics-overall {
+        left: 10px;
+    }
+    .middle-analytics-equity-over-time {
+        width: 100%;
+    }
+    .download-compiled-report {
+        top: 270px;
+    }
+    .analytics-footer p {
+        left: 5px;
+        right: 5px;
+    }
+
+    /* Personal Journal CSS */
+    .journal-div {
+        position: relative;
+        top: 0px;
+        right: 0px;
+        left: -200px;
+        width: 100%;
+    }
+
+    .all-journals-div {
+        position: relative;
+        left: 0px;
+        top: 90px;
+        width: 100%;
+    }
+
+    .create-new-journal-cta, .personal-journal-title {
+        position: relative;
+        width: 100%;
+        left: 75%;
+        top: 60px;
+    }
+    .personal-journal-title {
+        left: 200px;
+    }
+
+    .all-journals-bottom {
+        display: block;
+    }
+    /* Journal Entry CSS */
+    .entire-journal-div {
+        width: 100%;
+        left: 0px;
+        top: 100px;
+    }
+
+    .view-journal-title {
+        left: 0px;
+        top: 150px;
+    }
+
+    /* New Journal Entry CSS */
+    .personal-journal-ckeditor {
+        width: 80%;
+        left: 10%;
+        /* height: 1000px; */
+        top: 60px;
+    }
+
+    .main-journal-nav-button {
+        top: 75px;
+        width:50%;
+        left: -24px;
+    }
+
+    .view-journal-title {
+        position: relative;
+        top: 50px;
+    }
+
+    /* Live Clock CSS */
+    .journal-liveclock {
+        display: none;
+    }
+
+    .live-clock {
+        display: block;
+        left: -425px;
+        width: 100%;
+        top: 20px;
+    }
+
+    .chatbot-liveclock {
+        left: 0px;
+        width: 100%;
+    }
+
+    /* Major News CSS */
+    .news-event {
+        width: 100%;
+        left: 1px;
+        top: 170px;
+    }
+
+    .major-upcoming-news-events-header {
+        position: absolute;
+        top: 30px;
+        left: 0px;
+    }
+
+    .impact-legend {
+        display: flex;
+        /* position: relative; */
+        gap: 10px;
+        margin-top: 20px;
+        /* margin-top: 50px; */
+        justify-content: center;
+    }
+
+    /* ChatBot CSS */
+    .chatbot-div {
+        position: relative;
+        top: 0px;
+        left: 0px;
+        right: 0px;
+        width: 100%;
+        height: 400px;
+        margin-bottom: 200px;
+    }
+
+    .conversations-div {
+        left: 0px;
+        display: none;
+    }
+
+    .phone-conversations-div {
+        display: none;
+        position: relative;
+        top: 10px;
+        left: 2%;
+    }
+
+    .ask-livingston-buttons button {
+        width: 100%;   
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Adjust the transparency as needed */
+        z-index: 1000; /* Adjust the z-index value to position the modal correctly */
+    }
+    .clear-conversation-icon {
+        bottom: -100px;
+    }
+    .clear-conversation-icon-phone {
+        display: block;
+        font-size: x-large;
+        cursor: pointer;
+    }
+    .top-phone-chat-div {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .ai-div {
+        top: 0px;
+    }
+    /* Personal Info CSS */
+    .personal-info {
+        width: 100%;
+        margin: 0px;
+        margin-top: 50px;
+        margin-left: 0px;
+    }
+    /* Select Category CSS */
+    .select-category-modal, 
+.select-currencies-modal, 
+.select-stocks-modal, 
+.select-commodities-modal, 
+.select-indices-modal, 
+.select-futures-modal, 
+.select-options-modal {
+    width: 90%;
+    left: 5%;
+    height: 100%;
+}
+
+/* Model Creation Div */
+
+.create-new-models {
+    position: relative;
+    top: 40px;
+    margin-bottom: 350px;
+}
+
+.upper-models-div, .middle-models-div  {
+    display: block;
+}
+
+/* Backtest Models Section */
+
+.backtest-models {
+    position: relative;
+    top: 50px;
+}
+
+.set-moving-average-model select, .set-moving-average-model input, .set-moving-average-model button, .set-bbands-model button, .set-bbands-model select, .set-bbands-model input, .set-rsi-model button, .set-rsi-model select, .set-rsi-model input, .timeframe-period select, .backtest-button {
+    width: 100%;
+    left: 0px;
+}
+.chosen-models button {
+    width: 100%;
+}
+
+.create-models-next {
+    left: 0%;
+    width: 100%;
+}
+
+.download-bot-file {
+    width: 100%;
+    /* left: 0; */
+}
+
+.candlestick-models button, .technical-models button, .ml-models button, .dl-models button {
+    width: 100%;
+}
+
+/* Market Makers Section */
+
+.market-maker-section {
+    position: relative;
+    top: 50px;
+    /* margin-bottom: 150px; */
+}
+
+.interest-rates-bar-chart-container {
+    width: 100%;
+    left: 0;
+}
+
+.model-performance {
+    padding: 5px 5px;
+}
+
+.filter-input, .calculate-pl-button {
+    width: 100%;
+}
+
+
+}
+
+
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    /* Your CSS rules for tablets go here */
+    /* These rules will apply when the screen width is between 768px and 1024px */
+
+    .book-order-div {
+        left: 0px;
+        width: 100%;
+    }
+
+    .legodi-about-section-div {
+        display: block;
+    }
+
+    .legodi-about-image {
+        width: 100%;
+    }
+
+    .register-div, .login-div, .tell-us-div {
+        left: 115px;
+        width: 70%;
+    }
+    .info-modal {
+        width: 200%;
+    }
+    .info-modal-content {
+        left: 200px;
+    }
+    .main-page-body {
+        display: block;
+    }
+    .main-body-info {
+        position: relative;
+        top: 50px;
+        left: 0px;
+    }
+    .main-body-info h5 {
+        text-align: center;
+    }
+    .main-body-info h5 {
+        right: 0px;
+    }
+    .all-trades-header {
+        left: 0px;
+    }
+    .side-navs {
+        display: none;
+    }
+    .side-navs-cellphone {
+        display: flex;
+        top: 0px;
+        left: 0px;
+        width: 100%;
+    }
+    .side-nav {
+        font-size: x-large;
+        border: 1px solid #ccc;
+        border-radius: 1px;
+        padding: 5px 2px;
+        width: 150px;
+        text-align: center;
+        width: 100%;
+    } 
+    .enter-new-trade-cta {
+        position: relative;
+        /* left: 355px; */
+        left: 43%;
+    }
+    .all-trades-div {
+        position: relative;
+        width: 90%;
+        left: 35px;
+    }
+    .entire-summary-div {
+        right: 0px;
+    }
+    .summary-upcoming-news h6, .summary-current-performance-eval h6 {
+        position: relative;
+        right: 12px;
+    }
+    .register-new-trade {
+        left: 40px;
+        width: 90%;
+    }
+    .whole-trade-analysis-header {
+        display: flex;
+        left: 20px;
+    }
+    .trade-analysis-feedback-div, .trade-analysis-reflection {
+        width: 300px;
+    }
+    .trade-analysis-reflection {
+    position: relative;
+    top: -10px;
+    }
+    .trade-analysis-roi, .trade-analysis-equity-risked, .trade-analysis-emotional-bias {
+        top: 310px;
+        width: 190px;
+        left: -30px;
+    }
+    .trade-analysis-footer {
+        top: 590px;
+        width: 100%;
+        left: 25px;
+    }
+    .whole-trade-analysis-stomach {
+        display: flex;
+        left: 60px;
+    }
+    .full_trades-main-page-cta {
+        position: relative;
+    }
+    .trade-analysis-reflection {
+        margin-top: 10px;
+    }
+    .top-history-header div {
+        width: 31%;
+    }
+    .middle-history-header div, .bottom-history-header div {
+        width: 48%;
+    }
+    .middle-analytics {
+        display: block;
+        right: 0px;
+    }
+    .middle-analytics-equity-over-time, .middle-analytics-overall {
+        left: 10px;
+    }
+
+    .middle-analytics-equity-over-time {
+        width: 100%;
+    }
+
+    .download-compiled-report {
+        top: 150px;
+    }
+    .analytics-footer p {
+        left: 5px;
+        right: 5px;
+    }
+    .whole-trade-analysis-div {
+        position:absolute;
+        top: 130px;
+        left: 100px;
+    }
+    .best-strategy, .worst-strategy {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 15px;
+        width: 398px;
+    }
+     /* Personal Journal CSS */
+     .journal-div {
+        left: 0px;
+        top:50px;
+     }
+     .all-journals-div {
+        width: 80%;
+        left: 10%;
+        top: 150px;
+        
+        /* justify-content: center; */
+    }
+    .create-new-journal-cta, .personal-journal-title {
+        left: 0px;
+        width: 90%;
+        text-align: center;
+    }
+    .create-new-journal-cta {
+        position: relative;
+        left: 35%;
+    }
+
+    .all-journals-bottom {
+        display: block;
+    }
+
+    /* Journal Entry CSS */
+    .entire-journal-div {
+        width: 80%;
+        left: 10%;
+        top:150px
+    }
+
+    .view-journal-title {
+        top: 100px;
+    }
+    /* New Journal Entry CSS */
+    .personal-journal-ckeditor {
+        width: 80%;
+        left: 10%;
+        top: 50px;
+        height: 1000px;
+    }
+    .main-journal-nav-button {
+        top: 75px;
+        width:50%;
+        left: -24px;
+    }
+
+    /* LiveClock CSS */
+    /* .live-clock {
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+    } */
+    .live-clock h5,.chatbot-liveclock {
+        position: relative;
+        /* left: 130px; */
+        top: 20px;
+        display: none;
+    }
+    .chatbot-liveclock {
+        left: 70px;
+        top: 40px;
+        display: none;
+    }
+
+    /* ChatBot CSS */ 
+    .chatbot-div {
+        /* top: 50px; */
+        /* right: 30%; */
+        width: 70%;
+        height: 500px;
+        left: 50px;
+    }
+    .ask-livingston-buttons button {
+        width: 100%;   
+    }
+
+    .conversations-div {
+        width: 20%;
+        left: 8%;
+    }
+
+    .clear-conversation-icon {
+        display: none;
+    }
+    /* News CSS */
+    .news-event{
+        left: 0px;
+        width: 100%;
+        top: 170px;
+    }
+
+    .major-upcoming-news-events-header {
+        position: absolute;
+        top: 30px;
+        left: 0px;
+    }
+
+    .impact-legend {
+        display: flex;
+        /* position: relative; */
+        gap: 10px;
+        margin-top: 20px;
+        /* margin-top: 50px; */
+        justify-content: center;
+    }
+
+    
+    /* Personal Info CSS */
+    .personal-info {
+        width: 100%;
+        margin: 0px;
+        margin-top: 50px;
+        margin-left: 0px;
+    }
+    /* Select Category CSS */
+    .select-category-modal, 
+    .select-currencies-modal, 
+    .select-stocks-modal, 
+    .select-commodities-modal, 
+    .select-indices-modal, 
+    .select-futures-modal, 
+    .select-options-modal {
+        width: 90%;
+        left: 5%;
+        height: 100%;
+    }
+
+    .loading-icon {
+        animation: spin 5s linear infinite;
+        color: green;
+        cursor: pointer;
+    }
+
+    @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+    }
+
+.download-bot-file {
+        width: 100%;
+        /* left: 0; */
+    }
+    
+
+  }
+
+
+  @media screen and (min-width: 1024px) {
+    /* Styles for larger screens go here */
+    .register-div, .login-div, .tell-us-div {
+        position: relative;
+        left: 350px;
+        width: 45%;
+    }
+    .info-modal {
+        width: 200%;
+    }
+    .info-modal-content {
+        left: 200px;
+    }
+    .main-page-body {
+        display: block;
+    }
+    .main-body-info {
+        position: relative;
+        top: 50px;
+        left: 0px;
+    }
+    .main-body-info h5 {
+        text-align: center;
+    }
+    .main-body-info h5 {
+        right: 0px;
+    }
+    .all-trades-header {
+        left: 0px;
+    }
+
+    .enter-new-trade-cta {
+        position: relative;
+        /* left: 355px; */
+        left: 43%;
+    }
+    .all-trades-div {
+        position: relative;
+        width: 80%;
+        left: 150px;
+    }
+    .entire-summary-div {
+        right: 0px;
+    }
+    .summary-upcoming-news h6, .summary-current-performance-eval h6 {
+        position: relative;
+        right: 12px;
+    }
+    .register-new-trade {
+        left: 225px;
+        width: 70%;
+    }
+    .whole-trade-analysis-header {
+        display: flex;
+        left: 20px;
+    }
+    .trade-analysis-reflection {
+    position: relative;
+    top: -10px;
+    }
+    
+    .trade-analysis-footer {
+        top: 590px;
+        width: 100%;
+        left: 25px;
+    }
+    .whole-trade-analysis-stomach {
+        display: flex;
+        left: -190px;
+    }
+    .full_trades-main-page-cta {
+        position: relative;
+    }
+    .trade-analysis-reflection {
+        margin-top: 10px;
+    }
+    
+    
+    .download-compiled-report {
+        top: 150px;
+    }
+    .analytics-footer p {
+        left: 5px;
+        right: 5px;
+    }
+    .whole-trade-analysis-div {
+        position:absolute;
+        top: 200px;
+        left: 10%;
+        justify-content: center;
+    }
+    /* .best-strategy, .worst-strategy {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 15px;
+        width: 398px;
+    } */
+     /* Personal Journal CSS */
+     .journal-div {
+        left: 0px;
+        top:50px;
+     }
+     .all-journals-div {
+        width: 80%;
+        left: 10%;
+        top: 150px;
+        
+    }
+    .create-new-journal-cta, .personal-journal-title {
+        left: 0px;
+        width: 90%;
+        text-align: center;
+    }
+    .create-new-journal-cta {
+        position: relative;
+        left: 35%;
+    }
+
+    .all-journals-bottom {
+        display: block;
+    }
+
+    /* Journal Entry CSS */
+    .entire-journal-div {
+        width: 80%;
+        left: 10%;
+        top:150px
+    }
+
+    .view-journal-title {
+        top: 100px;
+    }
+    /* New Journal Entry CSS */
+    .personal-journal-ckeditor {
+        width: 80%;
+        left: 10%;
+        top: 50px;
+        height: 1000px;
+    }
+    .main-journal-nav-button {
+        top: 75px;
+        width:50%;
+        left: -24px;
+    }
+
+    /* LiveClock CSS */
+    /* .live-clock {
+        text-align: center;
+        align-items: center;
+        justify-content: center;
+    } */
+    .live-clock h5,.chatbot-liveclock {
+        position: relative;
+        /* left: 130px; */
+        top: 20px;
+        display: none;
+    }
+    .chatbot-liveclock {
+        left: 70px;
+        top: 40px;
+        display: none;
+    }
+
+    /* ChatBot CSS */ 
+    .chatbot-div {
+        /* top: 50px; */
+        /* right: 30%; */
+        width: 70%;
+        height: 420px;
+        left: 10%;
+    }
+    .ask-livingston-buttons button {
+        width: 100%;   
+    }
+
+    .conversations-div {
+        width: 13%;
+        left:15%;
+    }
+
+    .clear-conversation-icon {
+        display: none;
+    }
+    /* News CSS */
+    .news-event{
+        left: 10%;
+        width: 80%;
+        top: 170px;
+    }
+
+    .major-upcoming-news-events-header {
+        position: absolute;
+        top: 30px;
+        left: 0px;
+    }
+
+    .impact-legend {
+        display: flex;
+        /* position: relative; */
+        gap: 10px;
+        margin-top: 20px;
+        /* margin-top: 50px; */
+        justify-content: center;
+    }
+
+    
+    /* Personal Info CSS */
+    .personal-info {
+        width: 100%;
+        margin: 0px;
+        margin-top: 50px;
+        margin-left: 0px;
+    }
+    /* Select Category CSS */
+    .select-category-modal, 
+    .select-currencies-modal, 
+    .select-stocks-modal, 
+    .select-commodities-modal, 
+    .select-indices-modal, 
+    .select-futures-modal, 
+    .select-options-modal {
+        width: 60%;
+        left: 240px;
+        height: 100%;
+    }
+
+
+    .personal-info-content {
+        position: relative;
+        width: 70%;
+        left: 200px;
+    }
+    @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+    }
+    .loading-icon {
+        animation-delay: 5s;
+        animation: spin 5s linear infinite;
+        color: green;
+        cursor: pointer;
+    }
+
+
+    .momentum button, .candlestick-button { 
+        position: relative;
+        left: 41%;
+    }
+
+    .download-bot-file {
+        position: relative;
+        /* justify-content: center; */
+        left: 43%;
+    }
+ }
+ 
+
+
+/* Base styles scoped to Zhenya */
+.zhenya-landing-page {
+    text-align: center;
+    padding: 20px;
+    font-family: "Arial", sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+  }
+  
+  .zhenya-header {
+    background-color: #2e3b4e;
+    color: #fff;
+    padding: 40px 20px;
+  }
+  
+  .zhenya-title {
+    font-size: 2.5rem;
+    margin: 0;
+  }
+  
+  .zhenya-subtitle {
+    font-size: 1.2rem;
+    margin-top: 10px;
+  }
+  
+  .zhenya-main-content {
+    padding: 20px;
+  }
+  
+  .zhenya-intro-section {
+    margin: 20px 0;
+  }
+  
+  .zhenya-intro-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+  }
+  
+  .zhenya-intro-section p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  .zhenya-cta-section {
+    margin: 40px 0;
+  }
+  
+  .zhenya-cta-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .zhenya-cta-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #2e3b4e;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .zhenya-cta-button:hover {
+    background-color: #475d7e;
+  }
+  
+  .zhenya-footer {
+    margin-top: 40px;
+    padding: 10px 20px;
+    background-color: #2e3b4e;
+    color: #fff;
+    font-size: 0.9rem;
+  }
+
+
+  .sections-page {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .sections-page h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .back-button {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: white;
+    background-color: #555;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .back-button:hover {
+    background-color: #333;
+  }
+  
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    justify-items: center;
+  }
+  
+  .category-card {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .category-card h2 {
+    font-size: 1.5rem;
+    color: #444;
+  }
+  
+  .category-card p {
+    font-size: 1rem;
+    color: #666;
+  }
+  
+
+  
+  
+  .ww2-page {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .ww2-page h1 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 30px;
+  }
+  
+  .profiles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    justify-items: center;
+  }
+  
+  .profile-card {
+    width: 250px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: #f9f9f9;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .profile-card img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+  }
+  
+  .profile-card h2 {
+    font-size: 1.2rem;
+    margin: 15px 0 10px;
+    color: #444;
+  }
+  
+  .profile-card p {
+    font-size: 0.9rem;
+    color: #666;
+    padding: 0 10px 15px;
+  }
+  
+  .back-button {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: white;
+    background-color: #555;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .back-button:hover {
+    background-color: #333;
+  }
+
+  .read-more-link {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: underline;
+  }
+  
+  .read-more-link:hover {
+    color: #0056b3;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /* Michelle's website */
+  /* Flower Particle Style */
+.flower {
+    position: absolute;
+    bottom: 0;
+    background-color: pink;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    animation: float 8s ease-in-out infinite, sway 3s ease-in-out infinite;
+  }
+  
+  /* Keyframe Animation for Floating */
+  @keyframes float {
+    0% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-200px) rotate(360deg);
+    }
+    100% {
+      transform: translateY(0) rotate(720deg);
+    }
+  }
+  
+  /* Swaying Effect */
+  @keyframes sway {
+    0% {
+      left: 0;
+    }
+    50% {
+      left: 2px;
+    }
+    100% {
+      left: 0;
+    }
+  }
+
+
+  .centered-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 1.5rem;
+    color: #9c3e52; /* Pink Maroon */
+    font-weight: 500;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+    animation: floatUp 8s ease-in-out infinite;
+  }
+  
+  /* Animation */
+  @keyframes floatUp {
+    0% {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+    50% {
+      transform: translate(-50%, -20px);
+      opacity: 0.7;
+    }
+    100% {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+  
+  
+
+  
+  /* Background and container styling */
+.snowai-landing-page {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    background: linear-gradient(180deg, #0a0f1f, #1c2235); /* Cool blue gradient */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: "Arial", sans-serif;
+    border: 10px solid transparent;
+    background-clip: padding-box, border-box;
+    background-origin: border-box;
+    box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.2) inset;
+  }
+  
+
+  /* Title styling */
+  .snowai-title {
+    font-size: 5rem;
+    color: #ffffff;
+    text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    z-index: 10;
+    animation: pulse 3s infinite;
+    margin-bottom: 20px; /* Space between title and button */
+  }
+  
+  /* Pulse effect for "snowAI" */
+  @keyframes pulse {
+    0%, 100% {
+      text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    }
+    50% {
+      text-shadow: 0 0 20px #68a6db, 0 0 30px #68a6db;
+    }
+  }
+  
+  /* Snowflake styling */
+  .snowflake {
+    position: absolute;
+    top: -5%;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 50%;
+    animation: fall linear infinite;
+  }
+  
+  /* Snowflake falling animation */
+  @keyframes fall {
+    to {
+      transform: translateY(110vh);
+    }
+  }
+  
+  /* Snowflake styling */
+.snowflake {
+    position: absolute;
+    top: -5%;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: fall linear infinite;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  
+  /* Snowflake falling animation */
+  @keyframes fall {
+    to {
+      transform: translateY(110vh);
+    }
+  }
+  
+  /* Snowflake hover effect */
+  .snowflake:hover {
+    transform: scale(1.5) rotate(15deg);
+    opacity: 0.5;
+  }
+  
+  /* Background and container styling */
+  .snowai-landing-page {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    background: linear-gradient(180deg, #0a0f1f, #1c2235);
+    background-size: 400% 400%;
+    animation: gradientShift 10s infinite ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: white;
+    font-family: "Arial", sans-serif;
+  }
+  
+  /* Gradient shift animation */
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Title styling */
+  .snowai-title {
+    font-size: 5rem;
+    color: #ffffff;
+    text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    z-index: 10;
+    animation: typewriter 3s steps(8) 1s forwards, blink 0.8s step-end infinite;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: 2px solid #ffffff;
+  }
+  
+
+  .snowai-title span {
+    animation: glow-letter 1.5s infinite;
+  }
+  
+  @keyframes glow-letter {
+    0%, 100% {
+      color: #ffffff;
+      text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
+    }
+    50% {
+      color: #2979ff;
+      text-shadow: 0 0 20px #68a6db, 0 0 30px #68a6db;
+    }
+  }
+  
+  
+  
+  /* Blinking cursor effect */
+  @keyframes blink {
+    from, to {
+      border-color: transparent;
+    }
+    50% {
+      border-color: #ffffff;
+    }
+  }
+  
+  /* Button styling */
+  .snowai-button {
+    font-size: 1.2rem;
+    color: #ffffff;
+    text-decoration: none;
+    background-color: #2979ff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    z-index: 10;
+    animation: glow 3s infinite ease-in-out;
+  }
+  
+  /* Button glow animation */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+    }
+    50% {
+      box-shadow: 0 4px 18px rgba(41, 121, 255, 0.5);
+    }
+  }
+
+
+  .play-music-button {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .play-music-button:hover {
+    background-color: #357ab8;
+  }
+  
+  
+  
+  
+  /* Button hover effect */
+  .snowai-button:hover {
+    background-color: #68a6db;
+    box-shadow: 0 4px 20px rgba(41, 121, 255, 0.6);
+  }
+  
+  
+
+  .mouse-glow {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 80%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    transition: transform 0.1s ease;
+  }
+
+  
+
+  
+  
+
+  /* Account CSS */
+  .new-account-section {
+    width: 100%;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.new-account-section h3 {
+    color: #34495e;
+    font-size: 24px;
+}
+
+.new-account-section input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.new-account-section button {
+    width: 100%;
+    padding: 12px;
+    background-color: #3498db;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.new-account-section button:hover {
+    background-color: #2980b9;
+}
+
+.account-list {
+    margin-top: 20px;
+}
+
+.account-list h4 {
+    font-size: 20px;
+    color: #34495e;
+}
+
+.account-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.account-list li {
+    background-color: #ecf0f1;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+}
+
+.account-list button {
+    padding: 6px 12px;
+    background-color: #e74c3c;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.account-list button:hover {
+    background-color: #c0392b;
+}
+
+
+.account-info {
+    background-color: #f4f4f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.trade-card {
+    background-color: #fff;
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.trade-card h6 {
+    font-size: 1.2em;
+}
+
+.trade-list {
+    margin-top: 20px;
+}
+
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0 15px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+textarea {
+    height: 100px;
+    resize: vertica
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* General Back Button */
+.michelle-back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: black;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .michelle-back-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+  }
+  
+
+  /* Header */
+.poetry-header {
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  .poetry-header h1 {
+    color: #7a4a42; /* Maroon */
+    font-size: 2.5rem;
+  }
+  
+  /* Poetry List */
+  .poetry-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px;
+  }
+  
+  /* Individual Poem Cards */
+  .poem-card {
+    background-color: #dcb897; /* Light Brown */
+    color: #4b3b2f; /* Darker Brown */
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    padding: 15px 20px;
+    width: 300px;
+    transition: transform 0.2s ease;
+  }
+  
+  .poem-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .poem-title {
+    font-size: 1.4rem;
+    color: #9c3e52; /* Pink Maroon */
+    margin-bottom: 8px;
+  }
+  
+  .poem-content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #533a2f; /* Deeper Brown */
+  }
