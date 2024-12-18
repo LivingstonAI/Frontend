@@ -27,7 +27,7 @@ export default function SnowAILandingPage() {
     const container = document.getElementById("snowflake-container");
 
     if (container) {
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 45; i++) {
         const snowflake = document.createElement("div");
         snowflake.className = "snowflake";
 
