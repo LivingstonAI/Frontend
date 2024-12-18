@@ -35,6 +35,7 @@ import Chill from './components/chill';
 import AlertBot from './components/alert_bot';
 import SnowAILandingPage from './components/snowai_lp';
 import AccountAnalytics from './components/account_analytics.jsx';
+import EnterNewTradeInfo from './components/new_trade_info.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -110,6 +111,8 @@ function App() {
         <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
         <Route path='/chill' element={<Chill />}></Route>
         <Route path='/account_analytics' element={<AccountAnalytics />}></Route>
+        <Route path='/enter_new_trade_info' element={<EnterNewTradeInfo />}></Route>
+
 
 
 

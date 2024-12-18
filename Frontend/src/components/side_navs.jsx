@@ -60,7 +60,7 @@ export default function SideNavs() {
                 <Link to='/daily_brief' className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-briefcase-fill"></i></p></button></Link>
                 <Link to='/performance_review/asset' className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-journal-bookmark-fill"></i></p></button></Link>
                 <Link to="/update_news" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-newspaper"></i></p></button></Link>
-                <Link to="/all_trades" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-info-circle-fill"></i></p></button></Link>
+                <Link to="/enter_new_trade_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-info-circle-fill"></i></p></button></Link>
                 <Link to="/scratch" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i></p></button></Link>
                 <Link to="/model_performance" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pen-fill"></i></p></button></Link>
                 <Link to="/risk_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-exchange"></i></p></button></Link>
@@ -80,7 +80,7 @@ export default function SideNavs() {
                 <Link to='/daily_brief' className="side-nav"><i className="bi bi-briefcase-fill"></i></Link>
                 <Link to='/performance_review/asset' className="side-nav"><i className="bi bi-journal-bookmark-fill"></i></Link>
                 <Link to="/update_news" className="side-nav"><i class="bi bi-newspaper"></i></Link>
-                <Link to="/all_trades" className="side-nav"><i className="bi bi-info-circle-fill"></i></Link>
+                <Link to="/enter_new_trade_info" className="side-nav"><i className="bi bi-info-circle-fill"></i></Link>
                 <Link to="/scratch" className="side-nav"><i className="bi bi-robot"></i></Link>
                 <Link to="/model_performance" className="side-nav"><i className="bi bi-pen-fill"></i></Link>
                 <Link to="/risk_bot" className="side-nav"><i className="bi bi-currency-exchange"></i></Link>
