@@ -2,15 +2,13 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-import { Line, Bar, Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-
-// Register chart elements
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS } from 'chart.js';
 
 export default function AccountAnalytics() {
     const [accountData, setAccountData] = useState(null);
     const [loading, setLoading] = useState(true);
+
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     // Fetch account data from the API
@@ -41,73 +39,36 @@ export default function AccountAnalytics() {
         fetchAccountDataFromAPI();
     }, []);
 
-    // Helper function to process trade data for charts
-    const processTradeData = () => {
-        if (!accountData) return { lineData: [], barData: [], pieData: [] };
+    // Function to generate chart data for trades
+    const generateTradeOutcomeChartData = () => {
+        if (!accountData || !accountData.trades) return { labels: [], datasets: [] };
 
-        const lineData = [];
-        const barData = { wins: 0, losses: 0, breakEven: 0 };
-        const pieData = { assetDistribution: {} };
+        const outcomes = accountData.trades.reduce(
+            (acc, trade) => {
+                acc[trade.outcome] = (acc[trade.outcome] || 0) + 1;
+                return acc;
+            },
+            {}
+        );
 
-        accountData.trades.forEach(trade => {
-            // Line chart data (outcome over time)
-            lineData.push({
-                date: new Date(trade.date), // Assuming the trade object has a 'date' field
-                outcome: trade.outcome
-            });
-
-            // Bar chart data (trade outcome counts)
-            if (trade.outcome === "Win") barData.wins++;
-            else if (trade.outcome === "Loss") barData.losses++;
-            else if (trade.outcome === "Break Even") barData.breakEven++;
-
-            // Pie chart data (asset distribution)
-            if (trade.asset in pieData.assetDistribution) {
-                pieData.assetDistribution[trade.asset]++;
-            } else {
-                pieData.assetDistribution[trade.asset] = 1;
-            }
-        });
+        const labels = Object.keys(outcomes);
+        const data = labels.map(label => outcomes[label]);
 
         return {
-            lineData: lineData,
-            barData: barData,
-            pieData: pieData
+            labels,
+            datasets: [
+                {
+                    label: 'Trade Outcomes',
+                    data,
+                    backgroundColor: '#42A5F5',
+                    borderColor: '#1E88E5',
+                    borderWidth: 1,
+                },
+            ],
         };
     };
 
-    const { lineData, barData, pieData } = processTradeData();
-
-    // Line chart data
-    const lineChartData = {
-        labels: lineData.map(item => item.date.toLocaleDateString()), 
-        datasets: [{
-            label: 'Trade Outcome',
-            data: lineData.map(item => item.outcome === "Win" ? 1 : item.outcome === "Loss" ? -1 : 0), // Win=1, Loss=-1, BreakEven=0
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            fill: true,
-        }]
-    };
-
-    // Bar chart data
-    const barChartData = {
-        labels: ['Wins', 'Losses', 'Break Even'],
-        datasets: [{
-            label: 'Trade Outcomes',
-            data: [barData.wins, barData.losses, barData.breakEven],
-            backgroundColor: ['#4caf50', '#f44336', '#ffeb3b'],
-        }]
-    };
-
-    // Pie chart data
-    const pieChartData = {
-        labels: Object.keys(pieData.assetDistribution),
-        datasets: [{
-            data: Object.values(pieData.assetDistribution),
-            backgroundColor: ['#36a2eb', '#ff6384', '#ffcd56', '#4bc0c0'],
-        }]
-    };
+    const chartData = generateTradeOutcomeChartData();
 
     return (
         <div>
@@ -134,35 +95,9 @@ export default function AccountAnalytics() {
 
                             <br />
 
-                            {/* Line Chart: Trade Outcomes Over Time */}
-                            <h6>Trade Outcomes Over Time</h6>
-                            <div className="chart-container">
-                                <Line data={lineChartData} />
-                            </div>
-
-                            <br />
-
-                            {/* Bar Chart: Trade Outcomes (Win/Loss/BreakEven) */}
-                            <h6>Trade Outcomes Overview</h6>
-                            <div className="chart-container">
-                                <Bar data={barChartData} />
-                            </div>
-
-                            <br />
-
-                            {/* Pie Chart: Asset Distribution */}
-                            <h6>Asset Distribution</h6>
-                            <div className="chart-container">
-                                <Pie data={pieChartData} />
-                            </div>
-
-                            <br />
-
                             <h6>Trades Overview</h6>
                             <div className="trade-list">
-                                {accountData.trades.length === 0 ? (
-                                    <p>No trades recorded.</p>
-                                ) : (
+                                {accountData.trades && accountData.trades.length > 0 ? (
                                     accountData.trades.map((trade, index) => (
                                         <div key={index} className="trade-card">
                                             <h6>{trade.asset} ({trade.order_type})</h6>
@@ -175,8 +110,18 @@ export default function AccountAnalytics() {
                                             )}
                                         </div>
                                     ))
+                                ) : (
+                                    <p>No trades recorded.</p>
                                 )}
                             </div>
+
+                            {/* Displaying chart for trade outcomes */}
+                            {accountData.trades && accountData.trades.length > 0 && (
+                                <div className="trade-chart">
+                                    <h6>Trade Outcomes Overview</h6>
+                                    <Bar data={chartData} options={{ responsive: true }} />
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
