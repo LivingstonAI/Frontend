@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import jingleBells from '../jingle_bells.mp3';  // Import your audio file
+import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';  // Import your audio file
+
 
 export default function SnowAILandingPage() {
   const audioRef = useRef(null);
@@ -27,7 +29,7 @@ export default function SnowAILandingPage() {
     const container = document.getElementById("snowflake-container");
 
     if (container) {
-      for (let i = 0; i < 25; i++) { // Reduced to 25 snowflakes
+      for (let i = 0; i < 40; i++) { // Reduced to 25 snowflakes
         const snowflake = document.createElement("div");
         snowflake.className = "snowflake";
 
@@ -76,7 +78,7 @@ export default function SnowAILandingPage() {
       <button className="snowai-button" onClick={handlePlayToggle}>
         {isPlaying ? "Stop Music" : "Play Music"}
       </button>
-      <audio ref={audioRef} src={jingleBells} loop />
+      <audio ref={audioRef} src={snowStorm} loop />
     </div>
   );
 }
