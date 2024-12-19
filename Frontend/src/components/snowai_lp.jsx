@@ -29,7 +29,7 @@ export default function SnowAILandingPage() {
     const container = document.getElementById("snowflake-container");
 
     if (container) {
-      for (let i = 0; i < 40; i++) { // Reduced to 25 snowflakes
+      for (let i = 0; i < 50; i++) { // Reduced to 25 snowflakes
         const snowflake = document.createElement("div");
         snowflake.className = "snowflake";
 
