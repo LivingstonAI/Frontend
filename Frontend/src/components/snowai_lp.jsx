@@ -7,9 +7,11 @@ export default function SnowAILandingPage() {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false); // State to track if music is playing
 
+  
   useEffect(() => {
     createSnowflakes();
   }, []);
+
 
   const handlePlayToggle = () => {
     const audio = audioRef.current;
