@@ -74,13 +74,13 @@ export default function SnowAILandingPage() {
           <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
         ))}
       </h1>
-      <a href="/login" className="snowai-button">
+      {/* <a href="/login" className="snowai-button">
         Log In
       </a><br />
       <button className="snowai-button" onClick={handlePlayToggle}>
         {isPlaying ? "Stop Music" : "Play Music"}
       </button>
-      <audio ref={audioRef} src={love_story} loop />
+      <audio ref={audioRef} src={love_story} loop /> */}
     </div>
   );
 }
