@@ -4,7 +4,7 @@ import SideNavs from "./side_navs";
 import Cookies from "js-cookie";
 
 export default function AlertBot() {
-    const [assetArray, setAssetArray] = useState([]);
+    const [assetArray, setAssetArray] = useState(['EURUSD', 'GBPUSD', 'XAUUSD', 'USDX']);
     const [outcome, setOutcome] = useState("");
     const [colorOutcome, setColorOutcome] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
@@ -14,31 +14,31 @@ export default function AlertBot() {
         return Cookies.get("email");
     };
 
-    // Fetch user's assets from the backend
-    const fetchUserAssets = async () => {
-        try {
-            const email = await fetchEmailDataFromAPI();
-            const response = await fetch(`${baseUrl}/get-user-assets?email=${email}`);
-            const data = await response.json();
+    // // Fetch user's assets from the backend
+    // const fetchUserAssets = async () => {
+    //     try {
+    //         const email = await fetchEmailDataFromAPI();
+    //         const response = await fetch(`${baseUrl}/get-user-assets?email=${email}`);
+    //         const data = await response.json();
 
-            if (response.ok) {
-                setAssetArray(data.message || []); // Populate assetArray with the response data
-            } else {
-                console.error(data.error);
-                setOutcome("Failed to load assets.");
-                setColorOutcome("text-danger");
-            }
-        } catch (error) {
-            console.error("Error fetching user assets:", error);
-            setOutcome("Error fetching user assets.");
-            setColorOutcome("text-danger");
-        }
-    };
+    //         if (response.ok) {
+    //             setAssetArray(data.message || []); // Populate assetArray with the response data
+    //         } else {
+    //             console.error(data.error);
+    //             setOutcome("Failed to load assets.");
+    //             setColorOutcome("text-danger");
+    //         }
+    //     } catch (error) {
+    //         console.error("Error fetching user assets:", error);
+    //         setOutcome("Error fetching user assets.");
+    //         setColorOutcome("text-danger");
+    //     }
+    // };
 
-    // Call fetchUserAssets when the component mounts
-    useEffect(() => {
-        fetchUserAssets();
-    }, []);
+    // // Call fetchUserAssets when the component mounts
+    // useEffect(() => {
+    //     fetchUserAssets();
+    // }, []);
 
     // Add an asset with its price and condition
     const addAsset = () => {
