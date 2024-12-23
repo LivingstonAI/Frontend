@@ -3949,7 +3949,6 @@ input, select, textarea {
 }
 
 button {
-    background-color: #4CAF50;
     color: white;
     border: none;
     padding: 10px 15px;
@@ -4017,7 +4016,7 @@ canvas {
 }
 
 .metric-card {
-    background-color: #e1ddee;
+    background-color: #f0f4f7;
     border-radius: 8px;
     padding: 20px;
     width: 220px;
