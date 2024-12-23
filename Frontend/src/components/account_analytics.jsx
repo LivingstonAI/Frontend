@@ -87,6 +87,45 @@ export default function AccountAnalytics() {
         };
     };
 
+    const baseChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false, // Makes charts fill their container
+        plugins: {
+            legend: {
+                position: "top",
+                labels: {
+                    font: {
+                        size: 10, // Smaller font for legends
+                    },
+                },
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        // Cleaner tooltip display
+                        return `${context.dataset.label}: $${context.raw}`;
+                    },
+                },
+            },
+        },
+        scales: {
+            x: {
+                ticks: {
+                    font: {
+                        size: 10, // Adjust font size for axis labels
+                    },
+                },
+            },
+            y: {
+                ticks: {
+                    font: {
+                        size: 10,
+                    },
+                    beginAtZero: true,
+                },
+            },
+        },
+    };
     
 
     const weekdayChartData = generateChartData('day_of_week_entered');
@@ -125,21 +164,21 @@ export default function AccountAnalytics() {
                                 {/* Bar charts */}
                                 <div className="chart-wrapper">
                                     <h6>Performance by Day of Week</h6>
-                                    <Bar data={weekdayChartData} options={{ responsive: true }} />
+                                    <Bar data={weekdayChartData} options={baseChartOptions} />
                                 </div>
                                 <div className="chart-wrapper">
                                     <h6>Performance by Trading Session</h6>
-                                    <Bar data={sessionChartData} options={{ responsive: true }} />
+                                    <Bar data={sessionChartData} options={baseChartOptions} />
                                 </div>
                                 <div className="chart-wrapper">
 
                                     <h6>Performance by Strategy</h6>
-                                    <Bar data={strategyChartData} options={{ responsive: true }} />
+                                    <Bar data={strategyChartData} options={baseChartOptions} />
                                 </div> 
                                 <div className="chart-wrapper">
                                     {/* Equity curve */}
                                     <h6>Equity Curve</h6>
-                                    <Line data={equityCurveData} options={{ responsive: true }} />
+                                    <Line data={equityCurveData} options={baseChartOptions} />
                                 </div>
                             </div>
                         </>
