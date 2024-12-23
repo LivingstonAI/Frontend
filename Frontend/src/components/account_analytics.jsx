@@ -119,24 +119,7 @@ export default function AccountAnalytics() {
                             <br />
 
                             <h6>Trades Overview</h6>
-                            <div className="trade-list">
-                                {accountData.trades.length > 0 ? (
-                                    accountData.trades.map((trade, index) => (
-                                        <div key={index} className="trade-card">
-                                            <h6>{trade.asset} ({trade.order_type})</h6>
-                                            <p><strong>Amount:</strong> ${trade.amount}</p>
-                                            <p><strong>Outcome:</strong> {trade.outcome}</p>
-                                            <p><strong>Strategy:</strong> {trade.strategy}</p>
-                                            <p><strong>Entered on:</strong> {trade.day_of_week_entered}, {trade.trading_session_entered} session</p>
-                                            {trade.day_of_week_closed && (
-                                                <p><strong>Closed on:</strong> {trade.day_of_week_closed}, {trade.trading_session_closed} session</p>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p>No trades recorded.</p>
-                                )}
-                            </div>
+                            
 
                             <div className="trade-chart-container">
                                 {/* Bar charts */}
