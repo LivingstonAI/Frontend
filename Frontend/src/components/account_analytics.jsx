@@ -64,15 +64,21 @@ export default function AccountAnalytics() {
         return { labels, datasets };
     };
 
+    
     const generateEquityCurveData = () => {
-        if (!accountData || !accountData.trades) return { labels: [], datasets: [] };
-
-        let cumulativeEquity = 0;
+        if (!accountData || !accountData.trades || !accountData.initial_capital) return { labels: [], datasets: [] };
+    
+        let cumulativeEquity = accountData.initial_capital; // Start from initial capital
         const equityCurve = accountData.trades.map((trade, index) => {
-            cumulativeEquity += trade.outcome === 'Win' ? trade.amount : trade.outcome === 'Loss' ? -trade.amount : 0;
+            // Calculate cumulative equity based on wins and losses
+            if (trade.outcome === 'Win') {
+                cumulativeEquity += trade.amount;
+            } else if (trade.outcome === 'Loss') {
+                cumulativeEquity -= trade.amount;
+            }
             return { x: index + 1, y: cumulativeEquity };
         });
-
+    
         return {
             labels: equityCurve.map(point => `Trade ${point.x}`),
             datasets: [
@@ -86,6 +92,43 @@ export default function AccountAnalytics() {
             ],
         };
     };
+
+    const generateMetricsData = () => {
+        if (!accountData || !accountData.trades) return {};
+    
+        let totalWinsAmount = 0;
+        let totalLossesAmount = 0;
+        let numberOfWins = 0;
+        let numberOfLosses = 0;
+        let totalTrades = accountData.trades.length;
+    
+        accountData.trades.forEach(trade => {
+            if (trade.outcome === 'Win') {
+                totalWinsAmount += trade.amount;
+                numberOfWins++;
+            } else if (trade.outcome === 'Loss') {
+                totalLossesAmount += trade.amount;
+                numberOfLosses++;
+            }
+        });
+    
+        const winRate = (numberOfWins / totalTrades) * 100;
+        const averageWin = numberOfWins ? totalWinsAmount / numberOfWins : 0;
+        const averageLoss = numberOfLosses ? totalLossesAmount / numberOfLosses : 0;
+        const profitFactor = numberOfLosses ? totalWinsAmount / Math.abs(totalLossesAmount) : 0;
+    
+        return {
+            winRate,
+            averageWin,
+            averageLoss,
+            profitFactor,
+            numberOfWins,
+            numberOfLosses,
+        };
+    };
+    
+    const metricsData = generateMetricsData();
+    
 
     
     const baseChartOptions = {
@@ -159,7 +202,7 @@ export default function AccountAnalytics() {
 
                             <br />
 
-                            <h6>Trades Overview</h6>
+                            <h6 className="trade-overview-header">Trades Overview</h6>
                             
 
                             <div className="trade-chart-container">
@@ -183,6 +226,26 @@ export default function AccountAnalytics() {
                                     <Line data={equityCurveData} options={baseChartOptions} />
                                 </div>
                             </div>
+
+                            <div className="metrics-container">
+                                <div className="metric-card">
+                                    <h6>Win Rate</h6>
+                                    <p>{metricsData.winRate.toFixed(2)}%</p>
+                                </div>
+                                <div className="metric-card">
+                                    <h6>Average Win</h6>
+                                    <p>{metricsData.averageWin.toFixed(2)}</p>
+                                </div>
+                                <div className="metric-card">
+                                    <h6>Average Loss</h6>
+                                    <p>{metricsData.averageLoss.toFixed(2)}</p>
+                                </div>
+                                <div className="metric-card">
+                                    <h6>Profit Factor</h6>
+                                    <p>{metricsData.profitFactor.toFixed(2)}</p>
+                                </div>
+                            </div>
+
                         </>
                     )}
                 </div>
