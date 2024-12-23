@@ -51,7 +51,7 @@ export default function Login() {
             if (response.status === 200) {
                 const { email } = await response.json();
                 Cookies.set('email', email);
-                navigate(`/conversation/${uniqueID}`);
+                navigate(`/personal_info`);
                 // Handle successful login, e.g., redirect or display a message
             } else {
                 // const responseData = await response.json();

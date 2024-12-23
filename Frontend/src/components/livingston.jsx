@@ -34,6 +34,9 @@ export default function ChatBotInterface() {
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
     const [trades, setTrades] = useState([]);
 
+    const [accountData, setAccountData] = useState(null);
+    const [error, setError] = useState(null);
+
     const fetchEmailDataFromAPI = async () => {
         return Cookies.get('email');
     };
@@ -158,23 +161,24 @@ export default function ChatBotInterface() {
         fetchJournals();
     }, []);
 
-    
 
-
-    useEffect(() => {   
+    useEffect(() => {
         const fetchTrades = async () => {
             try {
-                const email = await fetchEmailDataFromAPI(); 
-                const response = await fetch(`${baseURL}/all_trades/${email}/`);
+                // Fetching data from the new API endpoint
+                const response = await fetch(`${baseURL}/fetch-trading-data`);
                 const parsedData = await response.json();
                 setTrades(parsedData);
+                console.log('Trade Data is', parsedData);
             } catch (error) {
                 console.error('Error fetching trades:', error);
-            
-    };
-}
-    fetchTrades();
+            }
+        };
+    
+        fetchTrades();
     }, []);
+
+    
 
     const [messages, setMessages] = useState([
         {
@@ -194,6 +198,36 @@ export default function ChatBotInterface() {
     ]);
 
 
+    useEffect(() => {
+        const fetchAccountData = async () => {
+          try {
+            // Get the account_name from cookies
+            const accountName = Cookies.get('account_name');
+            if (!accountName) {
+              setError('Account name is not set in cookies');
+              return;
+            }
+    
+            // Fetch account data from the Django API with account_name as a query parameter
+            const response = await fetch(`${baseURL}/fetch-account-data/?account_name=${accountName}`);
+            
+            if (response.ok) {
+              const parsedData = await response.json();
+              setAccountData(parsedData); // Store account data
+              console.log('Account Data is ', parsedData);
+            } else {
+              const errorData = await response.json();
+              setError(errorData.error || 'An error occurred while fetching the account data');
+            }
+          } catch (error) {
+            setError('Error fetching account data: ' + error.message);
+          }
+        };
+    
+        fetchAccountData();
+      }, []); // Runs once on mount
+
+
     const [typing, setTyping] = useState(false);
 
     async function processMessageLivingston(ChatMessages, typeInput) {
@@ -211,13 +245,16 @@ export default function ChatBotInterface() {
         setGptMessages(messages);
         // console.log(`gpt messages are: ${gptMessages}`);
         // console.log(gptMessages)
+
+        //  My context: ${JSON.stringify(tellUsMore)}
         
         const systemMessage = {
             role: "system",
             content: `
             Your name is Livingston. You are an intelligent investment assistant.
               Your job is to assist me as I trade.
-              My context: ${JSON.stringify(tellUsMore)}
+            //  My context: ${JSON.stringify(accountData)}
+
               My Trades: ${JSON.stringify(trades)}
               News Data: ${JSON.stringify(newsData)}
 
@@ -240,6 +277,8 @@ export default function ChatBotInterface() {
               When responding don't use hashtags as it looks unneat. 
 
               Go beyond just trading but also let us have a genuine friendship.
+
+              Give me answers in a clear and readable format please!
 
             `
           };
@@ -280,7 +319,7 @@ export default function ChatBotInterface() {
         
         const filteredMessages = apiMessages.filter(message => typeof message.content === 'string');
         const apiRequestBody = {
-            "model": "ft:gpt-4o-mini-2024-07-18:personal:tradergptv2:AYFhBnww",
+            "model": "gpt-4o-mini",
             "messages": [
                 systemMessage,
                 ...filteredMessages
