@@ -3969,6 +3969,38 @@ textarea {
 }
 
 
+.trade-chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center; /* Center content horizontally */
+    align-items: flex-start; /* Align items at the top */
+    margin-top: 20px;
+    gap: 20px;
+    padding: 10px; /* Add padding to avoid elements touching screen edges */
+}
+
+.chart-wrapper {
+    flex: 1 1 calc(50% - 40px); /* Responsive layout with max 2 charts per row */
+    max-width: 500px; /* Restrict chart width */
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center; /* Center-align the content inside */
+}
+
+.chart-wrapper h6 {
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #333;
+}
+
+canvas {
+    width: 100% !important;
+    height: 250px !important; /* Consistent height */
+}
 
 
 
