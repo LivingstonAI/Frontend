@@ -87,24 +87,20 @@ export default function AccountAnalytics() {
         };
     };
 
+    
     const baseChartOptions = {
         responsive: true,
-        maintainAspectRatio: false, // Makes charts fill their container
+        maintainAspectRatio: false,
         plugins: {
             legend: {
-                position: "top",
+                display: true,
                 labels: {
                     font: {
-                        size: 10, // Smaller font for legends
+                        size: 16, // Slightly larger font for readability
+                        family: "'Arial', sans-serif", // Classic font similar to <p>
+                        weight: "normal", // Normal weight to mimic <p> text
                     },
-                },
-            },
-            tooltip: {
-                callbacks: {
-                    label: (context) => {
-                        // Cleaner tooltip display
-                        return `${context.dataset.label}: $${context.raw}`;
-                    },
+                    color: "#444", // Soft gray, close to <p> tag color
                 },
             },
         },
@@ -112,21 +108,27 @@ export default function AccountAnalytics() {
             x: {
                 ticks: {
                     font: {
-                        size: 10, // Adjust font size for axis labels
+                        size: 14, // Typical font size for <p> tags
+                        family: "'Arial', sans-serif",
+                        weight: "normal",
                     },
+                    color: "#444", // Match <p> tag text color
                 },
             },
             y: {
                 ticks: {
                     font: {
-                        size: 10,
+                        size: 14, // Same as x-axis
+                        family: "'Arial', sans-serif",
+                        weight: "normal",
                     },
-                    beginAtZero: true,
+                    color: "#444",
                 },
             },
         },
     };
     
+        
 
     const weekdayChartData = generateChartData('day_of_week_entered');
     const sessionChartData = generateChartData('trading_session_entered');

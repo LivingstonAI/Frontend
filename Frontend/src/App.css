@@ -4004,9 +4004,12 @@ canvas {
 
 
 @media (max-width: 768px) {
+    
     .chart-wrapper {
-        padding: 0.5rem;
+        flex: 1 1 100%; /* Full width for each graph */
+        max-width: 100%;
     }
+
     .chart-wrapper h6 {
         font-size: 1rem; /* Smaller font size for headings */
     }
