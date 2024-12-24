@@ -407,14 +407,14 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                                     }}
                                 >
                                     Edit
-                                </button>
+                                </button><br /><br />
 
                                 <button
                                     className="btn btn-danger"
                                     onClick={() => handleDeleteAccount(account.id)} // Define delete logic
                                 >
                                     Delete
-                                </button>
+                                </button><br /><br />
 
                                 
                                 <button
