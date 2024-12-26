@@ -4094,9 +4094,9 @@ canvas {
     transition: background-color 0.3s ease;
   }
   
-  .song-option:hover {
+  /* .song-option:hover {
     background-color: #e0e0e0;
-  }
+  } */
   
   .close-modal-btn {
     margin-top: 20px;
