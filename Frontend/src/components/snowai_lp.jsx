@@ -1,52 +1,68 @@
 import React, { useEffect, useRef, useState } from "react";
-import jingleBells from '../jingle_bells.mp3';  // Import your audio file
-import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';  // Import your audio file
+import jingleBells from '../jingle_bells.mp3';
+import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
 import love_story from '../Indila - Love Story (Piano Cover).mp3';
-import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3"
+import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3";
 
 export default function SnowAILandingPage() {
   const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false); // State to track if music is playing
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSong, setCurrentSong] = useState(ezio_family); // Default song
+  const [showSongModal, setShowSongModal] = useState(false); // State for showing the song selection modal
 
-  
+  const songs = {
+    "1": { name: "Jingle Bells", file: jingleBells },
+    "2": { name: "Snow Storm", file: snowStorm },
+    "3": { name: "Love Story", file: love_story },
+    "4": { name: "Ezio's Family", file: ezio_family },
+  };
+
   useEffect(() => {
     createSnowflakes();
   }, []);
 
-
   const handlePlayToggle = () => {
     const audio = audioRef.current;
-    if (audio) {
-      if (isPlaying) {
-        audio.pause();  // Pause the audio if it's currently playing
-        audio.currentTime = 0;  // Reset the audio to start from the beginning
-      } else {
-        audio.volume = 0.2; // Set volume to a low level (e.g., 20%)
-        audio.play();  // Play the audio if it's currently paused
-      }
-      setIsPlaying(!isPlaying); // Toggle the play state
+
+    if (!isPlaying) {
+      // Prompt the user to select a song
+      setShowSongModal(true); // Show the song selection modal
+    } else {
+      audio.pause();
+      setIsPlaying(false); // Stop the music
     }
+  };
+
+  const handleSongSelection = (songFile) => {
+    const audio = audioRef.current;
+    setCurrentSong(songFile); // Set the chosen song
+    setIsPlaying(true); // Update the state to indicate playing
+    setShowSongModal(false); // Close the modal
+
+    // Set up the audio to play only when it's ready
+    audio.oncanplay = () => {
+      audio.volume = 0.2;
+      audio.play();
+    };
+    audio.load(); // Load the new song
   };
 
   const createSnowflakes = () => {
     const container = document.getElementById("snowflake-container");
-
     if (container) {
-      for (let i = 0; i < 80; i++) { // Reduced to 25 snowflakes
+      for (let i = 0; i < 80; i++) {
         const snowflake = document.createElement("div");
         snowflake.className = "snowflake";
 
-        // Randomize position, size, animation duration, and delay
-        snowflake.style.left = `${Math.random() * 100}vw`; 
-        snowflake.style.width = `${Math.random() * 5 + 5}px`; // Random size (5px to 10px)
+        snowflake.style.left = `${Math.random() * 100}vw`;
+        snowflake.style.width = `${Math.random() * 5 + 5}px`;
         snowflake.style.height = snowflake.style.width;
-        snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`; // Longer duration (10s to 16s)
-        snowflake.style.animationDelay = `${Math.random() * 6}s`; // Random delay
-        snowflake.style.opacity = Math.random() * 0.8 + 0.2; // Random opacity (0.2 to 1)
+        snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`;
+        snowflake.style.animationDelay = `${Math.random() * 6}s`;
+        snowflake.style.opacity = Math.random() * 0.8 + 0.2;
 
         container.appendChild(snowflake);
 
-        // Remove snowflake after animation ends
         snowflake.addEventListener("animationend", () => {
           snowflake.remove();
         });
@@ -75,14 +91,35 @@ export default function SnowAILandingPage() {
           <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
         ))}
       </h1>
-      <a href="/login" className="snowai-button">
-        Log In
-      </a><br />
+      <a href="/login" className="snowai-button">Log In</a>
+      <br />
       <button className="snowai-button" onClick={handlePlayToggle}>
         {isPlaying ? "Stop Music" : "Play Music"}
       </button>
-      <audio ref={audioRef} src={ezio_family} loop />
+      <audio ref={audioRef} src={currentSong} loop />
+
+      {/* Song selection modal */}
+      {showSongModal && (
+        <div className="landing-page-song-modal-overlay">
+          <div className="landing-page-song-modal">
+            <h2>Select a Song</h2>
+            <ul className="song-list">
+              {Object.entries(songs).map(([key, song]) => (
+                <li
+                  key={key}
+                  className="song-option"
+                  onClick={() => handleSongSelection(song.file)}
+                >
+                  {song.name}
+                </li>
+              ))}
+            </ul>
+            <button className="close-modal-btn" onClick={() => setShowSongModal(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
