@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import jingleBells from '../jingle_bells.mp3';  // Import your audio file
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';  // Import your audio file
-import love_story from '../Indila - Love Story (Piano Cover).mp3'
+import love_story from '../Indila - Love Story (Piano Cover).mp3';
+import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3"
 
 export default function SnowAILandingPage() {
   const audioRef = useRef(null);
@@ -80,7 +81,7 @@ export default function SnowAILandingPage() {
       <button className="snowai-button" onClick={handlePlayToggle}>
         {isPlaying ? "Stop Music" : "Play Music"}
       </button>
-      <audio ref={audioRef} src={love_story} loop />
+      <audio ref={audioRef} src={ezio_family} loop />
     </div>
   );
 }
