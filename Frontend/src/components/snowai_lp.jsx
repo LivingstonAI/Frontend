@@ -3,6 +3,8 @@ import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
 import love_story from '../Indila - Love Story (Piano Cover).mp3';
 import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3";
+import hymn_for_the_weekend from '../Coldplay - Hymn For The Weekend (Lyrics).mp3';
+import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
 
 export default function SnowAILandingPage() {
   const audioRef = useRef(null);
@@ -15,6 +17,8 @@ export default function SnowAILandingPage() {
     "2": { name: "Snow Storm", file: snowStorm },
     "3": { name: "Love Story", file: love_story },
     "4": { name: "Ezio's Family", file: ezio_family },
+    "5": { name: "Hymn for the weekend", file: hymn_for_the_weekend },
+    "6": { name: "Daydreaming", file: daydreaming },
   };
 
   useEffect(() => {
