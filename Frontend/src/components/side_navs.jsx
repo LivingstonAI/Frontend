@@ -55,12 +55,7 @@ export default function SideNavs() {
     return () => clearInterval(interval);
   }, []);
 
-  // Load theme preference from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    document.body.className = savedTheme; // Apply theme to body
-  }, []);
+  
 
   // Toggle theme handler
   const toggleTheme = () => {
@@ -68,25 +63,215 @@ export default function SideNavs() {
     setTheme(newTheme);
     document.body.className = newTheme;
     localStorage.setItem('theme', newTheme);
+
   };
 
-  // Handle music play/pause
-  const playMusic = (song) => {
-    if (audio) {
-      audio.pause(); // Pause previous song if any
-    }
-    const newAudio = new Audio(song);
-    setAudio(newAudio);
-    newAudio.play();
+  // Load music state on component mount
+  // useEffect(() => {
+  //   const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
+  //   const savedSong = localStorage.getItem('currentSong');
+    
+  //   if (isAudioPlaying && savedSong) {
+  //     const song = songs.find(song => song.file === savedSong);
+  //     if (song) {
+  //       playMusic(song.file);
+  //     }
+  //   }
+  // }, []);
+
+  const stopAllAudio = () => {
+    const allAudioElements = document.querySelectorAll('audio');
+    
+    allAudioElements.forEach(audio => {
+      audio.pause();  // Pause the audio
+      audio.currentTime = 0;  // Reset the audio to the beginning
+    });
+  };
+  
+  // const stopMusic = () => {
+  //   stopAllAudio();  // Stop all audio in the browser
+  
+  //   setAudio(null);
+  //   setIsMusicPlaying(false);
+  //   setCurrentSong(null);
+    
+  //   // Update localStorage to reflect that no music is playing
+  //   localStorage.setItem('isAudioPlaying', 'false');
+  //   localStorage.removeItem('currentSong');
+  // };
+  
+
+  // Play or resume music
+const playMusic = (song) => {
+  // Check if the song is the same as the current one
+  if (audio && currentSong === song) {
+    // If it's the same song, just play it again
+    audio.play();
     setIsMusicPlaying(true);
-    setCurrentSong(song);
-  };
+    return;
+  }
 
-  const stopMusic = () => {
-    audio.pause();
-    setIsMusicPlaying(false);
-    setCurrentSong(null);
-  };
+  // Otherwise, set a new song and create a new audio object
+  if (audio) {
+    audio.pause();  // Pause the current audio
+  }
+
+  const newAudio = new Audio(song);
+  setAudio(newAudio);  // Save the new audio object in state
+  newAudio.play();  // Start playing the new audio
+  setIsMusicPlaying(true);
+  setCurrentSong(song);  // Set the current song
+  localStorage.setItem('isAudioPlaying', 'true');
+  localStorage.setItem('currentSong', song);
+};
+
+// Stop music
+const stopMusic = () => {
+  if (audio) {
+    audio.pause();  // Pause the audio
+    setAudio(null);  // Clear the audio state
+    setIsMusicPlaying(false);  // Stop music
+    setCurrentSong(null);  // Clear the current song
+    localStorage.setItem('isAudioPlaying', 'false');
+    localStorage.removeItem('currentSong');
+  }
+};
+
+// Load audio state from localStorage on mount
+useEffect(() => {
+  const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
+  const savedSong = localStorage.getItem('currentSong');
+
+  if (isAudioPlaying && savedSong) {
+    const newAudio = new Audio(savedSong);
+    setAudio(newAudio);  // Initialize the audio object
+    setIsMusicPlaying(true);
+    setCurrentSong(savedSong);
+    // newAudio.play();  // Start playing the saved song
+
+    // Cleanup function to pause audio when component unmounts
+    return () => {
+      newAudio.pause();  // Ensure audio is paused when leaving the component
+      setAudio(null);
+      setIsMusicPlaying(false);
+      setCurrentSong(null);
+    };
+  }
+}, []);
+
+
+// Approach 1
+// const stopMusic = () => {
+//   // Stop the audio in localStorage
+//   localStorage.setItem('isAudioPlaying', 'false');
+//   localStorage.removeItem('currentSong'); // Clear the saved song in localStorage
+  
+//   // Reset the audio object (this stops it from playing)
+//   if (audio) {
+//     // Remove the audio source and reset
+//     setAudio(null);  // Effectively removes the audio element
+    
+//     setIsMusicPlaying(false);
+//     setCurrentSong(null);
+//   }
+// };
+
+// Approach 2
+// const stopMusic = () => {
+//   // Stop the audio in localStorage
+//   localStorage.setItem('isAudioPlaying', 'false');
+//   localStorage.removeItem('currentSong'); // Clear the saved song in localStorage
+  
+//   if (audio) {
+//     // Change the source to effectively stop it
+//     audio.src = '';  // Stops the audio by removing the source
+//     audio.load();    // Reload the audio element (it will no longer play)
+    
+//     setAudio(null);  // Clear the reference to the audio object
+//     setIsMusicPlaying(false);
+//     setCurrentSong(null);
+//   }
+// };
+
+// Approach 3
+// const stopMusic = () => {
+//   // Stop the audio in localStorage
+//   localStorage.setItem('isAudioPlaying', 'false');
+//   localStorage.removeItem('currentSong'); // Clear the saved song in localStorage
+  
+//   if (audio) {
+//     // Reset the audio playback time
+//     audio.currentTime = 0;  // Rewind to the beginning of the song
+//     audio.src = '';  // Stop the song from continuing
+//     audio.load();    // Effectively stops the audio
+    
+//     setAudio(null);  // Clear the reference to the audio object
+//     setIsMusicPlaying(false);
+//     setCurrentSong(null);
+//   }
+// };
+
+// Approach 4
+// const stopMusic = () => {
+//   // Stop the audio in localStorage
+//   localStorage.setItem('isAudioPlaying', 'false');
+//   localStorage.removeItem('currentSong'); // Clear the saved song in localStorage
+  
+//   if (audio) {
+//     // Completely destroy the audio object
+//     audio = null;
+//     setAudio(null); // Remove reference to audio object
+//   }
+
+//   setIsMusicPlaying(false);
+//   setCurrentSong(null);
+// };
+
+// Approach 5
+// const stopMusic = () => {
+//   // Stop the audio in localStorage
+//   localStorage.setItem('isAudioPlaying', 'false');
+//   localStorage.removeItem('currentSong'); // Clear the saved song in localStorage
+  
+//   if (audio) {
+//     // Remove the audio element from the DOM
+//     audio.remove(); // This will completely remove the audio element from memory
+//     setAudio(null); // Clear the reference to the audio object
+//   }
+
+//   setIsMusicPlaying(false);
+//   setCurrentSong(null);
+// };
+
+// Approach 6
+// useEffect(() => {
+//   if (audio) {
+//     // Listen for audio ending
+//     audio.addEventListener('ended', () => {
+//       setIsMusicPlaying(false);
+//       setCurrentSong(null);
+//       setAudio(null); // Clear the reference
+//     });
+
+//     // Listen for audio errors (in case something goes wrong)
+//     audio.addEventListener('error', () => {
+//       console.error('Audio failed to play.');
+//       setIsMusicPlaying(false);
+//       setCurrentSong(null);
+//       setAudio(null); // Clear the reference
+//     });
+//   }
+
+//   return () => {
+//     // Clean up listeners on component unmount
+//     if (audio) {
+//       audio.removeEventListener('ended', () => {});
+//       audio.removeEventListener('error', () => {});
+//     }
+//   };
+// }, [audio]);
+
+
 
   return (
     <div className="all-side-navs">
@@ -104,27 +289,53 @@ export default function SideNavs() {
         <Link to="/risk_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-exchange"></i></p></button></Link>
         <Link to="/chill" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-activity"></i></p></button></Link>
         <Link to="/alert_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bell-fill"></i></p></button></Link>
-      </div> 
+      </div>
 
       <div className="side-navs-cellphone">
-                {/* Your existing mobile links */}
-                <Link to="/personal_info" className="side-nav"><i className="bi bi-person-fill"></i></Link>
-                <Link to="/account_analytics" className="side-nav"><i className="bi bi-bar-chart-line-fill"></i></Link>
-                <Link to="/market_makers" className="side-nav"><i className="bi bi-bank" /></Link>
-                <Link to={`/conversation/${uniqueID}`} className="side-nav"><i className="bi bi-chat-square-dots"></i></Link>
-                <Link to='/daily_brief' className="side-nav"><i className="bi bi-briefcase-fill"></i></Link>
-                <Link to='/performance_review/asset' className="side-nav"><i className="bi bi-journal-bookmark-fill"></i></Link>
-                <Link to="/update_news" className="side-nav"><i className="bi bi-newspaper"></i></Link>
-                <Link to="/enter_new_trade_info" className="side-nav"><i className="bi bi-info-circle-fill"></i></Link>
-                <Link to="/scratch" className="side-nav"><i className="bi bi-robot"></i></Link>
-                <Link to="/model_performance" className="side-nav"><i className="bi bi-pen-fill"></i></Link>
-                <Link to="/risk_bot" className="side-nav"><i className="bi bi-currency-exchange"></i></Link>
-                <Link to="/chill" className="side-nav"><i className="bi bi-activity"></i></Link>
-                <Link to="/alert_bot" className="side-nav"><i className="bi bi-bell-fill"></i></Link>
-            </div>
-        <br />
+    {/* Your existing mobile links */}
+    <Link to="/personal_info" className="side-nav">
+        <i className="bi bi-person-fill"></i>
+    </Link>
+    <Link to="/account_analytics" className="side-nav">
+        <i className="bi bi-bar-chart-line-fill"></i>
+    </Link>
+    <Link to="/market_makers" className="side-nav">
+        <i className="bi bi-bank"></i>
+    </Link>
+    <Link to={`/conversation/${uniqueID}`} className="side-nav">
+        <i className="bi bi-chat-square-dots"></i>
+    </Link>
+    <Link to="/daily_brief" className="side-nav">
+        <i className="bi bi-briefcase-fill"></i>
+    </Link>
+    <Link to="/performance_review/asset" className="side-nav">
+        <i className="bi bi-journal-bookmark-fill"></i>
+    </Link>
+    <Link to="/update_news" className="side-nav">
+        <i className="bi bi-newspaper"></i>
+    </Link>
+    <Link to="/enter_new_trade_info" className="side-nav">
+        <i className="bi bi-info-circle-fill"></i>
+    </Link>
+    <Link to="/scratch" className="side-nav">
+        <i className="bi bi-robot"></i>
+    </Link>
+    <Link to="/model_performance" className="side-nav">
+        <i className="bi bi-pen-fill"></i>
+    </Link>
+    <Link to="/risk_bot" className="side-nav">
+        <i className="bi bi-currency-exchange"></i>
+    </Link>
+    <Link to="/chill" className="side-nav">
+        <i className="bi bi-activity"></i>
+    </Link>
+    <Link to="/alert_bot" className="side-nav">
+        <i className="bi bi-bell-fill"></i>
+    </Link>
+</div>
+<br />
 
-        <div className="timezones">
+<div className="timezones">
         <div className="clock">
           <h5>New York</h5>
           <p>{timeNY}</p>
@@ -138,9 +349,11 @@ export default function SideNavs() {
           <p>{timeTokyo}</p>
         </div>
       </div>
-      <div className="music-color-mode">
+
+
       {/* Music Player and Modal */}
-      <div className="music-player container-fluid">
+      <div className="music-color-mode">
+      <div className="music-player">
         <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
           <FaMusic />
         </button>
@@ -166,14 +379,12 @@ export default function SideNavs() {
               </ul>
             </div>
             <div className="modal-footer">
-              <button type="button" onClick={stopMusic}>Stop Music</button>
+              <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
               <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
             </div>
           </div>
         </div>
       </div>
-
-      
 
       {/* Theme Toggle Button */}
       <nav className="">
