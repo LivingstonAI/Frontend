@@ -6,6 +6,7 @@ import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (
 import hymn_for_the_weekend from '../Coldplay - Hymn For The Weekend (Lyrics).mp3';
 import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
 import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop  NCS - Copyright Free Music.mp3';
+import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
 
 export default function SnowAILandingPage() {
   const audioRef = useRef(null);
@@ -21,6 +22,7 @@ export default function SnowAILandingPage() {
     "5": { name: "Hymn for The Weekend", file: hymn_for_the_weekend },
     "6": { name: "Daydreaming", file: daydreaming },
     "7": { name: "Me Times Two", file: me_times_two},
+    "8": { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
   };
 
   useEffect(() => {
