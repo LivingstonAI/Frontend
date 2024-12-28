@@ -106,11 +106,27 @@ export default function SideNavs() {
         <Link to="/risk_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-exchange"></i></p></button></Link>
         <Link to="/chill" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-activity"></i></p></button></Link>
         <Link to="/alert_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bell-fill"></i></p></button></Link>
-      </div>
+      </div> 
 
+      <div className="side-navs-cellphone">
+                {/* Your existing mobile links */}
+                <Link to="/personal_info" className="side-nav"><i className="bi bi-person-fill"></i></Link>
+                <Link to="/account_analytics" className="side-nav"><i className="bi bi-bar-chart-line-fill"></i></Link>
+                <Link to="/market_makers" className="side-nav"><i className="bi bi-bank" /></Link>
+                <Link to={`/conversation/${uniqueID}`} className="side-nav"><i className="bi bi-chat-square-dots"></i></Link>
+                <Link to='/daily_brief' className="side-nav"><i className="bi bi-briefcase-fill"></i></Link>
+                <Link to='/performance_review/asset' className="side-nav"><i className="bi bi-journal-bookmark-fill"></i></Link>
+                <Link to="/update_news" className="side-nav"><i className="bi bi-newspaper"></i></Link>
+                <Link to="/enter_new_trade_info" className="side-nav"><i className="bi bi-info-circle-fill"></i></Link>
+                <Link to="/scratch" className="side-nav"><i className="bi bi-robot"></i></Link>
+                <Link to="/model_performance" className="side-nav"><i className="bi bi-pen-fill"></i></Link>
+                <Link to="/risk_bot" className="side-nav"><i className="bi bi-currency-exchange"></i></Link>
+                <Link to="/chill" className="side-nav"><i className="bi bi-activity"></i></Link>
+                <Link to="/alert_bot" className="side-nav"><i className="bi bi-bell-fill"></i></Link>
+            </div>
+        <br />
 
-      
-      <div className="timezones">
+        <div className="timezones">
         <div className="clock">
           <h5>New York</h5>
           <p>{timeNY}</p>
@@ -125,16 +141,8 @@ export default function SideNavs() {
         </div>
       </div>
 
-      {/* Theme Toggle Button */}
-      <nav className="navbar navbar-expand-lg">
-        <div className="container-fluid">
-          <button className="btn btn-outline-secondary" onClick={toggleTheme}>
-            {theme === 'light' ? <FaMoon /> : <FaSun />}
-          </button>
-        </div>
-      </nav>
       {/* Music Player and Modal */}
-      <div className="music-player"><br />
+      <div className="music-player container-fluid">
         <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
           <FaMusic />
         </button>
@@ -167,6 +175,16 @@ export default function SideNavs() {
         </div>
       </div>
 
+      
+
+      {/* Theme Toggle Button */}
+      <nav className="navbar navbar-expand-lg">
+        <div className="container-fluid">
+          <button className="btn btn-outline-secondary" onClick={toggleTheme}>
+            {theme === 'light' ? <FaMoon /> : <FaSun />}
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }
