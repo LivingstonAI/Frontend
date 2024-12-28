@@ -1,5 +1,3 @@
-// In your AudioContext.js
-
 import React, { createContext, useState, useContext } from 'react';
 
 const AudioContext = createContext();
@@ -19,8 +17,9 @@ export const AudioProvider = ({ children }) => {
     if (audio) {
       audio.pause();
     }
-    
+
     const newAudio = new Audio(song);
+    newAudio.loop = true; // Set loop to true to repeat the song when it ends
     newAudio.play();
 
     // Update state with new audio and song

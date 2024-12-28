@@ -39,6 +39,14 @@ export default function SideNavs() {
     { name: "Daydreaming", file: daydreaming },
     { name: "Me Times Two", file: me_times_two },
     { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+
   ];
 
   useEffect(() => {
