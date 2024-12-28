@@ -83,11 +83,9 @@ export default function SideNavs() {
   };
 
   const stopMusic = () => {
-    if (audio) {
-      audio.pause();
-      setIsMusicPlaying(false);
-      setCurrentSong(null);
-    }
+    audio.pause();
+    setIsMusicPlaying(false);
+    setCurrentSong(null);
   };
 
   return (
