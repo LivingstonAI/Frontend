@@ -24,6 +24,8 @@ export default function SideNavs() {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [audio, setAudio] = useState(null);
   const [currentSong, setCurrentSong] = useState(null);
+  const [audioTime, setAudioTime] = useState(0); // To store the current time of the audio
+
 
   const songs = [
     { name: "Jingle Bells", file: jingleBells },
@@ -170,10 +172,10 @@ useEffect(() => {
   // Load audio state from localStorage
   const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
   const savedSong = localStorage.getItem('currentSong');
-  
+  const savedTime = parseFloat(localStorage.getItem('audioTime') || '0'); // Get saved time
+
   if (isAudioPlaying && savedSong) {
-    // If there's an audio playing state, continue it
-    playMusic(savedSong);
+    playMusic(savedSong, savedTime);
   }
 
   // Cleanup when component unmounts
@@ -184,25 +186,28 @@ useEffect(() => {
   };
 }, []);
 
-const playMusic = (song) => {
+const playMusic = (song, startTime = 0) => {
   if (globalAudio) {
     globalAudio.pause(); // Pause the previous song if any
   }
 
   // Create a new audio instance or reuse the global one
   globalAudio = new Audio(song);
+  globalAudio.currentTime = startTime; // Set the current time to the saved time
   globalAudio.play();
   setIsMusicPlaying(true);
   setCurrentSong(song);
 
-  // Store audio state in localStorage
+  // Store audio state and time in localStorage
   localStorage.setItem('isAudioPlaying', 'true');
   localStorage.setItem('currentSong', song);
+  localStorage.setItem('audioTime', globalAudio.currentTime); // Save the current time
 };
 
 const stopMusic = () => {
   if (globalAudio) {
     globalAudio.pause();
+    localStorage.setItem('audioTime', globalAudio.currentTime); // Save the current time when stopping
     globalAudio = null; // Clear the global audio reference
     setIsMusicPlaying(false);
     setCurrentSong(null);
@@ -212,6 +217,27 @@ const stopMusic = () => {
     localStorage.removeItem('currentSong');
   }
 };
+
+// Keep track of the current time of the audio and update localStorage
+const handleTimeUpdate = () => {
+  if (globalAudio) {
+    localStorage.setItem('audioTime', globalAudio.currentTime); // Update the current time in localStorage
+  }
+};
+
+// Add event listener to track time
+useEffect(() => {
+  if (globalAudio) {
+    globalAudio.addEventListener('timeupdate', handleTimeUpdate);
+  }
+
+  // Cleanup the event listener when the component unmounts
+  return () => {
+    if (globalAudio) {
+      globalAudio.removeEventListener('timeupdate', handleTimeUpdate);
+    }
+  };
+}, [globalAudio]);
 
 // Approach 1
 // const stopMusic = () => {
