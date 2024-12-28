@@ -168,7 +168,7 @@ export default function SideNavs() {
               </ul>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={stopMusic}>Stop Music</button>
+              <button type="button" onClick={stopMusic}>Stop Music</button>
               <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
             </div>
           </div>
