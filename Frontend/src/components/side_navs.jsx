@@ -13,6 +13,8 @@ import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
 import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop  NCS - Copyright Free Music.mp3';
 import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
 
+let globalAudio = null; 
+
 export default function SideNavs() {
   const uniqueID = uuidv4();
   const [timeNY, setTimeNY] = useState('');
@@ -101,64 +103,115 @@ export default function SideNavs() {
   // };
   
 
-  // Play or resume music
+//   // Play or resume music
+// const playMusic = (song) => {
+//   // Check if the song is the same as the current one
+//   if (audio && currentSong === song) {
+//     // If it's the same song, just play it again
+//     audio.play();
+//     setIsMusicPlaying(true);
+//     return;
+//   }
+
+//   // Otherwise, set a new song and create a new audio object
+//   if (audio) {
+//     audio.pause();  // Pause the current audio
+//   }
+
+//   const newAudio = new Audio(song);
+//   setAudio(newAudio);  // Save the new audio object in state
+//   newAudio.play();  // Start playing the new audio
+//   setIsMusicPlaying(true);
+//   setCurrentSong(song);  // Set the current song
+//   localStorage.setItem('isAudioPlaying', 'true');
+//   localStorage.setItem('currentSong', song);
+// };
+
+// // Stop music
+// const stopMusic = () => {
+//   if (audio) {
+//     audio.pause();  // Pause the audio
+//     setAudio(null);  // Clear the audio state
+//     setIsMusicPlaying(false);  // Stop music
+//     setCurrentSong(null);  // Clear the current song
+//     localStorage.setItem('isAudioPlaying', 'false');
+//     localStorage.removeItem('currentSong');
+//   }
+// };
+
+// // Load audio state from localStorage on mount
+// useEffect(() => {
+//   const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
+//   const savedSong = localStorage.getItem('currentSong');
+
+//   if (isAudioPlaying && savedSong) {
+//     const newAudio = new Audio(savedSong);
+//     setAudio(newAudio);  // Initialize the audio object
+//     setIsMusicPlaying(true);
+//     setCurrentSong(savedSong);
+//     // newAudio.play();  // Start playing the saved song
+
+//     // Cleanup function to pause audio when component unmounts
+//     return () => {
+//       newAudio.pause();  // Ensure audio is paused when leaving the component
+//       setAudio(null);
+//       setIsMusicPlaying(false);
+//       setCurrentSong(null);
+//     };
+//   }
+// }, []);
+
+// Load theme and audio state from localStorage on mount
+useEffect(() => {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  setTheme(savedTheme);
+  document.body.className = savedTheme; // Apply theme to body
+
+  // Load audio state from localStorage
+  const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
+  const savedSong = localStorage.getItem('currentSong');
+  
+  if (isAudioPlaying && savedSong) {
+    // If there's an audio playing state, continue it
+    playMusic(savedSong);
+  }
+
+  // Cleanup when component unmounts
+  return () => {
+    if (globalAudio) {
+      globalAudio.pause();
+    }
+  };
+}, []);
+
 const playMusic = (song) => {
-  // Check if the song is the same as the current one
-  if (audio && currentSong === song) {
-    // If it's the same song, just play it again
-    audio.play();
-    setIsMusicPlaying(true);
-    return;
+  if (globalAudio) {
+    globalAudio.pause(); // Pause the previous song if any
   }
 
-  // Otherwise, set a new song and create a new audio object
-  if (audio) {
-    audio.pause();  // Pause the current audio
-  }
-
-  const newAudio = new Audio(song);
-  setAudio(newAudio);  // Save the new audio object in state
-  newAudio.play();  // Start playing the new audio
+  // Create a new audio instance or reuse the global one
+  globalAudio = new Audio(song);
+  globalAudio.play();
   setIsMusicPlaying(true);
-  setCurrentSong(song);  // Set the current song
+  setCurrentSong(song);
+
+  // Store audio state in localStorage
   localStorage.setItem('isAudioPlaying', 'true');
   localStorage.setItem('currentSong', song);
 };
 
-// Stop music
 const stopMusic = () => {
-  if (audio) {
-    audio.pause();  // Pause the audio
-    setAudio(null);  // Clear the audio state
-    setIsMusicPlaying(false);  // Stop music
-    setCurrentSong(null);  // Clear the current song
+  if (globalAudio) {
+    globalAudio.pause();
+    globalAudio = null; // Clear the global audio reference
+    setIsMusicPlaying(false);
+    setCurrentSong(null);
+
+    // Update localStorage
     localStorage.setItem('isAudioPlaying', 'false');
     localStorage.removeItem('currentSong');
   }
 };
-
-// Load audio state from localStorage on mount
-useEffect(() => {
-  const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
-  const savedSong = localStorage.getItem('currentSong');
-
-  if (isAudioPlaying && savedSong) {
-    const newAudio = new Audio(savedSong);
-    setAudio(newAudio);  // Initialize the audio object
-    setIsMusicPlaying(true);
-    setCurrentSong(savedSong);
-    // newAudio.play();  // Start playing the saved song
-
-    // Cleanup function to pause audio when component unmounts
-    return () => {
-      newAudio.pause();  // Ensure audio is paused when leaving the component
-      setAudio(null);
-      setIsMusicPlaying(false);
-      setCurrentSong(null);
-    };
-  }
-}, []);
-
 
 // Approach 1
 // const stopMusic = () => {
