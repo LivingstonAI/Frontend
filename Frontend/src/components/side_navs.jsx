@@ -178,7 +178,7 @@ export default function SideNavs() {
       
 
       {/* Theme Toggle Button */}
-      <nav className="navbar navbar-expand-lg">
+      <nav className="">
         <div className="container-fluid">
           <button className="btn btn-outline-secondary" onClick={toggleTheme}>
             {theme === 'light' ? <FaMoon /> : <FaSun />}
