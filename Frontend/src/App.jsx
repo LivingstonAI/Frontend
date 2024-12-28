@@ -36,6 +36,7 @@ import AlertBot from './components/alert_bot';
 import SnowAILandingPage from './components/snowai_lp';
 import AccountAnalytics from './components/account_analytics.jsx';
 import EnterNewTradeInfo from './components/new_trade_info.jsx';
+import { AudioProvider } from './components/audio_context.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -68,7 +69,7 @@ function App() {
 
   return (
 
-
+    <AudioProvider>
     <Router>
     <div>
 
@@ -149,6 +150,7 @@ function App() {
     </div>
       
     </Router>
+    </AudioProvider>
   );
 }
 

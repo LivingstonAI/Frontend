@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 import { FaSun, FaMoon, FaMusic } from 'react-icons/fa';
+import { useAudio } from './audio_context';
+
+
 
 // Import your songs
 import jingleBells from '../jingle_bells.mp3';
@@ -21,10 +24,10 @@ export default function SideNavs() {
   const [timeLondon, setTimeLondon] = useState('');
   const [timeTokyo, setTimeTokyo] = useState('');
   const [theme, setTheme] = useState('light');
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  const [audio, setAudio] = useState(null);
-  const [currentSong, setCurrentSong] = useState(null);
-  const [audioTime, setAudioTime] = useState(0); // To store the current time of the audio
+  // const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  // const [audio, setAudio] = useState(null);
+  // const [currentSong, setCurrentSong] = useState(null);
+  // const [audioTime, setAudioTime] = useState(0); // To store the current time of the audio
 
 
   const songs = [
@@ -83,14 +86,14 @@ export default function SideNavs() {
   //   }
   // }, []);
 
-  const stopAllAudio = () => {
-    const allAudioElements = document.querySelectorAll('audio');
+  // const stopAllAudio = () => {
+  //   const allAudioElements = document.querySelectorAll('audio');
     
-    allAudioElements.forEach(audio => {
-      audio.pause();  // Pause the audio
-      audio.currentTime = 0;  // Reset the audio to the beginning
-    });
-  };
+  //   allAudioElements.forEach(audio => {
+  //     audio.pause();  // Pause the audio
+  //     audio.currentTime = 0;  // Reset the audio to the beginning
+  //   });
+  // };
   
   // const stopMusic = () => {
   //   stopAllAudio();  // Stop all audio in the browser
@@ -163,81 +166,106 @@ export default function SideNavs() {
 //   }
 // }, []);
 
-// Load theme and audio state from localStorage on mount
-useEffect(() => {
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  setTheme(savedTheme);
-  document.body.className = savedTheme; // Apply theme to body
+// const audioRef = useRef(null);  // Using useRef to persist the audio object across renders
 
-  // Load audio state from localStorage
-  const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
-  const savedSong = localStorage.getItem('currentSong');
-  const savedTime = parseFloat(localStorage.getItem('audioTime') || '0'); // Get saved time
+//   // Load theme and audio state from localStorage on mount
+//   useEffect(() => {
+//     const savedTheme = localStorage.getItem('theme') || 'light';
+//     setTheme(savedTheme);
+//     document.body.className = savedTheme; // Apply theme to body
 
-  if (isAudioPlaying && savedSong) {
-    playMusic(savedSong, savedTime);
-  }
+//     // Load audio state from localStorage
+//     const isAudioPlaying = localStorage.getItem('isAudioPlaying') === 'true';
+//     const savedSong = localStorage.getItem('currentSong');
+//     const savedTime = parseFloat(localStorage.getItem('audioTime') || '0'); // Get saved time
 
-  // Cleanup when component unmounts
-  return () => {
-    if (globalAudio) {
-      globalAudio.pause();
-    }
-  };
-}, []);
+//     if (isAudioPlaying && savedSong) {
+//       playMusic(savedSong, savedTime);
+//     }
 
-const playMusic = (song, startTime = 0) => {
-  if (globalAudio) {
-    globalAudio.pause(); // Pause the previous song if any
-  }
+//     // Cleanup when component unmounts (not necessary for the ref-based solution, but good practice)
+//     return () => {
+//       if (audioRef.current) {
+//         audioRef.current.pause();
+//       }
+//     };
+//   }, []);
 
-  // Create a new audio instance or reuse the global one
-  globalAudio = new Audio(song);
-  globalAudio.currentTime = startTime; // Set the current time to the saved time
-  globalAudio.play();
-  setIsMusicPlaying(true);
-  setCurrentSong(song);
+//   const playMusic = (song, startTime = 0) => {
+//     if (audioRef.current) {
+//       // If audio is already playing, just return
+//       if (audioRef.current.paused && audioRef.current.src === song) {
+//         audioRef.current.play();
+//         return;
+//       }
+//       // Pause the previous song if it's not the same song
+//       audioRef.current.pause();
+//     }
 
-  // Store audio state and time in localStorage
-  localStorage.setItem('isAudioPlaying', 'true');
-  localStorage.setItem('currentSong', song);
-  localStorage.setItem('audioTime', globalAudio.currentTime); // Save the current time
+//     // Create a new audio instance or use the existing one
+//     if (!audioRef.current) {
+//       audioRef.current = new Audio(song);
+//     }
+
+//     // Ensure the audio plays from the correct time
+//     audioRef.current.currentTime = startTime;
+    
+//     // Play the audio and update state
+//     audioRef.current.play().catch((error) => {
+//       console.error('Error playing audio:', error);
+//     });
+
+//     setIsMusicPlaying(true);
+//     setCurrentSong(song);
+
+//     // Store audio state and time in localStorage
+//     localStorage.setItem('isAudioPlaying', 'true');
+//     localStorage.setItem('currentSong', song);
+//     localStorage.setItem('audioTime', audioRef.current.currentTime); // Save the current time
+//   };
+
+//   const stopMusic = () => {
+//     if (audioRef.current) {
+//       audioRef.current.pause();
+//       localStorage.setItem('audioTime', audioRef.current.currentTime); // Save the current time when stopping
+//       audioRef.current = null; // Clear the audio reference
+//       setIsMusicPlaying(false);
+//       setCurrentSong(null);
+
+//       // Update localStorage
+//       localStorage.setItem('isAudioPlaying', 'false');
+//       localStorage.removeItem('currentSong');
+//     }
+//   };
+
+//   // Keep track of the current time of the audio and update localStorage
+//   const handleTimeUpdate = () => {
+//     if (audioRef.current) {
+//       localStorage.setItem('audioTime', audioRef.current.currentTime); // Update the current time in localStorage
+//     }
+//   };
+
+//   // Add event listener to track time
+//   useEffect(() => {
+//     if (audioRef.current) {
+//       audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+//     }
+
+//     // Cleanup the event listener when the component unmounts
+//     return () => {
+//       if (audioRef.current) {
+//         audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+//       }
+//     };
+//   }, [audioRef.current]);
+
+const { isPlaying, currentSong, playMusic, stopMusic } = useAudio();
+
+const handlePlay = (song) => {
+  console.log("Handle play clicked for song:", song); // Debugging line
+  playMusic(song); // Call playMusic when song is clicked
 };
 
-const stopMusic = () => {
-  if (globalAudio) {
-    globalAudio.pause();
-    localStorage.setItem('audioTime', globalAudio.currentTime); // Save the current time when stopping
-    globalAudio = null; // Clear the global audio reference
-    setIsMusicPlaying(false);
-    setCurrentSong(null);
-
-    // Update localStorage
-    localStorage.setItem('isAudioPlaying', 'false');
-    localStorage.removeItem('currentSong');
-  }
-};
-
-// Keep track of the current time of the audio and update localStorage
-const handleTimeUpdate = () => {
-  if (globalAudio) {
-    localStorage.setItem('audioTime', globalAudio.currentTime); // Update the current time in localStorage
-  }
-};
-
-// Add event listener to track time
-useEffect(() => {
-  if (globalAudio) {
-    globalAudio.addEventListener('timeupdate', handleTimeUpdate);
-  }
-
-  // Cleanup the event listener when the component unmounts
-  return () => {
-    if (globalAudio) {
-      globalAudio.removeEventListener('timeupdate', handleTimeUpdate);
-    }
-  };
-}, [globalAudio]);
 
 // Approach 1
 // const stopMusic = () => {
@@ -450,7 +478,7 @@ useEffect(() => {
               <ul className="list-group">
                 {songs.map((song, index) => (
                   <li key={index} className="list-group-item">
-                    <button className="btn btn-link" onClick={() => playMusic(song.file)}>
+                    <button className="btn btn-link" onClick={() => handlePlay(song.file)}>
                       {song.name}
                     </button>
                   </li>
