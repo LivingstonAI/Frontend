@@ -140,7 +140,7 @@ export default function SideNavs() {
           <p>{timeTokyo}</p>
         </div>
       </div>
-
+      <div className="music-color-mode">
       {/* Music Player and Modal */}
       <div className="music-player container-fluid">
         <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
@@ -185,6 +185,7 @@ export default function SideNavs() {
           </button>
         </div>
       </nav>
+    </div>
     </div>
   );
 }
