@@ -121,7 +121,7 @@ function App() {
         
         <Route path='/legodi' element={<Legodi />}></Route>
         <Route path='/order_tab' element={<OrderTab />}></Route>
-        {/* <Route path='/map' element={<GeofenceMap />}></Route> */}
+        <Route path='/map' element={<GeofenceMap />}></Route>
         <Route path='/regr' element={<LegodiRegistration />}></Route>
         <Route path='/legodi-login' element={<LegodiLogin />}></Route>
 

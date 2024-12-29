@@ -266,7 +266,8 @@ export default function ChatBotInterface() {
               I have intergated into the platform the ability for myself to create and backtest trading bots using a drag and drop(dnd) interface using
               Google Blockly and can send the code in the form of a string back to my backend hosted on Django to run the code to backtest 
               using Backtesting.py. Furthemore, I have made it such that if I am satisfied with the performance, I can save this code into a Model in Django
-              and run it in my mt5 terminal. 
+              and run it in my mt5 terminal. I can also view Commitment of Traders Reports and Open Interest.
+              I am learning trading through ICT (Inner Circle Trader). 
 
               I also am learning Korean and Chinese, and love reading books.
 
