@@ -56,7 +56,7 @@ import { FaSun, FaMoon } from 'react-icons/fa';
 
 import Legodi from './components/legodi';
 import OrderTab from './components/order_tab';
-// import GeofenceMap from './components/map';
+import GeofenceMap from './components/map';
 import LegodiRegistration from './components/legodi_registration';
 import LegodiLogin from './components/legodi_login';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
