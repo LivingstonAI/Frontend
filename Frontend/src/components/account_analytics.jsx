@@ -20,7 +20,7 @@ export default function AccountAnalytics() {
         }
 
         try {
-            const response = await fetch(`${baseUrl}/view-trading-analytics?account_name=${accountName}`);
+            const response = await fetch(`${baseUrl}/get-trading-analytics?account_name=${accountName}`);
             const data = await response.json();
             if (response.ok) {
                 setAccountData(data);
