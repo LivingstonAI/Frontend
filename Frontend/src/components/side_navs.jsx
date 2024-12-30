@@ -17,6 +17,7 @@ import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop 
 import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
 import should_i_stay from '../The Clash - Should I Stay or Should I Go (Official Audio).mp3';
 import the_middle from '../Zedd, Maren Morris, Grey - The Middle (Lyric Video).mp3';
+import quiet_night from '../Tokyo Music Walker - Quiet Night.mp3';
 
 let globalAudio = null; 
 
@@ -43,7 +44,7 @@ export default function SideNavs() {
     { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
     { name: "Should I Stay or Should I Go", file: should_i_stay },
     { name: "The Middle", file: the_middle },
-
+    { name: "Quiet Night", file: quiet_night },
   ];
 
   useEffect(() => {
