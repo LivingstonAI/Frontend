@@ -15,6 +15,7 @@ import im_good from "../David Guetta x Bebe Rexha - I'm Good (Blue) (Senses & Sh
 import never_give_up from '../Never Give Up.mp3';
 import gravity from '../Sara Bareilles - Gravity (Official HD Video).mp3';
 import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
+import bloody_mary_edit from '../bloody mary (instrumental x dum dum, da-di-da) [full version] - lady gaga [edit audio].mp3';
 
 
 export default function SnowAILandingPage() {
@@ -40,6 +41,7 @@ export default function SnowAILandingPage() {
     "14": { name: "Never Give Up", file: never_give_up },
     "15": { name: "Gravity", file: gravity },
     "16": { name: "Closer", file: closer },
+    "17": { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
   };
 
   useEffect(() => {
