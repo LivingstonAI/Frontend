@@ -10,6 +10,11 @@ import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Char
 import should_i_stay from '../The Clash - Should I Stay or Should I Go (Official Audio).mp3';
 import the_middle from '../Zedd, Maren Morris, Grey - The Middle (Lyric Video).mp3';
 import quiet_night from '../Tokyo Music Walker - Quiet Night.mp3';
+import feels from '../Calvin Harris - Feels (Official Video) ft. Pharrell Williams, Katy Perry, Big Sean.mp3';
+import im_good from "../David Guetta x Bebe Rexha - I'm Good (Blue) (Senses & Shadow Remix).mp3";
+import never_give_up from '../Never Give Up.mp3';
+import gravity from '../Sara Bareilles - Gravity (Official HD Video).mp3';
+import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -30,6 +35,11 @@ export default function SnowAILandingPage() {
     "9": { name: "Should I Stay or Should I Go", file: should_i_stay },
     "10": { name: "The Middle", file: the_middle },
     "11": { name: "Quiet Night", file: quiet_night },
+    "12": { name: "Feels", file: feels },
+    "13": { name: "I'm Good (Blue)", file: im_good },
+    "14": { name: "Never Give Up", file: never_give_up },
+    "15": { name: "Gravity", file: gravity },
+    "16": { name: "Closer", file: closer },
   };
 
   useEffect(() => {
