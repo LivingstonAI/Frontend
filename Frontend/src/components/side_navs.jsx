@@ -25,6 +25,7 @@ import gravity from '../Sara Bareilles - Gravity (Official HD Video).mp3';
 import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
 import bloody_mary_edit from '../bloody mary (instrumental x dum dum, da-di-da) [full version] - lady gaga [edit audio].mp3';
 import waiting from '../Waiting.mp3';
+import wish_wonderland from '../Wonderland 원더랜드 OST WISH_ Wonderland is here 박보검 Park Bo-gum 배수지 Bae Suzy HanRomEnglish Lyrics.mp3';
 
 
 let globalAudio = null; 
@@ -59,7 +60,8 @@ export default function SideNavs() {
     { name: "Gravity", file: gravity },
     { name: "Closer", file: closer },
     { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
-    { name: "Waiting 💙", file: waiting }
+    { name: "Waiting 💙", file: waiting },
+    { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland }
   ];
 
   useEffect(() => {
