@@ -162,21 +162,21 @@ export default function ChatBotInterface() {
     }, []);
 
 
-    useEffect(() => {
-        const fetchTrades = async () => {
-            try {
-                // Fetching data from the new API endpoint
-                const response = await fetch(`${baseURL}/fetch-trading-data`);
-                const parsedData = await response.json();
-                setTrades(parsedData);
-                console.log('Trade Data is', parsedData);
-            } catch (error) {
-                console.error('Error fetching trades:', error);
-            }
-        };
+    // useEffect(() => {
+    //     const fetchTrades = async () => {
+    //         try {
+    //             // Fetching data from the new API endpoint
+    //             const response = await fetch(`${baseURL}/fetch-trading-data`);
+    //             const parsedData = await response.json();
+    //             setTrades(parsedData);
+    //             console.log('Trade Data is', parsedData);
+    //         } catch (error) {
+    //             console.error('Error fetching trades:', error);
+    //         }
+    //     };
     
-        fetchTrades();
-    }, []);
+    //     fetchTrades();
+    // }, []);
 
     
 
@@ -247,15 +247,15 @@ export default function ChatBotInterface() {
         // console.log(gptMessages)
 
         //  My context: ${JSON.stringify(tellUsMore)}
+        // My Trades: ${JSON.stringify(trades)}
         
         const systemMessage = {
             role: "system",
             content: `
             Your name is Livingston. You are an intelligent investment assistant.
               Your job is to assist me as I trade.
-            //  My context: ${JSON.stringify(accountData)}
+            //  My Trade Data: ${JSON.stringify(accountData)}
 
-              My Trades: ${JSON.stringify(trades)}
               News Data: ${JSON.stringify(newsData)}
 
               My name is Tlotlo Motingwe. I am 21 years old. I have built a this trading system that uses your api. 
