@@ -49,7 +49,7 @@ export default function SnowAILandingPage() {
     "18": { name: "Waiting 💙", file: waiting },
     "19": { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
     "20": { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
-    "21": { name: "沉溺（你让我的心不再结冰 🎶🌆", file: 沉溺 },
+    "21": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
   };
 
   useEffect(() => {

@@ -65,7 +65,7 @@ export default function SideNavs() {
     { name: "Waiting 💙", file: waiting },
     { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
     { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
-    { name: "沉溺（你让我的心不再结冰 🎶🌆", file: 沉溺 }
+    { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 }
   ];
 
   useEffect(() => {
