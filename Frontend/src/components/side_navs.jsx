@@ -26,6 +26,8 @@ import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
 import bloody_mary_edit from '../bloody mary (instrumental x dum dum, da-di-da) [full version] - lady gaga [edit audio].mp3';
 import waiting from '../Waiting.mp3';
 import wish_wonderland from '../Wonderland 원더랜드 OST WISH_ Wonderland is here 박보검 Park Bo-gum 배수지 Bae Suzy HanRomEnglish Lyrics.mp3';
+import welcome_to_columbia from '../Congratulations! Welcome to Columbia!.mp3';
+
 
 
 let globalAudio = null; 
@@ -61,7 +63,8 @@ export default function SideNavs() {
     { name: "Closer", file: closer },
     { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
     { name: "Waiting 💙", file: waiting },
-    { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland }
+    { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
+    { name: "Welcome to Columbia!📖", file: welcome_to_columbia }
   ];
 
   useEffect(() => {
