@@ -21,6 +21,7 @@ import wish_wonderland from '../Wonderland 원더랜드 OST WISH_ Wonderland is 
 import welcome_to_columbia from '../Congratulations! Welcome to Columbia!.mp3';
 import 沉溺 from '../沉溺（你让我的心不再结冰）.mp3';
 import shoot_to_thrill from '../ACDC - Shoot to Thrill.mp3';
+import when_im_with_you from "../When I'm with you.mp3";
 
 
 export default function SnowAILandingPage() {
@@ -52,6 +53,7 @@ export default function SnowAILandingPage() {
     "20": { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
     "21": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
     "22": { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
+    "23": { name: "When I'm With You - Arcando", file: when_im_with_you },
   };
 
   useEffect(() => {
