@@ -126,7 +126,7 @@ export default function SnowAILandingPage() {
     <div className="snowai-landing-page">
       <div id="snowflake-container"></div>
       <h1 className="snowai-title">
-        {["s", "n", "o", "w", "A", "I"].map((letter, idx) => (
+        {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
           <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
         ))}
       </h1>
