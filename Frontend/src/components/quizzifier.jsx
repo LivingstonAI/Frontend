@@ -198,7 +198,7 @@ export default function Quizzifier() {
                         <h5 style={styles.quizTitle}>{quiz.title}</h5>
                         {currentQuestionIndex < quiz.data.length ? (
                             <div style={styles.questionContainer}>
-                                <h6>{quiz.data[currentQuestionIndex].question}</h6>
+                                <h6 className="quiz-header">{quiz.data[currentQuestionIndex].question}</h6>
                                 <ul style={styles.optionsList}>
                                     {quiz.data[currentQuestionIndex].options.map((option, index) => (
                                         <li
