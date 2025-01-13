@@ -60,7 +60,10 @@ export default function Quizzifier() {
                                         "answer": "Correct Answer"
                                     }
                                 ]
-                            }`,
+                            }
+                            NB!! IT MUST BE IN THIS FORMAT OR THE APP WILL NOT WORK!!!! MAKE IT THIS JSON FORMAT!!!!
+                            `,
+                        
                         },
                         { role: "user", content: `Generate a quiz based on the following topic: ${userInput}` },
                     ],
