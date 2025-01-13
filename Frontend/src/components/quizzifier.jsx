@@ -195,10 +195,10 @@ export default function Quizzifier() {
                     </div>
                 ) : (
                     <div>
-                        <h1 style={styles.quizTitle}>{quiz.title}</h1>
+                        <h5 style={styles.quizTitle}>{quiz.title}</h5>
                         {currentQuestionIndex < quiz.data.length ? (
                             <div style={styles.questionContainer}>
-                                <h2>{quiz.data[currentQuestionIndex].question}</h2>
+                                <h6>{quiz.data[currentQuestionIndex].question}</h6>
                                 <ul style={styles.optionsList}>
                                     {quiz.data[currentQuestionIndex].options.map((option, index) => (
                                         <li
