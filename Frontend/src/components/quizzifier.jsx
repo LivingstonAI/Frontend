@@ -138,7 +138,7 @@ export default function Quizzifier() {
 
     return (
         <div style={styles.container}>
-            <div className="header">
+        <div className="header">
                 <Header />
             </div>
             <SideNavs />
@@ -239,8 +239,7 @@ export default function Quizzifier() {
 }
 
 const styles = {
-    container: { padding: "20px", fontFamily: "Arial, sans-serif" },
-    mainBody: { padding: "20px", margin: "0 auto", maxWidth: "600px" },
+    container: { fontFamily: "Arial, sans-serif" },
     inputContainer: { marginBottom: "20px" },
     textarea: { width: "100%", height: "100px", padding: "10px", marginBottom: "10px" },
     generateButton: { padding: "10px 20px", background: "#007BFF", color: "#fff", border: "none", cursor: "pointer" },
