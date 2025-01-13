@@ -173,6 +173,7 @@ export default function Quizzifier() {
                     </div>
                 ) : (
                     <div>
+                        
                         <h1 style={styles.quizTitle}>{quiz.title}</h1>
                         {currentQuestionIndex < quiz.data.length ? (
                             <div style={styles.questionContainer}>
