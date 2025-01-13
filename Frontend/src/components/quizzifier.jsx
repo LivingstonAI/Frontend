@@ -50,7 +50,8 @@ export default function Quizzifier() {
                     messages: [
                         {
                             role: "system",
-                            content: `You are an AI quiz generator. Based on the provided data, generate a JSON quiz in this format:
+                            content: `You are an AI quiz generator. Based on the provided data, GENERATE A JSON QUIZ IN THIS FORMAT:
+                            EXAMPLE 1:
                             {
                                 "title": "Quiz Title",
                                 "data": [
@@ -61,6 +62,31 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
+
+                            EXAMPLE 2:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 3:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+                                
                             NB!! IT MUST BE IN THIS FORMAT OR THE APP WILL NOT WORK!!!! MAKE IT THIS JSON FORMAT!!!!
                             `,
                         
