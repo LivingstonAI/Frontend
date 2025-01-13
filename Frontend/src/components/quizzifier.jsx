@@ -16,7 +16,7 @@ export default function Quizzifier() {
     const [isAnswered, setIsAnswered] = useState(false); // Track if the current question is answered
 
     const fetchAPIKey = async () => {
-        
+
         try {
             setStatusMessage("Fetching API key...");
             const response = await fetch(`${baseUrl}/get_openai_key`);
@@ -178,9 +178,9 @@ export default function Quizzifier() {
                                                 ...styles.option,
                                                 backgroundColor:
                                                     isAnswered && option === quiz.data[currentQuestionIndex].answer
-                                                        ? "green"
+                                                        ? "#5bff33"
                                                         : isAnswered && option === selectedAnswer
-                                                        ? "red"
+                                                        ? "#ff4f33"
                                                         : "#f1f1f1",
                                                 cursor: isAnswered ? "not-allowed" : "pointer",
                                             }}
@@ -213,7 +213,7 @@ export default function Quizzifier() {
                                         <li
                                             key={index}
                                             style={{
-                                                color: answer.isCorrect ? "green" : "red",
+                                                color: answer.isCorrect ? "#5bff33" : "#ff4f33",
                                             }}
                                         >
                                             Q: {answer.question}
