@@ -16,6 +16,7 @@ export default function Quizzifier() {
     const [isAnswered, setIsAnswered] = useState(false); // Track if the current question is answered
 
     const fetchAPIKey = async () => {
+        
         try {
             setStatusMessage("Fetching API key...");
             const response = await fetch(`${baseUrl}/get_openai_key`);
