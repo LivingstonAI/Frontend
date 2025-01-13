@@ -86,7 +86,7 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
-                                
+
                             NB!! IT MUST BE IN THIS FORMAT OR THE APP WILL NOT WORK!!!! MAKE IT THIS JSON FORMAT!!!!
                             `,
                         
@@ -175,7 +175,7 @@ export default function Quizzifier() {
                 {statusMessage && <p style={styles.statusMessage}>{statusMessage}</p>}
                 {!quizStarted ? (
                     <div>
-                        <h1>Welcome to the Quiz</h1>
+                        <h5 className="quiz-header">Welcome to the Quiz</h5>
                         <div style={styles.inputContainer}>
                             <textarea
                                 placeholder="Enter your topic or content for the quiz..."
