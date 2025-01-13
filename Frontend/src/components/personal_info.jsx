@@ -310,6 +310,8 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                 <Header />
             </div>
                 <SideNavs/>
+                {/* <iframe src="https://opexams.com/quiz/OM_u2kWH9jU" className="quiz-view"></iframe> */}
+
             <div className="main-page-body">
                 
             <h4 className="personal-info-title"><i className="bi bi-person-circle personal-info-icon">Personal Information</i></h4><br />

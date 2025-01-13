@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
+import { useNavigate } from "react-router-dom";
+
 
 export default function Chill() {
     const [sections, setSections] = useState([]);
@@ -22,6 +24,7 @@ export default function Chill() {
     const [messages, setMessages] = useState([]);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [userInput, setUserInput] = useState('');
+    const navigate = useNavigate();
 
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -364,7 +367,9 @@ export default function Chill() {
             await navigator.clipboard.writeText(cleanedText);
     
             // Open the desired URL in a new tab
-            window.open("https://opexams.com/ai-quiz-generator/", "_blank");
+            // https://opexams.com/ai-quiz-generator/
+            // window.open("quizifier", "_blank");
+            navigate('/quizifier');
         } catch (error) {
             console.error("Failed to copy text or open the link:", error);
         }
@@ -412,7 +417,6 @@ return (
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    
                     <div className="chill-div">
                 <div>
                     </div>        

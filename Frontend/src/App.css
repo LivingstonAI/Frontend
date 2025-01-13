@@ -4123,9 +4123,6 @@ canvas {
 
 
 
-
-
-
 /* General Back Button */
 .michelle-back-button {
     position: fixed;
@@ -4193,3 +4190,50 @@ canvas {
     line-height: 1.5;
     color: #533a2f; /* Deeper Brown */
   }
+
+
+  .quiz-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    z-index: 1000;
+}
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+.option-btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background: #f0f0f0;
+}
+.option-btn.correct {
+    background: #4caf50;
+    color: white;
+}
+.option-btn.incorrect {
+    background: #f44336;
+    color: white;
+}
+.feedback {
+    margin-top: 15px;
+    font-weight: bold;
+}
+.start-quiz-btn {
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
