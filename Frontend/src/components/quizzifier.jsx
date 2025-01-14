@@ -12,17 +12,17 @@ export default function Quizzifier() {
     const [userInput, setUserInput] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
     const [showModal, setShowModal] = useState(false);
-    const [selectedAnswer, setSelectedAnswer] = useState(null); // Track selected answer
-    const [isAnswered, setIsAnswered] = useState(false); // Track if the current question is answered
+    const [selectedAnswer, setSelectedAnswer] = useState(null);
+    const [isAnswered, setIsAnswered] = useState(false);
 
     const fetchAPIKey = async () => {
-
         try {
             setStatusMessage("Fetching API key...");
             const response = await fetch(`${baseUrl}/get_openai_key`);
             if (!response.ok) throw new Error("Network response was not ok");
             const { OPENAI_API_KEY } = await response.json();
             setOPENAI_API_KEY(OPENAI_API_KEY);
+            console.log("Fetched API Key:", OPENAI_API_KEY);
             setStatusMessage("");
         } catch (error) {
             console.error("Error fetching API key:", error);
@@ -62,41 +62,16 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
-
-                            EXAMPLE 2:
-                            {
-                                "title": "Quiz Title",
-                                "data": [
-                                    {
-                                        "question": "Sample question?",
-                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                                        "answer": "Correct Answer"
-                                    }
-                                ]
-                            }
-
-                            EXAMPLE 3:
-                            {
-                                "title": "Quiz Title",
-                                "data": [
-                                    {
-                                        "question": "Sample question?",
-                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                                        "answer": "Correct Answer"
-                                    }
-                                ]
-                            }
-
-                            NB!! IT MUST BE IN THIS FORMAT OR THE APP WILL NOT WORK!!!! MAKE IT THIS JSON FORMAT!!!!
                             `,
-                        
                         },
                         { role: "user", content: `Generate a quiz based on the following topic: ${userInput}` },
                     ],
                 }),
             });
             const data = await response.json();
+            console.log("Quiz data fetched:", data);
             const quizContent = JSON.parse(data.choices[0].message.content);
+            console.log("Parsed quiz content:", quizContent);
             setQuiz(quizContent);
             setStatusMessage("");
             setShowModal(false);
@@ -111,8 +86,8 @@ export default function Quizzifier() {
         const currentQuestion = quiz.data[currentQuestionIndex];
         const isCorrect = selectedOption === currentQuestion.answer;
 
-        setSelectedAnswer(selectedOption); // Track selected answer
-        setIsAnswered(true); // Mark question as answered
+        setSelectedAnswer(selectedOption);
+        setIsAnswered(true);
 
         setAnswers((prev) => [
             ...prev,
@@ -124,16 +99,18 @@ export default function Quizzifier() {
             },
         ]);
 
-        // Move to the next question after a delay
         setTimeout(() => {
             if (currentQuestionIndex < quiz.data.length - 1) {
                 setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
                 setSelectedAnswer(null);
                 setIsAnswered(false);
             } else {
+                console.log("All questions answered, ending quiz.");
+                console.log(answers);
+                console.log(currentQuestionIndex, quiz.data.length)
                 setQuizStarted(false);
             }
-        }, 2000);
+        }, 2000); // Delay to show feedback before moving to the next question
     };
 
     const handleStartQuiz = () => {
@@ -146,9 +123,11 @@ export default function Quizzifier() {
         setAnswers([]);
         setSelectedAnswer(null);
         setIsAnswered(false);
+        console.log("Quiz started.");
     };
 
     const handleStartOver = () => {
+        console.log("Starting quiz over.");
         setQuizStarted(false);
         setQuiz(null);
         setUserInput("");
@@ -159,15 +138,17 @@ export default function Quizzifier() {
     };
 
     useEffect(() => {
+        console.log("Fetching API key...");
         fetchAPIKey();
     }, []);
 
+    // Calculate the number of correct and incorrect answers
     const correctAnswersCount = answers.filter((answer) => answer.isCorrect).length;
     const incorrectAnswersCount = answers.length - correctAnswersCount;
 
     return (
         <div style={styles.container}>
-        <div className="header">
+            <div className="header">
                 <Header />
             </div>
             <SideNavs />
@@ -182,6 +163,7 @@ export default function Quizzifier() {
                                 value={userInput}
                                 onChange={(e) => setUserInput(e.target.value)}
                                 style={styles.textarea}
+                                className="form-control"
                             />
                             <button style={styles.generateButton} onClick={fetchQuizData}>
                                 Generate Quiz
@@ -231,7 +213,7 @@ export default function Quizzifier() {
                             <div style={styles.completionScreen}>
                                 <h2>Quiz Completed! 🎉</h2>
                                 <p>
-                                    Correct Answers: {correctAnswersCount} / {answers.length}
+                                    Correct Answers: {correctAnswersCount} / {quiz.data.length}
                                 </p>
                                 <p>
                                     Incorrect Answers: {incorrectAnswersCount}
@@ -261,6 +243,39 @@ export default function Quizzifier() {
                         )}
                     </div>
                 )}
+                {quizStarted && (
+                    <div style={styles.completionScreen}>
+                    <h2>Quiz Completed! 🎉</h2>
+                    <p>
+                        Correct Answers: {correctAnswersCount} / {quiz.data.length}
+                    </p>
+                    <p>
+                        Incorrect Answers: {incorrectAnswersCount}
+                    </p>
+                    <h3>Feedback:</h3>
+                    <ul style={styles.feedbackList}>
+                        {answers.map((answer, index) => (
+                            <li
+                                key={index}
+                                style={{
+                                    color: answer.isCorrect ? "#5bff33" : "#ff4f33",
+                                }}
+                            >
+                                Q: {answer.question}
+                                <br />
+                                Your Answer: {answer.selectedAnswer}{" "}
+                                {answer.isCorrect ? "✔️" : "❌"}
+                                <br />
+                                Correct Answer: {answer.correctAnswer}
+                            </li>
+                        ))}
+                    </ul>
+                    <button style={styles.startOverButton} onClick={handleStartOver}>
+                        Start Over
+                    </button>
+                </div>
+                )}
+                
                 {showModal && <div style={styles.modal}>Loading... Please wait</div>}
             </div>
         </div>
@@ -273,13 +288,13 @@ const styles = {
     textarea: { width: "100%", height: "100px", padding: "10px", marginBottom: "10px" },
     generateButton: { padding: "10px 20px", background: "#007BFF", color: "#fff", border: "none", cursor: "pointer" },
     startButton: { padding: "10px 20px", background: "#28A745", color: "#fff", border: "none", cursor: "pointer" },
-    questionContainer: { marginBottom: "20px" },
-    optionsList: { listStyle: "none", padding: 0 },
-    option: { padding: "10px", margin: "5px 0", background: "#f1f1f1", cursor: "pointer", borderRadius: "5px" },
-    modal: { position: "fixed", top: "0", left: "0", width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.5)", color: "#fff", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px", fontWeight: "bold" },
-    statusMessage: { color: "gray", textAlign: "center" },
-    quizTitle: { textAlign: "center", fontSize: "24px", marginBottom: "20px" },
-    completionScreen: { textAlign: "center", marginTop: "20px" },
-    feedbackList: { listStyle: "none", padding: 0, textAlign: "left" },
-    startOverButton: { padding: "10px 20px", background: "#DC3545", color: "#fff", border: "none", cursor: "pointer", marginTop: "20px" },
+    questionContainer: { marginBottom: "30px" },
+    optionsList: { listStyle: "none", padding: "0" },
+    option: { padding: "10px", margin: "5px 0", cursor: "pointer" },
+    modal: { position: "fixed", top: "0", left: "0", right: "0", bottom: "0", backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px" },
+    statusMessage: { color: "#ff4f33", fontSize: "18px", textAlign: "center", marginBottom: "10px" },
+    quizTitle: { fontSize: "24px", textAlign: "center", marginBottom: "20px" },
+    completionScreen: { textAlign: "center" },
+    feedbackList: { listStyle: "none", padding: "0" },
+    startOverButton: { padding: "10px 20px", background: "#dc3545", color: "#fff", border: "none", cursor: "pointer", marginTop: "20px" },
 };
