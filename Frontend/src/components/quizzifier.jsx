@@ -64,6 +64,42 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
+
+                            EXAMPLE 2:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 3:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 4:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
                             `,
                         },
                         { role: "user", content: `Generate a quiz based on the following topic: ${userInput}` },
