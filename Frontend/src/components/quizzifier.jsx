@@ -174,7 +174,7 @@ export default function Quizzifier() {
                             </button>
                         </div>
                         {quiz && (
-                            <button style={styles.startButton} onClick={handleStartQuiz}>
+                            <button style={styles.startButton} onClick={handleStartQuiz} className="btn btn-primary">
                                 Start Quiz
                             </button>
                         )}
@@ -291,7 +291,7 @@ const styles = {
     inputContainer: { marginBottom: "20px" },
     textarea: { width: "100%", height: "100px", padding: "10px", marginBottom: "10px" },
     generateButton: { padding: "10px 20px", background: "#007BFF", color: "#fff", border: "none", cursor: "pointer" },
-    startButton: { padding: "10px 20px", background: "#28A745", color: "#fff", border: "none", cursor: "pointer" },
+    startButton: { padding: "10px 20px", color: "#fff", border: "none", cursor: "pointer" },
     questionContainer: { marginBottom: "30px" },
     optionsList: { listStyle: "none", padding: "0" },
     option: { padding: "10px", margin: "5px 0", cursor: "pointer" },
