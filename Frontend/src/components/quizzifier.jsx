@@ -248,36 +248,37 @@ export default function Quizzifier() {
                     </div>
                 )}
                 {showStats && (
-                    <div style={styles.completionScreen}>
-                    <h2>Quiz Completed! 🎉</h2>
+    <div style={styles.completionScreen}>
+        <h2 style={styles.completionTitle}>Quiz Completed! 🎉</h2>
+        <p style={styles.statsText}>
+            Correct Answers: <strong>{correctAnswersCount}</strong> / {quiz.data.length}
+        </p>
+        <p style={styles.statsText}>
+            Incorrect Answers: <strong>{incorrectAnswersCount}</strong>
+        </p>
+        <h3 style={styles.feedbackTitle}>Feedback:</h3>
+        <ul style={styles.feedbackList}>
+            {answers.map((answer, index) => (
+                <li
+                    key={index}
+                    style={styles.feedbackItem}
+                >
+                    <p><strong>Q:</strong> {answer.question}</p>
                     <p>
-                        Correct Answers: {correctAnswersCount} / {quiz.data.length}
+                        <strong>Your Answer:</strong> {answer.selectedAnswer}{" "}
+                        {answer.isCorrect ? "✔️" : "❌"}
                     </p>
                     <p>
-                        Incorrect Answers: {incorrectAnswersCount}
+                        <strong>Correct Answer:</strong> {answer.correctAnswer}
                     </p>
-                    <h3>Feedback:</h3>
-                    <ul style={styles.feedbackList}>
-                        {answers.map((answer, index) => (
-                            <li
-                                key={index}
-                                style={{
-                                }}
-                            >
-                                Q: {answer.question}
-                                <br />
-                                Your Answer: {answer.selectedAnswer}{" "}
-                                {answer.isCorrect ? "✔️" : "❌"}
-                                <br />
-                                Correct Answer: {answer.correctAnswer}
-                            </li>
-                        ))}
-                    </ul>
-                    <button style={styles.startOverButton} onClick={handleStartOver}>
-                        Start Over
-                    </button>
-                </div>
-                )}
+                </li>
+            ))}
+        </ul>
+        <button style={styles.startOverButton} onClick={handleStartOver}>
+            Start Over
+        </button>
+    </div>
+)}
                 
                 {showModal && <div style={styles.modal}>Loading... Please wait</div>}
             </div>
@@ -297,7 +298,55 @@ const styles = {
     modal: { position: "fixed", top: "0", left: "0", right: "0", bottom: "0", backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px" },
     statusMessage: { color: "#0d11f0", fontSize: "18px", textAlign: "center", marginBottom: "10px" },
     quizTitle: { fontSize: "24px", textAlign: "center", marginBottom: "20px" },
-    completionScreen: { textAlign: "center" },
-    feedbackList: { listStyle: "none", padding: "0" },
-    startOverButton: { padding: "10px 20px", background: "#dc3545", color: "#fff", border: "none", cursor: "pointer", marginTop: "20px" },
+    // completionScreen: { textAlign: "center" },
+    // feedbackList: { listStyle: "none", padding: "0" },
+    // startOverButton: { padding: "10px 20px", background: "#dc3545", color: "#fff", border: "none", cursor: "pointer", marginTop: "20px" },
+    completionScreen: {
+        textAlign: "center",
+        marginTop: "40px",
+        padding: "20px",
+        backgroundColor: "#f8f9fa",
+        borderRadius: "10px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        maxWidth: "600px",
+        margin: "0 auto"
+    },
+    completionTitle: {
+        fontSize: "24px",
+        color: "#333",
+        marginBottom: "20px",
+    },
+    statsText: {
+        fontSize: "18px",
+        color: "#555",
+        marginBottom: "10px",
+    },
+    feedbackTitle: {
+        fontSize: "20px",
+        color: "#333",
+        marginBottom: "15px",
+    },
+    feedbackList: {
+        listStyle: "none",
+        paddingLeft: "0",
+        textAlign: "left",
+        margin: "0",
+    },
+    feedbackItem: {
+        backgroundColor: "#fff",
+        padding: "10px",
+        marginBottom: "10px",
+        borderRadius: "8px",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    },
+    startOverButton: {
+        padding: "10px 20px",
+        background: "#28a745",
+        color: "#fff",
+        border: "none",
+        cursor: "pointer",
+        borderRadius: "5px",
+        marginTop: "20px",
+        fontSize: "16px",
+    },
 };
