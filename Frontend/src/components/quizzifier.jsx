@@ -206,7 +206,7 @@ export default function Quizzifier() {
                                 style={styles.textarea}
                                 className="form-control"
                             />
-                            <button style={styles.generateButton} onClick={fetchQuizData}>
+                            <button style={styles.startButton} onClick={fetchQuizData}>
                                 Generate Quiz
                             </button>
                         </div>
