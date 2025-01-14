@@ -274,7 +274,7 @@ export default function Quizzifier() {
                 </li>
             ))}
         </ul>
-        <button style={styles.startOverButton} onClick={handleStartOver}>
+        <button style={styles.startOverButton} onClick={handleStartOver} className="btn btn-primary">
             Start Over
         </button>
     </div>
@@ -341,7 +341,6 @@ const styles = {
     },
     startOverButton: {
         padding: "10px 20px",
-        background: "#28a745",
         color: "#fff",
         border: "none",
         cursor: "pointer",
