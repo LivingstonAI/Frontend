@@ -157,6 +157,7 @@ export default function Quizzifier() {
             alert("Please generate a quiz first!");
             return;
         }
+        setShowStats(false);
         setQuizStarted(true);
         setCurrentQuestionIndex(0);
         setAnswers([]);
