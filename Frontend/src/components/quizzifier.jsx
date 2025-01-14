@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
+
 export default function Quizzifier() {
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
