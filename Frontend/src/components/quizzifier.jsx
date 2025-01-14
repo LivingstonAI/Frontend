@@ -15,6 +15,7 @@ export default function Quizzifier() {
     const [showModal, setShowModal] = useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    const [showStats, setShowStats] = useState(false);
 
     const fetchAPIKey = async () => {
         try {
@@ -110,6 +111,7 @@ export default function Quizzifier() {
                 console.log(answers);
                 console.log(currentQuestionIndex, quiz.data.length)
                 setQuizStarted(false);
+                setShowStats(true);
             }
         }, 2000); // Delay to show feedback before moving to the next question
     };
@@ -136,6 +138,7 @@ export default function Quizzifier() {
         setStatusMessage("");
         setSelectedAnswer(null);
         setIsAnswered(false);
+        setShowStats(false);
     };
 
     useEffect(() => {
@@ -244,7 +247,7 @@ export default function Quizzifier() {
                         )}
                     </div>
                 )}
-                {quizStarted && (
+                {showStats && (
                     <div style={styles.completionScreen}>
                     <h2>Quiz Completed! 🎉</h2>
                     <p>
@@ -259,7 +262,6 @@ export default function Quizzifier() {
                             <li
                                 key={index}
                                 style={{
-                                    color: answer.isCorrect ? "#5bff33" : "#ff4f33",
                                 }}
                             >
                                 Q: {answer.question}
