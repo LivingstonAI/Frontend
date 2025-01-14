@@ -293,7 +293,7 @@ const styles = {
     optionsList: { listStyle: "none", padding: "0" },
     option: { padding: "10px", margin: "5px 0", cursor: "pointer" },
     modal: { position: "fixed", top: "0", left: "0", right: "0", bottom: "0", backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px" },
-    statusMessage: { color: "#ff4f33", fontSize: "18px", textAlign: "center", marginBottom: "10px" },
+    statusMessage: { color: "#0d11f0", fontSize: "18px", textAlign: "center", marginBottom: "10px" },
     quizTitle: { fontSize: "24px", textAlign: "center", marginBottom: "20px" },
     completionScreen: { textAlign: "center" },
     feedbackList: { listStyle: "none", padding: "0" },
