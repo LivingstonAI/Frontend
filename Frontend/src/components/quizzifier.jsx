@@ -206,7 +206,7 @@ export default function Quizzifier() {
                                 style={styles.textarea}
                                 className="form-control"
                             />
-                            <button style={styles.startButton} onClick={fetchQuizData}>
+                            <button style={styles.generateButton} onClick={fetchQuizData}>
                                 Generate Quiz
                             </button>
                         </div>
@@ -327,8 +327,8 @@ const styles = {
     container: { fontFamily: "Arial, sans-serif" },
     inputContainer: { marginBottom: "20px" },
     textarea: { width: "100%", height: "100px", padding: "10px", marginBottom: "10px" },
-    generateButton: { padding: "10px 20px", background: "#007BFF", color: "#fff", border: "none", cursor: "pointer" },
-    startButton: { padding: "10px 20px", color: "#fff", border: "none", cursor: "pointer" },
+    generateButton: { padding: "10px 20px", background: "#007BFF", color: "#fff", border: "none", cursor: "pointer", borderRadius: "5px" },
+    startButton: { padding: "10px 20px", color: "#fff", border: "none", cursor: "pointer", borderRadius: "5px" },
     questionContainer: { marginBottom: "30px" },
     optionsList: { listStyle: "none", padding: "0" },
     option: { padding: "10px", margin: "5px 0", cursor: "pointer" },
