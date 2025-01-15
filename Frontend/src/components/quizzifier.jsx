@@ -16,6 +16,9 @@ export default function Quizzifier() {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [showStats, setShowStats] = useState(false);
+    const [showOptions, setShowOptions] = useState(false);
+    const [quizType, setQuizType] = useState('');
+    const [numQuestions, setNumQuestions] = useState(0);
 
     const fetchAPIKey = async () => {
         try {
@@ -31,14 +34,22 @@ export default function Quizzifier() {
         }
     };
 
+    const setParameters = () => {
+        setShowOptions(true);
+        console.log('Quiz Type', quizType);
+        console.log('Num Questions', numQuestions);
+    }
+
     const fetchQuizData = async () => {
         if (!userInput.trim()) {
             alert("Please enter a topic or content for the quiz!");
             return;
         }
-
+        setShowOptions(false);
         setStatusMessage("Generating quiz...");
-        setShowModal(true);
+        setShowModal(false); // Close the modal
+        console.log('Quiz Type', quizType);
+        console.log('Num Questions', numQuestions);
         try {
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
@@ -52,7 +63,6 @@ export default function Quizzifier() {
                         {
                             role: "system",
                             content: `You are an AI quiz generator. Based on the provided data, GENERATE A JSON QUIZ IN THIS FORMAT:
-                            EXAMPLE 1:
                             {
                                 "title": "Quiz Title",
                                 "data": [
@@ -63,45 +73,28 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
+                            THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
+                            THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
+                            THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
+                            THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
 
-                            EXAMPLE 2:
-                            {
-                                "title": "Quiz Title",
-                                "data": [
-                                    {
-                                        "question": "Sample question?",
-                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                                        "answer": "Correct Answer"
-                                    }
-                                ]
-                            }
-
-                            EXAMPLE 3:
-                            {
-                                "title": "Quiz Title",
-                                "data": [
-                                    {
-                                        "question": "Sample question?",
-                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                                        "answer": "Correct Answer"
-                                    }
-                                ]
-                            }
-
-                            EXAMPLE 4:
-                            {
-                                "title": "Quiz Title",
-                                "data": [
-                                    {
-                                        "question": "Sample question?",
-                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                                        "answer": "Correct Answer"
-                                    }
-                                ]
-                            }
                             `,
                         },
-                        { role: "user", content: `Generate a quiz based on the following topic: ${userInput}` },
+                        { role: "user", content: `Generate a ${quizType} quiz based on the following topic: ${userInput}` },
                     ],
                 }),
             });
@@ -111,11 +104,11 @@ export default function Quizzifier() {
             console.log("Parsed quiz content:", quizContent);
             setQuiz(quizContent);
             setStatusMessage("");
-            setShowModal(false);
+            setShowOptions(false)
         } catch (error) {
             console.error("Error fetching quiz data:", error);
             setStatusMessage("Failed to generate quiz.");
-            setShowModal(false);
+            setShowOptions(false);
         }
     };
 
@@ -168,8 +161,8 @@ export default function Quizzifier() {
     const handleStartOver = () => {
         console.log("Starting quiz over.");
         setQuizStarted(false);
-        setQuiz(null);
-        setUserInput("");
+        // setQuiz(null);
+        // setUserInput("");
         setAnswers([]);
         setStatusMessage("");
         setSelectedAnswer(null);
@@ -181,6 +174,10 @@ export default function Quizzifier() {
         console.log("Fetching API key...");
         fetchAPIKey();
     }, []);
+
+    const closeParametersModal = () => {
+        setShowOptions(false);
+    }
 
     // Calculate the number of correct and incorrect answers
     const correctAnswersCount = answers.filter((answer) => answer.isCorrect).length;
@@ -205,9 +202,50 @@ export default function Quizzifier() {
                                 style={styles.textarea}
                                 className="form-control"
                             />
-                            <button style={styles.generateButton} onClick={fetchQuizData}>
+                            <button style={styles.generateButton} onClick={setParameters}>
                                 Generate Quiz
                             </button>
+                            {showOptions && (
+                                <div style={modalStyles.overlay}>
+                                    <div style={modalStyles.content}>
+                                        <h2>Select Quiz Options</h2>
+                                        <label>
+                                            Quiz Type:
+                                            <select
+                                                value={quizType}
+                                                onChange={(e) => setQuizType(e.target.value)}
+                                                style={modalStyles.select}
+                                            >
+                                                <option value="normal">Normal</option>
+                                                <option value="true/false">True/False</option>
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Number of Questions:
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="50"
+                                                value={numQuestions}
+                                                onChange={(e) => setNumQuestions(e.target.value)}
+                                                style={modalStyles.input}
+                                            />
+                                        </label>
+                                        {/* <button
+                                            style={modalStyles.button}
+                                            onClick={() => fetchQuizData())}
+                                        >
+                                            Generate Quiz
+                                        </button> */}
+                                        <button style={styles.generateButton} onClick={fetchQuizData}>
+                                            Generate Quiz
+                                        </button><br /><br />
+                                        <button style={styles.generateButton} onClick={closeParametersModal}>
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         {quiz && (
                             <button style={styles.startButton} onClick={handleStartQuiz} className="btn btn-primary">
@@ -383,5 +421,46 @@ const styles = {
         borderRadius: "5px",
         marginTop: "20px",
         fontSize: "16px",
+    },
+};
+
+
+const modalStyles = {
+    overlay: {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    content: {
+        backgroundColor: "#fff",
+        padding: "20px",
+        borderRadius: "10px",
+        width: "400px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+        textAlign: "center",
+    },
+    select: {
+        width: "100%",
+        marginBottom: "10px",
+        padding: "8px",
+    },
+    input: {
+        width: "100%",
+        marginBottom: "20px",
+        padding: "8px",
+    },
+    button: {
+        padding: "10px 20px",
+        backgroundColor: "#007BFF",
+        color: "#fff",
+        border: "none",
+        cursor: "pointer",
+        borderRadius: "5px",
     },
 };
