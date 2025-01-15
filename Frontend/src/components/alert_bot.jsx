@@ -178,7 +178,7 @@ export default function AlertBot() {
                         </ul>
                         <br />
                         <button
-                            className="btn btn-success"
+                            className="btn btn-primary"
                             onClick={updateAssetsInBackend}
                         >
                             Update Backend
