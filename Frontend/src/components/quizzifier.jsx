@@ -24,7 +24,6 @@ export default function Quizzifier() {
             if (!response.ok) throw new Error("Network response was not ok");
             const { OPENAI_API_KEY } = await response.json();
             setOPENAI_API_KEY(OPENAI_API_KEY);
-            console.log("Fetched API Key:", OPENAI_API_KEY);
             setStatusMessage("");
         } catch (error) {
             console.error("Error fetching API key:", error);
