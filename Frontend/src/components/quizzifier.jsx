@@ -167,7 +167,7 @@ export default function Quizzifier() {
                             }
 
 
-                            
+
                             EXAMPLE 5:
                             {
                                 "title": "Quiz Title",
@@ -191,6 +191,127 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
+
+                            EXAMPLE 6:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 7:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 8:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 9:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 10:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
     
                             THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
                             THE QUIZ SHOULD CONTAIN ${numQuestions} QUESTIONS.
