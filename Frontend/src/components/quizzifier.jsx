@@ -88,6 +88,8 @@ export default function Quizzifier() {
                                 ]
                             }
 
+
+
                             EXAMPLE 2:
                             {
                                 "title": "Quiz Title",
@@ -111,6 +113,7 @@ export default function Quizzifier() {
                                     }
                                 ]
                             }
+
 
 
                             EXAMPLE 3:
@@ -137,6 +140,8 @@ export default function Quizzifier() {
                                 ]
                             }
 
+
+
                             EXAMPLE 4:
                             {
                                 "title": "Quiz Title",
@@ -161,6 +166,8 @@ export default function Quizzifier() {
                                 ]
                             }
 
+
+                            
                             EXAMPLE 5:
                             {
                                 "title": "Quiz Title",
