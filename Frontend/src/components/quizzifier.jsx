@@ -63,6 +63,57 @@ export default function Quizzifier() {
                         {
                             role: "system",
                             content: `You are an AI quiz generator. Based on the provided data, GENERATE A JSON QUIZ IN THIS FORMAT:
+
+                            EXAMPLE 1:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+                            EXAMPLE 2:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+    
+                            If the user selects a "True/False" quiz, generate the format as:
+                            {
+                                "title": "Quiz Title",
+                                "data": [
+                                    {
+                                        "question": "Sample question?",
+                                        "options": ["True", "False"],
+                                        "answer": "Correct Answer"
+                                    }
+                                ]
+                            }
+
+
+                            EXAMPLE 3:
                             {
                                 "title": "Quiz Title",
                                 "data": [
