@@ -312,11 +312,11 @@ export default function Quizzifier() {
                                 ]
                             }
 
-                            MAKE SURE IT IS IN THIS FORMAT OR THE CODE DOESN'T WORK!!!!
-                            MAKE SURE IT IS IN THIS FORMAT OR THE CODE DOESN'T WORK!!!!
-                            MAKE SURE IT IS IN THIS FORMAT OR THE CODE DOESN'T WORK!!!!
-                            MAKE SURE IT IS IN THIS FORMAT OR THE CODE DOESN'T WORK!!!!
-                            MAKE SURE IT IS IN THIS FORMAT OR THE CODE DOESN'T WORK!!!!
+                            MAKE SURE IT IS IN THIS JSON FORMAT OR THE CODE DOESN'T WORK!!!!
+                            MAKE SURE IT IS IN THIS JSON FORMAT OR THE CODE DOESN'T WORK!!!!
+                            MAKE SURE IT IS IN THIS JSON FORMAT OR THE CODE DOESN'T WORK!!!!
+                            MAKE SURE IT IS IN THIS JSON FORMAT OR THE CODE DOESN'T WORK!!!!
+                            MAKE SURE IT IS IN THIS JSON FORMAT OR THE CODE DOESN'T WORK!!!!
                             
 
     
