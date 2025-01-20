@@ -88,13 +88,16 @@ export default function DailyBrief() {
             });
 
             if (!response.ok) {
+                alert('Network response was not ok');
                 throw new Error('Network response was not ok');
             }
 
             const data = await response.json();
             console.log(data.message);
+            alert(data.message);
         } catch (error) {
             console.error('Error submitting currencies:', error);
+            alert('Error occured!');
         }
     };
 
