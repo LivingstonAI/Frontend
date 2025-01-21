@@ -69,31 +69,12 @@ export default function PerformanceReview() {
                 }
             }
 
-            async function fetchAssetSummary() {
-                try {
-                    const response = await axios.get(`${baseURL}/get-asset-summary/${selectedAsset}`);
-                    const data = response.data.message;
-                    setAssetSummary(data);
-                } catch (error) {
-                    console.error('Error fetching asset summary:', error);
-                }
-            }
+           
 
-            async function fetchReflectionsSummary() {
-                try {
-                    const response = await axios.get(`${baseURL}/reflections-summary/${selectedAsset}`);
-                    const data = response.data.message;
-                    setReflectionsSummary(data);
-                } catch (error) {
-                    console.error('Error fetching reflections summary:', error);
-                }
-            }
-            setReflectionsSummary('');
+            
             setAssetSummary('');
             fetchAssetData();
             fetchModelData();
-            fetchAssetSummary();
-            fetchReflectionsSummary();
         }
     }, [selectedAsset]);
 
@@ -118,14 +99,6 @@ export default function PerformanceReview() {
                 borderColor: 'rgba(75,192,192,1)',
             },
         ],
-    };
-
-    const toggleSummary = () => {
-        setIsSummaryExpanded(!isSummaryExpanded);
-    };
-    
-    const toggleReflections = () => {
-        setIsReflectionsExpanded(!isReflectionsExpanded);
     };
     
 
@@ -162,50 +135,15 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <h6 className="performance-review-header">Performance Review for <Link to={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`} target="_blank" className="performance-review-header-tradingview">{selectedAsset.toUpperCase()}</Link></h6>
+                            <h6 className="performance-review-header">Model Performance Review for <Link to={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`} target="_blank" className="performance-review-header-tradingview">{selectedAsset.toUpperCase()}</Link></h6><br />
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
                                 <div className="personal-asset-review">
-                                    <div className="personal-asset-review-line-chart">
-                                        <Line data={data} />
-                                    </div>
-                                    <div>
-                                        <br />
-                                        <br />
-                                        <p>Win Rate: {winRate}%</p>
-                                        <p>Loss Rate: {lossRate}%</p>
-                                        <p>Overall Return: {overallReturn}</p>
-                                    </div>
-                                    <div>
-                                        <h6 className="performance-review-header">Strategy Performance Data</h6>
-                                        {Object.keys(strategyMetrics).map((strategy, index) => (
-                                            <div key={index}>
-                                                <h6 className="performance-review-header">Strategy: {strategy}</h6>
-                                                <Line
-                                                    data={{
-                                                        labels: strategyMetrics[strategy].profit_list.map((_, idx) => idx + 1),
-                                                        datasets: [
-                                                            {
-                                                                label: 'Equity Curve',
-                                                                data: calculateEquityCurve(strategyMetrics[strategy].profit_list),
-                                                                fill: false,
-                                                                backgroundColor: 'rgba(75,192,192,0.6)',
-                                                                borderColor: 'rgba(75,192,192,1)',
-                                                            },
-                                                        ],
-                                                    }}
-                                                />
-                                                <p>Win Rate: {strategyMetrics[strategy].win_rate}%</p>
-                                                <p>Loss Rate: {strategyMetrics[strategy].loss_rate}%</p>
-                                                <p>Overall Return: {strategyMetrics[strategy].overall_return}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div>
-                                        <h6 className="performance-review-header">Model Performance Data</h6>
+                                    <div className="model-performance-review-div">
+                                        {/* <h6 className="performance-review-header">Model Performance Data</h6> */}
                                         {modelData.map((model, index) => (
-                                            <div key={index}>
+                                            <div key={index} className="chart-container">
                                                 <h6 className="performance-review-header">Model ID: {model.model_id}</h6>
                                                 <Line
                                                     data={{
@@ -220,6 +158,9 @@ export default function PerformanceReview() {
                                                             },
                                                         ],
                                                     }}
+                                                    options={{
+                                                        maintainAspectRatio: true,
+                                                    }}
                                                 />
                                                 <p>Win Rate: {model.win_rate}%</p>
                                                 <p>Loss Rate: {model.loss_rate}%</p>
@@ -227,30 +168,11 @@ export default function PerformanceReview() {
                                             </div>
                                         ))}
                                     </div>
+
                                 </div>
                             )}
-                            <div className="daily-brief-div">
-                                <h6 className="performance-review-header">Reflections Summary</h6>
-                                <p>
-                                    {isReflectionsExpanded ? reflectionsSummary : `${reflectionsSummary.slice(0, 500)}...`}
-                                    {reflectionsSummary.length > 500 && (
-                                        <button onClick={toggleReflections} className="btn btn-link">
-                                            {isReflectionsExpanded ? "Read Less" : "Read More"}
-                                        </button>
-                                    )}
-                                </p>
-                            </div>
-                            <div className="daily-brief-div">
-                                <h6 className="performance-review-header">Daily Brief Summary</h6>
-                                <p>
-                                    {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
-                                    {assetSummary.length > 500 && (
-                                        <button onClick={toggleSummary} className="btn btn-link">
-                                            {isSummaryExpanded ? "Read Less" : "Read More"}
-                                        </button>
-                                    )}
-                                </p>
-                            </div><br />
+                            
+                            <br />
 
                         </div>
                     )}
