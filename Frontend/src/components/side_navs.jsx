@@ -30,6 +30,12 @@ import welcome_to_columbia from '../Congratulations! Welcome to Columbia!.mp3';
 import 沉溺 from '../沉溺（你让我的心不再结冰）.mp3';
 import shoot_to_thrill from '../ACDC - Shoot to Thrill.mp3';
 import when_im_with_you from "../When I'm with you.mp3";
+import coffee_time from '../321Jazz - Coffee Time [ Cafe Jazz Music 2024 ].mp3'
+import coffee_lounge from '../Coffee Lounge.mp3';
+import good_vibes from '../Good Vibes.mp3';
+import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright music  vlog music  royalty free music).mp3';
+import sitting_in_a_cafe from '../Sitting in a Café.mp3';
+
 
 
 let globalAudio = null; 
@@ -69,7 +75,12 @@ export default function SideNavs() {
     { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
     { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
     { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
-    { name: "When I'm With You - Arcando", file: when_im_with_you }
+    { name: "When I'm With You - Arcando", file: when_im_with_you },
+    { name: "Coffee Time ☕", file: coffee_time },
+    { name: "Coffee Lounge ☕", file: coffee_lounge },
+    { name: "Good Vibes 😌", file: good_vibes },
+    { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
+    { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
   ];
 
   useEffect(() => {
