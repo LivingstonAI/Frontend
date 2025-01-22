@@ -42,6 +42,14 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     const [editingAssets,setEditingAssets] = useState("");
     const [assets, setAssets] = useState("");  // Add this state for assets
 
+    // State for the search query
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Filter accounts based on the search query
+    const filteredAccounts = accounts.filter((account) =>
+        account.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
 
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
@@ -229,7 +237,11 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     };
     
     // Delete an account
-    const handleDeleteAccount = async (accountId) => {
+const handleDeleteAccount = async (accountId) => {
+    // Display a confirmation alert
+    const confirmDelete = window.confirm("Are you sure you want to delete this account? This action cannot be undone.");
+
+    if (confirmDelete) {
         try {
             const response = await fetch(`${baseURL}/delete_account/${accountId}/`, {
                 method: "DELETE",
@@ -242,7 +254,12 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         } catch (error) {
             console.error("Error deleting account:", error);
         }
+    } else {
+        // If the user cancels, do nothing
+        console.log("Account deletion canceled.");
+    }
     };
+
 
     // Load accounts on component mount
     useEffect(() => {
@@ -298,11 +315,7 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     const handleUpdateSelectedAccount = async (account_name) => {
         Cookies.set('account_name', account_name);
     }
-    
 
-
-    
-    
 
     return (
         <div>
@@ -357,80 +370,88 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
 
             {/* Account List */}
             <div className="account-list">
-                <h4>Existing Accounts</h4>
-                <ul>
-                    {accounts.map((account) => (
-                        <li key={account.id} className="account-item">
-                            <div className="account-details">
-                                <span className="account-name">{account.name}</span> 
-                                <span className="account-balance">(${account.initial_capital})</span>
-                            </div>
+            <h4>Existing Accounts</h4>
 
-                            <div className="account-assets">
-                                {account.main_assets && account.main_assets.length > 0 ? (
-                                    // Check if main_assets is a string or an array
-                                    Array.isArray(account.main_assets) ? (
-                                        // If it's an array, map through the assets and display them
-                                        <ul>
-                                            {account.main_assets.map((asset, index) => (
-                                                <li key={index} className="asset-item">{asset.trim()}</li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        // If it's a comma-separated string, split it by commas and display
-                                        <ul>
-                                            {account.main_assets.split(",").map((asset, index) => (
-                                                <li key={index} className="asset-item">{asset.trim()}</li>
-                                            ))}
-                                        </ul>
-                                    )
+            {/* Search Bar */}
+            <input
+                type="text"
+                className="search-bar form-control"
+                placeholder="Search accounts by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)} // Update the search query state
+            />
+            <br />
+            <ul>
+                {filteredAccounts.map((account) => (
+                    <li key={account.id} className="account-item">
+                        <div className="account-details">
+                            <span className="account-name">{account.name}</span> 
+                            <span className="account-balance">(${account.initial_capital})</span>
+                        </div>
+
+                        <div className="account-assets">
+                            {account.main_assets && account.main_assets.length > 0 ? (
+                                Array.isArray(account.main_assets) ? (
+                                    <ul>
+                                        {account.main_assets.map((asset, index) => (
+                                            <li key={index} className="asset-item">{asset.trim()}</li>
+                                        ))}
+                                    </ul>
                                 ) : (
-                                    <span>No assets added</span> // Display message if no assets
-                                )}
-                            </div>
+                                    <ul>
+                                        {account.main_assets.split(",").map((asset, index) => (
+                                            <li key={index} className="asset-item">{asset.trim()}</li>
+                                        ))}
+                                    </ul>
+                                )
+                            ) : (
+                                <span>No assets added</span>
+                            )}
+                        </div>
 
-                            <div className="account-actions">
-                                <button
-                                    className="btn btn-warning"
-                                    onClick={() => {
-                                        // Set the account to be edited
-                                        setEditingAccount(account);  // Set the account to be edited
-                                        setEditingName(account.name);  // Pre-fill the account name
-                                        setEditingBalance(account.initial_capital);  // Pre-fill the initial capital
+                        <div className="account-actions">
+                            <button
+                                className="btn btn-warning"
+                                onClick={() => {
+                                    setEditingAccount(account);
+                                    setEditingName(account.name);
+                                    setEditingBalance(account.initial_capital);
 
-                                        // Check if main_assets is a string or array and handle accordingly
-                                        if (Array.isArray(account.main_assets)) {
-                                            setEditingAssets(account.main_assets.join(", "));  // If it's an array, join into a string
-                                        } else if (typeof account.main_assets === "string") {
-                                            setEditingAssets(account.main_assets);  // If it's already a string, use it as is
-                                        } else {
-                                            setEditingAssets("");  // If no assets are provided, set it to an empty string
-                                        }
-                                    }}
-                                >
-                                    Edit
-                                </button><br /><br />
+                                    if (Array.isArray(account.main_assets)) {
+                                        setEditingAssets(account.main_assets.join(", "));
+                                    } else if (typeof account.main_assets === "string") {
+                                        setEditingAssets(account.main_assets);
+                                    } else {
+                                        setEditingAssets("");
+                                    }
+                                }}
+                            >
+                                Edit
+                            </button><br /><br />
 
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() => handleDeleteAccount(account.id)} // Define delete logic
-                                >
-                                    Delete
-                                </button><br /><br />
+                            <button
+                                className="btn btn-danger"
+                                onClick={() => handleDeleteAccount(account.id)}
+                            >
+                                Delete
+                            </button><br /><br />
 
-                                
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() => handleUpdateSelectedAccount(account.name)} // Define Select Account logic
-                                >
-                                    Select Account
-                                </button>
+                            <button
+                                className="btn btn-danger"
+                                onClick={() => handleUpdateSelectedAccount(account.name)}
+                            >
+                                Select Account
+                            </button>
+                        </div>
+                    </li>
+                ))}
+            </ul>
 
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+            {/* Display a message if no accounts match the search query */}
+            {filteredAccounts.length === 0 && (
+                <p>No accounts match your search query.</p>
+            )}
+        </div>
 
 
 
