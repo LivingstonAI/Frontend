@@ -52,6 +52,16 @@ export default function SideNavs() {
   // const [audioTime, setAudioTime] = useState(0); // To store the current time of the audio
 
 
+  // State for search term and filtered songs
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Function to toggle the side nav visibility
+  const toggleSideNav = () => {
+    setIsOpen(!isOpen);
+  };
+
   const songs = [
     { name: "Jingle Bells", file: jingleBells },
     { name: "Snow Storm", file: snowStorm },
@@ -82,6 +92,10 @@ export default function SideNavs() {
     { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
     { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
   ];
+
+  const filteredSongs = songs.filter((song) =>
+    song.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -125,6 +139,9 @@ const handlePlay = (song) => {
 
   return (
     <div className="all-side-navs">
+
+      
+
       <div className="side-navs trading-history-links">
         <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person-fill"></i></p></button></Link>
         <Link to="/account_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i></p></button></Link>
@@ -210,31 +227,44 @@ const handlePlay = (song) => {
       </div>
 
       {/* Music Selection Modal */}
-      <div className="modal fade side-navs-modal" id="sideNavsMusicModal" tabIndex="-1" aria-labelledby="sideNavsMusicModalLabel" aria-hidden="true">
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="sideNavsMusicModalLabel">Select a Song</h5>
-              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div className="modal-body">
-              <ul className="list-group">
-                {songs.map((song, index) => (
-                  <li key={index} className="list-group-item">
-                    <button className="btn btn-link" onClick={() => handlePlay(song.file)}>
-                      {song.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
-              <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
-            </div>
-          </div>
-        </div>
+<div className="modal fade side-navs-modal" id="sideNavsMusicModal" tabIndex="-1" aria-labelledby="sideNavsMusicModalLabel" aria-hidden="true">
+  <div className="modal-dialog">
+    <div className="modal-content">
+      <div className="modal-header">
+        <h5 className="modal-title" id="sideNavsMusicModalLabel">Select a Song</h5>
+        <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <div className="modal-body">
+        {/* Search Bar */}
+        <div className="mb-3">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Search for a song..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Song List */}
+        <ul className="list-group">
+          {filteredSongs.map((song, index) => (
+            <li key={index} className="list-group-item">
+              <button className="btn btn-link" onClick={() => handlePlay(song.file)}>
+                {song.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="modal-footer">
+        <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
+        <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
       {/* Theme Toggle Button */}
       <nav className="">

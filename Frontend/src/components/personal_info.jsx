@@ -198,7 +198,7 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
             const response = await fetch(`${baseURL}/accounts/`);
             const data = await response.json();
             setAccounts(data);
-            console.log('Accounts data is:', data);
+            // console.log('Accounts data is:', data);
         } catch (error) {
             console.error("Error fetching accounts:", error);
         }

@@ -66,6 +66,14 @@ export default function SnowAILandingPage() {
     "28": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
   };
 
+    // State for search term and filtered songs
+  const [searchTerm, setSearchTerm] = useState("");
+  
+   // Filtered songs based on the search term
+   const filteredSongs = Object.entries(songs).filter(([key, song]) =>
+    song.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
   useEffect(() => {
     createSnowflakes();
   }, []);
@@ -147,23 +155,43 @@ export default function SnowAILandingPage() {
       </button>
       <audio ref={audioRef} src={currentSong} loop />
 
-      {/* Song selection modal */}
       {showSongModal && (
         <div className="landing-page-song-modal-overlay">
           <div className="landing-page-song-modal">
             <h2>Select a Song</h2>
+
+            {/* Search Bar */}
+            <div className="mb-3">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search for a song..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Song List */}
             <ul className="song-list">
-              {Object.entries(songs).map(([key, song]) => (
-                <li
-                  key={key}
-                  className="song-option"
-                  onClick={() => handleSongSelection(song.file)}
-                >
-                  {song.name}
-                </li>
-              ))}
+              {filteredSongs.length > 0 ? (
+                filteredSongs.map(([key, song]) => (
+                  <li
+                    key={key}
+                    className="song-option"
+                    onClick={() => handleSongSelection(song.file)}
+                  >
+                    {song.name}
+                  </li>
+                ))
+              ) : (
+                <li className="song-option">No songs found</li>
+              )}
             </ul>
-            <button className="close-modal-btn" onClick={() => setShowSongModal(false)}>
+
+            <button
+              className="close-modal-btn"
+              onClick={() => setShowSongModal(false)}
+            >
               Close
             </button>
           </div>
