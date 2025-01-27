@@ -220,7 +220,7 @@ export default function AccountAnalytics() {
                                 <select
                                     value={filters.dayOfWeek}
                                     onChange={(e) => setFilters({...filters, dayOfWeek: e.target.value})}
-                                    className="filter-select"
+                                    className="filter-select form-control"
                                 >
                                     {getUniqueValues('day_of_week_entered').map(day => (
                                         <option key={day} value={day}>
@@ -232,7 +232,7 @@ export default function AccountAnalytics() {
                                 <select
                                     value={filters.tradingSession}
                                     onChange={(e) => setFilters({...filters, tradingSession: e.target.value})}
-                                    className="filter-select"
+                                    className="filter-select form-control"
                                 >
                                     {getUniqueValues('trading_session_entered').map(session => (
                                         <option key={session} value={session}>
@@ -244,7 +244,7 @@ export default function AccountAnalytics() {
                                 <select
                                     value={filters.strategy}
                                     onChange={(e) => setFilters({...filters, strategy: e.target.value})}
-                                    className="filter-select"
+                                    className="filter-select form-control"
                                 >
                                     {getUniqueValues('strategy').map(strategy => (
                                         <option key={strategy} value={strategy}>
@@ -256,7 +256,7 @@ export default function AccountAnalytics() {
                                 <select
                                     value={filters.outcome}
                                     onChange={(e) => setFilters({...filters, outcome: e.target.value})}
-                                    className="filter-select"
+                                    className="filter-select form-control"
                                 >
                                     {['all', 'Win', 'Loss', 'Break-even'].map(outcome => (
                                         <option key={outcome} value={outcome}>

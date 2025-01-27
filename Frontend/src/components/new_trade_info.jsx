@@ -7,6 +7,7 @@ import Cookies from 'js-cookie';
 export default function EnterNewTradeInfo() {
     const navigate = useNavigate();
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [process, setProcess] = useState('Record Trade');
 
     // State to hold form data
     const [tradeData, setTradeData] = useState({
@@ -33,10 +34,12 @@ export default function EnterNewTradeInfo() {
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setProcess('Recording Trade...');
 
         const accountName = Cookies.get('account_name');
         if (!accountName) {
             alert('Account not found.');
+            setProcess('Record Trade');
             return;
         }
 
@@ -54,12 +57,15 @@ export default function EnterNewTradeInfo() {
 
             if (response.ok) {
                 alert('Trade recorded successfully!');
+                setProcess('Record Trade');
             } else {
                 alert('Error recording trade.');
+                setProcess('Record Trade');
             }
         } catch (error) {
             console.error('Error:', error);
             alert('An error occurred while saving the trade.');
+            setProcess('Record Trade');
         }
     };
 
@@ -78,6 +84,7 @@ export default function EnterNewTradeInfo() {
                             type="text"
                             name="asset"
                             value={tradeData.asset}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="e.g., EURUSD"
                             required
@@ -88,6 +95,7 @@ export default function EnterNewTradeInfo() {
                         <select
                             name="order_type"
                             value={tradeData.order_type}
+                            className="form-control"
                             onChange={handleChange}
                             required
                         >
@@ -102,6 +110,7 @@ export default function EnterNewTradeInfo() {
                             type="text"
                             name="strategy"
                             value={tradeData.strategy}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="e.g., Breakout"
                             required
@@ -113,6 +122,7 @@ export default function EnterNewTradeInfo() {
                             type="text"
                             name="day_of_week_entered"
                             value={tradeData.day_of_week_entered}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="e.g., Monday"
                             required
@@ -124,6 +134,7 @@ export default function EnterNewTradeInfo() {
                             type="text"
                             name="trading_session_entered"
                             value={tradeData.trading_session_entered}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="e.g., London"
                             required
@@ -135,6 +146,7 @@ export default function EnterNewTradeInfo() {
                             id="outcome"
                             name="outcome"
                             value={tradeData.outcome}
+                            className="form-control"
                             onChange={handleChange}
                         >
                             <option value="">Select Outcome</option>
@@ -149,6 +161,7 @@ export default function EnterNewTradeInfo() {
                             type="number"
                             name="amount"
                             value={tradeData.amount}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="e.g., 150"
                             required
@@ -159,6 +172,7 @@ export default function EnterNewTradeInfo() {
                         <textarea
                             name="emotional_bias"
                             value={tradeData.emotional_bias}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="Notes on your emotional state"
                         />
@@ -168,12 +182,13 @@ export default function EnterNewTradeInfo() {
                         <textarea
                             name="reflection"
                             value={tradeData.reflection}
+                            className="form-control"
                             onChange={handleChange}
                             placeholder="What did you learn from this trade?"
                         />
                     </div>
                     <div className="form-group">
-                        <button type="submit">Record Trade</button>
+                        <button type="submit" className="btn btn-primary">{process}</button>
                     </div>
                 </form>
             </div>

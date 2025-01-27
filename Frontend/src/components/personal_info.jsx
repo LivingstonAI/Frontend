@@ -411,7 +411,7 @@ const handleDeleteAccount = async (accountId) => {
 
                         <div className="account-actions">
                             <button
-                                className="btn btn-warning"
+                                className="btn btn-primary"
                                 onClick={() => {
                                     setEditingAccount(account);
                                     setEditingName(account.name);
@@ -430,14 +430,14 @@ const handleDeleteAccount = async (accountId) => {
                             </button><br /><br />
 
                             <button
-                                className="btn btn-danger"
+                                className="btn btn-primary"
                                 onClick={() => handleDeleteAccount(account.id)}
                             >
                                 Delete
                             </button><br /><br />
 
                             <button
-                                className="btn btn-danger"
+                                className="btn btn-primary"
                                 onClick={() => handleUpdateSelectedAccount(account.name)}
                             >
                                 Select Account
@@ -499,7 +499,7 @@ const handleDeleteAccount = async (accountId) => {
                             <button className="btn btn-success" onClick={handleUpdateAccount}>
                                 Save Changes
                             </button>
-                            <button className="btn btn-secondary" onClick={() => setEditingAccount(null)}>
+                            <button className="btn btn-danger" onClick={() => setEditingAccount(null)}>
                                 Cancel
                             </button>
                         </div>

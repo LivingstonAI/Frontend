@@ -9,36 +9,12 @@ export default function AlertBot() {
     const [colorOutcome, setColorOutcome] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
+    const [process, setProcess] = useState('Update Backend');
+
 
     const fetchEmailDataFromAPI = async () => {
         return Cookies.get("email");
     };
-
-    // // Fetch user's assets from the backend
-    // const fetchUserAssets = async () => {
-    //     try {
-    //         const email = await fetchEmailDataFromAPI();
-    //         const response = await fetch(`${baseUrl}/get-user-assets?email=${email}`);
-    //         const data = await response.json();
-
-    //         if (response.ok) {
-    //             setAssetArray(data.message || []); // Populate assetArray with the response data
-    //         } else {
-    //             console.error(data.error);
-    //             setOutcome("Failed to load assets.");
-    //             setColorOutcome("text-danger");
-    //         }
-    //     } catch (error) {
-    //         console.error("Error fetching user assets:", error);
-    //         setOutcome("Error fetching user assets.");
-    //         setColorOutcome("text-danger");
-    //     }
-    // };
-
-    // // Call fetchUserAssets when the component mounts
-    // useEffect(() => {
-    //     fetchUserAssets();
-    // }, []);
 
     // Add an asset with its price and condition
     const addAsset = () => {
@@ -67,9 +43,11 @@ export default function AlertBot() {
 
     // Send selected assets to the backend
     const updateAssetsInBackend = async () => {
+        setProcess('Updating Assets...');
         if (selectedAssets.length === 0) {
             setOutcome("No assets to update.");
             setColorOutcome("text-danger");
+            setProcess('Update Backend');
             return;
         }
 
@@ -87,15 +65,18 @@ export default function AlertBot() {
                 setOutcome("Alerts updated successfully!");
                 setColorOutcome("text-success");
                 setSelectedAssets([]); // Clear the list after successful update
+                setProcess('Update Backend');
             } else {
                 console.error(data.error);
                 setOutcome("Failed to update alerts.");
                 setColorOutcome("text-danger");
+                setProcess('Update Backend');
             }
         } catch (error) {
             console.error("Error updating alerts:", error);
             setOutcome("Error updating alerts.");
             setColorOutcome("text-danger");
+            setProcess('Update Backend');
         }
     };
 
@@ -181,9 +162,9 @@ export default function AlertBot() {
                             className="btn btn-primary"
                             onClick={updateAssetsInBackend}
                         >
-                            Update Backend
+                            {process}
                         </button>
-                        <br />
+                        <br /><br />
                         <p className={colorOutcome}>{outcome}</p>
                         <br />
                     </div>

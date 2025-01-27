@@ -3893,7 +3893,7 @@ body.dark {
 
 .account-list button {
     padding: 6px 12px;
-    background-color: #e74c3c;
+    /* background-color: #e74c3c; */
     border: none;
     border-radius: 4px;
     color: white;
@@ -3902,7 +3902,7 @@ body.dark {
 }
 
 .account-list button:hover {
-    background-color: #c0392b;
+    /* background-color: #c0392b; */
 }
 
 
@@ -4271,6 +4271,10 @@ canvas {
     min-width: 150px;
 }
 
+
+.music-link {
+    text-decoration: none;
+}
 
 
 @media (max-width: 768px) {

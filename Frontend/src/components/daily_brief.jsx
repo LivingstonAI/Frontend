@@ -10,6 +10,7 @@ export default function DailyBrief() {
     const [updateStatus, setUpdateStatus] = useState("Manually Update");
     const [expandedSummaries, setExpandedSummaries] = useState({});
     const [selectedCurrencies, setSelectedCurrencies] = useState([]); // To hold selected currencies
+    const [assetUpdateProcess, setAssetUpdateProcess] = useState('Update Selected Assets');
 
     const currencies = ['EURUSD', 'GBPUSD', 'EURGBP', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'USDZAR', 'EURAUD','GBPJPY'];
 
@@ -77,6 +78,7 @@ export default function DailyBrief() {
     };
 
     const handleSubmitCurrencies = async () => {
+        setAssetUpdateProcess('Updating Assets...');
         try {
             const response = await fetch(`${baseUrl}/set-daily-brief-assets`, {
                 method: 'POST',
@@ -89,15 +91,18 @@ export default function DailyBrief() {
 
             if (!response.ok) {
                 alert('Network response was not ok');
+                setAssetUpdateProcess('Update Selected Assets');
                 throw new Error('Network response was not ok');
             }
 
             const data = await response.json();
             console.log(data.message);
             alert(data.message);
+            setAssetUpdateProcess('Update Selected Assets');
         } catch (error) {
             console.error('Error submitting currencies:', error);
             alert('Error occured!');
+            setAssetUpdateProcess('Update Selected Assets');
         }
     };
 
@@ -157,7 +162,7 @@ export default function DailyBrief() {
                         </div><br />
                         
                         <div className="manually-update">
-                            <button className="btn btn-primary" onClick={handleSubmitCurrencies}>Update Selected Currencies</button>
+                            <button className="btn btn-primary" onClick={handleSubmitCurrencies}>{assetUpdateProcess}</button>
                         </div>
                     <hr />
 

@@ -24,6 +24,7 @@ export default function Chill() {
     const [messages, setMessages] = useState([]);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [userInput, setUserInput] = useState('');
+    const [imageProcess, setImageProcess] = useState('View Trading Images');
     const navigate = useNavigate();
 
 
@@ -307,6 +308,7 @@ export default function Chill() {
     };   
 
     const fetchImages = async () => {
+        setImageProcess('Fetching Images...');
         try {
             const response = await fetch(`${baseUrl}/fetch-trading-images`);
             const data = await response.json();
@@ -320,11 +322,16 @@ export default function Chill() {
                     return prevState; // Return the same state if no change
                 });
                 console.log(data.folders);
+                setImageProcess('View Trading Images');
             } else {
                 console.error(data.error);
+                alert('Error fetching images.');
+                setImageProcess('View Trading Images');
             }
         } catch (error) {
-            console.error("Error fetching images:", error);
+            console.error("Error fetching images:", error);            
+            alert('Error fetching images.');
+            setImageProcess('View Trading Images');
         }
     };
     
@@ -442,13 +449,13 @@ return (
             }}
             />
 
-          <button onClick={() => setChatOpen(false)}>Close Chat</button>
+          <button onClick={() => setChatOpen(false)} className="btn btn-primary">Close Chat</button>
         </div>
       )}
                         <h5>C.H.I.L.L Interface</h5><br />
                         {imageViewState && (
                     <div>
-                        <button onClick={fetchImages}>View Images</button>
+                        <button onClick={fetchImages} className="btn btn-primary">{imageProcess}</button>
                         {imageFolders && (
                             <div>
                                 <h6>Image Folders</h6>
@@ -457,7 +464,7 @@ return (
                                         key={index}
                                         onClick={() => handleFolderClick(folder)}
                                         style={{ marginRight: "10px" }}
-                                        className="image-folder-button"
+                                        className="image-folder-button btn btn-primary"
                                     >
                                         {folder}
                                     </button>
@@ -532,15 +539,15 @@ return (
 
                                 <div>
                                     {editing ? (
-                                        <button onClick={handleSave}>Save</button>
+                                        <button onClick={handleSave} className="btn btn-primary">Save</button>
                                     ) : (
-                                        <button onClick={() => setEditing(true)}>Edit</button>
+                                        <button onClick={() => setEditing(true)} className="btn btn-primary">Edit</button>
                                     )}<br /><br />
-                                    <button onClick={handleHelperClick}>AI Helper</button><br /><br />
-                                    <button onClick={handleBack}>Back</button><br /><br />
-                                    <button onClick={() => handleDelete(selectedSection.section)}>Delete</button><br /><br />
+                                    <button onClick={handleHelperClick} className="btn btn-primary">AI Helper</button><br /><br />
+                                    <button onClick={handleBack} className="btn btn-primary">Back</button><br /><br />
+                                    <button onClick={() => handleDelete(selectedSection.section)} className="btn btn-primary">Delete</button><br /><br />
                                     {!isSpeaking && (
-                                    <button onClick={() => readTextAloud(selectedSection.text)}>Read Aloud</button>
+                                    <button onClick={() => readTextAloud(selectedSection.text)} className="btn btn-primary">Read Aloud</button>
                                 )}<br /><br />
                                     
 
@@ -548,14 +555,14 @@ return (
                                 {/* Stop Speech Button */}
                                 {isSpeaking && (
                                         <div> 
-                                            <button onClick={stopSpeech}>
+                                            <button onClick={stopSpeech} className="btn btn-primary">
                                                 Stop Speech
                                             </button>
                                             <br /><br />
                                         </div>
                                         
                                     )} 
-                                    <button onClick={quizMe}>Quiz Me</button>
+                                    <button onClick={quizMe} className="btn btn-primary">Quiz Me</button>
                             </div>
                         ) : (
                             <div className="section-links">
@@ -566,7 +573,7 @@ return (
                                 ))}
                             </div>
                         )} <br />
-                        <button onClick={() => setShowNewEntryForm(!showNewEntryForm)}>
+                        <button onClick={() => setShowNewEntryForm(!showNewEntryForm)} className="btn btn-primary">
                             {showNewEntryForm ? "Cancel" : "Add New Entry"}
                         </button>
 
@@ -588,7 +595,7 @@ return (
                                     onChange={(e) => setNewText(e.target.value)}
                                     style={{ width: '100%', height: '150px' }}
                                 />
-                                <button onClick={handleCreateNewEntry}>Save New Entry</button>
+                                <button onClick={handleCreateNewEntry} className="btn btn-primary">Save New Entry</button>
                             </div>
                         )}
                     </div>

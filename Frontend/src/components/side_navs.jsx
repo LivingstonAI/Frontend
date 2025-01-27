@@ -250,7 +250,7 @@ const handlePlay = (song) => {
         <ul className="list-group">
           {filteredSongs.map((song, index) => (
             <li key={index} className="list-group-item">
-              <button className="btn btn-link" onClick={() => handlePlay(song.file)}>
+              <button className="btn" onClick={() => handlePlay(song.file)}>
                 {song.name}
               </button>
             </li>

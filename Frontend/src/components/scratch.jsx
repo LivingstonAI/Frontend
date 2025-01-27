@@ -1864,7 +1864,7 @@ Blockly.Blocks['rsi_block'] = {
             </div>
             </div><br /><br />
             <div className="model-performance">
-            <button className="btn btn-success download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
+            <button className="btn btn-primary download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
             <p>Model ID: {modelID}</p>
             </div>
             {modelPerformance && (
