@@ -4271,3 +4271,16 @@ canvas {
 }
 
 
+.filters-container {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.filter-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    min-width: 150px;
+}

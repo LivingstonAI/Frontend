@@ -8,6 +8,12 @@ import { Chart as ChartJS } from 'chart.js';
 export default function AccountAnalytics() {
     const [accountData, setAccountData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [filters, setFilters] = useState({
+        dayOfWeek: 'all',
+        tradingSession: 'all',
+        strategy: 'all',
+        outcome: 'all'  // New filter for wins/losses
+    });
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -38,13 +44,24 @@ export default function AccountAnalytics() {
         fetchAccountDataFromAPI();
     }, []);
 
+    // Filter trades based on current filter settings
+    const getFilteredTrades = () => {
+        if (!accountData || !accountData.trades) return [];
+
+        return accountData.trades.filter(trade => {
+            const dayMatch = filters.dayOfWeek === 'all' || trade.day_of_week_entered === filters.dayOfWeek;
+            const sessionMatch = filters.tradingSession === 'all' || trade.trading_session_entered === filters.tradingSession;
+            const strategyMatch = filters.strategy === 'all' || trade.strategy === filters.strategy;
+            const outcomeMatch = filters.outcome === 'all' || trade.outcome === filters.outcome;
+            return dayMatch && sessionMatch && strategyMatch && outcomeMatch;
+        });
+    };
+
     // Helper function for generating chart data
-    const generateChartData = (field, filterBy = null) => {
+    const generateChartData = (field) => {
         if (!accountData || !accountData.trades) return { labels: [], datasets: [] };
 
-        const filteredTrades = filterBy
-            ? accountData.trades.filter(trade => trade[filterBy])
-            : accountData.trades;
+        const filteredTrades = getFilteredTrades();
 
         const counts = filteredTrades.reduce((acc, trade) => {
             const key = trade[field];
@@ -64,13 +81,12 @@ export default function AccountAnalytics() {
         return { labels, datasets };
     };
 
-    
     const generateEquityCurveData = () => {
         if (!accountData || !accountData.trades || !accountData.initial_capital) return { labels: [], datasets: [] };
     
-        let cumulativeEquity = accountData.initial_capital; // Start from initial capital
-        const equityCurve = accountData.trades.map((trade, index) => {
-            // Calculate cumulative equity based on wins and losses
+        const filteredTrades = getFilteredTrades();
+        let cumulativeEquity = accountData.initial_capital;
+        const equityCurve = filteredTrades.map((trade, index) => {
             if (trade.outcome === 'Win') {
                 cumulativeEquity += trade.amount;
             } else if (trade.outcome === 'Loss') {
@@ -81,28 +97,27 @@ export default function AccountAnalytics() {
     
         return {
             labels: equityCurve.map(point => `Trade ${point.x}`),
-            datasets: [
-                {
-                    label: 'Equity Curve',
-                    data: equityCurve.map(point => point.y),
-                    borderColor: '#1E88E5',
-                    backgroundColor: 'rgba(66, 165, 245, 0.2)',
-                    fill: true,
-                },
-            ],
+            datasets: [{
+                label: 'Equity Curve',
+                data: equityCurve.map(point => point.y),
+                borderColor: '#1E88E5',
+                backgroundColor: 'rgba(66, 165, 245, 0.2)',
+                fill: true,
+            }],
         };
     };
 
     const generateMetricsData = () => {
         if (!accountData || !accountData.trades) return {};
     
+        const filteredTrades = getFilteredTrades();
         let totalWinsAmount = 0;
         let totalLossesAmount = 0;
         let numberOfWins = 0;
         let numberOfLosses = 0;
-        let totalTrades = accountData.trades.length;
+        let totalTrades = filteredTrades.length;
     
-        accountData.trades.forEach(trade => {
+        filteredTrades.forEach(trade => {
             if (trade.outcome === 'Win') {
                 totalWinsAmount += trade.amount;
                 numberOfWins++;
@@ -126,10 +141,12 @@ export default function AccountAnalytics() {
             numberOfLosses,
         };
     };
-    
-    const metricsData = generateMetricsData();
-    
 
+    // Get unique values for filter dropdowns
+    const getUniqueValues = (field) => {
+        if (!accountData || !accountData.trades) return [];
+        return ['all', ...new Set(accountData.trades.map(trade => trade[field]))];
+    };
     
     const baseChartOptions = {
         responsive: true,
@@ -139,11 +156,11 @@ export default function AccountAnalytics() {
                 display: true,
                 labels: {
                     font: {
-                        size: 16, // Slightly larger font for readability
-                        family: "'Arial', sans-serif", // Classic font similar to <p>
-                        weight: "normal", // Normal weight to mimic <p> text
+                        size: 16,
+                        family: "'Arial', sans-serif",
+                        weight: "normal",
                     },
-                    color: "#444", // Soft gray, close to <p> tag color
+                    color: "#444",
                 },
             },
         },
@@ -151,17 +168,17 @@ export default function AccountAnalytics() {
             x: {
                 ticks: {
                     font: {
-                        size: 14, // Typical font size for <p> tags
+                        size: 14,
                         family: "'Arial', sans-serif",
                         weight: "normal",
                     },
-                    color: "#444", // Match <p> tag text color
+                    color: "#444",
                 },
             },
             y: {
                 ticks: {
                     font: {
-                        size: 14, // Same as x-axis
+                        size: 14,
                         family: "'Arial', sans-serif",
                         weight: "normal",
                     },
@@ -170,13 +187,12 @@ export default function AccountAnalytics() {
             },
         },
     };
-    
-        
 
     const weekdayChartData = generateChartData('day_of_week_entered');
     const sessionChartData = generateChartData('trading_session_entered');
     const strategyChartData = generateChartData('strategy');
     const equityCurveData = generateEquityCurveData();
+    const metricsData = generateMetricsData();
 
     return (
         <div>
@@ -200,13 +216,59 @@ export default function AccountAnalytics() {
                                 <p>Initial Capital: ${accountData.initial_capital}</p>
                             </div>
 
-                            <br />
+                            <div className="filters-container">
+                                <select
+                                    value={filters.dayOfWeek}
+                                    onChange={(e) => setFilters({...filters, dayOfWeek: e.target.value})}
+                                    className="filter-select"
+                                >
+                                    {getUniqueValues('day_of_week_entered').map(day => (
+                                        <option key={day} value={day}>
+                                            {day === 'all' ? 'All Days' : day}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={filters.tradingSession}
+                                    onChange={(e) => setFilters({...filters, tradingSession: e.target.value})}
+                                    className="filter-select"
+                                >
+                                    {getUniqueValues('trading_session_entered').map(session => (
+                                        <option key={session} value={session}>
+                                            {session === 'all' ? 'All Sessions' : session}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={filters.strategy}
+                                    onChange={(e) => setFilters({...filters, strategy: e.target.value})}
+                                    className="filter-select"
+                                >
+                                    {getUniqueValues('strategy').map(strategy => (
+                                        <option key={strategy} value={strategy}>
+                                            {strategy === 'all' ? 'All Strategies' : strategy}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={filters.outcome}
+                                    onChange={(e) => setFilters({...filters, outcome: e.target.value})}
+                                    className="filter-select"
+                                >
+                                    {['all', 'Win', 'Loss', 'Break-even'].map(outcome => (
+                                        <option key={outcome} value={outcome}>
+                                            {outcome === 'all' ? 'All Outcomes' : outcome}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                             <h6 className="trade-overview-header">Trades Overview</h6>
-                            
 
                             <div className="trade-chart-container">
-                                {/* Bar charts */}
                                 <div className="chart-wrapper">
                                     <h6>Performance by Day of Week</h6>
                                     <Bar data={weekdayChartData} options={baseChartOptions} />
@@ -216,12 +278,10 @@ export default function AccountAnalytics() {
                                     <Bar data={sessionChartData} options={baseChartOptions} />
                                 </div>
                                 <div className="chart-wrapper">
-
                                     <h6>Performance by Strategy</h6>
                                     <Bar data={strategyChartData} options={baseChartOptions} />
                                 </div> 
                                 <div className="chart-wrapper">
-                                    {/* Equity curve */}
                                     <h6>Equity Curve</h6>
                                     <Line data={equityCurveData} options={baseChartOptions} />
                                 </div>
@@ -234,18 +294,17 @@ export default function AccountAnalytics() {
                                 </div>
                                 <div className="metric-card">
                                     <h6>Average Win</h6>
-                                    <p>{metricsData.averageWin.toFixed(2)}</p>
+                                    <p>${metricsData.averageWin.toFixed(2)}</p>
                                 </div>
                                 <div className="metric-card">
                                     <h6>Average Loss</h6>
-                                    <p>{metricsData.averageLoss.toFixed(2)}</p>
+                                    <p>${metricsData.averageLoss.toFixed(2)}</p>
                                 </div>
                                 <div className="metric-card">
                                     <h6>Profit Factor</h6>
                                     <p>{metricsData.profitFactor.toFixed(2)}</p>
                                 </div>
                             </div>
-
                         </>
                     )}
                 </div>
