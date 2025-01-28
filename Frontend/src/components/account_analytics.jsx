@@ -12,7 +12,8 @@ export default function AccountAnalytics() {
         dayOfWeek: 'all',
         tradingSession: 'all',
         strategy: 'all',
-        outcome: 'all'  // New filter for wins/losses
+        outcome: 'all',
+        asset: 'all'  // New asset filter
     });
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -53,7 +54,8 @@ export default function AccountAnalytics() {
             const sessionMatch = filters.tradingSession === 'all' || trade.trading_session_entered === filters.tradingSession;
             const strategyMatch = filters.strategy === 'all' || trade.strategy === filters.strategy;
             const outcomeMatch = filters.outcome === 'all' || trade.outcome === filters.outcome;
-            return dayMatch && sessionMatch && strategyMatch && outcomeMatch;
+            const assetMatch = filters.asset === 'all' || trade.asset === filters.asset;
+            return dayMatch && sessionMatch && strategyMatch && outcomeMatch && assetMatch;
         });
     };
 
@@ -217,6 +219,18 @@ export default function AccountAnalytics() {
                             </div>
 
                             <div className="filters-container">
+                                <select
+                                    value={filters.asset}
+                                    onChange={(e) => setFilters({...filters, asset: e.target.value})}
+                                    className="filter-select form-control"
+                                >
+                                    {getUniqueValues('asset').map(asset => (
+                                        <option key={asset} value={asset}>
+                                            {asset === 'all' ? 'All Assets' : asset}
+                                        </option>
+                                    ))}
+                                </select>
+
                                 <select
                                     value={filters.dayOfWeek}
                                     onChange={(e) => setFilters({...filters, dayOfWeek: e.target.value})}
