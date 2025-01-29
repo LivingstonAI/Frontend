@@ -27,6 +27,8 @@ import coffee_lounge from '../Coffee Lounge.mp3';
 import good_vibes from '../Good Vibes.mp3';
 import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright music  vlog music  royalty free music).mp3';
 import sitting_in_a_cafe from '../Sitting in a Café.mp3';
+import lex_mit_car from '../LexMITCar.mp3';
+
 
 
 export default function SnowAILandingPage() {
@@ -64,6 +66,7 @@ export default function SnowAILandingPage() {
     "26": { name: "Good Vibes 😌", file: good_vibes },
     "27": { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
     "28": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
+    "29": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
   };
 
     // State for search term and filtered songs

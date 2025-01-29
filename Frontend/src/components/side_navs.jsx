@@ -35,7 +35,7 @@ import coffee_lounge from '../Coffee Lounge.mp3';
 import good_vibes from '../Good Vibes.mp3';
 import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright music  vlog music  royalty free music).mp3';
 import sitting_in_a_cafe from '../Sitting in a Café.mp3';
-
+import lex_mit_car from '../LexMITCar.mp3';
 
 
 let globalAudio = null; 
@@ -91,6 +91,7 @@ export default function SideNavs() {
     { name: "Good Vibes 😌", file: good_vibes },
     { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
     { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
+    { name: "Lex MIT Car 🤖🚗", file: lex_mit_car }
   ];
 
   const filteredSongs = songs.filter((song) =>
