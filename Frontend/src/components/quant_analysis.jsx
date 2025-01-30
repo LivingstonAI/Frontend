@@ -232,7 +232,7 @@ export default function MarketMakers() {
                       <option key={index} value={bank}>{bank}</option>
                     ))}
                   </select>
-                </div>
+                </div><br />
 
                 <div>
                   <p className="font-bold mb-2">Central Bank 2</p>
@@ -242,7 +242,7 @@ export default function MarketMakers() {
                     ))}
                   </select>
                 </div>
-              </div>
+              </div><br />
 
               <div className="selected-central-banks mt-6">
                 <p className="font-bold mb-2">Selected Central Banks</p>
@@ -263,7 +263,7 @@ export default function MarketMakers() {
                 <span className="font-bold">Interest Rate Differential: </span>
                 {calculatedRate}
               </div>
-            </div>
+            </div><br />
 
             <div className="cot-section mt-8">
               <Link to="https://www.barchart.com" target="_blank">View COT Data</Link>
@@ -275,7 +275,7 @@ export default function MarketMakers() {
                 {showModal && <COTModal />}
               </div>
             </div>
-          </div>
+          </div><br />
 
           <div className="cot-data-container mt-8">
             <h6 className="text-xl font-semibold mb-4">COT Data</h6>
@@ -333,6 +333,7 @@ export default function MarketMakers() {
                     </div>
                   ))}
                 </div>
+
               </>
             ) : (
               <div className="text-center py-8 text-gray-500">

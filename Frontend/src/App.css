@@ -4299,3 +4299,47 @@ canvas {
 }
 
 
+.cot-section {
+    text-align: center;
+}
+
+
+  
+  /* Media query for larger screens */
+  @media (min-width: 768px) {
+    /* Ensure that the container takes up the full width and adjusts responsively */
+.plots-container {
+    display: grid;
+    grid-template-columns: 1fr; /* Default: single column layout */
+    gap: 1.5rem; /* Add some spacing between items */
+    margin-top: 2rem;
+  }
+  
+  /* Ensure the individual items look neat and do not overflow */
+  .plot-item {
+    background-color: white;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Prevent content overflow */
+  }
+  
+  /* Heading styling */
+  .plot-item h6 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  
+  /* Image styling for responsiveness */
+  .plot-item img {
+    width: 100%; /* Make sure the image takes up the full container width */
+    height: auto; /* Maintain aspect ratio */
+    object-fit: contain; /* Ensure the image is contained within the bounds */
+    max-width: 100%; /* Prevent image from stretching beyond container */
+  }
+    .plots-container {
+      grid-template-columns: repeat(2, 1fr); /* Two columns on medium screens and above */
+    }
+  }
+  
