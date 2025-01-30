@@ -46,10 +46,10 @@ const COTDataSelector = ({ onAssetsSelected }) => {
       </button>
 
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 className="modal-title">Select Assets to Display</h3>
+        <div className="modal-quant-overlay">
+          <div className="modal-quant-content">
+            <div className="modal-quant-header">
+              <h3 className="modal-quant-title">Select Assets to Display</h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="close-btn"
@@ -74,7 +74,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
               ))}
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-quant-footer">
               <button 
                 onClick={handleSubmit}
                 className="submit-btn"
@@ -109,7 +109,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
           background-color: #2563eb;
         }
 
-        .modal-overlay {
+        .modal-quant-overlay {
           position: fixed;
           top: 0;
           left: 0;
@@ -122,7 +122,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
           z-index: 1000;
         }
 
-        .modal-content {
+        .modal-quant-content {
           background-color: white;
           border-radius: 8px;
           width: 90%;
@@ -133,7 +133,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .modal-header {
+        .modal-quant-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -141,7 +141,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
           border-bottom: 1px solid #e5e7eb;
         }
 
-        .modal-title {
+        .modal-quant-title {
           font-size: 20px;
           font-weight: 600;
           color: #1f2937;
@@ -196,7 +196,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
           color: #374151;
         }
 
-        .modal-footer {
+        .modal-quant-footer {
           padding: 16px 24px;
           border-top: 1px solid #e5e7eb;
           display: flex;
