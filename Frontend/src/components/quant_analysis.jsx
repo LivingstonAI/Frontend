@@ -276,6 +276,7 @@ export default function MarketMakers() {
               </div> */}
             </div>
           </div><br />
+          
           {/* <br /> */}
           <div className="cot-data-container mt-8">
             <h6 className="text-xl font-semibold mb-4">COT Data</h6>
