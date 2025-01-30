@@ -81,7 +81,7 @@ const COTDataSelector = ({ onAssetsSelected }) => {
                 disabled={selectedAssets.length === 0}
               >
                 Fetch Selected Data
-              </button>
+              </button><br />
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="cancel-btn"
@@ -444,7 +444,7 @@ export default function MarketMakers() {
             <div className="cot-section mt-8">
               <Link to="https://www.barchart.com" target="_blank">View COT Data</Link>
             </div>
-          </div><br /><br />
+          </div><br /><br /><br />
           
           <div className="cot-data-container mt-8">
             <h6 className="text-xl font-semibold mb-4">COT Data</h6>
