@@ -3,19 +3,13 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
-import { X } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import COTModal from "./cot_selection_modal";
 
-const COTAssetSelector = ({ onAssetsSelected }) => {
-  const [isOpen, setIsOpen] = useState(false);
+
+const COTDataSelector = ({ onAssetsSelected }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState([]);
-  
+
   const availableAssets = [
     'USD INDEX - ICE FUTURES U.S.',
     'EURO FX - CHICAGO MERCANTILE EXCHANGE',
@@ -39,88 +33,212 @@ const COTAssetSelector = ({ onAssetsSelected }) => {
 
   const handleSubmit = () => {
     onAssetsSelected(selectedAssets);
-    setIsOpen(false);
+    setIsModalOpen(false);
   };
 
   return (
     <div>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Select Assets
-          </button>
-        </DialogTrigger>
-        <DialogContent className="max-w-md w-full">
-          <DialogHeader>
-            <DialogTitle>Select Assets to Display</DialogTitle>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="absolute right-4 top-4 p-1 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            <div className="space-y-1 max-h-96 overflow-y-auto">
+      <button 
+        onClick={() => setIsModalOpen(true)}
+        className="select-assets-btn"
+      >
+        Select Assets
+      </button>
+
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3 className="modal-title">Select Assets to Display</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="close-btn"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="asset-list">
               {availableAssets.map(asset => (
-                <div 
-                  key={asset}
-                  className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <label className="flex items-center space-x-3 w-full cursor-pointer">
+                <div key={asset} className="asset-item">
+                  <label className="asset-label">
                     <input
                       type="checkbox"
                       checked={selectedAssets.includes(asset)}
                       onChange={() => handleAssetToggle(asset)}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="asset-checkbox"
                     />
-                    <span className="text-sm text-gray-700">{asset}</span>
+                    <span className="asset-text">{asset}</span>
                   </label>
                 </div>
               ))}
             </div>
-            
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
+
+            <div className="modal-footer">
+              <button 
                 onClick={handleSubmit}
+                className="submit-btn"
                 disabled={selectedAssets.length === 0}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Fetch Selected Data
               </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {selectedAssets.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Assets:</h3>
-          <div className="flex flex-wrap gap-2">
-            {selectedAssets.map(asset => (
-              <div
-                key={asset}
-                className="flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="cancel-btn"
               >
-                <span>{asset}</span>
-                <button
-                  onClick={() => handleAssetToggle(asset)}
-                  className="hover:text-blue-900"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        .select-assets-btn {
+          padding: 10px 20px;
+          background-color: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 16px;
+          transition: background-color 0.2s;
+        }
+
+        .select-assets-btn:hover {
+          background-color: #2563eb;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background-color: white;
+          border-radius: 8px;
+          width: 90%;
+          max-width: 600px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 24px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 24px;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 4px;
+        }
+
+        .close-btn:hover {
+          color: #1f2937;
+        }
+
+        .asset-list {
+          padding: 20px 24px;
+          overflow-y: auto;
+          max-height: 60vh;
+        }
+
+        .asset-item {
+          margin-bottom: 12px;
+        }
+
+        .asset-label {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 4px;
+          transition: background-color 0.2s;
+        }
+
+        .asset-label:hover {
+          background-color: #f3f4f6;
+        }
+
+        .asset-checkbox {
+          width: 16px;
+          height: 16px;
+          margin-right: 12px;
+          cursor: pointer;
+        }
+
+        .asset-text {
+          font-size: 14px;
+          color: #374151;
+        }
+
+        .modal-footer {
+          padding: 16px 24px;
+          border-top: 1px solid #e5e7eb;
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+        }
+
+        .submit-btn {
+          padding: 8px 16px;
+          background-color: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: background-color 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          background-color: #2563eb;
+        }
+
+        .submit-btn:disabled {
+          background-color: #9ca3af;
+          cursor: not-allowed;
+        }
+
+        .cancel-btn {
+          padding: 8px 16px;
+          background-color: #f3f4f6;
+          color: #374151;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: background-color 0.2s;
+        }
+
+        .cancel-btn:hover {
+          background-color: #e5e7eb;
+        }
+      `}</style>
     </div>
   );
 };
@@ -137,7 +255,6 @@ export default function MarketMakers() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [apiResponse, setApiResponse] = useState('');
-  
   const [centralBanksArray, setCentralBanksArray] = useState([]);
   const [ratesArray, setRatesArray] = useState([]);
   const [bankOne, setBankOne] = useState('Australian Central Bank');
@@ -257,6 +374,10 @@ export default function MarketMakers() {
     fetchInterestRatesData();
   }, []);
 
+  const handleShowModal = () => {
+    setShowModal(!showModal);
+  };
+
   return (
     <div>
       <div className="header">
@@ -289,7 +410,6 @@ export default function MarketMakers() {
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <p className="font-bold mb-2">Central Bank 2</p>
                   <select className='form-control w-full' onChange={changeBankTwo}>
@@ -329,10 +449,10 @@ export default function MarketMakers() {
           <div className="cot-data-container mt-8">
             <h6 className="text-xl font-semibold mb-4">COT Data</h6>
             
-            <COTAssetSelector onAssetsSelected={handleAssetSelection} />
+            <COTDataSelector onAssetsSelected={handleAssetSelection} />
 
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert className="mb-4">
                 {error}
               </Alert>
             )}
@@ -343,9 +463,10 @@ export default function MarketMakers() {
               </div>
             ) : Object.keys(cotData).length > 0 ? (
               <>
-                <div className="overflow-x-auto mt-6">
+                <div className="overflow-x-auto">
                   <table className="cot-data-table w-full">
-                    <thead>
+
+                  <thead>
                       <tr>
                         <th className="px-4 py-2 text-left">Asset</th>
                         <th className="px-4 py-2 text-left">Date</th>
