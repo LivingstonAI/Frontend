@@ -4303,42 +4303,42 @@ canvas {
     text-align: center;
 }
 
-/* Ensure that the container takes up the full width and adjusts responsively */
+/* Container for the plots */
 .plots-container {
-    display: grid;
-    grid-template-columns: 1fr; /* Default: single column layout */
-    gap: 1.5rem; /* Add some spacing between items */
+    /* display: grid; */
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
     margin-top: 2rem;
   }
   
-  /* Ensure the individual items look neat and do not overflow */
-  .plot-item {
-    background-color: white;
-    padding: 1.25rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    overflow: hidden; /* Prevent content overflow */
+  @media (min-width: 768px) {
+    /* For medium and larger screens, create a 2-column grid */
+    .plots-container {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
   
-  /* Heading styling */
+  /* Individual plot items */
+  .plot-item {
+    background-color: #ffffff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Title for the assets */
   .plot-item h6 {
     font-size: 1.125rem;
     font-weight: 600;
     margin-bottom: 1rem;
   }
   
-  /* Image styling for responsiveness */
+  /* Image styling */
   .plot-item img {
-    width: 100%; /* Make sure the image takes up the full container width */
-    height: auto; /* Maintain aspect ratio */
-    object-fit: contain; /* Ensure the image is contained within the bounds */
-    max-width: 100%; /* Prevent image from stretching beyond container */
-  }
-  
-  /* Media query for larger screens */
-  @media (min-width: 768px) {
-    .plots-container {
-      grid-template-columns: repeat(2, 1fr); /* Two columns on medium screens and above */
-    }
+    width: 100%;
+    height: auto;
+    max-width: 100%; /* Ensure it doesn't overflow */
+    object-fit: contain; /* Keep the aspect ratio intact */
+    border-radius: 0.25rem;
   }
   
