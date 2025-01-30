@@ -319,7 +319,7 @@ export default function MarketMakers() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </div><br />
 
                 <div className="plots-container grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                   {Object.keys(cotData).map(asset => (
