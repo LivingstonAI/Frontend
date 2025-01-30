@@ -268,15 +268,15 @@ export default function MarketMakers() {
             <div className="cot-section mt-8">
               <Link to="https://www.barchart.com" target="_blank">View COT Data</Link>
               
-              <div className="cot-data-explanation mt-4">
+              {/* <div className="cot-data-explanation mt-4">
                 <Link to="#" className="cot-explanation-link" onClick={handleShowModal}>
                   <h6>What Is COT Data?</h6>
                 </Link>
                 {showModal && <COTModal />}
               </div>
             </div>
-          </div><br />
-
+          </div><br /> */}
+          <br />
           <div className="cot-data-container mt-8">
             <h6 className="text-xl font-semibold mb-4">COT Data</h6>
             
