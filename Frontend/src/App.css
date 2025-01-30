@@ -4303,11 +4303,7 @@ canvas {
     text-align: center;
 }
 
-
-  
-  /* Media query for larger screens */
-  @media (min-width: 768px) {
-    /* Ensure that the container takes up the full width and adjusts responsively */
+/* Ensure that the container takes up the full width and adjusts responsively */
 .plots-container {
     display: grid;
     grid-template-columns: 1fr; /* Default: single column layout */
@@ -4338,6 +4334,9 @@ canvas {
     object-fit: contain; /* Ensure the image is contained within the bounds */
     max-width: 100%; /* Prevent image from stretching beyond container */
   }
+  
+  /* Media query for larger screens */
+  @media (min-width: 768px) {
     .plots-container {
       grid-template-columns: repeat(2, 1fr); /* Two columns on medium screens and above */
     }
