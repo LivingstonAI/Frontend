@@ -37,6 +37,7 @@ import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright musi
 import sitting_in_a_cafe from '../Sitting in a Café.mp3';
 import lex_mit_car from '../LexMITCar.mp3';
 import keep_it_lowkey from '../spotifydown.com - keep it lowkey - take your time.mp3';
+import honey_jam from '../massobeats - honey jam (royalty free lofi music).mp3';
 
 
 let globalAudio = null; 
@@ -93,7 +94,8 @@ export default function SideNavs() {
     { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
     { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
     { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
-    { name: "Keep it lowkey 🎺", file: keep_it_lowkey }
+    { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
+    { name: "Honey Jam 🍯", file: honey_jam }
   ];
 
   const filteredSongs = songs.filter((song) =>
