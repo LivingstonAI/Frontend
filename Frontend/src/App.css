@@ -4342,3 +4342,28 @@ canvas {
     border-radius: 0.25rem;
   }
   
+
+
+/* Time Tracker styles */
+.time-tracker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    /* margin-bottom: 30px; */
+    font-weight: bolder;
+    font-size: larger;
+  }
+  
+  
+  .time {
+    font-size: 2rem; /* Increased size for visibility */
+    font-weight: normal;
+  }
+  
+  @media (max-width: 768px) {
+    /* .time-zone {
+      font-weight:normal;
+    } */
+  }
+  

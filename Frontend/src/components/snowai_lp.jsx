@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
+
+
+
 import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
 import love_story from '../Indila - Love Story (Piano Cover).mp3';
@@ -32,12 +35,33 @@ import keep_it_lowkey from '../spotifydown.com - keep it lowkey - take your time
 
 
 
+
 export default function SnowAILandingPage() {
+
+  const [times, setTimes] = useState({
+    NewYork: new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }),
+    London: new Date().toLocaleTimeString("en-GB", { timeZone: "Europe/London" }),
+    Tokyo: new Date().toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }),
+  });
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setTimes({
+        NewYork: new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }),
+        London: new Date().toLocaleTimeString("en-GB", { timeZone: "Europe/London" }),
+        Tokyo: new Date().toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }),
+      });
+    }, 1000); // Update every second
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, []);
+
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSong, setCurrentSong] = useState(ezio_family); // Default song
   const [showSongModal, setShowSongModal] = useState(false); // State for showing the song selection modal
 
+  
   const songs = {
     "1": { name: "Jingle Bells", file: jingleBells },
     "2": { name: "Snow Storm", file: snowStorm },
@@ -147,6 +171,21 @@ export default function SnowAILandingPage() {
 
   return (
     <div className="snowai-landing-page">
+     <div className="time-tracker">
+      <div className="time-zone">
+        <p>New York</p>
+        <p>{times.NewYork}</p>
+      </div>
+      <div className="time-zone">
+        <p>London</p>
+        <p>{times.London}</p>
+      </div>
+      <div className="time-zone">
+        <p>Tokyo</p>
+        <p>{times.Tokyo}</p>
+      </div>
+      
+    </div>
       <div id="snowflake-container"></div>
       <h1 className="snowai-title">
         {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
