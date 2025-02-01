@@ -104,7 +104,7 @@ export default function SideNavs() {
     { name: "Floral 🌺💮", file: floral },
     { name: "Lemon Cake 🍋🍰", file: lemon_cake },
     { name: "Marshmellow 😋", file: marshmellow},
-    { name: "Rose 🌹", file: rose},
+    { name: "Rose 🌹", file: rose}
   ];
 
   const filteredSongs = songs.filter((song) =>
