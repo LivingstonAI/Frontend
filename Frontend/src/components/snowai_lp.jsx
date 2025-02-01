@@ -171,21 +171,6 @@ export default function SnowAILandingPage() {
 
   return (
     <div className="snowai-landing-page">
-     <div className="time-tracker">
-      <div className="time-zone">
-        <p>New York</p>
-        <p>{times.NewYork}</p>
-      </div>
-      <div className="time-zone">
-        <p>London</p>
-        <p>{times.London}</p>
-      </div>
-      <div className="time-zone">
-        <p>Tokyo</p>
-        <p>{times.Tokyo}</p>
-      </div>
-      
-    </div>
       <div id="snowflake-container"></div>
       <h1 className="snowai-title">
         {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
