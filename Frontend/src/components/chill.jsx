@@ -480,7 +480,7 @@ return (
             {selectedFolder && folderState && (
                 <div>
                     <h6>Images in {selectedFolder}</h6>
-                    <button onClick={closeFolder}>Close Folder</button>
+                    <button onClick={closeFolder} className="btn btn-primary">Close Folder</button>
                     <div className="images-container">
                         {imageFolders[selectedFolder].map((imageData, index) => (
                             <div
