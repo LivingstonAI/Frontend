@@ -38,6 +38,11 @@ import sitting_in_a_cafe from '../Sitting in a Café.mp3';
 import lex_mit_car from '../LexMITCar.mp3';
 import keep_it_lowkey from '../spotifydown.com - keep it lowkey - take your time.mp3';
 import honey_jam from '../massobeats - honey jam (royalty free lofi music).mp3';
+import floral from '../massobeats - floral (royalty free lofi music).mp3';
+import lemon_cake from '../샛별 - Lemon Cake (Royalty Free Music).mp3';
+import marshmellow from '../lukrembo - marshmallow (royalty free vlog music).mp3';
+import rose from '../lukrembo - rose (royalty free vlog music).mp3';
+
 
 
 let globalAudio = null; 
@@ -95,7 +100,11 @@ export default function SideNavs() {
     { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
     { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
     { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
-    { name: "Honey Jam 🍯", file: honey_jam }
+    { name: "Honey Jam 🍯", file: honey_jam },
+    { name: "Floral 🌺💮", file: floral },
+    { name: "Lemon Cake 🍋🍰", file: lemon_cake },
+    { name: "Marshmellow 😋", file: marshmellow},
+    { name: "Rose 🌹", file: rose},
   ];
 
   const filteredSongs = songs.filter((song) =>
