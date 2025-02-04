@@ -1,6 +1,6 @@
 {
     "name": "SnowAI",
-    "short_name": "SnowAI",
+    "short_name": "SnowAI-app",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
