@@ -42,6 +42,7 @@ import floral from '../massobeats - floral (royalty free lofi music).mp3';
 import lemon_cake from '../샛별 - Lemon Cake (Royalty Free Music).mp3';
 import marshmellow from '../lukrembo - marshmallow (royalty free vlog music).mp3';
 import rose from '../lukrembo - rose (royalty free vlog music).mp3';
+import this_is_mit from '../This is MIT.mp3';
 
 
 
@@ -104,7 +105,8 @@ export default function SideNavs() {
     { name: "Floral 🌺💮", file: floral },
     { name: "Lemon Cake 🍋🍰", file: lemon_cake },
     { name: "Marshmellow 😋", file: marshmellow},
-    { name: "Rose 🌹", file: rose}
+    { name: "Rose 🌹", file: rose},
+    { name: "This is MIT 👨‍🎓📚", file: this_is_mit }
   ];
 
   const filteredSongs = songs.filter((song) =>

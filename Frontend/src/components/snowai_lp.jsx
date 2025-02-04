@@ -37,6 +37,7 @@ import floral from '../massobeats - floral (royalty free lofi music).mp3';
 import lemon_cake from '../샛별 - Lemon Cake (Royalty Free Music).mp3';
 import marshmellow from '../lukrembo - marshmallow (royalty free vlog music).mp3';
 import rose from '../lukrembo - rose (royalty free vlog music).mp3';
+import this_is_mit from '../This is MIT.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -101,6 +102,7 @@ export default function SnowAILandingPage() {
     "33": { name: "Lemon Cake 🍋🍰", file: lemon_cake },
     "34": { name: "Marshmellow 😋", file: marshmellow},
     "35": { name: "Rose 🌹", file: rose},
+    "36": { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
   };
 
     // State for search term and filtered songs

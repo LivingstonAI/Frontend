@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import { Bar, Line } from 'react-chartjs-2';
 import { Chart as ChartJS } from 'chart.js';
 
+
 export default function AccountAnalytics() {
     const [accountData, setAccountData] = useState(null);
     const [loading, setLoading] = useState(true);
