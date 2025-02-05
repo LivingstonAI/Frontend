@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
 import { Bar, Line } from 'react-chartjs-2';
 import { Chart as ChartJS } from 'chart.js';
 
-
 export default function AccountAnalytics() {
     const [accountData, setAccountData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -14,7 +13,9 @@ export default function AccountAnalytics() {
         tradingSession: 'all',
         strategy: 'all',
         outcome: 'all',
-        asset: 'all'  // New asset filter
+        asset: 'all',
+        timeFrame: 'all',  // New filter for time frame selection (month/week)
+        selectedPeriod: 'all'  // New filter for specific period selection
     });
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -31,6 +32,11 @@ export default function AccountAnalytics() {
             const response = await fetch(`${baseUrl}/get-trading-analytics?account_name=${accountName}`);
             const data = await response.json();
             if (response.ok) {
+                // Parse date_entered strings into Date objects
+                data.trades = data.trades.map(trade => ({
+                    ...trade,
+                    date_entered: trade.date_entered ? new Date(trade.date_entered) : null
+                }));
                 setAccountData(data);
             } else {
                 console.error('Error fetching account data:', data.error);
@@ -46,9 +52,47 @@ export default function AccountAnalytics() {
         fetchAccountDataFromAPI();
     }, []);
 
+    // Get available time periods based on the selected time frame
+    const getAvailableTimePeriods = () => {
+        if (!accountData?.trades || filters.timeFrame === 'all') return ['all'];
+
+        const dates = accountData.trades
+            .filter(trade => trade.date_entered)
+            .map(trade => trade.date_entered);
+
+        if (dates.length === 0) return ['all'];
+
+        const periods = new Set();
+        dates.forEach(date => {
+            if (filters.timeFrame === 'month') {
+                // Format: "MMMM YYYY"
+                const monthYear = date.toLocaleString('default', { 
+                    month: 'long',
+                    year: 'numeric'
+                });
+                periods.add(monthYear);
+            } else if (filters.timeFrame === 'week') {
+                // Get the Monday of the week
+                const monday = new Date(date);
+                monday.setDate(date.getDate() - date.getDay() + 1);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                
+                const weekRange = `${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}`;
+                periods.add(weekRange);
+            }
+        });
+
+        return ['all', ...Array.from(periods)].sort((a, b) => {
+            if (a === 'all') return -1;
+            if (b === 'all') return 1;
+            return new Date(b.split(' ')[0]) - new Date(a.split(' ')[0]);
+        });
+    };
+
     // Filter trades based on current filter settings
     const getFilteredTrades = () => {
-        if (!accountData || !accountData.trades) return [];
+        if (!accountData?.trades) return [];
 
         return accountData.trades.filter(trade => {
             const dayMatch = filters.dayOfWeek === 'all' || trade.day_of_week_entered === filters.dayOfWeek;
@@ -56,8 +100,33 @@ export default function AccountAnalytics() {
             const strategyMatch = filters.strategy === 'all' || trade.strategy === filters.strategy;
             const outcomeMatch = filters.outcome === 'all' || trade.outcome === filters.outcome;
             const assetMatch = filters.asset === 'all' || trade.asset === filters.asset;
-            return dayMatch && sessionMatch && strategyMatch && outcomeMatch && assetMatch;
+
+            let timeMatch = true;
+            if (filters.timeFrame !== 'all' && filters.selectedPeriod !== 'all' && trade.date_entered) {
+                if (filters.timeFrame === 'month') {
+                    const tradeMonthYear = trade.date_entered.toLocaleString('default', { 
+                        month: 'long',
+                        year: 'numeric'
+                    });
+                    timeMatch = tradeMonthYear === filters.selectedPeriod;
+                } else if (filters.timeFrame === 'week') {
+                    const monday = new Date(trade.date_entered);
+                    monday.setDate(trade.date_entered.getDate() - trade.date_entered.getDay() + 1);
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
+                    const weekRange = `${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}`;
+                    timeMatch = weekRange === filters.selectedPeriod;
+                }
+            }
+
+            return dayMatch && sessionMatch && strategyMatch && outcomeMatch && assetMatch && timeMatch;
         });
+    };
+
+    // Get unique values for filter dropdowns
+    const getUniqueValues = (field) => {
+        if (!accountData || !accountData.trades) return [];
+        return ['all', ...new Set(accountData.trades.map(trade => trade[field]))];
     };
 
     // Helper function for generating chart data
@@ -145,12 +214,6 @@ export default function AccountAnalytics() {
         };
     };
 
-    // Get unique values for filter dropdowns
-    const getUniqueValues = (field) => {
-        if (!accountData || !accountData.trades) return [];
-        return ['all', ...new Set(accountData.trades.map(trade => trade[field]))];
-    };
-    
     const baseChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -220,6 +283,37 @@ export default function AccountAnalytics() {
                             </div>
 
                             <div className="filters-container">
+                                {/* Time frame filter */}
+                                <select
+                                    value={filters.timeFrame}
+                                    onChange={(e) => setFilters({
+                                        ...filters,
+                                        timeFrame: e.target.value,
+                                        selectedPeriod: 'all' // Reset period when changing time frame
+                                    })}
+                                    className="filter-select form-control"
+                                >
+                                    <option value="all">All Time</option>
+                                    <option value="month">By Month</option>
+                                    <option value="week">By Week</option>
+                                </select>
+
+                                {/* Period filter */}
+                                <select
+                                    value={filters.selectedPeriod}
+                                    onChange={(e) => setFilters({...filters, selectedPeriod: e.target.value})}
+                                    className="filter-select form-control"
+                                    disabled={filters.timeFrame === 'all'}
+                                >
+                                    {getAvailableTimePeriods().map(period => (
+                                        <option key={period} value={period}>
+                                            {period === 'all' ? 
+                                                `All ${filters.timeFrame === 'month' ? 'Months' : 'Weeks'}` : 
+                                                period}
+                                        </option>
+                                    ))}
+                                </select>
+
                                 <select
                                     value={filters.asset}
                                     onChange={(e) => setFilters({...filters, asset: e.target.value})}
@@ -295,7 +389,7 @@ export default function AccountAnalytics() {
                                 <div className="chart-wrapper">
                                     <h6>Performance by Strategy</h6>
                                     <Bar data={strategyChartData} options={baseChartOptions} />
-                                </div> 
+                                </div>
                                 <div className="chart-wrapper">
                                     <h6>Equity Curve</h6>
                                     <Line data={equityCurveData} options={baseChartOptions} />

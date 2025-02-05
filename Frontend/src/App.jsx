@@ -38,6 +38,7 @@ import AccountAnalytics from './components/account_analytics.jsx';
 import EnterNewTradeInfo from './components/new_trade_info.jsx';
 import { AudioProvider } from './components/audio_context.jsx';
 import Quizzifier from './components/quizzifier.jsx';
+import Time from './components/time.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -115,6 +116,8 @@ function App() {
         <Route path='/account_analytics' element={<AccountAnalytics />}></Route>
         <Route path='/enter_new_trade_info' element={<EnterNewTradeInfo />}></Route>
         <Route path='/quizifier' element={<Quizzifier />}></Route>
+        <Route path='/time' element={<Time />}></Route>
+
 
 
 

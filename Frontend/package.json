@@ -50,6 +50,7 @@
     "react-router-dom": "^6.15.0",
     "react-select": "^5.9.0",
     "react-spinners": "^0.13.8",
+    "recharts": "^2.15.1",
     "regl": "^2.1.0",
     "slickgrid": "^5.8.1",
     "sprintf-js": "^1.1.3",

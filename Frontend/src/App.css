@@ -4367,3 +4367,96 @@ canvas {
     } */
   }
   
+
+
+/* TradingDashboard.css */
+.dashboard-container {
+    padding: 24px;
+  }
+  
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  .dashboard-title {
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .time-frame-select {
+    padding: 8px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 14px;
+  }
+  
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .metric-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .metric-title {
+    font-size: 14px;
+    color: #64748b;
+  }
+  
+  .metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1e293b;
+  }
+  
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .chart-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .chart-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: #1e293b;
+  }
+  
+  .chart-container {
+    height: 300px;
+    width: 100%;
+  }
+  
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64px;
+    font-size: 16px;
+    color: #64748b;
+  }
