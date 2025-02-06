@@ -8,13 +8,61 @@ export default function AlertBot() {
     const [outcome, setOutcome] = useState("");
     const [colorOutcome, setColorOutcome] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
+    const [existingAlerts, setExistingAlerts] = useState([]);
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
     const [process, setProcess] = useState('Update Backend');
 
+    // Fetch existing alerts when component mounts
+    useEffect(() => {
+        fetchExistingAlerts();
+    }, []);
 
     const fetchEmailDataFromAPI = async () => {
         return Cookies.get("email");
     };
+
+    const fetchExistingAlerts = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/alert-bot`);
+            const data = await response.json();
+            if (response.ok) {
+                setExistingAlerts(data.alerts);
+            } else {
+                console.error("Failed to fetch alerts:", data.error);
+            }
+        } catch (error) {
+            console.error("Error fetching alerts:", error);
+        }
+    };
+
+    const deleteAlert = async (alertId) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm("Are you sure you want to delete this alert?");
+    
+    // If user clicks 'Cancel', exit the function
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`${baseUrl}/alert-bot?id=${alertId}`, {
+            method: "DELETE",
+        });
+        
+        if (response.ok) {
+            setOutcome("Alert deleted successfully!");
+            setColorOutcome("text-success");
+            // Refresh the alerts list
+            fetchExistingAlerts();
+        } else {
+            const data = await response.json();
+            setOutcome("Failed to delete alert: " + data.error);
+            setColorOutcome("text-danger");
+        }
+    } catch (error) {
+        console.error("Error deleting alert:", error);
+        setOutcome("Error deleting alert.");
+        setColorOutcome("text-danger");
+    }
+};
 
     // Add an asset with its price and condition
     const addAsset = () => {
@@ -36,7 +84,7 @@ export default function AlertBot() {
         setColorOutcome("text-success");
     };
 
-    // Remove an asset
+    // Remove an asset from the selected assets list
     const removeAsset = (index) => {
         setSelectedAssets((prev) => prev.filter((_, i) => i !== index));
     };
@@ -65,6 +113,7 @@ export default function AlertBot() {
                 setOutcome("Alerts updated successfully!");
                 setColorOutcome("text-success");
                 setSelectedAssets([]); // Clear the list after successful update
+                fetchExistingAlerts(); // Refresh the existing alerts
                 setProcess('Update Backend');
             } else {
                 console.error(data.error);
@@ -90,7 +139,42 @@ export default function AlertBot() {
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Alert Bot</h5>
                     <br />
+                    
+                    {/* Existing Alerts Section */}
+                    <div className="existing-alerts-section">
+                        <h6>Existing Alerts:</h6>
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Condition</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {existingAlerts.map((alert) => (
+                                    <tr key={alert.id}>
+                                        <td>{alert.asset}</td>
+                                        <td>{alert.condition}</td>
+                                        <td>{alert.price}</td>
+                                        <td>{alert.checked ? "Triggered" : "Active"}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => deleteAlert(alert.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                     <br />
+
                     <div className="update-news-div">
                         <div>
                             <label htmlFor="asset-select">Select Asset:</label>
