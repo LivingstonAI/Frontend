@@ -136,13 +136,11 @@ export default function SideNavs() {
 
   
 
-  // Toggle theme handler
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    document.body.className = newTheme;
+    document.body.className = newTheme; // This line ensures body gets the theme class
     localStorage.setItem('theme', newTheme);
-
   };
 
 const { isPlaying, currentSong, playMusic, stopMusic } = useAudio();

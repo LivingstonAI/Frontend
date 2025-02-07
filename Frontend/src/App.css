@@ -17,6 +17,14 @@
   --primary-color: #4169E1;
   --primary-font-family: 'Inter', sans-serif;
   --secondary-color: #F0667E;
+
+  /* Dark Mode Colors */
+  --dark-bg: #0f172a;
+  --dark-secondary-bg: #1e293b;
+  --dark-text: #e2e8f0;
+  --dark-border: #334155;
+  --dark-accent: #60a5fa;
+  --dark-input-bg: #2c3e50;
 }
 
 * {
@@ -4371,5 +4379,360 @@ canvas {
   }
   
 
+  body.dark {
+    background-color: var(--dark-bg) !important;
+    color: var(--dark-text) !important;
+  }
   
- 
+  /* Bootstrap Dropdown */
+  body.dark .dropdown-menu {
+    background-color: var(--dark-secondary-bg) !important;
+    border-color: var(--dark-border) !important;
+  }
+  
+  body.dark .dropdown-menu .dropdown-item {
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .dropdown-menu .dropdown-item:hover,
+  body.dark .dropdown-menu .dropdown-item:focus {
+    background-color: var(--dark-border) !important;
+    color: white !important;
+  }
+  
+  /* Bootstrap Tables */
+  body.dark .table {
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255,255,255,0.05) !important;
+  }
+  
+  body.dark .table-hover tbody tr:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+    color: white !important;
+  }
+  
+  /* Bootstrap Cards */
+  body.dark .card {
+    background-color: var(--dark-secondary-bg) !important;
+    border-color: var(--dark-border) !important;
+  }
+  
+  body.dark .card-header {
+    background-color: var(--dark-bg) !important;
+    border-bottom-color: var(--dark-border) !important;
+  }
+  
+  /* Bootstrap Form Controls */
+  body.dark .form-control {
+    background-color: var(--dark-input-bg) !important;
+    color: var(--dark-text) !important;
+    border-color: var(--dark-border) !important;
+  }
+  
+  body.dark .form-control:focus {
+    background-color: var(--dark-secondary-bg) !important;
+    color: var(--dark-text) !important;
+    border-color: var(--dark-accent) !important;
+    box-shadow: 0 0 0 0.2rem rgba(96,165,250,0.25) !important;
+  }
+  
+  /* Bootstrap Buttons */
+  body.dark .btn-primary {
+    background-color: var(--dark-accent) !important;
+    border-color: var(--dark-accent) !important;
+  }
+  
+  body.dark .btn-primary:hover {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+  }
+  
+  body.dark .btn-secondary {
+    background-color: var(--dark-border) !important;
+    border-color: var(--dark-border) !important;
+  }
+  
+  body.dark .btn-outline-primary {
+    color: var(--dark-accent) !important;
+    border-color: var(--dark-accent) !important;
+  }
+  
+  body.dark .btn-outline-primary:hover {
+    background-color: var(--dark-accent) !important;
+    color: white !important;
+  }
+  
+  /* Bootstrap Navs and Tabs */
+  body.dark .nav-tabs {
+    border-bottom-color: var(--dark-border) !important;
+  }
+  
+  body.dark .nav-tabs .nav-link {
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .nav-tabs .nav-link.active {
+    background-color: var(--dark-secondary-bg) !important;
+    color: var(--dark-accent) !important;
+    border-color: var(--dark-border) var(--dark-border) transparent !important;
+  }
+  
+  /* Bootstrap Modals */
+  body.dark .modal-content {
+    background-color: var(--dark-secondary-bg) !important;
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .modal-header {
+    border-bottom-color: var(--dark-border) !important;
+  }
+  
+  body.dark .modal-footer {
+    border-top-color: var(--dark-border) !important;
+  }
+  
+  /* Bootstrap Alerts */
+  body.dark .alert-primary {
+    background-color: rgba(96,165,250,0.2) !important;
+    color: var(--dark-accent) !important;
+    border-color: rgba(96,165,250,0.3) !important;
+  }
+  
+  body.dark .alert-secondary {
+    background-color: var(--dark-border) !important;
+    color: var(--dark-text) !important;
+  }
+  
+  /* Ensure all elements transition smoothly */
+  body.dark * {
+    transition: 
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  body.dark .account-analytics {
+    color: white !important;
+  }
+  
+  body.dark .account-info {
+    background-color: var(--dark-bg) !important;
+    color: white !important;
+    border: 1px solid var(--dark-border) !important;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  body.dark .account-info h6,
+  body.dark .account-info p {
+    color: white !important;
+  }
+  
+  body.dark .filters-container {
+    background-color: var(--dark-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  
+  body.dark .filter-select {
+    background-color: var(--dark-secondary-bg) !important;
+    color: white !important;
+    border-color: var(--dark-border) !important;
+  }
+  
+  body.dark .trade-overview-header {
+    color: white !important;
+  }
+  
+  body.dark .trade-chart-container {
+    background-color: var(--dark-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    border-radius: 8px;
+    padding: 15px;
+  }
+  
+  body.dark .chart-wrapper {
+    background-color: var(--dark-secondary-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  body.dark .chart-wrapper h6 {
+    color: white !important;
+  }
+  
+  body.dark .metrics-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 15px;
+  }
+  
+  body.dark .metric-card {
+    flex: 1;
+    background-color: var(--dark-secondary-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+  }
+  
+  body.dark .metric-card h6 {
+    color: white !important;
+    margin-bottom: 10px;
+  }
+  
+  body.dark .metric-card p {
+    color: white !important;
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+
+  /* Account Management Dark Mode Styles */
+body.dark .new-account-section,
+body.dark .account-list,
+body.dark .edit-account-section {
+  background-color: var(--dark-bg) !important;
+  color: var(--dark-text) !important;
+}
+
+body.dark .new-account-section h3,
+body.dark .account-list h4,
+body.dark .edit-account-section h4 {
+  color: var(--dark-text) !important;
+}
+
+body.dark .form-control {
+  background-color: var(--dark-input-bg) !important;
+  color: var(--dark-text) !important;
+  border-color: var(--dark-border) !important;
+}
+
+body.dark .form-control:focus {
+  background-color: var(--dark-secondary-bg) !important;
+  border-color: var(--dark-accent) !important;
+}
+
+body.dark .account-item {
+  background-color: var(--dark-secondary-bg) !important;
+  border-color: var(--dark-border) !important;
+  color: var(--dark-text) !important;
+}
+
+body.dark .account-details .account-name,
+body.dark .account-details .account-balance {
+  color: var(--dark-text) !important;
+}
+
+body.dark .account-assets .asset-item {
+  color: var(--dark-text) !important;
+}
+
+body.dark .btn-primary {
+  background-color: var(--dark-accent) !important;
+  border-color: var(--dark-accent) !important;
+  color: white !important;
+}
+
+body.dark .btn-primary:hover {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+body.dark .btn-success {
+  background-color: #2ecc71 !important;
+  border-color: #2ecc71 !important;
+}
+
+body.dark .btn-danger {
+  background-color: #e74c3c !important;
+  border-color: #e74c3c !important;
+}
+
+body.dark .search-bar {
+  background-color: var(--dark-input-bg) !important;
+  color: var(--dark-text) !important;
+  border-color: var(--dark-border) !important;
+}
+
+
+body.dark .account-assets {
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .account-assets ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  
+  body.dark .account-assets .asset-item {
+    color: var(--dark-accent) !important; /* Using accent color to make assets stand out */
+    margin-bottom: 5px;
+  }
+  
+  body.dark .account-assets span {
+    color: var(--dark-text) !important;
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  /* Chat Window Dark Mode Styles */
+body.dark .chat-window {
+    background-color: var(--dark-secondary-bg) !important;
+    border: 1px solid var(--dark-border) !important;
+    color: var(--dark-text) !important;
+    border-radius: 8px;
+  }
+  
+  body.dark .chat-window h3 {
+    color: var(--dark-text) !important;
+    border-bottom: 1px solid var(--dark-border) !important;
+    padding-bottom: 10px;
+  }
+  
+  body.dark .chat-window .messages {
+    background-color: var(--dark-bg) !important;
+  }
+  
+  body.dark .chat-window .messages .user {
+    background-color: var(--dark-secondary-bg) !important;
+    color: var(--dark-text) !important;
+    border-bottom: 1px solid var(--dark-border) !important;
+    padding: 10px;
+    margin-bottom: 5px;
+  }
+  
+  body.dark .chat-window .messages .assistant {
+    background-color: rgba(59, 130, 246, 0.1) !important; /* Subtle blue background for assistant messages */
+    color: var(--dark-text) !important;
+    border-bottom: 1px solid var(--dark-border) !important;
+    padding: 10px;
+    margin-bottom: 5px;
+  }
+  
+  body.dark .chat-window input.form-control {
+    background-color: var(--dark-input-bg) !important;
+    color: var(--dark-text) !important;
+    border-color: var(--dark-border) !important;
+  }
+  
+  body.dark .chat-window input.form-control:focus {
+    background-color: var(--dark-secondary-bg) !important;
+    border-color: var(--dark-accent) !important;
+  }
+  
+  body.dark .chat-window .btn-primary {
+    background-color: var(--dark-accent) !important;
+    border-color: var(--dark-accent) !important;
+  }
+  
+  body.dark .chat-window .btn-primary:hover {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+  }
