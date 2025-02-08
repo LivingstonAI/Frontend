@@ -4789,9 +4789,9 @@ body.dark .side-navs {
     transition: all 0.3s ease;
   }
   
-  body.dark .side-navs-cellphone .side-nav i {
+  /* body.dark .side-navs-cellphone .side-nav i {
     font-size: 1.2em;
-  }
+  } */
   
   /* Active state for both desktop and mobile */
   body.dark .side-nav.active .btn-light,
