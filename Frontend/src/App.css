@@ -4736,3 +4736,67 @@ body.dark .chat-window {
     background-color: #3b82f6 !important;
     border-color: #3b82f6 !important;
   }
+
+  /* Side Navigation Dark Mode Styles - Desktop */
+body.dark .side-navs {
+    background-color: var(--dark-secondary-bg) !important;
+    border-right: 1px solid var(--dark-border) !important;
+  }
+  
+  body.dark .side-nav .btn-light {
+    background-color: var(--dark-secondary-bg) !important;
+    border-color: var(--dark-border) !important;
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .side-nav .btn-light:hover {
+    background-color: var(--dark-accent) !important;
+    color: white !important;
+    transform: translateX(5px);
+    transition: all 0.3s ease;
+  }
+  
+  body.dark .side-nav .btn-light i {
+    color: var(--dark-text) !important;
+  }
+  
+  body.dark .side-nav .btn-light:hover i {
+    color: white !important;
+  }
+  
+  body.dark .side-nav-btn {
+    margin: 5px 0;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+  
+  /* Side Navigation Dark Mode Styles - Mobile */
+  body.dark .side-navs-cellphone {
+    background-color: var(--dark-secondary-bg) !important;
+    border-top: 1px solid var(--dark-border) !important;
+  }
+  
+  body.dark .side-navs-cellphone .side-nav {
+    color: var(--dark-text) !important;
+    padding: 10px;
+    text-decoration: none;
+  }
+  
+  body.dark .side-navs-cellphone .side-nav:hover {
+    background-color: var(--dark-accent) !important;
+    color: white !important;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  
+  body.dark .side-navs-cellphone .side-nav i {
+    font-size: 1.2em;
+  }
+  
+  /* Active state for both desktop and mobile */
+  body.dark .side-nav.active .btn-light,
+  body.dark .side-navs-cellphone .side-nav.active {
+    background-color: var(--dark-accent) !important;
+    color: white !important;
+    border-color: var(--dark-accent) !important;
+  }
