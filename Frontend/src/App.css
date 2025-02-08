@@ -4765,7 +4765,7 @@ body.dark .side-navs {
   }
   
   body.dark .side-nav-btn {
-    margin: 5px 0;
+     margin: 5px 0;
     width: 100%;
     transition: all 0.3s ease;
   }
@@ -4778,14 +4778,14 @@ body.dark .side-navs {
   
   body.dark .side-navs-cellphone .side-nav {
     color: var(--dark-text) !important;
-    padding: 10px;
+    /* padding: 10px; */
     text-decoration: none;
   }
   
   body.dark .side-navs-cellphone .side-nav:hover {
     background-color: var(--dark-accent) !important;
     color: white !important;
-    border-radius: 4px;
+    /* border-radius: 4px; */
     transition: all 0.3s ease;
   }
   
