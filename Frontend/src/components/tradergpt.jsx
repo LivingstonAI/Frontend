@@ -26,11 +26,13 @@ export default function TraderGPTAnalysis() {
                 })
             });
             const data = await response.json();
+            console.log('Data is ', data);
             if (data.status === 'success') {
                 setAnalysis(data);
             }
         } catch (error) {
             console.error('Error fetching analysis:', error);
+            console.log(error)
         }
         setLoading(false);
     };
