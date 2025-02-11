@@ -26,7 +26,7 @@ export default function TraderGPTAnalysis() {
                 })
             });
             const data = await response.json();
-            console.log('Data is ', data);
+            console.log(data);
             if (data.status === 'success') {
                 setAnalysis(data);
             }
