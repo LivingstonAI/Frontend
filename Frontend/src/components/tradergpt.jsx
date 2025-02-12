@@ -3,17 +3,39 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
+
 export default function TraderGPTAnalysis() {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     asset: 'EURUSD',
     interval: '1h',
     numDays: 7
   });
 
+  const formatContent = (content) => {
+    if (!content) return '';
+    
+    try {
+      // If content is already an object, stringify it
+      if (typeof content === 'object') {
+        return JSON.stringify(content, null, 2);
+      }
+      
+      // If content is a string containing JSON, parse and re-stringify it
+      const parsed = JSON.parse(content);
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      // If parsing fails, return the original content
+      return content;
+    }
+  };
+
   const handleAnalysis = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
       const response = await fetch('https://backend-production-c0ab.up.railway.app/api/trader-analysis/', {
         method: 'POST',
@@ -21,33 +43,83 @@ export default function TraderGPTAnalysis() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          asset: formData.asset,
+          asset: formData.asset.toUpperCase(),
           interval: formData.interval,
-          num_days: formData.numDays
+          num_days: parseInt(formData.numDays)
         })
       });
-
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Analysis failed');
+      }
+  
       const data = await response.json();
+
+      console.log(data);
+      
+      // Validate the response data
+      if (!data || !data.status) {
+        throw new Error('Invalid response format');
+      }
+      
       if (data.status === 'success') {
+        if (!data.chart_image) {
+          throw new Error('No chart data received');
+        }
         setAnalysis(data);
       } else {
-        console.error('Analysis failed:', data.message);
+        throw new Error(data.message || 'Analysis failed');
       }
     } catch (error) {
-      console.error('Error fetching analysis:', error);
+      console.error('Error:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+
+  const renderContent = (msg) => {
+    try {
+      const content = formatContent(msg.content);
+      const contentObj = typeof content === 'string' ? JSON.parse(content) : content;
+      
+      return (
+        <div className="space-y-2">
+          {contentObj.analysis && (
+            <div>
+              <h4 className="font-semibold">Analysis:</h4>
+              <p className="text-gray-700">{contentObj.analysis}</p>
+            </div>
+          )}
+          {contentObj.recommendation && (
+            <div>
+              <h4 className="font-semibold">Recommendation:</h4>
+              <p className={`font-medium ${
+                contentObj.recommendation === 'buy' ? 'text-green-600' :
+                contentObj.recommendation === 'sell' ? 'text-red-600' :
+                'text-yellow-600'
+              }`}>
+                {contentObj.recommendation.toUpperCase()}
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    } catch (e) {
+      return <pre className="whitespace-pre-wrap font-sans text-gray-700">{msg.content}</pre>;
+    }
   };
 
   return (
     <div>
-      <div className="header">
-                      <Header />
-                  </div>
-                  <div className="main-page-body">
-                      <SideNavs />
-                      <div className="main-body-info">
-                 
+    <div className="header">
+                    <Header />
+                </div>
+                <div className="main-page-body">
+                    <SideNavs />
+                    <div className="main-body-info"></div>
     <div className="p-4 max-w-6xl mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="border-b pb-4 mb-4">
@@ -80,7 +152,7 @@ export default function TraderGPTAnalysis() {
             onChange={(e) => setFormData({ ...formData, numDays: parseInt(e.target.value) })}
             className="form-control w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
+        </div><br />
         
         <button 
           onClick={handleAnalysis} 
@@ -89,15 +161,22 @@ export default function TraderGPTAnalysis() {
         >
           {loading ? 'Analyzing...' : 'Generate Analysis'}
         </button>
-
+  
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
+  
         {analysis && (
           <div className="mt-8 space-y-6">
-            <div className="rounded-lg overflow-hidden border">
-              <img 
-                src={`data:image/png;base64,${analysis.chart_image}`}
-                alt="Trading Analysis Chart"
-                className="w-full"
-              />
+            <div className="w-full overflow-x-auto">
+            <img 
+              src={`data:image/png;base64,${analysis.chart_image}`}
+              alt="Trading Analysis Chart"
+              className="responsive-image"
+            />
+
             </div>
             
             <div className="space-y-4">
@@ -121,11 +200,7 @@ export default function TraderGPTAnalysis() {
                     </h3>
                   </div>
                   <div className="px-6 py-4">
-                    <pre className="whitespace-pre-wrap font-sans text-gray-700">
-                      {typeof msg.content === 'string' 
-                        ? msg.content 
-                        : JSON.stringify(msg.content, null, 2)}
-                    </pre>
+                    {renderContent(msg)}
                   </div>
                 </div>
               ))}
@@ -136,6 +211,6 @@ export default function TraderGPTAnalysis() {
     </div>
     </div>
     </div>
-    </div>
   );
+  
 }
