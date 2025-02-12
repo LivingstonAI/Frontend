@@ -13,6 +13,8 @@ export default function TraderGPTAnalysis() {
     numDays: 7
   });
 
+  const [expanded, setExpanded] = useState(false);
+
   // Define forex pairs
   const forexPairs = [
     { value: 'EURUSD', label: 'EUR/USD - Euro/US Dollar' },
@@ -117,7 +119,7 @@ export default function TraderGPTAnalysis() {
             <div className="card-header">
               <h2 className="card-title">TraderGPT Analysis</h2>
             </div>
-            
+
             <div className="form-grid">
               <select
                 value={formData.asset}
@@ -130,7 +132,7 @@ export default function TraderGPTAnalysis() {
                   </option>
                 ))}
               </select>
-              
+
               <select
                 value={formData.interval}
                 onChange={(e) => setFormData({ ...formData, interval: e.target.value })}
@@ -140,7 +142,7 @@ export default function TraderGPTAnalysis() {
                 <option value="4h">4 Hours</option>
                 <option value="1d">1 Day</option>
               </select>
-              
+
               <input
                 type="number"
                 placeholder="Number of days"
@@ -149,7 +151,7 @@ export default function TraderGPTAnalysis() {
                 className="form-control"
               />
             </div>
-            
+
             <button 
               onClick={handleAnalysis} 
               disabled={loading}
@@ -157,23 +159,20 @@ export default function TraderGPTAnalysis() {
             >
               {loading ? 'Analyzing...' : 'Generate Analysis'}
             </button>
-      
-            {error && (
-              <div className="error-message">
-                {error}
-              </div>
-            )}
-      
+
+            {error && <div className="error-message">{error}</div>}
+
             {analysis && (
               <div className="analysis-results">
                 <div className="chart-container">
                   <img 
                     src={`data:image/png;base64,${analysis.chart_image}`}
                     alt="Trading Analysis Chart"
-                    className="responsive-image"
+                    className={`responsive-image ${expanded ? 'expanded' : ''}`}
+                    onClick={() => setExpanded(!expanded)}
                   />
                 </div>
-                
+
                 <div className="conversation-container">
                   {analysis.conversation.map((msg, index) => (
                     <div key={index} className="message-container">
@@ -187,9 +186,7 @@ export default function TraderGPTAnalysis() {
                           )}
                         </span>
                       </div>
-                      <div className="message-content">
-                        {renderContent(msg)}
-                      </div>
+                      <div className="message-content">{renderContent(msg)}</div>
                     </div>
                   ))}
                 </div>
@@ -198,6 +195,16 @@ export default function TraderGPTAnalysis() {
           </div>
         </div>
       </div>
+
+      {expanded && (
+        <div className="overlay" onClick={() => setExpanded(false)}>
+          <img 
+            src={`data:image/png;base64,${analysis.chart_image}`}
+            alt="Expanded Chart"
+            className="expanded-image"
+          />
+        </div>
+      )}
     </div>
   );
 }
