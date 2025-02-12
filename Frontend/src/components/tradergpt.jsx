@@ -33,51 +33,40 @@ export default function TraderGPTAnalysis() {
   };
 
   const handleAnalysis = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch('https://backend-production-c0ab.up.railway.app/api/trader-analysis/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          asset: formData.asset.toUpperCase(),
-          interval: formData.interval,
-          num_days: parseInt(formData.numDays)
-        })
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Analysis failed');
-      }
-  
-      const data = await response.json();
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch('https://backend-production-c0ab.up.railway.app/api/trader-analysis/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            asset: formData.asset,
+            interval: formData.interval,
+            num_days: parseInt(formData.numDays)
+          })
+        });
 
-      console.log(data);
-      
-      // Validate the response data
-      if (!data || !data.status) {
-        throw new Error('Invalid response format');
-      }
-      
-      if (data.status === 'success') {
-        if (!data.chart_image) {
-          throw new Error('No chart data received');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Analysis failed');
         }
-        setAnalysis(data);
-      } else {
-        throw new Error(data.message || 'Analysis failed');
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          setAnalysis(data);
+        } else {
+          throw new Error(data.message || 'Analysis failed');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        setError(error.message || 'Failed to process analysis');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
 
   const renderContent = (msg) => {
