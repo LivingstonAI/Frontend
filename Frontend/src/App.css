@@ -4807,3 +4807,195 @@ body.dark .side-navs {
   max-width: none;
   object-fit: contain;
 }
+
+/* Main layout styles */
+.trader-analysis-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.analysis-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.card-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* Form controls */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-control:hover {
+  border-color: #9ca3af;
+}
+
+select.form-control {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 20px 20px;
+  padding-right: 40px;
+  appearance: none;
+}
+
+/* Button styles */
+.analysis-button {
+  width: 100%;
+  padding: 12px 24px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.analysis-button:hover {
+  background-color: #2563eb;
+}
+
+.analysis-button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.error-message {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+}
+
+/* Analysis results */
+.analysis-results {
+  margin-top: 32px;
+}
+
+.chart-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
+.responsive-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+/* Conversation messages */
+.message-container {
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.message-header {
+  padding: 12px 16px;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.message-header.consensus {
+  background-color: #ecfdf5;
+}
+
+.trader-id {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.responding-to {
+  font-size: 14px;
+  color: #6b7280;
+  margin-left: 8px;
+  font-weight: normal;
+}
+
+.message-content {
+  padding: 16px;
+}
+
+.message-section {
+  margin-bottom: 12px;
+}
+
+.message-section h4 {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.recommendation {
+  font-weight: 500;
+}
+
+.recommendation.buy {
+  color: #059669;
+}
+
+.recommendation.sell {
+  color: #dc2626;
+}
+
+.recommendation.hold {
+  color: #d97706;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trader-analysis-container {
+    padding: 12px;
+  }
+  
+  .analysis-card {
+    padding: 16px;
+  }
+  
+  .card-title {
+    font-size: 20px;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
