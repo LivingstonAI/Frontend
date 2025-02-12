@@ -35,6 +35,8 @@ export default function TraderGPTAnalysis() {
   const handleAnalysis = async () => {
       setLoading(true);
       setError(null);
+      console.log('Form Data is: ');
+      console.log(formData);
       
       try {
         const response = await fetch('https://backend-production-c0ab.up.railway.app/api/trader-analysis/', {
@@ -48,6 +50,8 @@ export default function TraderGPTAnalysis() {
             num_days: parseInt(formData.numDays)
           })
         });
+
+
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
