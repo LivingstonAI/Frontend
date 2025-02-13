@@ -5034,36 +5034,17 @@ select.form-control {
   display: inline-block;
 }
 
-.recommendation .final-recommendation-text {
-  padding: 5px 10px;
-  font-size: 1.2em;
-}
 
-.recommendation.buy .final-recommendation-text {
-  color: white;
-  background-color: green;
-}
-
-.recommendation.sell .final-recommendation-text {
-  color: white;
-  background-color: red;
-}
-
-.recommendation.neutral .final-recommendation-text {
-  color: black;
-  background-color: rgba(255, 255, 0, 0.562);
-}
-
-.recommendation.BUY {
+.recommendation.buy {
   color: green;
 }
 
-.recommendation.SELL {
+.recommendation.sell {
   color: red;
 }
 
 
-.recommendation.NEUTRAL {
-  color: rgba(255, 255, 0, 0.589);
+.recommendation.neutral {
+  color: blue;
 }
 
