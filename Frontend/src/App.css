@@ -5051,5 +5051,19 @@ select.form-control {
 
 .recommendation.neutral .final-recommendation-text {
   color: black;
-  background-color: yellow;
+  background-color: rgba(255, 255, 0, 0.562);
 }
+
+.recommendation.BUY {
+  color: green;
+}
+
+.recommendation.SELL {
+  color: red;
+}
+
+
+.recommendation.NEUTRAL {
+  color: rgba(255, 255, 0, 0.589);
+}
+

@@ -168,11 +168,14 @@ export default function TraderGPTAnalysis() {
             )}
   
             {contentObj.analysis.final_recommendation && (
-              <div className="consensus-section">
-                <strong>📢 Final Recommendation:</strong>
-                <p className="recommendation">{contentObj.analysis.final_recommendation}</p>
-              </div>
-            )}
+            <div className="consensus-section">
+              <strong>📢 FINAL RECOMMENDATION:</strong>
+              <p className={`recommendation ${contentObj.analysis.final_recommendation.toUpperCase()}`}>
+                {contentObj.analysis.final_recommendation.toUpperCase()}
+              </p>
+            </div>
+          )}
+
   
             {contentObj.analysis.risk_management_suggestions && (
               <div className="consensus-section">
@@ -201,6 +204,7 @@ export default function TraderGPTAnalysis() {
               </p>
             </div>
           )}
+
         </div>
       );
     } catch (e) {
