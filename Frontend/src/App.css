@@ -59,9 +59,9 @@ button {
   transition: transform .5s;
 }
 
-button:hover {
+/* button:hover {
   transform: scaleX(1.1);
-}
+} */
 
 footer {
     align-items: center;
