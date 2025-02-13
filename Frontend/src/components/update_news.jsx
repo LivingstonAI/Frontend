@@ -34,7 +34,7 @@ export default function UpdateNews() {
         async function fetchNewsData() {
             try {
                 const email = await fetchEmailDataFromAPI();
-                const response = await fetch(`${baseUrl}/fetch_news_data/${email}`);
+                const response = await fetch(`${baseUrl}/fetch_user_news_data/${email}`);
                 if (!response.ok) {
                     throw new Error("Network response was not ok");
                 }
