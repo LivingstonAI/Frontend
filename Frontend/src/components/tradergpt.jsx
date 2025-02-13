@@ -82,8 +82,109 @@ export default function TraderGPTAnalysis() {
   const renderContent = (msg) => {
     try {
       const content = formatContent(msg.content);
-      const contentObj = typeof content === 'string' ? JSON.parse(content) : content;
-      
+      let contentObj = typeof content === "string" ? JSON.parse(content) : content;
+  
+      console.log("Parsed Content Object:", contentObj);
+      console.log("Message Type:", msg.message_type);
+  
+      // Ensure analysis is properly formatted JSON
+      if (typeof contentObj.analysis === "string") {
+        console.log("Raw analysis before parsing:", contentObj.analysis);
+  
+        // Fix common JSON format issues
+        let fixedAnalysis = contentObj.analysis.replace(/'/g, '"'); // Convert single to double quotes
+  
+        // Extract only JSON-like content
+        const jsonMatch = fixedAnalysis.match(/\{.*\}|\[.*\]/s); // Extracts JSON-like structures
+  
+        if (jsonMatch) {
+          try {
+            contentObj.analysis = JSON.parse(jsonMatch[0]); // Parse only extracted JSON
+          } catch (e) {
+            console.error("Final JSON parsing error:", e);
+          }
+        } else {
+          console.error("No valid JSON found in analysis!");
+        }
+      }
+  
+      if (msg.message_type === "consensus") {
+        return (
+          <div className="consensus-message">
+            <h3 className="consensus-title">Consensus Summary</h3>
+  
+            {contentObj.analysis.key_support_levels && (
+              <div className="consensus-section">
+                <strong>🔹 Key Support Levels:</strong> {contentObj.analysis.key_support_levels.join(", ")}
+              </div>
+            )}
+  
+            {contentObj.analysis.key_resistance_levels && (
+              <div className="consensus-section">
+                <strong>🔺 Key Resistance Levels:</strong> {contentObj.analysis.key_resistance_levels.join(", ")}
+              </div>
+            )}
+  
+            {contentObj.analysis.suggested_entry_price && (
+              <div className="consensus-section">
+                <strong>📈 Suggested Entry Price:</strong> {contentObj.analysis.suggested_entry_price}
+              </div>
+            )}
+  
+            {contentObj.analysis.stop_loss_level && (
+              <div className="consensus-section">
+                <strong>⛔ Stop Loss Level:</strong> {contentObj.analysis.stop_loss_level}
+              </div>
+            )}
+  
+            {contentObj.analysis.target_price && (
+              <div className="consensus-section">
+                <strong>🎯 Target Price:</strong> {contentObj.analysis.target_price}
+              </div>
+            )}
+  
+            {contentObj.analysis.overall_trend_direction && (
+              <div className="consensus-section">
+                <strong>📊 Overall Trend Direction:</strong> {contentObj.analysis.overall_trend_direction.toUpperCase()}
+              </div>
+            )}
+  
+            {contentObj.analysis.points_of_agreement && (
+              <div className="consensus-section">
+                <strong>✅ Points of Agreement:</strong>
+                <ul>
+                  {contentObj.analysis.points_of_agreement.map((point, index) => (
+                    <li key={index}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+  
+            {contentObj.analysis.balancing_different_risk_tolerances && (
+              <div className="consensus-section">
+                <strong>⚖️ Risk Tolerance Balancing:</strong>
+                <p>{contentObj.analysis.balancing_different_risk_tolerances}</p>
+              </div>
+            )}
+  
+            {contentObj.analysis.final_recommendation && (
+              <div className="consensus-section">
+                <strong>📢 Final Recommendation:</strong>
+                <p className="recommendation">{contentObj.analysis.final_recommendation}</p>
+              </div>
+            )}
+  
+            {contentObj.analysis.risk_management_suggestions && (
+              <div className="consensus-section">
+                <strong>🚨 Risk Management Suggestions:</strong>
+                <p>{contentObj.analysis.risk_management_suggestions}</p>
+              </div>
+            )}
+          </div>
+        );
+      }
+  
+      // Default message rendering for other messages (analysis, recommendations)
       return (
         <div className="message-section">
           {contentObj.analysis && (
@@ -95,7 +196,7 @@ export default function TraderGPTAnalysis() {
           {contentObj.recommendation && (
             <div>
               <h4>Recommendation:</h4>
-              <p className={`recommendation ${contentObj.recommendation.toLowerCase()}`}>
+              <p className={`recommendation ${contentObj.recommendation.toUpperCase()}`}>
                 {contentObj.recommendation.toUpperCase()}
               </p>
             </div>
@@ -103,9 +204,12 @@ export default function TraderGPTAnalysis() {
         </div>
       );
     } catch (e) {
+      console.error("renderContent Error:", e);
       return <pre className="message-content-raw">{msg.content}</pre>;
     }
   };
+  
+  
 
   return (
     <div className="app-container">

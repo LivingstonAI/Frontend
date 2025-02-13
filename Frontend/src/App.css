@@ -5026,3 +5026,30 @@ select.form-control {
   max-width: 90%;
   max-height: 90%;
 }
+
+.recommendation {
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 5px;
+  display: inline-block;
+}
+
+.recommendation .final-recommendation-text {
+  padding: 5px 10px;
+  font-size: 1.2em;
+}
+
+.recommendation.buy .final-recommendation-text {
+  color: white;
+  background-color: green;
+}
+
+.recommendation.sell .final-recommendation-text {
+  color: white;
+  background-color: red;
+}
+
+.recommendation.neutral .final-recommendation-text {
+  color: black;
+  background-color: yellow;
+}
