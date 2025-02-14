@@ -45,6 +45,7 @@ import rose from '../lukrembo - rose (royalty free vlog music).mp3';
 import this_is_mit from '../This is MIT.mp3';
 import time_between_storms from '../Dune_ Part Two Soundtrack  A Time of Quiet Between the Storms - Hans Zimmer  WaterTower.mp3';
 import somnus_theme from '../Final fantasy XIII versus somnus theme [bOyYigKniW4].mp3';
+import your_man from '../Your Man.mp3';
 
 
 let globalAudio = null; 
@@ -109,7 +110,8 @@ export default function SideNavs() {
     { name: "Rose 🌹", file: rose},
     { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
     { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
-    { name: "Somnus Theme 🐺🥷", file: somnus_theme }
+    { name: "Somnus Theme 🐺🥷", file: somnus_theme },
+    { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man }
   ];
 
   const filteredSongs = songs.filter((song) =>
