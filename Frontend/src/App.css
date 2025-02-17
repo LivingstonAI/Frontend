@@ -4373,9 +4373,15 @@ canvas {
     /* .time-zone {
       font-weight:normal;
     } */
-    .side-navs-cellphone {
+    /* .side-navs-cellphone {
         overflow-x: auto;
-    }
+    } */
+    .side-navs-cellphone {
+      overflow-x: auto;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+  }
   }
   
 

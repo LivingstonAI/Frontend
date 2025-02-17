@@ -649,13 +649,41 @@ return [`is_bearish_weekly_profile(asset=asset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['tradergpt_buy'] = function(block, generator) {
+
+
+  return [`tradergpt_buy(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['tradergpt_buy'] = function(block, generator) {
+
+return [`tradergpt_buy(asset=asset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['tradergpt_sell'] = function(block, generator) {
+
+
+  return [`tradergpt_sell(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['tradergpt_sell'] = function(block, generator) {
+
+return [`tradergpt_sell(asset=asset)`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
       this.appendValueInput('NUM')
           .setCheck('Number')
-          .appendField('Moving Average')
-          .appendField('Type');
+          .appendField('moving average')
+          .appendField('type');
       this.appendDummyInput()
           .appendField(new Blockly.FieldDropdown([
             ['SMA', 'SMA'],
@@ -673,7 +701,7 @@ return [`is_bearish_weekly_profile(asset=asset)`, Order.NONE];
 Blockly.Blocks['buy_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Buy')
+        .appendField('buy')
         .setAlign(Blockly.ALIGN_CENTRE); // Set alignment to center
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -687,7 +715,7 @@ Blockly.Blocks['buy_block'] = {
 Blockly.Blocks['sell_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Sell')
+        .appendField('sell')
         .setAlign(Blockly.ALIGN_CENTRE); // Set alignment to center
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -705,7 +733,7 @@ Blockly.Blocks['engulfing_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Engulfing');
+        .appendField('engulfing');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents an engulfing candlestick pattern');
@@ -722,7 +750,7 @@ Blockly.Blocks['morning_star_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Morning Star');
+        .appendField('morning star');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a morning star candlestick pattern');
@@ -739,7 +767,7 @@ Blockly.Blocks['three_soldiers_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Three Soldiers/Black Crows');
+        .appendField('three soldiers/black crows');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents the three white soldiers/three black crows candlestick pattern');
@@ -755,7 +783,7 @@ Blockly.Blocks['doji_star_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Doji Star');
+        .appendField('doji star');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a doji star candlestick pattern');
@@ -771,7 +799,7 @@ Blockly.Blocks['rising_methods_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Rising/Falling Methods');
+        .appendField('rising/falling methods');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents rising methods/falling methods candlestick pattern');
@@ -787,7 +815,7 @@ Blockly.Blocks['rising_methods_block'] = {
             ['Bullish', 'bullish'],
             ['Bearish', 'bearish']
           ]), 'TYPE')
-          .appendField('Hammer');
+          .appendField('hammer');
       this.setOutput(true, 'Boolean');
       this.setColour(330); // Orange color
       this.setTooltip('This block represents a hammer / hanging man candlestick pattern');
@@ -803,7 +831,7 @@ Blockly.Blocks['shooting_star_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Shooting Star');
+        .appendField('shooting star');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a shooting star / inverted hammer candlestick pattern');
@@ -819,7 +847,7 @@ Blockly.Blocks['kicker_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Kicker');
+        .appendField('kicker');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a kicker candlestick pattern');
@@ -835,7 +863,7 @@ Blockly.Blocks['harami_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Harami');
+        .appendField('harami');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a harami candlestick pattern');
@@ -852,7 +880,7 @@ Blockly.Blocks['three_line_strike_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Three Line Strike');
+        .appendField('three line strike');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a Three Line Strike candlestick pattern');
@@ -864,7 +892,7 @@ Blockly.Blocks['three_line_strike_block'] = {
 Blockly.Blocks['bbands_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Bollinger Bands');
+        .appendField('bollinger bands');
     this.appendValueInput('PRICE')
         .setCheck('Number')
         .appendField('Price');
@@ -893,7 +921,7 @@ Blockly.Blocks['bbands_block'] = {
 Blockly.Blocks['momentum_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Momentum');
+        .appendField('momentum');
     this.appendDummyInput()
         .appendField(new Blockly.FieldDropdown([
           ['>', 'ABOVE'],
@@ -914,7 +942,7 @@ Blockly.Blocks['momentum_block'] = {
 Blockly.Blocks['rsi_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('RSI');
+        .appendField('rsi');
     this.appendDummyInput()
         .appendField(new Blockly.FieldDropdown([
           ['>', 'ABOVE'],
@@ -935,7 +963,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['close_position'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Close Position");
+          .appendField("close position");
       this.setPreviousStatement(true, null);  // Allow this block to be connected to the previous block
       this.setNextStatement(true, null);  // Allow next blocks to be connected to this block
       this.setColour(160);
@@ -948,7 +976,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['check_position'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Position");
+          .appendField("position");
       this.setOutput(true, 'Boolean');
       this.setColour(210);
       this.setTooltip("Check if a position exists");
@@ -960,7 +988,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['take_profit'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Set Take Profit");
+          .appendField("set take profit");
       this.appendDummyInput()
           .appendField(new Blockly.FieldNumber(0), "VALUE")
           .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENTAGE"], ["Number", "NUMBER"]]), "TYPE");
@@ -977,7 +1005,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['stop_loss'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Stop Loss");
+          .appendField("stop loss");
       this.appendDummyInput()
           .appendField(new Blockly.FieldNumber(0), "VALUE")
           .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENTAGE"], ["Number", "NUMBER"]]), "TYPE");
@@ -992,7 +1020,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['support'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Support")
+          .appendField("support")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1004,7 +1032,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['resistance'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Resistance")
+          .appendField("resistance")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1016,7 +1044,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['uptrend'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Uptrend")
+          .appendField("uptrend")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1028,7 +1056,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['downtrend'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Downtrend")
+          .appendField("downtrend")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1040,7 +1068,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['ranging_market'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Ranging Market")
+          .appendField("ranging market")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1052,7 +1080,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['asian_range_buy'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Asian Range Buy")
+          .appendField("asian range buy")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1064,7 +1092,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['asian_range_sell'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Asian Range Sell")
+          .appendField("asian range sell")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1076,7 +1104,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['fibonacci_level'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Fibonacci Level")
+          .appendField("fibonacci level")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.appendDummyInput()
           .appendField("Trend")
@@ -1104,7 +1132,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['ote_buy'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Optimal Trade Entry Buy")
+          .appendField("optimal trade entry buy")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1116,7 +1144,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['ote_sell'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Optimal Trade Entry Sell")
+          .appendField("optimal trade entry sell")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1129,7 +1157,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['bullish_orderblock'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bullish Orderblock")
+          .appendField("bullish orderblock")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1142,7 +1170,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['bearish_orderblock'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bearish Orderblock")
+          .appendField("bearish orderblock")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1154,7 +1182,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['is_bullish_weekly_profile'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bullish Weekly Profile")
+          .appendField("bullish weekly profile")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1166,11 +1194,36 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['is_bearish_weekly_profile'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bearish Weekly Profile")
+          .appendField("bearish weekly profile")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
       this.setTooltip("Check if it's a Bearish Weekly Profile");
+      this.setHelpUrl("");
+    }
+  };
+
+
+  Blockly.Blocks['tradergpt_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("tradergpt buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if TraderGPT recommends a buy");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['tradergpt_sell'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("tradergpt sell")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if TraderGPT recommends a sell");
       this.setHelpUrl("");
     }
   };
@@ -1459,7 +1512,16 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "is_bearish_weekly_profile"
-            }
+            },
+            {
+              "kind": "block",
+              "type": "tradergpt_buy"
+            },
+            {
+              "kind": "block",
+              "type": "tradergpt_sell"
+            },
+
           ]
         },
       ]
