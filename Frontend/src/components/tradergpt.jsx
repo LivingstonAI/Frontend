@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
 import Header from "./header";
 import SideNavs from "./side_navs";
-import { json } from 'react-router-dom';
 
 
 export default function TraderGPTAnalysis() {
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
-    asset: 'EURUSD',
-    interval: '1h',
-    numDays: 7
+  const [expanded, setExpanded] = useState(false);
+  
+  const [traderSettings, setTraderSettings] = useState({
+    trader1: {
+      asset: 'EURUSD',
+      interval: '1h',
+      numDays: 7
+    },
+    trader2: {
+      asset: 'EURUSD',
+      interval: '1h',
+      numDays: 7
+    }
   });
 
-  const [expanded, setExpanded] = useState(false);
-
-  // Define forex pairs
   const forexPairs = [
     { value: 'EURUSD', label: 'EUR/USD - Euro/US Dollar' },
     { value: 'GBPUSD', label: 'GBP/USD - British Pound/US Dollar' },
@@ -29,14 +34,22 @@ export default function TraderGPTAnalysis() {
     { value: 'GBPJPY', label: 'GBP/JPY - British Pound/Japanese Yen' }
   ];
 
+  const handleSettingChange = (trader, field, value) => {
+    setTraderSettings(prev => ({
+      ...prev,
+      [trader]: {
+        ...prev[trader],
+        [field]: value
+      }
+    }));
+  };
+
   const formatContent = (content) => {
     if (!content) return '';
-    
     try {
       if (typeof content === 'object') {
         return JSON.stringify(content, null, 2);
       }
-      
       const parsed = JSON.parse(content);
       return JSON.stringify(parsed, null, 2);
     } catch (e) {
@@ -55,9 +68,7 @@ export default function TraderGPTAnalysis() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          asset: formData.asset,
-          interval: formData.interval,
-          num_days: parseInt(formData.numDays)
+          traders: traderSettings
         })
       });
 
@@ -80,24 +91,64 @@ export default function TraderGPTAnalysis() {
     }
   };
 
+  const renderTraderForm = (traderId) => (
+    <div className="analysis-card">
+      <h6 className="card-title">{traderId === 'trader1' ? 'TraderGPT 1' : 'TraderGPT 2'} Settings</h6>
+      <div className="form-grid">
+        <select
+          value={traderSettings[traderId].asset}
+          onChange={(e) => handleSettingChange(traderId, 'asset', e.target.value)}
+          className="form-control"
+        >
+          {forexPairs.map((pair) => (
+            <option key={pair.value} value={pair.value}>
+              {pair.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={traderSettings[traderId].interval}
+          onChange={(e) => handleSettingChange(traderId, 'interval', e.target.value)}
+          className="form-control"
+        >
+          <option value="5m">5 Minute</option>
+          <option value="15m">15 Minute</option>
+          <option value="1h">1 Hour</option>
+          <option value="4h">4 Hours</option>
+          <option value="1d">1 Day</option>
+        </select>
+
+        <input
+          type="number"
+          placeholder="Number of days"
+          value={traderSettings[traderId].numDays}
+          onChange={(e) => handleSettingChange(traderId, 'numDays', parseInt(e.target.value))}
+          className="form-control"
+          min="1"
+          max="30"
+        />
+      </div>
+    </div>
+  );
+
   const renderContent = (msg) => {
     try {
       const content = formatContent(msg.content);
       const contentObj = typeof content === 'string' ? JSON.parse(content) : content;
-
-      console.log(contentObj.recommendation);
       
       return (
+        
         <div className="message-section">
           {contentObj.analysis && (
             <div>
-              <h4>Analysis:</h4>
+              <h6>Analysis:</h6>
               <p>{contentObj.analysis}</p>
             </div>
           )}
           {contentObj.recommendation && (
             <div>
-              <h4>Recommendation:</h4>
+              <h6>Recommendation:</h6>
               <p className={`recommendation ${contentObj.recommendation.toLowerCase()}`}>
                 {contentObj.recommendation.toUpperCase()}
               </p>
@@ -109,52 +160,28 @@ export default function TraderGPTAnalysis() {
       return <pre className="message-content-raw">{msg.content}</pre>;
     }
   };
-  
-  
 
   return (
-    <div className="app-container">
+    <div>
+
       <div className="header">
-        <Header />
+          <Header />
       </div>
+    <div className="main-page-body">
+          <SideNavs />
+              <div className="main-body-info">
+                
+    <div className="app-container">
       <div className="main-page-body">
-        <SideNavs />
         <div className="trader-analysis-container">
           <div className="analysis-card">
             <div className="card-header">
-              <h2 className="card-title">TraderGPT Analysis</h2>
+              <h5 className="card-title">TraderGPT Analysis</h5>
             </div>
 
-            <div className="form-grid">
-              <select
-                value={formData.asset}
-                onChange={(e) => setFormData({ ...formData, asset: e.target.value })}
-                className="form-control"
-              >
-                {forexPairs.map((pair) => (
-                  <option key={pair.value} value={pair.value}>
-                    {pair.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={formData.interval}
-                onChange={(e) => setFormData({ ...formData, interval: e.target.value })}
-                className="form-control"
-              >
-                <option value="1h">1 Hour</option>
-                <option value="4h">4 Hours</option>
-                <option value="1d">1 Day</option>
-              </select>
-
-              <input
-                type="number"
-                placeholder="Number of days"
-                value={formData.numDays}
-                onChange={(e) => setFormData({ ...formData, numDays: parseInt(e.target.value) })}
-                className="form-control"
-              />
+            <div className="traders-form-container">
+              {renderTraderForm('trader1')}
+              {renderTraderForm('trader2')}
             </div>
 
             <button 
@@ -210,6 +237,9 @@ export default function TraderGPTAnalysis() {
           />
         </div>
       )}
+    </div>
+    </div>
+    </div>
     </div>
   );
 }
