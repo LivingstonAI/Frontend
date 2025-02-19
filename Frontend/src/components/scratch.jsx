@@ -677,6 +677,46 @@ return [`tradergpt_sell(asset=asset)`, Order.NONE];
 };
 
 
+pythonGenerator['forBlock']['new_york_session'] = function(block, generator) {
+
+
+  return [`new_york_session()`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['new_york_session'] = function(block, generator) {
+
+return [`new_york_session()`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['london_session'] = function(block, generator) {
+
+
+  return [`london_session()`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['london_session'] = function(block, generator) {
+
+return [`london_session()`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['asian_session'] = function(block, generator) {
+
+
+  return [`asian_session()`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['asian_session'] = function(block, generator) {
+
+return [`asian_session()`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -1229,6 +1269,42 @@ Blockly.Blocks['rsi_block'] = {
   };
 
   
+  Blockly.Blocks['new_york_session'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("new york session")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is New York Session");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['london_session'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("london session")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is London Session");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['asian_session'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("asian session")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is Asian Session");
+      this.setHelpUrl("");
+    }
+  };
+  
   
 
     const MY_TOOLBOX = {
@@ -1522,6 +1598,25 @@ Blockly.Blocks['rsi_block'] = {
               "type": "tradergpt_sell"
             },
 
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Trading Sessions",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "new_york_session"
+            },
+            
+            {
+              "kind": "block",
+              "type": "london_session" // Add the "Bollinger Bands" block here
+            },
+            {
+              "kind": "block",
+              "type": "asian_session" // Add the "Momentum" block here
+            },      
           ]
         },
       ]
