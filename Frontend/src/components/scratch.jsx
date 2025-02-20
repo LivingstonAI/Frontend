@@ -716,6 +716,32 @@ return [`asian_session()`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['bullish_market_sentiment'] = function(block, generator) {
+
+
+  return [`bullish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['bullish_market_sentiment'] = function(block, generator) {
+
+return [`bullish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['bearish_market_sentiment'] = function(block, generator) {
+
+
+  return [`bearish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['bearish_market_sentiment'] = function(block, generator) {
+
+return [`bearish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -1304,6 +1330,32 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+
+  Blockly.Blocks['bullish_market_sentiment'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bullish market sentiment")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is a Bullish Market Sentiment");
+      this.setHelpUrl("");
+    }
+  };
+
+  
+  Blockly.Blocks['bearish_market_sentiment'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bearish market sentiment")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is a Bearish Market Sentiment");
+      this.setHelpUrl("");
+    }
+  };
   
   
 
@@ -1597,7 +1649,14 @@ Blockly.Blocks['rsi_block'] = {
               "kind": "block",
               "type": "tradergpt_sell"
             },
-
+            {
+              "kind": "block",
+              "type": "bullish_market_sentiment"
+            },
+            {
+              "kind": "block",
+              "type": "bearish_market_sentiment"
+            },
           ]
         },
         {
