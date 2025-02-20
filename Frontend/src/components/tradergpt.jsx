@@ -16,7 +16,7 @@ export default function TraderGPTAnalysis() {
       style: 'Conservative',
       focus: 'long-term trends and fundamental analysis',
       risk_tolerance: 'low',
-      bias: 'neutral'
+      // bias: 'neutral'
     },
     trader2: {
       asset: 'EURUSD',
@@ -25,7 +25,7 @@ export default function TraderGPTAnalysis() {
       style: 'Aggressive',
       focus: 'short-term momentum and technical patterns',
       risk_tolerance: 'high',
-      bias: 'neutral'
+      // bias: 'neutral'
     }
   });
 
@@ -202,7 +202,7 @@ export default function TraderGPTAnalysis() {
               ))}
             </select>
   
-            <select
+            {/* <select
               value={traderSettings[traderId].bias}
               onChange={(e) => handleSettingChange(traderId, 'bias', e.target.value)}
               className="form-control"
@@ -212,7 +212,7 @@ export default function TraderGPTAnalysis() {
                   {bias.label}
                 </option>
               ))}
-            </select>
+            </select> */}
           </div>
         </div>
       </div>
