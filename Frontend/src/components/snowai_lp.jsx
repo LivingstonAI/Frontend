@@ -153,7 +153,7 @@ export default function SnowAILandingPage() {
 
     // Set up the audio to play only when it's ready
     audio.oncanplay = () => {
-      audio.volume = 0.2;
+      // audio.volume = 0.2;
       audio.play();
     };
     audio.load(); // Load the new song
