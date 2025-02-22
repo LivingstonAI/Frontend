@@ -183,7 +183,7 @@ const handlePlay = (song) => {
         <Link to="/scratch" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-robot"></i></p></button></Link>
         <Link to="/model_performance" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pen-fill"></i></p></button></Link>
         <Link to="/risk_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-exchange"></i></p></button></Link>
-        <Link to="/chill" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-activity"></i></p></button></Link>
+        <Link to="/chill" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-headphones"></i></p></button></Link>
         <Link to="/alert_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bell-fill"></i></p></button></Link>
         <Link to="/tradergpt_analysis" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-life-preserver"></i></p></button></Link>
       </div>
@@ -224,7 +224,7 @@ const handlePlay = (song) => {
         <i className="bi bi-currency-exchange"></i>
     </Link>
     <Link to="/chill" className="side-nav">
-        <i className="bi bi-activity"></i>
+        <i className="bi bi-headphones"></i>
     </Link>
     <Link to="/alert_bot" className="side-nav">
         <i className="bi bi-bell-fill"></i>
