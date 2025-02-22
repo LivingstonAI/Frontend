@@ -51,6 +51,8 @@ import genesis from '../Transcendence - GENESIS.mp3';
 import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
 import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
 import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
+import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
+
 
 
 let globalAudio = null; 
@@ -121,7 +123,8 @@ export default function SideNavs() {
     { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
     { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie }
+    { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination }
   ];
 
   const filteredSongs = songs.filter((song) =>

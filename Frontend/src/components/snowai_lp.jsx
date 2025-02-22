@@ -46,6 +46,7 @@ import genesis from '../Transcendence - GENESIS.mp3';
 import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
 import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
 import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
+import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -119,6 +120,7 @@ export default function SnowAILandingPage() {
     "42": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     "43": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
     "44": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    "45": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
   };
 
     // State for search term and filtered songs
