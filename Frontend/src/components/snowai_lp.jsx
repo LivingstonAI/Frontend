@@ -41,6 +41,11 @@ import this_is_mit from '../This is MIT.mp3';
 import time_between_storms from '../Dune_ Part Two Soundtrack  A Time of Quiet Between the Storms - Hans Zimmer  WaterTower.mp3';
 import somnus_theme from '../Final fantasy XIII versus somnus theme [bOyYigKniW4].mp3';
 import your_man from '../Your Man.mp3';
+import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
+import genesis from '../Transcendence - GENESIS.mp3';
+import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
+import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
+import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
 
 
 export default function SnowAILandingPage() {
@@ -109,6 +114,11 @@ export default function SnowAILandingPage() {
     "37": { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
     "38": { name: "Somnus Theme 🐺🥷", file: somnus_theme },
     "39": { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man },
+    "40": { name: "Cry Baby - SZA 🌃🌃", file: cry_baby },
+    "41": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
+    "42": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
+    "43": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
+    "44": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
   };
 
     // State for search term and filtered songs
