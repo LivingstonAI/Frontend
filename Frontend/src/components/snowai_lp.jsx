@@ -106,7 +106,7 @@ export default function SnowAILandingPage() {
     "27": { name: "Good Vibes 😌", file: good_vibes },
     "28": { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
     "29": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
-    "39": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
+    "30": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
     "31": { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
     "32": { name: "Honey Jam 🍯", file: honey_jam },
     "33": { name: "Floral 🌺💮", file: floral },

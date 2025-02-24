@@ -1682,6 +1682,13 @@ Blockly.Blocks['rsi_block'] = {
     }
       
     const compileModelFunction = async () => {
+
+      console.log('Chosen Dataset: ', chosenDataSet);
+      console.log('Generated Code: ', generatedCode);
+      console.log('Dataset Start: ', startYear);
+      console.log('Dataset End: ', endYear);
+      console.log('Initial Capital: ', initCapital);
+      
       try {
         setCompile('Backtesting model...');
         
@@ -1699,9 +1706,9 @@ Blockly.Blocks['rsi_block'] = {
         }
         
         const data1 = await response1.json();
-        console.log(data1); // Do something with the response data from the first request
+        // console.log(data1); // Do something with the response data from the first request
         
-        console.log(generatedCode);
+        // console.log(generatedCode);
         
         // Second fetch request
         const response2 = await fetch(`${baseUrl}/genesys`, {
@@ -1718,7 +1725,7 @@ Blockly.Blocks['rsi_block'] = {
         
         const data2 = await response2.json();
 
-        console.log(data2);
+        // console.log(data2);
         
         let imageData = '';
         const jsonData = data2.message[1]
