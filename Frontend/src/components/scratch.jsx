@@ -35,7 +35,7 @@ export default function ScratchInterFace () {
 
     const [xml, setXml] = useState('');
 
-    const [compile, setCompile] = useState('Compile Model');
+    const [compile, setCompile] = useState('Save Data');
     
     const [generatedCode, setGeneratedCode] = useState('');
     const [jsCode, setJsCode] = useState('');
@@ -1680,6 +1680,52 @@ Blockly.Blocks['rsi_block'] = {
         },
       ]
     }
+
+    const saveBacktestModelData = async () => {
+      // const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+      setCompile('Saving Data...');
+  
+      // Input validation
+      if (!chosenDataSet || !generatedCode || !startYear || !endYear || !initCapital) {
+          alert('Please fill in all fields before saving.');
+          setCompile('Save Data');
+          return;
+      }
+  
+      try {
+          const response = await fetch(`${baseUrl}/save-backtest-model-data`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  chosen_dataset: chosenDataSet,
+                  generated_code: generatedCode,
+                  model_backtested: false, // Or false, depending on your logic
+                  dataset_start: startYear,
+                  dataset_end: endYear,
+                  initial_capital: parseFloat(initCapital),
+              }),
+          });
+  
+          const data = await response.json();
+          if (response.ok) {
+              console.log('Success:', data);
+              alert('Data saved successfully!');
+              setCompile('Save Data');
+          } else {
+              console.error('Error:', data);
+              alert('Error occurred! Please try again later.');
+              setCompile('Save Data');
+          }
+      } catch (error) {
+          console.error('Error:', error);
+          alert('Error occurred! Please try again later.');
+          setCompile('Save Data');
+      }
+  };
+  
+  
       
     const compileModelFunction = async () => {
 
@@ -2082,7 +2128,7 @@ Blockly.Blocks['rsi_block'] = {
                 initialXml={xml}
                 onXmlChange={handleXmlChange}
               /><br /> 
-              <button className="btn btn-primary backtest-button" onClick={compileModelFunction}>{compile}</button>
+              <button className="btn btn-primary backtest-button" onClick={saveBacktestModelData}>{compile}</button>
               <br /><br />
             </div>
             </div><br /><br />

@@ -53,7 +53,7 @@ import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
 import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
-
+import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
 
 let globalAudio = null; 
 
@@ -125,7 +125,8 @@ export default function SideNavs() {
     { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
     { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
-    { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination }
+    { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
+    { name: "Duncan's Theme 🗡️", file: duncan_theme}
   ];
 
   const filteredSongs = songs.filter((song) =>
