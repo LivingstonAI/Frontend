@@ -215,7 +215,7 @@ export default function BacktestedResults() {
                 <p>Embed Available: {typeof embed?.embed_item === 'function' ? 'Yes' : 'No'}</p>
               </div>
             </div>
-          </div>
+          </div><br />
           
           {loading ? (
             <div className="loading">Loading backtest results...</div>
@@ -237,7 +237,7 @@ export default function BacktestedResults() {
                     <span className="expand-icon">
                       {expandedModel === modelIndex ? '▼' : '▶'}
                     </span>
-                  </div>
+                  </div><br />
                   
                   {expandedModel === modelIndex && (
                     <div className="model-details">
@@ -249,7 +249,7 @@ export default function BacktestedResults() {
                         </div>
                       </div>
                       
-                      <h6>Backtest Results ({modelData.results.length})</h6>
+                      <h6>Backtest Results ({modelData.results.length})</h6><br />
                       
                       <div className="results-list">
                         {modelData.results.map((result, resultIndex) => (
@@ -267,7 +267,7 @@ export default function BacktestedResults() {
                               <span className="expand-icon">
                                 {expandedResult === resultIndex ? '▼' : '▶'}
                               </span>
-                            </div>
+                            </div><br />
                             
                             {expandedResult === resultIndex && (
                               <div className="result-details">
@@ -371,7 +371,7 @@ export default function BacktestedResults() {
                                       <span>{formatValue(result.expectancy, true)}</span>
                                     </div>
                                   </div>
-                                </div>
+                                </div><br />
                                 
                                 {result.has_plot && (
                                   <div className="plot-container">
