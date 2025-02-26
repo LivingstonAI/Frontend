@@ -12,6 +12,7 @@ export default function BacktestedResults() {
   const [expandedModel, setExpandedModel] = useState(null);
   const [expandedResult, setExpandedResult] = useState(null);
   const [debugInfo, setDebugInfo] = useState({});
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
   const plotRefs = useRef({});
 
   useEffect(() => {
@@ -146,6 +147,54 @@ export default function BacktestedResults() {
     }
   };
 
+  const deleteBacktestModel = async (modelId) => {
+    // Prevent multiple delete operations at once
+    if (deleteInProgress) return;
+    
+    if (!window.confirm('Are you sure you want to delete this model and all associated results?')) {
+      return;
+    }
+    
+    setDeleteInProgress(true);
+    
+    try {
+      console.log(`Deleting backtest model ${modelId}...`);
+      const response = await fetch(`${baseUrl}/delete-backtest-model`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': Cookies.get('csrftoken')
+        },
+        body: JSON.stringify({ model_id: modelId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        console.log('Model deleted successfully');
+        // If the model was expanded, close it
+        if (expandedModel !== null) {
+          setExpandedModel(null);
+          setExpandedResult(null);
+        }
+        // Refresh the data
+        fetchBacktestResults();
+      } else {
+        setError(data.message || 'Failed to delete backtest model');
+        console.error('Failed to delete backtest model:', data.message);
+      }
+    } catch (error) {
+      setError(`Error deleting backtest model: ${error.message}`);
+      console.error('Error deleting backtest model:', error);
+    } finally {
+      setDeleteInProgress(false);
+    }
+  };
+
   const handleModelClick = (index) => {
     setExpandedModel(expandedModel === index ? null : index);
     setExpandedResult(null); // Close any expanded result when toggling model
@@ -227,16 +276,30 @@ export default function BacktestedResults() {
             <div className="backtest-models">
               {backtestData.map((modelData, modelIndex) => (
                 <div key={modelIndex} className="backtest-model">
-                  <div 
-                    className={`model-header ${expandedModel === modelIndex ? 'expanded' : ''}`}
-                    onClick={() => handleModelClick(modelIndex)}
-                  >
-                    <h6>
-                      {modelData.model_info.dataset} ({modelData.model_info.start_date} to {modelData.model_info.end_date})
-                    </h6>
-                    <span className="expand-icon">
-                      {expandedModel === modelIndex ? '▼' : '▶'}
-                    </span>
+                  <div className="model-header-container">
+                    <div 
+                      className={`model-header ${expandedModel === modelIndex ? 'expanded' : ''}`}
+                      onClick={() => handleModelClick(modelIndex)}
+                    >
+                      <p>
+                        {modelData.model_info.dataset} ({modelData.model_info.start_date} to {modelData.model_info.end_date})
+                      </p>
+                      <span className="expand-icon">
+                        {expandedModel === modelIndex ? '▼' : '▶'}
+                      </span>
+                    </div>
+                    
+                    {/* Add Delete Button */}
+                    <button 
+                      className="delete-model-btn" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteBacktestModel(modelData.model_info.id);
+                      }}
+                      disabled={deleteInProgress}
+                    >
+                      {deleteInProgress ? 'Deleting...' : 'Delete Model'}
+                    </button>
                   </div><br />
                   
                   {expandedModel === modelIndex && (
@@ -415,7 +478,7 @@ export default function BacktestedResults() {
         </div>
       </div>
 
-      {/* Add CSS for new debug elements */}
+      {/* CSS styles */}
       <style jsx>{`
         .debug-section {
           margin-bottom: 20px;
@@ -464,12 +527,13 @@ export default function BacktestedResults() {
         }
         
         .retry-plot-btn {
-          background-color:rgb(12, 128, 236);
+          background-color: rgb(12, 128, 236);
           border: 1px solid #ccc;
           padding: 3px 8px;
           font-size: 12px;
           cursor: pointer;
           border-radius: 4px;
+          color: white;
         }
         
         .plot-error {
@@ -487,6 +551,44 @@ export default function BacktestedResults() {
           background-color: white;
           border-radius: 4px;
           padding: 10px;
+        }
+        
+        /* New styles for delete functionality */
+        .model-header-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+        }
+        
+        .model-header {
+          display: flex;
+          align-items: center;
+          flex-grow: 1;
+          cursor: pointer;
+          padding: 10px;
+          background-color: #f5f5f5;
+          border-radius: 4px;
+        }
+        
+        .delete-model-btn {
+          background-color: #dc3545;
+          color: white;
+          border: none;
+          padding: 5px 10px;
+          margin-left: 10px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        
+        .delete-model-btn:disabled {
+          background-color: #6c757d;
+          cursor: not-allowed;
+        }
+        
+        .delete-model-btn:hover:not(:disabled) {
+          background-color: #c82333;
         }
       `}</style>
     </div>
