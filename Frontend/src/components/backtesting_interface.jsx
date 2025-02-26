@@ -278,7 +278,7 @@ export default function BacktestedResults() {
                 <div key={modelIndex} className="backtest-model">
                   <div className="model-header-container">
                     <div 
-                      className={`model-header ${expandedModel === modelIndex ? 'expanded' : ''}`}
+                      className={`model-header ${expandedModel === modelIndex ? '' : ''}`}
                       onClick={() => handleModelClick(modelIndex)}
                     >
                       <div className="model-title">
@@ -318,7 +318,7 @@ export default function BacktestedResults() {
                         {modelData.results.map((result, resultIndex) => (
                           <div key={resultIndex} className="result-item">
                             <div 
-                              className={`result-header ${expandedResult === resultIndex ? 'expanded' : ''}`}
+                              className={`result-header ${expandedResult === resultIndex ? '' : ''}`}
                               onClick={() => handleResultClick(resultIndex)}
                             >
                               <div className="result-header-content">
