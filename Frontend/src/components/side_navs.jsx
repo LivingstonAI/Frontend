@@ -191,7 +191,7 @@ const handlePlay = (song) => {
         <Link to="/chill" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-headphones"></i></p></button></Link>
         <Link to="/alert_bot" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bell-fill"></i></p></button></Link>
         <Link to="/tradergpt_analysis" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-life-preserver"></i></p></button></Link>
-        <Link to="/backtested_results" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-brilliance"></i></p></button></Link>
+        <Link to="/backtested_results" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-yin-yang"></i></p></button></Link>
 
       </div>
 
@@ -240,7 +240,7 @@ const handlePlay = (song) => {
         <i className="bi bi-life-preserver"></i>
     </Link>
     <Link to="/backtested_results" className="side-nav">
-        <i className="bi bi-brilliance"></i>
+        <i className="bi bi-yin-yang"></i>
     </Link>
 </div>
 <br />
