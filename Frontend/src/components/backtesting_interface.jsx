@@ -191,7 +191,7 @@ export default function BacktestedResults() {
           {/* Debug Panel (Toggle Button) */}
           <div className="debug-section">
             <button 
-              className="debug-toggle-btn"
+              className="btn btn-primary debug-toggle-btn"
               onClick={() => {
                 const debugPanel = document.getElementById('plot-debug-panel');
                 if (debugPanel) {
@@ -422,7 +422,6 @@ export default function BacktestedResults() {
         }
         
         .debug-toggle-btn {
-          background-color: :rgb(12, 128, 236);
           border: 1px solid #ccc;
           padding: 5px 10px;
           cursor: pointer;
