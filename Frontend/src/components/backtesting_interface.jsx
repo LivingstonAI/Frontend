@@ -205,7 +205,7 @@ export default function BacktestedResults() {
             {/* Debug Information Display */}
             <div id="plot-debug-panel" className="debug-panel" style={{ display: 'none' }}>
               <h6>Debug Information</h6>
-              <button onClick={fetchBacktestResults}>Refresh Data</button>
+              <button className='btn btn-primary' onClick={fetchBacktestResults}>Refresh Data</button>
               <div className="debug-info">
                 <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
               </div>
