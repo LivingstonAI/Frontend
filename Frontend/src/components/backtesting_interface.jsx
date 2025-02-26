@@ -465,7 +465,7 @@ export default function BacktestedResults() {
         }
         
         .retry-plot-btn {
-          background-color: #e0e0e0;
+          background-color:rgb(12, 128, 236);
           border: 1px solid #ccc;
           padding: 3px 8px;
           font-size: 12px;
