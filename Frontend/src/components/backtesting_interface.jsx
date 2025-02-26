@@ -235,12 +235,13 @@ export default function BacktestedResults() {
       <div className="main-page-body">
         <SideNavs />
         <div className="main-body-info">
-          <h5 className="major-upcoming-news-events-header">Backtested Results</h5><br /><br />
+          <h5 className="major-upcoming-news-events-header">Backtested Results</h5>
+          <br />
           
           {/* Debug Panel (Toggle Button) */}
           <div className="debug-section">
             <button 
-              className="btn btn-primary debug-toggle-btn"
+              className="debug-toggle-btn"
               onClick={() => {
                 const debugPanel = document.getElementById('plot-debug-panel');
                 if (debugPanel) {
@@ -254,7 +255,7 @@ export default function BacktestedResults() {
             {/* Debug Information Display */}
             <div id="plot-debug-panel" className="debug-panel" style={{ display: 'none' }}>
               <h6>Debug Information</h6>
-              <button className='btn btn-primary' onClick={fetchBacktestResults}>Refresh Data</button>
+              <button className='refresh-btn' onClick={fetchBacktestResults}>Refresh Data</button>
               <div className="debug-info">
                 <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
               </div>
@@ -264,14 +265,23 @@ export default function BacktestedResults() {
                 <p>Embed Available: {typeof embed?.embed_item === 'function' ? 'Yes' : 'No'}</p>
               </div>
             </div>
-          </div><br />
+          </div>
           
           {loading ? (
-            <div className="loading">Loading backtest results...</div>
+            <div className="loading">
+              <div className="loading-spinner"></div>
+              <p>Loading backtest results...</p>
+            </div>
           ) : error ? (
-            <div className="error">{error}</div>
+            <div className="error">
+              <div className="error-icon">⚠️</div>
+              <p>{error}</p>
+            </div>
           ) : backtestData.length === 0 ? (
-            <div className="no-data">No backtest results found</div>
+            <div className="no-data">
+              <div className="no-data-icon">📊</div>
+              <p>No backtest results found</p>
+            </div>
           ) : (
             <div className="backtest-models">
               {backtestData.map((modelData, modelIndex) => (
@@ -281,7 +291,7 @@ export default function BacktestedResults() {
                       className={`model-header ${expandedModel === modelIndex ? 'expanded' : ''}`}
                       onClick={() => handleModelClick(modelIndex)}
                     >
-                      <p>
+                      <p className="model-title">
                         {modelData.model_info.dataset} ({modelData.model_info.start_date} to {modelData.model_info.end_date})
                       </p>
                       <span className="expand-icon">
@@ -289,7 +299,6 @@ export default function BacktestedResults() {
                       </span>
                     </div>
                     
-                    {/* Add Delete Button */}
                     <button 
                       className="delete-model-btn" 
                       onClick={(e) => {
@@ -298,9 +307,9 @@ export default function BacktestedResults() {
                       }}
                       disabled={deleteInProgress}
                     >
-                      {deleteInProgress ? 'Deleting...' : 'Delete Model'}
+                      {deleteInProgress ? 'Deleting...' : 'Delete'}
                     </button>
-                  </div><br />
+                  </div>
                   
                   {expandedModel === modelIndex && (
                     <div className="model-details">
@@ -309,10 +318,12 @@ export default function BacktestedResults() {
                         <div className="code-snippet">
                           <p><strong>Strategy Code:</strong></p>
                           <pre>{modelData.model_info.code_snippet}</pre>
+                         
+
                         </div>
                       </div>
                       
-                      <h6>Backtest Results ({modelData.results.length})</h6><br />
+                      <h6 className="results-heading">Backtest Results ({modelData.results.length})</h6>
                       
                       <div className="results-list">
                         {modelData.results.map((result, resultIndex) => (
@@ -321,16 +332,16 @@ export default function BacktestedResults() {
                               className={`result-header ${expandedResult === resultIndex ? 'expanded' : ''}`}
                               onClick={() => handleResultClick(resultIndex)}
                             >
-                              <span>Run on: {new Date(result.created_at).toLocaleString()}</span>
+                              <span className="result-date">Run on: {new Date(result.created_at).toLocaleString()}</span>
                               <span className="metrics-preview">
-                                Return: {formatValue(result.return_percent, true)} | 
-                                Sharpe: {formatValue(result.sharpe_ratio)} | 
-                                Win Rate: {formatValue(result.win_rate, true)}
+                                <span className="metric-badge">Return: {formatValue(result.return_percent, true)}</span>
+                                <span className="metric-badge">Sharpe: {formatValue(result.sharpe_ratio)}</span>
+                                <span className="metric-badge">Win Rate: {formatValue(result.win_rate, true)}</span>
                               </span>
                               <span className="expand-icon">
                                 {expandedResult === resultIndex ? '▼' : '▶'}
                               </span>
-                            </div><br />
+                            </div>
                             
                             {expandedResult === resultIndex && (
                               <div className="result-details">
@@ -339,19 +350,19 @@ export default function BacktestedResults() {
                                     <h6>Performance</h6>
                                     <div className="metric">
                                       <span>Return:</span>
-                                      <span>{formatValue(result.return_percent, true)}</span>
+                                      <span className="metric-value">{formatValue(result.return_percent, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Buy & Hold Return:</span>
-                                      <span>{formatValue(result.buy_hold_return, true)}</span>
+                                      <span className="metric-value">{formatValue(result.buy_hold_return, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Annual Return:</span>
-                                      <span>{formatValue(result.annual_return, true)}</span>
+                                      <span className="metric-value">{formatValue(result.annual_return, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Exposure Time:</span>
-                                      <span>{formatValue(result.exposure_time, true)}</span>
+                                      <span className="metric-value">{formatValue(result.exposure_time, true)}</span>
                                     </div>
                                   </div>
                                   
@@ -359,19 +370,19 @@ export default function BacktestedResults() {
                                     <h6>Risk Metrics</h6>
                                     <div className="metric">
                                       <span>Sharpe Ratio:</span>
-                                      <span>{formatValue(result.sharpe_ratio)}</span>
+                                      <span className="metric-value">{formatValue(result.sharpe_ratio)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Sortino Ratio:</span>
-                                      <span>{formatValue(result.sortino_ratio)}</span>
+                                      <span className="metric-value">{formatValue(result.sortino_ratio)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Calmar Ratio:</span>
-                                      <span>{formatValue(result.calmar_ratio)}</span>
+                                      <span className="metric-value">{formatValue(result.calmar_ratio)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Volatility (Ann.):</span>
-                                      <span>{formatValue(result.volatility_annual, true)}</span>
+                                      <span className="metric-value">{formatValue(result.volatility_annual, true)}</span>
                                     </div>
                                   </div>
                                   
@@ -379,19 +390,19 @@ export default function BacktestedResults() {
                                     <h6>Drawdowns</h6>
                                     <div className="metric">
                                       <span>Max Drawdown:</span>
-                                      <span>{formatValue(result.max_drawdown, true)}</span>
+                                      <span className="metric-value">{formatValue(result.max_drawdown, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Avg Drawdown:</span>
-                                      <span>{formatValue(result.avg_drawdown, true)}</span>
+                                      <span className="metric-value">{formatValue(result.avg_drawdown, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Max Drawdown Duration:</span>
-                                      <span>{result.max_drawdown_duration}</span>
+                                      <span className="metric-value">{result.max_drawdown_duration}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Avg Drawdown Duration:</span>
-                                      <span>{result.avg_drawdown_duration}</span>
+                                      <span className="metric-value">{result.avg_drawdown_duration}</span>
                                     </div>
                                   </div>
                                   
@@ -399,49 +410,49 @@ export default function BacktestedResults() {
                                     <h6>Trade Statistics</h6>
                                     <div className="metric">
                                       <span>Number of Trades:</span>
-                                      <span>{result.num_trades}</span>
+                                      <span className="metric-value">{result.num_trades}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Win Rate:</span>
-                                      <span>{formatValue(result.win_rate, true)}</span>
+                                      <span className="metric-value">{formatValue(result.win_rate, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Best Trade:</span>
-                                      <span>{formatValue(result.best_trade, true)}</span>
+                                      <span className="metric-value">{formatValue(result.best_trade, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Worst Trade:</span>
-                                      <span>{formatValue(result.worst_trade, true)}</span>
+                                      <span className="metric-value">{formatValue(result.worst_trade, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Avg Trade:</span>
-                                      <span>{formatValue(result.avg_trade, true)}</span>
+                                      <span className="metric-value">{formatValue(result.avg_trade, true)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Max Trade Duration:</span>
-                                      <span>{result.max_trade_duration}</span>
+                                      <span className="metric-value">{result.max_trade_duration}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Avg Trade Duration:</span>
-                                      <span>{result.avg_trade_duration}</span>
+                                      <span className="metric-value">{result.avg_trade_duration}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Profit Factor:</span>
-                                      <span>{formatValue(result.profit_factor)}</span>
+                                      <span className="metric-value">{formatValue(result.profit_factor)}</span>
                                     </div>
                                     <div className="metric">
                                       <span>Expectancy:</span>
-                                      <span>{formatValue(result.expectancy, true)}</span>
+                                      <span className="metric-value">{formatValue(result.expectancy, true)}</span>
                                     </div>
                                   </div>
-                                </div><br />
+                                </div>
                                 
                                 {result.has_plot && (
                                   <div className="plot-container">
                                     <div className="plot-header">
                                       <h6>Performance Chart</h6>
                                       <button 
-                                        className="retry-plot-btn"
+                                        className="btn btn-primary retry-plot-btn"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           retryRenderPlot(modelIndex, resultIndex);
@@ -480,117 +491,338 @@ export default function BacktestedResults() {
 
       {/* CSS styles */}
       <style jsx>{`
+        .main-body-info {
+          padding: 24px;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+        
+        .major-upcoming-news-events-header {
+          font-size: 24px;
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 24px;
+          border-bottom: 2px solid #f0f0f0;
+          padding-bottom: 12px;
+        }
+        
+        /* Debug Panel Styles */
         .debug-section {
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
         
         .debug-toggle-btn {
-          border: 1px solid #ccc;
-          padding: 5px 10px;
-          cursor: pointer;
+          background-color: #f0f0f0;
+          border: 1px solid #ddd;
+          padding: 8px 12px;
           border-radius: 4px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: #555;
+        }
+        
+        .debug-toggle-btn:hover {
+          background-color: #e0e0e0;
         }
         
         .debug-panel {
           background-color: #f8f8f8;
           border: 1px solid #ddd;
-          padding: 15px;
-          margin-top: 10px;
-          border-radius: 4px;
+          border-radius: 6px;
+          padding: 16px;
+          margin-top: 12px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
           max-height: 400px;
           overflow-y: auto;
         }
         
+        .debug-panel h6 {
+          margin-top: 0;
+          margin-bottom: 12px;
+          font-weight: 600;
+          color: #333;
+        }
+        
+        .refresh-btn {
+          background-color: #4a90e2;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: background-color 0.2s;
+          margin-bottom: 12px;
+        }
+        
+        .refresh-btn:hover {
+          background-color: #3a7bc8;
+        }
+        
         .debug-info {
-          font-family: monospace;
+          font-family: 'Courier New', monospace;
           font-size: 12px;
-          white-space: pre-wrap;
           background-color: #eee;
-          padding: 10px;
+          padding: 12px;
           border-radius: 4px;
           max-height: 200px;
           overflow-y: auto;
-          margin-top: 10px;
+          margin-top: 12px;
+          white-space: pre-wrap;
+          border: 1px solid #ddd;
         }
         
         .bokeh-status {
-          margin-top: 15px;
-          padding-top: 15px;
+          margin-top: 16px;
+          padding-top: 16px;
           border-top: 1px solid #ddd;
         }
         
-        .plot-header {
+        .bokeh-status h6 {
+          margin-top: 0;
+          margin-bottom: 8px;
+        }
+        
+        .bokeh-status p {
+          margin: 4px 0;
+          font-size: 14px;
+          color: #555;
+        }
+        
+        /* Loading, Error and No Data States */
+        .loading, .error, .no-data {
           display: flex;
-          justify-content: space-between;
+          flex-direction: column;
           align-items: center;
-          margin-bottom: 10px;
+          justify-content: center;
+          padding: 48px 24px;
+          background-color: #f9f9f9;
+          border-radius: 8px;
+          margin-top: 24px;
+          text-align: center;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+      
+        
+        .loading p, .error p, .no-data p {
+          margin: 0;
+          font-size: 16px;
+          color: #555;
         }
         
-        .retry-plot-btn {
-          background-color: rgb(12, 128, 236);
-          border: 1px solid #ccc;
-          padding: 3px 8px;
-          font-size: 12px;
-          cursor: pointer;
-          border-radius: 4px;
-          color: white;
+        .error {
+          background-color: #fff8f8;
+          border-left: 4px solid #e74c3c;
         }
         
-        .plot-error {
-          color: #d9534f;
-          background-color: #f9f2f2;
-          padding: 10px;
-          margin-top: 10px;
-          border-radius: 4px;
-          border-left: 3px solid #d9534f;
+        .error-icon, .no-data-icon {
+          font-size: 32px;
+          margin-bottom: 16px;
         }
         
-        .bk-root {
-          min-height: 400px;
-          border: 1px solid #eee;
-          background-color: white;
-          border-radius: 4px;
-          padding: 10px;
+        /* Backtest Models Styles */
+        .backtest-models {
+          margin-top: 24px;
         }
         
-        /* New styles for delete functionality */
+        .backtest-model {
+          background-color: #fff;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          margin-bottom: 24px;
+          border: 1px solid #e8e8e8;
+          overflow: hidden;
+        }
+        
         .model-header-container {
           display: flex;
           justify-content: space-between;
           align-items: center;
           width: 100%;
+          padding-right: 8px;
         }
         
         .model-header {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          flex-grow: 1;
+          padding: 16px;
+          background-color: #f9f9f9;
           cursor: pointer;
-          padding: 10px;
-          background-color: #f5f5f5;
-          border-radius: 4px;
+          flex-grow: 1;
+          transition: background-color 0.2s;
+          border-bottom: 1px solid transparent;
+        }
+        
+        .model-header:hover {
+          background-color: #f0f0f0;
+        }
+        
+        .model-header.expanded {
+          background-color: #f0f0f0;
+          border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .model-title {
+          margin: 0;
+          font-weight: 500;
+          color: #333;
+          font-size: 16px;
+        }
+        
+        .expand-icon {
+          color: #666;
+          font-size: 14px;
+          transition: transform 0.2s;
+        }
+        
+        .model-header.expanded .expand-icon {
+          transform: rotate(0deg);
         }
         
         .delete-model-btn {
-          background-color: #dc3545;
+          background-color: #e74c3c;
           color: white;
           border: none;
-          padding: 5px 10px;
-          margin-left: 10px;
+          padding: 6px 12px;
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        }
-        
-        .delete-model-btn:disabled {
-          background-color: #6c757d;
-          cursor: not-allowed;
+          transition: background-color 0.2s;
+          margin-left: 8px;
         }
         
         .delete-model-btn:hover:not(:disabled) {
-          background-color: #c82333;
+          background-color: #c0392b;
         }
-      `}</style>
-    </div>
+        
+        .delete-model-btn:disabled {
+          background-color: #bdc3c7;
+          cursor: not-allowed;
+        }
+        
+        .model-details {
+          padding: 24px;
+        }
+        
+        .model-info {
+          background-color: #f9f9f9;
+          padding: 16px;
+          border-radius: 6px;
+          margin-bottom: 24px;
+          border: 1px solid #eee;
+        }
+        
+        .model-info p {
+          margin: 0 0 12px 0;
+          color: #333;
+        }
+        
+        .code-snippet {
+          margin-top: 12px;
+        }
+        
+        .code-snippet p {
+          margin: 0 0 8px 0;
+        }
+        
+        .code-snippet pre {
+          background-color: #f0f0f0;
+          padding: 12px;
+          border-radius: 4px;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          overflow-x: auto;
+          
+          border: 1px solid #ddd;
+          margin: 0;
+          white-space: pre-wrap;
+          color: #333;
+        }
+        
+        .results-heading {
+          font-size: 18px;
+          font-weight: 600;
+          color: #333;
+          margin: 0 0 16px 0;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #eee;
+        }
+        
+        .results-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .result-item {
+          background-color: #fff;
+          border-radius: 6px;
+          border: 1px solid #e8e8e8;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .result-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 14px 16px;
+          background-color: #f5f5f5;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .result-header:hover {
+          background-color: #ececec;
+        }
+        
+        .result-header.expanded {
+          background-color: #e8e8e8;
+          border-bottom: 1px solid #ddd;
+        }
+        
+        .result-date {
+          font-size: 14px;
+          color: #555;
+          font-weight: 500;
+        }
+        
+        .metrics-preview {
+          display: flex;
+          gap: 8px;
+        }
+        
+        .metric-badge {
+          background-color: #e8f4fd;
+          color: #2c82c9;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 13px;
+          display: inline-block;
+        }
+        
+        .result-details {
+          padding: 20px;
+        }
+        
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+        
+        .metric-group {
+  background-color: #f9f9f9;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+`
+}</style>
+        
+</div>
   );
 }

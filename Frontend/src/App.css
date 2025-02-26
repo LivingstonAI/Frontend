@@ -5051,7 +5051,7 @@ select.form-control {
 
 /* Add these styles to your CSS file */
 
-.backtest-models {
+/* .backtest-models {
   margin-top: 20px;
 }
 
@@ -5167,7 +5167,7 @@ select.form-control {
   padding: 12px;
   border-radius: 4px;
   border: 1px solid #eee;
-}
+} */
 
 .metric-group h6 {
   margin-top: 0;
