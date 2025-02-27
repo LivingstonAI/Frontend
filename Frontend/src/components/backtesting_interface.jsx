@@ -7,6 +7,7 @@ import { embed } from '@bokeh/bokehjs';
 export default function BacktestedResults() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
   const [backtestData, setBacktestData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedModel, setExpandedModel] = useState(null);
@@ -14,17 +15,36 @@ export default function BacktestedResults() {
   const [debugInfo, setDebugInfo] = useState({});
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const plotRefs = useRef({});
+  
+  // New state for filters and search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    minReturn: '',
+    maxReturn: '',
+    minSharpe: '',
+    maxSharpe: '',
+    minProfitFactor: '',
+    maxProfitFactor: '',
+    minWinRate: '',
+    maxWinRate: '',
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchBacktestResults();
   }, []);
 
+  // Apply filters and search whenever data, filters, or search term changes
+  useEffect(() => {
+    applyFiltersAndSearch();
+  }, [backtestData, filters, searchTerm]);
+
   useEffect(() => {
     // Render plots for expanded results
     if (expandedResult !== null && expandedModel !== null && 
-        backtestData[expandedModel]?.results[expandedResult]?.has_plot) {
+        filteredData[expandedModel]?.results[expandedResult]?.has_plot) {
       
-      const resultData = backtestData[expandedModel].results[expandedResult];
+      const resultData = filteredData[expandedModel].results[expandedResult];
       const plotId = `plot-${expandedModel}-${expandedResult}`;
       const plotRef = plotRefs.current[plotId];
       
@@ -103,7 +123,7 @@ export default function BacktestedResults() {
         }
       }
     }
-  }, [expandedResult, expandedModel, backtestData]);
+  }, [expandedResult, expandedModel, filteredData]);
 
   const fetchBacktestResults = async () => {
     setLoading(true);
@@ -135,6 +155,7 @@ export default function BacktestedResults() {
         }));
         
         setBacktestData(processedData);
+        setFilteredData(processedData); // Initialize filtered data with all data
         console.log(`Loaded ${processedData.length} backtest models`);
       } else {
         setError(data.message || 'Failed to fetch backtest results');
@@ -145,6 +166,89 @@ export default function BacktestedResults() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to apply filters and search
+  const applyFiltersAndSearch = () => {
+    if (!backtestData.length) return;
+    
+    console.log('Applying filters and search');
+    
+    // Filter models based on search term (dataset name or any text in code snippet)
+    let filtered = backtestData.filter(model => {
+      const datasetMatch = model.model_info.dataset.toLowerCase().includes(searchTerm.toLowerCase());
+      const codeMatch = model.model_info.code_snippet?.toLowerCase().includes(searchTerm.toLowerCase());
+      return searchTerm === '' || datasetMatch || codeMatch;
+    });
+    
+    // Apply numeric filters to results within each model
+    filtered = filtered.map(model => {
+      const filteredResults = model.results.filter(result => {
+        // Check each metric against min/max filters
+        const meetsReturnFilter = 
+          (filters.minReturn === '' || (result.return_percent >= parseFloat(filters.minReturn))) &&
+          (filters.maxReturn === '' || (result.return_percent <= parseFloat(filters.maxReturn)));
+          
+        const meetsSharpeFilter = 
+          (filters.minSharpe === '' || (result.sharpe_ratio >= parseFloat(filters.minSharpe))) &&
+          (filters.maxSharpe === '' || (result.sharpe_ratio <= parseFloat(filters.maxSharpe)));
+          
+        const meetsProfitFactorFilter = 
+          (filters.minProfitFactor === '' || (result.profit_factor >= parseFloat(filters.minProfitFactor))) &&
+          (filters.maxProfitFactor === '' || (result.profit_factor <= parseFloat(filters.maxProfitFactor)));
+          
+        const meetsWinRateFilter = 
+          (filters.minWinRate === '' || (result.win_rate >= parseFloat(filters.minWinRate))) &&
+          (filters.maxWinRate === '' || (result.win_rate <= parseFloat(filters.maxWinRate)));
+          
+        return meetsReturnFilter && meetsSharpeFilter && meetsProfitFactorFilter && meetsWinRateFilter;
+      });
+      
+      return {
+        ...model,
+        results: filteredResults
+      };
+    });
+    
+    // Remove models with no matching results
+    filtered = filtered.filter(model => model.results.length > 0);
+    
+    setFilteredData(filtered);
+    
+    // Reset expanded selections if the filtered data changes significantly
+    if (expandedModel !== null && (expandedModel >= filtered.length || filtered[expandedModel]?.model_info.id !== backtestData[expandedModel]?.model_info.id)) {
+      setExpandedModel(null);
+      setExpandedResult(null);
+    }
+    
+    if (expandedResult !== null && expandedModel !== null && 
+        (expandedResult >= filtered[expandedModel]?.results.length)) {
+      setExpandedResult(null);
+    }
+  };
+
+  // Handle input change for filters
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Reset all filters
+  const resetFilters = () => {
+    setFilters({
+      minReturn: '',
+      maxReturn: '',
+      minSharpe: '',
+      maxSharpe: '',
+      minProfitFactor: '',
+      maxProfitFactor: '',
+      minWinRate: '',
+      maxWinRate: '',
+    });
+    setSearchTerm('');
   };
 
   const deleteBacktestModel = async (modelId) => {
@@ -215,7 +319,7 @@ export default function BacktestedResults() {
 
   // Function to manually retry rendering a plot
   const retryRenderPlot = (modelIndex, resultIndex) => {
-    if (backtestData[modelIndex]?.results[resultIndex]?.has_plot) {
+    if (filteredData[modelIndex]?.results[resultIndex]?.has_plot) {
       const plotId = `plot-${modelIndex}-${resultIndex}`;
       console.log(`Manually retrying plot render for ${plotId}`);
       
@@ -236,6 +340,142 @@ export default function BacktestedResults() {
         <SideNavs />
         <div className="main-body-info">
           <h5 className="major-upcoming-news-events-header">Backtested Results</h5><br /><br />
+          
+          {/* Search and Filter Section */}
+          <div className="search-filter-section">
+            <div className="search-container">
+              <input
+                type="text"
+                className="form-control search-input"
+                placeholder="Search by account name or code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <br />
+              <button 
+                className="btn btn-primary filter-toggle-btn"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+              <br /><br />
+              <button 
+                className="btn btn-primary reset-btn"
+                onClick={resetFilters}
+              >
+                Reset
+              </button>
+            </div>
+            
+            {showFilters && (
+              <div className="filters-container">
+                <div className="filter-group">
+                  <h6>Return (%)</h6>
+                  <div className="filter-inputs">
+                    <input
+                      type="number"
+                      name="minReturn"
+                      placeholder="Min"
+                      value={filters.minReturn}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                    <span>to</span>
+                    <input
+                      type="number"
+                      name="maxReturn"
+                      placeholder="Max"
+                      value={filters.maxReturn}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                  </div>
+                </div>
+                
+                <div className="filter-group">
+                  <h6>Sharpe Ratio</h6>
+                  <div className="filter-inputs">
+                    <input
+                      type="number"
+                      name="minSharpe"
+                      placeholder="Min"
+                      value={filters.minSharpe}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                    <span>to</span>
+                    <input
+                      type="number"
+                      name="maxSharpe"
+                      placeholder="Max"
+                      value={filters.maxSharpe}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                  </div>
+                </div>
+                
+                <div className="filter-group">
+                  <h6>Profit Factor</h6>
+                  <div className="filter-inputs">
+                    <input
+                      type="number"
+                      name="minProfitFactor"
+                      placeholder="Min"
+                      value={filters.minProfitFactor}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                    <span>to</span>
+                    <input
+                      type="number"
+                      name="maxProfitFactor"
+                      placeholder="Max"
+                      value={filters.maxProfitFactor}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                  </div>
+                </div>
+                
+                <div className="filter-group">
+                  <h6>Win Rate (%)</h6>
+                  <div className="filter-inputs">
+                    <input
+                      type="number"
+                      name="minWinRate"
+                      placeholder="Min"
+                      value={filters.minWinRate}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                    <span>to</span>
+                    <input
+                      type="number"
+                      name="maxWinRate"
+                      placeholder="Max"
+                      value={filters.maxWinRate}
+                      onChange={handleFilterChange}
+                      className="filter-input"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Results count and applied filters summary */}
+            <div className="filter-summary">
+              <div className="results-count">
+                {filteredData.length} model{filteredData.length !== 1 ? 's' : ''} found <br />
+                 {filteredData.reduce((total, model) => total + model.results.length, 0)} result{filteredData.reduce((total, model) => total + model.results.length, 0) !== 1 ? 's' : ''}
+              </div>
+              {Object.values(filters).some(val => val !== '') && (
+                <div className="applied-filters">
+                  Filters applied
+                </div>
+              )}
+            </div>
+          </div><br />
           
           {/* Debug Panel (Toggle Button) */}
           <div className="debug-section">
@@ -270,11 +510,15 @@ export default function BacktestedResults() {
             <div className="loading">Loading backtest results...</div>
           ) : error ? (
             <div className="error">{error}</div>
-          ) : backtestData.length === 0 ? (
-            <div className="no-data">No backtest results found</div>
+          ) : filteredData.length === 0 ? (
+            <div className="no-data">
+              {backtestData.length === 0 ? 
+                "No backtest results found" : 
+                "No results match your current filters. Try adjusting your search criteria."}
+            </div>
           ) : (
             <div className="backtest-models">
-              {backtestData.map((modelData, modelIndex) => (
+              {filteredData.map((modelData, modelIndex) => (
                 <div key={modelIndex} className="backtest-model">
                   <div className="model-header-container">
                     <div 
