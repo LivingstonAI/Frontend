@@ -493,7 +493,7 @@ const fetchSectionData = async (sectionName) => {
                                     className="btn btn-primary"
                                 >
                                     Browse Sections
-                                </button>
+                                </button><br /> <br />
                                 {selectedSection && (
                                     <div style={styles.selectedSection}>
                                         <span>Selected: </span>
@@ -677,14 +677,16 @@ const fetchSectionData = async (sectionName) => {
                                     value={quizType}
                                     onChange={(e) => setQuizType(e.target.value)}
                                     style={modalStyles.select}
+                                    className="form-control"
                                 >
-                                    <option value="normal">Normal</option>
-                                    <option value="true/false">True/False</option>
+                                    <option className="form-control" value="normal">Normal</option>
+                                    <option className="form-control" value="true/false">True/False</option>
                                 </select>
-                            </label>
+                            </label><br />
                             <label>
                                 Number of Questions:
                                 <input
+                                    className="form-control"
                                     type="number"
                                     min="1"
                                     max="50"
@@ -692,7 +694,7 @@ const fetchSectionData = async (sectionName) => {
                                     onChange={(e) => setNumQuestions(e.target.value)}
                                     style={modalStyles.input}
                                 />
-                            </label>
+                            </label> <br />
                             <button style={styles.generateButton} onClick={fetchQuizData}>
                                 Generate Quiz
                             </button><br /><br />
@@ -714,7 +716,7 @@ const styles = {
     mainBody: { padding: "20px" },
     inputContainer: { marginBottom: "20px" },
     inputActions: { 
-        display: "flex", 
+        display: "block", 
         justifyContent: "space-between", 
         alignItems: "center", 
         marginBottom: "10px" 
