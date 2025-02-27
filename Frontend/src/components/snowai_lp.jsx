@@ -49,7 +49,7 @@ import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” 
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-
+import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
 
 export default function SnowAILandingPage() {
 
@@ -125,6 +125,7 @@ export default function SnowAILandingPage() {
     "45": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
     "46": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "47": { name: "Duncan's Theme 🗡️", file: duncan_theme },
+    "48": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
   };
 
     // State for search term and filtered songs
