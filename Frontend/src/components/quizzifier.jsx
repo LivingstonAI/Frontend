@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-
 export default function Quizzifier() {
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
@@ -19,6 +18,13 @@ export default function Quizzifier() {
     const [showOptions, setShowOptions] = useState(false);
     const [quizType, setQuizType] = useState('');
     const [numQuestions, setNumQuestions] = useState(0);
+    
+    // New state variables for chill sections
+    const [sections, setSections] = useState([]);
+    const [selectedSection, setSelectedSection] = useState("");
+    const [showSections, setShowSections] = useState(false);
+
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchAPIKey = async () => {
         try {
@@ -33,6 +39,49 @@ export default function Quizzifier() {
             setStatusMessage("Failed to fetch API key.");
         }
     };
+
+    // New function to fetch all section names
+    const fetchChillSections = async () => {
+        try {
+            setStatusMessage("Fetching sections...");
+            const response = await fetch(`${baseUrl}/fetch-chill-sections`);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const data = await response.json();
+            setSections(data.sections);
+            setStatusMessage("");
+            setShowSections(true);
+        } catch (error) {
+            console.error("Error fetching sections:", error);
+            setStatusMessage("Failed to fetch sections.");
+        }
+    };
+
+    
+    // Function to clean markdown headings
+const cleanMarkdownHeadings = (text) => {
+    return text.replace(/^#{1,3}[\s]*/gm, '');
+};
+
+const fetchSectionData = async (sectionName) => {
+    try {
+        setStatusMessage("Fetching section data...");
+        const response = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(sectionName)}`);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+
+       
+        const cleanText = data.text.replace(/#{1,3}/g, ''); // Matches 1 to 3 '#' characters
+
+        
+        setUserInput(cleanText);
+        setSelectedSection(sectionName);
+        setStatusMessage("");
+        setShowSections(false);
+    } catch (error) {
+        console.error("Error fetching section data:", error);
+        setStatusMessage("Failed to fetch section data.");
+    }
+};
 
     const setParameters = () => {
         setShowOptions(true);
@@ -413,6 +462,14 @@ export default function Quizzifier() {
         setShowOptions(false);
     }
 
+    const showSectionsModal = () => {
+        fetchChillSections();
+    }
+
+    const closeSectionsModal = () => {
+        setShowSections(false);
+    }
+
     // Calculate the number of correct and incorrect answers
     const correctAnswersCount = answers.filter((answer) => answer.isCorrect).length;
     const incorrectAnswersCount = answers.length - correctAnswersCount;
@@ -429,57 +486,31 @@ export default function Quizzifier() {
                     <div>
                         <h5 className="quiz-header">Welcome to the Quiz</h5>
                         <div style={styles.inputContainer}>
+                            <div style={styles.inputActions}>
+                                <button 
+                                    // style={styles} 
+                                    onClick={showSectionsModal}
+                                    className="btn btn-primary"
+                                >
+                                    Browse Sections
+                                </button>
+                                {selectedSection && (
+                                    <div style={styles.selectedSection}>
+                                        <span>Selected: </span>
+                                        <strong>{selectedSection}</strong>
+                                    </div>
+                                )}
+                            </div>
                             <textarea
-                                placeholder="Enter your topic or content for the quiz..."
-                                value={userInput}
-                                onChange={(e) => setUserInput(e.target.value)}
-                                style={styles.textarea}
-                                className="form-control"
-                            />
+                                    placeholder="Enter your topic or content for the quiz..."
+                                    value={userInput}
+                                    onChange={(e) => setUserInput(e.target.value)}
+                                    style={styles.textarea}
+                                    className="form-control"
+                                />
                             <button style={styles.generateButton} onClick={setParameters}>
                                 Generate Quiz
                             </button>
-                            {showOptions && (
-                                <div style={modalStyles.overlay}>
-                                    <div style={modalStyles.content}>
-                                        <h2>Select Quiz Options</h2>
-                                        <label>
-                                            Quiz Type:
-                                            <select
-                                                value={quizType}
-                                                onChange={(e) => setQuizType(e.target.value)}
-                                                style={modalStyles.select}
-                                            >
-                                                <option value="normal">Normal</option>
-                                                <option value="true/false">True/False</option>
-                                            </select>
-                                        </label>
-                                        <label>
-                                            Number of Questions:
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="50"
-                                                value={numQuestions}
-                                                onChange={(e) => setNumQuestions(e.target.value)}
-                                                style={modalStyles.input}
-                                            />
-                                        </label>
-                                        {/* <button
-                                            style={modalStyles.button}
-                                            onClick={() => fetchQuizData())}
-                                        >
-                                            Generate Quiz
-                                        </button> */}
-                                        <button style={styles.generateButton} onClick={fetchQuizData}>
-                                            Generate Quiz
-                                        </button><br /><br />
-                                        <button style={styles.generateButton} onClick={closeParametersModal}>
-                                            Close
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                         {quiz && (
                             <button style={styles.startButton} onClick={handleStartQuiz} className="btn btn-primary">
@@ -556,48 +587,146 @@ export default function Quizzifier() {
                     </div>
                 )}
                 {showStats && (
-    <div style={styles.completionScreen}>
-        <h2 style={styles.completionTitle}>Quiz Completed! 🎉</h2>
-        <p style={styles.statsText}>
-            Correct Answers: <strong>{correctAnswersCount}</strong> / {quiz.data.length}
-        </p>
-        <p style={styles.statsText}>
-            Incorrect Answers: <strong>{incorrectAnswersCount}</strong>
-        </p>
-        <h3 style={styles.feedbackTitle}>Feedback:</h3>
-        <ul style={styles.feedbackList}>
-            {answers.map((answer, index) => (
-                <li
-                    key={index}
-                    style={styles.feedbackItem}
-                >
-                    <p><strong>Q:</strong> {answer.question}</p>
-                    <p>
-                        <strong>Your Answer:</strong> {answer.selectedAnswer}{" "}
-                        {answer.isCorrect ? "✔️" : "❌"}
-                    </p>
-                    <p>
-                        <strong>Correct Answer:</strong> {answer.correctAnswer}
-                    </p>
-                </li>
-            ))}
-        </ul>
-        <button style={styles.startOverButton} onClick={handleStartOver} className="btn btn-primary">
-            Start Over
-        </button>
-    </div>
-)}
+                    <div style={styles.completionScreen}>
+                        <h2 style={styles.completionTitle}>Quiz Completed! 🎉</h2>
+                        <p style={styles.statsText}>
+                            Correct Answers: <strong>{correctAnswersCount}</strong> / {quiz.data.length}
+                        </p>
+                        <p style={styles.statsText}>
+                            Incorrect Answers: <strong>{incorrectAnswersCount}</strong>
+                        </p>
+                        <h3 style={styles.feedbackTitle}>Feedback:</h3>
+                        <ul style={styles.feedbackList}>
+                            {answers.map((answer, index) => (
+                                <li
+                                    key={index}
+                                    style={styles.feedbackItem}
+                                >
+                                    <p><strong>Q:</strong> {answer.question}</p>
+                                    <p>
+                                        <strong>Your Answer:</strong> {answer.selectedAnswer}{" "}
+                                        {answer.isCorrect ? "✔️" : "❌"}
+                                    </p>
+                                    <p>
+                                        <strong>Correct Answer:</strong> {answer.correctAnswer}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                        <button style={styles.startOverButton} onClick={handleStartOver} className="btn btn-primary">
+                            Start Over
+                        </button>
+                    </div>
+                )}
                 
                 {showModal && <div style={styles.modal}>Loading... Please wait</div>}
+                
+                
+                {/* Modal for displaying sections */}
+            {showSections && (
+            <div style={modalStyles.overlay}>
+                <div style={modalStyles.content}>
+                    <h2>Browse Sections</h2>
+                    
+                    {/* Search input */}
+                    <div style={styles.searchContainer}>
+                        <input
+                            type="text"
+                            placeholder="Search sections..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={styles.searchInput}
+                            className="form-control"
+                        />
+                    </div>
+                    
+                    <div style={styles.sectionsList}>
+                    {sections.length > 0 ? (
+                        sections
+                            .filter(section => 
+                                section.section.toLowerCase().includes(searchTerm.toLowerCase())
+                            )
+                            .map((section, index) => (
+                                <div 
+                                    key={index} 
+                                    style={styles.sectionItem}
+                                    onClick={() => fetchSectionData(section.section)} 
+                                >
+                                    {section.section} <br />
+                                </div>
+                            ))
+                    ) : (
+                        <p>No sections available</p>
+                    )}
+                </div>
+                <button style={styles.generateButton} onClick={closeSectionsModal}>
+                    Close
+                </button>
+            </div>
+        </div>
+    )}
+                
+                {/* Modal for quiz options */}
+                {showOptions && (
+                    <div style={modalStyles.overlay}>
+                        <div style={modalStyles.content}>
+                            <h2>Select Quiz Options</h2>
+                            <label>
+                                Quiz Type:
+                                <select
+                                    value={quizType}
+                                    onChange={(e) => setQuizType(e.target.value)}
+                                    style={modalStyles.select}
+                                >
+                                    <option value="normal">Normal</option>
+                                    <option value="true/false">True/False</option>
+                                </select>
+                            </label>
+                            <label>
+                                Number of Questions:
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="50"
+                                    value={numQuestions}
+                                    onChange={(e) => setNumQuestions(e.target.value)}
+                                    style={modalStyles.input}
+                                />
+                            </label>
+                            <button style={styles.generateButton} onClick={fetchQuizData}>
+                                Generate Quiz
+                            </button><br /><br />
+                            <button style={styles.generateButton} onClick={closeParametersModal}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
 const styles = {
+    
+
     container: { fontFamily: "Arial, sans-serif" },
+    mainBody: { padding: "20px" },
     inputContainer: { marginBottom: "20px" },
+    inputActions: { 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        marginBottom: "10px" 
+    },
+    selectedSection: {
+        padding: "5px 10px",
+        backgroundColor: "#e9ecef",
+        borderRadius: "5px",
+        fontSize: "14px"
+    },
     textarea: { width: "100%", height: "100px", padding: "10px", marginBottom: "10px" },
+    browseButton: { padding: "8px 15px", background: "#6c757d", color: "#fff", border: "none", cursor: "pointer", borderRadius: "5px" },
     generateButton: { padding: "10px 20px", background: "#007BFF", color: "#fff", border: "none", cursor: "pointer", borderRadius: "5px" },
     startButton: { padding: "10px 20px", color: "#fff", border: "none", cursor: "pointer", borderRadius: "5px" },
     questionContainer: { marginBottom: "30px" },
@@ -606,9 +735,20 @@ const styles = {
     modal: { position: "fixed", top: "0", left: "0", right: "0", bottom: "0", backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "20px" },
     statusMessage: { color: "#0d11f0", fontSize: "18px", textAlign: "center", marginBottom: "10px" },
     quizTitle: { fontSize: "24px", textAlign: "center", marginBottom: "20px" },
-    // completionScreen: { textAlign: "center" },
-    // feedbackList: { listStyle: "none", padding: "0" },
-    // startOverButton: { padding: "10px 20px", background: "#dc3545", color: "#fff", border: "none", cursor: "pointer", marginTop: "20px" },
+    sectionsList: {
+        maxHeight: "300px",
+        overflowY: "auto",
+        margin: "15px 0",
+        border: "1px solid #dee2e6",
+        borderRadius: "5px",
+    },
+    sectionItem: {
+        padding: "10px 15px",
+        borderBottom: "1px solid #dee2e6",
+        cursor: "pointer",
+        transition: "background-color 0.2s ease",
+        hoverBackgroundColor: "#f8f9fa",
+    },
     completionScreen: {
         textAlign: "center",
         marginTop: "40px",
@@ -656,8 +796,19 @@ const styles = {
         marginTop: "20px",
         fontSize: "16px",
     },
-};
 
+    searchContainer: {
+        marginBottom: '15px',
+        width: '100%',
+      },
+      searchInput: {
+        width: '100%',
+        padding: '8px 12px',
+        borderRadius: '4px',
+        border: '1px solid #ccc',
+        fontSize: '14px',
+      }
+};
 
 const modalStyles = {
     overlay: {
@@ -670,6 +821,7 @@ const modalStyles = {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        zIndex: 1000,
     },
     content: {
         backgroundColor: "#fff",
@@ -678,6 +830,8 @@ const modalStyles = {
         width: "400px",
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
         textAlign: "center",
+        maxHeight: "80vh",
+        overflowY: "auto",
     },
     select: {
         width: "100%",
