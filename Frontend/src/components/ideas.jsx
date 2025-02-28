@@ -563,7 +563,7 @@ export default function IdeasSection() {
                 <SideNavs />
                 <div className="main-body-info">
                     <div style={styles.header}>
-                        <p style={styles.sectionTitle}>Ideas Hub</p> <br /> <br />
+                        <p style={styles.sectionTitle}>Ideas Hub</p> <br />
                         <button 
                             style={styles.createButton} 
                             onClick={toggleCreateForm}
