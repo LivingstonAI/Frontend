@@ -539,7 +539,7 @@ export default function IdeasSection() {
                 <SideNavs />
                 <div className="main-body-info">
                     <div style={styles.header}>
-                        <h6 style={styles.sectionTitle}>Ideas Hub</h6> <br />
+                        <p style={styles.sectionTitle}>Ideas Hub</p> <br /> <br />
                         <button 
                             style={styles.createButton} 
                             onClick={toggleCreateForm}
@@ -554,7 +554,7 @@ export default function IdeasSection() {
                     {/* Create Idea Form - only shown when showCreateForm is true */}
                     {showCreateForm && (
                         <div style={styles.formContainer}>
-                            <h6 style={styles.formTitle}>Create New Idea</h6>
+                            <p style={styles.formTitle}>Create New Idea</p>
                             <form onSubmit={handleSubmit}>
                                 <div style={styles.formGroup}>
                                     <label style={styles.label} htmlFor="idea_category">Category</label>
@@ -615,7 +615,7 @@ export default function IdeasSection() {
                     
                     {/* Display Ideas */}
                     <div className="ideas-list">
-                        <h6 style={styles.ideasListHeader}>My Ideas</h6>
+                        <p style={styles.ideasListHeader}>My Ideas</p>
                         
                         {loading && (
                             <div style={styles.spinnerContainer}>
@@ -674,7 +674,7 @@ export default function IdeasSection() {
                                         )}
                                         
                                         <div style={styles.cardHeader}>
-                                            <h6 style={styles.cardTitle}>{idea.idea_category}</h6>
+                                            <p style={styles.cardTitle}>{idea.idea_category}</p>
                                             {hoveredCard === idea.id && !deleteConfirm && (
                                                 <button 
                                                     style={{...styles.iconButton, ...styles.deleteButton}}
