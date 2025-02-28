@@ -41,6 +41,7 @@ import Quizzifier from './components/quizzifier.jsx';
 // import Time from './components/time.jsx';
 import TraderGPTAnalysis from './components/tradergpt.jsx';
 import BacktestedResults from './components/backtesting_interface.jsx';
+import IdeasSection from './components/ideas.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -120,6 +121,7 @@ function App() {
         {/* <Route path='/time' element={<Time />}></Route> */}
         <Route path='/tradergpt_analysis' element={<TraderGPTAnalysis />}></Route>
         <Route path='/backtested_results' element={<BacktestedResults />}></Route>
+        <Route path='/ideas_section' element={<IdeasSection />}></Route>
 
 
 
