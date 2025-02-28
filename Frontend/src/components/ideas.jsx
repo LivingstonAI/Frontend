@@ -13,6 +13,9 @@ export default function IdeasSection() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
+    const [showUpdateStatus, setShowUpdateStatus] = useState(null);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
     
     // Predefined categories
     const categoryOptions = [
@@ -104,6 +107,74 @@ export default function IdeasSection() {
     // Toggle form visibility
     const toggleCreateForm = () => {
         setShowCreateForm(!showCreateForm);
+    };
+
+    // Delete idea function
+    const deleteIdea = async (ideaId) => {
+        setDeletingId(ideaId);
+        
+        try {
+            const response = await fetch(`${baseUrl}/delete-idea`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': Cookies.get('csrftoken')
+                },
+                body: JSON.stringify({ idea_id: ideaId })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete idea');
+            }
+            
+            // Remove the deleted idea from state
+            setIdeas(ideas.filter(idea => idea.id !== ideaId));
+            setError(null);
+        } catch (err) {
+            setError('Error deleting idea: ' + err.message);
+            console.error(err);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+    
+    // Update idea tracker status
+    const updateIdeaTracker = async (ideaId, newStatus) => {
+        setUpdatingStatus(true);
+        
+        try {
+            const response = await fetch(`${baseUrl}/update-idea-tracker`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': Cookies.get('csrftoken')
+                },
+                body: JSON.stringify({
+                    idea_id: ideaId,
+                    idea_tracker: newStatus
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update idea status');
+            }
+            
+            // Update the idea in the state
+            setIdeas(ideas.map(idea => {
+                if (idea.id === ideaId) {
+                    return { ...idea, idea_tracker: newStatus };
+                }
+                return idea;
+            }));
+            
+            setShowUpdateStatus(null);
+            setError(null);
+        } catch (err) {
+            setError('Error updating idea status: ' + err.message);
+            console.error(err);
+        } finally {
+            setUpdatingStatus(false);
+        }
     };
 
     // CSS styles (added inline)
@@ -203,7 +274,8 @@ export default function IdeasSection() {
             height: '100%',
             overflow: 'hidden',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            position: 'relative'
         },
         cardHover: {
             transform: 'translateY(-5px)',
@@ -212,7 +284,10 @@ export default function IdeasSection() {
         cardHeader: {
             backgroundColor: '#f8f9fa',
             borderBottom: '1px solid #f0f0f0',
-            padding: '0.8rem 1rem'
+            padding: '0.8rem 1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
         },
         cardTitle: {
             fontSize: '1.1rem',
@@ -242,7 +317,8 @@ export default function IdeasSection() {
             padding: '0.4rem 0.8rem',
             borderRadius: '20px',
             fontWeight: '500',
-            fontSize: '0.75rem'
+            fontSize: '0.75rem',
+            cursor: 'pointer'
         },
         badgePending: {
             backgroundColor: '#718096',
@@ -296,11 +372,142 @@ export default function IdeasSection() {
             borderRadius: '6px',
             marginBottom: '1.5rem',
             border: '1px solid #fecaca'
+        },
+        actionButtons: {
+            position: 'absolute',
+            top: '0.5rem',
+            right: '0.5rem',
+            display: 'flex',
+            gap: '0.5rem'
+        },
+        iconButton: {
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0.3rem',
+            borderRadius: '4px',
+            transition: 'background-color 0.2s ease'
+        },
+        deleteButton: {
+            color: '#e74c3c'
+        },
+        editButton: {
+            color: '#3498db'
+        },
+        statusDropdown: {
+            position: 'absolute',
+            top: '100%',
+            left: '0',
+            zIndex: 10,
+            backgroundColor: 'white',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            padding: '0.5rem 0',
+            width: '150px',
+            animation: 'fadeIn 0.2s ease-in-out'
+        },
+        statusOption: {
+            padding: '0.5rem 1rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease',
+            fontSize: '0.9rem'
+        },
+        statusOptionHover: {
+            backgroundColor: '#f8f9fa'
+        },
+        statusOptionPending: {
+            color: '#718096'
+        },
+        statusOptionInProgress: {
+            color: '#f39c12'
+        },
+        statusOptionCompleted: {
+            color: '#27ae60'
+        },
+        deleteConfirm: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10,
+            padding: '1rem',
+            animation: 'fadeIn 0.2s ease-in-out'
+        },
+        deleteConfirmText: {
+            fontWeight: '500',
+            marginBottom: '1rem',
+            textAlign: 'center',
+            color: '#2c3e50'
+        },
+        deleteConfirmButtons: {
+            display: 'flex',
+            gap: '0.8rem'
+        },
+        deleteConfirmYes: {
+            backgroundColor: '#e74c3c',
+            color: 'white',
+            border: 'none',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '4px',
+            fontWeight: '500'
+        },
+        deleteConfirmNo: {
+            backgroundColor: '#3498db',
+            color: 'white',
+            border: 'none',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '4px',
+            fontWeight: '500'
         }
     };
 
     // Dynamic card hover effect handler
     const [hoveredCard, setHoveredCard] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+    // Function to handle status toggle
+    const toggleStatusDropdown = (ideaId) => {
+        setShowUpdateStatus(showUpdateStatus === ideaId ? null : ideaId);
+    };
+
+    // Status dropdown menu
+    const StatusDropdown = ({ ideaId }) => (
+        <div style={styles.statusDropdown}>
+            <div 
+                style={{
+                    ...styles.statusOption,
+                    ...styles.statusOptionPending
+                }} 
+                onClick={() => updateIdeaTracker(ideaId, 'Pending')}
+            >
+                Pending
+            </div>
+            <div 
+                style={{
+                    ...styles.statusOption,
+                    ...styles.statusOptionInProgress
+                }} 
+                onClick={() => updateIdeaTracker(ideaId, 'In Progress')}
+            >
+                In Progress
+            </div>
+            <div 
+                style={{
+                    ...styles.statusOption,
+                    ...styles.statusOptionCompleted
+                }} 
+                onClick={() => updateIdeaTracker(ideaId, 'Completed')}
+            >
+                Completed
+            </div>
+        </div>
+    );
 
     return (
         <div style={styles.container}>
@@ -417,22 +624,68 @@ export default function IdeasSection() {
                                         }}
                                         className="card"
                                         onMouseEnter={() => setHoveredCard(idea.id)}
-                                        onMouseLeave={() => setHoveredCard(null)}
+                                        onMouseLeave={() => {
+                                            if (deleteConfirm !== idea.id && showUpdateStatus !== idea.id) {
+                                                setHoveredCard(null);
+                                            }
+                                        }}
                                     >
+                                        {/* Delete confirmation overlay */}
+                                        {deleteConfirm === idea.id && (
+                                            <div style={styles.deleteConfirm}>
+                                                <p style={styles.deleteConfirmText}>Are you sure you want to delete this idea?</p>
+                                                <div style={styles.deleteConfirmButtons}>
+                                                    <button 
+                                                        style={styles.deleteConfirmYes} 
+                                                        onClick={() => deleteIdea(idea.id)}
+                                                        disabled={deletingId === idea.id}
+                                                    >
+                                                        {deletingId === idea.id ? 'Deleting...' : 'Yes, Delete'}
+                                                    </button>
+                                                    <button 
+                                                        style={styles.deleteConfirmNo} 
+                                                        onClick={() => setDeleteConfirm(null)}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                         <div style={styles.cardHeader}>
                                             <h6 style={styles.cardTitle}>{idea.idea_category}</h6>
+                                            {hoveredCard === idea.id && !deleteConfirm && (
+                                                <button 
+                                                    style={{...styles.iconButton, ...styles.deleteButton}}
+                                                    onClick={() => setDeleteConfirm(idea.id)}
+                                                    title="Delete Idea"
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                </button>
+                                            )}
                                         </div>
                                         <div style={styles.cardBody}>
                                             <p style={styles.cardText}>{idea.idea_text}</p>
                                             <div style={styles.cardFooter}>
-                                                <span style={{
-                                                    ...styles.badge,
-                                                    ...(idea.idea_tracker === 'Completed' ? styles.badgeCompleted : 
-                                                       idea.idea_tracker === 'In Progress' ? styles.badgeInProgress : 
-                                                       styles.badgePending)
-                                                }}>
-                                                    {idea.idea_tracker}
-                                                </span>
+                                                <div style={{ position: 'relative' }}>
+                                                    <span 
+                                                        style={{
+                                                            ...styles.badge,
+                                                            ...(idea.idea_tracker === 'Completed' ? styles.badgeCompleted : 
+                                                               idea.idea_tracker === 'In Progress' ? styles.badgeInProgress : 
+                                                               styles.badgePending)
+                                                        }}
+                                                        onClick={() => toggleStatusDropdown(idea.id)}
+                                                    >
+                                                        {idea.idea_tracker}
+                                                    </span>
+                                                    {showUpdateStatus === idea.id && (
+                                                        <StatusDropdown ideaId={idea.id} />
+                                                    )}
+                                                </div>
                                                 <small style={styles.dateText}>
                                                     {new Date(idea.created_at).toLocaleDateString()}
                                                 </small>
