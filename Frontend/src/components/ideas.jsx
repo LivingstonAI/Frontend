@@ -217,7 +217,7 @@ export default function IdeasSection() {
             paddingBottom: '1rem'
         },
         sectionTitle: {
-            fontSize: '1.8rem',
+            fontSize: '1.4rem',
             fontWeight: '600',
             color: '#2c3e50',
             margin: 0
@@ -301,7 +301,8 @@ export default function IdeasSection() {
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            position: 'relative'
+            position: 'relative',
+            marginBottom: '20px',
         },
         cardHover: {
             transform: 'translateY(-5px)',
@@ -658,9 +659,9 @@ export default function IdeasSection() {
                             </div>
                         )}
                         
-                        <div className="row">
+                        <div className="">
                             {ideas.map(idea => (
-                                <div className="col-md-4 mb-4" key={idea.id}>
+                                <div className="" key={idea.id}>
                                     <div 
                                         style={{
                                             ...styles.card,
