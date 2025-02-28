@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 
 export default function IdeasSection() {
     const [ideas, setIdeas] = useState([]);
@@ -38,8 +37,7 @@ export default function IdeasSection() {
             const response = await fetch(`${baseUrl}/fetch-ideas`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': Cookies.get('csrftoken')
+                    'Content-Type': 'application/json'
                 }
             });
             
@@ -74,8 +72,7 @@ export default function IdeasSection() {
             const response = await fetch(`${baseUrl}/generate-idea`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': Cookies.get('csrftoken')
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(newIdea)
             });
@@ -117,8 +114,7 @@ export default function IdeasSection() {
             const response = await fetch(`${baseUrl}/delete-idea`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': Cookies.get('csrftoken')
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ idea_id: ideaId })
             });
@@ -138,16 +134,23 @@ export default function IdeasSection() {
         }
     };
     
-    // Update idea tracker status
+    // Update idea tracker status - FIXED VERSION
     const updateIdeaTracker = async (ideaId, newStatus) => {
         setUpdatingStatus(true);
         
         try {
+            // Show updating status in UI immediately for better UX
+            setIdeas(ideas.map(idea => {
+                if (idea.id === ideaId) {
+                    return { ...idea, idea_tracker: newStatus, isUpdating: true };
+                }
+                return idea;
+            }));
+            
             const response = await fetch(`${baseUrl}/update-idea-tracker`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': Cookies.get('csrftoken')
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     idea_id: ideaId,
@@ -156,13 +159,14 @@ export default function IdeasSection() {
             });
             
             if (!response.ok) {
-                throw new Error('Failed to update idea status');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update idea status');
             }
             
-            // Update the idea in the state
+            // Update the idea in the state with final status
             setIdeas(ideas.map(idea => {
                 if (idea.id === ideaId) {
-                    return { ...idea, idea_tracker: newStatus };
+                    return { ...idea, idea_tracker: newStatus, isUpdating: false };
                 }
                 return idea;
             }));
@@ -170,8 +174,10 @@ export default function IdeasSection() {
             setShowUpdateStatus(null);
             setError(null);
         } catch (err) {
+            // Revert the optimistic update if there was an error
+            fetchIdeas(); // Refresh all ideas to ensure consistency
             setError('Error updating idea status: ' + err.message);
-            console.error(err);
+            console.error('Update error:', err);
         } finally {
             setUpdatingStatus(false);
         }
@@ -332,6 +338,12 @@ export default function IdeasSection() {
             backgroundColor: '#27ae60',
             color: 'white'
         },
+        badgeUpdating: {
+            backgroundColor: '#3498db',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden'
+        },
         dateText: {
             fontSize: '0.75rem',
             color: '#718096'
@@ -464,6 +476,15 @@ export default function IdeasSection() {
             padding: '0.4rem 0.8rem',
             borderRadius: '4px',
             fontWeight: '500'
+        },
+        pulseAnimation: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+            animation: 'pulse 1.5s infinite'
         }
     };
 
@@ -674,15 +695,17 @@ export default function IdeasSection() {
                                                     <span 
                                                         style={{
                                                             ...styles.badge,
-                                                            ...(idea.idea_tracker === 'Completed' ? styles.badgeCompleted : 
-                                                               idea.idea_tracker === 'In Progress' ? styles.badgeInProgress : 
-                                                               styles.badgePending)
+                                                            ...(idea.isUpdating ? styles.badgeUpdating : 
+                                                                idea.idea_tracker === 'Completed' ? styles.badgeCompleted : 
+                                                                idea.idea_tracker === 'In Progress' ? styles.badgeInProgress : 
+                                                                styles.badgePending)
                                                         }}
                                                         onClick={() => toggleStatusDropdown(idea.id)}
                                                     >
-                                                        {idea.idea_tracker}
+                                                        {idea.isUpdating ? 'Updating...' : idea.idea_tracker}
+                                                        {idea.isUpdating && <div style={styles.pulseAnimation}></div>}
                                                     </span>
-                                                    {showUpdateStatus === idea.id && (
+                                                    {showUpdateStatus === idea.id && !idea.isUpdating && (
                                                         <StatusDropdown ideaId={idea.id} />
                                                     )}
                                                 </div>
@@ -708,6 +731,11 @@ export default function IdeasSection() {
                 
                 @keyframes spin {
                     to { transform: rotate(360deg); }
+                }
+                
+                @keyframes pulse {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
                 }
             `}</style>
         </div>
