@@ -407,7 +407,7 @@ export default function IdeasSection() {
             color: '#3498db'
         },
         statusDropdown: {
-            position: 'absolute',
+            // position: 'absolute',
             top: '100%',
             left: '0',
             zIndex: 10,
