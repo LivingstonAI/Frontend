@@ -15,6 +15,14 @@ export default function IdeasSection() {
     const [showUpdateStatus, setShowUpdateStatus] = useState(null);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const maxLength = 100;  // You can adjust this value based on how much text you want to show initially.
+
+    const toggleText = () => {
+        setIsExpanded(prevState => !prevState);
+    };
+
     
     // Predefined categories
     const categoryOptions = [
@@ -185,6 +193,18 @@ export default function IdeasSection() {
 
     // CSS styles (added inline)
     const styles = {
+        readMoreLink: {
+            color: '#007BFF',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textDecoration: 'underline',
+            marginLeft: '5px',
+            transition: 'color 0.3s ease',
+        },
+        readMoreLinkHover: {
+            color: '#0056b3',
+        },
         container: {
             fontFamily: "'Poppins', sans-serif",
         },
@@ -486,7 +506,10 @@ export default function IdeasSection() {
             background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
             animation: 'pulse 1.5s infinite'
         }
+        
     };
+
+    
 
     // Dynamic card hover effect handler
     const [hoveredCard, setHoveredCard] = useState(null);
@@ -689,7 +712,18 @@ export default function IdeasSection() {
                                             )}
                                         </div>
                                         <div style={styles.cardBody}>
-                                            <p style={styles.cardText}>{idea.idea_text}</p>
+                                                                            {/* <p style={styles.cardText}>{idea.idea_text}</p> */}
+                                                    <p style={styles.cardText}>
+                                                {isExpanded ? idea.idea_text : idea.idea_text.slice(0, maxLength)}
+                                                {idea.idea_text.length > maxLength && (
+                                                    <span 
+                                                        style={styles.readMoreLink} 
+                                                        onClick={toggleText}
+                                                    >
+                                                        {isExpanded ? ' Read Less' : '... Read More'}
+                                                    </span>
+                                                )}
+                                            </p>
                                             <div style={styles.cardFooter}>
                                                 <div style={{ position: 'relative' }}>
                                                     <span 
