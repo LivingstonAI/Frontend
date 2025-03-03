@@ -8,14 +8,16 @@ import { Chart as ChartJS } from 'chart.js';
 export default function AccountAnalytics() {
     const [accountData, setAccountData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [aiSummary, setAiSummary] = useState("");
+    const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
     const [filters, setFilters] = useState({
         dayOfWeek: 'all',
         tradingSession: 'all',
         strategy: 'all',
         outcome: 'all',
         asset: 'all',
-        timeFrame: 'all',  // New filter for time frame selection (month/week)
-        selectedPeriod: 'all'  // New filter for specific period selection
+        timeFrame: 'all',
+        selectedPeriod: 'all'
     });
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -214,6 +216,49 @@ export default function AccountAnalytics() {
         };
     };
 
+    const fetchAISummary = async () => {
+        if (!accountData) return;
+
+        setAiSummaryLoading(true);
+        try {
+            const metricsData = generateMetricsData();
+            const filteredTrades = getFilteredTrades();
+            
+            const response = await fetch(`${baseUrl}/ai-account-summary`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account_name: accountData.account_name,
+                    metrics: metricsData,
+                    trades: filteredTrades.map(trade => ({
+                        outcome: trade.outcome,
+                        amount: trade.amount,
+                        day_of_week_entered: trade.day_of_week_entered,
+                        trading_session_entered: trade.trading_session_entered,
+                        strategy: trade.strategy,
+                        asset: trade.asset
+                    }))
+                }),
+            });
+
+            const data = await response.json();
+            
+            if (response.ok && data.summary) {
+                setAiSummary(data.summary);
+            } else {
+                console.error('Error fetching AI summary:', data.error);
+                setAiSummary("Sorry, we couldn't generate an AI summary at this time.");
+            }
+        } catch (error) {
+            console.error('Error fetching AI summary:', error);
+            setAiSummary("Sorry, we couldn't generate an AI summary at this time.");
+        } finally {
+            setAiSummaryLoading(false);
+        }
+    };
+
     const baseChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -276,6 +321,71 @@ export default function AccountAnalytics() {
                         <div>No account data available.</div>
                     ) : (
                         <>
+                            {/* AI Summary Section */}
+                            <div className="ai-summary-section" style={{
+                                marginBottom: '20px',
+                                backgroundColor: '#f9f9f9',
+                                borderRadius: '8px',
+                                padding: '20px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '15px'
+                                }}>
+                                    <h6 style={{margin: 0, fontSize: '18px', fontWeight: 'bold'}}>
+                                        <span style={{marginRight: '10px'}}>✨</span>
+                                        AI Trading Summary
+                                    </h6>
+                                    <button 
+                                        onClick={fetchAISummary}
+                                        disabled={aiSummaryLoading}
+                                        className="btn btn-primary"
+                                        style={{
+                                            backgroundColor: '#1E88E5',
+                                            border: 'none',
+                                            padding: '8px 15px',
+                                            borderRadius: '4px',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        {aiSummaryLoading ? 'Generating...' : aiSummary ? 'Regenerate Summary' : 'Generate AI Summary'}
+                                    </button>
+                                </div>
+                                
+                                <div className="ai-summary-content" style={{
+                                    backgroundColor: 'white',
+                                    padding: '15px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #eee',
+                                    minHeight: '100px',
+                                    display: 'flex',
+                                    alignItems: aiSummary ? 'flex-start' : 'center',
+                                    justifyContent: aiSummary ? 'flex-start' : 'center'
+                                }}>
+                                    {aiSummaryLoading ? (
+                                        <div style={{textAlign: 'center', width: '100%'}}>
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p style={{marginTop: '10px'}}>Analyzing your trading data...</p>
+                                        </div>
+                                    ) : aiSummary ? (
+                                        <div style={{whiteSpace: 'pre-line'}}>
+                                            {aiSummary.split('\n').map((paragraph, idx) => (
+                                                <p key={idx} style={{marginBottom: '10px'}}>{paragraph}</p>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{textAlign: 'center', color: '#666'}}>
+                                            <p>Click "Generate AI Summary" to get personalized insights about your trading performance based on the currently filtered data.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="account-info">
                                 <h6>Account: {accountData.account_name}</h6>
                                 <p>Main Assets: {accountData.main_assets}</p>
@@ -396,22 +506,75 @@ export default function AccountAnalytics() {
                                 </div>
                             </div>
 
-                            <div className="metrics-container">
-                                <div className="metric-card">
-                                    <h6>Win Rate</h6>
-                                    <p>{metricsData.winRate.toFixed(2)}%</p>
+                            <div className="metrics-container" style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '15px',
+                                marginTop: '20px'
+                            }}>
+                                <div className="metric-card" style={{
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    padding: '15px',
+                                    flex: '1 1 200px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    textAlign: 'center'
+                                }}>
+                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Win Rate</h6>
+                                    <p style={{
+                                        fontSize: '24px',
+                                        fontWeight: 'bold',
+                                        margin: 0,
+                                        color: metricsData.winRate > 50 ? '#4CAF50' : '#E57373'
+                                    }}>{metricsData.winRate.toFixed(2)}%</p>
                                 </div>
-                                <div className="metric-card">
-                                    <h6>Average Win</h6>
-                                    <p>${metricsData.averageWin.toFixed(2)}</p>
+                                <div className="metric-card" style={{
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    padding: '15px',
+                                    flex: '1 1 200px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    textAlign: 'center'
+                                }}>
+                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Average Win</h6>
+                                    <p style={{
+                                        fontSize: '24px',
+                                        fontWeight: 'bold',
+                                        margin: 0,
+                                        color: '#4CAF50'
+                                    }}>${metricsData.averageWin.toFixed(2)}</p>
                                 </div>
-                                <div className="metric-card">
-                                    <h6>Average Loss</h6>
-                                    <p>${metricsData.averageLoss.toFixed(2)}</p>
+                                <div className="metric-card" style={{
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    padding: '15px',
+                                    flex: '1 1 200px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    textAlign: 'center'
+                                }}>
+                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Average Loss</h6>
+                                    <p style={{
+                                        fontSize: '24px',
+                                        fontWeight: 'bold',
+                                        margin: 0,
+                                        color: '#E57373'
+                                    }}>${metricsData.averageLoss.toFixed(2)}</p>
                                 </div>
-                                <div className="metric-card">
-                                    <h6>Profit Factor</h6>
-                                    <p>{metricsData.profitFactor.toFixed(2)}</p>
+                                <div className="metric-card" style={{
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    padding: '15px',
+                                    flex: '1 1 200px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    textAlign: 'center'
+                                }}>
+                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Profit Factor</h6>
+                                    <p style={{
+                                        fontSize: '24px',
+                                        fontWeight: 'bold',
+                                        margin: 0,
+                                        color: metricsData.profitFactor > 1 ? '#4CAF50' : '#E57373'
+                                    }}>{metricsData.profitFactor.toFixed(2)}</p>
                                 </div>
                             </div>
                         </>
