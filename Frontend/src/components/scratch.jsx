@@ -1815,23 +1815,24 @@ Blockly.Blocks['rsi_block'] = {
 
     const closeModal = async () => {  
       // Handle success
-      // window.location.reload();
-      // First fetch request
-      const response = await fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // body: JSON.stringify({ dataset }),
-      });
+      console.log(chosenDataSet);
+      // // window.location.reload();
+      // // First fetch request
+      // const response = await fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   // body: JSON.stringify({ dataset }),
+      // });
       
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
+      // if (!response.ok) {
+      //   throw new Error('Network response was not ok');
+      // }
 
       
-      const data = await response.json();
-      console.log(data); // Do something with the response data from the first request
+      // const data = await response.json();
+      // console.log(data); // Do something with the response data from the first request
       toggleModal();
     };
 
@@ -1845,15 +1846,15 @@ Blockly.Blocks['rsi_block'] = {
 
     const closeSplitModal = async () => {
 
-      try {
-        const response = await axios.post(`${baseUrl}/split-dataset`, {
-          start_year: startYear,
-          end_year: endYear
-        });
-        console.log(response.data); // Handle success response
-      } catch (error) {
-        console.error('Error:', error); // Handle error
-      }
+      // try {
+      //   const response = await axios.post(`${baseUrl}/split-dataset`, {
+      //     start_year: startYear,
+      //     end_year: endYear
+      //   });
+      //   console.log(response.data); // Handle success response
+      // } catch (error) {
+      //   console.error('Error:', error); // Handle error
+      // }
       toggleSplitModal();
     };
 
@@ -2079,7 +2080,7 @@ Blockly.Blocks['rsi_block'] = {
               ></input><br />
               <label>Initial Capital: {initCapital}</label>
             </div><br />
-            <button className="btn btn-primary" onClick={saveInitialCapital}>{initialCapitalProcess}</button>
+            {/* <button className="btn btn-primary" onClick={saveInitialCapital}>{initialCapitalProcess}</button> */}
             <br />
 
 
