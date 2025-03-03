@@ -249,10 +249,10 @@ export default function ModelPerformance() {
                                         <p>Model ID: {model.model_id}</p>
                                         <button 
                                             onClick={() => copyModelId(model.model_id)} 
-                                            className="copy-button"
+                                            className="copy-button btn btn-primary"
                                             style={{
                                                 border: 'none',
-                                                background: 'transparent',
+                                                // background: 'transparent',
                                                 cursor: 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -262,18 +262,19 @@ export default function ModelPerformance() {
                                             }}
                                             title="Copy Model ID"
                                         >
-                                            <Clipboard size={18} />
+                                            <i className="bi bi-clipboard-fill" style={{ fontSize: '18px' }}></i>
                                             {copiedId === model.model_id && (
                                                 <span style={{ 
                                                     marginLeft: '5px', 
                                                     fontSize: '0.8rem', 
-                                                    color: 'green' 
+                                                    color: 'white' 
                                                 }}>
                                                     Copied!
                                                 </span>
                                             )}
                                         </button>
                                     </div>
+
                                     <p>Initial Equity: {model.initial_equity}</p>
                                     <p>Order Ticket: {model.order_ticket}</p>
                                     <p>Asset: {model.asset}</p>
