@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 export default function DailyBrief() {
     const [dailyBriefData, setDailyBriefData] = useState([]);
@@ -11,8 +13,24 @@ export default function DailyBrief() {
     const [expandedSummaries, setExpandedSummaries] = useState({});
     const [selectedCurrencies, setSelectedCurrencies] = useState([]); // To hold selected currencies
     const [assetUpdateProcess, setAssetUpdateProcess] = useState('Update Selected Assets');
+    const [showModal, setShowModal] = useState(false);
 
     const currencies = ['EURUSD', 'GBPUSD', 'EURGBP', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'USDZAR', 'EURAUD','GBPJPY'];
+
+    // Initialize Bootstrap JavaScript
+    useEffect(() => {
+        // Bootstrap JS should be initialized here
+        // The import in the header should be sufficient, but we can ensure it's loaded
+        const bootstrapScript = document.createElement('script');
+        bootstrapScript.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js';
+        bootstrapScript.integrity = 'sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p';
+        bootstrapScript.crossOrigin = 'anonymous';
+        document.body.appendChild(bootstrapScript);
+
+        return () => {
+            document.body.removeChild(bootstrapScript);
+        };
+    }, []);
 
     useEffect(() => {
         fetchDailyBriefData();
@@ -78,6 +96,7 @@ export default function DailyBrief() {
     };
 
     const handleSubmitCurrencies = async () => {
+        setShowModal(false); // Close modal
         setAssetUpdateProcess('Updating Assets...');
         try {
             const response = await fetch(`${baseUrl}/set-daily-brief-assets`, {
@@ -117,6 +136,14 @@ export default function DailyBrief() {
         brief.asset.toLowerCase().includes(filter.toLowerCase())
     );
 
+    const selectAllCurrencies = () => {
+        setSelectedCurrencies([...currencies]);
+    };
+
+    const deselectAllCurrencies = () => {
+        setSelectedCurrencies([]);
+    };
+
     return (
         <div>
             <div className="header">
@@ -137,34 +164,65 @@ export default function DailyBrief() {
                             /><br />
                         </div>
 
-                        
-
                         <div className="manually-update">
                             <button className="btn btn-primary" onClick={handleManualUpdate}>{updateStatus}</button>
                         </div>
                     </div>
 
-                    <div className="dropdown">
-                    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-
-                                Select Currencies
-                            </button>
-                            <ul className="dropdown-menu">
-                                {currencies.map((currency, index) => (
-                                    <li key={index}>
-                                        <a className="dropdown-item" onClick={() => handleCurrencySelection(currency)}>
-                                            {currency}
-                                            {selectedCurrencies.includes(currency) && <span> (Selected)</span>}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div><br />
-                        
-                        <div className="manually-update">
-                            <button className="btn btn-primary" onClick={handleSubmitCurrencies}>{assetUpdateProcess}</button>
-                        </div>
+                    {/* Button to open modal */}
+                    <button 
+                        className="btn btn-primary" 
+                        onClick={() => setShowModal(true)}
+                    >
+                        Select Currencies
+                    </button><br /><br />
+                    
+                    <div className="manually-update">
+                        <button className="btn btn-primary" onClick={handleSubmitCurrencies}>{assetUpdateProcess}</button>
+                    </div>
                     <hr />
+
+                    {/* Currency selection modal */}
+                    {showModal && (
+                        <div className="modal show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                            <div className="modal-dialog modal-dialog-centered">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">Select Currencies</h5>
+                                        <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <div className="d-flex justify-content-between mb-3">
+                                            <button className="btn btn-sm btn-outline-primary" onClick={selectAllCurrencies}>Select All</button>
+                                            <button className="btn btn-sm btn-outline-secondary" onClick={deselectAllCurrencies}>Deselect All</button>
+                                        </div>
+                                        <div className="row row-cols-2">
+                                            {currencies.map((currency, index) => (
+                                                <div key={index} className="col mb-2">
+                                                    <div className="form-check">
+                                                        <input
+                                                            className="form-check-input"
+                                                            type="checkbox"
+                                                            id={`currency-${index}`}
+                                                            checked={selectedCurrencies.includes(currency)}
+                                                            onChange={() => handleCurrencySelection(currency)}
+                                                        />
+                                                        <label className="form-check-label" htmlFor={`currency-${index}`}>
+                                                            {currency}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button type="button" className="btn btn-danger" onClick={() => setShowModal(false)}>Cancel</button>
+                                        <button type="button" className="btn btn-primary" onClick={handleSubmitCurrencies}>Apply</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="daily-brief-div">
                         {filteredBriefData.length > 0 ? (

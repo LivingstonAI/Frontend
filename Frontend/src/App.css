@@ -5227,3 +5227,297 @@ select.form-control {
   color: #555;
 }
 
+/* Currency selection button */
+.currency-select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 200px;
+  margin-bottom: 20px;
+}
+
+.currency-select-btn i {
+  margin-left: 10px;
+}
+
+/* Modal overlay */
+.currency-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal container */
+.currency-modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal header */
+.currency-modal-header {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.currency-modal-header h5 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+}
+
+.close-modal-btn:hover {
+  color: #343a40;
+}
+
+/* Modal body */
+.currency-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+/* Currency options */
+.currency-option {
+  padding: 10px 15px;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.currency-option:hover {
+  background-color: #e9ecef;
+}
+
+.currency-selected {
+  background-color: #cfe2ff;
+  color: #0d6efd;
+  font-weight: 500;
+}
+
+.currency-check {
+  color: #0d6efd;
+}
+
+/* Modal footer */
+.currency-modal-footer {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Selected currency list */
+.selected-currency-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0;
+  margin: 10px 0 20px;
+  list-style: none;
+}
+
+.selected-currency-item {
+  display: flex;
+  align-items: center;
+  background-color: #f0f0f0;
+  border-radius: 20px;
+  padding: 5px 10px 5px 15px;
+}
+
+.currency-badge {
+  margin-right: 8px;
+  font-weight: 500;
+}
+
+.update-currency {
+  cursor: pointer;
+  color: #6c757d;
+  transition: color 0.2s ease;
+}
+
+.update-currency:hover {
+  color: #dc3545;
+}
+
+/* Performance Review Section Styling */
+.performance-review-div {
+  background-color: #0a1929;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 198, 255, 0.15);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(0, 198, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.performance-review-div::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00c6ff, #4a00e0, transparent);
+}
+
+.performance-review-header {
+  color: #00c6ff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
+  border-bottom: 1px solid rgba(0, 198, 255, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.performance-review-header-tradingview {
+  color: #4a00e0;
+  text-decoration: none;
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.performance-review-header-tradingview:hover {
+  color: #00c6ff;
+  text-shadow: 0 0 8px rgba(0, 198, 255, 0.8);
+  text-decoration: none;
+}
+
+.performance-select-asset {
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background-color: #132f4c;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.performance-select-asset:hover {
+  background-color: #1a3c5e;
+  border-left: 3px solid #00c6ff;
+  transform: translateX(5px);
+}
+
+.chart-container {
+  background-color: #132f4c;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 198, 255, 0.1);
+}
+
+/* Chart styling enhancements */
+.chart-container canvas {
+  filter: drop-shadow(0 0 8px rgba(0, 198, 255, 0.2));
+}
+
+/* Model info stats */
+.chart-container p {
+  color: #b0bec5;
+  margin: 0.5rem 0;
+  font-family: monospace;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 1rem;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Button styling */
+.performance-review-div .btn-primary {
+  background: linear-gradient(45deg, #00c6ff, #4a00e0);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 198, 255, 0.3);
+}
+
+.performance-review-div .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 198, 255, 0.4);
+}
+
+/* Offcanvas styling */
+.offcanvas {
+  background-color: #0a1929;
+  border-right: 1px solid rgba(0, 198, 255, 0.2);
+}
+
+.offcanvas-title {
+  color: #00c6ff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 1.1rem;
+}
+
+.offcanvas-header .btn-close {
+  filter: invert(1) brightness(0.8);
+}
+
+/* Custom scrollbar for the offcanvas */
+.offcanvas-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.offcanvas-body::-webkit-scrollbar-track {
+  background: #132f4c;
+}
+
+.offcanvas-body::-webkit-scrollbar-thumb {
+  background: #00c6ff;
+  border-radius: 3px;
+}
+
+/* Model performance metrics highlighting */
+.chart-container p:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Win rate highlighting */
+.chart-container p:nth-of-type(1) {
+  border-left: 3px solid #00e676;
+}
+
+/* Loss rate highlighting */
+.chart-container p:nth-of-type(2) {
+  border-left: 3px solid #ff1744;
+}
+
+/* Overall return highlighting */
+.chart-container p:nth-of-type(3) {
+  border-left: 3px solid #00c6ff;
+}

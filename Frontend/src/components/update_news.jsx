@@ -3,31 +3,31 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
-
 export default function UpdateNews() {
-    const currencyArray = ['Select Currencies', 'EURUSD', 'GBPUSD', 'EURGBP', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'USDZAR', 'EURAUD','GBPJPY'];
+    const currencyArray = ['EURUSD', 'GBPUSD', 'EURGBP', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'USDZAR', 'EURAUD', 'GBPJPY'];
     const [outcome, setOutcome] = useState('');
     const [colorOutcome, setColorOutcome] = useState('');
     const [updateStatus, setUpdateStatus] = useState('Update');
     // State to store selected currencies
     const [selectedCurrencies, setSelectedCurrencies] = useState([]);
+    // State to control modal visibility
+    const [showModal, setShowModal] = useState(false);
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     const fetchEmailDataFromAPI = async () => {
         return Cookies.get('email');
     };
 
-
-    // Function to handle select change and update selected currencies
-    const handleCurrencyChange = (e) => {
-        const selectedCurrency = e.target.value;
-        // Check if the currency is already selected
+    // Function to handle currency selection in modal
+    const handleCurrencySelect = (selectedCurrency) => {
         if (!selectedCurrencies.includes(selectedCurrency)) {
-            // console.log(selectedCurrency);
-            if (selectedCurrency !== 'Select Currencies'){
-                setSelectedCurrencies([...selectedCurrencies, selectedCurrency]);
-            };
+            setSelectedCurrencies([...selectedCurrencies, selectedCurrency]);
         }
+    };
+
+    // Toggle modal visibility
+    const toggleModal = () => {
+        setShowModal(!showModal);
     };
 
     useEffect(() => {
@@ -49,11 +49,9 @@ export default function UpdateNews() {
                 }
 
                 const uniqueArray = newCurrencies.filter((value, index) => newCurrencies.indexOf(value) === index);
-
     
                 // Combine existing selectedCurrencies with newCurrencies array
                 setSelectedCurrencies([...selectedCurrencies, ...uniqueArray]);
-                // console.log(selectedCurrencies);
                 if (selectedCurrencies.length > 0) {
                     const finalCurrencyArray = selectedCurrencies.filter((value, index) => selectedCurrencies.indexOf(value) === index);
                     setSelectedCurrencies(finalCurrencyArray);
@@ -65,7 +63,6 @@ export default function UpdateNews() {
     
         fetchNewsData();
     }, []); // Add selectedCurrencies as a dependency if needed
-    
 
     // Function to remove a selected currency
     const removeCurrency = (currencyToRemove) => {
@@ -88,8 +85,6 @@ export default function UpdateNews() {
                 });
 
                 if (response.ok) {
-                    // console.log('Response is: ');
-                    // console.log(data);
                     setOutcome('News Data updated successfully!');
                     setColorOutcome('updated-success');
                     setUpdateStatus('Update');
@@ -119,21 +114,22 @@ export default function UpdateNews() {
                     <h5 className="major-upcoming-news-events-header">Update News Data</h5>
                    
                     <br />
-                    <p className="to-ask-livingston">(to ask Livingston)</p><br />
                     
                     <div className="update-news-div">
-                        <select className='form-control' onChange={handleCurrencyChange}>
-                            {currencyArray.map((currency, index) => (
-                                <option key={index} value={currency}>{currency}</option>
-                            ))}
-                        </select>
+                        <button 
+                            className="btn btn-primary currency-select-btn" 
+                            onClick={toggleModal}
+                        >
+                            Select Currencies <i className="bi bi-chevron-down"></i>
+                        </button>
+                        
                         {/* Display selected currencies */}<br />
                         <div>
                             <h6>Selected Currencies:</h6>
-                            <ul>
+                            <ul className="selected-currency-list">
                                 {selectedCurrencies.map((currency, index) => (
-                                    <li key={index}>
-                                        {currency}
+                                    <li key={index} className="selected-currency-item">
+                                        <span className="currency-badge">{currency}</span>
                                         <i onClick={() => removeCurrency(currency)} className="bi bi-x update-currency"></i>
                                     </li>
                                 ))}
@@ -143,6 +139,42 @@ export default function UpdateNews() {
                             <p className={colorOutcome}>{outcome}</p>
                         </div>
                     </div>
+                    
+                    {/* Currency Selection Modal */}
+                    {showModal && (
+                        <div className="currency-modal-overlay">
+                            <div className="currency-modal">
+                                <div className="currency-modal-header">
+                                    <h5>Select Currencies</h5>
+                                    <button className="close-modal-btn" onClick={toggleModal}>
+                                        <i className="bi bi-x"></i>
+                                    </button>
+                                </div>
+                                <div className="currency-modal-body">
+                                    {currencyArray.map((currency, index) => (
+                                        <div 
+                                            key={index} 
+                                            className={`currency-option ${selectedCurrencies.includes(currency) ? 'currency-selected' : ''}`}
+                                            onClick={() => handleCurrencySelect(currency)}
+                                        >
+                                            {currency}
+                                            {selectedCurrencies.includes(currency) && (
+                                                <i className="bi bi-check-lg currency-check"></i>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="currency-modal-footer">
+                                    <button 
+                                        className="btn btn-secondary" 
+                                        onClick={toggleModal}
+                                    >
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

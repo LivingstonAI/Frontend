@@ -16,20 +16,36 @@ export default function IdeasSection() {
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
 
-    const [isExpanded, setIsExpanded] = useState(false);
-    const maxLength = 100;  // You can adjust this value based on how much text you want to show initially.
+    // Track expanded state for EACH idea individually
+    const [expandedIdeas, setExpandedIdeas] = useState({});
+    const maxLength = 100;
 
-    const toggleText = () => {
-        setIsExpanded(prevState => !prevState);
+    // Filters state
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [categoryFilter, setCategoryFilter] = useState('All');
+    
+    // Toggle expanded state for a specific idea by ID
+    const toggleText = (ideaId) => {
+        setExpandedIdeas(prev => ({
+            ...prev,
+            [ideaId]: !prev[ideaId]
+        }));
     };
 
-    
     // Predefined categories
     const categoryOptions = [
         { value: '', label: 'Select a category...' },
         { value: 'Feature Ideas', label: 'Feature Ideas' },
         { value: 'Trading Strategies', label: 'Trading Strategies' },
         { value: 'AI Enhancements', label: 'AI Enhancements' }
+    ];
+
+    // Status options for filter
+    const statusOptions = [
+        { value: 'All', label: 'All Statuses' },
+        { value: 'Pending', label: 'Pending' },
+        { value: 'In Progress', label: 'In Progress' },
+        { value: 'Completed', label: 'Completed' }
     ];
     
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -142,7 +158,7 @@ export default function IdeasSection() {
         }
     };
     
-    // Update idea tracker status - FIXED VERSION
+    // Update idea tracker status
     const updateIdeaTracker = async (ideaId, newStatus) => {
         setUpdatingStatus(true);
         
@@ -190,328 +206,7 @@ export default function IdeasSection() {
             setUpdatingStatus(false);
         }
     };
-
-    // CSS styles (added inline)
-    const styles = {
-        readMoreLink: {
-            color: '#007BFF',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            textDecoration: 'underline',
-            marginLeft: '5px',
-            transition: 'color 0.3s ease',
-        },
-        readMoreLinkHover: {
-            color: '#0056b3',
-        },
-        container: {
-            fontFamily: "'Poppins', sans-serif",
-        },
-        header: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem',
-            borderBottom: '2px solid #f0f0f0',
-            paddingBottom: '1rem'
-        },
-        sectionTitle: {
-            fontSize: '1.4rem',
-            fontWeight: '600',
-            color: '#2c3e50',
-            margin: 0
-        },
-        createButton: {
-            backgroundColor: showCreateForm ? '#e74c3c' : '#3498db',
-            color: 'white',
-            border: 'none',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '4px',
-            fontWeight: '500',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-        },
-        formContainer: {
-            backgroundColor: '#f8f9fa',
-            padding: '1.5rem',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-            marginBottom: '2rem',
-            border: '1px solid #e0e0e0',
-            animation: 'fadeIn 0.3s ease-in-out'
-        },
-        formTitle: {
-            fontSize: '1.2rem',
-            fontWeight: '600',
-            marginBottom: '1.2rem',
-            color: '#34495e'
-        },
-        formGroup: {
-            marginBottom: '1.2rem'
-        },
-        label: {
-            fontWeight: '500',
-            marginBottom: '0.5rem',
-            display: 'block',
-            color: '#4a5568'
-        },
-        input: {
-            width: '100%',
-            padding: '0.6rem',
-            borderRadius: '4px',
-            border: '1px solid #cbd5e0',
-            transition: 'border-color 0.2s ease',
-            fontSize: '1rem'
-        },
-        saveButton: {
-            backgroundColor: '#2ecc71',
-            color: 'white',
-            border: 'none',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '4px',
-            fontWeight: '500',
-            marginRight: '0.8rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        },
-        cancelButton: {
-            backgroundColor: '#95a5a6',
-            color: 'white',
-            border: 'none',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '4px',
-            fontWeight: '500',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        },
-        ideasListHeader: {
-            fontSize: '1.2rem',
-            fontWeight: '600',
-            marginBottom: '1rem',
-            marginTop: '1.5rem',
-            color: '#34495e',
-            paddingBottom: '0.5rem',
-            borderBottom: '1px solid #f0f0f0'
-        },
-        card: {
-            borderRadius: '8px',
-            border: 'none',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-            height: '100%',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            position: 'relative',
-            marginBottom: '20px',
-        },
-        cardHover: {
-            transform: 'translateY(-5px)',
-            boxShadow: '0 8px 15px rgba(0,0,0,0.1)'
-        },
-        cardHeader: {
-            backgroundColor: '#f8f9fa',
-            borderBottom: '1px solid #f0f0f0',
-            padding: '0.8rem 1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-        },
-        cardTitle: {
-            fontSize: '1.1rem',
-            fontWeight: '600',
-            margin: 0,
-            color: '#2c3e50'
-        },
-        cardBody: {
-            padding: '1rem',
-            flex: '1 0 auto',
-            display: 'flex',
-            flexDirection: 'column'
-        },
-        cardText: {
-            color: '#4a5568',
-            marginBottom: '1rem',
-            flex: '1 0 auto'
-        },
-        cardFooter: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingTop: '0.8rem',
-            borderTop: '1px solid #f0f0f0'
-        },
-        badge: {
-            padding: '0.4rem 0.8rem',
-            borderRadius: '20px',
-            fontWeight: '500',
-            fontSize: '0.75rem',
-            cursor: 'pointer'
-        },
-        badgePending: {
-            backgroundColor: '#718096',
-            color: 'white'
-        },
-        badgeInProgress: {
-            backgroundColor: '#f39c12',
-            color: 'white'
-        },
-        badgeCompleted: {
-            backgroundColor: '#27ae60',
-            color: 'white'
-        },
-        badgeUpdating: {
-            backgroundColor: '#3498db',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
-        },
-        dateText: {
-            fontSize: '0.75rem',
-            color: '#718096'
-        },
-        spinnerContainer: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '2rem 0'
-        },
-        spinner: {
-            width: '2.5rem',
-            height: '2.5rem',
-            border: '4px solid rgba(0, 0, 0, 0.1)',
-            borderRadius: '50%',
-            borderTopColor: '#3498db',
-            animation: 'spin 1s ease-in-out infinite'
-        },
-        emptyState: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '2rem',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            marginTop: '1rem'
-        },
-        emptyStateText: {
-            color: '#718096',
-            fontWeight: '500',
-            marginTop: '1rem',
-            textAlign: 'center'
-        },
-        errorAlert: {
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
-            padding: '1rem',
-            borderRadius: '6px',
-            marginBottom: '1.5rem',
-            border: '1px solid #fecaca'
-        },
-        actionButtons: {
-            position: 'absolute',
-            top: '0.5rem',
-            right: '0.5rem',
-            display: 'flex',
-            gap: '0.5rem'
-        },
-        iconButton: {
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.3rem',
-            borderRadius: '4px',
-            transition: 'background-color 0.2s ease'
-        },
-        deleteButton: {
-            color: '#e74c3c'
-        },
-        editButton: {
-            color: '#3498db'
-        },
-        statusDropdown: {
-            // position: 'absolute',
-            top: '100%',
-            left: '0',
-            zIndex: 10,
-            backgroundColor: 'white',
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-            padding: '0.5rem 0',
-            width: '150px',
-            animation: 'fadeIn 0.2s ease-in-out'
-        },
-        statusOption: {
-            padding: '0.5rem 1rem',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s ease',
-            fontSize: '0.9rem'
-        },
-        statusOptionHover: {
-            backgroundColor: '#f8f9fa'
-        },
-        statusOptionPending: {
-            color: '#718096'
-        },
-        statusOptionInProgress: {
-            color: '#f39c12'
-        },
-        statusOptionCompleted: {
-            color: '#27ae60'
-        },
-        deleteConfirm: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10,
-            padding: '1rem',
-            animation: 'fadeIn 0.2s ease-in-out'
-        },
-        deleteConfirmText: {
-            fontWeight: '500',
-            marginBottom: '1rem',
-            textAlign: 'center',
-            color: '#2c3e50'
-        },
-        deleteConfirmButtons: {
-            display: 'flex',
-            gap: '0.8rem'
-        },
-        deleteConfirmYes: {
-            backgroundColor: '#e74c3c',
-            color: 'white',
-            border: 'none',
-            padding: '0.4rem 0.8rem',
-            borderRadius: '4px',
-            fontWeight: '500'
-        },
-        deleteConfirmNo: {
-            backgroundColor: '#3498db',
-            color: 'white',
-            border: 'none',
-            padding: '0.4rem 0.8rem',
-            borderRadius: '4px',
-            fontWeight: '500'
-        },
-        pulseAnimation: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
-            animation: 'pulse 1.5s infinite'
-        }
-        
-    };
-
     
-
     // Dynamic card hover effect handler
     const [hoveredCard, setHoveredCard] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -553,6 +248,30 @@ export default function IdeasSection() {
             </div>
         </div>
     );
+
+    // Handle filter changes
+    const handleStatusFilterChange = (e) => {
+        setStatusFilter(e.target.value);
+    };
+
+    const handleCategoryFilterChange = (e) => {
+        setCategoryFilter(e.target.value);
+    };
+
+    // Filter ideas based on selected filters
+    const filteredIdeas = ideas.filter(idea => {
+        // Apply status filter
+        const statusMatch = statusFilter === 'All' || idea.idea_tracker === statusFilter;
+        
+        // Apply category filter
+        const categoryMatch = categoryFilter === 'All' || idea.idea_category === categoryFilter;
+        
+        // Return true only if both filters match
+        return statusMatch && categoryMatch;
+    });
+
+    // Get unique categories from ideas for the filter dropdown
+    const uniqueCategories = ['All', ...new Set(ideas.map(idea => idea.idea_category))];
 
     return (
         <div style={styles.container}>
@@ -639,7 +358,42 @@ export default function IdeasSection() {
                     
                     {/* Display Ideas */}
                     <div className="ideas-list">
-                        <p style={styles.ideasListHeader}>My Ideas</p>
+                        <div style={styles.ideasListHeader}>
+                            <p style={styles.ideasListTitle}>My Ideas</p>
+                            
+                            {/* Filters section */}
+                            <div style={styles.filtersContainer}>
+                                <div style={styles.filterGroup}>
+                                    <label style={styles.filterLabel}>Status:</label>
+                                    <select 
+                                        style={styles.filterSelect}
+                                        value={statusFilter}
+                                        onChange={handleStatusFilterChange}
+                                    >
+                                        {statusOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                
+                                <div style={styles.filterGroup}>
+                                    <label style={styles.filterLabel}>Category:</label>
+                                    <select 
+                                        style={styles.filterSelect}
+                                        value={categoryFilter}
+                                        onChange={handleCategoryFilterChange}
+                                    >
+                                        {uniqueCategories.map(category => (
+                                            <option key={category} value={category}>
+                                                {category === 'All' ? 'All Categories' : category}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         
                         {loading && (
                             <div style={styles.spinnerContainer}>
@@ -647,7 +401,7 @@ export default function IdeasSection() {
                             </div>
                         )}
                         
-                        {!loading && ideas.length === 0 && (
+                        {!loading && filteredIdeas.length === 0 && (
                             <div style={styles.emptyState}>
                                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#718096" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -655,12 +409,16 @@ export default function IdeasSection() {
                                     <path d="M15 9H15.01" stroke="#718096" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                     <path d="M8 14H16" stroke="#718096" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                <p style={styles.emptyStateText}>No ideas found. Click the "Create New Idea" button to get started!</p>
+                                <p style={styles.emptyStateText}>
+                                    {ideas.length === 0 
+                                        ? "No ideas found. Click the \"Create New Idea\" button to get started!" 
+                                        : "No ideas match the selected filters."}
+                                </p>
                             </div>
                         )}
                         
                         <div className="">
-                            {ideas.map(idea => (
+                            {filteredIdeas.map(idea => (
                                 <div className="" key={idea.id}>
                                     <div 
                                         style={{
@@ -713,15 +471,18 @@ export default function IdeasSection() {
                                             )}
                                         </div>
                                         <div style={styles.cardBody}>
-                                                                            {/* <p style={styles.cardText}>{idea.idea_text}</p> */}
-                                                    <p style={styles.cardText}>
-                                                {isExpanded ? idea.idea_text : idea.idea_text.slice(0, maxLength)}
+                                            <p style={styles.cardText}>
+                                                {expandedIdeas[idea.id] ? idea.idea_text : 
+                                                  (idea.idea_text.length > maxLength ? 
+                                                    `${idea.idea_text.slice(0, maxLength)}...` : 
+                                                    idea.idea_text)
+                                                }
                                                 {idea.idea_text.length > maxLength && (
                                                     <span 
                                                         style={styles.readMoreLink} 
-                                                        onClick={toggleText}
+                                                        onClick={() => toggleText(idea.id)}
                                                     >
-                                                        {isExpanded ? ' Read Less' : '... Read More'}
+                                                        {expandedIdeas[idea.id] ? ' Read Less' : ' Read More'}
                                                     </span>
                                                 )}
                                             </p>
@@ -756,9 +517,8 @@ export default function IdeasSection() {
                     </div>
                 </div>
             </div>
-            
             {/* CSS animations */}
-            <style jsx global>{`
+            {/* <style jsx global>{`
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(-10px); }
                     to { opacity: 1; transform: translateY(0); }
@@ -772,7 +532,353 @@ export default function IdeasSection() {
                     0% { transform: translateX(-100%); }
                     100% { transform: translateX(100%); }
                 }
-            `}</style>
+            `}</style> */}
+        
         </div>
     );
 }
+
+// CSS styles (added inline)
+const styles = {
+    readMoreLink: {
+        color: '#007BFF',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        textDecoration: 'underline',
+        marginLeft: '5px',
+        transition: 'color 0.3s ease',
+    },
+    readMoreLinkHover: {
+        color: '#0056b3',
+    },
+    container: {
+        fontFamily: "'Poppins', sans-serif",
+    },
+    header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        borderBottom: '2px solid #f0f0f0',
+        paddingBottom: '1rem'
+    },
+    sectionTitle: {
+        fontSize: '1.4rem',
+        fontWeight: '600',
+        color: '#2c3e50',
+        margin: 0
+    },
+    createButton: {
+        backgroundColor: '#3498db',
+        color: 'white',
+        border: 'none',
+        padding: '0.6rem 1.2rem',
+        borderRadius: '4px',
+        fontWeight: '500',
+        transition: 'all 0.3s ease',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+    },
+    formContainer: {
+        backgroundColor: '#f8f9fa',
+        padding: '1.5rem',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+        marginBottom: '2rem',
+        border: '1px solid #e0e0e0',
+        animation: 'fadeIn 0.3s ease-in-out'
+    },
+    formTitle: {
+        fontSize: '1.2rem',
+        fontWeight: '600',
+        marginBottom: '1.2rem',
+        color: '#34495e'
+    },
+    formGroup: {
+        marginBottom: '1.2rem'
+    },
+    label: {
+        fontWeight: '500',
+        marginBottom: '0.5rem',
+        display: 'block',
+        color: '#4a5568'
+    },
+    input: {
+        width: '100%',
+        padding: '0.6rem',
+        borderRadius: '4px',
+        border: '1px solid #cbd5e0',
+        transition: 'border-color 0.2s ease',
+        fontSize: '1rem'
+    },
+    saveButton: {
+        backgroundColor: '#2ecc71',
+        color: 'white',
+        border: 'none',
+        padding: '0.6rem 1.2rem',
+        borderRadius: '4px',
+        fontWeight: '500',
+        marginRight: '0.8rem',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    },
+    cancelButton: {
+        backgroundColor: '#95a5a6',
+        color: 'white',
+        border: 'none',
+        padding: '0.6rem 1.2rem',
+        borderRadius: '4px',
+        fontWeight: '500',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    },
+    ideasListHeader: {
+        fontSize: '1.2rem',
+        fontWeight: '600',
+        marginBottom: '1rem',
+        marginTop: '1.5rem',
+        color: '#34495e',
+        paddingBottom: '0.5rem',
+        borderBottom: '1px solid #f0f0f0'
+    },
+    card: {
+        borderRadius: '8px',
+        border: 'none',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+        height: '100%',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        marginBottom: '20px',
+    },
+    cardHover: {
+        transform: 'translateY(-5px)',
+        boxShadow: '0 8px 15px rgba(0,0,0,0.1)'
+    },
+    cardHeader: {
+        backgroundColor: '#f8f9fa',
+        borderBottom: '1px solid #f0f0f0',
+        padding: '0.8rem 1rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    cardTitle: {
+        fontSize: '1.1rem',
+        fontWeight: '600',
+        margin: 0,
+        color: '#2c3e50'
+    },
+    cardBody: {
+        padding: '1rem',
+        flex: '1 0 auto',
+        display: 'flex',
+        flexDirection: 'column'
+    },
+    cardText: {
+        color: '#4a5568',
+        marginBottom: '1rem',
+        flex: '1 0 auto'
+    },
+    cardFooter: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: '0.8rem',
+        borderTop: '1px solid #f0f0f0'
+    },
+    badge: {
+        padding: '0.4rem 0.8rem',
+        borderRadius: '20px',
+        fontWeight: '500',
+        fontSize: '0.75rem',
+        cursor: 'pointer'
+    },
+    badgePending: {
+        backgroundColor: '#718096',
+        color: 'white'
+    },
+    badgeInProgress: {
+        backgroundColor: '#f39c12',
+        color: 'white'
+    },
+    badgeCompleted: {
+        backgroundColor: '#27ae60',
+        color: 'white'
+    },
+    badgeUpdating: {
+        backgroundColor: '#3498db',
+        color: 'white',
+        position: 'relative',
+        overflow: 'hidden'
+    },
+    dateText: {
+        fontSize: '0.75rem',
+        color: '#718096'
+    },
+    spinnerContainer: {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '2rem 0'
+    },
+    spinner: {
+        width: '2.5rem',
+        height: '2.5rem',
+        border: '4px solid rgba(0, 0, 0, 0.1)',
+        borderRadius: '50%',
+        borderTopColor: '#3498db',
+        animation: 'spin 1s ease-in-out infinite'
+    },
+    emptyState: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '2rem',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        marginTop: '1rem'
+    },
+    emptyStateText: {
+        color: '#718096',
+        fontWeight: '500',
+        marginTop: '1rem',
+        textAlign: 'center'
+    },
+    errorAlert: {
+        backgroundColor: '#fee2e2',
+        color: '#b91c1c',
+        padding: '1rem',
+        borderRadius: '6px',
+        marginBottom: '1.5rem',
+        border: '1px solid #fecaca'
+    },
+    actionButtons: {
+        position: 'absolute',
+        top: '0.5rem',
+        right: '0.5rem',
+        display: 'flex',
+        gap: '0.5rem'
+    },
+    iconButton: {
+        backgroundColor: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '0.3rem',
+        borderRadius: '4px',
+        transition: 'background-color 0.2s ease'
+    },
+    deleteButton: {
+        color: '#e74c3c'
+    },
+    editButton: {
+        color: '#3498db'
+    },
+    statusDropdown: {
+        // position: 'absolute',
+        top: '100%',
+        left: '0',
+        zIndex: 10,
+        backgroundColor: 'white',
+        borderRadius: '4px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        padding: '0.5rem 0',
+        width: '150px',
+        animation: 'fadeIn 0.2s ease-in-out'
+    },
+    statusOption: {
+        padding: '0.5rem 1rem',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s ease',
+        fontSize: '0.9rem'
+    },
+    statusOptionHover: {
+        backgroundColor: '#f8f9fa'
+    },
+    statusOptionPending: {
+        color: '#718096'
+    },
+    statusOptionInProgress: {
+        color: '#f39c12'
+    },
+    statusOptionCompleted: {
+        color: '#27ae60'
+    },
+    deleteConfirm: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+        padding: '1rem',
+        animation: 'fadeIn 0.2s ease-in-out'
+    },
+    deleteConfirmText: {
+        fontWeight: '500',
+        marginBottom: '1rem',
+        textAlign: 'center',
+        color: '#2c3e50'
+    },
+    deleteConfirmButtons: {
+        display: 'flex',
+        gap: '0.8rem'
+    },
+    deleteConfirmYes: {
+        backgroundColor: '#e74c3c',
+        color: 'white',
+        border: 'none',
+        padding: '0.4rem 0.8rem',
+        borderRadius: '4px',
+        fontWeight: '500'
+    },
+    deleteConfirmNo: {
+        backgroundColor: '#3498db',
+        color: 'white',
+        border: 'none',
+        padding: '0.4rem 0.8rem',
+        borderRadius: '4px',
+        fontWeight: '500'
+    },
+    pulseAnimation: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+        animation: 'pulse 1.5s infinite'
+    },
+
+    filtersContainer: {
+        display: 'flex',
+        gap: '15px',
+        marginTop: '10px',
+        flexWrap: 'wrap'
+    },
+    filterGroup: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+    },
+    filterLabel: {
+        fontWeight: 500,
+        fontSize: '14px',
+        color: '#4A5568'
+    },
+    filterSelect: {
+        padding: '6px 10px',
+        borderRadius: '4px',
+        border: '1px solid #E2E8F0',
+        backgroundColor: '#F7FAFC',
+        fontSize: '14px',
+        color: '#2D3748',
+        minWidth: '150px'
+    },
+    
+};
