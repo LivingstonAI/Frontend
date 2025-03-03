@@ -5369,14 +5369,15 @@ select.form-control {
   color: #dc3545;
 }
 
-/* Performance Review Section Styling */
+
+/* Performance Review Section Styling - Light Compatible */
 .performance-review-div {
-  background-color: #0a1929;
+  background-color: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px 0 rgba(0, 198, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(0, 198, 255, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: hidden;
 }
@@ -5387,137 +5388,133 @@ select.form-control {
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #00c6ff, #4a00e0, transparent);
+  height: 3px;
+  background: linear-gradient(90deg, #0062ff, #6610f2, #1098ad);
 }
 
 .performance-review-header {
-  color: #00c6ff;
+  color: #0062ff;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 600;
-  text-shadow: 0 0 10px rgba(0, 198, 255, 0.5);
-  border-bottom: 1px solid rgba(0, 198, 255, 0.3);
+  border-bottom: 1px solid rgba(0, 98, 255, 0.2);
   padding-bottom: 0.5rem;
 }
 
 .performance-review-header-tradingview {
-  color: #4a00e0;
+  color: #6610f2;
   text-decoration: none;
-  transition: color 0.3s, text-shadow 0.3s;
+  transition: color 0.3s;
 }
 
 .performance-review-header-tradingview:hover {
-  color: #00c6ff;
-  text-shadow: 0 0 8px rgba(0, 198, 255, 0.8);
+  color: #0062ff;
   text-decoration: none;
 }
 
 .performance-select-asset {
   padding: 0.75rem;
   margin: 0.5rem 0;
-  background-color: #132f4c;
+  background-color: #f8f9fa;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
   border-left: 3px solid transparent;
+  color: #495057;
 }
 
 .performance-select-asset:hover {
-  background-color: #1a3c5e;
-  border-left: 3px solid #00c6ff;
+  background-color: #e9ecef;
+  border-left: 3px solid #0062ff;
   transform: translateX(5px);
 }
 
 .chart-container {
-  background-color: #132f4c;
+  background-color: #f8f9fa;
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(0, 198, 255, 0.1);
-}
-
-/* Chart styling enhancements */
-.chart-container canvas {
-  filter: drop-shadow(0 0 8px rgba(0, 198, 255, 0.2));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Model info stats */
 .chart-container p {
-  color: #b0bec5;
+  color: #495057;
   margin: 0.5rem 0;
   font-family: monospace;
   font-size: 0.9rem;
   display: flex;
   justify-content: space-between;
-  padding: 0.25rem 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 /* Button styling */
 .performance-review-div .btn-primary {
-  background: linear-gradient(45deg, #00c6ff, #4a00e0);
+  background: linear-gradient(45deg, #0062ff, #6610f2);
   border: none;
   border-radius: 6px;
   padding: 0.5rem 1rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 198, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 98, 255, 0.2);
+  color: white;
 }
 
 .performance-review-div .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 198, 255, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 98, 255, 0.3);
 }
 
 /* Offcanvas styling */
 .offcanvas {
-  background-color: #0a1929;
-  border-right: 1px solid rgba(0, 198, 255, 0.2);
+  background-color: #ffffff;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .offcanvas-title {
-  color: #00c6ff;
+  color: #0062ff;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 1.1rem;
 }
 
-.offcanvas-header .btn-close {
-  filter: invert(1) brightness(0.8);
-}
-
-/* Custom scrollbar for the offcanvas */
-.offcanvas-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.offcanvas-body::-webkit-scrollbar-track {
-  background: #132f4c;
-}
-
-.offcanvas-body::-webkit-scrollbar-thumb {
-  background: #00c6ff;
-  border-radius: 3px;
-}
-
-/* Model performance metrics highlighting */
-.chart-container p:nth-child(even) {
-  background-color: rgba(0, 0, 0, 0.3);
-}
-
 /* Win rate highlighting */
 .chart-container p:nth-of-type(1) {
-  border-left: 3px solid #00e676;
+  border-left: 3px solid #28a745;
 }
 
 /* Loss rate highlighting */
 .chart-container p:nth-of-type(2) {
-  border-left: 3px solid #ff1744;
+  border-left: 3px solid #dc3545;
 }
 
 /* Overall return highlighting */
 .chart-container p:nth-of-type(3) {
-  border-left: 3px solid #00c6ff;
+  border-left: 3px solid #0062ff;
+}
+
+/* Add some futuristic grid pattern to charts but subtle for light themes */
+.model-performance-review-div {
+  background-image: radial-gradient(#e9ecef 1px, transparent 1px);
+  background-size: 20px 20px;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+/* Make the chart lines pop a bit */
+.chart-container canvas {
+  filter: drop-shadow(0 1px 3px rgba(0, 98, 255, 0.2));
+}
+
+/* Add subtle animations */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 98, 255, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 98, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 98, 255, 0); }
+}
+
+.chart-container:hover {
+  animation: pulse 2s infinite;
 }
