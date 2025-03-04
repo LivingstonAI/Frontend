@@ -10,6 +10,7 @@ export default function AccountAnalytics() {
     const [loading, setLoading] = useState(true);
     const [aiSummary, setAiSummary] = useState("");
     const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+    const [summaryExpanded, setSummaryExpanded] = useState(true);
     const [filters, setFilters] = useState({
         dayOfWeek: 'all',
         tradingSession: 'all',
@@ -247,6 +248,7 @@ export default function AccountAnalytics() {
             
             if (response.ok && data.summary) {
                 setAiSummary(data.summary);
+                setSummaryExpanded(true); // Auto-expand when new summary is generated
             } else {
                 console.error('Error fetching AI summary:', data.error);
                 setAiSummary("Sorry, we couldn't generate an AI summary at this time.");
@@ -257,6 +259,46 @@ export default function AccountAnalytics() {
         } finally {
             setAiSummaryLoading(false);
         }
+    };
+
+    // Parse and format the AI summary for better display
+    const formatAiSummary = () => {
+        if (!aiSummary) return [];
+        
+        // Split the summary into sections based on emoji patterns
+        // This will likely be sections like overall statement, metrics, patterns, recommendations
+        const sections = [];
+        let currentSection = "";
+        
+        aiSummary.split('\n').forEach(line => {
+            // Check if line starts with an emoji (common emoji pattern: 1-2 characters at start of line)
+            const emojiRegex = /^[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/u;
+            
+            if (line.trim() === "") {
+                // Skip empty lines
+                return;
+            } else if (emojiRegex.test(line) || sections.length === 0) {
+                // Start a new section if we find an emoji at the start or this is the first line
+                if (currentSection) {
+                    sections.push(currentSection);
+                }
+                currentSection = line;
+            } else {
+                // Continue current section
+                currentSection += "\n" + line;
+            }
+        });
+        
+        // Add the last section
+        if (currentSection) {
+            sections.push(currentSection);
+        }
+        
+        return sections;
+    };
+
+    const toggleSummary = () => {
+        setSummaryExpanded(!summaryExpanded);
     };
 
     const baseChartOptions = {
@@ -298,12 +340,14 @@ export default function AccountAnalytics() {
             },
         },
     };
-
     const weekdayChartData = generateChartData('day_of_week_entered');
     const sessionChartData = generateChartData('trading_session_entered');
     const strategyChartData = generateChartData('strategy');
     const equityCurveData = generateEquityCurveData();
     const metricsData = generateMetricsData();
+
+    // Format AI summary into sections
+    const summaryContent = formatAiSummary();
 
     return (
         <div>
@@ -321,13 +365,14 @@ export default function AccountAnalytics() {
                         <div>No account data available.</div>
                     ) : (
                         <>
-                            {/* AI Summary Section */}
+                            {/* Enhanced AI Summary Section */}
                             <div className="ai-summary-section" style={{
                                 marginBottom: '20px',
-                                backgroundColor: '#f9f9f9',
-                                borderRadius: '8px',
+                                backgroundColor: '#f0f7ff',
+                                borderRadius: '12px',
                                 padding: '20px',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                transition: 'all 0.3s ease'
                             }}>
                                 <div style={{
                                     display: 'flex',
@@ -335,52 +380,132 @@ export default function AccountAnalytics() {
                                     alignItems: 'center',
                                     marginBottom: '15px'
                                 }}>
-                                    <h6 style={{margin: 0, fontSize: '18px', fontWeight: 'bold'}}>
+                                    <h6 style={{
+                                        margin: 0, 
+                                        fontSize: '20px', 
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}>
                                         <span style={{marginRight: '10px'}}>✨</span>
-                                        AI Trading Summary
+                                        AI Trading Insights
                                     </h6>
-                                    <button 
-                                        onClick={fetchAISummary}
-                                        disabled={aiSummaryLoading}
-                                        className="btn btn-primary"
-                                        style={{
-                                            backgroundColor: '#1E88E5',
-                                            border: 'none',
-                                            padding: '8px 15px',
-                                            borderRadius: '4px',
-                                            fontSize: '14px'
-                                        }}
-                                    >
-                                        {aiSummaryLoading ? 'Generating...' : aiSummary ? 'Regenerate Summary' : 'Generate AI Summary'}
-                                    </button>
+                                    <div style={{display: 'flex', gap: '10px'}}>
+                                        {aiSummary && !aiSummaryLoading && (
+                                            <button 
+                                                onClick={toggleSummary}
+                                                className="btn btn-outline-primary"
+                                                style={{
+                                                    border: '1px solid #1E88E5',
+                                                    padding: '8px 12px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '14px',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#1E88E5',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '5px'
+                                                }}
+                                            >
+                                                {summaryExpanded ? (
+                                                    <>
+                                                        <span style={{fontSize: '18px'}}>▼</span> 
+                                                        Hide Summary
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span style={{fontSize: '18px'}}>▶</span> 
+                                                        Show Summary
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                        <button 
+                                            onClick={fetchAISummary}
+                                            disabled={aiSummaryLoading}
+                                            className="btn btn-primary"
+                                            style={{
+                                                backgroundColor: '#1E88E5',
+                                                border: 'none',
+                                                padding: '8px 15px',
+                                                borderRadius: '4px',
+                                                fontSize: '14px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px'
+                                            }}
+                                        >
+                                            <span style={{fontSize: '16px'}}>🔄</span>
+                                            {aiSummaryLoading ? 'Generating...' : aiSummary ? 'Refresh Analysis' : 'Generate Analysis'}
+                                        </button>
+                                    </div>
                                 </div>
                                 
+                                {/* AI Summary Content with Toggle */}
                                 <div className="ai-summary-content" style={{
-                                    backgroundColor: 'white',
-                                    padding: '15px',
-                                    borderRadius: '6px',
-                                    border: '1px solid #eee',
-                                    minHeight: '100px',
-                                    display: 'flex',
-                                    alignItems: aiSummary ? 'flex-start' : 'center',
-                                    justifyContent: aiSummary ? 'flex-start' : 'center'
+                                    overflow: 'hidden',
+                                    maxHeight: summaryExpanded ? '2000px' : '0',
+                                    opacity: summaryExpanded ? 1 : 0,
+                                    transition: 'max-height 0.5s ease, opacity 0.5s ease',
+                                    marginTop: summaryExpanded ? '15px' : 0
                                 }}>
                                     {aiSummaryLoading ? (
-                                        <div style={{textAlign: 'center', width: '100%'}}>
+                                        <div style={{
+                                            textAlign: 'center', 
+                                            width: '100%',
+                                            padding: '30px 20px',
+                                            backgroundColor: 'white',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                                        }}>
                                             <div className="spinner-border text-primary" role="status">
                                                 <span className="visually-hidden">Loading...</span>
                                             </div>
-                                            <p style={{marginTop: '10px'}}>Analyzing your trading data...</p>
+                                            <p style={{marginTop: '15px', color: '#555'}}>Analyzing your trading data...</p>
+                                            <p style={{fontSize: '14px', color: '#777'}}>This may take a few moments</p>
                                         </div>
                                     ) : aiSummary ? (
-                                        <div style={{whiteSpace: 'pre-line'}}>
-                                            {aiSummary.split('\n').map((paragraph, idx) => (
-                                                <p key={idx} style={{marginBottom: '10px'}}>{paragraph}</p>
+                                        <div style={{
+                                            backgroundColor: 'white',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+                                            overflow: 'hidden',
+                                        }}>
+                                            {summaryContent.map((section, index) => (
+                                                <div 
+                                                    key={index} 
+                                                    style={{
+                                                        padding: '16px 20px',
+                                                        borderBottom: index < summaryContent.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                                        backgroundColor: index % 2 === 0 ? 'white' : '#fafbff'
+                                                    }}
+                                                >
+                                                    {section.split('\n').map((line, lineIdx) => (
+                                                        <p key={lineIdx} style={{
+                                                            margin: lineIdx === 0 ? '0 0 10px' : '10px 0',
+                                                            fontWeight: lineIdx === 0 ? 'bold' : 'normal',
+                                                            fontSize: lineIdx === 0 ? '16px' : '15px',
+                                                            color: lineIdx === 0 ? '#1a1a1a' : '#444'
+                                                        }}>
+                                                            {line}
+                                                        </p>
+                                                    ))}
+                                                </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div style={{textAlign: 'center', color: '#666'}}>
-                                            <p>Click "Generate AI Summary" to get personalized insights about your trading performance based on the currently filtered data.</p>
+                                        <div style={{
+                                            textAlign: 'center', 
+                                            color: '#666',
+                                            padding: '30px 20px',
+                                            backgroundColor: 'white',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                                        }}>
+                                            <p style={{fontSize: '16px', marginBottom: '5px'}}>No analysis generated yet</p>
+                                            <p style={{fontSize: '14px', color: '#777'}}>
+                                                Click "Generate Analysis" to get personalized insights about your trading performance
+                                            </p>
                                         </div>
                                     )}
                                 </div>
