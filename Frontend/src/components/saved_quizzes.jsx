@@ -8,11 +8,10 @@ export default function SavedQuizzes() {
     const [savedQuizzes, setSavedQuizzes] = useState([]);
     const [filteredQuizzes, setFilteredQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [deletingQuizId, setDeletingQuizId] = useState(null);
-    const [confirmDeleteQuiz, setConfirmDeleteQuiz] = useState(null);
     const [error, setError] = useState(null);
     const [expandedQuizzes, setExpandedQuizzes] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [deletingQuizIds, setDeletingQuizIds] = useState(new Set());
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -48,8 +47,22 @@ export default function SavedQuizzes() {
     };
 
     const handleDeleteQuiz = async (quizId) => {
+        // Confirmation check
+        const confirmDelete = window.confirm("Are you sure you want to delete this quiz? This action cannot be undone.");
+        
+        // If user cancels deletion, return early
+        if (!confirmDelete) return;
+
+        // Check if quiz is already being deleted
+        if (deletingQuizIds.has(quizId)) {
+            console.warn(`Quiz ${quizId} is already being deleted`);
+            return;
+        }
+
         try {
-            setDeletingQuizId(quizId);
+            // Add quiz to deleting set to prevent multiple deletion attempts
+            setDeletingQuizIds(prev => new Set(prev).add(quizId));
+
             const csrftoken = Cookies.get('csrftoken');
             await axios.delete(`${baseUrl}/delete-quiz/${quizId}`, {
                 headers: {
@@ -62,14 +75,16 @@ export default function SavedQuizzes() {
             const updatedQuizzes = savedQuizzes.filter(quiz => quiz.id !== quizId);
             setSavedQuizzes(updatedQuizzes);
             setFilteredQuizzes(updatedQuizzes);
-            
-            // Reset the deleting state
-            setDeletingQuizId(null);
-            setConfirmDeleteQuiz(null);
         } catch (err) {
             console.error("Error deleting quiz:", err);
             alert("Failed to delete quiz");
-            setDeletingQuizId(null);
+        } finally {
+            // Remove quiz from deleting set, regardless of success or failure
+            setDeletingQuizIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(quizId);
+                return newSet;
+            });
         }
     };
 
@@ -83,41 +98,12 @@ export default function SavedQuizzes() {
         setFilteredQuizzes(filtered);
     };
 
-    const renderDeleteConfirmationModal = (quiz) => {
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-                    <h2 className="text-xl font-bold mb-4">Confirm Deletion</h2>
-                    <p className="mb-4">
-                        Are you sure you want to delete the quiz "{quiz.quiz_name}"? 
-                        This action cannot be undone.
-                    </p>
-                    <div className="flex justify-between">
-                        <button 
-                            onClick={() => setConfirmDeleteQuiz(null)}
-                            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onClick={() => handleDeleteQuiz(quiz.id)}
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                            disabled={deletingQuizId === quiz.id}
-                        >
-                            {deletingQuizId === quiz.id ? 'Deleting...' : 'Delete'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     const renderQuizDetails = (quiz) => {
         const isExpanded = expandedQuizzes[quiz.id];
-        const isDeleting = deletingQuizId === quiz.id;
+        const isDeleting = deletingQuizIds.has(quiz.id);
 
         return (
-            <div key={quiz.id} className={`saved-quiz-card mb-4 border rounded-lg shadow-sm relative ${isDeleting ? 'opacity-50' : ''}`}>
+            <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm relative">
                 
                 <div 
                     className="flex justify-between items-center p-4 border-b cursor-pointer hover:bg-gray-50"
@@ -138,12 +124,16 @@ export default function SavedQuizzes() {
                 <button 
                     onClick={(e) => {
                         e.stopPropagation(); // Prevent expanding/collapsing
-                        setConfirmDeleteQuiz(quiz);
+                        handleDeleteQuiz(quiz.id);
                     }}
-                    className={`absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={isDeleting}
+                    className={`absolute top-2 right-2 px-5 py-2 rounded text-sm ${
+                        isDeleting 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-red-500 text-white hover:bg-red-600'
+                    }`}
                 >
-                    {isDeleting ? 'Deleting...' : 'Delete'}
+                    {isDeleting ? 'Deleting...' : 'Delete Quiz'}
                 </button>
 
                 {isExpanded && (
@@ -162,7 +152,7 @@ export default function SavedQuizzes() {
                                 >
                                     <p className="font-medium mb-2">{q.question}</p>
                                     <div className="answers flex justify-between">
-                                        <span>Your Answer: <br />{q.selected_answer}</span><br />
+                                        <span>Your Answer: <br />{q.selected_answer}</span><br /><br />
                                         <span>Correct Answer: <br />{q.correct_answer}</span>
                                     </div>
                                 </div>
@@ -196,9 +186,6 @@ export default function SavedQuizzes() {
 
     return (
         <div>
-            {/* Confirmation Modal */}
-            {confirmDeleteQuiz && renderDeleteConfirmationModal(confirmDeleteQuiz)}
-
             <div className="header">
                 <Header />
             </div>
@@ -214,7 +201,7 @@ export default function SavedQuizzes() {
                             placeholder="Search quizzes..." 
                             value={searchTerm}
                             onChange={handleSearch}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded form-control"
                         />
                     </div>
 
