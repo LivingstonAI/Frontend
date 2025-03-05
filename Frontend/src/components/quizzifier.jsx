@@ -694,11 +694,11 @@ const fetchSectionData = async (sectionName) => {
                             Save Quiz
                         </button>
                     </div>
-                    {savedQuizId && (
+                    {/* {savedQuizId && (
                         <p style={styles.savedQuizMessage}>
                             Quiz saved with ID: {savedQuizId}
                         </p>
-                    )}
+                    )} */}
                 </div>
             )}
                 
