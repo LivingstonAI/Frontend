@@ -468,7 +468,65 @@ const fetchSectionData = async (sectionName) => {
 
     const closeSectionsModal = () => {
         setShowSections(false);
-    }
+    };
+
+    const [savedQuizId, setSavedQuizId] = useState(null);
+
+    // ... (previous functions remain the same)
+
+    const saveQuiz = async () => {
+        try {
+            // Prepare the quiz data to be saved
+            const quizData = {
+                quiz_name: quiz.title || "Unnamed Quiz",
+                total_questions: quiz.data.length,
+                correct_answers: correctAnswersCount,
+                questions: answers.map(answer => ({
+                    question: answer.question,
+                    selectedAnswer: answer.selectedAnswer,
+                    correctAnswer: answer.correctAnswer,
+                    isCorrect: answer.isCorrect
+                }))
+            };
+    
+            // Send the quiz data to the backend
+            const response = await fetch(`${baseUrl}/save-quiz`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(quizData)
+            });
+    
+            // Log the raw response for debugging
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+    
+            // Check if the response is not empty
+            if (!responseText) {
+                throw new Error('Received empty response from server');
+            }
+    
+            // Parse the JSON manually
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON Parsing Error:', parseError);
+                throw new Error(`Failed to parse server response: ${responseText}`);
+            }
+    
+            if (result.status === 'success') {
+                setSavedQuizId(result.saved_quiz_id);
+                alert('Quiz saved successfully!');
+            } else {
+                alert('Failed to save quiz: ' + (result.message || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Complete error details:', error);
+            alert(`Error saving quiz: ${error.message}`);
+        }
+    };
 
     // Calculate the number of correct and incorrect answers
     const correctAnswersCount = answers.filter((answer) => answer.isCorrect).length;
@@ -586,38 +644,57 @@ const fetchSectionData = async (sectionName) => {
                         )}
                     </div>
                 )}
+                
                 {showStats && (
-                    <div style={styles.completionScreen}>
-                        <h2 style={styles.completionTitle}>Quiz Completed! 🎉</h2>
-                        <p style={styles.statsText}>
-                            Correct Answers: <strong>{correctAnswersCount}</strong> / {quiz.data.length}
-                        </p>
-                        <p style={styles.statsText}>
-                            Incorrect Answers: <strong>{incorrectAnswersCount}</strong>
-                        </p>
-                        <h3 style={styles.feedbackTitle}>Feedback:</h3>
-                        <ul style={styles.feedbackList}>
-                            {answers.map((answer, index) => (
-                                <li
-                                    key={index}
-                                    style={styles.feedbackItem}
-                                >
-                                    <p><strong>Q:</strong> {answer.question}</p>
-                                    <p>
-                                        <strong>Your Answer:</strong> {answer.selectedAnswer}{" "}
-                                        {answer.isCorrect ? "✔️" : "❌"}
-                                    </p>
-                                    <p>
-                                        <strong>Correct Answer:</strong> {answer.correctAnswer}
-                                    </p>
-                                </li>
-                            ))}
-                        </ul>
-                        <button style={styles.startOverButton} onClick={handleStartOver} className="btn btn-primary">
+                <div style={styles.completionScreen}>
+                    <h2 style={styles.completionTitle}>Quiz Completed! 🎉</h2>
+                    <p style={styles.statsText}>
+                        Correct Answers: <strong>{correctAnswersCount}</strong> / {quiz.data.length}
+                    </p>
+                    <p style={styles.statsText}>
+                        Incorrect Answers: <strong>{incorrectAnswersCount}</strong>
+                    </p>
+                    <h3 style={styles.feedbackTitle}>Feedback:</h3>
+                    <ul style={styles.feedbackList}>
+                        {answers.map((answer, index) => (
+                            <li
+                                key={index}
+                                style={styles.feedbackItem}
+                            >
+                                <p><strong>Q:</strong> {answer.question}</p>
+                                <p>
+                                    <strong>Your Answer:</strong> {answer.selectedAnswer}{" "}
+                                    {answer.isCorrect ? "✔️" : "❌"}
+                                </p>
+                                <p>
+                                    <strong>Correct Answer:</strong> {answer.correctAnswer}
+                                </p>
+                            </li>
+                        ))}
+                    </ul>
+                    <div style={styles.buttonContainer}>
+                        <button 
+                            style={styles.startOverButton} 
+                            onClick={handleStartOver} 
+                            className="btn btn-primary"
+                        >
                             Start Over
+                        </button><br /><br />
+                        <button 
+                            style={styles.saveQuizButton} 
+                            onClick={saveQuiz} 
+                            className="btn btn-primary"
+                        >
+                            Save Quiz
                         </button>
                     </div>
-                )}
+                    {savedQuizId && (
+                        <p style={styles.savedQuizMessage}>
+                            Quiz saved with ID: {savedQuizId}
+                        </p>
+                    )}
+                </div>
+            )}
                 
                 {showModal && <div style={styles.modal}>Loading... Please wait</div>}
                 

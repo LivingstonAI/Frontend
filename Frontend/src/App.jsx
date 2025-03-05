@@ -42,6 +42,8 @@ import Quizzifier from './components/quizzifier.jsx';
 import TraderGPTAnalysis from './components/tradergpt.jsx';
 import BacktestedResults from './components/backtesting_interface.jsx';
 import IdeasSection from './components/ideas.jsx';
+import SavedQuizzes from './components/saved_quizzes.jsx';
+
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
