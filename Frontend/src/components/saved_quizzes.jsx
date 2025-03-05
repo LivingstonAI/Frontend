@@ -8,6 +8,7 @@ export default function SavedQuizzes() {
     const [savedQuizzes, setSavedQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [expandedQuizzes, setExpandedQuizzes] = useState({});
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -34,35 +35,63 @@ export default function SavedQuizzes() {
         fetchSavedQuizzes();
     }, []);
 
+    const toggleQuizExpand = (quizId) => {
+        setExpandedQuizzes(prev => ({
+            ...prev,
+            [quizId]: !prev[quizId]
+        }));
+    };
+
     const renderQuizDetails = (quiz) => {
+        const isExpanded = expandedQuizzes[quiz.id];
+
         return (
-            <div key={quiz.id} className="saved-quiz-card">
-                <div className="flex justify-between items-center p-4 border-b">
+            <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm">
+                <div 
+                    className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-100"
+                    onClick={() => toggleQuizExpand(quiz.id)}
+                >
                     <h3 className="text-lg font-semibold">{quiz.quiz_name}</h3>
-                    <span className="text-sm text-gray-500">
-                        {new Date(quiz.created_at).toLocaleString()}
-                    </span>
-                </div>
-                <div className="quiz-stats">
-                    <p>
-                        Score: {quiz.correct_answers} / {quiz.total_questions} 
-                        ({((quiz.correct_answers / quiz.total_questions) * 100).toFixed(2)}%)
-                    </p>
-                </div>
-                <div className="quiz-questions p-4">
-                    {quiz.questions.map((q, index) => (
-                        <div 
-                            key={index} 
-                            className={`question mb-2 p-2 rounded ${q.is_correct ? 'bg-green-100' : 'bg-red-100'}`}
+                    <div className="flex items-center">
+                        <span className="text-sm text-gray-500 mr-3">
+                            {new Date(quiz.created_at).toLocaleString()}
+                        </span>
+                        <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className={`h-5 w-5 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
                         >
-                            <p className="font-medium">{q.question}</p>
-                            <div className="answers flex justify-between">
-                                <span>Your Answer: {q.selected_answer}</span>
-                                <span>Correct Answer: {q.correct_answer}</span>
-                            </div>
-                        </div>
-                    ))}
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
                 </div>
+
+                {isExpanded && (
+                    <div className="quiz-details p-4">
+                        <div className="quiz-stats mb-4">
+                            <p className="font-medium">
+                                Score: {quiz.correct_answers} / {quiz.total_questions} 
+                                ({((quiz.correct_answers / quiz.total_questions) * 100).toFixed(2)}%)
+                            </p>
+                        </div>
+                        <div className="quiz-questions">
+                            {quiz.questions.map((q, index) => (
+                                <div 
+                                    key={index} 
+                                    className={`question mb-2 p-2 rounded ${q.is_correct ? 'bg-green-100' : 'bg-red-100'}`}
+                                >
+                                    <p className="font-medium mb-2">{q.question}</p>
+                                    <div className="answers flex justify-between">
+                                        <span>Your Answer: {q.selected_answer}</span>
+                                        <span>Correct Answer: {q.correct_answer}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
