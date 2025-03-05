@@ -120,6 +120,8 @@ function App() {
         <Route path='/account_analytics' element={<AccountAnalytics />}></Route>
         <Route path='/enter_new_trade_info' element={<EnterNewTradeInfo />}></Route>
         <Route path='/quizifier' element={<Quizzifier />}></Route>
+        <Route path='/saved_quizzes' element={<SavedQuizzes />}></Route>
+        {/* saved_quizzes */}
         {/* <Route path='/time' element={<Time />}></Route> */}
         <Route path='/tradergpt_analysis' element={<TraderGPTAnalysis />}></Route>
         <Route path='/backtested_results' element={<BacktestedResults />}></Route>
