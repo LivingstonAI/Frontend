@@ -475,6 +475,12 @@ const fetchSectionData = async (sectionName) => {
     // ... (previous functions remain the same)
 
     const saveQuiz = async () => {
+        // Confirmation check
+        const confirmSave = window.confirm("Are you sure you want to save this quiz? This action cannot be undone.");
+        
+        // If user cancels deletion, return early
+        if (!confirmSave) return;
+
         try {
             // Prepare the quiz data to be saved
             const quizData = {
