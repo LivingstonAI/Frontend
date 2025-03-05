@@ -247,6 +247,9 @@ const handlePlay = (song) => {
     <Link to="/quizifier" className="side-nav">
         <i className="bi bi-rocket-takeoff-fill"></i>
     </Link>
+    <Link to="/saved_quizzes" className="side-nav">
+        <i className="bi bi-stars"></i>
+    </Link>
     <Link to="/alert_bot" className="side-nav">
         <i className="bi bi-bell-fill"></i>
     </Link>
@@ -259,9 +262,7 @@ const handlePlay = (song) => {
     <Link to="/ideas_section" className="side-nav">
         <i className="bi bi-lightbulb-fill"></i>
     </Link>
-    <Link to="/saved_quizzes" className="side-nav">
-        <i className="bi bi-stars"></i>
-    </Link>
+    
 </div>
 <br />
 
