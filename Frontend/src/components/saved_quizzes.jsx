@@ -98,7 +98,7 @@ export default function SavedQuizzes() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
+                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5><br />
                     <div className="loading-container">
                         <div className="loading-spinner"></div>
                         <span className="ml-3">Loading saved quizzes...</span>
