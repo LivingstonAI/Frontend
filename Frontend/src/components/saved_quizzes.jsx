@@ -48,23 +48,17 @@ export default function SavedQuizzes() {
         return (
             <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm">
                 <div 
-                    className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-100"
+                    className="flex justify-between items-center p-4 border-b cursor-pointer hover:bg-gray-50"
                     onClick={() => toggleQuizExpand(quiz.id)}
                 >
                     <h3 className="text-lg font-semibold">{quiz.quiz_name}</h3>
                     <div className="flex items-center">
-                        <span className="text-sm text-gray-500 mr-3">
+                        <span className="text-sm text-gray-500 mr-4">
                             {new Date(quiz.created_at).toLocaleString()}
+                        </span><br />
+                        <span className="text-gray-600">
+                            {isExpanded ? '▼' : '►'}
                         </span>
-                        <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className={`h-5 w-5 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
                     </div>
                 </div>
 
@@ -124,7 +118,7 @@ export default function SavedQuizzes() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
+                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5><br />
                     <div className="saved-quizzes-container">
                         {savedQuizzes.length === 0 ? (
                             <div className="empty-quizzes-container">
