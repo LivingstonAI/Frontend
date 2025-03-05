@@ -47,7 +47,7 @@ export default function SavedQuizzes() {
 
         return (
             <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm">
-                <br /><br />
+                
                 <div 
                     className="flex justify-between items-center p-4 border-b cursor-pointer hover:bg-gray-50"
                     onClick={() => toggleQuizExpand(quiz.id)}
@@ -119,7 +119,7 @@ export default function SavedQuizzes() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
+                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5><br /><br />
                     <div className="saved-quizzes-container">
                         {savedQuizzes.length === 0 ? (
                             <div className="empty-quizzes-container">
