@@ -47,6 +47,7 @@ export default function SavedQuizzes() {
 
         return (
             <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm">
+                <br /><br />
                 <div 
                     className="flex justify-between items-center p-4 border-b cursor-pointer hover:bg-gray-50"
                     onClick={() => toggleQuizExpand(quiz.id)}
