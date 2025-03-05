@@ -36,20 +36,20 @@ export default function SavedQuizzes() {
 
     const renderQuizDetails = (quiz) => {
         return (
-            <div key={quiz.id} className="saved-quiz-card mb-4 p-4 border rounded">
-                <div className="flex justify-between items-center mb-2">
+            <div key={quiz.id} className="saved-quiz-card">
+                <div className="flex justify-between items-center p-4 border-b">
                     <h3 className="text-lg font-semibold">{quiz.quiz_name}</h3>
                     <span className="text-sm text-gray-500">
                         {new Date(quiz.created_at).toLocaleString()}
                     </span>
                 </div>
-                <div className="quiz-stats mb-2">
+                <div className="quiz-stats">
                     <p>
                         Score: {quiz.correct_answers} / {quiz.total_questions} 
                         ({((quiz.correct_answers / quiz.total_questions) * 100).toFixed(2)}%)
                     </p>
                 </div>
-                <div className="quiz-questions">
+                <div className="quiz-questions p-4">
                     {quiz.questions.map((q, index) => (
                         <div 
                             key={index} 
@@ -67,21 +67,25 @@ export default function SavedQuizzes() {
         );
     };
 
-    if (loading) return 
-    <div>
-        <div className="header">
+    if (loading) return (
+        <div>
+            <div className="header">
                 <Header />
             </div>
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
-                    <br />
+                    <div className="loading-container">
+                        <div className="loading-spinner"></div>
+                        <span className="ml-3">Loading saved quizzes...</span>
+                    </div>
+                </div>
             </div>
-            </div>
-            Loading saved quizzes...
-        </div>;
-    if (error) return <div>{error}</div>;
+        </div>
+    );
+
+    if (error) return <div className="error-container">{error}</div>;
 
     return (
         <div>
@@ -92,10 +96,11 @@ export default function SavedQuizzes() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
-                    <br />
                     <div className="saved-quizzes-container">
                         {savedQuizzes.length === 0 ? (
-                            <p>No saved quizzes found.</p>
+                            <div className="empty-quizzes-container">
+                                <p>No saved quizzes found.</p>
+                            </div>
                         ) : (
                             savedQuizzes.map(renderQuizDetails)
                         )}
