@@ -6,32 +6,35 @@ import axios from 'axios';
 
 export default function SavedQuizzes() {
     const [savedQuizzes, setSavedQuizzes] = useState([]);
+    const [filteredQuizzes, setFilteredQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedQuizzes, setExpandedQuizzes] = useState({});
+    const [searchTerm, setSearchTerm] = useState('');
 
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
+    const fetchSavedQuizzes = async () => {
+        try {
+            const csrftoken = Cookies.get('csrftoken');
+            const response = await axios.get(`${baseUrl}/fetch-saved-quizzes`, {
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setSavedQuizzes(response.data.quizzes);
+            setFilteredQuizzes(response.data.quizzes);
+            setLoading(false);
+        } catch (err) {
+            console.error("Error fetching saved quizzes:", err);
+            setError("Failed to load saved quizzes");
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchSavedQuizzes = async () => {
-            try {
-                const csrftoken = Cookies.get('csrftoken');
-                const response = await axios.get(`${baseUrl}/fetch-saved-quizzes`, {
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                setSavedQuizzes(response.data.quizzes);
-                setLoading(false);
-            } catch (err) {
-                console.error("Error fetching saved quizzes:", err);
-                setError("Failed to load saved quizzes");
-                setLoading(false);
-            }
-        };
-
         fetchSavedQuizzes();
     }, []);
 
@@ -42,11 +45,41 @@ export default function SavedQuizzes() {
         }));
     };
 
+    const handleDeleteQuiz = async (quizId) => {
+        try {
+            const csrftoken = Cookies.get('csrftoken');
+            await axios.delete(`${baseUrl}/delete-quiz/${quizId}`, {
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Remove the quiz from local state
+            const updatedQuizzes = savedQuizzes.filter(quiz => quiz.id !== quizId);
+            setSavedQuizzes(updatedQuizzes);
+            setFilteredQuizzes(updatedQuizzes);
+        } catch (err) {
+            console.error("Error deleting quiz:", err);
+            alert("Failed to delete quiz");
+        }
+    };
+
+    const handleSearch = (event) => {
+        const term = event.target.value.toLowerCase();
+        setSearchTerm(term);
+
+        const filtered = savedQuizzes.filter(quiz => 
+            quiz.quiz_name.toLowerCase().includes(term)
+        );
+        setFilteredQuizzes(filtered);
+    };
+
     const renderQuizDetails = (quiz) => {
         const isExpanded = expandedQuizzes[quiz.id];
 
         return (
-            <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm">
+            <div key={quiz.id} className="saved-quiz-card mb-4 border rounded-lg shadow-sm relative">
                 
                 <div 
                     className="flex justify-between items-center p-4 border-b cursor-pointer hover:bg-gray-50"
@@ -62,6 +95,17 @@ export default function SavedQuizzes() {
                         ></i>
                     </div>
                 </div>
+
+                {/* Delete button positioned absolutely */}
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent expanding/collapsing
+                        handleDeleteQuiz(quiz.id);
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
+                >
+                    Delete
+                </button>
 
                 {isExpanded && (
                     <div className="quiz-details p-4">
@@ -119,14 +163,26 @@ export default function SavedQuizzes() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5><br /><br />
+                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5><br />
+                    
+                    {/* Search Input */}
+                    <div className="mb-4">
+                        <input 
+                            type="text" 
+                            placeholder="Search quizzes..." 
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+
                     <div className="saved-quizzes-container">
-                        {savedQuizzes.length === 0 ? (
+                        {filteredQuizzes.length === 0 ? (
                             <div className="empty-quizzes-container">
-                                <p>No saved quizzes found.</p>
+                                <p>No quizzes found.</p>
                             </div>
                         ) : (
-                            savedQuizzes.map(renderQuizDetails)
+                            filteredQuizzes.map(renderQuizDetails)
                         )}
                     </div>
                 </div>
