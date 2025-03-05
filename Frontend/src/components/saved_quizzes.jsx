@@ -79,8 +79,8 @@ export default function SavedQuizzes() {
                                 >
                                     <p className="font-medium mb-2">{q.question}</p>
                                     <div className="answers flex justify-between">
-                                        <span>Your Answer: {q.selected_answer}</span><br />
-                                        <span>Correct Answer: {q.correct_answer}</span>
+                                        <span>Your Answer: <br />{q.selected_answer}</span><br />
+                                        <span>Correct Answer: <br />{q.correct_answer}</span>
                                     </div>
                                 </div>
                             ))}
