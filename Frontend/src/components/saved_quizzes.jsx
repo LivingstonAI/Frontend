@@ -55,10 +55,10 @@ export default function SavedQuizzes() {
                     <div className="flex items-center">
                         <span className="text-sm text-gray-500 mr-4">
                             {new Date(quiz.created_at).toLocaleString()}
-                        </span><br />
-                        <span className="text-gray-600">
-                            {isExpanded ? '▼' : '►'}
                         </span>
+                        <i 
+                            className={`bi ${isExpanded ? 'bi-chevron-down' : 'bi-chevron-right'} cursor-pointer`}
+                        ></i>
                     </div>
                 </div>
 
@@ -118,7 +118,7 @@ export default function SavedQuizzes() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5><br />
+                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
                     <div className="saved-quizzes-container">
                         {savedQuizzes.length === 0 ? (
                             <div className="empty-quizzes-container">
