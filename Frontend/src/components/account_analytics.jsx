@@ -218,12 +218,16 @@ export default function AccountAnalytics() {
     };
 
     const fetchAISummary = async () => {
+        console.log(accountData)
         if (!accountData) return;
 
         setAiSummaryLoading(true);
         try {
             const metricsData = generateMetricsData();
             const filteredTrades = getFilteredTrades();
+
+            console.log(metricsData);
+            console.log(filteredTrades);
             
             const response = await fetch(`${baseUrl}/ai-account-summary`, {
                 method: 'POST',
@@ -245,6 +249,8 @@ export default function AccountAnalytics() {
             });
 
             const data = await response.json();
+
+            console.log(data);
             
             if (response.ok && data.summary) {
                 setAiSummary(data.summary);
