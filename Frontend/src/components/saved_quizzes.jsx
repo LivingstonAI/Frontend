@@ -67,7 +67,20 @@ export default function SavedQuizzes() {
         );
     };
 
-    if (loading) return <div>Loading saved quizzes...</div>;
+    if (loading) return 
+    <div>
+        <div className="header">
+                <Header />
+            </div>
+            <div className="main-page-body">
+                <SideNavs />
+                <div className="main-body-info">
+                    <h5 className="major-upcoming-news-events-header">Saved Quizzes</h5>
+                    <br />
+            </div>
+            </div>
+            Loading saved quizzes...
+        </div>;
     if (error) return <div>{error}</div>;
 
     return (
