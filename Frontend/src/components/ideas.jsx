@@ -695,7 +695,7 @@ const styles = {
         cursor: 'pointer'
     },
     badgePending: {
-        backgroundColor: '#718096',
+        backgroundColor: 'rgba(247, 20, 247, 0.788)',
         color: 'white'
     },
     badgeInProgress: {
