@@ -18,6 +18,7 @@ export default function Quizzifier() {
     const [showOptions, setShowOptions] = useState(false);
     const [quizType, setQuizType] = useState('');
     const [numQuestions, setNumQuestions] = useState(0);
+    const [saveProcess, setSaveProcess] = useState('Save Quiz');
     
     // New state variables for chill sections
     const [sections, setSections] = useState([]);
@@ -476,10 +477,12 @@ const fetchSectionData = async (sectionName) => {
 
     const saveQuiz = async () => {
         // Confirmation check
-        const confirmSave = window.confirm("Are you sure you want to save this quiz? This action cannot be undone.");
+        const confirmSave = window.confirm("Are you sure you want to save this quiz?");
         
         // If user cancels deletion, return early
         if (!confirmSave) return;
+
+        setSaveProcess('Saving Quiz...');
 
         try {
             // Prepare the quiz data to be saved
@@ -532,6 +535,9 @@ const fetchSectionData = async (sectionName) => {
             console.error('Complete error details:', error);
             alert(`Error saving quiz: ${error.message}`);
         }
+
+        setSaveProcess('Save Quiz');
+        
     };
 
     // Calculate the number of correct and incorrect answers
@@ -691,7 +697,7 @@ const fetchSectionData = async (sectionName) => {
                             onClick={saveQuiz} 
                             className="btn btn-primary"
                         >
-                            Save Quiz
+                            {saveProcess}
                         </button>
                     </div>
                     {/* {savedQuizId && (
