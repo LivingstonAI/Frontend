@@ -51,6 +51,8 @@ import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
 import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
 import mit from '../mit.mp3';
+import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
+import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
 
 
 export default function SnowAILandingPage() {
@@ -129,6 +131,8 @@ export default function SnowAILandingPage() {
     "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
     "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
+    "50": { name: "Empire Sate of Mind 🗽🌆", file: empire_state_of_mind },
+    "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
   };
 
     // State for search term and filtered songs

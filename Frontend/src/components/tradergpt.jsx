@@ -110,6 +110,7 @@ export default function TraderGPTAnalysis() {
         const data = await response.json();
         if (data.status === 'success') {
           setAnalysis(data);
+          console.log(data);
         } else {
           throw new Error(data.message || 'Analysis failed');
         }
