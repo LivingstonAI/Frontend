@@ -5816,7 +5816,7 @@ select.form-control {
 }
 
 /* Media queries for responsiveness */
-@media (max-width: 992px) {
+/* @media (max-width: 992px) {
   .ai-div {
     flex-direction: column;
   }
@@ -5832,9 +5832,9 @@ select.form-control {
   .chatbot-div {
     height: 70vh;
   }
-}
+} */
 
-@media (max-width: 576px) {
+/* @media (max-width: 576px) {
   
   
   .ai-div {
@@ -5848,4 +5848,4 @@ select.form-control {
   .cs-message__content {
     max-width: 90% !important;
   }
-}
+} */
