@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -7,6 +7,26 @@ export default function TraderGPTAnalysis() {
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+  const baseUrl = "https://backend-production-c0ab.up.railway.app";
+
+  
+  const fetchAPIKey = async () => {
+    try {
+        const response = await fetch(`${baseUrl}/get_openai_key`);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const { OPENAI_API_KEY } = await response.json();
+        setOPENAI_API_KEY(OPENAI_API_KEY);
+    } catch (error) {
+        console.error("Error fetching API key:", error);
+    }
+};
+
+useEffect(() => {
+        console.log("Fetching API key...");
+        fetchAPIKey();
+    }, []);
+  
   
   const [traderSettings, setTraderSettings] = useState({
     trader1: {
@@ -101,16 +121,63 @@ export default function TraderGPTAnalysis() {
             traders: traderSettings
           })
         });
-  
+    
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Analysis failed');
         }
-  
+    
         const data = await response.json();
         if (data.status === 'success') {
-          setAnalysis(data);
-          console.log(data);
+          // Get the last index dynamically
+          const lastIndex = data.conversation.length - 1;
+          console.log(data.conversation[lastIndex].content.analysis);
+          const json_analysis = data.conversation[lastIndex].content.analysis;
+    
+          try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${OPENAI_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                  {
+                    role: "system",
+                    content: `Style this json into a more readable format. 
+                    Include emojis and no markdowns.
+
+                     
+                    Presentation Instructions:
+                  - AVOID USING ASTERISKS, HASHTAGS, OR MARKDOWN FORMATTING
+                  - Use subtle emojis sparingly for visual emphasis 📊
+                  - Ensure a structured, professional presentation
+
+                    
+                    Json: 
+                    ${json_analysis}
+    
+                    `,
+                  },
+                  { role: "user", content: `Generate a styled version of this json: ${json_analysis}` },
+                ],
+              }),
+            });
+            const data2 = await response.json();
+            console.log(data2.choices[0].message.content);
+            const new_styled_analysis = data2.choices[0].message.content;
+            
+            // Replace the original analysis with the styled one
+            data.conversation[lastIndex].content.analysis = new_styled_analysis;
+            
+            setAnalysis(data);
+          } catch (error) {
+            console.error("Error:", error);
+            // If styling fails, still set the analysis with the original data
+            setAnalysis(data);
+          }
         } else {
           throw new Error(data.message || 'Analysis failed');
         }
@@ -223,6 +290,8 @@ export default function TraderGPTAnalysis() {
       try {
         const content = formatContent(msg.content);
         const contentObj = typeof content === 'string' ? JSON.parse(content) : content;
+        // console.log('Content Object');
+        // console.log(contentObj);
         
         return (
           <div className="message-section">
@@ -325,3 +394,4 @@ export default function TraderGPTAnalysis() {
       </div>
     );
   }
+  
