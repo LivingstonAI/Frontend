@@ -157,6 +157,7 @@ export default function BacktestedResults() {
         setBacktestData(processedData);
         setFilteredData(processedData); // Initialize filtered data with all data
         console.log(`Loaded ${processedData.length} backtest models`);
+        console.log(processedData[0].model_info.code_snippet);
       } else {
         setError(data.message || 'Failed to fetch backtest results');
       }
