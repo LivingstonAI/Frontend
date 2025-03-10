@@ -260,7 +260,7 @@ export default function SnowAILandingPage() {
             </ul>
 
             <button
-              className="close-modal-btn"
+              className="close-modal-btn-lp"
               onClick={() => setShowSongModal(false)}
             >
               Close

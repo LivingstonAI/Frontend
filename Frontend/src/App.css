@@ -4094,7 +4094,7 @@ canvas {
     background-color: #357ab8;
 }
 
-.close-modal-btn {
+.close-modal-btn-lp {
     margin-top: 20px;
     padding: 8px 15px;
     background-color: #007bff;
@@ -5707,11 +5707,11 @@ select.form-control {
 }
 
 /* Message styling */
-.cs-message__content {
+/* .cs-message__content {
   border-radius: 12px !important;
   padding: 12px !important;
   max-width: 80% !important;
-}
+} */
 
 .cs-message--outgoing .cs-message__content {
   background-color: #007bff !important;
@@ -5732,7 +5732,7 @@ select.form-control {
 .cs-message-input__content-editor {
   /* background-color: #f5f7fa !important; */
   /* padding: 12px !important; */
-  /* border-radius: 20px !important; */
+  border-radius: 20px !important;
 }
 
 .cs-button--send {
@@ -5816,8 +5816,8 @@ select.form-control {
 }
 
 /* Media queries for responsiveness */
-/* @media (max-width: 992px) {
-  .ai-div {
+@media (max-width: 992px) {
+  /* .ai-div {
     flex-direction: column;
   }
   
@@ -5827,12 +5827,13 @@ select.form-control {
   
   .top-phone-chat-div {
     display: flex;
-  }
+  } */
   
   .chatbot-div {
-    height: 70vh;
+    height: 65vh;
+    margin-bottom: 0px;
   }
-} */
+}
 
 /* @media (max-width: 576px) {
   
@@ -5849,3 +5850,7 @@ select.form-control {
     max-width: 90% !important;
   }
 } */
+
+.mouse-glow {
+  display: none;
+}
