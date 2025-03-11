@@ -4,62 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { FaSun, FaMoon, FaMusic, FaSave } from 'react-icons/fa';
 import { useAudio } from './audio_context';
 
-// Import your songs
-import jingleBells from '../jingle_bells.mp3';
-import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
-import love_story from '../Indila - Love Story (Piano Cover).mp3';
-import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3";
-import hymn_for_the_weekend from '../Coldplay - Hymn For The Weekend (Lyrics).mp3';
-import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
-import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop  NCS - Copyright Free Music.mp3';
-import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
-import should_i_stay from '../The Clash - Should I Stay or Should I Go (Official Audio).mp3';
-import the_middle from '../Zedd, Maren Morris, Grey - The Middle (Lyric Video).mp3';
-import quiet_night from '../Tokyo Music Walker - Quiet Night.mp3';
-import feels from '../Calvin Harris - Feels (Official Video) ft. Pharrell Williams, Katy Perry, Big Sean.mp3';
-import im_good from "../David Guetta x Bebe Rexha - I'm Good (Blue) (Senses & Shadow Remix).mp3";
-import never_give_up from '../Never Give Up.mp3';
-import gravity from '../Sara Bareilles - Gravity (Official HD Video).mp3';
-import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
-import bloody_mary_edit from '../bloody mary (instrumental x dum dum, da-di-da) [full version] - lady gaga [edit audio].mp3';
-import waiting from '../Waiting.mp3';
-import wish_wonderland from '../Wonderland 원더랜드 OST WISH_ Wonderland is here 박보검 Park Bo-gum 배수지 Bae Suzy HanRomEnglish Lyrics.mp3';
-import welcome_to_columbia from '../Congratulations! Welcome to Columbia!.mp3';
-import 沉溺 from '../沉溺（你让我的心不再结冰）.mp3';
-import shoot_to_thrill from '../ACDC - Shoot to Thrill.mp3';
-import when_im_with_you from "../When I'm with you.mp3";
-import coffee_time from '../321Jazz - Coffee Time [ Cafe Jazz Music 2024 ].mp3'
-import coffee_lounge from '../Coffee Lounge.mp3';
-import good_vibes from '../Good Vibes.mp3';
-import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright music  vlog music  royalty free music).mp3';
-import sitting_in_a_cafe from '../Sitting in a Café.mp3';
-import lex_mit_car from '../LexMITCar.mp3';
-import keep_it_lowkey from '../spotifydown.com - keep it lowkey - take your time.mp3';
-import honey_jam from '../massobeats - honey jam (royalty free lofi music).mp3';
-import floral from '../massobeats - floral (royalty free lofi music).mp3';
-import lemon_cake from '../샛별 - Lemon Cake (Royalty Free Music).mp3';
-import marshmellow from '../lukrembo - marshmallow (royalty free vlog music).mp3';
-import rose from '../lukrembo - rose (royalty free vlog music).mp3';
-import this_is_mit from '../This is MIT.mp3';
-import time_between_storms from '../Dune_ Part Two Soundtrack  A Time of Quiet Between the Storms - Hans Zimmer  WaterTower.mp3';
-import somnus_theme from '../Final fantasy XIII versus somnus theme [bOyYigKniW4].mp3';
-import your_man from '../Your Man.mp3';
-import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
-import genesis from '../Transcendence - GENESIS.mp3';
-import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
-import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
-import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
-import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
-import atreides_theme from '../Atreides Theme.mp3';
-import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
-import mit from '../mit.mp3'
-import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
-import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
-import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
-
-let globalAudio = null; 
-
 export default function SideNavs() {
   const uniqueID = uuidv4();
   const [timeNY, setTimeNY] = useState('');
@@ -68,117 +12,44 @@ export default function SideNavs() {
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [savingStatus, setSavingStatus] = useState("");
+  const [songs, setSongs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
   // Function to toggle the side nav visibility
   const toggleSideNav = () => {
     setIsOpen(!isOpen);
   };
-
-  const songs = [
-    { name: "MIT👨‍🎓📖🚀", file: mit },
-    { name: "Atreides Theme ⚔️", file: atreides_theme },
-    { name: "Jingle Bells", file: jingleBells },
-    { name: "Snow Storm", file: snowStorm },
-    { name: "Love Story", file: love_story },
-    { name: "Ezio's Family", file: ezio_family },
-    { name: "Hymn For The Weekend", file: hymn_for_the_weekend },
-    { name: "Daydreaming", file: daydreaming },
-    { name: "Me Times Two", file: me_times_two },
-    { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
-    { name: "Should I Stay or Should I Go", file: should_i_stay },
-    { name: "The Middle", file: the_middle },
-    { name: "Quiet Night", file: quiet_night },
-    { name: "Feels", file: feels },
-    { name: "I'm Good (Blue)", file: im_good },
-    { name: "Never Give Up", file: never_give_up },
-    { name: "Gravity", file: gravity },
-    { name: "Closer", file: closer },
-    { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
-    { name: "Waiting 💙", file: waiting },
-    { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
-    { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
-    { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
-    { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
-    { name: "When I'm With You - Arcando", file: when_im_with_you },
-    { name: "Coffee Time ☕", file: coffee_time },
-    { name: "Coffee Lounge ☕", file: coffee_lounge },
-    { name: "Good Vibes 😌", file: good_vibes },
-    { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
-    { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
-    { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
-    { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
-    { name: "Honey Jam 🍯", file: honey_jam },
-    { name: "Floral 🌺💮", file: floral },
-    { name: "Lemon Cake 🍋🍰", file: lemon_cake },
-    { name: "Marshmellow 😋", file: marshmellow},
-    { name: "Rose 🌹", file: rose},
-    { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
-    { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
-    { name: "Somnus Theme 🐺🥷", file: somnus_theme },
-    { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man },
-    { name: "Cry Baby - SZA 🌃🌃", file: cry_baby },
-    { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
-    { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
-    { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    { name: 'Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2)🌃', file: ma_meilleure_enemie },
-    { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
-    { name: "Duncan's Theme 🗡️", file: duncan_theme},
-    { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
-    { name: "Empire Sate of Mind 🗽🌆", file: empire_state_of_mind },
-    { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
-    { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha }
-  ];
+  
+  // Fetch songs from the backend
+  useEffect(() => {
+    const fetchSongs = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${baseURL}/fetch-music`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setSongs(data.songs);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching songs:", err);
+        setError("Failed to load music. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSongs();
+  }, [baseURL]);
 
   const filteredSongs = songs.filter((song) =>
     song.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Function to save all songs to the backend
-  const saveAllSongsToBackend = async () => {
-    setSavingStatus("Saving songs to backend...");
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const song of songs) {
-      try {
-        // Convert the imported song file to a Blob
-        const response = await fetch(song.file);
-        const blob = await response.blob();
-        
-        // Create a File object from the Blob
-        const fileName = song.file.split('/').pop();
-        const songFile = new File([blob], fileName, { type: 'audio/mpeg' });
-        
-        // Create FormData to send to the backend
-        const formData = new FormData();
-        formData.append('name', song.name);
-        formData.append('file', songFile);
-        
-        // Send to backend
-        const saveResponse = await fetch(`${baseURL}/save-music`, {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (saveResponse.ok) {
-          successCount++;
-          setSavingStatus(`Saved ${successCount} of ${songs.length} songs...`);
-        } else {
-          errorCount++;
-          console.error(`Failed to save song: ${song.name}`);
-        }
-      } catch (error) {
-        errorCount++;
-        console.error(`Error saving song ${song.name}:`, error);
-      }
-    }
-    
-    setSavingStatus(`Completed! Saved ${successCount} songs, Failed: ${errorCount}`);
-    // Reset status message after 5 seconds
-    setTimeout(() => setSavingStatus(""), 5000);
-  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -311,17 +182,12 @@ export default function SideNavs() {
         </div>
       </div>
 
-      {/* Music Player, Admin buttons and Modal */}
+      {/* Music Player and Theme Toggle */}
       <div className="music-color-mode">
         <div className="music-player">
           <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
             <FaMusic />
           </button>
-          {/* Admin button to save all songs */}
-          <button className="btn btn-outline-primary ms-2" onClick={saveAllSongsToBackend}>
-            <FaSave /> Save All
-          </button>
-          {savingStatus && <div className="alert alert-info mt-2">{savingStatus}</div>}
         </div>
 
         {/* Music Selection Modal */}
@@ -344,16 +210,28 @@ export default function SideNavs() {
                   />
                 </div>
 
+                {/* Loading state */}
+                {loading && <p>Loading songs...</p>}
+                
+                {/* Error state */}
+                {error && <div className="alert alert-danger">{error}</div>}
+
                 {/* Song List */}
-                <ul className="list-group">
-                  {filteredSongs.map((song, index) => (
-                    <li key={index} className="list-group-item">
-                      <button className="btn" onClick={() => handlePlay(song.file)}>
-                        {song.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                {!loading && !error && (
+                  <ul className="list-group">
+                    {filteredSongs.length > 0 ? (
+                      filteredSongs.map((song) => (
+                        <li key={song.id} className="list-group-item">
+                          <button className="btn" onClick={() => handlePlay(song.file)}>
+                            {song.name}
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="list-group-item">No songs found matching "{searchTerm}"</li>
+                    )}
+                  </ul>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
