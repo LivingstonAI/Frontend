@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
-import { FaSun, FaMoon, FaMusic } from 'react-icons/fa';
+import { FaSun, FaMoon, FaMusic, FaSave } from 'react-icons/fa';
 import { useAudio } from './audio_context';
-
-
 
 // Import your songs
 import jingleBells from '../jingle_bells.mp3';
@@ -50,16 +48,15 @@ import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
 import genesis from '../Transcendence - GENESIS.mp3';
 import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
 import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
-import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
+import ma_meilleure_enemie from '../Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2) [Official Visualizer].mp3';
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
+import mit_hall from '../"Hall That Never Ends," featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album "Log Log Land," streaming now!.mp3';
 import mit from '../mit.mp3'
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
 import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
-
 
 let globalAudio = null; 
 
@@ -69,16 +66,10 @@ export default function SideNavs() {
   const [timeLondon, setTimeLondon] = useState('');
   const [timeTokyo, setTimeTokyo] = useState('');
   const [theme, setTheme] = useState('light');
-  // const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-  // const [audio, setAudio] = useState(null);
-  // const [currentSong, setCurrentSong] = useState(null);
-  // const [audioTime, setAudioTime] = useState(0); // To store the current time of the audio
-
-
-  // State for search term and filtered songs
   const [searchTerm, setSearchTerm] = useState("");
-
   const [isOpen, setIsOpen] = useState(false);
+  const [savingStatus, setSavingStatus] = useState("");
+  const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
   // Function to toggle the side nav visibility
   const toggleSideNav = () => {
@@ -131,7 +122,7 @@ export default function SideNavs() {
     { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
     { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    { name: "Stromae, Pomme - 'Ma Meilleure Ennemie' (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
     { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     { name: "Duncan's Theme 🗡️", file: duncan_theme},
     { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
@@ -143,6 +134,51 @@ export default function SideNavs() {
   const filteredSongs = songs.filter((song) =>
     song.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Function to save all songs to the backend
+  const saveAllSongsToBackend = async () => {
+    setSavingStatus("Saving songs to backend...");
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const song of songs) {
+      try {
+        // Convert the imported song file to a Blob
+        const response = await fetch(song.file);
+        const blob = await response.blob();
+        
+        // Create a File object from the Blob
+        const fileName = song.file.split('/').pop();
+        const songFile = new File([blob], fileName, { type: 'audio/mpeg' });
+        
+        // Create FormData to send to the backend
+        const formData = new FormData();
+        formData.append('name', song.name);
+        formData.append('file', songFile);
+        
+        // Send to backend
+        const saveResponse = await fetch(`${baseURL}/save-music`, {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (saveResponse.ok) {
+          successCount++;
+          setSavingStatus(`Saved ${successCount} of ${songs.length} songs...`);
+        } else {
+          errorCount++;
+          console.error(`Failed to save song: ${song.name}`);
+        }
+      } catch (error) {
+        errorCount++;
+        console.error(`Error saving song ${song.name}:`, error);
+      }
+    }
+    
+    setSavingStatus(`Completed! Saved ${successCount} songs, Failed: ${errorCount}`);
+    // Reset status message after 5 seconds
+    setTimeout(() => setSavingStatus(""), 5000);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -165,8 +201,6 @@ export default function SideNavs() {
     return () => clearInterval(interval);
   }, []);
 
-  
-
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
@@ -174,19 +208,15 @@ export default function SideNavs() {
     localStorage.setItem('theme', newTheme);
   };
 
-const { isPlaying, currentSong, playMusic, stopMusic } = useAudio();
+  const { isPlaying, currentSong, playMusic, stopMusic } = useAudio();
 
-const handlePlay = (song) => {
-  console.log("Handle play clicked for song:", song); // Debugging line
-  playMusic(song); // Call playMusic when song is clicked
-};
-
+  const handlePlay = (song) => {
+    console.log("Handle play clicked for song:", song); // Debugging line
+    playMusic(song); // Call playMusic when song is clicked
+  };
 
   return (
     <div className="all-side-navs">
-
-      
-
       <div className="side-navs trading-history-links">
         <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person-fill"></i></p></button></Link>
         <Link to="/account_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i></p></button></Link>
@@ -206,73 +236,67 @@ const handlePlay = (song) => {
         <Link to="/tradergpt_analysis" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-life-preserver"></i></p></button></Link>
         <Link to="/backtested_results" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-yin-yang"></i></p></button></Link>
         <Link to="/ideas_section" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-lightbulb-fill"></i></p></button></Link>
-
-        {/* bi bi-rocket-takeoff-fill */}
-        
-
       </div>
 
       <div className="side-navs-cellphone">
-    {/* Your existing mobile links */}
-    <Link to="/personal_info" className="side-nav">
-        <i className="bi bi-person-fill"></i>
-    </Link>
-    <Link to="/account_analytics" className="side-nav">
-        <i className="bi bi-bar-chart-line-fill"></i>
-    </Link>
-    <Link to="/market_makers" className="side-nav">
-        <i className="bi bi-bank"></i>
-    </Link>
-    <Link to={`/conversation/${uniqueID}`} className="side-nav">
-        <i className="bi bi-chat-square-dots"></i>
-    </Link>
-    <Link to="/daily_brief" className="side-nav">
-        <i className="bi bi-briefcase-fill"></i>
-    </Link>
-    <Link to="/performance_review/asset" className="side-nav">
-        <i className="bi bi-journal-bookmark-fill"></i>
-    </Link>
-    <Link to="/update_news" className="side-nav">
-        <i className="bi bi-newspaper"></i>
-    </Link>
-    <Link to="/enter_new_trade_info" className="side-nav">
-        <i className="bi bi-info-circle-fill"></i>
-    </Link>
-    <Link to="/scratch" className="side-nav">
-        <i className="bi bi-robot"></i>
-    </Link>
-    <Link to="/model_performance" className="side-nav">
-        <i className="bi bi-pen-fill"></i>
-    </Link>
-    <Link to="/risk_bot" className="side-nav">
-        <i className="bi bi-currency-exchange"></i>
-    </Link>
-    <Link to="/chill" className="side-nav">
-        <i className="bi bi-headphones"></i>
-    </Link>
-    <Link to="/quizifier" className="side-nav">
-        <i className="bi bi-rocket-takeoff-fill"></i>
-    </Link>
-    <Link to="/saved_quizzes" className="side-nav">
-        <i className="bi bi-stars"></i>
-    </Link>
-    <Link to="/alert_bot" className="side-nav">
-        <i className="bi bi-bell-fill"></i>
-    </Link>
-    <Link to="/tradergpt_analysis" className="side-nav">
-        <i className="bi bi-life-preserver"></i>
-    </Link>
-    <Link to="/backtested_results" className="side-nav">
-        <i className="bi bi-yin-yang"></i>
-    </Link>
-    <Link to="/ideas_section" className="side-nav">
-        <i className="bi bi-lightbulb-fill"></i>
-    </Link>
-    
-</div>
-<br />
+        <Link to="/personal_info" className="side-nav">
+            <i className="bi bi-person-fill"></i>
+        </Link>
+        <Link to="/account_analytics" className="side-nav">
+            <i className="bi bi-bar-chart-line-fill"></i>
+        </Link>
+        <Link to="/market_makers" className="side-nav">
+            <i className="bi bi-bank"></i>
+        </Link>
+        <Link to={`/conversation/${uniqueID}`} className="side-nav">
+            <i className="bi bi-chat-square-dots"></i>
+        </Link>
+        <Link to="/daily_brief" className="side-nav">
+            <i className="bi bi-briefcase-fill"></i>
+        </Link>
+        <Link to="/performance_review/asset" className="side-nav">
+            <i className="bi bi-journal-bookmark-fill"></i>
+        </Link>
+        <Link to="/update_news" className="side-nav">
+            <i className="bi bi-newspaper"></i>
+        </Link>
+        <Link to="/enter_new_trade_info" className="side-nav">
+            <i className="bi bi-info-circle-fill"></i>
+        </Link>
+        <Link to="/scratch" className="side-nav">
+            <i className="bi bi-robot"></i>
+        </Link>
+        <Link to="/model_performance" className="side-nav">
+            <i className="bi bi-pen-fill"></i>
+        </Link>
+        <Link to="/risk_bot" className="side-nav">
+            <i className="bi bi-currency-exchange"></i>
+        </Link>
+        <Link to="/chill" className="side-nav">
+            <i className="bi bi-headphones"></i>
+        </Link>
+        <Link to="/quizifier" className="side-nav">
+            <i className="bi bi-rocket-takeoff-fill"></i>
+        </Link>
+        <Link to="/saved_quizzes" className="side-nav">
+            <i className="bi bi-stars"></i>
+        </Link>
+        <Link to="/alert_bot" className="side-nav">
+            <i className="bi bi-bell-fill"></i>
+        </Link>
+        <Link to="/tradergpt_analysis" className="side-nav">
+            <i className="bi bi-life-preserver"></i>
+        </Link>
+        <Link to="/backtested_results" className="side-nav">
+            <i className="bi bi-yin-yang"></i>
+        </Link>
+        <Link to="/ideas_section" className="side-nav">
+            <i className="bi bi-lightbulb-fill"></i>
+        </Link>
+      </div>
+      <br />
 
-<div className="timezones">
+      <div className="timezones">
         <div className="clock">
           <h5>New York</h5>
           <p>{timeNY}</p>
@@ -287,64 +311,67 @@ const handlePlay = (song) => {
         </div>
       </div>
 
-
-      {/* Music Player and Modal */}
+      {/* Music Player, Admin buttons and Modal */}
       <div className="music-color-mode">
-      <div className="music-player">
-        <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
-          <FaMusic />
-        </button>
-      </div>
-
-      {/* Music Selection Modal */}
-<div className="modal fade side-navs-modal" id="sideNavsMusicModal" tabIndex="-1" aria-labelledby="sideNavsMusicModalLabel" aria-hidden="true">
-  <div className="modal-dialog">
-    <div className="modal-content">
-      <div className="modal-header">
-        <h5 className="modal-title" id="sideNavsMusicModalLabel">Select a Song</h5>
-        <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div className="modal-body">
-        {/* Search Bar */}
-        <div className="mb-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search for a song..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Song List */}
-        <ul className="list-group">
-          {filteredSongs.map((song, index) => (
-            <li key={index} className="list-group-item">
-              <button className="btn" onClick={() => handlePlay(song.file)}>
-                {song.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="modal-footer">
-        <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
-        <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-      {/* Theme Toggle Button */}
-      <nav className="">
-        <div className="container-fluid">
-          <button className="btn btn-outline-secondary" onClick={toggleTheme}>
-            {theme === 'light' ? <FaMoon /> : <FaSun />}
+        <div className="music-player">
+          <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
+            <FaMusic />
           </button>
+          {/* Admin button to save all songs */}
+          <button className="btn btn-outline-primary ms-2" onClick={saveAllSongsToBackend}>
+            <FaSave /> Save All
+          </button>
+          {savingStatus && <div className="alert alert-info mt-2">{savingStatus}</div>}
         </div>
-      </nav>
-    </div>
+
+        {/* Music Selection Modal */}
+        <div className="modal fade side-navs-modal" id="sideNavsMusicModal" tabIndex="-1" aria-labelledby="sideNavsMusicModalLabel" aria-hidden="true">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="sideNavsMusicModalLabel">Select a Song</h5>
+                <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div className="modal-body">
+                {/* Search Bar */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search for a song..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {/* Song List */}
+                <ul className="list-group">
+                  {filteredSongs.map((song, index) => (
+                    <li key={index} className="list-group-item">
+                      <button className="btn" onClick={() => handlePlay(song.file)}>
+                        {song.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
+                <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Theme Toggle Button */}
+        <nav className="">
+          <div className="container-fluid">
+            <button className="btn btn-outline-secondary" onClick={toggleTheme}>
+              {theme === 'light' ? <FaMoon /> : <FaSun />}
+            </button>
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }
