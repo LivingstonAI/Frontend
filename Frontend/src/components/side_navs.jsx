@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 import { FaSun, FaMoon, FaMusic, FaSave } from 'react-icons/fa';
 import { useAudio } from './audio_context';
+import AssetTracker from "./asset_tracker";
+
 
 // Import your songs
 import jingleBells from '../jingle_bells.mp3';
@@ -310,6 +312,8 @@ export default function SideNavs() {
           <p>{timeTokyo}</p>
         </div>
       </div>
+
+      <AssetTracker />
 
       {/* Music Player, Admin buttons and Modal */}
       <div className="music-color-mode">

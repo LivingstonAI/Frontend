@@ -5854,3 +5854,59 @@ select.form-control {
 .mouse-glow {
   display: none;
 }
+
+/* Add this to your CSS file */
+.asset-tracker {
+  background-color: var(--theme-background-light);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.asset-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.asset-item {
+  background-color: var(--theme-background);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.asset-item:hover {
+  background-color: var(--theme-hover);
+}
+
+.asset-change {
+  font-weight: bold;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Modal backdrop */
+.modal.show {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* For dark mode compatibility */
+body.dark .asset-tracker {
+  background-color: var(--dark-background-light);
+}
+
+body.dark .asset-item {
+  background-color: var(--dark-background);
+  border-color: var(--dark-border);
+}
+
+body.dark .asset-item:hover {
+  background-color: var(--dark-hover);
+}
+
+.text-success {
+  color: #28a745 !important;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
