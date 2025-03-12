@@ -54,6 +54,7 @@ import mit from '../mit.mp3';
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
 import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
+import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Official Lyric Video).mp3';
 
 
 export default function SnowAILandingPage() {
@@ -135,6 +136,7 @@ export default function SnowAILandingPage() {
     "50": { name: "Empire Sate of Mind 🗽🌆", file: empire_state_of_mind },
     "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
     "52": { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
+    "53": { name: "Chosen ⌛", file: chosen },
   };
 
     // State for search term and filtered songs

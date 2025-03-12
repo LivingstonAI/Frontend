@@ -59,6 +59,7 @@ import mit from '../mit.mp3'
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
 import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
+import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Official Lyric Video).mp3';
 
 let globalAudio = null; 
 
@@ -136,7 +137,8 @@ export default function SideNavs() {
     { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
     { name: "Empire Sate of Mind 🗽🌆", file: empire_state_of_mind },
     { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
-    { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha }
+    { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
+    { name: "Chosen ⌛", file: chosen }
   ];
 
   const filteredSongs = songs.filter((song) =>
