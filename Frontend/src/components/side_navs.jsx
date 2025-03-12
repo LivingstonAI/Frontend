@@ -326,9 +326,9 @@ export default function SideNavs() {
           style={{ cursor: 'pointer' }}
           onClick={toggleAssetTracker}
         >
-          <h5 className="mb-0 text-primary d-flex align-items-center">
+          {/* <h5 className="mb-0 text-primary d-flex align-items-center">
             <FaChartLine className="me-2" /> Asset Tracker
-          </h5>
+          </h5> */}
           <button className="btn btn-sm btn-outline-primary">
             {showAssetTracker ? <FaAngleUp /> : <FaAngleDown />}
           </button>
