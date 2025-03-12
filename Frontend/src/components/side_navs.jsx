@@ -71,11 +71,17 @@ export default function SideNavs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [savingStatus, setSavingStatus] = useState("");
+  const [showAssetTracker, setShowAssetTracker] = useState(false); // New state for toggling AssetTracker
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
   // Function to toggle the side nav visibility
   const toggleSideNav = () => {
     setIsOpen(!isOpen);
+  };
+
+  // Function to toggle the AssetTracker visibility
+  const toggleAssetTracker = () => {
+    setShowAssetTracker(!showAssetTracker);
   };
 
   const songs = [
@@ -313,7 +319,24 @@ export default function SideNavs() {
         </div>
       </div>
 
-      <AssetTracker />
+      {/* Asset Tracker Toggle Button */}
+      <div className="card shadow-sm mb-3">
+        <div 
+          className="card-header bg-light d-flex justify-content-between align-items-center" 
+          style={{ cursor: 'pointer' }}
+          onClick={toggleAssetTracker}
+        >
+          <h5 className="mb-0 text-primary d-flex align-items-center">
+            <FaChartLine className="me-2" /> Asset Tracker
+          </h5>
+          <button className="btn btn-sm btn-outline-primary">
+            {showAssetTracker ? <FaAngleUp /> : <FaAngleDown />}
+          </button>
+        </div>
+      </div>
+
+      {/* Conditional rendering of AssetTracker */}
+      {showAssetTracker && <AssetTracker />}
 
       {/* Music Player, Admin buttons and Modal */}
       <div className="music-color-mode">
