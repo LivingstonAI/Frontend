@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
-import { FaSun, FaMoon, FaMusic, FaSave } from 'react-icons/fa';
+import { FaSun, FaMoon, FaMusic, FaSave, FaChartLine, FaAngleDown, FaAngleUp } from 'react-icons/fa';
 import { useAudio } from './audio_context';
 import AssetTracker from "./asset_tracker";
 
