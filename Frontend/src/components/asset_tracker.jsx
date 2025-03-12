@@ -146,11 +146,11 @@ const AssetTracker = () => {
   useEffect(() => {
     fetchAssets();
     
-    // Set up interval for auto-refresh (every 60 seconds)
-    const interval = setInterval(fetchAssetUpdates, 60000);
+    // // Set up interval for auto-refresh (every 60 seconds)
+    // const interval = setInterval(fetchAssetUpdates, 60000);
     
-    // Clean up interval on component unmount
-    return () => clearInterval(interval);
+    // // Clean up interval on component unmount
+    // return () => clearInterval(interval);
   }, []);
 
   // Determine status alert class
