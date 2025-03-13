@@ -43,7 +43,7 @@ const AssetTracker = () => {
     }
   };
 
-  // Fetch asset updates - manual refresh with UI feedback
+  // Fetch asset updates
   const fetchAssetUpdates = async () => {
     setCurrentAction("refreshing");
     setActionStatus({ type: "info", message: "Refreshing..." });
@@ -62,21 +62,6 @@ const AssetTracker = () => {
       setActionStatus({ type: "error", message: "Network error" });
     } finally {
       setCurrentAction("");
-    }
-  };
-
-  // Silent fetch asset updates - for auto-refresh without UI feedback
-  const silentFetchAssetUpdates = async () => {
-    try {
-      const response = await fetch(`${baseURL}/fetch-asset-update/`);
-      if (response.ok) {
-        const data = await response.json();
-        setAssets(data);
-      } else {
-        console.error("Silent refresh failed");
-      }
-    } catch (error) {
-      console.error("Error during silent refresh:", error);
     }
   };
 
@@ -161,8 +146,8 @@ const AssetTracker = () => {
   useEffect(() => {
     fetchAssets();
     
-    // Set up interval for auto-refresh (every 5 minutes = 300000 ms)
-    const interval = setInterval(silentFetchAssetUpdates, 300000);
+    // Set up interval for auto-refresh (every 60 seconds)
+    const interval = setInterval(fetchAssetUpdates, 60000);
     
     // Clean up interval on component unmount
     return () => clearInterval(interval);
@@ -297,7 +282,7 @@ const AssetTracker = () => {
                     ))}
                   </select>
                   <div className="small text-muted mt-2">
-                    Selected assets will be tracked and updated automatically every 5 minutes.
+                    Selected assets will be tracked and updated automatically every minute.
                   </div>
                 </div>
               </div>
