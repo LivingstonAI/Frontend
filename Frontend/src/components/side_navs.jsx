@@ -143,7 +143,7 @@ export default function SideNavs() {
     { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
     { name: "Chosen ⌛", file: chosen },
     { name: "Spin U Around 🎼💙", file: spin_u_round },
-    { name: "Feel it 🦸‍♂️", file: feel_it }
+    { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it }
   ];
 
   const filteredSongs = songs.filter((song) =>

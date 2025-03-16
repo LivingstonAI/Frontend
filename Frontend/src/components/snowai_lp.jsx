@@ -140,7 +140,7 @@ export default function SnowAILandingPage() {
     "52": { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
     "53": { name: "Chosen ⌛", file: chosen },
     "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
-    "55": { name: "Feel it 🦸‍♂️", file: feel_it },
+    "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it },
   };
 
     // State for search term and filtered songs
