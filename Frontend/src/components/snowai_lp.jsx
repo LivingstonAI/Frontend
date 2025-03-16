@@ -56,6 +56,7 @@ import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).m
 import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
 import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Official Lyric Video).mp3';
 import spin_u_round from '../spin u round.mp3';
+import feel_it from '../d4vd - Feel It.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -139,6 +140,7 @@ export default function SnowAILandingPage() {
     "52": { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
     "53": { name: "Chosen ⌛", file: chosen },
     "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
+    "55": { name: "Feel it 🦸‍♂️", file: feel_it },
   };
 
     // State for search term and filtered songs

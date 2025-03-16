@@ -61,6 +61,7 @@ import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).m
 import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
 import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Official Lyric Video).mp3';
 import spin_u_round from '../spin u round.mp3';
+import feel_it from '../d4vd - Feel It.mp3';
 
 
 let globalAudio = null; 
@@ -141,7 +142,8 @@ export default function SideNavs() {
     { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
     { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
     { name: "Chosen ⌛", file: chosen },
-    { name: "Spin U Around 🎼💙", file: spin_u_round }
+    { name: "Spin U Around 🎼💙", file: spin_u_round },
+    { name: "Feel it 🦸‍♂️", file: feel_it }
   ];
 
   const filteredSongs = songs.filter((song) =>
