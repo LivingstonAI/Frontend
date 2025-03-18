@@ -4,7 +4,7 @@ import SideNavs from "./side_navs";
 import Cookies from "js-cookie";
 
 export default function AlertBot() {
-    const [assetArray, setAssetArray] = useState(['EURUSD', 'GBPUSD', 'XAUUSD', 'USDX']);
+    const [assetArray, setAssetArray] = useState(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD']);
     const [outcome, setOutcome] = useState("");
     const [colorOutcome, setColorOutcome] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
