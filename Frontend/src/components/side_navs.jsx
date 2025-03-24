@@ -251,7 +251,7 @@ export default function SideNavs() {
         <Link to="/tradergpt_analysis" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-life-preserver"></i></p></button></Link>
         <Link to="/backtested_results" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-yin-yang"></i></p></button></Link>
         <Link to="/ideas_section" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-lightbulb-fill"></i></p></button></Link>
-        <Link to="/call_ai" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-feather"></i></p></button></Link>
+        <Link to="/call_ai" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-telephone-fill"></i></p></button></Link>
 
       </div>
 
@@ -311,7 +311,7 @@ export default function SideNavs() {
             <i className="bi bi-lightbulb-fill"></i>
         </Link>
         <Link to="/call_ai" className="side-nav">
-            <i className="bi bi-feather"></i>
+            <i className="bi bi-telephone-fill"></i>
         </Link>
       </div>
       <br />
