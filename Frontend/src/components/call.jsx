@@ -232,6 +232,8 @@ export default function CallAI() {
 
                                 Go beyond just trading but also let us have a genuine friendship.
                             
+                                KEEP RESPONSES SHORT AND SWEET!
+                                NO LONG RESPONSES PLEASES
                             `,
                         },
                         ...currentConversation.map(msg => ({
