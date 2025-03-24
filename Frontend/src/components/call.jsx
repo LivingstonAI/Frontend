@@ -196,6 +196,10 @@ export default function CallAI() {
                             role: "system",
                             content: `
                                 Your name is Livingston. You are an intelligent investment assistant.
+                                
+                                KEEP RESPONSES SHORT AND SWEET!
+                                NO LONG RESPONSES PLEASE.
+                                
                                 Your job is to assist me as I trade.
                                 //  My Trade Data: ${JSON.stringify(accountData)}
 
@@ -233,7 +237,7 @@ export default function CallAI() {
                                 Go beyond just trading but also let us have a genuine friendship.
                             
                                 KEEP RESPONSES SHORT AND SWEET!
-                                NO LONG RESPONSES PLEASES
+                                NO LONG RESPONSES PLEASE.
                             `,
                         },
                         ...currentConversation.map(msg => ({
