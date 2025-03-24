@@ -411,6 +411,9 @@ export default function ChatBotInterface() {
 
 
     const deleteConversation = async (conversationID) => {
+        const confirmed = window.confirm("Are you sure you want to delete this chat?");
+        
+        if (!confirmed) return;
         try {
             const response = await fetch(`${baseURL}/delete_conversation/${conversationID}/`, {
                 method: 'POST',
