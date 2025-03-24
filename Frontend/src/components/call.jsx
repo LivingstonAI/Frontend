@@ -1,141 +1,189 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-import { Device } from 'twilio-client';
-import axios from 'axios';
 
 export default function CallAI() {
-    const [callStatus, setCallStatus] = useState('idle'); // idle, connecting, connected, disconnected
-    const [device, setDevice] = useState(null);
-    const [connection, setConnection] = useState(null);
-    const [logs, setLogs] = useState([]);
-    const [twilioToken, setTwilioToken] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [isRecording, setIsRecording] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [responseAudio, setResponseAudio] = useState(null);
+    const [conversation, setConversation] = useState([]);
+    const [isCallActive, setIsCallActive] = useState(false);
     
-    // Add a log message with timestamp
-    const addLog = (message) => {
-        const timestamp = new Date().toLocaleTimeString();
-        setLogs(prevLogs => [...prevLogs, `[${timestamp}] ${message}`]);
-    };
+    const mediaRecorderRef = useRef(null);
+    const audioChunksRef = useRef([]);
+    const audioRef = useRef(null);
     
-    // Initialize Twilio device when token is available
+    // Fetch OpenAI API key on component mount
     useEffect(() => {
-        if (!twilioToken) return;
-        
-        const initializeTwilio = async () => {
-            try {
-                const newDevice = new Device(twilioToken);
-                
-                newDevice.on('ready', () => {
-                    addLog('Twilio device is ready');
-                });
-                
-                newDevice.on('error', (error) => {
-                    addLog(`Error: ${error.message}`);
-                    setCallStatus('idle');
-                });
-                
-                newDevice.on('connect', (conn) => {
-                    setConnection(conn);
-                    setCallStatus('connected');
-                    addLog('Call connected');
-                    
-                    conn.on('disconnect', () => {
-                        setCallStatus('disconnected');
-                        addLog('Call disconnected');
-                    });
-                });
-                
-                newDevice.on('disconnect', () => {
-                    setConnection(null);
-                    setCallStatus('disconnected');
-                    addLog('Call ended');
-                });
-                
-                setDevice(newDevice);
-                addLog('Twilio device initialized');
-            } catch (error) {
-                addLog(`Failed to initialize Twilio: ${error.message}`);
-            }
-        };
-        
-        initializeTwilio();
-        
-        return () => {
-            if (device) {
-                device.destroy();
-            }
-        };
-    }, [twilioToken]);
-    
-    // Get Twilio token from Django backend
-    const fetchTwilioToken = async () => {
-        try {
-            setIsLoading(true);
-            // Using Django's CSRF token for security
-            const csrfToken = Cookies.get('csrftoken');
-            
-            const response = await axios.post('/api/twilio/token/', {}, {
-                headers: {
-                    'X-CSRFToken': csrfToken
-                }
-            });
-            
-            setTwilioToken(response.data.token);
-            addLog('Received Twilio token');
-        } catch (error) {
-            addLog(`Failed to get Twilio token: ${error.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    // Initialize when component mounts
-    useEffect(() => {
-        fetchTwilioToken();
+        fetchAPIKey();
     }, []);
     
-    // Start a call to the OpenAI-powered service
-    const startCall = async () => {
-        if (!device) {
-            addLog('Twilio device not initialized');
-            return;
-        }
-        
-        if (!phoneNumber) {
-            addLog('Please enter a phone number');
-            return;
-        }
-        
+    const fetchAPIKey = async () => {
         try {
-            setCallStatus('connecting');
-            addLog(`Calling ${phoneNumber}...`);
-            
-            // Get OpenAI API key (stored securely in cookies or use from backend)
-            const openAiApiKey = Cookies.get('openai_api_key') || '';
-            
-            const conn = await device.connect({
-                To: phoneNumber,
-                openAiApiKey: openAiApiKey,
-            });
-            
-            setConnection(conn);
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
         } catch (error) {
-            addLog(`Call failed: ${error.message}`);
-            setCallStatus('idle');
+            console.error("Error fetching API key:", error);
         }
     };
     
-    // End the current call
+    const startCall = () => {
+        setIsCallActive(true);
+        setConversation([{ role: "assistant", content: "Hello, how can I help you today?" }]);
+        
+        // Use the Web Speech API to speak the initial greeting
+        const utterance = new SpeechSynthesisUtterance("Hello, how can I help you today?");
+        window.speechSynthesis.speak(utterance);
+    };
+    
     const endCall = () => {
-        if (connection) {
-            connection.disconnect();
-            setConnection(null);
-            setCallStatus('disconnecting');
-            addLog('Ending call...');
+        setIsCallActive(false);
+        setConversation([]);
+        if (isRecording) {
+            stopRecording();
         }
+    };
+    
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorderRef.current = new MediaRecorder(stream);
+            audioChunksRef.current = [];
+            
+            mediaRecorderRef.current.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
+            };
+            
+            mediaRecorderRef.current.onstop = handleRecordingStop;
+            
+            mediaRecorderRef.current.start();
+            setIsRecording(true);
+        } catch (error) {
+            console.error("Error starting recording:", error);
+        }
+    };
+    
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            setIsProcessing(true);
+        }
+    };
+    
+    const handleRecordingStop = async () => {
+        try {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            
+            // Convert audio to base64 for sending to the API
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob); 
+            reader.onloadend = async () => {
+                const base64Audio = reader.result.split(',')[1];
+                
+                // Send audio to Whisper API for transcription
+                const transcription = await getTranscription(base64Audio);
+                
+                // Add user message to conversation
+                const updatedConversation = [
+                    ...conversation, 
+                    { role: "user", content: transcription }
+                ];
+                setConversation(updatedConversation);
+                
+                // Get GPT response
+                await getGPTResponse(updatedConversation);
+            };
+        } catch (error) {
+            console.error("Error processing recording:", error);
+            setIsProcessing(false);
+        }
+    };
+    
+    const getTranscription = async (audioBase64) => {
+        try {
+            const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${OPENAI_API_KEY}`,
+                },
+                body: (() => {
+                    const formData = new FormData();
+                    // Convert base64 back to blob for sending to Whisper API
+                    const audioBlob = fetch(
+                        `data:audio/webm;base64,${audioBase64}`
+                    ).then(res => res.blob());
+                    
+                    formData.append("file", audioBlob, "recording.webm");
+                    formData.append("model", "whisper-1");
+                    return formData;
+                })(),
+            });
+            
+            const data = await response.json();
+            return data.text;
+        } catch (error) {
+            console.error("Error with transcription:", error);
+            return "Sorry, I couldn't transcribe that.";
+        }
+    };
+    
+    const getGPTResponse = async (currentConversation) => {
+        try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${OPENAI_API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are in a voice conversation interface named Livingston. Keep responses concise and conversational as they will be spoken aloud. Limit responses to 2-3 sentences when possible.`,
+                        },
+                        ...currentConversation.map(msg => ({
+                            role: msg.role,
+                            content: msg.content
+                        }))
+                    ],
+                }),
+            });
+            
+            const data = await response.json();
+            const gptResponse = data.choices[0].message.content;
+            
+            // Add assistant response to conversation
+            setConversation([
+                ...currentConversation, 
+                { role: "assistant", content: gptResponse }
+            ]);
+            
+            // Convert GPT text response to speech
+            await textToSpeech(gptResponse);
+            
+            setIsProcessing(false);
+        } catch (error) {
+            console.error("Error getting GPT response:", error);
+            setIsProcessing(false);
+        }
+    };
+    
+    const textToSpeech = async (text) => {
+        // Using Web Speech API for text-to-speech
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        
+        window.speechSynthesis.speak(utterance);
     };
     
     return (
@@ -148,52 +196,245 @@ export default function CallAI() {
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Call Livingston</h5>
                     
-                    <div className="caller-container">
-                        <div className="caller-input-group">
-                            <input 
-                                type="text" 
-                                value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                placeholder="Enter phone number" 
-                                className="phone-input"
-                                disabled={callStatus !== 'idle' && callStatus !== 'disconnected'}
-                            />
-                            
-                            {(callStatus === 'idle' || callStatus === 'disconnected') && (
-                                <button 
-                                    onClick={startCall} 
-                                    className="call-button"
-                                    disabled={!device || !phoneNumber || isLoading}
-                                >
-                                    {isLoading ? "Loading..." : "Start Call"}
-                                </button>
-                            )}
-                            
-                            {(callStatus === 'connecting' || callStatus === 'connected') && (
-                                <button 
-                                    onClick={endCall} 
-                                    className="end-call-button"
-                                >
-                                    End Call
-                                </button>
-                            )}
-                        </div>
-                        
-                        <div className="call-status">
-                            Status: {callStatus.charAt(0).toUpperCase() + callStatus.slice(1)}
-                        </div>
-                        
-                        <div className="call-logs">
-                            <h6>Activity Log</h6>
-                            <div className="logs-container">
-                                {logs.map((log, index) => (
-                                    <div key={index} className="log-entry">
-                                        {log}
+                    <div className="futuristic-caller-container">
+                        <div className={`phone-interface ${isCallActive ? 'active-call' : ''}`}>
+                            <div className="caller-display">
+                                <div className="caller-avatar">
+                                    <div className="avatar-circle">
+                                        {isCallActive && (
+                                            <div className={`audio-visualizer ${isRecording ? 'visualizing' : ''}`}>
+                                                <div className="bar"></div>
+                                                <div className="bar"></div>
+                                                <div className="bar"></div>
+                                                <div className="bar"></div>
+                                                <div className="bar"></div>
+                                            </div>
+                                        )}
                                     </div>
-                                ))}
+                                </div>
+                                <div className="caller-info">
+                                    <h3>Livingston AI</h3>
+                                    <p className="status-text">
+                                        {!isCallActive ? 'Ready to call' : 
+                                         isProcessing ? 'Processing...' : 
+                                         isRecording ? 'Listening...' : 'Waiting for your voice...'}
+                                    </p>
+                                </div>
+                                
+                                <div className="conversation-display">
+                                    {conversation.map((msg, index) => (
+                                        <div key={index} className={`message ${msg.role}`}>
+                                            <p>{msg.content}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="call-controls">
+                                {!isCallActive ? (
+                                    <button 
+                                        className="call-button start" 
+                                        onClick={startCall}
+                                    >
+                                        Start Call
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button 
+                                            className={`voice-button ${isRecording ? 'recording' : ''}`}
+                                            onClick={isRecording ? stopRecording : startRecording}
+                                            disabled={isProcessing}
+                                        >
+                                            {isRecording ? 'Stop' : 'Speak'}
+                                        </button>
+                                        
+                                        <button 
+                                            className="call-button end" 
+                                            onClick={endCall}
+                                        >
+                                            End Call
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
+                    
+                    <style jsx>{`
+                        .futuristic-caller-container {
+                            display: flex;
+                            justify-content: center;
+                            padding: 2rem;
+                        }
+                        
+                        .phone-interface {
+                            width: 100%;
+                            max-width: 500px;
+                            background: linear-gradient(145deg, #1a1a2e, #16213e);
+                            border-radius: 24px;
+                            padding: 2rem;
+                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+                            color: white;
+                            overflow: hidden;
+                        }
+                        
+                        .active-call {
+                            border: 2px solid #4cc9f0;
+                            box-shadow: 0 0 20px rgba(76, 201, 240, 0.5);
+                        }
+                        
+                        .caller-display {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            margin-bottom: 2rem;
+                        }
+                        
+                        .caller-avatar {
+                            margin-bottom: 1.5rem;
+                        }
+                        
+                        .avatar-circle {
+                            width: 120px;
+                            height: 120px;
+                            border-radius: 50%;
+                            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            position: relative;
+                        }
+                        
+                        .audio-visualizer {
+                            display: flex;
+                            align-items: flex-end;
+                            height: 60px;
+                            width: 60px;
+                            justify-content: space-between;
+                        }
+                        
+                        .audio-visualizer .bar {
+                            width: 8px;
+                            background-color: #4cc9f0;
+                            border-radius: 4px;
+                        }
+                        
+                        .visualizing .bar:nth-child(1) { height: 20px; animation: sound 0.5s infinite alternate; }
+                        .visualizing .bar:nth-child(2) { height: 40px; animation: sound 0.7s infinite alternate; }
+                        .visualizing .bar:nth-child(3) { height: 60px; animation: sound 0.8s infinite alternate; }
+                        .visualizing .bar:nth-child(4) { height: 40px; animation: sound 0.9s infinite alternate; }
+                        .visualizing .bar:nth-child(5) { height: 20px; animation: sound 0.6s infinite alternate; }
+                        
+                        @keyframes sound {
+                            0% { height: 10px; }
+                            100% { height: 100%; }
+                        }
+                        
+                        .caller-info {
+                            text-align: center;
+                        }
+                        
+                        .caller-info h3 {
+                            font-size: 1.8rem;
+                            margin: 0;
+                            background: linear-gradient(90deg, #4cc9f0, #7209b7);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                        }
+                        
+                        .status-text {
+                            font-size: 1rem;
+                            color: #a5b4fc;
+                            margin-top: 0.5rem;
+                        }
+                        
+                        .conversation-display {
+                            width: 100%;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            margin-top: 1.5rem;
+                            padding: 1rem;
+                            background-color: rgba(0, 0, 0, 0.3);
+                            border-radius: 12px;
+                        }
+                        
+                        .message {
+                            margin-bottom: 0.8rem;
+                            padding: 0.8rem;
+                            border-radius: 12px;
+                            max-width: 85%;
+                        }
+                        
+                        .message.user {
+                            background-color: #4361ee;
+                            align-self: flex-end;
+                            margin-left: auto;
+                        }
+                        
+                        .message.assistant {
+                            background-color: #3a0ca3;
+                            align-self: flex-start;
+                        }
+                        
+                        .message p {
+                            margin: 0;
+                        }
+                        
+                        .call-controls {
+                            display: flex;
+                            justify-content: center;
+                            gap: 1.5rem;
+                        }
+                        
+                        .call-button {
+                            padding: 0.8rem 1.5rem;
+                            border-radius: 50px;
+                            border: none;
+                            font-weight: bold;
+                            font-size: 1rem;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        }
+                        
+                        .call-button.start {
+                            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+                            color: white;
+                            padding: 1rem 2rem;
+                        }
+                        
+                        .call-button.end {
+                            background: linear-gradient(90deg, #f72585, #b5179e);
+                            color: white;
+                        }
+                        
+                        .voice-button {
+                            width: 60px;
+                            height: 60px;
+                            border-radius: 50%;
+                            border: none;
+                            background: linear-gradient(135deg, #4cc9f0, #4361ee);
+                            color: white;
+                            font-size: 0.9rem;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        }
+                        
+                        .voice-button.recording {
+                            background: linear-gradient(135deg, #f72585, #b5179e);
+                            animation: pulse 1.5s infinite;
+                        }
+                        
+                        @keyframes pulse {
+                            0% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.7); }
+                            70% { box-shadow: 0 0 0 10px rgba(247, 37, 133, 0); }
+                            100% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0); }
+                        }
+                        
+                        button:disabled {
+                            opacity: 0.5;
+                            cursor: not-allowed;
+                        }
+                    `}</style>
                 </div>
             </div>
         </div>
