@@ -418,7 +418,7 @@ export default function CallAI() {
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info">
+                <div className="main-body-info"><br /><br />
                     <h5 className="major-upcoming-news-events-header">Call Livingston</h5>
                     
                     <div className="futuristic-caller-container">
