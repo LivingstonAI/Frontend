@@ -8,23 +8,16 @@ export default function CallAI() {
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [responseAudio, setResponseAudio] = useState(null);
     const [conversation, setConversation] = useState([]);
     const [isCallActive, setIsCallActive] = useState(false);
-    const [newsData, setNewsData] = useState([]);
+    const [newsData, setNewsData] = useState([]); // State to store news data
     const [accountData, setAccountData] = useState(null);
     
-    // Refs for audio recording
+    
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const audioRef = useRef(null);
-    
-    // Silence detection refs
-    const silenceTimeoutRef = useRef(null);
-    const audioContextRef = useRef(null);
-    const analyserRef = useRef(null);
-    const streamRef = useRef(null);
-    const silenceThreshold = 15; // Adjust based on testing
-    const silenceTime = 1500; // 1.5 seconds of silence before sending
     
     // Fetch OpenAI API key on component mount
     useEffect(() => {
@@ -57,83 +50,11 @@ export default function CallAI() {
         if (isRecording) {
             stopRecording();
         }
-        
-        // Clean up audio context and stream
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
-        }
-        
-        if (audioContextRef.current) {
-            audioContextRef.current.close().catch(console.error);
-            audioContextRef.current = null;
-        }
-    };
-    
-    const detectSilence = (stream) => {
-        // Create audio context and analyser if they don't exist
-        if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-            analyserRef.current = audioContextRef.current.createAnalyser();
-            analyserRef.current.fftSize = 256;
-        }
-        
-        // Set up audio source and connect to analyser
-        const audioSource = audioContextRef.current.createMediaStreamSource(stream);
-        audioSource.connect(analyserRef.current);
-        
-        // Buffer for frequency data
-        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-        
-        // Function to check audio levels
-        const checkAudioLevel = () => {
-            if (!isRecording || !analyserRef.current) return;
-            
-            analyserRef.current.getByteFrequencyData(dataArray);
-            
-            // Calculate average volume level
-            const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-            
-            // If volume is below threshold, start silence timer
-            if (average < silenceThreshold) {
-                if (!silenceTimeoutRef.current) {
-                    silenceTimeoutRef.current = setTimeout(() => {
-                        // Only stop if we're still recording
-                        if (isRecording) {
-                            console.log("Silence detected - stopping recording");
-                            stopRecording();
-                        }
-                        silenceTimeoutRef.current = null;
-                    }, silenceTime);
-                }
-            } else {
-                // If sound detected, clear timeout
-                if (silenceTimeoutRef.current) {
-                    clearTimeout(silenceTimeoutRef.current);
-                    silenceTimeoutRef.current = null;
-                }
-            }
-            
-            // Continue checking if still recording
-            if (isRecording) {
-                requestAnimationFrame(checkAudioLevel);
-            }
-        };
-        
-        // Start checking audio levels
-        checkAudioLevel();
     };
     
     const startRecording = async () => {
         try {
-            // Clear any existing silence timeout
-            if (silenceTimeoutRef.current) {
-                clearTimeout(silenceTimeoutRef.current);
-                silenceTimeoutRef.current = null;
-            }
-            
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            streamRef.current = stream;
             mediaRecorderRef.current = new MediaRecorder(stream);
             audioChunksRef.current = [];
             
@@ -147,21 +68,12 @@ export default function CallAI() {
             
             mediaRecorderRef.current.start();
             setIsRecording(true);
-            
-            // Start silence detection
-            detectSilence(stream);
         } catch (error) {
             console.error("Error starting recording:", error);
         }
     };
     
     const stopRecording = () => {
-        // Clear any existing silence timeout
-        if (silenceTimeoutRef.current) {
-            clearTimeout(silenceTimeoutRef.current);
-            silenceTimeoutRef.current = null;
-        }
-        
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
@@ -171,38 +83,27 @@ export default function CallAI() {
     
     const handleRecordingStop = async () => {
         try {
-            // Only process if we have audio chunks
-            if (audioChunksRef.current.length > 0) {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            
+            // Convert audio to base64 for sending to the API
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob); 
+            reader.onloadend = async () => {
+                const base64Audio = reader.result.split(',')[1];
                 
-                // Convert audio to base64 for sending to the API
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob); 
-                reader.onloadend = async () => {
-                    const base64Audio = reader.result.split(',')[1];
-                    
-                    // Send audio to Whisper API for transcription
-                    const transcription = await getTranscription(audioBlob);
-                    
-                    // Only proceed if we got a meaningful transcription
-                    if (transcription && transcription.trim() !== "") {
-                        // Add user message to conversation
-                        const updatedConversation = [
-                            ...conversation, 
-                            { role: "user", content: transcription }
-                        ];
-                        setConversation(updatedConversation);
-                        
-                        // Get GPT response
-                        await getGPTResponse(updatedConversation);
-                    } else {
-                        // If no meaningful transcription, reset processing state
-                        setIsProcessing(false);
-                    }
-                };
-            } else {
-                setIsProcessing(false);
-            }
+                // Send audio to Whisper API for transcription
+                const transcription = await getTranscription(audioBlob); // Pass the blob directly
+                
+                // Add user message to conversation
+                const updatedConversation = [
+                    ...conversation, 
+                    { role: "user", content: transcription }
+                ];
+                setConversation(updatedConversation);
+                
+                // Get GPT response
+                await getGPTResponse(updatedConversation);
+            };
         } catch (error) {
             console.error("Error processing recording:", error);
             setIsProcessing(false);
@@ -210,56 +111,51 @@ export default function CallAI() {
     };
 
     useEffect(() => {
-        async function fetchNewsData() {
-            try {
-                const email = await fetchEmailDataFromAPI();
-                const response = await fetch(`${baseUrl}/fetch_user_news_data/${email}`);
-                if (!response.ok) {
-                    throw new Error("Network response was not ok");
+            async function fetchNewsData() {
+                try {
+                    const email = await fetchEmailDataFromAPI();
+                    const response = await fetch(`${baseUrl}/fetch_user_news_data/${email}`);
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    const data = await response.json();
+                    setNewsData(data);
+                } catch (error) {
+                    console.error("Error fetching news data:", error);
                 }
-                const data = await response.json();
-                setNewsData(data);
-            } catch (error) {
-                console.error("Error fetching news data:", error);
             }
-        }
-        fetchNewsData();
-    }, []);
+             fetchNewsData();
+        }, []);
+        
+        useEffect(() => {
+            const fetchAccountData = async () => {
+              try {
+                // Get the account_name from cookies
+                const accountName = Cookies.get('account_name');
+                if (!accountName) {
+                  setError('Account name is not set in cookies');
+                  return;
+                }
+        
+                // Fetch account data from the Django API with account_name as a query parameter
+                const response = await fetch(`${baseUrl}/fetch-account-data/?account_name=${accountName}`);
+                
+                if (response.ok) {
+                  const parsedData = await response.json();
+                  setAccountData(parsedData); // Store account data
+                  console.log('Account Data is ', parsedData);
+                } else {
+                  const errorData = await response.json();
+                  setError(errorData.error || 'An error occurred while fetching the account data');
+                }
+              } catch (error) {
+                setError('Error fetching account data: ' + error.message);
+              }
+            };
+        
+            fetchAccountData();
+          }, []); // Runs once on mount
     
-    useEffect(() => {
-        const fetchAccountData = async () => {
-          try {
-            // Get the account_name from cookies
-            const accountName = Cookies.get('account_name');
-            if (!accountName) {
-              console.error('Account name is not set in cookies');
-              return;
-            }
-    
-            // Fetch account data from the Django API with account_name as a query parameter
-            const response = await fetch(`${baseUrl}/fetch-account-data/?account_name=${accountName}`);
-            
-            if (response.ok) {
-              const parsedData = await response.json();
-              setAccountData(parsedData); // Store account data
-              console.log('Account Data is ', parsedData);
-            } else {
-              const errorData = await response.json();
-              console.error(errorData.error || 'An error occurred while fetching the account data');
-            }
-          } catch (error) {
-            console.error('Error fetching account data: ' + error.message);
-          }
-        };
-    
-        fetchAccountData();
-      }, []); // Runs once on mount
-    
-    // Helper function to fetch email data - implement this based on your API
-    const fetchEmailDataFromAPI = async () => {
-        // Replace with your actual implementation
-        return Cookies.get('email') || 'default@example.com';
-    };
     
     const getTranscription = async (audioBlob) => {
         try {
@@ -311,8 +207,27 @@ export default function CallAI() {
 
                                 My name is Tlotlo Motingwe. I am 21 years old. 
                                                 
-                                // System details omitted for brevity
+
+                                So, the way the platform works is, I have a landing page, and on this landing page, I can view the glowing thing I showed you, as well as play the snowstorm sound. And then I can log in, and then I have a login page, and then it takes me to the personal info section, where I can select multiple accounts and then view them throughout the platform. So, I have trading analytics per account, and then I want to have a lot of metrics for that, so I can see how I'm performing more in-depth, so I can have a centralized hub where I can plan more efficiently. And then I also have an AI chatbot called Livingston. Livingston has access to my trading history, news data, and yeah, it has access to those things, and then it can also view images and analyze images and give me trade advice based on my trading history. I also have a section where I can view interest rates, calculate differentials, and I can also view COT data reports, as well as open interest across different asset classes that I'm trading. And then I also have a section called the daily brief, where I can view the daily brief, where I get news data, and then Livingston summarizes them for me in a way that it's like a paragraph so that I can have a quick glimpse of what's going on for any set assets that I've chosen on the platform. And then also I have a part where I can create trading bots using Google Blockly. I can backtest using this part of the platform, as well as download the models, put them on MT5, and have them run using a VPS with a convolutional neural network hosted on Google Cloud. And then I can view the performance of these models on a section I call model performance. I also have a part where I've created something called a risk bot, which has a maximum allowable loss every day, as well as a maximum number of trades I can set per day, and it acts based on these parameters. I also have a section called chill, where I can view my trading notes, have a quizifier, an AI professor, and edit, add, delete my notes, as well. And then I also have a section where I have alert bot. So alert bot gives me alerts based on the alerts that I specify for different assets. Livingston can also analyze images, as well. That's also another thing. So that's just a small synopsis of how the SnowAI system works. 
+
+                                So the main project for snowAI in 2025 is this: TraderGPT and CentralGPT.
+
+                                TraderGPT I'll create by training or fine-tuning a GPT model with all my ict notes (both text and image). Then I'll enable it to run on MT5 and be able to feed it trading data for any asset it's on. Of course, I'll need to enable it as well to have intermarket analysis for confirmation analysis. As well as providing it with news data for said asset. 
+
+                                Then I wanna ensure that different TraderGPT's specialise across different asset classes. And that they can take trades, record them on the snowAI system and always have access to historical data for their trade history.  
+
+                                Then I wanna create a place where different TraderGPT's can come and 'meet' to discuss price action. So every week, there'll be a sort of research meeting between them and they'll discuss general market conditions and plan and strategise together. 
+
+                                And then finally what I want is to create a CentralGPT: An AI assistant who'll oversee and lead all these TraderGPT's and who'll report back to me and act as my main right hand man.
+
+                                Also, I've recently created a multiple accounts feature where I can create accounts on SnowAI and view performances across multiple accounts for different assets and asset classes with metrics like Performance by Trading Session, Day of Week, and Strategy. As well as I have an Equity curve for each account and win factor , average wins and losses, as well as a profit factor.
+
+                                I also recently worked on inserting a quizzifier into CHILL. So I can now take a quiz, a normal one or True/False one based on my choosing, as well as determine the number of questions I get asked. Then I have a marker to check my answers and a feedback form.
+
                                 
+                                
+                                I also am learning Korean and Chinese, and love reading books.
+
                                 Your job is to be like an Alfred or Jarvis to me, but also for trading at times.
 
                                 Be friendly, kind and like a long and trusted friend. 
