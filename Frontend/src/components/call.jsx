@@ -114,7 +114,7 @@ export default function CallAI() {
             async function fetchNewsData() {
                 try {
                     const email = await fetchEmailDataFromAPI();
-                    const response = await fetch(`${baseURL}/fetch_user_news_data/${email}`);
+                    const response = await fetch(`${baseUrl}/fetch_user_news_data/${email}`);
                     if (!response.ok) {
                         throw new Error("Network response was not ok");
                     }
@@ -138,7 +138,7 @@ export default function CallAI() {
                 }
         
                 // Fetch account data from the Django API with account_name as a query parameter
-                const response = await fetch(`${baseURL}/fetch-account-data/?account_name=${accountName}`);
+                const response = await fetch(`${baseUrl}/fetch-account-data/?account_name=${accountName}`);
                 
                 if (response.ok) {
                   const parsedData = await response.json();
