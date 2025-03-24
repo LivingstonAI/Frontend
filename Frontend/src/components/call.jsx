@@ -89,7 +89,7 @@ export default function CallAI() {
                 const base64Audio = reader.result.split(',')[1];
                 
                 // Send audio to Whisper API for transcription
-                const transcription = await getTranscription(base64Audio);
+                const transcription = await getTranscription(audioBlob); // Pass the blob directly
                 
                 // Add user message to conversation
                 const updatedConversation = [
@@ -107,24 +107,20 @@ export default function CallAI() {
         }
     };
     
-    const getTranscription = async (audioBase64) => {
+    const getTranscription = async (audioBlob) => {
         try {
+            // Create FormData and append the actual blob
+            const formData = new FormData();
+            formData.append("file", audioBlob, "recording.webm");
+            formData.append("model", "whisper-1");
+            
             const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${OPENAI_API_KEY}`,
+                    // Don't set Content-Type header when using FormData
                 },
-                body: (() => {
-                    const formData = new FormData();
-                    // Convert base64 back to blob for sending to Whisper API
-                    const audioBlob = fetch(
-                        `data:audio/webm;base64,${audioBase64}`
-                    ).then(res => res.blob());
-                    
-                    formData.append("file", audioBlob, "recording.webm");
-                    formData.append("model", "whisper-1");
-                    return formData;
-                })(),
+                body: formData
             });
             
             const data = await response.json();
@@ -270,17 +266,17 @@ export default function CallAI() {
                         .phone-interface {
                             width: 100%;
                             max-width: 500px;
-                            background: linear-gradient(145deg, #1a1a2e, #16213e);
+                            background: linear-gradient(145deg, #f0f2f5, #e6eaf0);
                             border-radius: 24px;
                             padding: 2rem;
-                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-                            color: white;
+                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                            color: #333;
                             overflow: hidden;
                         }
                         
                         .active-call {
                             border: 2px solid #4cc9f0;
-                            box-shadow: 0 0 20px rgba(76, 201, 240, 0.5);
+                            box-shadow: 0 0 20px rgba(76, 201, 240, 0.3);
                         }
                         
                         .caller-display {
@@ -303,6 +299,7 @@ export default function CallAI() {
                             align-items: center;
                             justify-content: center;
                             position: relative;
+                            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
                         }
                         
                         .audio-visualizer {
@@ -344,7 +341,7 @@ export default function CallAI() {
                         
                         .status-text {
                             font-size: 1rem;
-                            color: #a5b4fc;
+                            color: #555;
                             margin-top: 0.5rem;
                         }
                         
@@ -354,8 +351,9 @@ export default function CallAI() {
                             overflow-y: auto;
                             margin-top: 1.5rem;
                             padding: 1rem;
-                            background-color: rgba(0, 0, 0, 0.3);
+                            background-color: rgba(245, 247, 250, 0.8);
                             border-radius: 12px;
+                            border: 1px solid #ddd;
                         }
                         
                         .message {
@@ -367,12 +365,14 @@ export default function CallAI() {
                         
                         .message.user {
                             background-color: #4361ee;
+                            color: white;
                             align-self: flex-end;
                             margin-left: auto;
                         }
                         
                         .message.assistant {
-                            background-color: #3a0ca3;
+                            background-color: #e9ecef;
+                            color: #333;
                             align-self: flex-start;
                         }
                         
@@ -400,11 +400,13 @@ export default function CallAI() {
                             background: linear-gradient(90deg, #4cc9f0, #4361ee);
                             color: white;
                             padding: 1rem 2rem;
+                            box-shadow: 0 4px 12px rgba(76, 201, 240, 0.3);
                         }
                         
                         .call-button.end {
                             background: linear-gradient(90deg, #f72585, #b5179e);
                             color: white;
+                            box-shadow: 0 4px 12px rgba(247, 37, 133, 0.3);
                         }
                         
                         .voice-button {
@@ -417,6 +419,7 @@ export default function CallAI() {
                             font-size: 0.9rem;
                             cursor: pointer;
                             transition: all 0.3s ease;
+                            box-shadow: 0 4px 12px rgba(76, 201, 240, 0.3);
                         }
                         
                         .voice-button.recording {
