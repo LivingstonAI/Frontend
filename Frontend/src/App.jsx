@@ -43,6 +43,7 @@ import TraderGPTAnalysis from './components/tradergpt.jsx';
 import BacktestedResults from './components/backtesting_interface.jsx';
 import IdeasSection from './components/ideas.jsx';
 import SavedQuizzes from './components/saved_quizzes.jsx';
+import CallAI from './components/call.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -125,6 +126,9 @@ function App() {
         <Route path='/tradergpt_analysis' element={<TraderGPTAnalysis />}></Route>
         <Route path='/backtested_results' element={<BacktestedResults />}></Route>
         <Route path='/ideas_section' element={<IdeasSection />}></Route>
+        <Route path='/call_ai' element={<CallAI />}></Route>
+
+
 
 
 
