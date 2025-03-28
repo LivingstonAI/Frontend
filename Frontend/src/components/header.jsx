@@ -5,17 +5,50 @@ import {v4 as uuidv4} from 'uuid';
 export default function Header() {
     const uniqueID = uuidv4();
     return (
-        <div className="main-page-header"><br />
+        <div className="main-page-header">
+            <div className="header-glow"></div>
             <div className="all-header-navs">
             <div className="header-navigations">
-                <Link to="/" className="overview-link"><h5 className="snowai-title">SnowAI</h5></Link>
+                <Link to="/" className="overview-link"><h6 className="snowai-title">SnowAI</h6></Link>
             </div>
-            {/* <Link to="/" className="overview-link"><h5 className="sign-out-cta">Sign Out</h5></Link> */}
             </div>
             <style jsx>{`
                 .main-page-header {
                     background: linear-gradient(145deg, #1e3c72, #2a5298);
                     color: white;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .header-glow {
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: radial-gradient(
+                        circle at center, 
+                        rgba(76, 201, 240, 0.3) 0%, 
+                        rgba(67, 97, 238, 0.1) 70%
+                    );
+                    animation: pulse-glow 3s ease-in-out infinite alternate;
+                    pointer-events: none;
+                    z-index: 1;
+                }
+
+                @keyframes pulse-glow {
+                    0% {
+                        transform: scale(1) rotate(0deg);
+                        opacity: 0.4;
+                    }
+                    50% {
+                        transform: scale(1.1) rotate(5deg);
+                        opacity: 0.6;
+                    }
+                    100% {
+                        transform: scale(1) rotate(-5deg);
+                        opacity: 0.4;
+                    }
                 }
 
                 .all-header-navs {
@@ -23,6 +56,8 @@ export default function Header() {
                     justify-content: space-between;
                     align-items: center;
                     padding: var(--general-padding);
+                    position: relative;
+                    z-index: 2;
                 }
 
                 .snowai-title {
@@ -48,25 +83,13 @@ export default function Header() {
                     text-decoration: none;
                 }
 
-                .sign-out-cta {
-                    color: white;
-                    opacity: 0.8;
-                    transition: opacity 0.3s ease;
-                }
-
-                .sign-out-cta:hover {
-                    opacity: 1;
-                }
-
                 @media screen and (min-width: 992px) {
                     .all-header-navs {
                         font-size: 18px;
                         padding: var(--general-padding-lg);
                     }
 
-                    .logo {
-                        font-size: 25px;
-                    }
+                    
                 }
             `}</style>
         </div>
