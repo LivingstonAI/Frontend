@@ -88,7 +88,7 @@ export default function Header() {
                 @media screen and (min-width: 992px) {
                     .all-header-navs {
                         font-size: 18px;
-                        padding: var(--general-padding-lg);
+                        padding: 12px;
                     }
 
                     
