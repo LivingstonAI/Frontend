@@ -10,7 +10,7 @@ export default function Header() {
             <div className="header-navigations">
                 <Link to="/" className="overview-link"><h5 className="snowai-title">SnowAI</h5></Link>
             </div>
-            <Link to="/" className="overview-link"><h5 className="sign-out-cta">Sign Out</h5></Link>
+            {/* <Link to="/" className="overview-link"><h5 className="sign-out-cta">Sign Out</h5></Link> */}
             </div>
             <style jsx>{`
                 .main-page-header {
