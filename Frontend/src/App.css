@@ -485,11 +485,11 @@ main * {
 
 
 /* Main Page CSS */
-.header {
+/* .header {
     background-color:rgb(1, 51, 100);
     color: white;
-}
-
+} */
+/* 
 .header-navigations {
     display: flex;
     gap: 10px;
@@ -503,7 +503,7 @@ main * {
 .sign-out-cta {
     position: absolute;
     right: 10px;
-}
+} */
 
 /* .side-navs {
     position: relative;
