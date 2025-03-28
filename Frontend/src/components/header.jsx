@@ -5,22 +5,16 @@ import {v4 as uuidv4} from 'uuid';
 export default function Header() {
     const uniqueID = uuidv4();
     return (
-        <div className="main-page-header">
+        <div className="main-page-header"><br />
             <div className="all-header-navs">
-                <div className="header-navigations">
-                    <Link to="/" className="overview-link">
-                        <h5 className="snowai-logo">SnowAI</h5>
-                    </Link>
-                </div>
-                <Link to="/" className="overview-link">
-                    <h5 className="sign-out-cta">Sign Out</h5>
-                </Link>
+            <div className="header-navigations">
+                <Link to="/" className="overview-link"><h5 className="snowai-title">SnowAI</h5></Link>
+            </div>
+            <Link to="/" className="overview-link"><h5 className="sign-out-cta">Sign Out</h5></Link>
             </div>
             <style jsx>{`
                 .main-page-header {
-                    background: linear-gradient(135deg, #3a8bd1, #2c5aa0);
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                    padding: 15px 20px;
+                    background: linear-gradient(145deg, #1e3c72, #2a5298);
                     color: white;
                 }
 
@@ -28,45 +22,50 @@ export default function Header() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    padding: var(--general-padding);
                 }
 
-                .snowai-logo {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: white;
-                    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-                    transition: transform 0.3s ease;
+                .snowai-title {
+                    background: linear-gradient(90deg, #4cc9f0, #4361ee);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: snowai-glow 2s ease-in-out infinite alternate;
+                    font-weight: bold;
                 }
 
-                .snowai-logo:hover {
-                    transform: scale(1.05);
-                }
-
-                .sign-out-cta {
-                    background: rgba(255, 255, 255, 0.2);
-                    padding: 8px 15px;
-                    border-radius: 20px;
-                    font-weight: 600;
-                    transition: all 0.3s ease;
-                }
-
-                .sign-out-cta:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: translateY(-2px);
+                @keyframes snowai-glow {
+                    0% {
+                        text-shadow: 0 0 5px rgba(76, 201, 240, 0.5), 
+                                     0 0 10px rgba(67, 97, 238, 0.3);
+                    }
+                    100% {
+                        text-shadow: 0 0 15px rgba(76, 201, 240, 0.8), 
+                                     0 0 25px rgba(67, 97, 238, 0.6);
+                    }
                 }
 
                 .header-navigations a {
                     text-decoration: none;
+                }
+
+                .sign-out-cta {
                     color: white;
+                    opacity: 0.8;
+                    transition: opacity 0.3s ease;
+                }
+
+                .sign-out-cta:hover {
+                    opacity: 1;
                 }
 
                 @media screen and (min-width: 992px) {
-                    .main-page-header {
-                        padding: 20px 30px;
+                    .all-header-navs {
+                        font-size: 18px;
+                        padding: var(--general-padding-lg);
                     }
 
-                    .snowai-logo {
-                        font-size: 1.8rem;
+                    .logo {
+                        font-size: 25px;
                     }
                 }
             `}</style>
