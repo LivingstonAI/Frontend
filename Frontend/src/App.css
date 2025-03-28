@@ -607,7 +607,7 @@ main * {
 /* Trade Analysis CSS */
 .main-page-header {
     width: 100%;
-    padding-bottom: 15px;
+    /* padding-bottom: 15px; */
 }
 
 .whole-trade-analysis-div {
