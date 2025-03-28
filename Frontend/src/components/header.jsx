@@ -18,6 +18,7 @@ export default function Header() {
                     color: white;
                     position: relative;
                     overflow: hidden;
+                    padding-bottom: 0px;
                 }
 
                 .header-glow {
@@ -66,6 +67,7 @@ export default function Header() {
                     -webkit-text-fill-color: transparent;
                     animation: snowai-glow 2s ease-in-out infinite alternate;
                     font-weight: bold;
+                    font-size: 2rem;
                 }
 
                 @keyframes snowai-glow {
