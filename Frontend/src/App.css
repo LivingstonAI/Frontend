@@ -79,21 +79,8 @@ footer {
     gap: 10px;
   }
 
-
-  header {
-    align-items: center;
-    background-color: var(--primary-color);
-    color: var(--light-color);
-    display: flex;
-    justify-content: space-between;
-    padding: var(--general-padding);
-  }
   
   @media screen and (min-width: 992px) {
-    header {
-      font-size: 18px;
-      padding: var(--general-padding-lg);
-    }
   
     .logo {
       font-size: 25px;
