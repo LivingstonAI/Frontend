@@ -267,33 +267,11 @@ export default function CallAI() {
         }
     };
     
-    // Helper function to get a male voice
-    const getMaleVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const maleVoices = voices.filter(voice => 
-            voice.name.toLowerCase().includes('male') || 
-            voice.name.toLowerCase().includes('david') || 
-            voice.name.toLowerCase().includes('john') ||
-            voice.name.toLowerCase().includes('mike')
-        );
-        
-        // If no specifically male voices are found, return a deeper-sounding voice
-        return maleVoices.length > 0 ? maleVoices[0] : voices.find(voice => 
-            voice.pitch < 1 && !voice.name.toLowerCase().includes('female')
-        ) || voices[0];
-    };
-    
     const textToSpeech = async (text) => {
         // Using Web Speech API for text-to-speech
         const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Select a male voice
-        utterance.voice = getMaleVoice();
-        
-        // More natural speech parameters
-        utterance.rate = 0.9;  // Slightly slower than default
-        utterance.pitch = 0.8; // Slightly lower pitch for a more natural male voice
-        utterance.volume = 1.0; // Full volume
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
         
         window.speechSynthesis.speak(utterance);
     };
