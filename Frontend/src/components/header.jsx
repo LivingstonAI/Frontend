@@ -56,7 +56,7 @@ export default function Header() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: var(--general-padding);
+                    padding: 12px;
                     position: relative;
                     z-index: 2;
                 }
