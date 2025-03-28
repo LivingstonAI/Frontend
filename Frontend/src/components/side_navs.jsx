@@ -138,7 +138,7 @@ export default function SideNavs() {
     { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     { name: "Duncan's Theme 🗡️", file: duncan_theme},
     { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
-    { name: "Empire Sate of Mind 🗽🌆", file: empire_state_of_mind },
+    { name: "Empire State of Mind 🗽🌆", file: empire_state_of_mind },
     { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
     { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
     { name: "Chosen ⌛", file: chosen },

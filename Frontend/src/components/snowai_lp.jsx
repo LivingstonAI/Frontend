@@ -135,7 +135,7 @@ export default function SnowAILandingPage() {
     "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
     "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
-    "50": { name: "Empire Sate of Mind 🗽🌆", file: empire_state_of_mind },
+    "50": { name: "Empire State of Mind 🗽🌆", file: empire_state_of_mind },
     "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
     "52": { name: "Afternoon of Konoha 🌳🌄", file: afternoon_of_konoha },
     "53": { name: "Chosen ⌛", file: chosen },
