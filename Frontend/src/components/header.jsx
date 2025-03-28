@@ -9,7 +9,7 @@ export default function Header() {
             <div className="header-glow"></div>
             <div className="all-header-navs">
             <div className="header-navigations">
-                <Link to="/" className="overview-link"><h6 className="snowai-title">SnowAI</h6></Link>
+                <Link to="/" className="overview-link"><h5 className="snowai-title">SnowAI</h5></Link>
             </div>
             </div>
             <style jsx>{`
