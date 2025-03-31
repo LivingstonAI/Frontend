@@ -257,7 +257,7 @@ export default function SnowAILandingPage() {
     // Optional: continuously create new characters
     const intervalId = setInterval(() => {
       createFallingCharacters();
-    }, 10000); // Create new batch every 10 seconds
+    }, 20000); // Create new batch every 10 seconds
     
     return () => clearInterval(intervalId);
   }, []);
