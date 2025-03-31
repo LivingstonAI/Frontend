@@ -153,9 +153,9 @@ export default function SnowAILandingPage() {
     song.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  useEffect(() => {
-    createSnowflakes();
-  }, []);
+  // useEffect(() => {
+  //   createSnowflakes();
+  // }, []);
 
   const handlePlayToggle = () => {
     const audio = audioRef.current;
@@ -183,28 +183,84 @@ export default function SnowAILandingPage() {
     audio.load(); // Load the new song
   };
 
-  const createSnowflakes = () => {
+  // const createSnowflakes = () => {
+  //   const container = document.getElementById("snowflake-container");
+  //   if (container) {
+  //     for (let i = 0; i < 80; i++) {
+  //       const snowflake = document.createElement("div");
+  //       snowflake.className = "snowflake";
+
+  //       snowflake.style.left = `${Math.random() * 100}vw`;
+  //       snowflake.style.width = `${Math.random() * 5 + 5}px`;
+  //       snowflake.style.height = snowflake.style.width;
+  //       snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`;
+  //       snowflake.style.animationDelay = `${Math.random() * 6}s`;
+  //       snowflake.style.opacity = Math.random() * 0.8 + 0.2;
+
+  //       container.appendChild(snowflake);
+
+  //       snowflake.addEventListener("animationend", () => {
+  //         snowflake.remove();
+  //       });
+  //     }
+  //   }
+  // };
+
+  const createFallingCharacters = () => {
     const container = document.getElementById("snowflake-container");
     if (container) {
+      // Array of Chinese and Korean characters
+      const characters = [
+        // Chinese characters
+        '雪', '冬', '美', '爱', '风', '光', '云', '星', '梦', '智', 
+        '慧', '学', '研', '科', '技', '未', '来', '创', '新', '思',
+        '天', '地', '山', '水', '人', '心', '情', '感', '知', '道',
+        
+        // Korean characters
+        '눈', '겨', '울', '아', '름', '사', '랑', '바', '람', '빛', 
+        '구', '름', '별', '꿈', '지', '혜', '배', '움', '과', '학',
+        '미', '래', '창', '조', '생', '각', '하', '늘', '땅', '산'
+      ];
+      
       for (let i = 0; i < 80; i++) {
-        const snowflake = document.createElement("div");
-        snowflake.className = "snowflake";
-
-        snowflake.style.left = `${Math.random() * 100}vw`;
-        snowflake.style.width = `${Math.random() * 5 + 5}px`;
-        snowflake.style.height = snowflake.style.width;
-        snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`;
-        snowflake.style.animationDelay = `${Math.random() * 6}s`;
-        snowflake.style.opacity = Math.random() * 0.8 + 0.2;
-
-        container.appendChild(snowflake);
-
-        snowflake.addEventListener("animationend", () => {
-          snowflake.remove();
+        const character = document.createElement("div");
+        character.className = "falling-character";
+        
+        // Randomly select a character from the array
+        const randomChar = characters[Math.floor(Math.random() * characters.length)];
+        character.innerText = randomChar;
+        
+        // Random positioning and timing
+        character.style.left = `${Math.random() * 100}vw`;
+        character.style.fontSize = `${Math.random() * 12 + 14}px`; // Varying sizes
+        character.style.animationDuration = `${Math.random() * 6 + 10}s`;
+        character.style.animationDelay = `${Math.random() * 6}s`;
+        character.style.opacity = Math.random() * 0.8 + 0.2;
+        
+        // Add subtle rotation for more dynamic movement
+        character.style.transform = `rotate(${Math.random() * 360}deg)`;
+        
+        container.appendChild(character);
+        
+        // Remove the character when animation ends to prevent overloading the DOM
+        character.addEventListener("animationend", () => {
+          character.remove();
         });
       }
     }
   };
+  
+  // Replace the createSnowflakes function call with this
+  useEffect(() => {
+    createFallingCharacters();
+    
+    // Optional: continuously create new characters
+    const intervalId = setInterval(() => {
+      createFallingCharacters();
+    }, 10000); // Create new batch every 10 seconds
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const glow = document.createElement("div");

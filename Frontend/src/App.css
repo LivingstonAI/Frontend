@@ -3820,6 +3820,29 @@ body.dark {
   }
 
   
+  /* Character styling (replacing snowflakes) */
+.falling-character {
+  position: absolute;
+  top: -5%;
+  color: #ffffff;
+  font-size: 18px;
+  opacity: 0.8;
+  animation: fall linear infinite;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Character falling animation */
+@keyframes fall {
+  to {
+    transform: translateY(110vh);
+  }
+}
+
+/* Character hover effect */
+.falling-character:hover {
+  transform: scale(1.5) rotate(15deg);
+  opacity: 0.5;
+}
 
   
   
