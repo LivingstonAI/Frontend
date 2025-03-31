@@ -222,7 +222,7 @@ export default function SnowAILandingPage() {
         '미', '래', '창', '조', '생', '각', '하', '늘', '땅', '산'
       ];
       
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 10; i++) {
         const character = document.createElement("div");
         character.className = "falling-character";
         
