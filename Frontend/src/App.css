@@ -5925,3 +5925,28 @@ body.dark .asset-item:hover {
 .snowai-title {
   margin-bottom: 0px;
 }
+
+@keyframes fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--opacity);
+  }
+  90% {
+    opacity: var(--opacity);
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.falling-character {
+  position: absolute;
+  top: -5vh;
+  color: #fff;
+  animation: fall linear forwards;
+  /* Other styles remain the same */
+}

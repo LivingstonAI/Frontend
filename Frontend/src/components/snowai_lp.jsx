@@ -222,7 +222,10 @@ export default function SnowAILandingPage() {
         '미', '래', '창', '조', '생', '각', '하', '늘', '땅', '산'
       ];
       
-      for (let i = 0; i < 10; i++) {
+      // Limit the number of characters created at once
+      const characterCount = 5; // Reduced from 10 to 5
+      
+      for (let i = 0; i < characterCount; i++) {
         const character = document.createElement("div");
         character.className = "falling-character";
         
@@ -230,38 +233,48 @@ export default function SnowAILandingPage() {
         const randomChar = characters[Math.floor(Math.random() * characters.length)];
         character.innerText = randomChar;
         
-        // Random positioning and timing
+        // Random positioning and timing with more spacing
         character.style.left = `${Math.random() * 100}vw`;
-        character.style.fontSize = `${Math.random() * 12 + 14}px`; // Varying sizes
-        character.style.animationDuration = `${Math.random() * 6 + 10}s`;
-        character.style.animationDelay = `${Math.random() * 6}s`;
-        character.style.opacity = Math.random() * 0.8 + 0.2;
+        character.style.fontSize = `${Math.random() * 12 + 14}px`;
+        // Increase animation duration for slower falling
+        character.style.animationDuration = `${Math.random() * 8 + 15}s`; // Longer duration (15-23s)
+        character.style.animationDelay = `${Math.random() * 3}s`; // Shorter delay for more even distribution
+        character.style.opacity = Math.random() * 0.7 + 0.3;
         
-        // Add subtle rotation for more dynamic movement
+        // Add subtle rotation
         character.style.transform = `rotate(${Math.random() * 360}deg)`;
         
         container.appendChild(character);
         
-        // Remove the character when animation ends to prevent overloading the DOM
+        // Ensure removal when animation ends
         character.addEventListener("animationend", () => {
-          character.remove();
+          if (character.parentNode === container) {
+            container.removeChild(character);
+          }
         });
       }
     }
   };
   
-  // Replace the createSnowflakes function call with this
+  // In your useEffect
   useEffect(() => {
+    // Initial creation
     createFallingCharacters();
     
-    // Optional: continuously create new characters
+    // Check the number of characters and limit if necessary
+    const maxCharacters = 30; // Maximum allowed characters on screen
+    
     const intervalId = setInterval(() => {
-      createFallingCharacters();
-    }, 20000); // Create new batch every 10 seconds
+      const container = document.getElementById("snowflake-container");
+      if (container && container.children.length < maxCharacters) {
+        createFallingCharacters();
+      }
+    }, 5000); // Create new batch every 5 seconds if below limit
     
     return () => clearInterval(intervalId);
   }, []);
 
+  
   useEffect(() => {
     const glow = document.createElement("div");
     glow.className = "mouse-glow";
