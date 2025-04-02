@@ -223,7 +223,7 @@ export default function SnowAILandingPage() {
       ];
       
       // Limit the number of characters created at once
-      const characterCount = 15; // Reduced from 10 to 5
+      const characterCount = 25; // Reduced from 10 to 5
       
       for (let i = 0; i < characterCount; i++) {
         const character = document.createElement("div");
