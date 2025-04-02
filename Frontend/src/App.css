@@ -5953,32 +5953,50 @@ body.dark .asset-item:hover {
 
 
 /* Trade Ideas CSS */
-.trade-idea-form {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 20px;
+/* Trade Ideas Styles */
+.trade-ideas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.trade-ideas-list .card {
-    transition: transform 0.2s;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.trade-idea-form-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
-.trade-ideas-list .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+.trade-idea-form-container .card {
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.trade-idea-form-container .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trade-ideas-filter {
+  margin: 20px 0;
 }
 
 .trade-ideas-list .card-header {
-    background-color: #f1f3f5;
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
-.trade-ideas-list .badge {
-    font-size: 0.8rem;
-}
-
-.trade-ideas-list .card-footer {
-    background-color: #fff;
-    border-top: none;
-    padding-top: 0;
+@media (max-width: 768px) {
+  .row.mb-3 .col {
+      margin-bottom: 10px;
+  }
 }
