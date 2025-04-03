@@ -5952,7 +5952,6 @@ body.dark .asset-item:hover {
 }
 
 
-/* Trade Ideas CSS */
 /* Trade Ideas Styles */
 .trade-ideas-header {
   display: flex;
@@ -5998,5 +5997,8 @@ body.dark .asset-item:hover {
 @media (max-width: 768px) {
   .row.mb-3 .col {
       margin-bottom: 10px;
+  }
+  .trade-ideas-filter {
+    overflow-x: auto;
   }
 }
