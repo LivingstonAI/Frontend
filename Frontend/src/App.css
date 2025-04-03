@@ -5994,11 +5994,15 @@ body.dark .asset-item:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
+.trade-ideas-filter {
+  overflow-x: auto;
+}
+
 @media (max-width: 768px) {
   .row.mb-3 .col {
       margin-bottom: 10px;
   }
-  .trade-ideas-filter {
+  /* .trade-ideas-filter {
     overflow-x: auto;
-  }
+  } */
 }
