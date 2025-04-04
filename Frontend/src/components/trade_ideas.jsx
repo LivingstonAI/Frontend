@@ -21,9 +21,9 @@ export default function TradeIdeas() {
         asset: '',
         trade_idea: '',
         trade_status: 'pending',
-        target_price: '',
-        stop_loss: '',
-        entry_price: '',
+        target_price: '0',
+        stop_loss: '0',
+        entry_price: '0',
         outcome: 'pending' // Added outcome field
     });
     
