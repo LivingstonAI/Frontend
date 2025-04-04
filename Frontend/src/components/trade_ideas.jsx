@@ -9,6 +9,10 @@ export default function TradeIdeas() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
+    // Processing states
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [processingAction, setProcessingAction] = useState('');
+    
     // Form states
     const [showForm, setShowForm] = useState(false);
     const [editingIdea, setEditingIdea] = useState(null);
@@ -19,11 +23,17 @@ export default function TradeIdeas() {
         trade_status: 'pending',
         target_price: '',
         stop_loss: '',
-        entry_price: ''
+        entry_price: '',
+        outcome: 'pending' // Added outcome field
     });
     
     // Filter states
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterOutcome, setFilterOutcome] = useState('all'); // Added outcome filter
+    const [filterAsset, setFilterAsset] = useState('all'); // Added asset filter
+    
+    // List of unique assets for filtering
+    const [uniqueAssets, setUniqueAssets] = useState([]);
     
     // Configure axios
     const axiosConfig = {
@@ -38,6 +48,11 @@ export default function TradeIdeas() {
         try {
             const response = await axios.get(`${baseUrl}/api/trade-ideas/`, axiosConfig);
             setTradeIdeas(response.data.trade_ideas);
+            
+            // Extract unique assets for filtering
+            const assets = [...new Set(response.data.trade_ideas.map(idea => idea.asset))];
+            setUniqueAssets(assets);
+            
             setError(null);
         } catch (err) {
             console.error("Error fetching trade ideas:", err);
@@ -63,6 +78,8 @@ export default function TradeIdeas() {
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsProcessing(true);
+        setProcessingAction(editingIdea ? 'Updating idea...' : 'Creating idea...');
         
         try {
             if (editingIdea) {
@@ -89,7 +106,8 @@ export default function TradeIdeas() {
                 trade_status: 'pending',
                 target_price: '',
                 stop_loss: '',
-                entry_price: ''
+                entry_price: '',
+                outcome: 'pending'
             });
             setShowForm(false);
             setEditingIdea(null);
@@ -98,6 +116,9 @@ export default function TradeIdeas() {
         } catch (err) {
             console.error("Error saving trade idea:", err);
             setError("Failed to save trade idea. Please try again.");
+        } finally {
+            setIsProcessing(false);
+            setProcessingAction('');
         }
     };
     
@@ -111,7 +132,8 @@ export default function TradeIdeas() {
             trade_status: idea.trade_status,
             target_price: idea.target_price || '',
             stop_loss: idea.stop_loss || '',
-            entry_price: idea.entry_price || ''
+            entry_price: idea.entry_price || '',
+            outcome: idea.outcome || 'pending'
         });
         setShowForm(true);
     };
@@ -119,6 +141,9 @@ export default function TradeIdeas() {
     // Delete an idea
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this trade idea?")) {
+            setIsProcessing(true);
+            setProcessingAction('Deleting idea...');
+            
             try {
                 await axios.delete(
                     `${baseUrl}/api/trade-ideas/delete/${id}/`,
@@ -128,14 +153,35 @@ export default function TradeIdeas() {
             } catch (err) {
                 console.error("Error deleting trade idea:", err);
                 setError("Failed to delete trade idea. Please try again.");
+            } finally {
+                setIsProcessing(false);
+                setProcessingAction('');
             }
         }
     };
     
-    // Filter ideas by status
-    const filteredIdeas = filterStatus === 'all' 
-        ? tradeIdeas 
-        : tradeIdeas.filter(idea => idea.trade_status === filterStatus);
+    // Apply multiple filters
+    const getFilteredIdeas = () => {
+        return tradeIdeas.filter(idea => {
+            const statusMatch = filterStatus === 'all' || idea.trade_status === filterStatus;
+            const outcomeMatch = filterOutcome === 'all' || idea.outcome === filterOutcome;
+            const assetMatch = filterAsset === 'all' || idea.asset === filterAsset;
+            
+            return statusMatch && outcomeMatch && assetMatch;
+        });
+    };
+    
+    // Get outcome badge color
+    const getOutcomeBadgeColor = (outcome) => {
+        switch(outcome) {
+            case 'win': return 'bg-success';
+            case 'loss': return 'bg-danger';
+            case 'breakeven': return 'bg-warning';
+            default: return 'bg-secondary';
+        }
+    };
+    
+    const filteredIdeas = getFilteredIdeas();
     
     return (
         <div>
@@ -159,9 +205,11 @@ export default function TradeIdeas() {
                                     trade_status: 'pending',
                                     target_price: '',
                                     stop_loss: '',
-                                    entry_price: ''
+                                    entry_price: '',
+                                    outcome: 'pending'
                                 });
                             }}
+                            disabled={isProcessing}
                         >
                             + New Trade Idea
                         </button>
@@ -170,6 +218,18 @@ export default function TradeIdeas() {
                     {error && (
                         <div className="alert alert-danger" role="alert">
                             {error}
+                        </div>
+                    )}
+                    
+                    {/* Processing indicator */}
+                    {isProcessing && (
+                        <div className="alert alert-info d-flex align-items-center" role="alert">
+                            <div className="spinner-border spinner-border-sm me-2" role="status">
+                                <span className="visually-hidden">Processing...</span>
+                            </div>
+                            <div>
+                                {processingAction}
+                            </div>
                         </div>
                     )}
                     
@@ -182,6 +242,7 @@ export default function TradeIdeas() {
                                     <button 
                                         className="btn-close" 
                                         onClick={() => setShowForm(false)}
+                                        disabled={isProcessing}
                                     ></button>
                                 </div>
                                 <div className="card-body">
@@ -196,6 +257,7 @@ export default function TradeIdeas() {
                                                 value={formData.heading}
                                                 onChange={handleInputChange}
                                                 required
+                                                disabled={isProcessing}
                                             />
                                         </div>
                                         
@@ -209,6 +271,7 @@ export default function TradeIdeas() {
                                                 value={formData.asset}
                                                 onChange={handleInputChange}
                                                 required
+                                                disabled={isProcessing}
                                             />
                                         </div>
                                         
@@ -222,6 +285,7 @@ export default function TradeIdeas() {
                                                 value={formData.trade_idea}
                                                 onChange={handleInputChange}
                                                 required
+                                                disabled={isProcessing}
                                             ></textarea>
                                         </div>
                                         
@@ -236,6 +300,7 @@ export default function TradeIdeas() {
                                                     name="entry_price"
                                                     value={formData.entry_price}
                                                     onChange={handleInputChange}
+                                                    disabled={isProcessing}
                                                 />
                                             </div>
                                             
@@ -249,6 +314,7 @@ export default function TradeIdeas() {
                                                     name="target_price"
                                                     value={formData.target_price}
                                                     onChange={handleInputChange}
+                                                    disabled={isProcessing}
                                                 />
                                             </div>
                                             
@@ -262,24 +328,45 @@ export default function TradeIdeas() {
                                                     name="stop_loss"
                                                     value={formData.stop_loss}
                                                     onChange={handleInputChange}
+                                                    disabled={isProcessing}
                                                 />
                                             </div>
                                         </div>
                                         
-                                        <div className="mb-3">
-                                            <label htmlFor="trade_status" className="form-label">Status</label>
-                                            <select
-                                                className="form-select"
-                                                id="trade_status"
-                                                name="trade_status"
-                                                value={formData.trade_status}
-                                                onChange={handleInputChange}
-                                            >
-                                                <option value="pending">Pending</option>
-                                                <option value="executed">Executed</option>
-                                                <option value="closed">Closed</option>
-                                                <option value="cancelled">Cancelled</option>
-                                            </select>
+                                        <div className="row mb-3">
+                                            <div className="col">
+                                                <label htmlFor="trade_status" className="form-label">Status</label>
+                                                <select
+                                                    className="form-select"
+                                                    id="trade_status"
+                                                    name="trade_status"
+                                                    value={formData.trade_status}
+                                                    onChange={handleInputChange}
+                                                    disabled={isProcessing}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="executed">Executed</option>
+                                                    <option value="closed">Closed</option>
+                                                    <option value="cancelled">Cancelled</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div className="col">
+                                                <label htmlFor="outcome" className="form-label">Outcome</label>
+                                                <select
+                                                    className="form-select"
+                                                    id="outcome"
+                                                    name="outcome"
+                                                    value={formData.outcome}
+                                                    onChange={handleInputChange}
+                                                    disabled={isProcessing}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="win">Win</option>
+                                                    <option value="loss">Loss</option>
+                                                    <option value="breakeven">Breakeven</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         
                                         <div className="d-flex justify-content-end">
@@ -287,11 +374,23 @@ export default function TradeIdeas() {
                                                 type="button" 
                                                 className="btn btn-secondary me-2"
                                                 onClick={() => setShowForm(false)}
+                                                disabled={isProcessing}
                                             >
                                                 Cancel
                                             </button>
-                                            <button type="submit" className="btn btn-primary">
-                                                {editingIdea ? 'Update' : 'Create'}
+                                            <button 
+                                                type="submit" 
+                                                className="btn btn-primary"
+                                                disabled={isProcessing}
+                                            >
+                                                {isProcessing ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                        {editingIdea ? 'Updating...' : 'Creating...'}
+                                                    </>
+                                                ) : (
+                                                    editingIdea ? 'Update' : 'Create'
+                                                )}
                                             </button>
                                         </div>
                                     </form>
@@ -301,44 +400,120 @@ export default function TradeIdeas() {
                     )}
                     
                     {/* Filter section */}
-                    <div className="trade-ideas-filter my-3">
-                        <div className="btn-group" role="group">
-                            <button 
-                                type="button" 
-                                className={`btn ${filterStatus === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilterStatus('all')}
-                            >
-                                All
-                            </button>
-                            <button 
-                                type="button" 
-                                className={`btn ${filterStatus === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilterStatus('pending')}
-                            >
-                                Pending
-                            </button>
-                            <button 
-                                type="button" 
-                                className={`btn ${filterStatus === 'executed' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilterStatus('executed')}
-                            >
-                                Executed
-                            </button>
-                            <button 
-                                type="button" 
-                                className={`btn ${filterStatus === 'closed' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilterStatus('closed')}
-                            >
-                                Closed
-                            </button>
-                            <button 
-                                type="button" 
-                                className={`btn ${filterStatus === 'cancelled' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilterStatus('cancelled')}
-                            >
-                                Cancelled
-                            </button>
+                    <div className="trade-ideas-filters my-3">
+                        <div className="row g-2">
+                            <div className="col-md-4">
+                                <div className="filter-group">
+                                    <label className="form-label mb-1">Status Filter</label>
+                                    <div className="btn-group w-100" role="group">
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterStatus === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterStatus('all')}
+                                        >
+                                            All
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterStatus === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterStatus('pending')}
+                                        >
+                                            Pending
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterStatus === 'executed' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterStatus('executed')}
+                                        >
+                                            Executed
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterStatus === 'closed' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterStatus('closed')}
+                                        >
+                                            Closed
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterStatus === 'cancelled' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterStatus('cancelled')}
+                                        >
+                                            Cancelled
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="col-md-4">
+                                <div className="filter-group">
+                                    <label className="form-label mb-1">Outcome Filter</label>
+                                    <div className="btn-group w-100" role="group">
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterOutcome === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterOutcome('all')}
+                                        >
+                                            All
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterOutcome === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterOutcome('pending')}
+                                        >
+                                            Pending
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterOutcome === 'win' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterOutcome('win')}
+                                        >
+                                            Wins
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterOutcome === 'loss' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterOutcome('loss')}
+                                        >
+                                            Losses
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className={`btn ${filterOutcome === 'breakeven' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => setFilterOutcome('breakeven')}
+                                        >
+                                            Breakeven
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="col-md-4">
+                                <div className="filter-group">
+                                    <label className="form-label mb-1">Asset Filter</label>
+                                    <select
+                                        className="form-select"
+                                        value={filterAsset}
+                                        onChange={(e) => setFilterAsset(e.target.value)}
+                                    >
+                                        <option value="all">All Assets</option>
+                                        {uniqueAssets.map(asset => (
+                                            <option key={asset} value={asset}>{asset}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    
+                    {/* Filter summary */}
+                    <div className="filter-summary my-2">
+                        <small className="text-muted">
+                            Showing {filteredIdeas.length} out of {tradeIdeas.length} trade ideas
+                            {filterStatus !== 'all' && ` • Status: ${filterStatus}`}
+                            {filterOutcome !== 'all' && ` • Outcome: ${filterOutcome}`}
+                            {filterAsset !== 'all' && ` • Asset: ${filterAsset}`}
+                        </small>
                     </div>
                     
                     {/* Trade ideas list */}
@@ -351,7 +526,7 @@ export default function TradeIdeas() {
                             </div>
                         ) : filteredIdeas.length === 0 ? (
                             <div className="alert alert-info" role="alert">
-                                No trade ideas found. Create a new one!
+                                No trade ideas found with the current filters. Try different filters or create a new idea!
                             </div>
                         ) : (
                             filteredIdeas.map(idea => (
@@ -361,7 +536,7 @@ export default function TradeIdeas() {
                                             <h6 className="mb-0">{idea.heading}</h6>
                                             <small className="text-muted">Asset: {idea.asset}</small>
                                         </div>
-                                        <div>
+                                        <div className="d-flex gap-2">
                                             <span className={`badge ${
                                                 idea.trade_status === 'pending' ? 'bg-warning' :
                                                 idea.trade_status === 'executed' ? 'bg-primary' :
@@ -369,6 +544,12 @@ export default function TradeIdeas() {
                                             }`}>
                                                 {idea.trade_status}
                                             </span>
+                                            
+                                            {idea.outcome && (
+                                                <span className={`badge ${getOutcomeBadgeColor(idea.outcome)}`}>
+                                                    {idea.outcome}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="card-body">
@@ -403,12 +584,14 @@ export default function TradeIdeas() {
                                                 <button 
                                                     className="btn btn-sm btn-outline-primary me-2"
                                                     onClick={() => handleEdit(idea)}
+                                                    disabled={isProcessing}
                                                 >
                                                     Edit
                                                 </button>
                                                 <button 
                                                     className="btn btn-sm btn-outline-danger"
                                                     onClick={() => handleDelete(idea.id)}
+                                                    disabled={isProcessing}
                                                 >
                                                     Delete
                                                 </button>
@@ -424,4 +607,3 @@ export default function TradeIdeas() {
         </div>
     );
 }
-
