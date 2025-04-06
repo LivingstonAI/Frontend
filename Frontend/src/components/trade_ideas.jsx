@@ -21,24 +21,46 @@ export default function TradeIdeas() {
         asset: '',
         trade_idea: '',
         trade_status: 'pending',
-        target_price: '0',
-        stop_loss: '0',
-        entry_price: '0',
-        outcome: 'pending' // Added outcome field
+        target_price: '',
+        stop_loss: '',
+        entry_price: '',
+        outcome: 'pending'
     });
     
     // Filter states
     const [filterStatus, setFilterStatus] = useState('all');
-    const [filterOutcome, setFilterOutcome] = useState('all'); // Added outcome filter
-    const [filterAsset, setFilterAsset] = useState('all'); // Added asset filter
+    const [filterOutcome, setFilterOutcome] = useState('all');
+    const [filterAsset, setFilterAsset] = useState('all');
     
     // List of unique assets for filtering
     const [uniqueAssets, setUniqueAssets] = useState([]);
+
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    
+    // Commonality analysis states
+    const [showCommonalityAnalysis, setShowCommonalityAnalysis] = useState(false);
+    const [commonalityAnalysis, setCommonalityAnalysis] = useState("");
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     
     // Configure axios
     const axiosConfig = {
         headers: {
             'Content-Type': 'application/json'
+        }
+    };
+
+    // Function to fetch the API key
+    const fetchDataFromAPI = async () => {
+        try {
+        const response = await fetch(`${baseUrl}/get_openai_key`);
+        if (!response.ok) {
+            throw new Error("Network response was not ok");
+        }
+        const { OPENAI_API_KEY } = await response.json();
+        // Set the API key in state
+        setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+        console.error("Error fetching data:", error);
         }
     };
     
@@ -64,6 +86,7 @@ export default function TradeIdeas() {
     
     useEffect(() => {
         fetchTradeIdeas();
+        fetchDataFromAPI();
     }, []);
     
     // Handle form input changes
@@ -181,6 +204,65 @@ export default function TradeIdeas() {
         }
     };
     
+    // Find commonalities in filtered ideas
+    const findCommonalities = async () => {
+        setIsAnalyzing(true);
+        setShowCommonalityAnalysis(true);
+        
+        const filteredIdeas = getFilteredIdeas();
+        
+        try {
+            // First check if API key is available
+            if (!OPENAI_API_KEY) {
+                await fetchDataFromAPI();
+            }
+            
+            // Prepare filter context for better analysis
+            let filterContext = "Analysis of trade ideas";
+            if (filterStatus !== 'all') filterContext += ` with status: ${filterStatus}`;
+            if (filterOutcome !== 'all') filterContext += ` and outcome: ${filterOutcome}`;
+            if (filterAsset !== 'all') filterContext += ` for asset: ${filterAsset}`;
+            
+            // Call OpenAI API
+            const response = await axios.post(
+                'https://api.openai.com/v1/chat/completions',
+                {
+                    model: "gpt-4o-mini",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are an AI assistant specialized in financial analysis. Analyze the trade ideas and identify patterns, commonalities, and insights that might help the trader improve their strategies."
+                        },
+                        {
+                            role: "user",
+                            content: `${filterContext}. Please analyze these ${filteredIdeas.length} trade ideas and identify patterns, commonalities, success factors, or improvement areas: ${JSON.stringify(filteredIdeas)}`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 800
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    }
+                }
+            );
+            
+            setCommonalityAnalysis(response.data.choices[0].message.content);
+        } catch (err) {
+            console.error("Error analyzing trade ideas:", err);
+            setCommonalityAnalysis("Failed to analyze trade ideas. Please check your API key or try again later.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+    
+    // Toggle analysis visibility
+    const toggleAnalysis = () => {
+        setShowCommonalityAnalysis(!showCommonalityAnalysis);
+    };
+    
     const filteredIdeas = getFilteredIdeas();
     
     return (
@@ -193,26 +275,45 @@ export default function TradeIdeas() {
                 <div className="main-body-info">
                     <div className="trade-ideas-header">
                         <h5 className="major-upcoming-news-events-header">Trade Ideas</h5>
-                        <button 
-                            className="btn btn-primary"
-                            onClick={() => {
-                                setShowForm(true);
-                                setEditingIdea(null);
-                                setFormData({
-                                    heading: '',
-                                    asset: '',
-                                    trade_idea: '',
-                                    trade_status: 'pending',
-                                    target_price: '',
-                                    stop_loss: '',
-                                    entry_price: '',
-                                    outcome: 'pending'
-                                });
-                            }}
-                            disabled={isProcessing}
-                        >
-                            + New Trade Idea
-                        </button>
+                        <div className="d-flex gap-2">
+                            <button 
+                                className="btn btn-info"
+                                onClick={findCommonalities}
+                                disabled={isAnalyzing || filteredIdeas.length === 0}
+                            >
+                                {isAnalyzing ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="bi bi-lightbulb me-1"></i>
+                                        Find Commonality
+                                    </>
+                                )}
+                            </button>
+                            <button 
+                                className="btn btn-primary"
+                                onClick={() => {
+                                    setShowForm(true);
+                                    setEditingIdea(null);
+                                    setFormData({
+                                        heading: '',
+                                        asset: '',
+                                        trade_idea: '',
+                                        trade_status: 'pending',
+                                        target_price: '',
+                                        stop_loss: '',
+                                        entry_price: '',
+                                        outcome: 'pending'
+                                    });
+                                }}
+                                disabled={isProcessing}
+                            >
+                                + New Trade Idea
+                            </button>
+                        </div>
                     </div>
                     
                     {error && (
@@ -229,6 +330,39 @@ export default function TradeIdeas() {
                             </div>
                             <div>
                                 {processingAction}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Commonality Analysis Section */}
+                    {showCommonalityAnalysis && commonalityAnalysis && (
+                        <div className="analysis-container my-3">
+                            <div className="card border-info">
+                                <div className="card-header bg-info bg-opacity-25 d-flex justify-content-between align-items-center">
+                                    <h6 className="mb-0">
+                                        <i className="bi bi-graph-up me-2"></i>
+                                        AI Analysis of {filteredIdeas.length} Trade Ideas
+                                    </h6>
+                                    <div>
+                                        <button 
+                                            className="btn btn-sm btn-outline-info me-2" 
+                                            onClick={toggleAnalysis}
+                                        >
+                                            {showCommonalityAnalysis ? 'Minimize' : 'Expand'}
+                                        </button>
+                                        <button 
+                                            className="btn btn-sm btn-outline-secondary" 
+                                            onClick={() => setShowCommonalityAnalysis(false)}
+                                        >
+                                            <i className="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="card-body">
+                                    {commonalityAnalysis.split('\n').map((paragraph, index) => (
+                                        paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
