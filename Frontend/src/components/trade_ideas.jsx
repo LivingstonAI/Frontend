@@ -223,7 +223,7 @@ export default function TradeIdeas() {
             if (filterOutcome !== 'all') filterContext += ` and outcome: ${filterOutcome}`;
             if (filterAsset !== 'all') filterContext += ` for asset: ${filterAsset}`;
             
-            // Call OpenAI API
+            // Call OpenAI API with new prompting for professional trader format and emojis
             const response = await axios.post(
                 'https://api.openai.com/v1/chat/completions',
                 {
@@ -231,15 +231,15 @@ export default function TradeIdeas() {
                     messages: [
                         {
                             role: "system",
-                            content: "You are an AI assistant specialized in financial analysis. Analyze the trade ideas and identify patterns, commonalities, and insights that might help the trader improve their strategies."
+                            content: "You are an experienced professional trader analyzing trade ideas. Provide a concise summary of patterns and insights in a professional manner. Include relevant emojis to enhance your points. Do not use markdown formatting. Keep your analysis brief and actionable. Write as if you're a seasoned market analyst speaking directly to the trader."
                         },
                         {
                             role: "user",
-                            content: `${filterContext}. Please analyze these ${filteredIdeas.length} trade ideas and identify patterns, commonalities, success factors, or improvement areas: ${JSON.stringify(filteredIdeas)}`
+                            content: `${filterContext}. Please analyze these ${filteredIdeas.length} trade ideas and identify patterns, commonalities, success factors, or improvement areas, focusing on actionable insights: ${JSON.stringify(filteredIdeas)}`
                         }
                     ],
                     temperature: 0.7,
-                    max_tokens: 800
+                    max_tokens: 500
                 },
                 {
                     headers: {
@@ -258,7 +258,7 @@ export default function TradeIdeas() {
         }
     };
     
-    // Toggle analysis visibility
+    // Toggle analysis visibility with proper state handling
     const toggleAnalysis = () => {
         setShowCommonalityAnalysis(!showCommonalityAnalysis);
     };
@@ -276,23 +276,6 @@ export default function TradeIdeas() {
                     <div className="trade-ideas-header">
                         <h5 className="major-upcoming-news-events-header">Trade Ideas</h5>
                         <div className="d-flex gap-2">
-                            <button 
-                                className="btn btn-info"
-                                onClick={findCommonalities}
-                                disabled={isAnalyzing || filteredIdeas.length === 0}
-                            >
-                                {isAnalyzing ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        Analyzing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="bi bi-lightbulb me-1"></i>
-                                        Find Commonality
-                                    </>
-                                )}
-                            </button>
                             <button 
                                 className="btn btn-primary"
                                 onClick={() => {
@@ -330,39 +313,6 @@ export default function TradeIdeas() {
                             </div>
                             <div>
                                 {processingAction}
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Commonality Analysis Section */}
-                    {showCommonalityAnalysis && commonalityAnalysis && (
-                        <div className="analysis-container my-3">
-                            <div className="card border-info">
-                                <div className="card-header bg-info bg-opacity-25 d-flex justify-content-between align-items-center">
-                                    <h6 className="mb-0">
-                                        <i className="bi bi-graph-up me-2"></i>
-                                        AI Analysis of {filteredIdeas.length} Trade Ideas
-                                    </h6>
-                                    <div>
-                                        <button 
-                                            className="btn btn-sm btn-outline-info me-2" 
-                                            onClick={toggleAnalysis}
-                                        >
-                                            {showCommonalityAnalysis ? 'Minimize' : 'Expand'}
-                                        </button>
-                                        <button 
-                                            className="btn btn-sm btn-outline-secondary" 
-                                            onClick={() => setShowCommonalityAnalysis(false)}
-                                        >
-                                            <i className="bi bi-x"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="card-body">
-                                    {commonalityAnalysis.split('\n').map((paragraph, index) => (
-                                        paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />
-                                    ))}
-                                </div>
                             </div>
                         </div>
                     )}
@@ -637,8 +587,63 @@ export default function TradeIdeas() {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Commonality button moved below asset filter */}
+                            <div className="col-12 mt-3">
+                                <button 
+                                    className="btn btn-dark text-white w-100"
+                                    style={{ backgroundColor: '#003366' }}
+                                    onClick={findCommonalities}
+                                    disabled={isAnalyzing || filteredIdeas.length === 0}
+                                >
+                                    {isAnalyzing ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            Analyzing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="bi bi-lightbulb me-1"></i>
+                                            Find Commonality
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    
+                    {/* Commonality Analysis Section with dark blue theme */}
+                    {commonalityAnalysis && (
+                        <div className="analysis-container my-3" style={{ display: showCommonalityAnalysis ? 'block' : 'none' }}>
+                            <div className="card" style={{ borderColor: '#003366' }}>
+                                <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: '#003366', color: 'white' }}>
+                                    <h6 className="mb-0">
+                                        <i className="bi bi-graph-up me-2"></i>
+                                        AI Trade Analysis
+                                    </h6>
+                                    <div>
+                                        <button 
+                                            className="btn btn-sm btn-outline-light me-2" 
+                                            onClick={toggleAnalysis}
+                                        >
+                                            {showCommonalityAnalysis ? 'Minimize' : 'Expand'}
+                                        </button>
+                                        <button 
+                                            className="btn btn-sm btn-outline-light" 
+                                            onClick={() => setShowCommonalityAnalysis(false)}
+                                        >
+                                            <i className="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="card-body" style={{ backgroundColor: '#f0f5fa' }}>
+                                    {commonalityAnalysis.split('\n').map((paragraph, index) => (
+                                        paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     
                     {/* Filter summary */}
                     <div className="filter-summary my-2">
