@@ -595,7 +595,7 @@ export default function TradeIdeas() {
                     {/* Commonality button moved below asset filter */}
                     <div className="col-12 mt-3">
                         <button 
-                            className="btn btn-dark text-white w-50"
+                            className="btn btn-primary text-white w-50"
                             style={{ backgroundColor: '#003366' }}
                             onClick={findCommonalities}
                             disabled={isAnalyzing || filteredIdeas.length === 0}
