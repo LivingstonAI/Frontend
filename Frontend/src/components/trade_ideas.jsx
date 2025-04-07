@@ -588,15 +588,19 @@ export default function TradeIdeas() {
                                 </div>
                             </div>
 
-                            {/* Commonality button moved below asset filter */}
-                            <div className="col-12 mt-3">
-                                <button 
-                                    className="btn btn-dark text-white w-100"
-                                    style={{ backgroundColor: '#003366' }}
-                                    onClick={findCommonalities}
-                                    disabled={isAnalyzing || filteredIdeas.length === 0}
-                                >
-                                    {isAnalyzing ? (
+                            
+                        </div>
+                    </div>
+
+                    {/* Commonality button moved below asset filter */}
+                    <div className="col-12 mt-3">
+                        <button 
+                            className="btn btn-dark text-white w-50"
+                            style={{ backgroundColor: '#003366' }}
+                            onClick={findCommonalities}
+                            disabled={isAnalyzing || filteredIdeas.length === 0}
+                        >
+                        {isAnalyzing ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                             Analyzing...
@@ -609,8 +613,6 @@ export default function TradeIdeas() {
                                     )}
                                 </button>
                             </div>
-                        </div>
-                    </div>
                     
                     {/* Commonality Analysis Section with dark blue theme */}
                     {commonalityAnalysis && (
