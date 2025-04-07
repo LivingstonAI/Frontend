@@ -338,6 +338,7 @@ export default function SideNavs() {
           </button>
         </div>
       </div>
+      
 
       {/* Conditional rendering of AssetTracker */}
       {showAssetTracker && <AssetTracker />}
