@@ -5948,6 +5948,7 @@ body.dark .asset-item:hover {
   top: -5vh;
   color: #fff;
   animation: fall linear forwards;
+  cursor: pointer;
   /* Other styles remain the same */
 }
 

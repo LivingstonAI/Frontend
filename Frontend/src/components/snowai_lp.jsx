@@ -262,7 +262,7 @@ export default function SnowAILandingPage() {
     createFallingCharacters();
     
     // Check the number of characters and limit if necessary
-    const maxCharacters = 30; // Maximum allowed characters on screen
+    const maxCharacters = 40; // Maximum allowed characters on screen
     
     const intervalId = setInterval(() => {
       const container = document.getElementById("snowflake-container");
