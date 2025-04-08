@@ -206,11 +206,11 @@ export default function SideNavs() {
     setTimeout(() => setSavingStatus(""), 5000);
   };
 
-  // Handle play for backend songs
-  const handlePlay = (songUrl) => {
-    console.log("Playing song from URL:", songUrl);
-    playMusic(songUrl);
-  };
+  // Handle play for any song (backend or local)
+const handlePlay = (songUrl) => {
+  console.log("Playing song from URL:", songUrl);
+  playMusic(songUrl);
+};
 
   // Filter songs based on search term
   const filteredSongs = songsFromBackend.length > 0 
@@ -388,12 +388,18 @@ export default function SideNavs() {
                     {filteredSongs.map((song, index) => (
                       <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
                         <span>{song.name}</span>
-                        <button 
+                        {/* <button 
                           className="btn btn-sm btn-outline-primary" 
                           onClick={() => handlePlay(songsFromBackend.length > 0 ? song.file : song.file)}
                         >
                           Play
-                        </button>
+                        </button> */}
+                        <button 
+                        className="btn btn-sm btn-outline-primary" 
+                        onClick={() => handlePlay(song.file)}
+                      >
+                        Play
+                      </button>
                       </li>
                     ))}
                   </ul>
