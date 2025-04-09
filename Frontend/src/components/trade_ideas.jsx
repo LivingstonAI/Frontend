@@ -456,7 +456,7 @@ export default function TradeIdeas() {
                                         <div className="d-flex justify-content-end">
                                             <button 
                                                 type="button" 
-                                                className="btn btn-secondary me-2"
+                                                className="btn btn-danger me-2"
                                                 onClick={() => setShowForm(false)}
                                                 disabled={isProcessing}
                                             >
@@ -617,8 +617,8 @@ export default function TradeIdeas() {
                     {/* Commonality Analysis Section with dark blue theme */}
                     {commonalityAnalysis && (
                         <div className="analysis-container my-3" style={{ display: showCommonalityAnalysis ? 'block' : 'none' }}>
-                            <div className="card" style={{ borderColor: '#003366' }}>
-                                <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: '#003366', color: 'white' }}>
+                            <div className="card" style={{ borderColor: '' }}>
+                                <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: 'dodgerblue', color: 'white' }}>
                                     <h6 className="mb-0">
                                         <i className="bi bi-graph-up me-2"></i>
                                         AI Trade Analysis
