@@ -349,6 +349,7 @@ export default function AccountAnalytics() {
     const weekdayChartData = generateChartData('day_of_week_entered');
     const sessionChartData = generateChartData('trading_session_entered');
     const strategyChartData = generateChartData('strategy');
+    const assetChartData = generateChartData('asset'); // New asset chart data
     const equityCurveData = generateEquityCurveData();
     const metricsData = generateMetricsData();
 
@@ -630,6 +631,10 @@ export default function AccountAnalytics() {
                                 <div className="chart-wrapper">
                                     <h6>Performance by Strategy</h6>
                                     <Bar data={strategyChartData} options={baseChartOptions} />
+                                </div>
+                                <div className="chart-wrapper">
+                                    <h6>Performance by Asset</h6>
+                                    <Bar data={assetChartData} options={baseChartOptions} />
                                 </div>
                                 <div className="chart-wrapper">
                                     <h6>Equity Curve</h6>
