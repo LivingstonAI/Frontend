@@ -32,6 +32,9 @@ export default function TradeIdeas() {
     const [filterOutcome, setFilterOutcome] = useState('all');
     const [filterAsset, setFilterAsset] = useState('all');
     
+    // Add filter visibility toggle state
+    const [showFilters, setShowFilters] = useState(false);
+    
     // List of unique assets for filtering
     const [uniqueAssets, setUniqueAssets] = useState([]);
 
@@ -263,6 +266,11 @@ export default function TradeIdeas() {
         setShowCommonalityAnalysis(!showCommonalityAnalysis);
     };
     
+    // Toggle filters visibility
+    const toggleFilters = () => {
+        setShowFilters(!showFilters);
+    };
+    
     const filteredIdeas = getFilteredIdeas();
     
     return (
@@ -483,136 +491,146 @@ export default function TradeIdeas() {
                         </div>
                     )}
                     
-                    {/* Filter section */}
-                    <div className="trade-ideas-filters my-3">
-                        <div className="row g-2">
-                            <div className="col-md-4">
-                                <div className="filter-group">
-                                    <label className="form-label mb-1">Status Filter</label>
-                                    <div className="btn-group w-100" role="group">
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterStatus === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterStatus('all')}
-                                        >
-                                            All
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterStatus === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterStatus('pending')}
-                                        >
-                                            Pending
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterStatus === 'executed' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterStatus('executed')}
-                                        >
-                                            Executed
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterStatus === 'closed' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterStatus('closed')}
-                                        >
-                                            Closed
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterStatus === 'cancelled' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterStatus('cancelled')}
-                                        >
-                                            Cancelled
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="col-md-4">
-                                <div className="filter-group">
-                                    <label className="form-label mb-1">Outcome Filter</label>
-                                    <div className="btn-group w-100" role="group">
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterOutcome === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterOutcome('all')}
-                                        >
-                                            All
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterOutcome === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterOutcome('pending')}
-                                        >
-                                            Pending
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterOutcome === 'win' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterOutcome('win')}
-                                        >
-                                            Wins
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterOutcome === 'loss' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterOutcome('loss')}
-                                        >
-                                            Losses
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className={`btn ${filterOutcome === 'breakeven' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => setFilterOutcome('breakeven')}
-                                        >
-                                            Breakeven
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="col-md-4">
-                                <div className="filter-group">
-                                    <label className="form-label mb-1">Asset Filter</label>
-                                    <select
-                                        className="form-select"
-                                        value={filterAsset}
-                                        onChange={(e) => setFilterAsset(e.target.value)}
-                                    >
-                                        <option value="all">All Assets</option>
-                                        {uniqueAssets.map(asset => (
-                                            <option key={asset} value={asset}>{asset}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            
-                        </div>
-                    </div>
-
-                    {/* Commonality button moved below asset filter */}
-                    <div className="col-12 mt-3">
+                    {/* Filter Toggle Button */}
+                    <div className="filter-toggle my-3">
                         <button 
-                            className="btn btn-primary text-white w-50"
-                            // style={{ backgroundColor: '#003366' }}
-                            onClick={findCommonalities}
-                            disabled={isAnalyzing || filteredIdeas.length === 0}
+                            className="btn btn-outline-secondary d-flex align-items-center" 
+                            onClick={toggleFilters}
                         >
-                        {isAnalyzing ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                            Analyzing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="bi bi-lightbulb me-1"></i>
-                                            Find Commonality
-                                        </>
-                                    )}
-                                </button>
+                            <i className={`bi ${showFilters ? 'bi-chevron-up' : 'bi-chevron-down'} me-1`}></i>
+                            {showFilters ? 'Hide Filters' : 'Show Filters'}
+                        </button>
+                    </div>
+                    
+                    {/* Filter section - now togglable */}
+                    {showFilters && (
+                        <div className="trade-ideas-filters my-3">
+                            <div className="row g-2">
+                                <div className="col-md-4">
+                                    <div className="filter-group">
+                                        <label className="form-label mb-1">Status Filter</label>
+                                        <div className="btn-group w-100" role="group">
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterStatus === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterStatus('all')}
+                                            >
+                                                All
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterStatus === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterStatus('pending')}
+                                            >
+                                                Pending
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterStatus === 'executed' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterStatus('executed')}
+                                            >
+                                                Executed
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterStatus === 'closed' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterStatus('closed')}
+                                            >
+                                                Closed
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterStatus === 'cancelled' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterStatus('cancelled')}
+                                            >
+                                                Cancelled
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="col-md-4">
+                                    <div className="filter-group">
+                                        <label className="form-label mb-1">Outcome Filter</label>
+                                        <div className="btn-group w-100" role="group">
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterOutcome === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterOutcome('all')}
+                                            >
+                                                All
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterOutcome === 'pending' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterOutcome('pending')}
+                                            >
+                                                Pending
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterOutcome === 'win' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterOutcome('win')}
+                                            >
+                                                Wins
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterOutcome === 'loss' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterOutcome('loss')}
+                                            >
+                                                Losses
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`btn ${filterOutcome === 'breakeven' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setFilterOutcome('breakeven')}
+                                            >
+                                                Breakeven
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="col-md-4">
+                                    <div className="filter-group">
+                                        <label className="form-label mb-1">Asset Filter</label>
+                                        <select
+                                            className="form-select"
+                                            value={filterAsset}
+                                            onChange={(e) => setFilterAsset(e.target.value)}
+                                        >
+                                            <option value="all">All Assets</option>
+                                            {uniqueAssets.map(asset => (
+                                                <option key={asset} value={asset}>{asset}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                {/* Commonality button moved inside filter section */}
+                                <div className="col-12 mt-3">
+                                    <button 
+                                        className="btn btn-primary text-white w-50"
+                                        onClick={findCommonalities}
+                                        disabled={isAnalyzing || filteredIdeas.length === 0}
+                                    >
+                                        {isAnalyzing ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                Analyzing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="bi bi-lightbulb me-1"></i>
+                                                Find Commonality
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
+                        </div>
+                    )}
                     
                     {/* Commonality Analysis Section with dark blue theme */}
                     {commonalityAnalysis && (
@@ -647,7 +665,7 @@ export default function TradeIdeas() {
                         </div>
                     )}
                     
-                    {/* Filter summary */}
+                    {/* Filter summary - Show even when filters are hidden */}
                     <div className="filter-summary my-2">
                         <small className="text-muted">
                             Showing {filteredIdeas.length} out of {tradeIdeas.length} trade ideas
