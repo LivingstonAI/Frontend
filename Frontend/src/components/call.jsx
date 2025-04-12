@@ -290,7 +290,7 @@ export default function CallAI() {
                         <div className={`phone-interface ${isCallActive ? 'active-call' : ''}`}>
                             <div className="caller-display">
                                 <div className="caller-avatar">
-                                    <div className="avatar-circle">
+                                    <div className={`avatar-circle ${isCallActive ? 'active' : ''}`}>
                                         {isCallActive && (
                                             <div className={`audio-visualizer ${isRecording ? 'visualizing' : ''}`}>
                                                 <div className="bar"></div>
@@ -394,6 +394,35 @@ export default function CallAI() {
                             justify-content: center;
                             position: relative;
                             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                            animation: float 6s ease-in-out infinite;
+                        }
+                        
+                        @keyframes float {
+                            0% {
+                                transform: translateY(0) scale(1);
+                                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                            }
+                            50% {
+                                transform: translateY(-10px) scale(1.02);
+                                box-shadow: 0 15px 20px rgba(0, 0, 0, 0.1);
+                            }
+                            100% {
+                                transform: translateY(0) scale(1);
+                                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                            }
+                        }
+
+                        .avatar-circle.active {
+                            animation: float 4s ease-in-out infinite, glow 3s ease-in-out infinite alternate;
+                        }
+                        
+                        @keyframes glow {
+                            0% {
+                                box-shadow: 0 8px 16px rgba(76, 201, 240, 0.3);
+                            }
+                            100% {
+                                box-shadow: 0 8px 25px rgba(76, 201, 240, 0.7);
+                            }
                         }
                         
                         .audio-visualizer {
