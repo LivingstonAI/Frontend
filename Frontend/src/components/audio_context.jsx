@@ -10,6 +10,7 @@ export const AudioProvider = ({ children }) => {
   const [audio, setAudio] = useState(null); // Store the audio object
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSong, setCurrentSong] = useState(null);
+  
 
   // In the AudioProvider component
 const playMusic = (songUrl) => {
