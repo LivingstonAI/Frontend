@@ -431,11 +431,11 @@ export default function Chill() {
                 <div className="main-body-info">
                     <div className="chill-interface">
                         <div className="chill-header">
-                            <h3 className="chill-title">
+                            <h5 className="chill-title">
                                 <BookOpen className="icon" />
                                 C.H.I.L.L Interface
                                 <span className="version-tag">v2.0</span>
-                            </h3>
+                            </h5>
                             <div className="chill-subtitle">Comprehensive Hybrid Interface for Learning & Logging</div>
                         </div>
 
