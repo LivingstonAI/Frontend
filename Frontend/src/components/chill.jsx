@@ -2,7 +2,36 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Bookmark, ChevronLeft, Edit2, Trash2, Volume2, VolumeX, PlusCircle, Folder, Image, MessageSquare, Save, X, Brain, List, Grid, RefreshCw } from "react-feather";
+import { BookOpen, Bookmark, ChevronLeft, Edit2, Trash2, Volume2, VolumeX, PlusCircle, Folder, Image, MessageSquare, Save, X, List, Grid, RefreshCw } from "react-feather";
+
+// Custom Brain Icon Component
+const BrainIcon = ({ size = 24, color = "currentColor", className = "", ...props }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`feather feather-brain ${className}`}
+      {...props}
+    >
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 0 19.5v-15A2.5 2.5 0 0 1 2.5 2h7z"></path>
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5h7A2.5 2.5 0 0 0 24 19.5v-15A2.5 2.5 0 0 0 21.5 2h-7z"></path>
+      <path d="M12 2v20"></path>
+      <path d="M7 7h.01"></path>
+      <path d="M17 7h.01"></path>
+      <path d="M7 12h.01"></path>
+      <path d="M17 12h.01"></path>
+      <path d="M7 17h.01"></path>
+      <path d="M17 17h.01"></path>
+    </svg>
+  );
+};
 
 export default function Chill() {
     const [sections, setSections] = useState([]);
@@ -421,7 +450,7 @@ export default function Chill() {
                                 <div className="messages-container">
                                     {messages.length === 0 ? (
                                         <div className="empty-chat">
-                                            <Brain size={40} />
+                                            <BrainIcon size={40} />
                                             <p>Ask Livingston about this section. The AI will analyze the content and provide insights.</p>
                                         </div>
                                     ) : (
@@ -639,7 +668,7 @@ export default function Chill() {
                                     </button>
                                     <div className="footer-actions">
                                         <button onClick={quizMe} className="footer-btn quiz-btn">
-                                            <Brain size={16} />
+                                            <BrainIcon size={16} />
                                             Quiz Me
                                         </button>
                                         <button 
