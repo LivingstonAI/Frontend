@@ -58,6 +58,8 @@ import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Off
 import spin_u_round from '../spin u round.mp3';
 import feel_it from '../d4vd - Feel It.mp3';
 import mona_lisa from '../Dominic Fike - Mona Lisa (Official Audio) (1).mp3';
+import forever_star from '../Forever Star偷偷藏不住電視劇插曲 -  張洢豪Wherever you goIll surround you still動態歌詞.mp3';
+import copines from '../Aya Nakamura - Copines (Clip officiel).mp3';
 
 
 export default function SnowAILandingPage() {
@@ -143,6 +145,8 @@ export default function SnowAILandingPage() {
     "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
     "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it },
     "56": { name: "Mona Lisa 🎨🖌️", file: mona_lisa },
+    "57": { name: "Forever Star 🌃", file: forever_star },
+    "58": { name: "Copines 🌳", file: copines }
   };
 
     // State for search term and filtered songs
