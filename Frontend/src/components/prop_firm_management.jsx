@@ -39,9 +39,7 @@ export default function PropFirmManagement() {
     const fetchPropFirms = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/prop-firms/`, {
-                headers: {
-                    'Authorization': `Bearer ${Cookies.get('token')}`
-                }
+        
             });
             const data = await response.json();
             setPropFirms(data.firms);
@@ -55,9 +53,7 @@ export default function PropFirmManagement() {
         try {
             setLoading(true);
             const response = await fetch(`${baseUrl}/api/accounts/`, {
-                headers: {
-                    'Authorization': `Bearer ${Cookies.get('token')}`
-                }
+        
             });
             const data = await response.json();
             setAccounts(data.accounts);
@@ -72,9 +68,7 @@ export default function PropFirmManagement() {
     const fetchMetrics = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/metrics/`, {
-                headers: {
-                    'Authorization': `Bearer ${Cookies.get('token')}`
-                }
+    
             });
             const data = await response.json();
             setMetrics(data.metrics);
@@ -86,9 +80,7 @@ export default function PropFirmManagement() {
     const fetchAccountAnalytics = async (accountId) => {
         try {
             const response = await fetch(`${baseUrl}/api/accounts/${accountId}/analytics/`, {
-                headers: {
-                    'Authorization': `Bearer ${Cookies.get('token')}`
-                }
+            
             });
             const data = await response.json();
             setAccountAnalytics(data);
@@ -112,7 +104,6 @@ export default function PropFirmManagement() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${Cookies.get('token')}`
                 },
                 body: JSON.stringify(formData)
             });
@@ -164,19 +155,19 @@ export default function PropFirmManagement() {
                 {metrics && (
                     <div className="metrics-summary">
                         <div className="metric-card">
-                            <h3>Total Capital</h3>
+                            <h6>Total Capital</h6>
                             <p className="metric-value">${metrics.total_capital_managed.toLocaleString()}</p>
                         </div>
                         <div className="metric-card">
-                            <h3>Total Accounts</h3>
+                            <h6>Total Accounts</h6>
                             <p className="metric-value">{metrics.total_accounts}</p>
                         </div>
                         <div className="metric-card">
-                            <h3>Win Rate</h3>
+                            <h6>Win Rate</h6>
                             <p className="metric-value">{metrics.win_rate.toFixed(2)}%</p>
                         </div>
                         <div className="metric-card">
-                            <h3>Risk/Reward</h3>
+                            <h6>Risk/Reward</h6>
                             <p className="metric-value">{metrics.avg_risk_reward.toFixed(2)}</p>
                         </div>
                     </div>
