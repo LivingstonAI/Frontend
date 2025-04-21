@@ -108,7 +108,7 @@ export default function SideNavs() {
       }
     };
 
-    fetchSongsFromBackend();
+    // fetchSongsFromBackend();
   }, []);
 
   // Clock update effect
