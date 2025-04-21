@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "recharts";
-import { Plus, AlertTriangle, ChevronDown, ChevronUp, Trash, Edit, Mic } from "lucide-react";
+import { Plus, AlertTriangle, ChevronDown, ChevronUp, Trash, Edit, Mic, Upload } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
 export default function PropFirmManagement() {
     const [view, setView] = useState('dashboard'); // dashboard, createAccount, accountDetail
-    const [propFirms, setPropFirms] = useState(['DNA Funded', 'FTMO']);
+    const [propFirms, setPropFirms] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [metrics, setMetrics] = useState(null);
     const [selectedAccount, setSelectedAccount] = useState(null);
@@ -24,6 +24,8 @@ export default function PropFirmManagement() {
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
     });
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
@@ -39,10 +41,15 @@ export default function PropFirmManagement() {
     const fetchPropFirms = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/prop-firms/`, {
-        
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('token')}`
+                }
             });
             const data = await response.json();
-            setPropFirms(data.firms);
+            
+            // Ensure we have an array of prop firms
+            const firms = Array.isArray(data.firms) ? data.firms : [];
+            setPropFirms(firms);
         } catch (err) {
             setError('Failed to fetch prop firms');
             console.error(err);
@@ -53,10 +60,12 @@ export default function PropFirmManagement() {
         try {
             setLoading(true);
             const response = await fetch(`${baseUrl}/api/accounts/`, {
-        
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('token')}`
+                }
             });
             const data = await response.json();
-            setAccounts(data.accounts);
+            setAccounts(data.accounts || []);
             setLoading(false);
         } catch (err) {
             setError('Failed to fetch accounts');
@@ -68,7 +77,9 @@ export default function PropFirmManagement() {
     const fetchMetrics = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/metrics/`, {
-    
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('token')}`
+                }
             });
             const data = await response.json();
             setMetrics(data.metrics);
@@ -80,7 +91,9 @@ export default function PropFirmManagement() {
     const fetchAccountAnalytics = async (accountId) => {
         try {
             const response = await fetch(`${baseUrl}/api/accounts/${accountId}/analytics/`, {
-            
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('token')}`
+                }
             });
             const data = await response.json();
             setAccountAnalytics(data);
@@ -97,16 +110,42 @@ export default function PropFirmManagement() {
         });
     };
     
+    const handleLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setLogoFile(file);
+            // Create a preview URL
+            const previewUrl = URL.createObjectURL(file);
+            setLogoPreview(previewUrl);
+        }
+    };
+    
     const handleCreateAccount = async (e) => {
         e.preventDefault();
+        
         try {
+            // Create a FormData object to handle file upload
+            const formDataToSend = new FormData();
+            
+            // Append all form fields
+            Object.keys(formData).forEach(key => {
+                formDataToSend.append(key, formData[key]);
+            });
+            
+            // Append logo file if available
+            if (logoFile) {
+                formDataToSend.append('logo', logoFile);
+            }
+            
             const response = await fetch(`${baseUrl}/api/accounts/create/`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Cookies.get('token')}`
+                    // Note: Don't set Content-Type when using FormData
                 },
-                body: JSON.stringify(formData)
+                body: formDataToSend
             });
+            
             const data = await response.json();
             if (data.success) {
                 setView('dashboard');
@@ -125,6 +164,8 @@ export default function PropFirmManagement() {
                     start_date: new Date().toISOString().split('T')[0],
                     end_date: '',
                 });
+                setLogoFile(null);
+                setLogoPreview(null);
             } else {
                 setError(data.error || 'Failed to create account');
             }
@@ -138,6 +179,33 @@ export default function PropFirmManagement() {
         setSelectedAccount(account);
         fetchAccountAnalytics(account.id);
         setView('accountDetail');
+    };
+
+    // Additional method to add a prop firm
+    const handleAddPropFirm = async (firmData) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/prop-firms/create/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(firmData)
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                fetchPropFirms(); // Refresh prop firms list
+                return data.firm;
+            } else {
+                setError(data.error || 'Failed to add prop firm');
+                return null;
+            }
+        } catch (err) {
+            setError('Failed to add prop firm');
+            console.error(err);
+            return null;
+        }
     };
     
     const renderDashboard = () => {
@@ -156,19 +224,19 @@ export default function PropFirmManagement() {
                     <div className="metrics-summary">
                         <div className="metric-card">
                             <h6>Total Capital</h6>
-                            <p className="metric-value">${metrics.total_capital_managed.toLocaleString()}</p>
+                            <p className="metric-value">${metrics.total_capital_managed?.toLocaleString() || '0'}</p>
                         </div>
                         <div className="metric-card">
                             <h6>Total Accounts</h6>
-                            <p className="metric-value">{metrics.total_accounts}</p>
+                            <p className="metric-value">{metrics.total_accounts || 0}</p>
                         </div>
                         <div className="metric-card">
                             <h6>Win Rate</h6>
-                            <p className="metric-value">{metrics.win_rate.toFixed(2)}%</p>
+                            <p className="metric-value">{metrics.win_rate?.toFixed(2) || '0.00'}%</p>
                         </div>
                         <div className="metric-card">
                             <h6>Risk/Reward</h6>
-                            <p className="metric-value">{metrics.avg_risk_reward.toFixed(2)}</p>
+                            <p className="metric-value">{metrics.avg_risk_reward?.toFixed(2) || '0.00'}</p>
                         </div>
                     </div>
                 )}
@@ -191,29 +259,29 @@ export default function PropFirmManagement() {
                             {accounts.map(account => (
                                 <div 
                                     key={account.id} 
-                                    className={`account-card ${account.status.toLowerCase()}`}
+                                    className={`account-card ${account.status?.toLowerCase() || 'in_progress'}`}
                                     onClick={() => handleViewAccount(account)}
                                 >
                                     <div className="account-logo">
-                                    {account.prop_firm.logo ? (
+                                    {account.prop_firm?.logo ? (
                                             <img src={account.prop_firm.logo} alt={account.prop_firm.name} />
                                         ) : (
-                                            <div className="no-logo">{account.prop_firm.name.charAt(0)}</div>
+                                            <div className="no-logo">{account.prop_firm?.name?.charAt(0) || 'P'}</div>
                                         )}
                                     </div>
                                     <div className="account-info">
                                         <h4>{account.account_name}</h4>
-                                        <p className="firm-name">{account.prop_firm.name}</p>
+                                        <p className="firm-name">{account.prop_firm?.name || 'Unknown Firm'}</p>
                                         <p className="account-type">{account.account_type}</p>
                                         <div className="account-status">
-                                            <span className={`status-indicator ${account.status.toLowerCase()}`}></span>
-                                            {account.status.replace('_', ' ')}
+                                            <span className={`status-indicator ${account.status?.toLowerCase() || 'in_progress'}`}></span>
+                                            {account.status?.replace('_', ' ') || 'In Progress'}
                                         </div>
                                     </div>
                                     <div className="account-metrics">
                                         <div className="balance-info">
-                                            <p>Balance: ${account.current_balance.toLocaleString()}</p>
-                                            <p>Equity: ${account.current_equity.toLocaleString()}</p>
+                                            <p>Balance: ${(account.current_balance || 0).toLocaleString()}</p>
+                                            <p>Equity: ${(account.current_equity || 0).toLocaleString()}</p>
                                         </div>
                                         
                                         {account.percentage_to_target !== null && (
@@ -273,10 +341,17 @@ export default function PropFirmManagement() {
                             required
                         >
                             <option value="">Select a prop firm</option>
-                            {propFirms.map(firm => (
+                            {propFirms.length > 0 && propFirms.map(firm => (
                                 <option key={firm.id} value={firm.id}>{firm.name}</option>
                             ))}
                         </select>
+                        
+                        {/* Add a button to create a new prop firm */}
+                        <div className="add-prop-firm">
+                            <button type="button" className="btn-add-prop-firm" onClick={() => setView('addPropFirm')}>
+                                <Plus size={16} /> Add New Prop Firm
+                            </button>
+                        </div>
                     </div>
                     
                     <div className="form-group">
@@ -383,12 +458,181 @@ export default function PropFirmManagement() {
                         />
                     </div>
                     
+                    {/* Add logo upload field */}
+                    <div className="form-group">
+                        <label>Prop Firm Logo (Optional)</label>
+                        <div className="logo-upload">
+                            <label className="logo-upload-label">
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={handleLogoChange}
+                                    className="logo-input"
+                                />
+                                <div className="upload-button">
+                                    <Upload size={16} /> Upload Logo
+                                </div>
+                            </label>
+                            
+                            {logoPreview && (
+                                <div className="logo-preview">
+                                    <img src={logoPreview} alt="Logo preview" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
                     <div className="form-actions">
                         <button type="button" onClick={() => setView('dashboard')} className="btn-cancel">
                             Cancel
                         </button>
                         <button type="submit" className="btn-create">
                             Create Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        );
+    };
+    
+    // Add a component to create a new prop firm
+    const [propFirmData, setPropFirmData] = useState({
+        name: '',
+        website: '',
+        description: ''
+    });
+    const [propFirmLogo, setPropFirmLogo] = useState(null);
+    const [propFirmLogoPreview, setPropFirmLogoPreview] = useState(null);
+    
+    const handlePropFirmInputChange = (e) => {
+        const { name, value } = e.target;
+        setPropFirmData({
+            ...propFirmData,
+            [name]: value
+        });
+    };
+    
+    const handlePropFirmLogoChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setPropFirmLogo(file);
+            const previewUrl = URL.createObjectURL(file);
+            setPropFirmLogoPreview(previewUrl);
+        }
+    };
+    
+    const handleCreatePropFirm = async (e) => {
+        e.preventDefault();
+        
+        try {
+            const formDataToSend = new FormData();
+            
+            Object.keys(propFirmData).forEach(key => {
+                formDataToSend.append(key, propFirmData[key]);
+            });
+            
+            if (propFirmLogo) {
+                formDataToSend.append('logo', propFirmLogo);
+            }
+            
+            const response = await fetch(`${baseUrl}/api/prop-firms/create/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${Cookies.get('token')}`
+                },
+                body: formDataToSend
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                await fetchPropFirms();
+                // Reset form and return to create account view
+                setPropFirmData({
+                    name: '',
+                    website: '',
+                    description: ''
+                });
+                setPropFirmLogo(null);
+                setPropFirmLogoPreview(null);
+                setView('createAccount');
+            } else {
+                setError(data.error || 'Failed to create prop firm');
+            }
+        } catch (err) {
+            setError('Failed to create prop firm');
+            console.error(err);
+        }
+    };
+    
+    const renderAddPropFirmForm = () => {
+        return (
+            <div className="create-prop-firm-form">
+                <h3>Add New Prop Firm</h3>
+                {error && <div className="error-message">{error}</div>}
+                <form onSubmit={handleCreatePropFirm}>
+                    <div className="form-group">
+                        <label>Prop Firm Name</label>
+                        <input 
+                            type="text" 
+                            name="name" 
+                            value={propFirmData.name} 
+                            onChange={handlePropFirmInputChange}
+                            required
+                            placeholder="E.g., FTMO, E8 Funding, etc."
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Website (Optional)</label>
+                        <input 
+                            type="url" 
+                            name="website" 
+                            value={propFirmData.website} 
+                            onChange={handlePropFirmInputChange}
+                            placeholder="https://example.com"
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Description (Optional)</label>
+                        <textarea 
+                            name="description" 
+                            value={propFirmData.description} 
+                            onChange={handlePropFirmInputChange}
+                            placeholder="Brief description of the prop firm"
+                            rows="3"
+                        ></textarea>
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Logo (Optional)</label>
+                        <div className="logo-upload">
+                            <label className="logo-upload-label">
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={handlePropFirmLogoChange}
+                                    className="logo-input"
+                                />
+                                <div className="upload-button">
+                                    <Upload size={16} /> Upload Logo
+                                </div>
+                            </label>
+                            
+                            {propFirmLogoPreview && (
+                                <div className="logo-preview">
+                                    <img src={propFirmLogoPreview} alt="Logo preview" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="form-actions">
+                        <button type="button" onClick={() => setView('createAccount')} className="btn-cancel">
+                            Cancel
+                        </button>
+                        <button type="submit" className="btn-create">
+                            Create Prop Firm
                         </button>
                     </div>
                 </form>
@@ -409,20 +653,20 @@ export default function PropFirmManagement() {
                     </button>
                     <h3>{selectedAccount.account_name}</h3>
                     <div className="account-status">
-                        <span className={`status-indicator ${selectedAccount.status.toLowerCase()}`}></span>
-                        {selectedAccount.status.replace('_', ' ')}
+                        <span className={`status-indicator ${selectedAccount.status?.toLowerCase() || 'in_progress'}`}></span>
+                        {selectedAccount.status?.replace('_', ' ') || 'In Progress'}
                     </div>
                 </div>
                 
                 <div className="account-summary">
                     <div className="account-summary-left">
                         <div className="prop-firm-info">
-                            {selectedAccount.prop_firm.logo ? (
+                            {selectedAccount.prop_firm?.logo ? (
                                 <img src={selectedAccount.prop_firm.logo} alt={selectedAccount.prop_firm.name} />
                             ) : (
-                                <div className="no-logo">{selectedAccount.prop_firm.name.charAt(0)}</div>
+                                <div className="no-logo">{selectedAccount.prop_firm?.name?.charAt(0) || 'P'}</div>
                             )}
-                            <h4>{selectedAccount.prop_firm.name}</h4>
+                            <h4>{selectedAccount.prop_firm?.name || 'Unknown Firm'}</h4>
                         </div>
                         
                         <div className="account-type-info">
@@ -435,16 +679,16 @@ export default function PropFirmManagement() {
                         <div className="balance-info">
                             <div className="balance-card">
                                 <h5>Current Balance</h5>
-                                <p className="balance-value">${selectedAccount.current_balance.toLocaleString()}</p>
+                                <p className="balance-value">${(selectedAccount.current_balance || 0).toLocaleString()}</p>
                             </div>
                             <div className="balance-card">
                                 <h5>Current Equity</h5>
-                                <p className="balance-value">${selectedAccount.current_equity.toLocaleString()}</p>
+                                <p className="balance-value">${(selectedAccount.current_equity || 0).toLocaleString()}</p>
                             </div>
                             <div className="balance-card">
                                 <h5>P/L</h5>
-                                <p className={`balance-value ${selectedAccount.current_balance > selectedAccount.initial_balance ? 'positive' : 'negative'}`}>
-                                    ${(selectedAccount.current_balance - selectedAccount.initial_balance).toLocaleString()}
+                                <p className={`balance-value ${(selectedAccount.current_balance || 0) > (selectedAccount.initial_balance || 0) ? 'positive' : 'negative'}`}>
+                                    ${((selectedAccount.current_balance || 0) - (selectedAccount.initial_balance || 0)).toLocaleString()}
                                 </p>
                             </div>
                         </div>
@@ -515,15 +759,15 @@ export default function PropFirmManagement() {
                         <div className="analytics-cards">
                             <div className="analytics-card">
                                 <h5>Win Rate</h5>
-                                <p>{accountAnalytics.analytics.win_rate.toFixed(2)}%</p>
+                                <p>{accountAnalytics.analytics.win_rate?.toFixed(2) || '0.00'}%</p>
                             </div>
                             <div className="analytics-card">
                                 <h5>Risk/Reward</h5>
-                                <p>{accountAnalytics.analytics.risk_reward_ratio.toFixed(2)}</p>
+                                <p>{accountAnalytics.analytics.risk_reward_ratio?.toFixed(2) || '0.00'}</p>
                             </div>
                             <div className="analytics-card">
                                 <h5>Total Trades</h5>
-                                <p>{accountAnalytics.analytics.total_trades}</p>
+                                <p>{accountAnalytics.analytics.total_trades || 0}</p>
                             </div>
                             {accountAnalytics.analytics.percentage_to_target !== null && (
                                 <div className="analytics-card">
@@ -533,63 +777,10 @@ export default function PropFirmManagement() {
                                             className="progress" 
                                             style={{width: `${Math.min(100, Math.max(0, accountAnalytics.analytics.percentage_to_target))}%`}}
                                         ></div>
-                                        <span>{accountAnalytics.analytics.percentage_to_target.toFixed(1)}%</span>
+                                        <span>{accountAnalytics.analytics.percentage_to_target?.toFixed(1) || '0.0'}%</span>
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    </div>
-                )}
-                
-                {/* Strategy and Asset Breakdown */}
-                {accountAnalytics && accountAnalytics.strategies && (
-                    <div className="breakdown-section">
-                        <div className="strategy-breakdown">
-                            <h4>Strategy Performance</h4>
-                            <table className="breakdown-table">
-                                <thead>
-                                    <tr>
-                                        <th>Strategy</th>
-                                        <th>Trades</th>
-                                        <th>P/L</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(accountAnalytics.strategies).map(([strategy, data]) => (
-                                        <tr key={strategy}>
-                                            <td>{strategy}</td>
-                                            <td>{data.count}</td>
-                                            <td className={data.pnl >= 0 ? 'positive' : 'negative'}>
-                                                ${data.pnl.toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div className="asset-breakdown">
-                            <h4>Asset Performance</h4>
-                            <table className="breakdown-table">
-                                <thead>
-                                    <tr>
-                                        <th>Asset</th>
-                                        <th>Trades</th>
-                                        <th>P/L</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(accountAnalytics.assets).map(([asset, data]) => (
-                                        <tr key={asset}>
-                                            <td>{asset}</td>
-                                            <td>{data.count}</td>
-                                            <td className={data.pnl >= 0 ? 'positive' : 'negative'}>
-                                                ${data.pnl.toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
                         </div>
                     </div>
                 )}
@@ -609,7 +800,6 @@ export default function PropFirmManagement() {
             </div>
         );
     };
-    
     return (
         <div>
             <div className="header">
