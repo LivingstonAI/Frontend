@@ -7,7 +7,7 @@ import Cookies from 'js-cookie';
 
 export default function PropFirmManagement() {
     const [view, setView] = useState('dashboard'); // dashboard, createAccount, accountDetail
-    const [propFirms, setPropFirms] = useState([]);
+    const [propFirms, setPropFirms] = useState(['DNA Funded', 'FTMO']);
     const [accounts, setAccounts] = useState([]);
     const [metrics, setMetrics] = useState(null);
     const [selectedAccount, setSelectedAccount] = useState(null);
