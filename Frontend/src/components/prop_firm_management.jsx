@@ -204,7 +204,7 @@ export default function PropFirmManagement() {
                                     onClick={() => handleViewAccount(account)}
                                 >
                                     <div className="account-logo">
-                                        {{account.prop_firm.logo ? (
+                                    {account.prop_firm.logo ? (
                                             <img src={account.prop_firm.logo} alt={account.prop_firm.name} />
                                         ) : (
                                             <div className="no-logo">{account.prop_firm.name.charAt(0)}</div>
