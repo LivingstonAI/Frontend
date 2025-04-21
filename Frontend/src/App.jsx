@@ -45,6 +45,7 @@ import IdeasSection from './components/ideas.jsx';
 import SavedQuizzes from './components/saved_quizzes.jsx';
 import CallAI from './components/call.jsx';
 import TradeIdeas from './components/trade_ideas.jsx';
+import PropFirmManagement from './components/prop_firm_management.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -129,6 +130,8 @@ function App() {
         <Route path='/ideas_section' element={<IdeasSection />}></Route>
         <Route path='/call_ai' element={<CallAI />}></Route>
         <Route path='/trade_ideas' element={<TradeIdeas />}></Route>
+        <Route path='/prop_firm_management' element={<PropFirmManagement />}></Route>
+
 
 
 
