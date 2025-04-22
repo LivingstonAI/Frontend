@@ -869,53 +869,6 @@ export default function PropFirmManagement() {
               </div>
             </div>
           )}
-          
-          {/* Notes and Risk Management */}
-          <div className="mt-8 mb-8">
-            <h6 className="text-lg font-medium mb-4">Risk Management Guidelines</h6>
-            
-            <div className="bg-white p-6 rounded shadow">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h6 className="text-base font-medium mb-3">Daily Trading Guidelines</h6>
-                  <ul className="list-disc pl-5 space-y-2">
-                    <li>Never risk more than 1-2% of account balance per trade</li>
-                    <li>Set a maximum daily loss limit of 3-5%</li>
-                    <li>Take profit at predetermined levels - don't get greedy</li>
-                    <li>Avoid trading during major news events</li>
-                    <li>Always use stop losses - no exceptions</li>
-                    <li>Update dashboard at the end of each trading day</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <h6 className="text-base font-medium mb-3">Challenge/Verification Tips</h6>
-                  <ul className="list-disc pl-5 space-y-2">
-                    <li>Focus on consistency, not high returns</li>
-                    <li>Reduce position sizes by 50% compared to normal trading</li>
-                    <li>Verify all rules - trading days, drawdown limits, profit targets</li>
-                    <li>Always complete the full challenge period even if profit target is met early</li>
-                    <li>Document all trades with screenshots for potential verification</li>
-                    <li>Avoid trading around account rollover days</li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="mt-6 p-4 bg-blue-50 rounded border border-blue-200">
-                <h6 className="text-base font-medium mb-2 text-blue-700">Monthly Review Process</h6>
-                <p className="text-sm text-blue-700 mb-3">
-                  Set a specific date each month to review all accounts and make necessary adjustments:
-                </p>
-                <ol className="list-decimal pl-5 space-y-1 text-blue-700">
-                  <li>Update all account balances and metrics in this dashboard</li>
-                  <li>Review performance across prop firms and account types</li>
-                  <li>Identify successful strategies and challenging areas</li>
-                  <li>Adjust risk parameters if needed</li>
-                  <li>Plan capital allocation for upcoming month</li>
-                </ol>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
