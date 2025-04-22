@@ -246,7 +246,7 @@ export default function PropFirmManagement() {
                     });
                   }
                 }} 
-                className="btn btn-primary px-4 py-2 rounded"
+                className="btn btn-primary"
               >
                 {showAddMetric ? 'Cancel' : 'Add New Account'}
               </button>
