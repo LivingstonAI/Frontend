@@ -309,6 +309,7 @@ export default function PropFirmManagement() {
                                         ) : (
                                             <div className="no-logo">{account.prop_firm.name.charAt(0)}</div>
                                         )}
+                                        
                                     </div>
                                     <div className="account-info">
                                         <h4>{account.account_name}</h4>
@@ -1493,6 +1494,18 @@ export default function PropFirmManagement() {
                 /* Fix for account-logo issue */
                 .account-info {
                     flex: 1;
+                }
+
+                h3 {
+                    font-size: 1.3rem; /* Adjust as needed */
+                }
+
+                h4 {
+                    font-size: 1.1rem; /* Adjust as needed */
+                }
+
+                h5 {
+                    font-size: 1rem; /* Adjust as needed */
                 }
             `}</style>
         </div>
