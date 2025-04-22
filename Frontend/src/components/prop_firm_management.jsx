@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Line } from "recharts";
-import { Plus, AlertTriangle, ChevronDown, ChevronUp, Trash, Edit, Mic } from "lucide-react";
+import { Plus, AlertTriangle, ChevronDown, ChevronUp, Trash, Edit, Mic, Upload } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
 export default function PropFirmManagement() {
-    const [view, setView] = useState('dashboard'); // dashboard, createAccount, accountDetail
-    const [propFirms, setPropFirms] = useState(['DNA Funded', 'FTMO']);
+    const [view, setView] = useState('dashboard'); // dashboard, createAccount, accountDetail, createPropFirm
+    const [propFirms, setPropFirms] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [metrics, setMetrics] = useState(null);
     const [selectedAccount, setSelectedAccount] = useState(null);
@@ -24,6 +24,13 @@ export default function PropFirmManagement() {
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
     });
+    const [propFirmFormData, setPropFirmFormData] = useState({
+        name: '',
+        website: '',
+        description: '',
+        logo: null
+    });
+    const [propFirmFormPreview, setPropFirmFormPreview] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
@@ -38,9 +45,7 @@ export default function PropFirmManagement() {
     
     const fetchPropFirms = async () => {
         try {
-            const response = await fetch(`${baseUrl}/api/prop-firms/`, {
-        
-            });
+            const response = await fetch(`${baseUrl}/api/prop-firms/`);
             const data = await response.json();
             setPropFirms(data.firms);
         } catch (err) {
@@ -52,9 +57,7 @@ export default function PropFirmManagement() {
     const fetchAccounts = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${baseUrl}/api/accounts/`, {
-        
-            });
+            const response = await fetch(`${baseUrl}/api/accounts/`);
             const data = await response.json();
             setAccounts(data.accounts);
             setLoading(false);
@@ -67,9 +70,7 @@ export default function PropFirmManagement() {
     
     const fetchMetrics = async () => {
         try {
-            const response = await fetch(`${baseUrl}/api/metrics/`, {
-    
-            });
+            const response = await fetch(`${baseUrl}/api/metrics/`);
             const data = await response.json();
             setMetrics(data.metrics);
         } catch (err) {
@@ -79,9 +80,7 @@ export default function PropFirmManagement() {
     
     const fetchAccountAnalytics = async (accountId) => {
         try {
-            const response = await fetch(`${baseUrl}/api/accounts/${accountId}/analytics/`, {
-            
-            });
+            const response = await fetch(`${baseUrl}/api/accounts/${accountId}/analytics/`);
             const data = await response.json();
             setAccountAnalytics(data);
         } catch (err) {
@@ -95,6 +94,29 @@ export default function PropFirmManagement() {
             ...formData,
             [name]: value
         });
+    };
+    
+    const handlePropFirmInputChange = (e) => {
+        const { name, value, files } = e.target;
+        
+        if (name === 'logo' && files && files[0]) {
+            setPropFirmFormData({
+                ...propFirmFormData,
+                [name]: files[0]
+            });
+            
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPropFirmFormPreview(reader.result);
+            };
+            reader.readAsDataURL(files[0]);
+        } else {
+            setPropFirmFormData({
+                ...propFirmFormData,
+                [name]: value
+            });
+        }
     };
     
     const handleCreateAccount = async (e) => {
@@ -130,6 +152,47 @@ export default function PropFirmManagement() {
             }
         } catch (err) {
             setError('Failed to create account');
+            console.error(err);
+        }
+    };
+    
+    const handleCreatePropFirm = async (e) => {
+        e.preventDefault();
+        try {
+            // We need to use FormData to upload the logo file
+            const formDataToSend = new FormData();
+            formDataToSend.append('name', propFirmFormData.name);
+            formDataToSend.append('website', propFirmFormData.website);
+            formDataToSend.append('description', propFirmFormData.description);
+            
+            if (propFirmFormData.logo) {
+                formDataToSend.append('logo', propFirmFormData.logo);
+            }
+            
+            const response = await fetch(`${baseUrl}/api/prop-firms/create/`, {
+                method: 'POST',
+                body: formDataToSend,
+                // Don't include Content-Type header when using FormData
+                // The browser will set it automatically with the proper boundary
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                setView('dashboard');
+                fetchPropFirms();
+                // Reset form
+                setPropFirmFormData({
+                    name: '',
+                    website: '',
+                    description: '',
+                    logo: null
+                });
+                setPropFirmFormPreview(null);
+            } else {
+                setError(data.error || 'Failed to create prop firm');
+            }
+        } catch (err) {
+            setError('Failed to create prop firm');
             console.error(err);
         }
     };
@@ -173,16 +236,62 @@ export default function PropFirmManagement() {
                     </div>
                 )}
 
+                {/* Prop Firms section */}
+                <div className="prop-firms-list">
+                    <div className="section-header">
+                        <h3>Prop Firms</h3>
+                        <button className="btn-add" onClick={() => setView('createPropFirm')}>
+                            <Plus size={16} /> Add Prop Firm
+                        </button>
+                    </div>
+                    
+                    {propFirms.length === 0 ? (
+                        <div className="no-items">
+                            <p>No prop firms added yet. Add your first one!</p>
+                        </div>
+                    ) : (
+                        <div className="prop-firms-grid">
+                            {propFirms.map(firm => (
+                                <div key={firm.id} className="prop-firm-card">
+                                    <div className="prop-firm-logo">
+                                        {firm.logo ? (
+                                            <img src={firm.logo} alt={firm.name} />
+                                        ) : (
+                                            <div className="no-logo">{firm.name.charAt(0)}</div>
+                                        )}
+                                    </div>
+                                    <div className="prop-firm-info">
+                                        <h4>{firm.name}</h4>
+                                        {firm.website && (
+                                            <a href={firm.website} target="_blank" rel="noopener noreferrer" className="website-link">
+                                                Visit Website
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 {/* Account list */}
                 <div className="accounts-list">
                     <div className="accounts-header">
                         <h3>Your Prop Firm Accounts</h3>
-                        <button className="btn-add" onClick={() => setView('createAccount')}>
+                        <button 
+                            className="btn-add" 
+                            onClick={() => setView('createAccount')}
+                            disabled={propFirms.length === 0}
+                        >
                             <Plus size={16} /> Add Account
                         </button>
                     </div>
                     
-                    {accounts.length === 0 ? (
+                    {propFirms.length === 0 ? (
+                        <div className="no-accounts">
+                            <p>Add a prop firm first before creating accounts.</p>
+                        </div>
+                    ) : accounts.length === 0 ? (
                         <div className="no-accounts">
                             <p>You don't have any prop firm accounts yet. Add your first one!</p>
                         </div>
@@ -195,7 +304,7 @@ export default function PropFirmManagement() {
                                     onClick={() => handleViewAccount(account)}
                                 >
                                     <div className="account-logo">
-                                    {account.prop_firm.logo ? (
+                                        {account.prop_firm.logo ? (
                                             <img src={account.prop_firm.logo} alt={account.prop_firm.name} />
                                         ) : (
                                             <div className="no-logo">{account.prop_firm.name.charAt(0)}</div>
@@ -254,6 +363,82 @@ export default function PropFirmManagement() {
                         </div>
                     )}
                 </div>
+            </div>
+        );
+    };
+    
+    const renderCreatePropFirmForm = () => {
+        return (
+            <div className="create-prop-firm-form">
+                <h3>Add New Prop Firm</h3>
+                {error && <div className="error-message">{error}</div>}
+                <form onSubmit={handleCreatePropFirm}>
+                    <div className="form-group">
+                        <label>Prop Firm Name</label>
+                        <input 
+                            type="text" 
+                            name="name" 
+                            value={propFirmFormData.name} 
+                            onChange={handlePropFirmInputChange}
+                            required
+                            placeholder="E.g., FTMO, TopStep, etc."
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Website (Optional)</label>
+                        <input 
+                            type="url" 
+                            name="website" 
+                            value={propFirmFormData.website} 
+                            onChange={handlePropFirmInputChange}
+                            placeholder="https://www.example.com"
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Description (Optional)</label>
+                        <textarea 
+                            name="description" 
+                            value={propFirmFormData.description} 
+                            onChange={handlePropFirmInputChange}
+                            placeholder="Describe the prop firm, rules, etc."
+                            rows="3"
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Logo (Optional)</label>
+                        <div className="logo-upload-container">
+                            <input 
+                                type="file" 
+                                name="logo" 
+                                id="logo-upload"
+                                onChange={handlePropFirmInputChange}
+                                accept="image/*"
+                                className="logo-input"
+                            />
+                            <label htmlFor="logo-upload" className="logo-label">
+                                <Upload size={16} /> Choose Logo
+                            </label>
+                            
+                            {propFirmFormPreview && (
+                                <div className="logo-preview">
+                                    <img src={propFirmFormPreview} alt="Logo Preview" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="form-actions">
+                        <button type="button" onClick={() => setView('dashboard')} className="btn-cancel">
+                            Cancel
+                        </button>
+                        <button type="submit" className="btn-create">
+                            Create Prop Firm
+                        </button>
+                    </div>
+                </form>
             </div>
         );
     };
@@ -609,7 +794,6 @@ export default function PropFirmManagement() {
             </div>
         );
     };
-    
     return (
         <div>
             <div className="header">
@@ -622,11 +806,13 @@ export default function PropFirmManagement() {
                     <div className="prop-firm-management-container">
                         {view === 'dashboard' && renderDashboard()}
                         {view === 'createAccount' && renderCreateAccountForm()}
+                        {view === 'createPropFirm' && renderCreatePropFirmForm()}
                         {view === 'accountDetail' && renderAccountDetail()}
                     </div>
                 </div>
             </div>
-            
+ 
+
             {/* CSS styles */}
             <style jsx>{`
                 .prop-firm-management-container {
