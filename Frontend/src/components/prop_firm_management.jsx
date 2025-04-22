@@ -604,7 +604,8 @@ export default function PropFirmManagement() {
                     <div className="account-summary-left">
                         <div className="prop-firm-info">
                             {selectedAccount.prop_firm.logo ? (
-                                <img src={selectedAccount.prop_firm.logo} alt={selectedAccount.prop_firm.name} />
+                                <img src={`data:image/png;base64,${selectedAccount.prop_firm.logo}`} alt={selectedAccount.prop_firm.name} />
+
                             ) : (
                                 <div className="no-logo">{selectedAccount.prop_firm.name.charAt(0)}</div>
                             )}
