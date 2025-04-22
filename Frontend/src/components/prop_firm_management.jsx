@@ -246,7 +246,7 @@ export default function PropFirmManagement() {
                     });
                   }
                 }} 
-                className="bg-green-600 text-white px-4 py-2 rounded"
+                className="btn btn-primary px-4 py-2 rounded"
               >
                 {showAddMetric ? 'Cancel' : 'Add New Account'}
               </button>
@@ -301,7 +301,7 @@ export default function PropFirmManagement() {
                 <div className="mt-4">
                   <button 
                     type="submit" 
-                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                    className="btn btn-primary"
                   >
                     Save Prop Firm
                   </button>
@@ -464,7 +464,7 @@ export default function PropFirmManagement() {
                 <div className="mt-4">
                   <button 
                     type="submit" 
-                    className="bg-green-600 text-white px-4 py-2 rounded"
+                    className="btn btn-primary"
                   >
                     {editingMetric ? 'Update Account' : 'Save Account'}
                   </button>
@@ -525,13 +525,13 @@ export default function PropFirmManagement() {
                       <td className="py-3 px-4 text-center">
                         <button 
                           onClick={() => handleEditMetric(metric)}
-                          className="text-blue-600 hover:text-blue-800 mr-3"
+                          className="btn btn-primary"
                         >
                           Edit
                         </button>
                         <button 
                           onClick={() => handleDeleteMetric(metric.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="btn btn-primary"
                         >
                           Delete
                         </button>
