@@ -224,7 +224,7 @@ export default function PropFirmManagement() {
                 className="btn btn-primary"
               >
                 {showAddFirm ? 'Cancel' : 'Add New Prop Firm'}
-              </button>
+              </button><br /><br />
               
               <button 
                 onClick={() => {
@@ -528,7 +528,7 @@ export default function PropFirmManagement() {
                           className="btn btn-primary"
                         >
                           Edit
-                        </button>
+                        </button><br /><br />
                         <button 
                           onClick={() => handleDeleteMetric(metric.id)}
                           className="btn btn-primary"
