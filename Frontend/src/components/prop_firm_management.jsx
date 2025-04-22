@@ -164,6 +164,17 @@ export default function PropFirmManagement() {
     }
   };
 
+  // Helper function to format base64 logo
+  const formatLogo = (logoData) => {
+    if (!logoData) return null;
+    // If it's already a data URL, return as is
+    if (logoData.startsWith('data:')) {
+      return logoData;
+    }
+    // Otherwise, assume it's a base64 string and add the appropriate prefix
+    return `data:image/png;base64,${logoData}`;
+  };
+
   const getStatusClass = (status) => {
     switch (status) {
       case 'in_progress': return 'text-blue-500';
@@ -489,9 +500,13 @@ export default function PropFirmManagement() {
                         <div className="flex items-center">
                           {metric.prop_firm.logo && (
                             <img 
-                              src={metric.prop_firm.logo} 
+                              src={formatLogo(metric.prop_firm.logo)} 
                               alt={metric.prop_firm.name} 
                               className="h-8 w-auto mr-2"
+                              onError={(e) => {
+                                console.error("Error loading image:", e);
+                                e.target.style.display = 'none';
+                              }}
                             />
                           )}
                           <span>{metric.prop_firm.name}</span>
@@ -545,7 +560,8 @@ export default function PropFirmManagement() {
               
               <div className="bg-white p-4 rounded shadow">
                 <h6 className="text-sm text-gray-500 mb-1">Current Balance (Total)</h6>
-                <p className="text-2xl font-bold text-blue-600">${metrics.reduce((sum, m) => sum + parseFloat(m.current_balance), 0).toLocaleString('en-US', {
+                <p className="text-2xl font-bold text-blue-600">
+                  {metrics.reduce((sum, m) => sum + parseFloat(m.current_balance), 0).toLocaleString('en-US', {
                     style: 'currency',
                     currency: 'USD'
                   })}
@@ -555,7 +571,7 @@ export default function PropFirmManagement() {
               <div className="bg-white p-4 rounded shadow">
                 <h6 className="text-sm text-gray-500 mb-1">Current Equity (Total)</h6>
                 <p className="text-2xl font-bold text-purple-600">
-                  ${metrics.reduce((sum, m) => sum + parseFloat(m.current_equity), 0).toLocaleString('en-US', {
+                  {metrics.reduce((sum, m) => sum + parseFloat(m.current_equity), 0).toLocaleString('en-US', {
                     style: 'currency',
                     currency: 'USD'
                   })}
@@ -710,9 +726,12 @@ export default function PropFirmManagement() {
                           <div className="flex items-center">
                             {metric.prop_firm.logo && (
                               <img 
-                                src={metric.prop_firm.logo} 
+                                src={formatLogo(metric.prop_firm.logo)} 
                                 alt={metric.prop_firm.name} 
                                 className="h-6 w-auto mr-2"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
                               />
                             )}
                             <div>
@@ -730,64 +749,173 @@ export default function PropFirmManagement() {
                               +{gainPercentage.toFixed(2)}%
                             </div>
                           </div>
-                        </div>
-                      );
+                        </div>);
                     })}
                   
                   {metrics.filter(m => parseFloat(m.current_balance) > parseFloat(m.starting_balance)).length === 0 && (
-                    <div className="text-center py-3 text-gray-500">No accounts with positive balance gain.</div>
+                    <div className="text-gray-500 text-center py-4">No accounts with positive gains yet.</div>
                   )}
                 </div>
                 
-                {/* Funded Accounts Summary */}
+                {/* Top Performing by Percentage */}
                 <div className="bg-white p-4 rounded shadow">
-                  <h6 className="text-base font-medium mb-3">Funded Accounts</h6>
+                  <h6 className="text-base font-medium mb-3">Top Performers by Percentage</h6>
                   
                   {metrics
-                    .filter(m => m.account_type === 'funded')
+                    .filter(m => parseFloat(m.current_balance) > parseFloat(m.starting_balance))
+                    .sort((a, b) => {
+                      const aGainPct = (parseFloat(a.current_balance) - parseFloat(a.starting_balance)) / parseFloat(a.starting_balance);
+                      const bGainPct = (parseFloat(b.current_balance) - parseFloat(b.starting_balance)) / parseFloat(b.starting_balance);
+                      return bGainPct - aGainPct;
+                    })
+                    .slice(0, 3)
                     .map(metric => {
-                      const gain = parseFloat(metric.current_balance) - parseFloat(metric.starting_balance);
-                      const gainPercentage = (gain / parseFloat(metric.starting_balance)) * 100;
+                      const gainPercentage = ((parseFloat(metric.current_balance) - parseFloat(metric.starting_balance)) / parseFloat(metric.starting_balance)) * 100;
                       
                       return (
                         <div key={metric.id} className="flex items-center justify-between py-2 border-b">
                           <div className="flex items-center">
                             {metric.prop_firm.logo && (
                               <img 
-                                src={metric.prop_firm.logo} 
+                                src={formatLogo(metric.prop_firm.logo)} 
                                 alt={metric.prop_firm.name} 
                                 className="h-6 w-auto mr-2"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
                               />
                             )}
                             <div>
                               <div className="font-medium">{metric.prop_firm.name}</div>
                               <div className="text-xs text-gray-500">
-                                {metric.account_id || 'No ID'}
+                                {getAccountTypeDisplay(metric.account_type)}
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className={gain >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                              {gain >= 0 ? '+' : ''}{gain.toLocaleString('en-US', {
-                                style: 'currency',
-                                currency: 'USD'
-                              })}
+                            <div className="text-green-600 font-medium">
+                              +{gainPercentage.toFixed(2)}%
                             </div>
-                            <div className={`text-xs ${gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {gain >= 0 ? '+' : ''}{gainPercentage.toFixed(2)}%
+                            <div className="text-xs text-green-600">
+                              ${metric.current_balance.toLocaleString()}
                             </div>
                           </div>
                         </div>
                       );
                     })}
                   
-                  {metrics.filter(m => m.account_type === 'funded').length === 0 && (
-                    <div className="text-center py-3 text-gray-500">No funded accounts yet.</div>
+                  {metrics.filter(m => parseFloat(m.current_balance) > parseFloat(m.starting_balance)).length === 0 && (
+                    <div className="text-gray-500 text-center py-4">No accounts with positive gains yet.</div>
                   )}
                 </div>
               </div>
             </div>
           )}
+          
+          {/* Firm Performance Summary */}
+          {metrics.length > 0 && propFirms.length > 1 && (
+            <div className="mt-8 mb-8">
+              <h6 className="text-lg font-medium mb-4">Firm Performance</h6>
+              
+              <div className="bg-white p-4 rounded shadow">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="py-3 px-4 text-left">Prop Firm</th>
+                      <th className="py-3 px-4 text-center">Total Accounts</th>
+                      <th className="py-3 px-4 text-center">Passed</th>
+                      <th className="py-3 px-4 text-center">Failed</th>
+                      <th className="py-3 px-4 text-center">Live</th>
+                      <th className="py-3 px-4 text-right">Total Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {propFirms.map(firm => {
+                      const firmMetrics = metrics.filter(m => m.prop_firm.id === firm.id);
+                      if (firmMetrics.length === 0) return null;
+                      
+                      const passedCount = firmMetrics.filter(m => m.status === 'passed').length;
+                      const failedCount = firmMetrics.filter(m => m.status === 'failed').length;
+                      const liveCount = firmMetrics.filter(m => m.status === 'live').length;
+                      const totalBalance = firmMetrics.reduce((sum, m) => sum + parseFloat(m.current_balance), 0);
+                      
+                      return (
+                        <tr key={firm.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center">
+                              {firm.logo && (
+                                <img 
+                                  src={formatLogo(firm.logo)} 
+                                  alt={firm.name} 
+                                  className="h-6 w-auto mr-2"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <span>{firm.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">{firmMetrics.length}</td>
+                          <td className="py-3 px-4 text-center text-green-600">{passedCount > 0 ? passedCount : '-'}</td>
+                          <td className="py-3 px-4 text-center text-red-600">{failedCount > 0 ? failedCount : '-'}</td>
+                          <td className="py-3 px-4 text-center text-purple-600">{liveCount > 0 ? liveCount : '-'}</td>
+                          <td className="py-3 px-4 text-right font-medium">${totalBalance.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          {/* Notes and Risk Management */}
+          <div className="mt-8 mb-8">
+            <h6 className="text-lg font-medium mb-4">Risk Management Guidelines</h6>
+            
+            <div className="bg-white p-6 rounded shadow">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h6 className="text-base font-medium mb-3">Daily Trading Guidelines</h6>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Never risk more than 1-2% of account balance per trade</li>
+                    <li>Set a maximum daily loss limit of 3-5%</li>
+                    <li>Take profit at predetermined levels - don't get greedy</li>
+                    <li>Avoid trading during major news events</li>
+                    <li>Always use stop losses - no exceptions</li>
+                    <li>Update dashboard at the end of each trading day</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h6 className="text-base font-medium mb-3">Challenge/Verification Tips</h6>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Focus on consistency, not high returns</li>
+                    <li>Reduce position sizes by 50% compared to normal trading</li>
+                    <li>Verify all rules - trading days, drawdown limits, profit targets</li>
+                    <li>Always complete the full challenge period even if profit target is met early</li>
+                    <li>Document all trades with screenshots for potential verification</li>
+                    <li>Avoid trading around account rollover days</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-blue-50 rounded border border-blue-200">
+                <h6 className="text-base font-medium mb-2 text-blue-700">Monthly Review Process</h6>
+                <p className="text-sm text-blue-700 mb-3">
+                  Set a specific date each month to review all accounts and make necessary adjustments:
+                </p>
+                <ol className="list-decimal pl-5 space-y-1 text-blue-700">
+                  <li>Update all account balances and metrics in this dashboard</li>
+                  <li>Review performance across prop firms and account types</li>
+                  <li>Identify successful strategies and challenging areas</li>
+                  <li>Adjust risk parameters if needed</li>
+                  <li>Plan capital allocation for upcoming month</li>
+                </ol>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
