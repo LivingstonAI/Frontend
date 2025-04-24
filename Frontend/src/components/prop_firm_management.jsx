@@ -164,15 +164,29 @@ export default function PropFirmManagement() {
     }
   };
 
-  // Helper function to format base64 logo
+  // Improved logo formatter function
   const formatLogo = (logoData) => {
     if (!logoData) return null;
-    // If it's already a data URL, return as is
-    if (logoData.startsWith('data:')) {
+    
+    // If it's already a complete data URL, return as is
+    if (logoData.startsWith('data:image')) {
       return logoData;
     }
-    // Otherwise, assume it's a base64 string and add the appropriate prefix
-    return `data:image/png;base64,${logoData}`;
+    
+    // If it's a base64 string that doesn't include the data URL prefix
+    // Try to check if it contains base64 encoded data
+    try {
+      // Check if it's just a base64 string without prefix
+      if (logoData.match(/^[A-Za-z0-9+/=]+$/)) {
+        return `data:image/png;base64,${logoData}`;
+      }
+      
+      // For other formats, return as is (might be a URL)
+      return logoData;
+    } catch (e) {
+      console.error("Error formatting logo:", e);
+      return null;
+    }
   };
 
   const getStatusClass = (status) => {
@@ -204,6 +218,33 @@ export default function PropFirmManagement() {
     }
   };
 
+  // Helper to render logo with fallback
+  const renderLogo = (logoData, alt, className) => {
+    const formattedLogo = formatLogo(logoData);
+    
+    if (!formattedLogo) {
+      return <div className={`bg-gray-200 rounded-full flex items-center justify-center ${className}`}>
+        <span className="text-gray-500 text-xs">{alt?.charAt(0) || '?'}</span>
+      </div>;
+    }
+    
+    return (
+      <img 
+        src={formattedLogo} 
+        alt={alt || "Logo"} 
+        className={className}
+        onError={(e) => {
+          // Replace broken image with initials
+          const parent = e.target.parentNode;
+          const text = document.createElement('div');
+          text.className = `bg-gray-200 rounded-full flex items-center justify-center ${className}`;
+          text.innerHTML = `<span class="text-gray-500 text-xs">${alt?.charAt(0) || '?'}</span>`;
+          parent.replaceChild(text, e.target);
+        }}
+      />
+    );
+  };
+
   return (
     <div>
       <div className="header">
@@ -221,10 +262,10 @@ export default function PropFirmManagement() {
             <div>
               <button 
                 onClick={() => setShowAddFirm(!showAddFirm)} 
-                className="btn btn-primary"
+                className="btn btn-primary mr-4"
               >
                 {showAddFirm ? 'Cancel' : 'Add New Prop Firm'}
-              </button><br /><br />
+              </button>
               
               <button 
                 onClick={() => {
@@ -279,6 +320,7 @@ export default function PropFirmManagement() {
                       value={newFirm.website}
                       onChange={handleFirmInputChange}
                       className="w-full p-2 border rounded"
+                      placeholder="https://example.com"
                     />
                   </div>
                   
@@ -498,18 +540,22 @@ export default function PropFirmManagement() {
                     <tr key={metric.id} className="border-t hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center">
-                          {metric.prop_firm.logo && (
-                            <img 
-                              src={formatLogo(metric.prop_firm.logo)} 
-                              alt={metric.prop_firm.name} 
-                              className="h-8 w-auto mr-2"
-                              onError={(e) => {
-                                console.error("Error loading image:", e);
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <span>{metric.prop_firm.name}</span>
+                          {renderLogo(metric.prop_firm.logo, metric.prop_firm.name, "h-8 w-8 mr-2 object-contain")}
+                          <div>
+                            <span className="font-medium">{metric.prop_firm.name}</span>
+                            {metric.prop_firm.website && (
+                              <div>
+                                <a 
+                                  href={metric.prop_firm.website.startsWith('http') ? metric.prop_firm.website : `https://${metric.prop_firm.website}`} 
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 text-xs hover:underline"
+                                >
+                                  Visit Website
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">{getAccountTypeDisplay(metric.account_type)}</td>
@@ -525,10 +571,10 @@ export default function PropFirmManagement() {
                       <td className="py-3 px-4 text-center">
                         <button 
                           onClick={() => handleEditMetric(metric)}
-                          className="btn btn-primary"
+                          className="btn btn-primary mb-2"
                         >
                           Edit
-                        </button><br /><br />
+                        </button>
                         <button 
                           onClick={() => handleDeleteMetric(metric.id)}
                           className="btn btn-primary"
@@ -575,17 +621,22 @@ export default function PropFirmManagement() {
                         <tr key={firm.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4">
                             <div className="flex items-center">
-                              {firm.logo && (
-                                <img 
-                                  src={formatLogo(firm.logo)} 
-                                  alt={firm.name} 
-                                  className="h-6 w-auto mr-2"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              <span>{firm.name}</span>
+                              {renderLogo(firm.logo, firm.name, "h-6 w-6 mr-2 object-contain")}
+                              <div>
+                                <span>{firm.name}</span>
+                                {firm.website && (
+                                  <div>
+                                    <a 
+                                      href={firm.website.startsWith('http') ? firm.website : `https://${firm.website}`} 
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 text-xs hover:underline"
+                                    >
+                                      Website
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">{firmMetrics.length}</td>
