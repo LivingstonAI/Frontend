@@ -3,7 +3,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import axios from "axios";
 
-// Logo component for proper React-based rendering
+// Logo component for proper React-based rendering with responsive sizing
 const FirmLogo = ({ logoData, alt, className }) => {
   const [imgError, setImgError] = useState(false);
   
@@ -50,7 +50,7 @@ const FirmLogo = ({ logoData, alt, className }) => {
     <img 
       src={formattedLogo} 
       alt={alt || "Logo"} 
-      className={className}
+      className={`rounded-full object-cover ${className}`}
       onError={() => setImgError(true)}
     />
   );
@@ -335,7 +335,7 @@ export default function PropFirmManagement() {
                     />
                     {newFirm.logo && (
                       <div className="mt-2">
-                        <FirmLogo logoData={newFirm.logo} alt="Logo Preview" className="h-16 w-auto object-contain" />
+                        <FirmLogo logoData={newFirm.logo} alt="Logo Preview" className="h-10 w-10 object-cover" />
                       </div>
                     )}
                   </div>
@@ -544,7 +544,7 @@ export default function PropFirmManagement() {
                           <FirmLogo 
                             logoData={metric.prop_firm.logo} 
                             alt={metric.prop_firm.name} 
-                            className="h-8 w-8 mr-2 object-contain"
+                            className="h-6 w-6 mr-2"
                           />
                           <div>
                             <span className="font-medium">{metric.prop_firm.name}</span>
@@ -628,7 +628,7 @@ export default function PropFirmManagement() {
                               <FirmLogo 
                                 logoData={firm.logo} 
                                 alt={firm.name} 
-                                className="h-6 w-6 mr-2 object-contain"
+                                className="h-5 w-5 mr-2"
                               />
                               <div>
                                 <span>{firm.name}</span>
