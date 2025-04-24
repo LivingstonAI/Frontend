@@ -3,6 +3,59 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import axios from "axios";
 
+// Logo component for proper React-based rendering
+const FirmLogo = ({ logoData, alt, className }) => {
+  const [imgError, setImgError] = useState(false);
+  
+  // Format the logo data
+  const formatLogo = (data) => {
+    if (!data) return null;
+    
+    // If it's already a complete data URL, return as is
+    if (data.startsWith('data:image')) {
+      return data;
+    }
+    
+    // If it's a URL, return as is
+    if (data.startsWith('http://') || data.startsWith('https://')) {
+      return data;
+    }
+    
+    // If it's a base64 string without prefix, try to add the prefix
+    try {
+      // Check if it looks like a base64 string
+      if (data.match(/^[A-Za-z0-9+/=]+$/)) {
+        return `data:image/png;base64,${data}`;
+      }
+      
+      // For other formats, return as is
+      return data;
+    } catch (e) {
+      console.error("Error formatting logo:", e);
+      return null;
+    }
+  };
+  
+  const formattedLogo = formatLogo(logoData);
+  
+  if (!formattedLogo || imgError) {
+    return (
+      <div className={`bg-gray-200 rounded-full flex items-center justify-center ${className}`}>
+        <span className="text-gray-500 text-xs">{alt?.charAt(0)?.toUpperCase() || '?'}</span>
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={formattedLogo} 
+      alt={alt || "Logo"} 
+      className={className}
+      onError={() => setImgError(true)}
+    />
+  );
+};
+
 export default function PropFirmManagement() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
   const [propFirms, setPropFirms] = useState([]);
@@ -164,31 +217,6 @@ export default function PropFirmManagement() {
     }
   };
 
-  // Improved logo formatter function
-  const formatLogo = (logoData) => {
-    if (!logoData) return null;
-    
-    // If it's already a complete data URL, return as is
-    if (logoData.startsWith('data:image')) {
-      return logoData;
-    }
-    
-    // If it's a base64 string that doesn't include the data URL prefix
-    // Try to check if it contains base64 encoded data
-    try {
-      // Check if it's just a base64 string without prefix
-      if (logoData.match(/^[A-Za-z0-9+/=]+$/)) {
-        return `data:image/png;base64,${logoData}`;
-      }
-      
-      // For other formats, return as is (might be a URL)
-      return logoData;
-    } catch (e) {
-      console.error("Error formatting logo:", e);
-      return null;
-    }
-  };
-
   const getStatusClass = (status) => {
     switch (status) {
       case 'in_progress': return 'text-blue-500';
@@ -216,33 +244,6 @@ export default function PropFirmManagement() {
       case 'funded': return 'Funded';
       default: return type;
     }
-  };
-
-  // Helper to render logo with fallback
-  const renderLogo = (logoData, alt, className) => {
-    const formattedLogo = formatLogo(logoData);
-    
-    if (!formattedLogo) {
-      return <div className={`bg-gray-200 rounded-full flex items-center justify-center ${className}`}>
-        <span className="text-gray-500 text-xs">{alt?.charAt(0) || '?'}</span>
-      </div>;
-    }
-    
-    return (
-      <img 
-        src={formattedLogo} 
-        alt={alt || "Logo"} 
-        className={className}
-        onError={(e) => {
-          // Replace broken image with initials
-          const parent = e.target.parentNode;
-          const text = document.createElement('div');
-          text.className = `bg-gray-200 rounded-full flex items-center justify-center ${className}`;
-          text.innerHTML = `<span class="text-gray-500 text-xs">${alt?.charAt(0) || '?'}</span>`;
-          parent.replaceChild(text, e.target);
-        }}
-      />
-    );
   };
 
   return (
@@ -334,7 +335,7 @@ export default function PropFirmManagement() {
                     />
                     {newFirm.logo && (
                       <div className="mt-2">
-                        <img src={newFirm.logo} alt="Logo Preview" className="h-16 w-auto" />
+                        <FirmLogo logoData={newFirm.logo} alt="Logo Preview" className="h-16 w-auto object-contain" />
                       </div>
                     )}
                   </div>
@@ -540,7 +541,11 @@ export default function PropFirmManagement() {
                     <tr key={metric.id} className="border-t hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center">
-                          {renderLogo(metric.prop_firm.logo, metric.prop_firm.name, "h-8 w-8 mr-2 object-contain")}
+                          <FirmLogo 
+                            logoData={metric.prop_firm.logo} 
+                            alt={metric.prop_firm.name} 
+                            className="h-8 w-8 mr-2 object-contain"
+                          />
                           <div>
                             <span className="font-medium">{metric.prop_firm.name}</span>
                             {metric.prop_firm.website && (
@@ -589,7 +594,6 @@ export default function PropFirmManagement() {
             </div>
           )}
           
-          
           {/* Firm Performance Summary */}
           {metrics.length > 0 && propFirms.length > 1 && (
             <div className="mt-8 mb-8">
@@ -621,7 +625,11 @@ export default function PropFirmManagement() {
                         <tr key={firm.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4">
                             <div className="flex items-center">
-                              {renderLogo(firm.logo, firm.name, "h-6 w-6 mr-2 object-contain")}
+                              <FirmLogo 
+                                logoData={firm.logo} 
+                                alt={firm.name} 
+                                className="h-6 w-6 mr-2 object-contain"
+                              />
                               <div>
                                 <span>{firm.name}</span>
                                 {firm.website && (
