@@ -574,7 +574,7 @@ export default function PropFirmManagement() {
                           className="btn btn-primary mb-2"
                         >
                           Edit
-                        </button>
+                        </button><br /><br />
                         <button 
                           onClick={() => handleDeleteMetric(metric.id)}
                           className="btn btn-primary"
