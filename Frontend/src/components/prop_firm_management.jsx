@@ -3,7 +3,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import axios from "axios";
 
-// Logo component for proper React-based rendering with responsive sizing
+// Updated Logo component with better sizing and rounded edges
 const FirmLogo = ({ logoData, alt, className }) => {
   const [imgError, setImgError] = useState(false);
   
@@ -38,6 +38,8 @@ const FirmLogo = ({ logoData, alt, className }) => {
   
   const formattedLogo = formatLogo(logoData);
   
+  const logoStyles = `rounded-full object-cover object-center ${className}`;
+  
   if (!formattedLogo || imgError) {
     return (
       <div className={`bg-gray-200 rounded-full flex items-center justify-center ${className}`}>
@@ -47,12 +49,24 @@ const FirmLogo = ({ logoData, alt, className }) => {
   }
   
   return (
-    <img 
-      src={formattedLogo} 
-      alt={alt || "Logo"} 
-      className={`rounded-full object-cover ${className}`}
-      onError={() => setImgError(true)}
-    />
+    <div className="overflow-hidden rounded-full" style={{
+      maxWidth: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <img 
+        src={formattedLogo} 
+        alt={alt || "Logo"} 
+        className={logoStyles}
+        onError={() => setImgError(true)}
+        style={{
+          objectFit: 'cover',
+          width: '100%',
+          height: '100%'
+        }}
+      />
+    </div>
   );
 };
 
@@ -334,8 +348,15 @@ export default function PropFirmManagement() {
                       className="w-full p-2 border rounded"
                     />
                     {newFirm.logo && (
-                      <div className="mt-2">
-                        <FirmLogo logoData={newFirm.logo} alt="Logo Preview" className="h-10 w-10 object-cover" />
+                      <div className="mt-2 flex items-center">
+                        <div style={{ width: '48px', height: '48px' }}>
+                          <FirmLogo 
+                            logoData={newFirm.logo} 
+                            alt="Logo Preview" 
+                            className="h-12 w-12" 
+                          />
+                        </div>
+                        <span className="ml-2 text-sm text-gray-500">Logo Preview</span>
                       </div>
                     )}
                   </div>
@@ -541,12 +562,14 @@ export default function PropFirmManagement() {
                     <tr key={metric.id} className="border-t hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center">
-                          <FirmLogo 
-                            logoData={metric.prop_firm.logo} 
-                            alt={metric.prop_firm.name} 
-                            className="h-6 w-6 mr-2"
-                          />
-                          <div>
+                          <div style={{ width: '32px', height: '32px', minWidth: '32px' }}>
+                            <FirmLogo 
+                              logoData={metric.prop_firm.logo} 
+                              alt={metric.prop_firm.name} 
+                              className="h-8 w-8"
+                            />
+                          </div>
+                          <div className="ml-2">
                             <span className="font-medium">{metric.prop_firm.name}</span>
                             {metric.prop_firm.website && (
                               <div>
@@ -625,12 +648,14 @@ export default function PropFirmManagement() {
                         <tr key={firm.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-4">
                             <div className="flex items-center">
-                              <FirmLogo 
-                                logoData={firm.logo} 
-                                alt={firm.name} 
-                                className="h-5 w-5 mr-2"
-                              />
-                              <div>
+                              <div style={{ width: '24px', height: '24px', minWidth: '24px' }}>
+                                <FirmLogo 
+                                  logoData={firm.logo} 
+                                  alt={firm.name} 
+                                  className="h-6 w-6"
+                                />
+                              </div>
+                              <div className="ml-2">
                                 <span>{firm.name}</span>
                                 {firm.website && (
                                   <div>
