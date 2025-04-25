@@ -371,7 +371,7 @@ export default function PropFirmManagement() {
                 placeholder="Search by firm name or account ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="p-2 pl-8 border rounded w-full sm:w-64 text-sm"
+                className="form-control p-2 pl-8 border rounded w-full sm:w-64 text-sm"
               />
               {searchTerm && (
                 <button
@@ -397,7 +397,7 @@ export default function PropFirmManagement() {
                       name="name"
                       value={newFirm.name}
                       onChange={handleFirmInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       required
                     />
                   </div>
@@ -409,7 +409,7 @@ export default function PropFirmManagement() {
                       name="website"
                       value={newFirm.website}
                       onChange={handleFirmInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       placeholder="https://example.com"
                     />
                   </div>
@@ -420,7 +420,7 @@ export default function PropFirmManagement() {
                       type="file"
                       accept="image/*"
                       onChange={handleFirmLogoChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                     />
                     {newFirm.logo && (
                       <div className="mt-2 flex items-center">
@@ -469,7 +469,7 @@ export default function PropFirmManagement() {
                       name="prop_firm_id"
                       value={newMetric.prop_firm_id}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       required
                     >
                       <option value="">Select Prop Firm</option>
@@ -480,7 +480,7 @@ export default function PropFirmManagement() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Account Type</label>
+                    <label className="form-control block text-sm font-medium mb-1">Account Type</label>
                     <select
                       name="account_type"
                       value={newMetric.account_type}
@@ -494,12 +494,12 @@ export default function PropFirmManagement() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Status</label>
+                    <label className="form-control block text-sm font-medium mb-1">Status</label>
                     <select
                       name="status"
                       value={newMetric.status}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                     >
                       <option value="in_progress">In Progress</option>
                       <option value="passed">Passed</option>
@@ -509,98 +509,98 @@ export default function PropFirmManagement() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Account ID</label>
+                    <label className="form-control block text-sm font-medium mb-1">Account ID</label>
                     <input
                       type="text"
                       name="account_id"
                       value={newMetric.account_id}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Start Date</label>
+                    <label className="form-control block text-sm font-medium mb-1">Start Date</label>
                     <input
                       type="date"
                       name="start_date"
                       value={newMetric.start_date}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       required
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Starting Balance</label>
+                    <label className="form-control block text-sm font-medium mb-1">Starting Balance</label>
                     <input
                       type="number"
                       name="starting_balance"
                       value={newMetric.starting_balance}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       step="0.01"
                       required
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Current Balance</label>
+                    <label className="form-control block text-sm font-medium mb-1">Current Balance</label>
                     <input
                       type="number"
                       name="current_balance"
                       value={newMetric.current_balance}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       step="0.01"
                       required
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Current Equity</label>
+                    <label className="form-control block text-sm font-medium mb-1">Current Equity</label>
                     <input
                       type="number"
                       name="current_equity"
                       value={newMetric.current_equity}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       step="0.01"
                       required
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Profit Target</label>
+                    <label className="form-control block text-sm font-medium mb-1">Profit Target</label>
                     <input
                       type="number"
                       name="profit_target"
                       value={newMetric.profit_target || ""}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       step="0.01"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">Max Drawdown</label>
+                    <label className="form-control block text-sm font-medium mb-1">Max Drawdown</label>
                     <input
                       type="number"
                       name="max_drawdown"
                       value={newMetric.max_drawdown || ""}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       step="0.01"
                     />
                   </div>
                   
                   <div className="md:col-span-3">
-                    <label className="block text-sm font-medium mb-1">Notes</label>
+                    <label className="form-control block text-sm font-medium mb-1">Notes</label>
                     <textarea
                       name="notes"
                       value={newMetric.notes}
                       onChange={handleMetricInputChange}
-                      className="w-full p-2 border rounded"
+                      className="form-control w-full p-2 border rounded"
                       rows="3"
                     ></textarea>
                   </div>
