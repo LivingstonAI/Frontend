@@ -701,7 +701,7 @@ export default function PropFirmManagement() {
                         >
                           {isDeleting === metric.id ? (
                             <div className="flex items-center justify-center">
-                              
+                              Deleting...
                             </div>
                           ) : 'Delete'}
                         </button>
