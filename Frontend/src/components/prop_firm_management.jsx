@@ -70,6 +70,17 @@ const FirmLogo = ({ logoData, alt, className }) => {
   );
 };
 
+// New loading spinner component
+const LoadingSpinner = ({ message }) => (
+  <div className="flex items-center justify-center space-x-2 text-blue-600">
+    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <span>{message}</span>
+  </div>
+);
+
 export default function PropFirmManagement() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
   const [propFirms, setPropFirms] = useState([]);
@@ -79,6 +90,12 @@ export default function PropFirmManagement() {
   const [editingMetric, setEditingMetric] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Status indicators for API operations
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredMetrics, setFilteredMetrics] = useState([]);
 
   // Form states
   const [newFirm, setNewFirm] = useState({
@@ -105,6 +122,20 @@ export default function PropFirmManagement() {
     fetchPropFirms();
     fetchMetrics();
   }, []);
+  
+  // Filter metrics when search term or metrics change
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredMetrics(metrics);
+    } else {
+      const lowercaseSearch = searchTerm.toLowerCase();
+      const filtered = metrics.filter(metric => 
+        metric.prop_firm.name.toLowerCase().includes(lowercaseSearch) ||
+        (metric.account_id && metric.account_id.toLowerCase().includes(lowercaseSearch))
+      );
+      setFilteredMetrics(filtered);
+    }
+  }, [searchTerm, metrics]);
 
   const fetchPropFirms = async () => {
     try {
@@ -120,6 +151,7 @@ export default function PropFirmManagement() {
     try {
       const response = await axios.get(`${baseUrl}/api/prop-metrics/`);
       setMetrics(response.data);
+      setFilteredMetrics(response.data);
       setLoading(false);
     } catch (err) {
       setError("Failed to fetch metrics");
@@ -160,26 +192,30 @@ export default function PropFirmManagement() {
 
   const handleSubmitFirm = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       await axios.post(`${baseUrl}/api/prop-firms/`, newFirm);
-      fetchPropFirms();
+      await fetchPropFirms();
       setNewFirm({ name: "", logo: "", website: "" });
       setShowAddFirm(false);
     } catch (err) {
       setError("Failed to add prop firm");
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSubmitMetric = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       if (editingMetric) {
         await axios.put(`${baseUrl}/api/prop-metrics/${editingMetric.id}/`, newMetric);
       } else {
         await axios.post(`${baseUrl}/api/prop-metrics/`, newMetric);
       }
-      fetchMetrics();
+      await fetchMetrics();
       setNewMetric({
         prop_firm_id: "",
         account_type: "challenge",
@@ -198,6 +234,8 @@ export default function PropFirmManagement() {
     } catch (err) {
       setError("Failed to save metric");
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -221,15 +259,23 @@ export default function PropFirmManagement() {
 
   const handleDeleteMetric = async (id) => {
     if (window.confirm("Are you sure you want to delete this entry?")) {
+      setIsDeleting(id);
       try {
         await axios.delete(`${baseUrl}/api/prop-metrics/${id}/`);
-        fetchMetrics();
+        await fetchMetrics();
       } catch (err) {
         setError("Failed to delete metric");
         console.error(err);
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
+
+  // Remove duplicates from propFirms for the dropdown
+  const uniquePropFirms = propFirms.filter((firm, index, self) =>
+    index === self.findIndex((f) => f.id === firm.id)
+  );
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -271,7 +317,17 @@ export default function PropFirmManagement() {
           <h5 className="major-upcoming-news-events-header">Prop Firm Management</h5>
           <br />
           
-          {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
+          {error && (
+            <div className="bg-red-100 text-red-700 p-3 mb-4 rounded flex justify-between items-center">
+              <span>{error}</span>
+              <button 
+                onClick={() => setError(null)} 
+                className="text-red-700 hover:text-red-900"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           
           <div className="flex justify-between mb-6">
             <div>
@@ -288,7 +344,7 @@ export default function PropFirmManagement() {
                   setEditingMetric(null);
                   if (!showAddMetric) {
                     setNewMetric({
-                      prop_firm_id: propFirms.length > 0 ? propFirms[0].id : "",
+                      prop_firm_id: uniquePropFirms.length > 0 ? uniquePropFirms[0].id : "",
                       account_type: "challenge",
                       status: "in_progress",
                       account_id: "",
@@ -306,6 +362,33 @@ export default function PropFirmManagement() {
               >
                 {showAddMetric ? 'Cancel' : 'Add New Account'}
               </button>
+            </div>
+            
+            {/* Search bar */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by firm name or account ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="p-2 pl-8 border rounded w-64"
+              />
+              <svg 
+                className="w-4 h-4 absolute left-2 top-3 text-gray-500" 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
           
@@ -366,8 +449,17 @@ export default function PropFirmManagement() {
                   <button 
                     type="submit" 
                     className="btn btn-primary"
+                    disabled={isSaving}
                   >
-                    Save Prop Firm
+                    {isSaving ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </div>
+                    ) : 'Save Prop Firm'}
                   </button>
                 </div>
               </form>
@@ -392,7 +484,7 @@ export default function PropFirmManagement() {
                       required
                     >
                       <option value="">Select Prop Firm</option>
-                      {propFirms.map(firm => (
+                      {uniquePropFirms.map(firm => (
                         <option key={firm.id} value={firm.id}>{firm.name}</option>
                       ))}
                     </select>
@@ -529,8 +621,17 @@ export default function PropFirmManagement() {
                   <button 
                     type="submit" 
                     className="btn btn-primary"
+                    disabled={isSaving}
                   >
-                    {editingMetric ? 'Update Account' : 'Save Account'}
+                    {isSaving ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {editingMetric ? 'Updating...' : 'Saving...'}
+                      </div>
+                    ) : (editingMetric ? 'Update Account' : 'Save Account')}
                   </button>
                 </div>
               </form>
@@ -539,9 +640,13 @@ export default function PropFirmManagement() {
           
           {/* Metrics List */}
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : metrics.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No prop firm accounts added yet.</div>
+            <div className="text-center py-12">
+              <LoadingSpinner message="Loading accounts..." />
+            </div>
+          ) : filteredMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {searchTerm ? 'No matching accounts found.' : 'No prop firm accounts added yet.'}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white">
@@ -558,7 +663,7 @@ export default function PropFirmManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {metrics.map(metric => (
+                  {filteredMetrics.map(metric => (
                     <tr key={metric.id} className="border-t hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center">
@@ -600,14 +705,23 @@ export default function PropFirmManagement() {
                         <button 
                           onClick={() => handleEditMetric(metric)}
                           className="btn btn-primary mb-2"
+                          disabled={isDeleting === metric.id}
                         >
                           Edit
                         </button><br /><br />
                         <button 
                           onClick={() => handleDeleteMetric(metric.id)}
                           className="btn btn-primary"
+                          disabled={isDeleting === metric.id}
                         >
-                          Delete
+                          {isDeleting === metric.id ? (
+                            <div className="flex items-center justify-center">
+                              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            </div>
+                          ) : 'Delete'}
                         </button>
                       </td>
                     </tr>
@@ -618,7 +732,7 @@ export default function PropFirmManagement() {
           )}
           
           {/* Firm Performance Summary */}
-          {metrics.length > 0 && propFirms.length > 1 && (
+          {filteredMetrics.length > 0 && uniquePropFirms.length > 1 && (
             <div className="mt-8 mb-8">
               <h6 className="text-lg font-medium mb-4">Firm Performance</h6>
               
@@ -635,7 +749,7 @@ export default function PropFirmManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {propFirms.map(firm => {
+                    {uniquePropFirms.map(firm => {
                       const firmMetrics = metrics.filter(m => m.prop_firm.id === firm.id);
                       if (firmMetrics.length === 0) return null;
                       
@@ -683,6 +797,19 @@ export default function PropFirmManagement() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+          
+          {/* Status message for when no search results are found */}
+          {searchTerm && filteredMetrics.length === 0 && metrics.length > 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No accounts match your search for "{searchTerm}".
+              <button 
+                onClick={() => setSearchTerm("")}
+                className="ml-2 text-blue-500 hover:underline"
+              >
+                Clear search
+              </button>
             </div>
           )}
         </div>
