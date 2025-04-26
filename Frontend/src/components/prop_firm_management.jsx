@@ -334,7 +334,7 @@ export default function PropFirmManagement() {
                 disabled={isSavingFirm}
               >
                 {showAddFirm ? 'Cancel' : 'Add New Prop Firm'}
-              </button>
+              </button><br />
               
               <button 
                 onClick={() => {
