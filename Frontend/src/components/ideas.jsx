@@ -131,32 +131,36 @@ export default function IdeasSection() {
     };
 
     // Delete idea function
-    const deleteIdea = async (ideaId) => {
-        setDeletingId(ideaId);
+const deleteIdea = async (ideaId) => {
+    setDeletingId(ideaId);
+    
+    try {
+        const response = await fetch(`${baseUrl}/delete-idea`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ idea_id: ideaId })
+        });
         
-        try {
-            const response = await fetch(`${baseUrl}/delete-idea`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ idea_id: ideaId })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to delete idea');
-            }
-            
-            // Remove the deleted idea from state
-            setIdeas(ideas.filter(idea => idea.id !== ideaId));
-            setError(null);
-        } catch (err) {
-            setError('Error deleting idea: ' + err.message);
-            console.error(err);
-        } finally {
-            setDeletingId(null);
+        if (!response.ok) {
+            throw new Error('Failed to delete idea');
         }
-    };
+        
+        // Remove the deleted idea from state
+        setIdeas(ideas.filter(idea => idea.id !== ideaId));
+        setError(null);
+        
+        // Reset hover and delete confirm states
+        setHoveredCard(null);
+        setDeleteConfirm(null);
+    } catch (err) {
+        setError('Error deleting idea: ' + err.message);
+        console.error(err);
+    } finally {
+        setDeletingId(null);
+    }
+};
     
     // Update idea tracker status
     const updateIdeaTracker = async (ideaId, newStatus) => {
