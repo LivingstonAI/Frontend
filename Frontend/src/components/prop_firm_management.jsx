@@ -74,11 +74,13 @@ export default function PropFirmManagement() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
   const [propFirms, setPropFirms] = useState([]);
   const [metrics, setMetrics] = useState([]);
+  const [filteredMetrics, setFilteredMetrics] = useState([]);
   const [showAddFirm, setShowAddFirm] = useState(false);
   const [showAddMetric, setShowAddMetric] = useState(false);
   const [editingMetric, setEditingMetric] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Form states
   const [newFirm, setNewFirm] = useState({
@@ -106,6 +108,26 @@ export default function PropFirmManagement() {
     fetchMetrics();
   }, []);
 
+  useEffect(() => {
+    if (metrics.length > 0) {
+      filterMetrics();
+    }
+  }, [searchTerm, metrics]);
+
+  const filterMetrics = () => {
+    if (!searchTerm.trim()) {
+      setFilteredMetrics(metrics);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    const filtered = metrics.filter(metric => 
+      metric.prop_firm.name.toLowerCase().includes(term) || 
+      (metric.account_id && metric.account_id.toLowerCase().includes(term))
+    );
+    setFilteredMetrics(filtered);
+  };
+
   const fetchPropFirms = async () => {
     try {
       const response = await axios.get(`${baseUrl}/api/prop-firms/`);
@@ -120,6 +142,7 @@ export default function PropFirmManagement() {
     try {
       const response = await axios.get(`${baseUrl}/api/prop-metrics/`);
       setMetrics(response.data);
+      setFilteredMetrics(response.data);
       setLoading(false);
     } catch (err) {
       setError("Failed to fetch metrics");
@@ -231,6 +254,14 @@ export default function PropFirmManagement() {
     }
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+  };
+
   const getStatusClass = (status) => {
     switch (status) {
       case 'in_progress': return 'text-blue-500';
@@ -273,11 +304,11 @@ export default function PropFirmManagement() {
           
           {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
           
-          <div className="flex justify-between mb-6">
-            <div>
+          <div className="flex flex-col md:flex-row md:justify-between mb-6">
+            <div className="mb-4 md:mb-0">
               <button 
                 onClick={() => setShowAddFirm(!showAddFirm)} 
-                className="btn btn-primary mr-4"
+                className="btn btn-primary mr-4 mb-2 md:mb-0"
               >
                 {showAddFirm ? 'Cancel' : 'Add New Prop Firm'}
               </button>
@@ -306,6 +337,36 @@ export default function PropFirmManagement() {
               >
                 {showAddMetric ? 'Cancel' : 'Add New Account'}
               </button>
+            </div>
+            
+            {/* Search Box */}
+            <div className="relative w-full md:w-96">
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search by firm name or account ID..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+                {searchTerm && (
+                  <button 
+                    className="btn btn-outline-secondary" 
+                    type="button"
+                    onClick={clearSearch}
+                  >
+                    Clear
+                  </button>
+                )}
+                <button className="btn btn-primary" type="button">
+                  Search
+                </button>
+              </div>
+              {searchTerm && (
+                <div className="text-sm text-gray-600 mt-1">
+                  Found {filteredMetrics.length} {filteredMetrics.length === 1 ? 'result' : 'results'}
+                </div>
+              )}
             </div>
           </div>
           
@@ -540,8 +601,10 @@ export default function PropFirmManagement() {
           {/* Metrics List */}
           {loading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : metrics.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No prop firm accounts added yet.</div>
+          ) : filteredMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {searchTerm ? 'No matching accounts found. Try a different search term.' : 'No prop firm accounts added yet.'}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white">
@@ -558,7 +621,7 @@ export default function PropFirmManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {metrics.map(metric => (
+                  {filteredMetrics.map(metric => (
                     <tr key={metric.id} className="border-t hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="flex items-center">
