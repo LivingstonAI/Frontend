@@ -81,6 +81,13 @@ export default function PropFirmManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Process indicators
+  const [isFetchingFirms, setIsFetchingFirms] = useState(false);
+  const [isFetchingMetrics, setIsFetchingMetrics] = useState(false);
+  const [isSavingFirm, setIsSavingFirm] = useState(false);
+  const [isSavingMetric, setIsSavingMetric] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [newFirm, setNewFirm] = useState({
@@ -129,25 +136,31 @@ export default function PropFirmManagement() {
   };
 
   const fetchPropFirms = async () => {
+    setIsFetchingFirms(true);
     try {
       const response = await axios.get(`${baseUrl}/api/prop-firms/`);
       setPropFirms(response.data);
+      setIsFetchingFirms(false);
     } catch (err) {
       setError("Failed to fetch prop firms");
       console.error(err);
+      setIsFetchingFirms(false);
     }
   };
 
   const fetchMetrics = async () => {
+    setIsFetchingMetrics(true);
     try {
       const response = await axios.get(`${baseUrl}/api/prop-metrics/`);
       setMetrics(response.data);
       setFilteredMetrics(response.data);
       setLoading(false);
+      setIsFetchingMetrics(false);
     } catch (err) {
       setError("Failed to fetch metrics");
       setLoading(false);
       console.error(err);
+      setIsFetchingMetrics(false);
     }
   };
 
@@ -183,6 +196,7 @@ export default function PropFirmManagement() {
 
   const handleSubmitFirm = async (e) => {
     e.preventDefault();
+    setIsSavingFirm(true);
     try {
       await axios.post(`${baseUrl}/api/prop-firms/`, newFirm);
       fetchPropFirms();
@@ -191,11 +205,14 @@ export default function PropFirmManagement() {
     } catch (err) {
       setError("Failed to add prop firm");
       console.error(err);
+    } finally {
+      setIsSavingFirm(false);
     }
   };
 
   const handleSubmitMetric = async (e) => {
     e.preventDefault();
+    setIsSavingMetric(true);
     try {
       if (editingMetric) {
         await axios.put(`${baseUrl}/api/prop-metrics/${editingMetric.id}/`, newMetric);
@@ -221,6 +238,8 @@ export default function PropFirmManagement() {
     } catch (err) {
       setError("Failed to save metric");
       console.error(err);
+    } finally {
+      setIsSavingMetric(false);
     }
   };
 
@@ -244,12 +263,15 @@ export default function PropFirmManagement() {
 
   const handleDeleteMetric = async (id) => {
     if (window.confirm("Are you sure you want to delete this entry?")) {
+      setIsDeleting(true);
       try {
         await axios.delete(`${baseUrl}/api/prop-metrics/${id}/`);
         fetchMetrics();
       } catch (err) {
         setError("Failed to delete metric");
         console.error(err);
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -309,6 +331,7 @@ export default function PropFirmManagement() {
               <button 
                 onClick={() => setShowAddFirm(!showAddFirm)} 
                 className="btn btn-primary mr-4 mb-2 md:mb-0"
+                disabled={isSavingFirm}
               >
                 {showAddFirm ? 'Cancel' : 'Add New Prop Firm'}
               </button>
@@ -334,6 +357,7 @@ export default function PropFirmManagement() {
                   }
                 }} 
                 className="btn btn-primary"
+                disabled={isSavingMetric}
               >
                 {showAddMetric ? 'Cancel' : 'Add New Account'}
               </button>
@@ -385,6 +409,7 @@ export default function PropFirmManagement() {
                       onChange={handleFirmInputChange}
                       className="w-full p-2 border rounded"
                       required
+                      disabled={isSavingFirm}
                     />
                   </div>
                   
@@ -397,6 +422,7 @@ export default function PropFirmManagement() {
                       onChange={handleFirmInputChange}
                       className="w-full p-2 border rounded"
                       placeholder="https://example.com"
+                      disabled={isSavingFirm}
                     />
                   </div>
                   
@@ -407,6 +433,7 @@ export default function PropFirmManagement() {
                       accept="image/*"
                       onChange={handleFirmLogoChange}
                       className="w-full p-2 border rounded"
+                      disabled={isSavingFirm}
                     />
                     {newFirm.logo && (
                       <div className="mt-2 flex items-center">
@@ -427,8 +454,9 @@ export default function PropFirmManagement() {
                   <button 
                     type="submit" 
                     className="btn btn-primary"
+                    disabled={isSavingFirm}
                   >
-                    Save Prop Firm
+                    {isSavingFirm ? 'Saving...' : 'Save Prop Firm'}
                   </button>
                 </div>
               </form>
@@ -451,6 +479,7 @@ export default function PropFirmManagement() {
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
                       required
+                      disabled={isSavingMetric}
                     >
                       <option value="">Select Prop Firm</option>
                       {propFirms.map(firm => (
@@ -466,6 +495,7 @@ export default function PropFirmManagement() {
                       value={newMetric.account_type}
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
+                      disabled={isSavingMetric}
                     >
                       <option value="challenge">Challenge</option>
                       <option value="verification">Verification</option>
@@ -480,6 +510,7 @@ export default function PropFirmManagement() {
                       value={newMetric.status}
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
+                      disabled={isSavingMetric}
                     >
                       <option value="in_progress">In Progress</option>
                       <option value="passed">Passed</option>
@@ -496,6 +527,7 @@ export default function PropFirmManagement() {
                       value={newMetric.account_id}
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -508,6 +540,7 @@ export default function PropFirmManagement() {
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
                       required
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -521,6 +554,7 @@ export default function PropFirmManagement() {
                       className="w-full p-2 border rounded"
                       step="0.01"
                       required
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -534,6 +568,7 @@ export default function PropFirmManagement() {
                       className="w-full p-2 border rounded"
                       step="0.01"
                       required
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -547,6 +582,7 @@ export default function PropFirmManagement() {
                       className="w-full p-2 border rounded"
                       step="0.01"
                       required
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -559,6 +595,7 @@ export default function PropFirmManagement() {
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
                       step="0.01"
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -571,6 +608,7 @@ export default function PropFirmManagement() {
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
                       step="0.01"
+                      disabled={isSavingMetric}
                     />
                   </div>
                   
@@ -582,6 +620,7 @@ export default function PropFirmManagement() {
                       onChange={handleMetricInputChange}
                       className="w-full p-2 border rounded"
                       rows="3"
+                      disabled={isSavingMetric}
                     ></textarea>
                   </div>
                 </div>
@@ -590,23 +629,37 @@ export default function PropFirmManagement() {
                   <button 
                     type="submit" 
                     className="btn btn-primary"
+                    disabled={isSavingMetric}
                   >
-                    {editingMetric ? 'Update Account' : 'Save Account'}
+                    {isSavingMetric 
+                      ? (editingMetric ? 'Updating...' : 'Saving...') 
+                      : (editingMetric ? 'Update Account' : 'Save Account')}
                   </button>
                 </div>
               </form>
             </div>
           )}
           
-          {/* Metrics List */}
+          {/* Loading Indicator for Initial Load */}
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="text-center py-8">
+              <div className="inline-block px-4 py-2 bg-blue-50 text-blue-700 rounded-lg">
+                <span className="animate-pulse">Loading data...</span>
+              </div>
+            </div>
           ) : filteredMetrics.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               {searchTerm ? 'No matching accounts found. Try a different search term.' : 'No prop firm accounts added yet.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
+              {/* Refreshing data indicator */}
+              {(isFetchingFirms || isFetchingMetrics) && (
+                <div className="bg-blue-50 text-blue-700 p-2 mb-3 rounded text-center">
+                  <span className="animate-pulse">Refreshing data...</span>
+                </div>
+              )}
+              
               <table className="min-w-full bg-white">
                 <thead className="bg-gray-100">
                   <tr>
@@ -663,14 +716,16 @@ export default function PropFirmManagement() {
                         <button 
                           onClick={() => handleEditMetric(metric)}
                           className="btn btn-primary mb-2"
+                          disabled={isSavingMetric || isDeleting}
                         >
                           Edit
                         </button><br /><br />
                         <button 
                           onClick={() => handleDeleteMetric(metric.id)}
                           className="btn btn-primary"
+                          disabled={isSavingMetric || isDeleting}
                         >
-                          Delete
+                          {isDeleting && metric.id === editingMetric?.id ? 'Deleting...' : 'Delete'}
                         </button>
                       </td>
                     </tr>
@@ -680,12 +735,30 @@ export default function PropFirmManagement() {
             </div>
           )}
           
+          {/* Process Indicator for Deletion */}
+          {isDeleting && (
+            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+              <div className="bg-white p-4 rounded-lg shadow-lg">
+                <div className="text-center">
+                  <div className="mb-2 text-lg font-medium">Deleting account...</div>
+                  <div className="text-sm text-gray-500">Please wait while the account is being deleted.</div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Firm Performance Summary */}
           {metrics.length > 0 && propFirms.length > 1 && (
             <div className="mt-8 mb-8">
               <h6 className="text-lg font-medium mb-4">Firm Performance</h6>
               
               <div className="bg-white p-4 rounded shadow">
+                {isFetchingMetrics && (
+                  <div className="bg-blue-50 text-blue-700 p-2 mb-3 rounded text-center">
+                    <span className="animate-pulse">Updating performance data...</span>
+                  </div>
+                )}
+                
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b">
@@ -745,6 +818,49 @@ export default function PropFirmManagement() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+          
+          {/* Global Loading Overlay for Important Operations */}
+          {(isSavingFirm || (isSavingMetric && !showAddMetric)) && (
+            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg">
+                <div className="text-center">
+                  <div className="mb-3 text-lg font-medium">
+                    {isSavingFirm ? 'Saving Prop Firm...' : 'Saving Account...'}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Please wait while we process your request
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Error Toast Notification */}
+          {error && (
+            <div className="fixed bottom-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg z-50">
+              <div className="flex">
+                <div className="py-1">
+                  <svg className="h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-bold">Error</p>
+                  <p>{error}</p>
+                </div>
+                <div className="ml-auto">
+                  <button 
+                    onClick={() => setError(null)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           )}
