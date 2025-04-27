@@ -7144,6 +7144,7 @@ img {
   33% { content: '..'; }
   66% { content: '...'; }
 }
+
 .holo-background {
   width: 100vw;
   height: 100vh;
@@ -7214,4 +7215,68 @@ img {
     opacity: 1;
     transform: scale(1.05);
   }
+}
+
+/* Navigation link */
+.navigation-link {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+.back-link {
+  color: #00ccff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.back-link:hover {
+  color: #0088cc;
+}
+
+/* Controls */
+.controls {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.command-button, .stop-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.command-button {
+  background-color: #0077cc;
+  color: white;
+}
+
+.command-button:hover {
+  background-color: #005fa3;
+}
+
+.command-button:disabled {
+  background-color: #aaaaaa;
+  cursor: not-allowed;
+}
+
+.stop-button {
+  background-color: #cc0000;
+  color: white;
+}
+
+.stop-button:hover {
+  background-color: #a80000;
+}
+
+.stop-button:disabled {
+  background-color: #aaaaaa;
+  cursor: not-allowed;
 }

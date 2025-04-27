@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom"; // Make sure to import Link for navigation
 
 export default function HolographicInterface() {
   const containerRef = useRef(null);
   const [ripples, setRipples] = useState([]);
+  const [isListening, setIsListening] = useState(false); // Track whether speech recognition is active
+  const [recognition, setRecognition] = useState(null); // Store the SpeechRecognition instance
 
   useEffect(() => {
     const container = containerRef.current;
@@ -19,12 +22,12 @@ export default function HolographicInterface() {
     // Voice command setup
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.lang = 'en-US';
-      recognition.start();
+      const recog = new SpeechRecognition();
+      recog.continuous = true;
+      recog.lang = "en-US";
+      setRecognition(recog);
 
-      recognition.onresult = (event) => {
+      recog.onresult = (event) => {
         const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
         console.log("Voice Command:", transcript);
 
@@ -64,19 +67,42 @@ export default function HolographicInterface() {
     }, 1000);
   };
 
+  const startListening = () => {
+    if (recognition && !isListening) {
+      recognition.start();
+      setIsListening(true);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognition && isListening) {
+      recognition.stop();
+      setIsListening(false);
+    }
+  };
+
   return (
     <div className="holo-background">
-      <div
-        className="holographic-container"
-        ref={containerRef}
-        onClick={generateRipple}
-      >
+      <div className="navigation-link">
+        <Link to="/personal_info" className="back-link">
+          Go Back to SnowAI
+        </Link>
+      </div>
+      <div className="holographic-container" ref={containerRef} onClick={generateRipple}>
         <div className="hologram">
           {/* Ripples */}
           {ripples.map((id) => (
             <span key={id} className="ripple" />
           ))}
         </div>
+      </div>
+      <div className="controls">
+        <button className="command-button" onClick={startListening} disabled={isListening}>
+          Say Command
+        </button>
+        <button className="stop-button" onClick={stopListening} disabled={!isListening}>
+          Stop Command
+        </button>
       </div>
     </div>
   );
