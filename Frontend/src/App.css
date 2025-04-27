@@ -7145,7 +7145,6 @@ img {
   66% { content: '...'; }
 }
 
-/* Dark futuristic background */
 .holo-background {
   width: 100vw;
   height: 100vh;
@@ -7156,119 +7155,89 @@ img {
   overflow: hidden;
 }
 
-/* 3D hologram container */
 .holographic-container {
   width: 400px;
   height: 400px;
   perspective: 1500px;
   transition: transform 0.5s ease;
+  position: relative;
 }
 
-/* Main glowing orb */
 .hologram {
   width: 100%;
   height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 150, 255, 0.7) 0%, rgba(0, 50, 100, 0.3) 40%, transparent 70%),
+              radial-gradient(circle at top left, rgba(0, 100, 255, 0.5) 10%, transparent 50%);
   border-radius: 50%;
   position: relative;
+  filter: drop-shadow(0 0 15px #00ccff) drop-shadow(0 0 25px #0088cc);
   transform-style: preserve-3d;
   animation: rotateHolo 20s linear infinite, pulseGlow 3s ease-in-out infinite alternate;
   box-shadow: 0 0 30px rgba(0, 100, 255, 0.2), inset 0 0 40px rgba(0, 100, 255, 0.3);
-  filter: drop-shadow(0 0 20px #00ccff);
-  background: radial-gradient(circle at center, rgba(0, 150, 255, 0.7) 0%, rgba(0, 50, 100, 0.3) 40%, transparent 70%);
+  overflow: hidden;
 }
 
-/* Glowing energy streams */
-.energy-stream {
+/* Floating Orbs */
+.floating-orb {
   position: absolute;
-  width: 60%;
-  height: 60%;
-  background: linear-gradient(45deg, rgba(0, 200, 255, 0.4), rgba(0, 255, 255, 0.1));
+  width: 15px;
+  height: 15px;
+  background: rgba(0, 200, 255, 0.7);
   border-radius: 50%;
-  top: 20%;
-  left: 20%;
-  animation: energyFlow 2s linear infinite alternate;
-  filter: blur(10px);
+  animation: floatOrb 8s ease-in-out infinite;
 }
 
-@keyframes energyFlow {
-  0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 0.6;
+.floating-orb:nth-child(1) { top: 20%; left: 30%; animation-delay: 0s; }
+.floating-orb:nth-child(2) { top: 60%; left: 20%; animation-delay: 2s; }
+.floating-orb:nth-child(3) { top: 50%; left: 70%; animation-delay: 4s; }
+.floating-orb:nth-child(4) { top: 30%; left: 60%; animation-delay: 1s; }
+.floating-orb:nth-child(5) { top: 70%; left: 50%; animation-delay: 3s; }
+
+@keyframes floatOrb {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
   }
-  100% {
-    transform: scale(1.2) rotate(15deg);
-    opacity: 1;
+  50% {
+    transform: translateY(-10px) translateX(5px);
   }
 }
 
-/* Floating holographic fragments */
-.floating-fragment {
+/* Ripples */
+.ripple {
   position: absolute;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 200, 255, 0.5);
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
-  animation: floatFragment 5s infinite alternate ease-in-out;
-}
-
-.fragment1 {
-  top: 20%;
-  left: 10%;
-  animation-duration: 3s;
-}
-
-.fragment2 {
   top: 50%;
-  left: 80%;
-  animation-duration: 4s;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 200, 255, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: rippleExpand 1s ease-out forwards;
 }
 
-.fragment3 {
-  top: 80%;
-  left: 30%;
-  animation-duration: 5s;
+@keyframes rippleExpand {
+  100% {
+    transform: translate(-50%, -50%) scale(10);
+    opacity: 0;
+  }
 }
 
-@keyframes floatFragment {
+@keyframes rotateHolo {
   0% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 1;
+    transform: rotateY(0deg) rotateX(0deg);
   }
   100% {
-    transform: translateY(-20px) rotate(10deg);
-    opacity: 0.8;
+    transform: rotateY(360deg) rotateX(360deg);
   }
 }
 
-/* Flickering "glitch" effect */
-@keyframes glitch {
+@keyframes pulseGlow {
   0% {
-    opacity: 1;
-    transform: translate(0px, 0px);
-  }
-  20% {
     opacity: 0.8;
-    transform: translate(-2px, 2px);
-  }
-  40% {
-    opacity: 1;
-    transform: translate(1px, -1px);
-  }
-  60% {
-    opacity: 0.9;
-    transform: translate(-1px, 1px);
-  }
-  80% {
-    opacity: 1;
-    transform: translate(2px, -2px);
+    transform: scale(1);
   }
   100% {
     opacity: 1;
-    transform: translate(0px, 0px);
+    transform: scale(1.05);
   }
-}
-
-.hologram {
-  animation: glitch 0.1s infinite steps(2, jump-none);
 }
