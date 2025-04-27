@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 
-export default function Art() {
+export default function HolographicInterface() {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -8,8 +8,8 @@ export default function Art() {
 
     const handleMouseMove = (e) => {
       const { innerWidth, innerHeight } = window;
-      const x = (e.clientX / innerWidth - 0.5) * 30;
-      const y = (e.clientY / innerHeight - 0.5) * 30;
+      const x = (e.clientX / innerWidth - 0.5) * 20;
+      const y = (e.clientY / innerHeight - 0.5) * 20;
       container.style.transform = `rotateX(${y}deg) rotateY(${x}deg)`;
     };
 
@@ -21,8 +21,10 @@ export default function Art() {
   }, []);
 
   return (
-    <div className="holographic-container" ref={containerRef}>
-      <div className="hologram" />
+    <div className="holo-background">
+      <div className="holographic-container" ref={containerRef}>
+        <div className="hologram" />
+      </div>
     </div>
   );
 }
