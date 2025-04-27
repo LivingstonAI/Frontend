@@ -7153,13 +7153,14 @@ img {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  position: relative;
 }
 
 .holographic-container {
   width: 400px;
   height: 400px;
   perspective: 1500px;
-  transition: transform 0.5s ease, opacity 2s ease; /* Added opacity transition for boot effect */
+  transition: transform 0.5s ease, opacity 2s ease;
   position: relative;
 }
 
@@ -7170,13 +7171,16 @@ img {
               radial-gradient(circle at top left, rgba(0, 150, 255, 0.6) 10%, transparent 50%);
   border-radius: 50%;
   position: relative;
-  filter: drop-shadow(0 0 25px #00ccff) drop-shadow(0 0 40px #0088cc); /* Brightened the shadow */
+  filter: drop-shadow(0 0 25px #00ccff) drop-shadow(0 0 40px #0088cc);
   transform-style: preserve-3d;
   animation: rotateHolo 10s linear infinite, pulseGlow 1.5s ease-in-out infinite alternate;
-  box-shadow: 0 0 50px rgba(0, 150, 255, 0.5), inset 0 0 60px rgba(0, 150, 255, 0.6); /* Enhanced glow */
+  box-shadow: 0 0 50px rgba(0, 150, 255, 0.5), inset 0 0 60px rgba(0, 150, 255, 0.6);
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }
-
 
 /* Ripples */
 .ripple {
@@ -7218,11 +7222,64 @@ img {
   }
 }
 
+/* Music Player Styles */
+.holo-music-player {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  text-align: center;
+  color: #00ccff;
+  text-shadow: 0 0 5px #00ccff;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.holo-music-visualizer {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.holo-music-bar {
+  width: 4px;
+  height: 20px;
+  background-color: #00ccff;
+  border-radius: 2px;
+  animation: musicBars 1.2s ease-in-out infinite alternate;
+}
+
+.holo-music-bar:nth-child(1) { animation-delay: 0s; }
+.holo-music-bar:nth-child(2) { animation-delay: 0.2s; }
+.holo-music-bar:nth-child(3) { animation-delay: 0.4s; }
+.holo-music-bar:nth-child(4) { animation-delay: 0.6s; }
+.holo-music-bar:nth-child(5) { animation-delay: 0.8s; }
+
+@keyframes musicBars {
+  0% { height: 5px; }
+  100% { height: 20px; }
+}
+
+.holo-music-title {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.holo-song-name {
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Navigation link */
 .navigation-link {
   position: absolute;
   top: 20px;
   left: 20px;
+  z-index: 10;
 }
 
 .back-link {
@@ -7245,7 +7302,7 @@ img {
   gap: 10px;
 }
 
-.command-button, .stop-button {
+.command-button, .stop-button, .music-button {
   padding: 10px 20px;
   font-size: 16px;
   border: none;
@@ -7280,4 +7337,99 @@ img {
 .stop-button:disabled {
   background-color: #aaaaaa;
   cursor: not-allowed;
+}
+
+.music-button {
+  background-color: #00aacc;
+  color: white;
+}
+
+.music-button:hover {
+  background-color: #008aaa;
+}
+
+/* Song Selection Modal */
+.song-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.song-modal {
+  width: 80%;
+  max-width: 500px;
+  max-height: 80vh;
+  background-color: #0a192f;
+  border: 2px solid #00ccff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 20px rgba(0, 204, 255, 0.5);
+  color: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.song-modal h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #00ccff;
+}
+
+.search-bar {
+  margin-bottom: 15px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #00ccff;
+  border-radius: 5px;
+  background-color: rgba(0, 25, 50, 0.3);
+  color: white;
+  font-size: 16px;
+}
+
+.song-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  max-height: 50vh;
+  border-top: 1px solid rgba(0, 204, 255, 0.3);
+  border-bottom: 1px solid rgba(0, 204, 255, 0.3);
+  padding: 10px 0;
+}
+
+.song-option {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border-radius: 5px;
+}
+
+.song-option:hover {
+  background-color: rgba(0, 204, 255, 0.2);
+}
+
+.close-modal-btn {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #cc0000;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  align-self: center;
+}
+
+.close-modal-btn:hover {
+  background-color: #a80000;
 }
