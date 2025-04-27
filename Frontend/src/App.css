@@ -7433,3 +7433,29 @@ img {
 .close-modal-btn:hover {
   background-color: #a80000;
 }
+
+/* Media Query for smaller screens */
+@media (max-width: 768px) {
+  .holographic-container {
+    width: 300px;
+    height: 300px;
+  }
+
+  .hologram {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Media Query for very small screens */
+@media (max-width: 480px) {
+  .holographic-container {
+    width: 250px;
+    height: 250px;
+  }
+
+  .hologram {
+    width: 100%;
+    height: 100%;
+  }
+}
