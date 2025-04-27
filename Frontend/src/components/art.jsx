@@ -1,245 +1,294 @@
 import React, { useEffect, useRef } from "react";
 
 export default function Art() {
-  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    // Create and manage dynamic particles
+    const container = containerRef.current;
     let particles = [];
-    let orbitals = [];
-    let time = 0;
     
-    // Set canvas dimensions
-    const setCanvasDimensions = () => {
-      canvas.width = window.innerWidth * 0.7;
-      canvas.height = window.innerHeight * 0.7;
-    };
-    
-    setCanvasDimensions();
-    window.addEventListener("resize", setCanvasDimensions);
-    
-    // Create particles
-    const createParticles = () => {
-      particles = [];
-      const numParticles = 150;
+    const createParticle = () => {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
       
-      for (let i = 0; i < numParticles; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 2 + 1,
-          speed: Math.random() * 1 + 0.5,
-          angle: Math.random() * Math.PI * 2,
-          opacity: Math.random() * 0.5 + 0.3,
-          color: `rgba(50, 180, 255, ${Math.random() * 0.5 + 0.3})`,
-        });
-      }
-    };
-    
-    // Create orbital paths
-    const createOrbitals = () => {
-      orbitals = [];
-      const numOrbitals = 5;
+      // Random size between 2-6px
+      const size = Math.random() * 4 + 2;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
       
-      for (let i = 0; i < numOrbitals; i++) {
-        const radius = (canvas.height / 3) * (0.5 + i * 0.1);
-        const points = 8 + Math.floor(Math.random() * 5);
-        const pathVariance = 0.2 + Math.random() * 0.3;  // Renamed to pathVariance to avoid conflict
-        const angleOffset = Math.random() * Math.PI * 2;
-        const rotationSpeed = (Math.random() * 0.0007 + 0.0003) * (Math.random() > 0.5 ? 1 : -1);
-        
-        orbitals.push({
-          radius,
-          points,
-          pathVariance,  // Using the renamed variable
-          angleOffset,
-          rotationSpeed,
-          nodes: [],
-          color: `rgba(${50 + i * 20}, ${150 + i * 20}, 255, ${0.4 + i * 0.1})`,
-          thickness: 1.5 + Math.random(),
-        });
-        
-        // Create nodes along the orbital path
-        for (let j = 0; j < points; j++) {
-          const angle = (j / points) * Math.PI * 2 + angleOffset;
-          const nodeVariance = 1 - (Math.random() * pathVariance * 2 - pathVariance);  // Using pathVariance
-          
-          orbitals[i].nodes.push({
-            angle,
-            variance: nodeVariance,  // Storing as variance
-            pulseSpeed: Math.random() * 0.03 + 0.01,
-            pulseOffset: Math.random() * Math.PI * 2,
-          });
-        }
-      }
+      // Random position along the circle
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 100 + (Math.random() * 50 - 25); // Circle with some variance
+      const x = Math.cos(angle) * radius + 150;
+      const y = Math.sin(angle) * radius + 150;
+      
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      
+      // Random animation duration
+      const duration = Math.random() * 4 + 3;
+      particle.style.animation = `particleMove ${duration}s linear infinite`;
+      
+      // Random opacity
+      particle.style.opacity = Math.random() * 0.7 + 0.3;
+      
+      container.appendChild(particle);
+      particles.push(particle);
+      
+      return particle;
     };
     
-    // Animation loop
+    // Create energy lines
+    const createEnergyLine = () => {
+      const line = document.createElement('div');
+      line.classList.add('energy-line');
+      
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.random() * 50 + 80;
+      const x = Math.cos(angle) * radius + 150;
+      const y = Math.sin(angle) * radius + 150;
+      
+      const length = Math.random() * 40 + 20;
+      const rotation = Math.random() * 360;
+      
+      line.style.left = `${x}px`;
+      line.style.top = `${y}px`;
+      line.style.width = `${length}px`;
+      line.style.transform = `rotate(${rotation}deg)`;
+      line.style.animationDelay = `${Math.random() * 2}s`;
+      
+      container.appendChild(line);
+      return line;
+    };
+    
+    // Create initial particles and energy lines
+    for (let i = 0; i < 150; i++) {
+      createParticle();
+    }
+    
+    for (let i = 0; i < 30; i++) {
+      createEnergyLine();
+    }
+    
+    // Animation frame for movement
     const animate = () => {
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      
-      // Draw central core
-      const coreRadius = canvas.height / 12;
-      const coreGradient = ctx.createRadialGradient(
-        centerX, centerY, 0,
-        centerX, centerY, coreRadius * 1.5
-      );
-      coreGradient.addColorStop(0, "rgba(200, 240, 255, 0.8)");
-      coreGradient.addColorStop(0.5, "rgba(50, 180, 255, 0.4)");
-      coreGradient.addColorStop(1, "rgba(30, 100, 200, 0)");
-      
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, coreRadius, 0, Math.PI * 2);
-      ctx.fillStyle = coreGradient;
-      ctx.fill();
-      
-      // Draw energy pulses
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, coreRadius * (1 + Math.sin(time * 2) * 0.2), 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(150, 220, 255, 0.6)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Draw orbitals
-      orbitals.forEach(orbital => {
-        ctx.beginPath();
-        
-        // Calculate points along the orbital path
-        for (let i = 0; i <= 100; i++) {
-          const angle = (i / 100) * Math.PI * 2 + time * orbital.rotationSpeed;
-          
-          // Find closest nodes and interpolate variance
-          let totalVariance = 0;
-          let totalWeight = 0;
-          
-          orbital.nodes.forEach(node => {
-            let angleDiff = Math.abs(angle - node.angle);
-            if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
-            
-            const weight = Math.max(0, 1 - (angleDiff / (Math.PI / 2)));
-            totalWeight += weight;
-            totalVariance += node.variance * weight * (1 + Math.sin(time * node.pulseSpeed + node.pulseOffset) * 0.1);
-          });
-          
-          const currentVariance = totalWeight > 0 ? totalVariance / totalWeight : 1;
-          const radius = orbital.radius * currentVariance;
-          
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        
-        ctx.closePath();
-        ctx.strokeStyle = orbital.color;
-        ctx.lineWidth = orbital.thickness;
-        ctx.stroke();
-        
-        // Draw nodes along the orbital
-        orbital.nodes.forEach(node => {
-          const nodeVariance = node.variance * (1 + Math.sin(time * node.pulseSpeed + node.pulseOffset) * 0.1);
-          const radius = orbital.radius * nodeVariance;
-          const angle = node.angle + time * orbital.rotationSpeed;
-          
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          
-          ctx.beginPath();
-          ctx.arc(x, y, 2 + Math.sin(time * 2 + node.pulseOffset) * 1, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(150, 220, 255, 0.8)";
-          ctx.fill();
-        });
-      });
-      
-      // Update and draw particles
       particles.forEach(particle => {
-        // Move particles
-        particle.x += Math.cos(particle.angle) * particle.speed;
-        particle.y += Math.sin(particle.angle) * particle.speed;
-        
-        // Wrap around canvas
-        if (particle.x < 0) particle.x = canvas.width;
-        if (particle.x > canvas.width) particle.x = 0;
-        if (particle.y < 0) particle.y = canvas.height;
-        if (particle.y > canvas.height) particle.y = 0;
-        
-        // Draw particle
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = particle.color;
-        ctx.fill();
-      });
-      
-      // Draw connection lines between nearby particles
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < 50) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(100, 200, 255, ${(1 - distance / 50) * 0.2})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
+        const rect = particle.getBoundingClientRect();
+        if (rect.left < 0 || rect.right > window.innerWidth || 
+            rect.top < 0 || rect.bottom > window.innerHeight) {
+          container.removeChild(particle);
+          particles = particles.filter(p => p !== particle);
+          particles.push(createParticle());
         }
-      }
-      
-      // Draw outer glow
-      const outerGlow = ctx.createRadialGradient(
-        centerX, centerY, coreRadius * 2,
-        centerX, centerY, canvas.height / 2
-      );
-      outerGlow.addColorStop(0, "rgba(50, 150, 255, 0.1)");
-      outerGlow.addColorStop(1, "rgba(50, 150, 255, 0)");
-      
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, canvas.height / 2, 0, Math.PI * 2);
-      ctx.fillStyle = outerGlow;
-      ctx.fill();
-      
-      // Increment time
-      time += 0.01;
+      });
       
       requestAnimationFrame(animate);
     };
     
-    createParticles();
-    createOrbitals();
     animate();
     
+    // Continually create new elements
+    const interval = setInterval(() => {
+      for (let i = 0; i < 5; i++) {
+        createParticle();
+      }
+      createEnergyLine();
+    }, 500);
+    
     return () => {
-      window.removeEventListener("resize", setCanvasDimensions);
+      clearInterval(interval);
+      particles = [];
     };
   }, []);
   
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full bg-gray-900">
-      <div className="relative">
-        <canvas 
-          ref={canvasRef} 
-          className="shadow-lg rounded-lg"
-          style={{
-            background: "linear-gradient(to bottom, #0a192f, #051025)",
-            boxShadow: "0 0 30px rgba(50, 150, 255, 0.3)"
-          }}
-        />
-        <div className="absolute top-2 left-2 text-xs text-blue-300 bg-blue-900 bg-opacity-50 px-2 py-1 rounded-md">
-          4K ULTRA HD
-        </div>
-      </div>
+    <div className="holographic-interface">
+      <style jsx>{`
+        .holographic-interface {
+          position: relative;
+          width: 300px;
+          height: 300px;
+          margin: 50px auto;
+          perspective: 1000px;
+        }
+        
+        .holographic-interface:before {
+          content: '';
+          position: absolute;
+          width: 200px;
+          height: 200px;
+          top: 50px;
+          left: 50px;
+          border-radius: 50%;
+          background: rgba(0, 150, 255, 0.1);
+          box-shadow: 0 0 30px 10px rgba(0, 150, 255, 0.3);
+          animation: pulse 3s infinite alternate;
+        }
+        
+        .core {
+          position: absolute;
+          top: 125px;
+          left: 125px;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: rgba(0, 200, 255, 0.8);
+          box-shadow: 0 0 30px 15px rgba(0, 200, 255, 0.6);
+          animation: coreGlow 2s infinite alternate;
+          z-index: 10;
+        }
+        
+        .inner-ring {
+          position: absolute;
+          top: 75px;
+          left: 75px;
+          width: 150px;
+          height: 150px;
+          border-radius: 50%;
+          border: 2px solid rgba(0, 200, 255, 0.6);
+          box-shadow: 0 0 20px rgba(0, 200, 255, 0.4);
+          animation: rotate 10s linear infinite;
+        }
+        
+        .middle-ring {
+          position: absolute;
+          top: 60px;
+          left: 60px;
+          width: 180px;
+          height: 180px;
+          border-radius: 50%;
+          border: 1px dashed rgba(0, 180, 255, 0.5);
+          animation: rotate 20s linear infinite reverse;
+        }
+        
+        .outer-ring {
+          position: absolute;
+          top: 40px;
+          left: 40px;
+          width: 220px;
+          height: 220px;
+          border-radius: 50%;
+          border: 3px solid rgba(0, 130, 255, 0.4);
+          box-shadow: inset 0 0 20px rgba(0, 130, 255, 0.4);
+          animation: rotate 30s linear infinite;
+        }
+        
+        .particle {
+          position: absolute;
+          background: rgba(0, 200, 255, 0.7);
+          border-radius: 50%;
+          box-shadow: 0 0 5px rgba(0, 200, 255, 0.7);
+          opacity: 0.7;
+          z-index: 5;
+        }
+        
+        .energy-line {
+          position: absolute;
+          height: 2px;
+          background: linear-gradient(to right, rgba(0, 200, 255, 0), rgba(0, 200, 255, 0.8), rgba(0, 200, 255, 0));
+          transform-origin: left center;
+          animation: energyPulse 2s infinite alternate;
+        }
+        
+        /* Irregular pattern objects */
+        .data-structure {
+          position: absolute;
+          border: 1px solid rgba(0, 150, 255, 0.6);
+          background: rgba(0, 150, 255, 0.1);
+          border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+          box-shadow: 0 0 10px rgba(0, 150, 255, 0.3);
+          animation: dataFloat 5s infinite alternate;
+        }
+        
+        .ds-0 {
+          width: 30px;
+          height: 20px;
+          top: 60px;
+          left: 140px;
+          animation-delay: 0s;
+        }
+        
+        .ds-1 {
+          width: 40px;
+          height: 25px;
+          top: 200px;
+          left: 160px;
+          animation-delay: 0.5s;
+        }
+        
+        .ds-2 {
+          width: 20px;
+          height: 35px;
+          top: 150px;
+          left: 70px;
+          animation-delay: 1s;
+        }
+        
+        .ds-3 {
+          width: 25px;
+          height: 25px;
+          top: 120px;
+          left: 220px;
+          animation-delay: 1.5s;
+        }
+        
+        .ds-4 {
+          width: 35px;
+          height: 20px;
+          top: 180px;
+          left: 90px;
+          animation-delay: 2s;
+        }
+        
+        @keyframes pulse {
+          0% { transform: scale(0.95); opacity: 0.7; }
+          100% { transform: scale(1.05); opacity: 0.9; }
+        }
+        
+        @keyframes coreGlow {
+          0% { box-shadow: 0 0 20px 10px rgba(0, 200, 255, 0.5); }
+          100% { box-shadow: 0 0 30px 15px rgba(0, 200, 255, 0.7); }
+        }
+        
+        @keyframes rotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes particleMove {
+          0% { transform: scale(1) translate(0, 0); }
+          50% { transform: scale(1.2) translate(5px, -5px); }
+          100% { transform: scale(1) translate(0, 0); }
+        }
+        
+        @keyframes energyPulse {
+          0% { opacity: 0.3; width: 100%; }
+          100% { opacity: 0.7; width: 120%; }
+        }
+        
+        @keyframes dataFloat {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          33% { transform: translate(5px, 5px) rotate(5deg); }
+          66% { transform: translate(-5px, 5px) rotate(-5deg); }
+          100% { transform: translate(0, 0) rotate(0deg); }
+        }
+      `}</style>
+      
+      <div className="core"></div>
+      <div className="inner-ring"></div>
+      <div className="middle-ring"></div>
+      <div className="outer-ring"></div>
+      
+      {/* Data structures - irregular shapes */}
+      <div className="ds-0 data-structure"></div>
+      <div className="ds-1 data-structure"></div>
+      <div className="ds-2 data-structure"></div>
+      <div className="ds-3 data-structure"></div>
+      <div className="ds-4 data-structure"></div>
+      
+      {/* Container for dynamic particles */}
+      <div ref={containerRef} className="particles-container"></div>
     </div>
   );
 }
