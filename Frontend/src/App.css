@@ -7153,14 +7153,25 @@ img {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+.holo-background.booted {
+  opacity: 1;
 }
 
 .holographic-container {
   width: 400px;
   height: 400px;
   perspective: 1500px;
-  transition: transform 0.5s ease;
+  transition: transform 0.5s ease, opacity 2s ease;
   position: relative;
+  opacity: 0;
+}
+
+.holographic-container.booted {
+  opacity: 1;
 }
 
 .hologram {
@@ -7175,30 +7186,37 @@ img {
   animation: rotateHolo 20s linear infinite, pulseGlow 3s ease-in-out infinite alternate;
   box-shadow: 0 0 30px rgba(0, 100, 255, 0.2), inset 0 0 40px rgba(0, 100, 255, 0.3);
   overflow: hidden;
+  transform: scale(0);
+  transition: transform 1.5s ease;
 }
 
-/* Floating Orbs */
+.hologram.booted {
+  transform: scale(1);
+}
+
+/* Orbiting Orbs */
 .floating-orb {
   position: absolute;
   width: 15px;
   height: 15px;
   background: rgba(0, 200, 255, 0.7);
   border-radius: 50%;
-  animation: floatOrb 8s ease-in-out infinite;
+  animation: orbit 10s linear infinite;
+  transform-origin: 150px 150px;
 }
 
-.floating-orb:nth-child(1) { top: 20%; left: 30%; animation-delay: 0s; }
-.floating-orb:nth-child(2) { top: 60%; left: 20%; animation-delay: 2s; }
-.floating-orb:nth-child(3) { top: 50%; left: 70%; animation-delay: 4s; }
-.floating-orb:nth-child(4) { top: 30%; left: 60%; animation-delay: 1s; }
-.floating-orb:nth-child(5) { top: 70%; left: 50%; animation-delay: 3s; }
+.orb-0 { animation-delay: 0s; }
+.orb-1 { animation-delay: 2s; }
+.orb-2 { animation-delay: 4s; }
+.orb-3 { animation-delay: 6s; }
+.orb-4 { animation-delay: 8s; }
 
-@keyframes floatOrb {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px);
+@keyframes orbit {
+  0% {
+    transform: rotate(0deg) translateX(100px) rotate(0deg);
   }
-  50% {
-    transform: translateY(-10px) translateX(5px);
+  100% {
+    transform: rotate(360deg) translateX(100px) rotate(-360deg);
   }
 }
 
@@ -7222,6 +7240,7 @@ img {
   }
 }
 
+/* Other Animations */
 @keyframes rotateHolo {
   0% {
     transform: rotateY(0deg) rotateX(0deg);

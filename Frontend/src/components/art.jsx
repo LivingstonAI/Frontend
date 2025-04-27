@@ -3,9 +3,15 @@ import React, { useEffect, useRef, useState } from "react";
 export default function HolographicInterface() {
   const containerRef = useRef(null);
   const [ripples, setRipples] = useState([]);
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
+
+    // Boot sequence
+    setTimeout(() => {
+      setBooted(true);
+    }, 500); // slight delay for dramatic effect
 
     const handleMouseMove = (e) => {
       const { innerWidth, innerHeight } = window;
@@ -56,16 +62,16 @@ export default function HolographicInterface() {
   };
 
   return (
-    <div className="holo-background">
+    <div className={`holo-background ${booted ? "booted" : ""}`}>
       <div
-        className="holographic-container"
+        className={`holographic-container ${booted ? "booted" : ""}`}
         ref={containerRef}
         onClick={generateRipple}
       >
-        <div className="hologram">
-          {/* Floating mini orbs */}
+        <div className={`hologram ${booted ? "booted" : ""}`}>
+          {/* Orbiting mini orbs */}
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="floating-orb" />
+            <div key={i} className={`floating-orb orb-${i}`} />
           ))}
           {/* Ripples */}
           {ripples.map((id) => (
