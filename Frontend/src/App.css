@@ -7435,7 +7435,7 @@ img {
 }
 
 /* Media Query for very small screens (e.g., smartphones) */
-@media (max-width: 480px) {
+@media (max-width: 800px) {
   .holographic-container {
     width: 250px;
     height: 250px;
