@@ -7166,16 +7166,17 @@ img {
 .hologram {
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at center, rgba(0, 150, 255, 0.7) 0%, rgba(0, 50, 100, 0.3) 40%, transparent 70%),
-              radial-gradient(circle at top left, rgba(0, 100, 255, 0.5) 10%, transparent 50%);
+  background: radial-gradient(circle at center, rgba(0, 150, 255, 0.8) 0%, rgba(0, 50, 100, 0.4) 40%, transparent 70%),
+              radial-gradient(circle at top left, rgba(0, 150, 255, 0.6) 10%, transparent 50%);
   border-radius: 50%;
   position: relative;
-  filter: drop-shadow(0 0 15px #00ccff) drop-shadow(0 0 25px #0088cc);
+  filter: drop-shadow(0 0 25px #00ccff) drop-shadow(0 0 40px #0088cc); /* Brightened the shadow */
   transform-style: preserve-3d;
-  animation: rotateHolo 10s linear infinite, pulseGlow 1.5s ease-in-out infinite alternate; /* Faster animation */
-  box-shadow: 0 0 30px rgba(0, 100, 255, 0.2), inset 0 0 40px rgba(0, 100, 255, 0.3);
+  animation: rotateHolo 10s linear infinite, pulseGlow 1.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 50px rgba(0, 150, 255, 0.5), inset 0 0 60px rgba(0, 150, 255, 0.6); /* Enhanced glow */
   overflow: hidden;
 }
+
 
 /* Ripples */
 .ripple {
