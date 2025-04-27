@@ -7434,8 +7434,22 @@ img {
   background-color: #a80000;
 }
 
+/* Media Query for smaller screens */
+@media (max-width: 768px) {
+  .holographic-container {
+    width: 300px;
+    height: 300px;
+  }
+
+  .hologram {
+    width: 100%;
+    height: 100%;
+    animation: rotateHolo 12s linear infinite, pulseGlow 1.5s ease-in-out infinite alternate; /* Slower rotation */
+  }
+}
+
 /* Media Query for very small screens (e.g., smartphones) */
-@media (max-width: 800px) {
+@media (max-width: 480px) {
   .holographic-container {
     width: 250px;
     height: 250px;
