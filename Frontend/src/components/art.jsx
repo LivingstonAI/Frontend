@@ -3,15 +3,9 @@ import React, { useEffect, useRef, useState } from "react";
 export default function HolographicInterface() {
   const containerRef = useRef(null);
   const [ripples, setRipples] = useState([]);
-  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
-
-    // Boot sequence
-    setTimeout(() => {
-      setBooted(true);
-    }, 500); // slight delay for dramatic effect
 
     const handleMouseMove = (e) => {
       const { innerWidth, innerHeight } = window;
@@ -48,6 +42,15 @@ export default function HolographicInterface() {
       };
     }
 
+    // Boot sequence (scaling and fading in)
+    container.style.opacity = 0;
+    container.style.transform = "scale(0.5)";
+    setTimeout(() => {
+      container.style.transition = "transform 2s ease, opacity 2s ease";
+      container.style.opacity = 1;
+      container.style.transform = "scale(1)";
+    }, 100);
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
@@ -62,17 +65,13 @@ export default function HolographicInterface() {
   };
 
   return (
-    <div className={`holo-background ${booted ? "booted" : ""}`}>
+    <div className="holo-background">
       <div
-        className={`holographic-container ${booted ? "booted" : ""}`}
+        className="holographic-container"
         ref={containerRef}
         onClick={generateRipple}
       >
-        <div className={`hologram ${booted ? "booted" : ""}`}>
-          {/* Orbiting mini orbs */}
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className={`floating-orb orb-${i}`} />
-          ))}
+        <div className="hologram">
           {/* Ripples */}
           {ripples.map((id) => (
             <span key={id} className="ripple" />
