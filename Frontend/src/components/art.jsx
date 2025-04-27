@@ -23,7 +23,12 @@ export default function HolographicInterface() {
   return (
     <div className="holo-background">
       <div className="holographic-container" ref={containerRef}>
-        <div className="hologram" />
+        <div className="hologram">
+          <div className="energy-stream"></div>
+          <div className="floating-fragment fragment1"></div>
+          <div className="floating-fragment fragment2"></div>
+          <div className="floating-fragment fragment3"></div>
+        </div>
       </div>
     </div>
   );
