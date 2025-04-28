@@ -461,7 +461,7 @@ export default function Calendar() {
                       {events.map((event) => {
                         const eventDate = parseISO(event.date_time);
                         // Mapping impact level to CSS class
-                        const impactClass = event.impact === 'High' ? 'impact-high' : event.impact === 'Medium' ? 'impact-medium' : 'impact-low';
+                        const impactClass = event.impact === 'high' ? 'impact-high' : event.impact === 'medium' ? 'impact-medium' : 'impact-low';
 
                         return (
                           <tr key={event.id} className="hover:bg-blue-50 transition-colors duration-200">
