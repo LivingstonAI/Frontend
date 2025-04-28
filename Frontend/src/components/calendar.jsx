@@ -495,15 +495,15 @@ export default function Calendar() {
                                 )}
                               </div>
                             </td> */}
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center justify-center">
-                                <span className="w-6 h-6 rounded-full flex items-center justify-center">
-                                  {event.impact === "high" && <div className="circle bg-red-600" title="High Impact"></div>}
-                                  {event.impact === "medium" && <div className="circle bg-orange-500" title="Medium Impact"></div>}
-                                  {event.impact === "low" && <div className="circle bg-yellow-500" title="Low Impact"></div>}
-                                </span>
-                              </div>
-                            </td>
+                                                  <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-center">
+                          <span className="impact-indicator">
+                            {event.impact === "high" && "🔴"}
+                            {event.impact === "medium" && "🟠"} 
+                            {event.impact === "low" && "🟡"} 
+                          </span>
+                        </div>
+                      </td>
 
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {event.event_name}
