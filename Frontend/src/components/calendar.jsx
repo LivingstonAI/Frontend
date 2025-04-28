@@ -273,7 +273,7 @@ export default function Calendar() {
                   className="btn btn-primary"
                 >
                   {showAddForm ? "Cancel" : "Add Event"}
-                </button>
+                </button><br /><br />
                 
                 <button 
                   onClick={handleNext}
@@ -399,7 +399,7 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={() => setShowAddForm(false)}
-                      className="btn btn-primary"
+                      className="btn btn-danger"
                     >
                       Cancel
                     </button>
