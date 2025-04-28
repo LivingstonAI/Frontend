@@ -243,7 +243,7 @@ const handlePlay = (songUrl) => {
         <Link to="/call_ai" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-telephone-fill"></i></p></button></Link>
         <Link to="/trade_ideas" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-snow2"></i></p></button></Link>
         <Link to="/prop_firm_management" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
-        <Link to="/music" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-file-music-fill"></i></p></button></Link>
+        <Link to="/music" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-music-note-beamed"></i></p></button></Link>
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
       </div>
 
@@ -312,7 +312,7 @@ const handlePlay = (songUrl) => {
             <i className="bi bi-currency-dollar"></i>
         </Link>
         <Link to="/music" className="side-nav">
-            <i className="bi bi-file-music-fill"></i>
+            <i className="bi bi-music-note-beamed"></i>
         </Link>
         <Link to="/calendar" className="side-nav">
             <i className="bi bi-calendar-fill"></i>
