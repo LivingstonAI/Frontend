@@ -7490,11 +7490,13 @@ img {
 }
 
 .impact-indicator {
-  font-size: 24px; /* Adjust size of the emoji or icon */
+  font-size: 15px; /* Adjust size of the emoji or icon */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 
+
+/* https://copilot.microsoft.com/chats/riQYPyMJufL4mMRfQ11vw */
 
