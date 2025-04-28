@@ -460,8 +460,8 @@ export default function Calendar() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {events.map((event) => {
                         const eventDate = parseISO(event.date_time);
-                        // Mapping impact level to CSS class
-                        const impactClass = event.impact === 'high' ? 'impact-high' : event.impact === 'medium' ? 'impact-medium' : 'impact-low';
+                        // Use the impactColors object directly to set the background color
+                        const impactColor = impactColors[event.impact] || "#ecc94b"; // Default to yellow if impact is undefined
 
                         return (
                           <tr key={event.id} className="hover:bg-blue-50 transition-colors duration-200">
@@ -474,8 +474,12 @@ export default function Calendar() {
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                {/* Impact Circular Orb */}
-                                <div className={`w-3 h-3 rounded-full mr-2 ${impactClass}`} />
+                                {/* Impact Circular Orb - using inline style with color from impactColors */}
+                                <div 
+                                  className="w-3 h-3 rounded-full mr-2" 
+                                  style={{ backgroundColor: impactColor }}
+                                />
+                                <span className="text-sm capitalize">{event.impact}</span>
                               </div>
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -503,7 +507,6 @@ export default function Calendar() {
                       })}
                     </tbody>
                   </table>
-
                 </div>
               )}
             </div>
