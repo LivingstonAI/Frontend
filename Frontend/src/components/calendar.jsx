@@ -476,25 +476,25 @@ export default function Calendar() {
                               <div className="flex items-center justify-center">
                                 {event.impact === "high" && (
                                   <div className="flex items-center">
-                                    <div className="w-4 h-4 rounded-full mr-1 bg-red-600" />
+                                    <div className="impact-high w-4 h-4 rounded-full mr-1 bg-red-600" />
                                     {event.impact}
-                                    <div className="w-4 h-4 rounded-full mr-1 bg-red-600" />
+                                    <div className="impact-high w-4 h-4 rounded-full mr-1 bg-red-600" />
                                     {event.impact}
-                                    <div className="w-4 h-4 rounded-full bg-red-600" />
+                                    <div className="impact-high w-4 h-4 rounded-full bg-red-600" />
                                     {event.impact}
                                   </div>
                                 )}
                                 {event.impact === "medium" && (
                                   <div className="flex items-center">
-                                    <div className="w-4 h-4 rounded-full mr-1 bg-orange-500" />
+                                    <div className="impact-medium w-4 h-4 rounded-full mr-1 bg-orange-500" />
                                     {event.impact}
-                                    <div className="w-4 h-4 rounded-full bg-orange-500" />
+                                    <div className="impact-medium w-4 h-4 rounded-full bg-orange-500" />
                                     {event.impact}
                                   </div>
                                 )}
                                 {event.impact === "low" && (
                                   <div className="flex items-center">
-                                    <div className="w-4 h-4 rounded-full bg-yellow-500" />
+                                    <div className="impact-low w-4 h-4 rounded-full bg-yellow-500" />
                                     {event.impact}
                                   </div>
                                 )}
