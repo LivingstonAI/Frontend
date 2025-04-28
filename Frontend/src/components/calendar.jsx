@@ -13,7 +13,8 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [processing, setProcessing] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [actionType, setActionType] = useState("");
   
   // Form state
   const [formData, setFormData] = useState({
@@ -27,11 +28,11 @@ export default function Calendar() {
     previous: ""
   });
 
-  // Impact color mapping for orbs
+  // Impact color mapping
   const impactColors = {
-    high: "#ff3a33",
-    medium: "#ff9800",
-    low: "#ffd600"
+    high: "#e53e3e", // red-600
+    medium: "#ed8936", // orange-500
+    low: "#ecc94b" // yellow-500
   };
 
   useEffect(() => {
@@ -98,9 +99,8 @@ export default function Calendar() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Set processing state
-    setProcessing(editingEvent ? "Saving changes..." : "Adding event...");
+    setProcessing(true);
+    setActionType(editingEvent ? "Saving" : "Adding");
     
     try {
       // Format the data for submission
@@ -135,7 +135,8 @@ export default function Calendar() {
       setError("Failed to save event");
       console.error(err);
     } finally {
-      setProcessing(null);
+      setProcessing(false);
+      setActionType("");
     }
   };
 
@@ -158,7 +159,8 @@ export default function Calendar() {
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
-      setProcessing("Deleting event...");
+      setProcessing(true);
+      setActionType("Deleting");
       try {
         await axios.delete(`${baseUrl}/api/economic-events/${id}/`);
         fetchEvents();
@@ -166,7 +168,8 @@ export default function Calendar() {
         setError("Failed to delete event");
         console.error(err);
       } finally {
-        setProcessing(null);
+        setProcessing(false);
+        setActionType("");
       }
     }
   };
@@ -184,21 +187,18 @@ export default function Calendar() {
     }
   };
 
-  // Render impact orb
-  const renderImpactOrb = (impact) => {
-    return (
-      <div className="flex justify-center">
-        <div 
-          className="w-3 h-3 rounded-full" 
-          style={{ backgroundColor: impactColors[impact] }}
-        ></div>
-      </div>
-    );
-  };
+  // Button styles
+  const btnPrimary = "bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50";
+  const btnSecondary = "bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50";
+  const btnSmall = "px-3 py-1 text-sm";
+  const btnDanger = "bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50";
+  
+  // Input styles
+  const inputStyle = "block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900";
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
-      <div className="flex-none">
+      <div className="flex-none shadow-md z-10">
         <Header />
       </div>
       
@@ -206,55 +206,53 @@ export default function Calendar() {
         <SideNavs />
         
         <div className="flex-1 overflow-y-auto p-2 md:p-4">
-          <div className="bg-white rounded-lg shadow-md relative">
-            {/* Processing Overlay */}
-            {processing && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 rounded-lg">
-                <div className="bg-white p-4 rounded-lg shadow-lg flex items-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-800 mr-3"></div>
-                  <p className="text-blue-800 font-medium">{processing}</p>
-                </div>
+          {/* Processing Overlay */}
+          {processing && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-3"></div>
+                <p className="text-lg font-medium">{actionType}...</p>
               </div>
-            )}
-            
+            </div>
+          )}
+          
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Calendar Header */}
-            <div className="bg-blue-900 text-white px-4 md:px-6 py-3 rounded-t-lg flex flex-col md:flex-row justify-between items-center">
-              <h1 className="text-xl font-bold mb-2 md:mb-0">Trading Calendar</h1>
+            <div className="bg-gradient-to-r from-blue-800 to-blue-700 text-white px-4 md:px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+              <h1 className="text-xl font-bold">Trading Calendar</h1>
               
-              <div className="flex items-center space-x-2">
-                <div className="flex space-x-1 bg-blue-800 rounded-lg p-1">
-                  <button 
-                    onClick={() => setViewMode("day")} 
-                    className={`px-3 py-1 text-sm md:text-base rounded ${viewMode === "day" ? "bg-blue-600" : "hover:bg-blue-700"}`}
-                  >
-                    Day
-                  </button>
-                  <button 
-                    onClick={() => setViewMode("week")} 
-                    className={`px-3 py-1 text-sm md:text-base rounded ${viewMode === "week" ? "bg-blue-600" : "hover:bg-blue-700"}`}
-                  >
-                    Week
-                  </button>
-                  <button 
-                    onClick={() => setViewMode("month")} 
-                    className={`px-3 py-1 text-sm md:text-base rounded ${viewMode === "month" ? "bg-blue-600" : "hover:bg-blue-700"}`}
-                  >
-                    Month
-                  </button>
-                </div>
+              <div className="flex items-center space-x-2 bg-blue-900 bg-opacity-30 rounded-lg p-1">
+                <button 
+                  onClick={() => setViewMode("day")} 
+                  className={`px-3 py-1 rounded ${viewMode === "day" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                >
+                  Day
+                </button>
+                <button 
+                  onClick={() => setViewMode("week")} 
+                  className={`px-3 py-1 rounded ${viewMode === "week" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                >
+                  Week
+                </button>
+                <button 
+                  onClick={() => setViewMode("month")} 
+                  className={`px-3 py-1 rounded ${viewMode === "month" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                >
+                  Month
+                </button>
               </div>
             </div>
             
             {/* Navigation Bar */}
-            <div className="px-4 md:px-6 py-2 bg-gray-100 flex flex-wrap items-center justify-between border-b border-gray-300">
+            <div className="px-4 md:px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
               <button 
                 onClick={handlePrevious}
-                className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded flex items-center text-sm"
+                className={`${btnSecondary} ${btnSmall} flex items-center`}
               >
                 <span className="mr-1">←</span> Previous
               </button>
               
-              <h2 className="text-base md:text-lg font-medium text-blue-900 my-1">{getTitle()}</h2>
+              <h2 className="text-lg font-medium text-blue-900">{getTitle()}</h2>
               
               <div className="flex space-x-2">
                 <button
@@ -272,14 +270,14 @@ export default function Calendar() {
                     });
                     setShowAddForm(!showAddForm);
                   }}
-                  className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm"
+                  className={showAddForm ? btnSecondary : btnPrimary}
                 >
                   {showAddForm ? "Cancel" : "Add Event"}
                 </button>
                 
                 <button 
                   onClick={handleNext}
-                  className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded flex items-center text-sm"
+                  className={`${btnSecondary} ${btnSmall} flex items-center`}
                 >
                   Next <span className="ml-1">→</span>
                 </button>
@@ -300,7 +298,7 @@ export default function Calendar() {
                       name="date"
                       value={formData.date}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                       required
                     />
                   </div>
@@ -312,7 +310,7 @@ export default function Calendar() {
                       name="time"
                       value={formData.time}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                       required
                     />
                   </div>
@@ -323,7 +321,7 @@ export default function Calendar() {
                       name="currency"
                       value={formData.currency}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                       required
                     >
                       <option value="USD">USD</option>
@@ -343,7 +341,7 @@ export default function Calendar() {
                       name="impact"
                       value={formData.impact}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                       required
                     >
                       <option value="low">Low</option>
@@ -359,7 +357,7 @@ export default function Calendar() {
                       name="event_name"
                       value={formData.event_name}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                       required
                     />
                   </div>
@@ -371,7 +369,7 @@ export default function Calendar() {
                       name="actual"
                       value={formData.actual}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                     />
                   </div>
                   
@@ -382,7 +380,7 @@ export default function Calendar() {
                       name="forecast"
                       value={formData.forecast}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                     />
                   </div>
                   
@@ -393,7 +391,7 @@ export default function Calendar() {
                       name="previous"
                       value={formData.previous}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputStyle}
                     />
                   </div>
                   
@@ -401,13 +399,14 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={() => setShowAddForm(false)}
-                      className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+                      className={btnSecondary}
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                      className={btnPrimary}
+                      disabled={processing}
                     >
                       {editingEvent ? "Update Event" : "Add Event"}
                     </button>
@@ -419,156 +418,118 @@ export default function Calendar() {
             {/* Events Table */}
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-6 text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
-                  <p className="mt-2 text-blue-800">Loading events...</p>
+                <div className="p-6 text-center flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mr-3"></div>
+                  <span className="text-gray-600">Loading events...</span>
                 </div>
               ) : error ? (
                 <div className="p-6 text-center text-red-500">{error}</div>
               ) : events.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">No events for the selected period</div>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Time
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Currency
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Impact
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Event
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actual
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Forecast
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Previous
-                      </th>
-                      <th scope="col" className="px-2 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {events.map((event) => {
-                      const eventDate = parseISO(event.date_time);
-                      return (
-                        <tr key={event.id} className="hover:bg-blue-50">
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900 border-r border-gray-100">
-                            {viewMode !== "day" && format(eventDate, "MMM d, ")}
-                            {format(eventDate, "h:mm a")}
-                          </td>
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm font-medium text-gray-900 border-r border-gray-100">
-                            {event.currency}
-                          </td>
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap border-r border-gray-100">
-                            {renderImpactOrb(event.impact)}
-                          </td>
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900 border-r border-gray-100">
-                            {event.event_name}
-                          </td>
-                          <td className={`px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm border-r border-gray-100 ${Number(event.actual) > Number(event.forecast) ? 'text-green-600 font-medium' : Number(event.actual) < Number(event.forecast) ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                            {event.actual || "-"}
-                          </td>
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900 border-r border-gray-100">
-                            {event.forecast || "-"}
-                          </td>
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-xs md:text-sm text-gray-900 border-r border-gray-100">
-                            {event.previous || "-"}
-                          </td>
-                          <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap text-right text-xs md:text-sm font-medium">
-                            <button
-                              onClick={() => handleEdit(event)}
-                              className="text-blue-600 hover:text-blue-900 mr-2"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(event.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className="relative overflow-x-auto shadow-md">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                      <tr>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Time
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Currency
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Impact
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Event
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Actual
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Forecast
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                          Previous
+                        </th>
+                        <th scope="col" className="px-4 md:px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {events.map((event) => {
+                        const eventDate = parseISO(event.date_time);
+                        return (
+                          <tr key={event.id} className="hover:bg-blue-50 transition-colors duration-200">
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              {viewMode !== "day" && format(eventDate, "MMM d, ")}
+                              {format(eventDate, "h:mm a")}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              {event.currency}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div 
+                                  className="w-3 h-3 rounded-full mr-2" 
+                                  style={{ backgroundColor: impactColors[event.impact] }}
+                                ></div>
+                                <span className="text-sm capitalize">{event.impact}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {event.event_name}
+                            </td>
+                            <td className={`px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium ${Number(event.actual) > Number(event.forecast) ? 'text-green-600' : Number(event.actual) < Number(event.forecast) ? 'text-red-600' : 'text-gray-900'}`}>
+                              {event.actual || "—"}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {event.forecast || "—"}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {event.previous || "—"}
+                            </td>
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button
+                                onClick={() => handleEdit(event)}
+                                className="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(event.id)}
+                                className="text-red-600 hover:text-red-800 transition-colors duration-200"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
             
             {/* Color Legend */}
-            <div className="px-4 md:px-6 py-3 bg-gray-50 rounded-b-lg flex flex-wrap items-center gap-4 text-xs md:text-sm border-t border-gray-200">
-              <h4 className="font-medium text-blue-900">Impact Legend:</h4>
+            <div className="px-4 md:px-6 py-3 bg-gray-50 rounded-b-lg flex flex-wrap items-center space-x-4 text-sm border-t border-gray-200">
+              <h4 className="font-medium text-gray-700">Impact Legend:</h4>
               <div className="flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: impactColors.high }}></span>
+                <div className="w-3 h-3 rounded-full bg-red-600 mr-2"></div>
                 <span>High</span>
               </div>
               <div className="flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: impactColors.medium }}></span>
+                <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
                 <span>Medium</span>
               </div>
               <div className="flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: impactColors.low }}></span>
+                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
                 <span>Low</span>
               </div>
             </div>
           </div>
-          
-          {/* Additional styles for the component */}
-          <style jsx>{`
-            @media (max-width: 640px) {
-              table {
-                font-size: 0.75rem;
-              }
-              th, td {
-                padding: 0.5rem 0.25rem;
-              }
-            }
-            
-            /* Custom scrollbar for the table */
-            .overflow-x-auto::-webkit-scrollbar {
-              height: 8px;
-            }
-            
-            .overflow-x-auto::-webkit-scrollbar-track {
-              background: #f1f1f1;
-              border-radius: 4px;
-            }
-            
-            .overflow-x-auto::-webkit-scrollbar-thumb {
-              background: #2d4373;
-              border-radius: 4px;
-            }
-            
-            .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-              background: #1e325a;
-            }
-            
-            /* Alternating row colors */
-            tbody tr:nth-child(even) {
-              background-color: #f8fafc;
-            }
-            
-            /* Hover effects */
-            tbody tr:hover {
-              background-color: #e8f4ff !important;
-            }
-            
-            /* Button transitions */
-            button {
-              transition: all 0.2s ease;
-            }
-          `}</style>
         </div>
       </div>
     </div>
