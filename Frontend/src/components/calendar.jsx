@@ -218,8 +218,8 @@ export default function Calendar() {
           
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Calendar Header */}
-            <div className="bg-gradient-to-r from-blue-800 to-blue-700 text-white px-4 md:px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-              <h1 className="text-xl font-bold">Trading Calendar</h1>
+            <div className="">
+              <h5 className="text-xl font-bold">Trading Calendar</h5>
               
               <div className="flex items-center space-x-2 bg-blue-900 bg-opacity-30 rounded-lg p-1">
                 <button 
