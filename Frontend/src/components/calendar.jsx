@@ -520,7 +520,7 @@ export default function Calendar() {
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button onClick={() => handleEdit(event)} className="btn btn-primary text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
                                 Edit
-                              </button>
+                              </button><br /><br />
                               <button onClick={() => handleDelete(event.id)} className="btn btn-primary text-red-600 hover:text-red-800 transition-colors duration-200">
                                 Delete
                               </button>
