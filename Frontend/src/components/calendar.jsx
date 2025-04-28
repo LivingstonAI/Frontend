@@ -477,19 +477,25 @@ export default function Calendar() {
                                 {event.impact === "high" && (
                                   <div className="flex items-center">
                                     <div className="w-4 h-4 rounded-full mr-1 bg-red-600" />
+                                    {event.impact}
                                     <div className="w-4 h-4 rounded-full mr-1 bg-red-600" />
+                                    {event.impact}
                                     <div className="w-4 h-4 rounded-full bg-red-600" />
+                                    {event.impact}
                                   </div>
                                 )}
                                 {event.impact === "medium" && (
                                   <div className="flex items-center">
                                     <div className="w-4 h-4 rounded-full mr-1 bg-orange-500" />
+                                    {event.impact}
                                     <div className="w-4 h-4 rounded-full bg-orange-500" />
+                                    {event.impact}
                                   </div>
                                 )}
                                 {event.impact === "low" && (
                                   <div className="flex items-center">
                                     <div className="w-4 h-4 rounded-full bg-yellow-500" />
+                                    {event.impact}
                                   </div>
                                 )}
                               </div>
