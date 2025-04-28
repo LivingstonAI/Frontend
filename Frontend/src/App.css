@@ -7435,7 +7435,7 @@ img {
 }
 
 /* Media Query for smaller screens */
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   .holographic-container {
     width: 300px;
     height: 300px;
@@ -7446,11 +7446,11 @@ img {
     height: 100%;
     animation: rotateHolo 45s linear infinite, pulseGlow 30s ease-in-out infinite alternate; /* Slower glow pulse */
 
-  }
-}
+  /* } */
+/* } */ 
 
 /* Media Query for very small screens (e.g., smartphones) */
-@media (max-width: 480px) {
+/* @media (max-width: 480px) {
   .holographic-container {
     width: 250px;
     height: 250px;
@@ -7461,8 +7461,8 @@ img {
     height: 100%;
     animation: rotateHolo 45s linear infinite, pulseGlow 30s ease-in-out infinite alternate; /* Very slow pulseGlow on small screens */
 
-  }
-}
+  /* } */
+/* } */ 
 
 /* Slow down the hologram rotation */
 @keyframes rotateHolo {
