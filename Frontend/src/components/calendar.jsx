@@ -13,6 +13,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [processingAction, setProcessingAction] = useState(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -26,11 +27,17 @@ export default function Calendar() {
     previous: ""
   });
 
-  // Impact color mapping
+  // Impact color mapping and indicators
   const impactColors = {
-    high: "bg-red-500",
-    medium: "bg-orange-400",
-    low: "bg-yellow-400"
+    high: "#e53e3e", // red
+    medium: "#ed8936", // orange
+    low: "#ecc94b" // yellow
+  };
+
+  const impactLabels = {
+    high: "High",
+    medium: "Medium",
+    low: "Low"
   };
 
   useEffect(() => {
@@ -98,6 +105,9 @@ export default function Calendar() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Set processing state
+      setProcessingAction(editingEvent ? "Updating..." : "Adding...");
+      
       // Format the data for submission
       const eventData = {
         ...formData,
@@ -129,6 +139,8 @@ export default function Calendar() {
     } catch (err) {
       setError("Failed to save event");
       console.error(err);
+    } finally {
+      setProcessingAction(null);
     }
   };
 
@@ -152,11 +164,14 @@ export default function Calendar() {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
+        setProcessingAction("Deleting...");
         await axios.delete(`${baseUrl}/api/economic-events/${id}/`);
         fetchEvents();
       } catch (err) {
         setError("Failed to delete event");
         console.error(err);
+      } finally {
+        setProcessingAction(null);
       }
     }
   };
@@ -175,7 +190,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-100">
       <div className="flex-none">
         <Header />
       </div>
@@ -183,29 +198,32 @@ export default function Calendar() {
       <div className="flex flex-1 overflow-hidden">
         <SideNavs />
         
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-2 md:p-4">
           <div className="bg-white rounded-lg shadow-md">
             {/* Calendar Header */}
-            <div className="bg-blue-800 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
-              <h1 className="text-xl font-bold">Trading Calendar</h1>
+            <div className="bg-blue-900 text-white px-3 md:px-6 py-3 rounded-t-lg flex flex-col md:flex-row justify-between items-center">
+              <h1 className="text-xl font-bold mb-2 md:mb-0">
+                <span className="hidden md:inline">Forex Factory </span>
+                Economic Calendar
+              </h1>
               
-              <div className="flex items-center space-x-4">
-                <div className="flex space-x-2">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-1">
                   <button 
                     onClick={() => setViewMode("day")} 
-                    className={`px-3 py-1 rounded ${viewMode === "day" ? "bg-blue-600" : "hover:bg-blue-700"}`}
+                    className={`px-2 py-1 text-sm rounded ${viewMode === "day" ? "bg-blue-700" : "hover:bg-blue-800"}`}
                   >
                     Day
                   </button>
                   <button 
                     onClick={() => setViewMode("week")} 
-                    className={`px-3 py-1 rounded ${viewMode === "week" ? "bg-blue-600" : "hover:bg-blue-700"}`}
+                    className={`px-2 py-1 text-sm rounded ${viewMode === "week" ? "bg-blue-700" : "hover:bg-blue-800"}`}
                   >
                     Week
                   </button>
                   <button 
                     onClick={() => setViewMode("month")} 
-                    className={`px-3 py-1 rounded ${viewMode === "month" ? "bg-blue-600" : "hover:bg-blue-700"}`}
+                    className={`px-2 py-1 text-sm rounded ${viewMode === "month" ? "bg-blue-700" : "hover:bg-blue-800"}`}
                   >
                     Month
                   </button>
@@ -214,17 +232,17 @@ export default function Calendar() {
             </div>
             
             {/* Navigation Bar */}
-            <div className="px-6 py-3 bg-gray-100 flex items-center justify-between">
+            <div className="px-3 md:px-6 py-2 bg-gray-200 flex flex-wrap items-center justify-between">
               <button 
                 onClick={handlePrevious}
-                className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded flex items-center"
+                className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded flex items-center text-sm"
               >
                 <span className="mr-1">←</span> Previous
               </button>
               
-              <h2 className="text-lg font-medium">{getTitle()}</h2>
+              <h2 className="text-base md:text-lg font-medium mx-2">{getTitle()}</h2>
               
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 mt-2 md:mt-0">
                 <button
                   onClick={() => {
                     setEditingEvent(null);
@@ -240,24 +258,31 @@ export default function Calendar() {
                     });
                     setShowAddForm(!showAddForm);
                   }}
-                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
+                  className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm"
                 >
                   {showAddForm ? "Cancel" : "Add Event"}
                 </button>
                 
                 <button 
                   onClick={handleNext}
-                  className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded flex items-center"
+                  className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded flex items-center text-sm"
                 >
                   Next <span className="ml-1">→</span>
                 </button>
               </div>
             </div>
             
+            {/* Processing Status */}
+            {processingAction && (
+              <div className="p-2 bg-blue-100 text-blue-800 text-center font-medium">
+                {processingAction}
+              </div>
+            )}
+            
             {/* Event Form */}
             {showAddForm && (
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-medium mb-4">
+              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium mb-3 text-blue-900">
                   {editingEvent ? "Edit Event" : "Add New Event"}
                 </h3>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -369,13 +394,15 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={() => setShowAddForm(false)}
-                      className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+                      className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded text-sm"
+                      disabled={processingAction !== null}
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm"
+                      disabled={processingAction !== null}
                     >
                       {editingEvent ? "Update Event" : "Add Event"}
                     </button>
@@ -387,37 +414,40 @@ export default function Calendar() {
             {/* Events Table */}
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-6 text-center">Loading...</div>
+                <div className="p-6 text-center">
+                  <div className="inline-block animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                  <p className="mt-2 text-gray-600">Loading events...</p>
+                </div>
               ) : error ? (
                 <div className="p-6 text-center text-red-500">{error}</div>
               ) : events.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">No events for the selected period</div>
               ) : (
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Time
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Currency
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Impact
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Event
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                         Actual
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                         Forecast
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                         Previous
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -427,40 +457,48 @@ export default function Calendar() {
                       const eventDate = parseISO(event.date_time);
                       return (
                         <tr key={event.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {viewMode !== "day" && format(eventDate, "MMM d, ")}
                             {format(eventDate, "h:mm a")}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                             {event.currency}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${impactColors[event.impact]} text-white`}>
-                              {event.impact}
-                            </span>
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <span 
+                                className="w-3 h-3 rounded-full mr-2" 
+                                style={{ backgroundColor: impactColors[event.impact] }}
+                              ></span>
+                              <span className="text-xs text-gray-500 hidden md:inline">
+                                {impactLabels[event.impact]}
+                              </span>
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {event.event_name}
                           </td>
-                          <td className={`px-6 py-4 whitespace-nowrap text-sm ${Number(event.actual) > Number(event.forecast) ? 'text-green-600' : Number(event.actual) < Number(event.forecast) ? 'text-red-600' : 'text-gray-900'}`}>
+                          <td className={`px-3 md:px-6 py-4 whitespace-nowrap text-sm hidden md:table-cell ${Number(event.actual) > Number(event.forecast) ? 'text-green-600 font-medium' : Number(event.actual) < Number(event.forecast) ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
                             {event.actual || "-"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                             {event.forecast || "-"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                             {event.previous || "-"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <td className="px-3 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
                               onClick={() => handleEdit(event)}
-                              className="text-blue-600 hover:text-blue-900 mr-3"
+                              className="text-blue-600 hover:text-blue-900 mr-2"
+                              disabled={processingAction !== null}
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDelete(event.id)}
                               className="text-red-600 hover:text-red-900"
+                              disabled={processingAction !== null}
                             >
                               Delete
                             </button>
@@ -474,18 +512,18 @@ export default function Calendar() {
             </div>
             
             {/* Color Legend */}
-            <div className="px-6 py-3 bg-gray-50 rounded-b-lg flex items-center space-x-6 text-sm">
+            <div className="px-3 md:px-6 py-3 bg-gray-100 rounded-b-lg flex flex-wrap items-center space-x-4 text-xs">
               <h4 className="font-medium">Impact Legend:</h4>
               <div className="flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: impactColors.high }}></span>
                 <span>High</span>
               </div>
               <div className="flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full bg-orange-400 mr-2"></span>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: impactColors.medium }}></span>
                 <span>Medium</span>
               </div>
               <div className="flex items-center">
-                <span className="inline-block w-3 h-3 rounded-full bg-yellow-400 mr-2"></span>
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: impactColors.low }}></span>
                 <span>Low</span>
               </div>
             </div>
