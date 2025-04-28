@@ -244,6 +244,7 @@ const handlePlay = (songUrl) => {
         <Link to="/trade_ideas" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-snow2"></i></p></button></Link>
         <Link to="/prop_firm_management" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
         <Link to="/art" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-brush-fill"></i></p></button></Link>
+        <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
       </div>
 
       <div className="side-navs-cellphone">
@@ -312,6 +313,9 @@ const handlePlay = (songUrl) => {
         </Link>
         <Link to="/art" className="side-nav">
             <i className="bi bi-brush-fill"></i>
+        </Link>
+        <Link to="/calendar" className="side-nav">
+            <i className="bi bi-calendar-fill"></i>
         </Link>
       </div>
       <br />
