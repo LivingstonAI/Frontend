@@ -757,7 +757,7 @@ export default function PropFirmManagement() {
           )}
           
           {/* Firm Performance Summary */}
-          {metrics.length > 0 && propFirms.length > 1 && (
+          {metrics.length > 0 && propFirms.length > 0 && (
             <div className="mt-8 mb-8">
               <h6 className="text-lg font-medium mb-4">Firm Performance</h6>
               
