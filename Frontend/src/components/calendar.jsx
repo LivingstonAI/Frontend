@@ -15,6 +15,7 @@ export default function Calendar() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [actionType, setActionType] = useState("");
+  const [showControls, setShowControls] = useState(false); // New state for toggling controls
   
   // Form state
   const [formData, setFormData] = useState({
@@ -155,6 +156,7 @@ export default function Calendar() {
     });
     setEditingEvent(event);
     setShowAddForm(true);
+    setShowControls(true); // Show controls when editing
   };
 
   const handleDelete = async (id) => {
@@ -185,6 +187,11 @@ export default function Calendar() {
     } else {
       return format(currentDate, "MMMM yyyy");
     }
+  };
+
+  // Toggle controls visibility
+  const toggleControls = () => {
+    setShowControls(!showControls);
   };
 
   // Button styles
@@ -218,36 +225,15 @@ export default function Calendar() {
           
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Calendar Header */}
-            <div className="">
+            <div className="px-4 md:px-6 py-3 bg-gray-50 border-b border-gray-200">
               <h5 className="text-xl font-bold">Trading Calendar</h5>
-              
-              <div className="flex items-center space-x-2 bg-blue-900 bg-opacity-30 rounded-lg p-1">
-                <button 
-                  onClick={() => setViewMode("day")} 
-                  className={`btn btn-primary px-3 py-1 rounded ${viewMode === "day" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
-                >
-                  Day
-                </button>
-                <button 
-                  onClick={() => setViewMode("week")} 
-                  className={`btn btn-primary px-3 py-1 rounded ${viewMode === "week" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
-                >
-                  Week
-                </button>
-                <button 
-                  onClick={() => setViewMode("month")} 
-                  className={`btn btn-primary px-3 py-1 rounded ${viewMode === "month" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
-                >
-                  Month
-                </button>
-              </div>
             </div>
             
-            {/* Navigation Bar */}
+            {/* Navigation Bar with Toggle Button */}
             <div className="px-4 md:px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
               <button 
                 onClick={handlePrevious}
-                className={`btn btn-primary ${btnSmall} flex items-center`}
+                className={`${btnPrimary} ${btnSmall} flex items-center`}
               >
                 <span className="mr-1">←</span> Previous
               </button>
@@ -256,163 +242,200 @@ export default function Calendar() {
               
               <div className="flex space-x-2">
                 <button
-                  onClick={() => {
-                    setEditingEvent(null);
-                    setFormData({
-                      date: format(new Date(), "yyyy-MM-dd"),
-                      time: "10:00",
-                      currency: "USD",
-                      impact: "medium",
-                      event_name: "",
-                      actual: "",
-                      forecast: "",
-                      previous: ""
-                    });
-                    setShowAddForm(!showAddForm);
-                  }}
-                  className="btn btn-primary"
+                  onClick={toggleControls}
+                  className={`${btnPrimary} flex items-center`}
                 >
-                  {showAddForm ? "Cancel" : "Add Event"}
-                </button><br /><br />
+                  {showControls ? "Hide Controls" : "Show Controls"}
+                </button>
                 
                 <button 
                   onClick={handleNext}
-                  className={`btn btn-primary ${btnSmall} flex items-center`}
+                  className={`${btnPrimary} ${btnSmall} flex items-center`}
                 >
                   Next <span className="ml-1">→</span>
                 </button>
               </div>
             </div>
             
-            {/* Event Form */}
-            {showAddForm && (
-              <div className="p-4 md:p-6 border-b border-gray-200 bg-blue-50">
-                <h5 className="text-lg font-medium mb-4 text-blue-900">
-                  {editingEvent ? "Edit Event" : "Add New Event"}
-                </h5>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Date</label>
-                    <input 
-                      type="date"
-                      name="date"
-                      value={formData.date}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Time</label>
-                    <input 
-                      type="time"
-                      name="time"
-                      value={formData.time}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Currency</label>
-                    <select 
-                      name="currency"
-                      value={formData.currency}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                      required
+            {/* Toggleable Controls Section */}
+            {showControls && (
+              <>
+                <div className="bg-blue-900 bg-opacity-30 rounded-lg p-1 mx-4 md:mx-6 my-3">
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => setViewMode("day")} 
+                      className={`btn btn-primary px-3 py-1 rounded ${viewMode === "day" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
                     >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="JPY">JPY</option>
-                      <option value="AUD">AUD</option>
-                      <option value="CAD">CAD</option>
-                      <option value="CHF">CHF</option>
-                      <option value="CNY">CNY</option>
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Impact</label>
-                    <select 
-                      name="impact"
-                      value={formData.impact}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                      required
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Event Name</label>
-                    <input 
-                      type="text"
-                      name="event_name"
-                      value={formData.event_name}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Actual</label>
-                    <input 
-                      type="text"
-                      name="actual"
-                      value={formData.actual}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Forecast</label>
-                    <input 
-                      type="text"
-                      name="forecast"
-                      value={formData.forecast}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Previous</label>
-                    <input 
-                      type="text"
-                      name="previous"
-                      value={formData.previous}
-                      onChange={handleInputChange}
-                      className={inputStyle}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddForm(false)}
-                      className="btn btn-primary"
-                    >
-                      Cancel
+                      Day
                     </button>
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={processing}
+                    <button 
+                      onClick={() => setViewMode("week")} 
+                      className={`btn btn-primary px-3 py-1 rounded ${viewMode === "week" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
                     >
-                      {editingEvent ? "Update Event" : "Add Event"}
+                      Week
+                    </button>
+                    <button 
+                      onClick={() => setViewMode("month")} 
+                      className={`btn btn-primary px-3 py-1 rounded ${viewMode === "month" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                    >
+                      Month
+                    </button>
+                    
+                    <div className="flex-grow"></div>
+                    
+                    <button
+                      onClick={() => {
+                        setEditingEvent(null);
+                        setFormData({
+                          date: format(new Date(), "yyyy-MM-dd"),
+                          time: "10:00",
+                          currency: "USD",
+                          impact: "medium",
+                          event_name: "",
+                          actual: "",
+                          forecast: "",
+                          previous: ""
+                        });
+                        setShowAddForm(!showAddForm);
+                      }}
+                      className={btnPrimary}
+                    >
+                      {showAddForm ? "Cancel" : "Add Event"}
                     </button>
                   </div>
-                </form>
-              </div>
+                </div>
+                
+                {/* Event Form */}
+                {showAddForm && (
+                  <div className="p-4 md:p-6 border-b border-gray-200 bg-blue-50">
+                    <h5 className="text-lg font-medium mb-4 text-blue-900">
+                      {editingEvent ? "Edit Event" : "Add New Event"}
+                    </h5>
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Date</label>
+                        <input 
+                          type="date"
+                          name="date"
+                          value={formData.date}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Time</label>
+                        <input 
+                          type="time"
+                          name="time"
+                          value={formData.time}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Currency</label>
+                        <select 
+                          name="currency"
+                          value={formData.currency}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                          required
+                        >
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="JPY">JPY</option>
+                          <option value="AUD">AUD</option>
+                          <option value="CAD">CAD</option>
+                          <option value="CHF">CHF</option>
+                          <option value="CNY">CNY</option>
+                        </select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Impact</label>
+                        <select 
+                          name="impact"
+                          value={formData.impact}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                          required
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                      
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">Event Name</label>
+                        <input 
+                          type="text"
+                          name="event_name"
+                          value={formData.event_name}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Actual</label>
+                        <input 
+                          type="text"
+                          name="actual"
+                          value={formData.actual}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Forecast</label>
+                        <input 
+                          type="text"
+                          name="forecast"
+                          value={formData.forecast}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Previous</label>
+                        <input 
+                          type="text"
+                          name="previous"
+                          value={formData.previous}
+                          onChange={handleInputChange}
+                          className={inputStyle}
+                        />
+                      </div>
+                      
+                      <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddForm(false)}
+                          className={btnSecondary}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className={btnPrimary}
+                          disabled={processing}
+                        >
+                          {editingEvent ? "Update Event" : "Add Event"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </>
             )}
             
             {/* Events Table */}
@@ -493,13 +516,13 @@ export default function Calendar() {
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button
                                 onClick={() => handleEdit(event)}
-                                className="btn btn-primary text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200"
+                                className="text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200"
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDelete(event.id)}
-                                className="btn btn-primary text-red-600 hover:text-red-800 transition-colors duration-200"
+                                className="text-red-600 hover:text-red-800 transition-colors duration-200"
                               >
                                 Delete
                               </button>
@@ -512,23 +535,6 @@ export default function Calendar() {
                 </div>
               )}
             </div>
-            
-            {/* Color Legend */}
-            {/* <div className="px-4 md:px-6 py-3 bg-gray-50 rounded-b-lg flex flex-wrap items-center space-x-4 text-sm border-t border-gray-200">
-              <h4 className="font-medium text-gray-700">Impact Legend:</h4>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-600 mr-2"></div>
-                <span>High</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
-                <span>Medium</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                <span>Low</span>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
