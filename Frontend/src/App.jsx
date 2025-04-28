@@ -133,7 +133,7 @@ function App() {
         <Route path='/call_ai' element={<CallAI />}></Route>
         <Route path='/trade_ideas' element={<TradeIdeas />}></Route>
         <Route path='/prop_firm_management' element={<PropFirmManagement />}></Route>
-        <Route path='/art' element={<Art />}></Route>
+        <Route path='/music' element={<Art />}></Route>
         <Route path='/calendar' element={<Calendar />}></Route>
 
 
