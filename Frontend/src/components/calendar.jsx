@@ -472,29 +472,39 @@ export default function Calendar() {
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                               {event.currency}
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                            {/* <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center justify-center">
                                 {event.impact === "high" && (
                                   <div className="flex items-center">
                                     <div className="impact-high w-4 h-4 rounded-full mr-1 bg-red-600" />
-                                    <span className="impact-high"></span>
+                                    <span className="impact-high" >{event.impact}</span>
                                   </div>
                                 )}
                                 {event.impact === "medium" && (
                                   <div className="flex items-center">
                                     <div className="impact-medium w-4 h-4 rounded-full mr-1 bg-orange-500" />
-                                    <span className="impact-medium"></span>
+                                    <span className="impact-medium" >{event.impact}</span>
 
                                   </div>
                                 )}
                                 {event.impact === "low" && (
                                   <div className="flex items-center">
                                     <div className="impact-low w-4 h-4 rounded-full bg-yellow-500" />
-                                    <span className="impact-low"></span>
+                                    <span className="impact-low" >{event.impact}</span>
                                   </div>
                                 )}
                               </div>
+                            </td> */}
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center justify-center">
+                                <span className="w-6 h-6 rounded-full flex items-center justify-center">
+                                  {event.impact === "high" && <div className="circle bg-red-600" title="High Impact"></div>}
+                                  {event.impact === "medium" && <div className="circle bg-orange-500" title="Medium Impact"></div>}
+                                  {event.impact === "low" && <div className="circle bg-yellow-500" title="Low Impact"></div>}
+                                </span>
+                              </div>
                             </td>
+
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {event.event_name}
                             </td>

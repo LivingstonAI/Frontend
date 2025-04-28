@@ -7488,3 +7488,34 @@ img {
 .impact-low {
   background-color: yellow;
 }
+
+
+/* Base span styling to contain the circle */
+.w-6 {
+  width: 24px; /* Adjust size */
+}
+.h-6 {
+  height: 24px; /* Adjust size */
+}
+.rounded-full {
+  border-radius: 50%; /* Ensures the container is circular */
+}
+
+/* Styling for the inner circle */
+.circle {
+  width: 100%; /* Ensures it fits the container */
+  height: 100%;
+  border-radius: 50%; /* Makes the inner element circular */
+  display: inline-block; /* Ensures it acts like a circular block */
+}
+
+/* Impact-specific colors */
+.bg-red-600 {
+  background-color: #dc2626; /* High impact color */
+}
+.bg-orange-500 {
+  background-color: #f97316; /* Medium impact color */
+}
+.bg-yellow-500 {
+  background-color: #facc15; /* Low impact color */
+}
