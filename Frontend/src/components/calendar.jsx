@@ -252,7 +252,7 @@ export default function Calendar() {
                 <span className="mr-1">←</span> Previous
               </button>
               
-              <h6 className="text-lg font-medium text-blue-900">{getTitle()}</h6>
+              <h5 className="text-lg font-medium text-blue-900">{getTitle()}</h5>
               
               <div className="flex space-x-2">
                 <button
@@ -287,9 +287,9 @@ export default function Calendar() {
             {/* Event Form */}
             {showAddForm && (
               <div className="p-4 md:p-6 border-b border-gray-200 bg-blue-50">
-                <h6 className="text-lg font-medium mb-4 text-blue-900">
+                <h5 className="text-lg font-medium mb-4 text-blue-900">
                   {editingEvent ? "Edit Event" : "Add New Event"}
-                </h6>
+                </h5>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Date</label>
