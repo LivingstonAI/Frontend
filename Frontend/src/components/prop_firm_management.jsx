@@ -139,7 +139,15 @@ export default function PropFirmManagement() {
     setIsFetchingFirms(true);
     try {
       const response = await axios.get(`${baseUrl}/api/prop-firms/`);
-      setPropFirms(response.data);
+  
+      // Remove duplicates based on similar names
+      const uniquePropFirms = response.data.filter((firm, index, self) =>
+        index === self.findIndex((other) =>
+          other.name.toLowerCase().trim() === firm.name.toLowerCase().trim()
+        )
+      );
+  
+      setPropFirms(uniquePropFirms);
       setIsFetchingFirms(false);
     } catch (err) {
       setError("Failed to fetch prop firms");
@@ -147,6 +155,7 @@ export default function PropFirmManagement() {
       setIsFetchingFirms(false);
     }
   };
+  
 
   const fetchMetrics = async () => {
     setIsFetchingMetrics(true);
