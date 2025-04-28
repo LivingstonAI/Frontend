@@ -473,13 +473,25 @@ export default function Calendar() {
                               {event.currency}
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                {/* Impact Circular Orb - using inline style with color from impactColors */}
-                                <div 
-                                  className="w-3 h-3 rounded-full mr-2" 
-                                  style={{ backgroundColor: impactColor }}
-                                />
-                                <span className="text-sm capitalize">{event.impact}</span>
+                              <div className="flex items-center justify-center">
+                                {event.impact === "high" && (
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 rounded-full mr-1 bg-red-600" />
+                                    <div className="w-4 h-4 rounded-full mr-1 bg-red-600" />
+                                    <div className="w-4 h-4 rounded-full bg-red-600" />
+                                  </div>
+                                )}
+                                {event.impact === "medium" && (
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 rounded-full mr-1 bg-orange-500" />
+                                    <div className="w-4 h-4 rounded-full bg-orange-500" />
+                                  </div>
+                                )}
+                                {event.impact === "low" && (
+                                  <div className="flex items-center">
+                                    <div className="w-4 h-4 rounded-full bg-yellow-500" />
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
