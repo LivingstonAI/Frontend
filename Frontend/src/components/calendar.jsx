@@ -399,7 +399,7 @@ export default function Calendar() {
                     <button
                       type="button"
                       onClick={() => setShowAddForm(false)}
-                      className="btn btn-danger"
+                      className="btn btn-primary"
                     >
                       Cancel
                     </button>
@@ -499,7 +499,7 @@ export default function Calendar() {
                               </button>
                               <button
                                 onClick={() => handleDelete(event.id)}
-                                className="btn btn-danger text-red-600 hover:text-red-800 transition-colors duration-200"
+                                className="btn btn-primary text-red-600 hover:text-red-800 transition-colors duration-200"
                               >
                                 Delete
                               </button>
