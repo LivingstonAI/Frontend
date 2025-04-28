@@ -7473,3 +7473,18 @@ img {
     transform: rotateY(360deg) rotateX(360deg);
   }
 }
+
+
+/* Calendar CSS */
+/* Add this to your CSS file or inline styles */
+.impact-high {
+  background-color: red;
+}
+
+.impact-medium {
+  background-color: orange;
+}
+
+.impact-low {
+  background-color: yellow;
+}

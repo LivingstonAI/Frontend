@@ -460,6 +460,9 @@ export default function Calendar() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {events.map((event) => {
                         const eventDate = parseISO(event.date_time);
+                        // Mapping impact level to CSS class
+                        const impactClass = event.impact === 'High' ? 'impact-high' : event.impact === 'Medium' ? 'impact-medium' : 'impact-low';
+
                         return (
                           <tr key={event.id} className="hover:bg-blue-50 transition-colors duration-200">
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
@@ -471,11 +474,8 @@ export default function Calendar() {
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <div 
-                                  className="w-3 h-3 rounded-full mr-2" 
-                                  style={{ backgroundColor: impactColors[event.impact] }}
-                                ></div>
-                                <span className="text-sm capitalize">{event.impact}</span>
+                                {/* Impact Circular Orb */}
+                                <div className={`w-3 h-3 rounded-full mr-2 ${impactClass}`} />
                               </div>
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -491,16 +491,10 @@ export default function Calendar() {
                               {event.previous || "—"}
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button
-                                onClick={() => handleEdit(event)}
-                                className="btn btn-primary text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200"
-                              >
+                              <button onClick={() => handleEdit(event)} className="btn btn-primary text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
                                 Edit
                               </button>
-                              <button
-                                onClick={() => handleDelete(event.id)}
-                                className="btn btn-primary text-red-600 hover:text-red-800 transition-colors duration-200"
-                              >
+                              <button onClick={() => handleDelete(event.id)} className="btn btn-primary text-red-600 hover:text-red-800 transition-colors duration-200">
                                 Delete
                               </button>
                             </td>
@@ -509,6 +503,7 @@ export default function Calendar() {
                       })}
                     </tbody>
                   </table>
+
                 </div>
               )}
             </div>
