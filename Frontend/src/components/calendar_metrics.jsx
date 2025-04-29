@@ -101,7 +101,7 @@ export default function CalendarData() {
                             
                             <div className="filter-group mt-6">
                                 <button 
-                                    className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+                                    className="btn btn-primary bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
                                     onClick={fetchEvents}
                                 >
                                     Refresh Data
