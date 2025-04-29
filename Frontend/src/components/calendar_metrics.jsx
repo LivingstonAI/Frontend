@@ -177,11 +177,7 @@ export default function CalendarData() {
 
             
             <style jsx>{`
-                .eco-event-dashboard {
-                    font-family: 'Inter', sans-serif;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }
+
                 
                 .eco-event-header {
                     margin-bottom: 1.5rem;
