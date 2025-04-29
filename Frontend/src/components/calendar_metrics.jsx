@@ -28,7 +28,7 @@ export default function CalendarData() {
         
         try {
             const response = await fetch(
-                `${baseUrl}/api/economic-events/?currency=${selectedCurrency}&impact=${selectedImpact}`,
+                `${baseUrl}/api/data-calendar-economic-events/?currency=${selectedCurrency}&impact=${selectedImpact}`,
                 {
                     headers: {
                         'Content-Type': 'application/json'
