@@ -181,7 +181,6 @@ export default function CalendarData() {
                     font-family: 'Inter', sans-serif;
                     max-width: 1200px;
                     margin: 0 auto;
-                    padding: 1.5rem;
                 }
                 
                 .eco-event-header {
