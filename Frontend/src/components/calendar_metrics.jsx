@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import Header from "./header";
+import SideNavs from "./side_navs";
 
 export default function UniqueEventCards() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -66,7 +68,15 @@ export default function UniqueEventCards() {
     };
     
     return (
+                    
         <div className="eco-event-dashboard">
+            <div className="header">
+                        <Header />
+                    </div>
+                    <div className="main-page-body">
+                        <SideNavs />
+                        <div className="main-body-info">
+
             <div className="eco-event-header">
                 <h5 className="eco-event-title">Economic Event Dashboard</h5>
             </div>
@@ -164,6 +174,7 @@ export default function UniqueEventCards() {
                     ))}
                 </div>
             )}
+
             
             <style jsx>{`
                 .eco-event-dashboard {
@@ -411,5 +422,8 @@ export default function UniqueEventCards() {
                 }
             `}</style>
         </div>
+        
+        </div>
+    </div>
     );
 }
