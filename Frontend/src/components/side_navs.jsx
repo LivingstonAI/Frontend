@@ -245,6 +245,7 @@ const handlePlay = (songUrl) => {
         <Link to="/prop_firm_management" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
         <Link to="/music" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-music-note-beamed"></i></p></button></Link>
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
+        <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
       </div>
 
       <div className="side-navs-cellphone">
@@ -316,6 +317,9 @@ const handlePlay = (songUrl) => {
         </Link>
         <Link to="/calendar" className="side-nav">
             <i className="bi bi-calendar-fill"></i>
+        </Link>
+        <Link to="/calendar_data" className="side-nav">
+            <i className="bi bi-clipboard-data-fill"></i>
         </Link>
       </div>
       <br />
