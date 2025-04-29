@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-export default function UniqueEventCards() {
+export default function CalendarData() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [uniqueEvents, setUniqueEvents] = useState([]);
     const [loading, setLoading] = useState(false);
