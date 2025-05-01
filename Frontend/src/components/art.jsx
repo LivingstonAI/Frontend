@@ -61,6 +61,10 @@ import mona_lisa from '../Dominic Fike - Mona Lisa (Official Audio) (1).mp3';
 import forever_star from '../Forever Star偷偷藏不住電視劇插曲 -  張洢豪Wherever you goIll surround you still動態歌詞.mp3';
 import copines from '../Aya Nakamura - Copines (Clip officiel).mp3';
 import dizzy from '../Dizzy  Joakim Karud (No Copyright Music).mp3';
+import classic from '../MKTO - Classic (Lyrics).mp3';
+import classic_slowed from '../𝙘𝙡𝙖𝙨𝙨𝙞𝙘 - 𝙈𝙆𝙏𝙊 (𝙨𝙡𝙤𝙬𝙚𝙙  𝙡𝙮𝙧𝙞𝙘𝙨).mp3';
+import sound_of_april from '../Sound of April.mp3';
+
 
 export default function Art() {
   const containerRef = useRef(null);
@@ -124,7 +128,6 @@ export default function Art() {
     "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
     // "46": { name: "Stromae, Pomme - "Ma Meilleure Ennemie" 🌃", file: ma_meilleure_enemie },
     "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
-    
     "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
     "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
@@ -138,6 +141,9 @@ export default function Art() {
     "57": { name: "Forever Star 🌃", file: forever_star },
     "58": { name: "Copines 🌳", file: copines },
     "59": { name: "Dizzy Joakim Karud 🎒👨‍🎓", file: dizzy },
+    "60": { name: "Classic 😎🏖️", file: classic },
+    "61": { name: "Classic (slowed) 🏄‍♂️", file: classic_slowed },
+    "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
   };
 
   // Filtered songs based on search term
