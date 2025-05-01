@@ -514,9 +514,9 @@ export default function Calendar() {
                               {event.event_name}
                             </td>
                             <td className={`px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                              comparison === 'higher' ? 'text-green-600' : 
-                              comparison === 'lower' ? 'text-red-600' : 
-                              'text-gray-900'
+                              comparison === 'higher' ? 'text-green-css' : 
+                              comparison === 'lower' ? 'text-red-css' : 
+                              'text-gray-css'
                             }`}>
                               {event.actual || "—"}
                             </td>

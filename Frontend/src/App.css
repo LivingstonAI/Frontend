@@ -7497,6 +7497,14 @@ img {
   cursor: pointer;
 }
 
+.text-green-css {
+  color: lightgreen;
+}
+
+.text-red-css {
+  color: red;
+}
+
 
 /* https://copilot.microsoft.com/chats/riQYPyMJufL4mMRfQ11vw */
 
