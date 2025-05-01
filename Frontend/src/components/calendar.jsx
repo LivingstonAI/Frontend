@@ -174,6 +174,35 @@ export default function Calendar() {
     }
   };
 
+  // Function to extract numeric value from strings like "3.2%", "1.5B", "500K", etc.
+  const extractNumericValue = (value) => {
+    if (!value || value === "—") return null;
+    
+    // Remove all non-numeric characters except for decimal point
+    const numericString = value.replace(/[^0-9.-]/g, '');
+    
+    // Convert to number
+    const numericValue = parseFloat(numericString);
+    
+    // Check if it's a valid number
+    if (isNaN(numericValue)) return null;
+    
+    return numericValue;
+  };
+
+  // Function to compare actual vs forecast values
+  const compareValues = (actual, forecast) => {
+    const actualValue = extractNumericValue(actual);
+    const forecastValue = extractNumericValue(forecast);
+    
+    // If either value is not a valid number, return null (no comparison)
+    if (actualValue === null || forecastValue === null) return null;
+    
+    if (actualValue > forecastValue) return 'higher';
+    if (actualValue < forecastValue) return 'lower';
+    return 'equal';
+  };
+
   // Format title based on view mode
   const getTitle = () => {
     if (viewMode === "day") {
@@ -460,9 +489,9 @@ export default function Calendar() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {events.map((event) => {
                         const eventDate = parseISO(event.date_time);
-                        // Use the impactColors object directly to set the background color
-                        const impactColor = impactColors[event.impact] || "#ecc94b"; // Default to yellow if impact is undefined
-
+                        // Get comparison result
+                        const comparison = compareValues(event.actual, event.forecast);
+                        
                         return (
                           <tr key={event.id} className="hover:bg-blue-50 transition-colors duration-200">
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
@@ -472,43 +501,23 @@ export default function Calendar() {
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                               {event.currency}
                             </td>
-                            {/* <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center justify-center">
-                                {event.impact === "high" && (
-                                  <div className="flex items-center">
-                                    <div className="impact-high w-4 h-4 rounded-full mr-1 bg-red-600" />
-                                    <span className="impact-high" >{event.impact}</span>
-                                  </div>
-                                )}
-                                {event.impact === "medium" && (
-                                  <div className="flex items-center">
-                                    <div className="impact-medium w-4 h-4 rounded-full mr-1 bg-orange-500" />
-                                    <span className="impact-medium" >{event.impact}</span>
-
-                                  </div>
-                                )}
-                                {event.impact === "low" && (
-                                  <div className="flex items-center">
-                                    <div className="impact-low w-4 h-4 rounded-full bg-yellow-500" />
-                                    <span className="impact-low" >{event.impact}</span>
-                                  </div>
-                                )}
+                                <span className="impact-indicator">
+                                  {event.impact === "high" && "🔴"}
+                                  {event.impact === "medium" && "🟠"} 
+                                  {event.impact === "low" && "🟡"} 
+                                </span>
                               </div>
-                            </td> */}
-                                                  <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-center">
-                          <span className="impact-indicator">
-                            {event.impact === "high" && "🔴"}
-                            {event.impact === "medium" && "🟠"} 
-                            {event.impact === "low" && "🟡"} 
-                          </span>
-                        </div>
-                      </td>
-
+                            </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {event.event_name}
                             </td>
-                            <td className={`px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium ${Number(event.actual) > Number(event.forecast) ? 'text-green-600' : Number(event.actual) < Number(event.forecast) ? 'text-red-600' : 'text-gray-900'}`}>
+                            <td className={`px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                              comparison === 'higher' ? 'text-green-600' : 
+                              comparison === 'lower' ? 'text-red-600' : 
+                              'text-gray-900'
+                            }`}>
                               {event.actual || "—"}
                             </td>
                             <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
