@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Search, ArrowLeft, Info } from "lucide-react";
+import { Search, ArrowLeft, Info, BookOpen } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Header from "./header";
 import SideNavs from "./side_navs";
@@ -22,8 +22,37 @@ export default function CalendarData() {
     const [eventHistoryLoading, setEventHistoryLoading] = useState(false);
     const [eventHistoryError, setEventHistoryError] = useState(null);
     
+    // Explainer states
+    const [showExplainer, setShowExplainer] = useState(false);
+    const [explainerLoading, setExplainerLoading] = useState(false);
+    const [explainerContent, setExplainerContent] = useState(null);
+    
     const currencyArray = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY'];
     const impactLevels = ['low', 'medium', 'high'];
+
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+
+    // Function to fetch the API key
+    const fetchDataFromAPI = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { OPENAI_API_KEY } = await response.json();
+            // Set the API key in state
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching API key:", error);
+        }
+    };
+    
+    useEffect(() => {
+        async function fetchData() {
+            await fetchDataFromAPI();
+        }
+        fetchData();
+    }, []); 
     
     // Fetch unique events based on filters
     const fetchEvents = async () => {
@@ -84,6 +113,71 @@ export default function CalendarData() {
         } finally {
             setEventHistoryLoading(false);
         }
+    };
+    
+    // Get explanation for an economic event
+    const fetchEventExplanation = async () => {
+        if (!selectedEvent || !OPENAI_API_KEY) return;
+        
+        setExplainerLoading(true);
+        
+        try {
+            // Prepare the prompt
+            const prompt = `
+                Please provide a concise explanation of the economic indicator "${selectedEvent.event_name}" for ${selectedEvent.currency}.
+                
+                Cover these points:
+                1. What is this economic indicator and what does it measure?
+                2. Why is this indicator important for traders and investors?
+                3. How might this indicator impact ${selectedEvent.currency} currency pairs?
+                4. What are typical market reactions to changes in this indicator?
+                5. Any tips for trading based on this indicator?
+                
+                Format your response with clear headings and bullet points where appropriate.
+            `;
+            
+            // Call OpenAI API
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a helpful economic analyst that provides clear and concise explanations about economic indicators and how they relate to trading.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 500
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate explanation');
+            }
+            
+            const data = await response.json();
+            setExplainerContent(data.choices[0].message.content);
+            setShowExplainer(true);
+        } catch (err) {
+            console.error("Error generating explanation:", err);
+            setExplainerContent("Sorry, we couldn't generate an explanation at this time. Please try again later.");
+        } finally {
+            setExplainerLoading(false);
+        }
+    };
+    
+    // Close explainer modal
+    const closeExplainer = () => {
+        setShowExplainer(false);
     };
     
     // Debounced search effect
@@ -235,13 +329,24 @@ export default function CalendarData() {
                                     <span>Back to Events</span>
                                 </button>
                                 
-                                <h5 className="event-detail-title">
-                                    {selectedEvent.event_name} ({selectedEvent.currency})
-                                </h5>
+                                <div className="event-detail-title-container">
+                                    <h5 className="event-detail-title">
+                                        {selectedEvent.event_name} ({selectedEvent.currency})
+                                    </h5>
                                 
-                                <div className={`event-detail-impact event-impact-${selectedEvent.impact}`}>
-                                    {selectedEvent.impact.charAt(0).toUpperCase() + selectedEvent.impact.slice(1)} Impact
+                                    <div className={`event-detail-impact event-impact-${selectedEvent.impact}`}>
+                                        {selectedEvent.impact.charAt(0).toUpperCase() + selectedEvent.impact.slice(1)} Impact
+                                    </div>
                                 </div>
+                                
+                                <button 
+                                    className="event-detail-explainer-btn"
+                                    onClick={fetchEventExplanation}
+                                    disabled={explainerLoading}
+                                >
+                                    <BookOpen size={16} />
+                                    <span>{explainerLoading ? 'Generating...' : 'Explain This Indicator'}</span>
+                                </button>
                             </div>
                             
                             {eventHistoryLoading && (
@@ -365,6 +470,40 @@ export default function CalendarData() {
                     )}
                 </div>
             </div>
+            
+            {/* Explainer Modal */}
+            {showExplainer && (
+                <div className="explainer-modal-overlay">
+                    <div className="explainer-modal">
+                        <div className="explainer-modal-header">
+                            <h3>Economic Indicator Explainer</h3>
+                            <button 
+                                className="explainer-modal-close"
+                                onClick={closeExplainer}
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <div className="explainer-modal-content">
+                            <h4>{selectedEvent?.event_name}</h4>
+                            <div className="explainer-content-body">
+                                {explainerLoading ? (
+                                    <div className="explainer-loading">
+                                        <div className="eco-event-spinner"></div>
+                                        <span>Generating explanation...</span>
+                                    </div>
+                                ) : (
+                                    <div className="explainer-text">
+                                        {explainerContent && (
+                                            <div dangerouslySetInnerHTML={{ __html: explainerContent.replace(/\n/g, '<br>') }} />
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style jsx>{`
                 .eco-event-header {
@@ -801,6 +940,118 @@ export default function CalendarData() {
                 
                 .event-detail-table tr:last-child td {
                     border-bottom: none;
+                }
+                
+                /* New Explainer Button Styles */
+                .event-detail-title-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .event-detail-explainer-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem 1rem;
+                    background-color: #4299e1;
+                    color: white;
+                    border: none;
+                    border-radius: 0.375rem;
+                    font-weight: 500;
+                    font-size: 0.875rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    margin-top: 1rem;
+                }
+                
+                .event-detail-explainer-btn:hover {
+                    background-color: #3182ce;
+                }
+                
+                .event-detail-explainer-btn:disabled {
+                    background-color: #a0aec0;
+                    cursor: not-allowed;
+                }
+                
+                /* Explainer Modal Styles */
+                .explainer-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+                
+                .explainer-modal {
+                    width: 90%;
+                    max-width: 700px;
+                    max-height: 80vh;
+                    background-color: white;
+                    border-radius: 0.5rem;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                .explainer-modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1rem;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                
+                .explainer-modal-header h3 {
+                    margin: 0;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: #2d3748;
+                }
+                
+                .explainer-modal-close {
+                    background: none;
+                    border: none;
+                    font-size: 1.5rem;
+                    color: #4a5568;
+                    cursor: pointer;
+                }
+                
+                .explainer-modal-content {
+                    padding: 1rem;
+                    overflow-y: auto;
+                    flex: 1;
+                }
+                
+                .explainer-modal-content h4 {
+                    margin-top: 0;
+                    margin-bottom: 1rem;
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    color: #3182ce;
+                }
+                
+                .explainer-content-body {
+                    font-size: 0.875rem;
+                    line-height: 1.6;
+                    color: #4a5568;
+                }
+                
+                .explainer-loading {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1rem;
+                    padding: 2rem;
+                }
+                
+                .explainer-text {
+                    white-space: pre-line;
                 }
             `}</style>
         </div>
