@@ -109,7 +109,7 @@ export default function SavedQuizzes() {
                     className="flex justify-between items-center p-4 border-b cursor-pointer hover:bg-gray-50"
                     onClick={() => toggleQuizExpand(quiz.id)}
                 >
-                    <h3 className="text-lg font-semibold">{quiz.quiz_name}</h3>
+                    <h6 className="text-lg font-semibold">{quiz.quiz_name}</h6>
                     <div className="flex items-center">
                         <span className="text-sm text-gray-500 mr-4">
                             {new Date(quiz.created_at).toLocaleString()}
