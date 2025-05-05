@@ -127,7 +127,7 @@ export default function SavedQuizzes() {
                         handleDeleteQuiz(quiz.id);
                     }}
                     disabled={isDeleting}
-                    className={`absolute top-2 right-2 px-5 py-2 rounded text-sm ${
+                    className={`absolute top-2 right-2 px-5 py-2 rounded text-sm btn btn-primary ${
                         isDeleting 
                         ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
                         : 'bg-red-500 text-white hover:bg-red-600'
