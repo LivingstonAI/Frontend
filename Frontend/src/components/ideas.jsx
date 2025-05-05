@@ -521,23 +521,7 @@ const deleteIdea = async (ideaId) => {
                     </div>
                 </div>
             </div>
-            {/* CSS animations */}
-            {/* <style jsx global>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-                
-                @keyframes pulse {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(100%); }
-                }
-            `}</style> */}
-        
+            
         </div>
     );
 }
