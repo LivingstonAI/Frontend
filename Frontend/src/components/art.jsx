@@ -265,7 +265,7 @@ export default function Art() {
   return (
     <div className="holo-background">
       <div className="navigation-link">
-        <Link to="/personal_info" className="back-link">
+        <Link to="/calendar_data" className="back-link">
           Go Back to SnowAI
         </Link>
       </div>
