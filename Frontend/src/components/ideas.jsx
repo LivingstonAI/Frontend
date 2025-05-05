@@ -9,6 +9,7 @@ export default function IdeasSection() {
         idea_text: '',
         idea_tracker: 'Pending'
     });
+    const [editingIdea, setEditingIdea] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -82,10 +83,17 @@ export default function IdeasSection() {
     
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setNewIdea(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        if (editingIdea) {
+            setEditingIdea(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        } else {
+            setNewIdea(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
     
     const handleSubmit = async (e) => {
@@ -93,32 +101,57 @@ export default function IdeasSection() {
         setLoading(true);
         
         try {
-            const response = await fetch(`${baseUrl}/generate-idea`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(newIdea)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to create idea');
+            if (editingIdea) {
+                // Update existing idea
+                const response = await fetch(`${baseUrl}/update-idea`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        idea_id: editingIdea.id,
+                        idea_category: editingIdea.idea_category,
+                        idea_text: editingIdea.idea_text,
+                        idea_tracker: editingIdea.idea_tracker
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to update idea');
+                }
+                
+                // Reset editing state
+                setEditingIdea(null);
+            } else {
+                // Create new idea
+                const response = await fetch(`${baseUrl}/generate-idea`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newIdea)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create idea');
+                }
+                
+                // Reset form
+                setNewIdea({
+                    idea_category: '',
+                    idea_text: '',
+                    idea_tracker: 'Pending'
+                });
             }
-            
-            // Reset form and refresh ideas
-            setNewIdea({
-                idea_category: '',
-                idea_text: '',
-                idea_tracker: 'Pending'
-            });
             
             // Hide the form after successful submission
             setShowCreateForm(false);
             
+            // Refresh ideas list
             fetchIdeas();
             setError(null);
         } catch (err) {
-            setError('Error creating idea: ' + err.message);
+            setError(`Error ${editingIdea ? 'updating' : 'creating'} idea: ` + err.message);
             console.error(err);
         } finally {
             setLoading(false);
@@ -127,40 +160,59 @@ export default function IdeasSection() {
 
     // Toggle form visibility
     const toggleCreateForm = () => {
+        // If we're currently editing, reset the editing state
+        if (editingIdea) {
+            setEditingIdea(null);
+        }
+        
         setShowCreateForm(!showCreateForm);
     };
 
-    // Delete idea function
-const deleteIdea = async (ideaId) => {
-    setDeletingId(ideaId);
+    // Start editing an idea
+    const startEditingIdea = (idea) => {
+        setEditingIdea({...idea});
+        setShowCreateForm(true);
+        // When editing starts, ensure the status dropdown is closed
+        setShowUpdateStatus(null);
+    };
     
-    try {
-        const response = await fetch(`${baseUrl}/delete-idea`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ idea_id: ideaId })
-        });
+    // Cancel editing
+    const cancelEditing = () => {
+        setEditingIdea(null);
+        setShowCreateForm(false);
+    };
+
+    // Delete idea function
+    const deleteIdea = async (ideaId) => {
+        setDeletingId(ideaId);
         
-        if (!response.ok) {
-            throw new Error('Failed to delete idea');
+        try {
+            const response = await fetch(`${baseUrl}/delete-idea`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ idea_id: ideaId })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete idea');
+            }
+            
+            // Remove the deleted idea from state
+            setIdeas(ideas.filter(idea => idea.id !== ideaId));
+            setError(null);
+            
+            // Reset hover and delete confirm states
+            setHoveredCard(null);
+            setDeleteConfirm(null);
+        } catch (err) {
+            setError('Error deleting idea: ' + err.message);
+            console.error(err);
+        } finally {
+            setDeletingId(null);
         }
-        
-        // Remove the deleted idea from state
-        setIdeas(ideas.filter(idea => idea.id !== ideaId));
-        setError(null);
-        
-        // Reset hover and delete confirm states
-        setHoveredCard(null);
-        setDeleteConfirm(null);
-    } catch (err) {
-        setError('Error deleting idea: ' + err.message);
-        console.error(err);
-    } finally {
-        setDeletingId(null);
-    }
-};
+    };
     
     // Update idea tracker status
     const updateIdeaTracker = async (ideaId, newStatus) => {
@@ -298,10 +350,10 @@ const deleteIdea = async (ideaId) => {
                     
                     {error && <div style={styles.errorAlert}>{error}</div>}
                     
-                    {/* Create Idea Form - only shown when showCreateForm is true */}
+                    {/* Create/Edit Idea Form */}
                     {showCreateForm && (
                         <div style={styles.formContainer}>
-                            <p style={styles.formTitle}>Create New Idea</p>
+                            <p style={styles.formTitle}>{editingIdea ? 'Edit Idea' : 'Create New Idea'}</p>
                             <form onSubmit={handleSubmit}>
                                 <div style={styles.formGroup}>
                                     <label style={styles.label} htmlFor="idea_category">Category</label>
@@ -309,7 +361,7 @@ const deleteIdea = async (ideaId) => {
                                         style={styles.input}
                                         id="idea_category"
                                         name="idea_category"
-                                        value={newIdea.idea_category}
+                                        value={editingIdea ? editingIdea.idea_category : newIdea.idea_category}
                                         onChange={handleInputChange}
                                         required
                                         className="form-control"
@@ -328,7 +380,7 @@ const deleteIdea = async (ideaId) => {
                                         id="idea_text"
                                         name="idea_text"
                                         rows="3"
-                                        value={newIdea.idea_text}
+                                        value={editingIdea ? editingIdea.idea_text : newIdea.idea_text}
                                         onChange={handleInputChange}
                                         required
                                         className="form-control"
@@ -341,7 +393,7 @@ const deleteIdea = async (ideaId) => {
                                         style={styles.input}
                                         id="idea_tracker"
                                         name="idea_tracker"
-                                        value={newIdea.idea_tracker}
+                                        value={editingIdea ? editingIdea.idea_tracker : newIdea.idea_tracker}
                                         onChange={handleInputChange}
                                         className="form-control"
                                     >
@@ -351,9 +403,14 @@ const deleteIdea = async (ideaId) => {
                                     </select>
                                 </div>
                                 <button type="submit" style={styles.saveButton} className="btn" disabled={loading}>
-                                    {loading ? 'Saving...' : 'Save Idea'}
+                                    {loading ? (editingIdea ? 'Updating...' : 'Saving...') : (editingIdea ? 'Update Idea' : 'Save Idea')}
                                 </button>
-                                <button type="button" style={styles.cancelButton} className="btn" onClick={toggleCreateForm}>
+                                <button 
+                                    type="button" 
+                                    style={styles.cancelButton} 
+                                    className="btn" 
+                                    onClick={editingIdea ? cancelEditing : toggleCreateForm}
+                                >
                                     Cancel
                                 </button>
                             </form>
@@ -399,7 +456,7 @@ const deleteIdea = async (ideaId) => {
                             </div>
                         </div>
                         
-                        {loading && (
+                        {loading && !editingIdea && !showCreateForm && (
                             <div style={styles.spinnerContainer}>
                                 <div style={styles.spinner}></div>
                             </div>
@@ -462,16 +519,31 @@ const deleteIdea = async (ideaId) => {
                                         <div style={styles.cardHeader}>
                                             <p style={styles.cardTitle}>{idea.idea_category}</p>
                                             {hoveredCard === idea.id && !deleteConfirm && (
-                                                <button 
-                                                    style={{...styles.iconButton, ...styles.deleteButton}}
-                                                    onClick={() => setDeleteConfirm(idea.id)}
-                                                    title="Delete Idea"
-                                                >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                    </svg>
-                                                </button>
+                                                <div style={styles.cardActions}>
+                                                    {/* Edit button */}
+                                                    <button 
+                                                        style={{...styles.iconButton, ...styles.editButton}}
+                                                        onClick={() => startEditingIdea(idea)}
+                                                        title="Edit Idea"
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </button>
+                                                    
+                                                    {/* Delete button */}
+                                                    <button 
+                                                        style={{...styles.iconButton, ...styles.deleteButton}}
+                                                        onClick={() => setDeleteConfirm(idea.id)}
+                                                        title="Delete Idea"
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                         <div style={styles.cardBody}>
@@ -867,6 +939,18 @@ const styles = {
         fontSize: '14px',
         color: '#2D3748',
         minWidth: '150px'
+    },
+
+    editButton: {
+        color: '#3498db',
+        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+        borderRadius: '4px',
+        padding: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
     },
     
 };
