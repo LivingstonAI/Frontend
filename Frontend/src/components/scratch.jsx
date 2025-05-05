@@ -1987,11 +1987,11 @@ Blockly.Blocks['rsi_block'] = {
                 <SideNavs />
                 <div className="main-body-info">  <br />
                 <h5>Genesys Interface</h5><br />
-                <h2>Generated Code:</h2>
+                <h5>Generated Code:</h5>
                 <div className="generated-code-example">
                 
                   <div>
-                    <h3>Python</h3><br />
+                    <h6>Python</h6><br />
                     <pre>{generatedCode}</pre>
                   </div>
                   
@@ -2007,14 +2007,14 @@ Blockly.Blocks['rsi_block'] = {
                   </div>  */}
                 </div>
                 <div className="choose-dataset">
-                    <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />
+                    <button className="btn btn-primary" onClick={toggleModal}>Choose Dataset</button><br />
                     <p>Chosen dataset: {chosenDataSet}</p>
                     {isDataSetModalOpen && (
                 <div className="modal-overlay">
                     <div className="select-category-modal">
                         <br />
-                        <button className="btn btn-light close-cot-modal" onClick={closeModal}>Close</button><br /><br />
-                        <h4 className="select-category-title">Choose Dataset</h4><br />
+                        <button className="btn btn-primary close-cot-modal" onClick={closeModal}>Close</button><br /><br />
+                        <h5 className="select-category-title">Choose Dataset</h5><br />
                         {isDataSetModalOpen && (
                             <p>Chosen dataset: {chosenDataSet}</p>
                         )}
@@ -2068,7 +2068,7 @@ Blockly.Blocks['rsi_block'] = {
                 </div>
                 
             )}
-            <br /><button className="btn btn-light" onClick={toggleSplitModal}>Split Dataset (Optional)</button><br />
+            <br /><button className="btn btn-primary" onClick={toggleSplitModal}>Split Dataset</button><br />
             <label>Start Year: {startYear}</label><br />
             <label>End Year: {endYear}</label>
             <br /><br />
@@ -2088,7 +2088,7 @@ Blockly.Blocks['rsi_block'] = {
               <div className="modal-overlay">
               <div className="select-category-modal">
                   <br />
-                  <button className="btn btn-light close-cot-modal" onClick={closeSplitModal}>Close</button><br /><br />
+                  <button className="btn btn-primary close-cot-modal" onClick={closeSplitModal}>Close</button><br /><br />
                   <h4 className="select-category-title">Split Dataset</h4><br /><br />
                   <div className="split-dataset-div">
                     <h5>Start Year</h5>
