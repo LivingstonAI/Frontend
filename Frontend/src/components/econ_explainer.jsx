@@ -153,7 +153,7 @@ export default function EconExplainer() {
         Keep the response under 300 words and focus on the practical implications for traders and investors.
       `;
 
-      const response = await fetch(`${baseUrl}/api/generate_ai_summary/`, {
+      const response = await fetch(`${baseUrl}/api/generate_econ_ai_summary/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
