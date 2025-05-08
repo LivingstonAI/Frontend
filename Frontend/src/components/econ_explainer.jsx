@@ -282,7 +282,7 @@ export default function EconExplainer() {
 
                   {data.Plot_URL && (
                     <div className="cot-chart">
-                      <img src={data.Plot_URL} alt={`COT Chart for ${asset}`} />
+                      <img src={data.Plot_URL} alt={`COT Chart for ${asset}`} className="responsive-image" />
                     </div>
                   )}
                 </div>
@@ -473,8 +473,9 @@ export default function EconExplainer() {
         .cot-chart {
           display: flex;
           justify-content: center;
-          max-width: 50%;
+          max-width: 70%;
           overflow: hidden;
+          
         }
 
         .cot-chart img {
