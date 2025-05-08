@@ -357,7 +357,7 @@ export default function EconExplainer() {
         }
 
         .refresh-btn {
-          background-color: #f8f9fa;
+          background-color:rgb(51, 144, 238);
           border: 1px solid #ced4da;
           border-radius: 4px;
           padding: 8px;
@@ -368,7 +368,7 @@ export default function EconExplainer() {
         }
 
         .refresh-btn:hover {
-          background-color: #e9ecef;
+          background-color:rgb(41, 143, 245);
         }
 
         .refresh-btn:disabled {
