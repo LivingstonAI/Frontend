@@ -310,10 +310,8 @@ export default function EconExplainer() {
         .econ-explainer {
           background-color: #f8f9fa;
           border-radius: 8px;
-          padding: 20px;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
           max-width: 100%;
-          margin: 0 auto;
         }
 
         .econ-header {
