@@ -442,6 +442,10 @@ export default function EconExplainer() {
           .asset-data {
             grid-template-columns: 1fr 2fr;
           }
+          .cot-chart {
+          
+          max-width: 100%;
+        }  
         }
 
         .cot-details {
