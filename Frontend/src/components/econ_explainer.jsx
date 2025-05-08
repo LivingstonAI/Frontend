@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import { Loader2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, RefreshCw, Calendar } from "lucide-react";
 
 export default function EconExplainer() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -9,8 +9,10 @@ export default function EconExplainer() {
   const [aiLoading, setAiLoading] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState("");
   const [cotData, setCotData] = useState(null);
+  const [economicEvents, setEconomicEvents] = useState([]);
   const [aiSummary, setAiSummary] = useState("");
   const [summaryVisible, setSummaryVisible] = useState(true);
+  const [eventsVisible, setEventsVisible] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
 
@@ -35,6 +37,7 @@ export default function EconExplainer() {
   const loadingMessages = [
     "Loading market data... 📊",
     "Analyzing COT reports... 📈",
+    "Fetching economic events... 📅",
     "Crunching the numbers... 🧮",
     "Consulting the financial oracles... 🔮",
     "Summoning economic wisdom... 📚",
@@ -50,12 +53,14 @@ export default function EconExplainer() {
     "Commercial traders are typically hedgers who use futures to reduce risk from their business operations.",
     "Non-commercial traders are typically large speculators like hedge funds and financial institutions.",
     "When commercial and non-commercial positions diverge significantly, it often signals a potential market turning point.",
+    "High-impact economic events typically cause the most market volatility and price movement.",
     "The USD Index tracks the value of the US dollar relative to a basket of foreign currencies.",
     "Central bank policy decisions are among the most influential factors for currency movements.",
     "Extreme positioning in either direction can indicate an overbought or oversold market condition.",
     "Gold often moves inversely to the US dollar and real interest rates.",
     "Treasury bonds tend to rally during times of economic uncertainty.",
-    "The COT report is released every Friday by the Commodity Futures Trading Commission (CFTC)."
+    "The COT report is released every Friday by the Commodity Futures Trading Commission (CFTC).",
+    "Economic surprises (actual vs forecast) often drive short-term market reactions."
   ];
 
   // Function to fetch the API key
@@ -117,13 +122,39 @@ export default function EconExplainer() {
     } catch (error) {
       console.error("Error fetching COT data:", error);
       alert("Failed to fetch COT data. Please try again.");
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to generate AI summary
-  const generateAiSummary = async (cotData, currency) => {
+  // Function to fetch economic events
+  const fetchEconomicEvents = async (currencyCode) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${baseUrl}/api/economic-events/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ currency: currencyCode }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to fetch economic events");
+      const data = await response.json();
+      setEconomicEvents(data.events);
+      return data.events;
+    } catch (error) {
+      console.error("Error fetching economic events:", error);
+      setEconomicEvents([]);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to generate AI summary including both COT and economic events data
+  const generateAiSummary = async (cotData, events, currency) => {
     setAiLoading(true);
     try {
       const currencyInfo = currencies.find(c => c.code === currency);
@@ -134,23 +165,44 @@ export default function EconExplainer() {
         throw new Error("No data available for selected asset");
       }
 
+      // Format economic events for the prompt
+      let eventsText = "";
+      if (events && events.length > 0) {
+        eventsText = "Recent Economic Events:\n";
+        events.slice(0, 10).forEach(event => {
+          eventsText += `- ${event.date_time}: ${event.event_name} (Impact: ${event.impact})\n`;
+          eventsText += `  Actual: ${event.actual || 'N/A'}, Forecast: ${event.forecast || 'N/A'}, Previous: ${event.previous || 'N/A'}\n`;
+        });
+      } else {
+        eventsText = "No recent economic events data available.";
+      }
+
       const prompt = `
-        I need an economic analysis for ${currencyInfo.name} based on the following Commitment of Traders (COT) data:
+        I need a comprehensive economic analysis for ${currencyInfo.name} based on the following data:
         
+        === COT DATA ===
         Date: ${assetData.Date}
         Percentage Noncommercial Long: ${assetData.Percentage_Noncommercial_Long}%
         Percentage Noncommercial Short: ${assetData.Percentage_Noncommercial_Short}%
         Percentage Commercial Long: ${assetData.Percentage_Commercial_Long}%
         Percentage Commercial Short: ${assetData.Percentage_Commercial_Short}%
         
-        The COT report shows the positions of different types of traders in the futures market. Commercial traders are typically hedgers who use futures to reduce risk from their business operations. Non-commercial traders are typically large speculators like hedge funds and financial institutions.
+        === ECONOMIC EVENTS DATA ===
+        ${eventsText}
+        
+        Background Information:
+        - The COT report shows the positions of different types of traders in the futures market. 
+        - Commercial traders are typically hedgers who use futures to reduce risk from their business operations. 
+        - Non-commercial traders are typically large speculators like hedge funds and financial institutions.
+        - Economic events provide context about the macroeconomic environment affecting this currency.
         
         Please provide:
         1. A concise analysis of the current positioning (are speculators bullish or bearish?)
-        2. What this might suggest about the economic outlook for this currency/asset
-        3. Any potential market implications
+        2. How the economic events data supports or contradicts the positioning data
+        3. What this suggests about the economic climate for ${currencyInfo.name}
+        4. Any potential market implications or trading considerations
         
-        Keep the response under 300 words and focus on the practical implications for traders and investors.
+        Keep the response well-structured with clear sections and focus on practical implications.
       `;
 
       const response = await fetch(`${baseUrl}/api/generate_econ_ai_summary/`, {
@@ -180,9 +232,11 @@ export default function EconExplainer() {
     setSelectedCurrency(currency);
     const currencyInfo = currencies.find(c => c.code === currency);
     if (currencyInfo) {
-      const data = await fetchCotData(currencyInfo.asset);
-      if (data) {
-        generateAiSummary(data, currency);
+      const cotDataResult = await fetchCotData(currencyInfo.asset);
+      const eventsResult = await fetchEconomicEvents(currency);
+      
+      if (cotDataResult) {
+        generateAiSummary(cotDataResult, eventsResult, currency);
       }
     }
   };
@@ -192,10 +246,35 @@ export default function EconExplainer() {
     setSummaryVisible(!summaryVisible);
   };
 
+  // Toggle events visibility
+  const toggleEvents = () => {
+    setEventsVisible(!eventsVisible);
+  };
+
   // Refresh data
   const refreshData = () => {
     if (selectedCurrency) {
       handleCurrencySelect(selectedCurrency);
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Get impact color class
+  const getImpactClass = (impact) => {
+    switch (impact.toLowerCase()) {
+      case 'high':
+        return 'high-impact';
+      case 'medium':
+        return 'medium-impact';
+      case 'low':
+        return 'low-impact';
+      default:
+        return '';
     }
   };
 
@@ -209,7 +288,7 @@ export default function EconExplainer() {
                       
       <div className="econ-header">
         <h5>Economics Explainer</h5>
-        <p className="econ-subheader">Select a currency to get economic insights based on COT reports</p>
+        <p className="econ-subheader">Select a currency to get comprehensive economic insights based on COT reports and economic events</p>
       </div>
 
       <div className="currency-selector">
@@ -290,9 +369,55 @@ export default function EconExplainer() {
             })}
           </div>
 
+          <div className="economic-events-container">
+            <div className="events-header" onClick={toggleEvents}>
+              <h6>
+                <Calendar size={18} className="header-icon" />
+                Economic Events
+              </h6>
+              {eventsVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+            {eventsVisible && (
+              <div className="economic-events">
+                {economicEvents && economicEvents.length > 0 ? (
+                  <table className="events-table">
+                    <thead>
+                      <tr>
+                        <th>Date/Time</th>
+                        <th>Event</th>
+                        <th>Impact</th>
+                        <th>Actual</th>
+                        <th>Forecast</th>
+                        <th>Previous</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {economicEvents.map((event, index) => (
+                        <tr key={index}>
+                          <td>{formatDate(event.date_time)}</td>
+                          <td>{event.event_name}</td>
+                          <td>
+                            <span className={`impact-badge ${getImpactClass(event.impact)}`}>
+                              {event.impact}
+                            </span>
+                          </td>
+                          <td>{event.actual || 'N/A'}</td>
+                          <td>{event.forecast || 'N/A'}</td>
+                          <td>{event.previous || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="no-events">No recent economic events data available for this currency.</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="ai-summary-container">
             <div className="summary-header" onClick={toggleSummary}>
-              <h6>Economic Analysis</h6>
+              <h6>Comprehensive Economic Analysis</h6>
               {summaryVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </div>
             {summaryVisible && (
@@ -321,9 +446,10 @@ export default function EconExplainer() {
           padding-bottom: 15px;
         }
 
-        .econ-header h2 {
+        .econ-header h5 {
           color: #2c3e50;
           margin-bottom: 5px;
+          font-size: 1.5rem;
         }
 
         .econ-subheader {
@@ -417,19 +543,28 @@ export default function EconExplainer() {
           gap: 20px;
         }
 
-        .cot-data {
+        .cot-data,
+        .economic-events-container,
+        .ai-summary-container {
           background-color: white;
           border-radius: 8px;
           padding: 15px;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .cot-data h3 {
+        .cot-data h6,
+        .economic-events-container h6,
+        .ai-summary-container h6 {
           color: #2c3e50;
           margin-top: 0;
           margin-bottom: 15px;
-          border-bottom: 1px solid #e9ecef;
-          padding-bottom: 10px;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+        }
+
+        .header-icon {
+          margin-right: 8px;
         }
 
         .asset-data {
@@ -443,9 +578,8 @@ export default function EconExplainer() {
             grid-template-columns: 1fr 2fr;
           }
           .cot-chart {
-          
-          max-width: 100%;
-        }  
+            max-width: 100%;
+          }  
         }
 
         .cot-details {
@@ -475,7 +609,6 @@ export default function EconExplainer() {
           justify-content: center;
           max-width: 100%;
           overflow: hidden;
-          
         }
 
         .cot-chart img {
@@ -485,30 +618,77 @@ export default function EconExplainer() {
           border: 1px solid #e9ecef;
         }
 
-        .ai-summary-container {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          overflow: hidden;
-        }
-
+        .events-header,
         .summary-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 15px;
-          background-color: #f8f9fa;
+          padding: 10px 0;
           cursor: pointer;
           border-bottom: 1px solid #e9ecef;
         }
 
-        .summary-header h3 {
+        .events-header h6,
+        .summary-header h6 {
           margin: 0;
-          color: #2c3e50;
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        .economic-events {
+          margin-top: 15px;
+        }
+
+        .events-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.9rem;
+        }
+
+        .events-table th {
+          background-color: #f8f9fa;
+          padding: 8px;
+          text-align: left;
+          border-bottom: 2px solid #dee2e6;
+          font-weight: 600;
+        }
+
+        .events-table td {
+          padding: 8px;
+          border-bottom: 1px solid #e9ecef;
+        }
+
+        .impact-badge {
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          text-transform: capitalize;
+        }
+
+        .high-impact {
+          background-color: #ffcdd2;
+          color: #c62828;
+        }
+
+        .medium-impact {
+          background-color: #fff9c4;
+          color: #f57f17;
+        }
+
+        .low-impact {
+          background-color: #c8e6c9;
+          color: #2e7d32;
+        }
+
+        .no-events {
+          color: #6c757d;
+          font-style: italic;
+          padding: 10px 0;
         }
 
         .ai-summary {
-          padding: 15px;
+          padding: 15px 0;
           color: #212529;
           line-height: 1.6;
         }
