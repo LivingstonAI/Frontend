@@ -469,7 +469,7 @@ export default function EconExplainer() {
         .cot-chart {
           display: flex;
           justify-content: center;
-          max-width: 100%;
+          max-width: 50%;
           overflow: hidden;
         }
 
