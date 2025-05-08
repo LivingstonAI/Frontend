@@ -130,6 +130,7 @@ export default function EconExplainer() {
 
   // Function to fetch economic events
   const fetchEconomicEvents = async (currencyCode) => {
+    console.log('Currency is: ', currencyCode);
     setLoading(true);
     try {
       const response = await fetch(`${baseUrl}/api/economic-events/`, {
