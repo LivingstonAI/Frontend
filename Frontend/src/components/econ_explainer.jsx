@@ -252,7 +252,7 @@ export default function EconExplainer() {
       {!loading && !aiLoading && selectedCurrency && cotData && (
         <div className="results-container">
           <div className="cot-data">
-            <h3>COT Report: {currencies.find(c => c.code === selectedCurrency)?.name}</h3>
+            <h6>COT Report: {currencies.find(c => c.code === selectedCurrency)?.name}</h6>
             {Object.keys(cotData).map(asset => {
               const data = cotData[asset];
               return (
@@ -292,7 +292,7 @@ export default function EconExplainer() {
 
           <div className="ai-summary-container">
             <div className="summary-header" onClick={toggleSummary}>
-              <h3>Economic Analysis</h3>
+              <h6>Economic Analysis</h6>
               {summaryVisible ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </div>
             {summaryVisible && (
