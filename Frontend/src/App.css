@@ -7794,3 +7794,21 @@ img {
     background-position: 0 100%;
   }
 }
+
+.close-welcome-btn {
+  background: rgba(0, 204, 255, 0.3);
+  border: 1px solid #00ccff;
+  color: #00ccff;
+  padding: 8px 16px;
+  margin-top: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.close-welcome-btn:hover {
+  background: rgba(0, 204, 255, 0.5);
+  box-shadow: 0 0 10px #00ccff;
+}

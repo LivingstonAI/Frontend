@@ -184,7 +184,7 @@ export default function Art() {
       setRecognition(recog);
 
       recog.onresult = (event) => {
-        const transcript = event.results[event.results.length - a][0].transcript.trim().toLowerCase();
+        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
         console.log("Voice Command:", transcript);
 
         // Hologram control commands
@@ -261,6 +261,11 @@ export default function Art() {
       setAuthError("Invalid password format. Please try again.");
       setTimeout(() => setAuthError(""), 3000);
     }
+  };
+
+  const closeWelcomeMessage = () => {
+    setShowWelcome(false);
+    setAuthAnimationComplete(true);
   };
 
   const generateRipple = () => {
@@ -372,36 +377,6 @@ export default function Art() {
           </div>
         );
       
-      case "authenticated":
-        return showWelcome ? (
-          <div className="welcome-container">
-            <div className="welcome-header">
-              <div className="welcome-title">ACCESS GRANTED</div>
-              <div className="welcome-message">Welcome back, Master Tlotlo!</div>
-            </div>
-            <div className="system-info">
-              <div className="info-item">
-                <span className="info-label">System Status:</span>
-                <span className="info-value online">ONLINE</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Last Login:</span>
-                <span className="info-value">May 10, 2025 • 17:23:48</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Security Level:</span>
-                <span className="info-value">ALPHA CLEARANCE</span>
-              </div>
-            </div>
-            <div className="welcome-footer">
-              <div className="footer-text">HOLOGRAPHIC INTERFACE ACTIVATED</div>
-              <div className="progress-bar">
-                <div className="progress-fill"></div>
-              </div>
-            </div>
-          </div>
-        ) : null;
-      
       default:
         return null;
     }
@@ -415,6 +390,42 @@ export default function Art() {
         </Link>
       </div>
 
+      {/* Authentication UI - Positioned outside the hologram */}
+      {!isAuthenticated && renderAuthUI()}
+
+      {/* Welcome Message - Positioned outside the hologram */}
+      {isAuthenticated && showWelcome && (
+        <div className="welcome-container">
+          <div className="welcome-header">
+            <div className="welcome-title">ACCESS GRANTED</div>
+            <div className="welcome-message">Welcome back, Master Tlotlo!</div>
+          </div>
+          <div className="system-info">
+            <div className="info-item">
+              <span className="info-label">System Status:</span>
+              <span className="info-value online">ONLINE</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Last Login:</span>
+              <span className="info-value">May 10, 2025 • 17:23:48</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Security Level:</span>
+              <span className="info-value">ALPHA CLEARANCE</span>
+            </div>
+          </div>
+          <div className="welcome-footer">
+            <div className="footer-text">HOLOGRAPHIC INTERFACE ACTIVATED</div>
+            <div className="progress-bar">
+              <div className="progress-fill"></div>
+            </div>
+            <button className="close-welcome-btn" onClick={closeWelcomeMessage}>
+              CONTINUE
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="holographic-container" ref={containerRef} onClick={isAuthenticated && authAnimationComplete ? generateRipple : null}>
         <div className={`hologram ${scanLines ? 'with-scan-lines' : ''}`}>
           {/* Ripples */}
@@ -422,24 +433,19 @@ export default function Art() {
             <span key={id} className="ripple" />
           ))}
 
-          {!isAuthenticated || !authAnimationComplete ? (
-            // Authentication UI
-            renderAuthUI()
-          ) : (
-            // Music Player Interface (only shown when authenticated)
-            isPlaying && (
-              <div className="holo-music-player">
-                <div className="holo-music-visualizer">
-                  {Array(5).fill().map((_, i) => (
-                    <div key={i} className="holo-music-bar" />
-                  ))}
-                </div>
-                <div className="holo-music-title">Now Playing</div>
-                <div className="holo-song-name">
-                  {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
-                </div>
+          {/* Music Player Interface (only shown when authenticated) */}
+          {isAuthenticated && authAnimationComplete && isPlaying && (
+            <div className="holo-music-player">
+              <div className="holo-music-visualizer">
+                {Array(5).fill().map((_, i) => (
+                  <div key={i} className="holo-music-bar" />
+                ))}
               </div>
-            )
+              <div className="holo-music-title">Now Playing</div>
+              <div className="holo-song-name">
+                {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
+              </div>
+            </div>
           )}
         </div>
       </div>
