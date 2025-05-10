@@ -92,7 +92,6 @@ export default function Login() {
                     {passwordError && <p className="error-message">{passwordError}</p>}
                 </div>
                 <button className="btn btn-primary login-button" onClick={handleSubmit}>Login</button>
-                {/* <Link to="/register" className="register-here">Don't have an account? Register here</Link> */}
             </div>
         </div>
     );
