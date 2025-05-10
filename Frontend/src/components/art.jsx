@@ -45,11 +45,11 @@ import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
 import genesis from '../Transcendence - GENESIS.mp3';
 import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
 import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
-import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
+import ma_meilleure_enemie from '../Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2) [Official Visualizer].mp3';
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
+import mit_hall from '../"Hall That Never Ends," featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album "Log Log Land," streaming now!.mp3';
 import mit from '../mit.mp3';
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
@@ -78,6 +78,16 @@ export default function Art() {
   const [currentSong, setCurrentSong] = useState(ezio_family); // Default song
   const [showSongModal, setShowSongModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Authentication states
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authStage, setAuthStage] = useState("identity"); // "identity", "password", or "authenticated"
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [scanLines, setScanLines] = useState(true);
+  const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
 
   // Song library
   const songs = {
@@ -126,8 +136,7 @@ export default function Art() {
     "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
     "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    // "46": { name: "Stromae, Pomme - "Ma Meilleure Ennemie" 🌃", file: ma_meilleure_enemie },
-    "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    "46": { name: "Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
     "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
     "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
@@ -156,10 +165,12 @@ export default function Art() {
 
     // Mouse movement effect
     const handleMouseMove = (e) => {
-      const { innerWidth, innerHeight } = window;
-      const x = (e.clientX / innerWidth - 0.5) * 20;
-      const y = (e.clientY / innerHeight - 0.5) * 20;
-      container.style.transform = `rotateX(${y}deg) rotateY(${x}deg)`;
+      if (isAuthenticated) {
+        const { innerWidth, innerHeight } = window;
+        const x = (e.clientX / innerWidth - 0.5) * 20;
+        const y = (e.clientY / innerHeight - 0.5) * 20;
+        container.style.transform = `rotateX(${y}deg) rotateY(${x}deg)`;
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -173,7 +184,7 @@ export default function Art() {
       setRecognition(recog);
 
       recog.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        const transcript = event.results[event.results.length - a][0].transcript.trim().toLowerCase();
         console.log("Voice Command:", transcript);
 
         // Hologram control commands
@@ -214,7 +225,43 @@ export default function Art() {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [isPlaying]);
+  }, [isPlaying, isAuthenticated]);
+
+  // Authentication Functions
+  const handleIdentitySubmit = (e) => {
+    e.preventDefault();
+    if (username.trim() === "Tlotlo Motingwe") {
+      setAuthError("");
+      setAuthStage("password");
+      // Play authentication sound effect here if you have one
+    } else {
+      setAuthError("Identity verification failed. Please try again.");
+      setTimeout(() => setAuthError(""), 3000);
+    }
+  };
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    // Password check - as requested, any password will work
+    if (password.trim() !== "") {
+      setAuthError("");
+      setIsAuthenticated(true);
+      setAuthStage("authenticated");
+      setShowWelcome(true);
+      // Start authentication success animation
+      generateRipple();
+      generateRipple();
+      
+      // Play welcome audio here if you have one
+      setTimeout(() => {
+        setScanLines(false);
+        setAuthAnimationComplete(true);
+      }, 3000);
+    } else {
+      setAuthError("Invalid password format. Please try again.");
+      setTimeout(() => setAuthError(""), 3000);
+    }
+  };
 
   const generateRipple = () => {
     const id = Date.now();
@@ -262,6 +309,104 @@ export default function Art() {
     audio.load();
   };
 
+  // Render authentication UI based on stage
+  const renderAuthUI = () => {
+    switch (authStage) {
+      case "identity":
+        return (
+          <div className="auth-container">
+            <div className="auth-header">
+              <div className="auth-title">SYSTEM SECURITY PROTOCOL</div>
+              <div className="auth-subtitle">AUTHORIZATION REQUIRED</div>
+            </div>
+            <form onSubmit={handleIdentitySubmit} className="auth-form">
+              <div className="input-group">
+                <label htmlFor="identity">
+                  <span className="input-prompt">&gt; PLEASE IDENTIFY YOURSELF:</span>
+                </label>
+                <input
+                  type="text"
+                  id="identity"
+                  className="auth-input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoFocus
+                />
+                <div className="scan-line"></div>
+              </div>
+              <button type="submit" className="auth-button">
+                VERIFY IDENTITY
+              </button>
+            </form>
+            {authError && <div className="auth-error">{authError}</div>}
+          </div>
+        );
+      
+      case "password":
+        return (
+          <div className="auth-container">
+            <div className="auth-header">
+              <div className="auth-title">IDENTITY CONFIRMED</div>
+              <div className="auth-subtitle">SECURITY CLEARANCE REQUIRED</div>
+            </div>
+            <form onSubmit={handlePasswordSubmit} className="auth-form">
+              <div className="input-group">
+                <label htmlFor="password">
+                  <span className="input-prompt">&gt; ENTER PASSWORD:</span>
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  className="auth-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
+                />
+                <div className="scan-line"></div>
+              </div>
+              <button type="submit" className="auth-button">
+                AUTHENTICATE
+              </button>
+            </form>
+            {authError && <div className="auth-error">{authError}</div>}
+          </div>
+        );
+      
+      case "authenticated":
+        return showWelcome ? (
+          <div className="welcome-container">
+            <div className="welcome-header">
+              <div className="welcome-title">ACCESS GRANTED</div>
+              <div className="welcome-message">Welcome back, Master Tlotlo!</div>
+            </div>
+            <div className="system-info">
+              <div className="info-item">
+                <span className="info-label">System Status:</span>
+                <span className="info-value online">ONLINE</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Last Login:</span>
+                <span className="info-value">May 10, 2025 • 17:23:48</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Security Level:</span>
+                <span className="info-value">ALPHA CLEARANCE</span>
+              </div>
+            </div>
+            <div className="welcome-footer">
+              <div className="footer-text">HOLOGRAPHIC INTERFACE ACTIVATED</div>
+              <div className="progress-bar">
+                <div className="progress-fill"></div>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="holo-background">
       <div className="navigation-link">
@@ -270,41 +415,48 @@ export default function Art() {
         </Link>
       </div>
 
-      <div className="holographic-container" ref={containerRef} onClick={generateRipple}>
-        <div className="hologram">
+      <div className="holographic-container" ref={containerRef} onClick={isAuthenticated && authAnimationComplete ? generateRipple : null}>
+        <div className={`hologram ${scanLines ? 'with-scan-lines' : ''}`}>
           {/* Ripples */}
           {ripples.map((id) => (
             <span key={id} className="ripple" />
           ))}
 
-          {/* Music Player Interface */}
-          {isPlaying && (
-            <div className="holo-music-player">
-              <div className="holo-music-visualizer">
-                {Array(5).fill().map((_, i) => (
-                  <div key={i} className="holo-music-bar" />
-                ))}
+          {!isAuthenticated || !authAnimationComplete ? (
+            // Authentication UI
+            renderAuthUI()
+          ) : (
+            // Music Player Interface (only shown when authenticated)
+            isPlaying && (
+              <div className="holo-music-player">
+                <div className="holo-music-visualizer">
+                  {Array(5).fill().map((_, i) => (
+                    <div key={i} className="holo-music-bar" />
+                  ))}
+                </div>
+                <div className="holo-music-title">Now Playing</div>
+                <div className="holo-song-name">
+                  {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
+                </div>
               </div>
-              <div className="holo-music-title">Now Playing</div>
-              <div className="holo-song-name">
-                {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
-              </div>
-            </div>
+            )
           )}
         </div>
       </div>
 
-      <div className="controls">
-        <button className="command-button" onClick={startListening} disabled={isListening}>
-          Say Command
-        </button>
-        <button className="stop-button" onClick={stopListening} disabled={!isListening}>
-          Stop Command
-        </button>
-        <button className="music-button" onClick={handlePlayToggle}>
-          {isPlaying ? "Stop Music" : "Play Music"}
-        </button>
-      </div>
+      {isAuthenticated && authAnimationComplete && (
+        <div className="controls">
+          <button className="command-button" onClick={startListening} disabled={isListening}>
+            Say Command
+          </button>
+          <button className="stop-button" onClick={stopListening} disabled={!isListening}>
+            Stop Command
+          </button>
+          <button className="music-button" onClick={handlePlayToggle}>
+            {isPlaying ? "Stop Music" : "Play Music"}
+          </button>
+        </div>
+      )}
 
       {/* Audio Element */}
       <audio ref={audioRef} src={currentSong} loop />

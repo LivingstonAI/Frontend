@@ -302,9 +302,9 @@ export default function SnowAILandingPage() {
       </h1>
       <a href="/login" className="snowai-button">Log In</a>
       <br />
-      <button className="snowai-button" onClick={handlePlayToggle}>
+      {/* <button className="snowai-button" onClick={handlePlayToggle}>
         {isPlaying ? "Stop Music" : "Play Music"}
-      </button>
+      </button> */}
       <audio ref={audioRef} src={currentSong} loop />
 
       {showSongModal && (
