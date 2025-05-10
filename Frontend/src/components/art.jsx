@@ -45,11 +45,11 @@ import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
 import genesis from '../Transcendence - GENESIS.mp3';
 import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
 import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
-import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
+import ma_meilleure_enemie from '../Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2) [Official Visualizer].mp3';
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
+import mit_hall from '../"Hall That Never Ends," featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album "Log Log Land," streaming now!.mp3';
 import mit from '../mit.mp3';
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
@@ -88,6 +88,7 @@ export default function Art() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [scanLines, setScanLines] = useState(true);
   const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
+  const [showHologram, setShowHologram] = useState(false); // New state to control hologram visibility
 
   // Song library
   const songs = {
@@ -136,7 +137,7 @@ export default function Art() {
     "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
     "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    "46": { name: "Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
     "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
     "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
@@ -165,7 +166,7 @@ export default function Art() {
 
     // Mouse movement effect
     const handleMouseMove = (e) => {
-      if (isAuthenticated) {
+      if (isAuthenticated && container) {
         const { innerWidth, innerHeight } = window;
         const x = (e.clientX / innerWidth - 0.5) * 20;
         const y = (e.clientY / innerHeight - 0.5) * 20;
@@ -188,13 +189,13 @@ export default function Art() {
         console.log("Voice Command:", transcript);
 
         // Hologram control commands
-        if (transcript.includes("glow")) {
+        if (transcript.includes("glow") && container) {
           container.querySelector(".hologram").style.filter = "drop-shadow(0 0 25px #00ccff) drop-shadow(0 0 40px #0088cc)";
-        } else if (transcript.includes("pulse")) {
+        } else if (transcript.includes("pulse") && container) {
           container.querySelector(".hologram").style.animationDuration = "1.5s";
-        } else if (transcript.includes("expand")) {
+        } else if (transcript.includes("expand") && container) {
           container.style.transform = "scale(1.2)";
-        } else if (transcript.includes("shrink")) {
+        } else if (transcript.includes("shrink") && container) {
           container.style.transform = "scale(0.8)";
         } else if (transcript.includes("wave")) {
           generateRipple();
@@ -213,19 +214,27 @@ export default function Art() {
       };
     }
 
-    // Boot sequence
-    container.style.opacity = 0;
-    container.style.transform = "scale(0.5)";
-    setTimeout(() => {
-      container.style.transition = "transform 2s ease, opacity 2s ease";
-      container.style.opacity = 1;
-      container.style.transform = "scale(1)";
-    }, 100);
+    // No boot sequence here - we'll initialize it after authentication
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [isPlaying, isAuthenticated]);
+
+  // Effect to initialize hologram after authentication is complete
+  useEffect(() => {
+    if (showHologram && containerRef.current) {
+      const container = containerRef.current;
+      // Boot sequence for hologram
+      container.style.opacity = 0;
+      container.style.transform = "scale(0.5)";
+      setTimeout(() => {
+        container.style.transition = "transform 2s ease, opacity 2s ease";
+        container.style.opacity = 1;
+        container.style.transform = "scale(1)";
+      }, 100);
+    }
+  }, [showHologram]);
 
   // Authentication Functions
   const handleIdentitySubmit = (e) => {
@@ -249,8 +258,6 @@ export default function Art() {
       setAuthStage("authenticated");
       setShowWelcome(true);
       // Start authentication success animation
-      generateRipple();
-      generateRipple();
       
       // Play welcome audio here if you have one
       setTimeout(() => {
@@ -266,6 +273,12 @@ export default function Art() {
   const closeWelcomeMessage = () => {
     setShowWelcome(false);
     setAuthAnimationComplete(true);
+    setShowHologram(true); // Show hologram after welcome message is closed
+    // Generate initial ripples for effect when hologram appears
+    setTimeout(() => {
+      generateRipple();
+      generateRipple();
+    }, 100);
   };
 
   const generateRipple = () => {
@@ -426,31 +439,35 @@ export default function Art() {
         </div>
       )}
 
-      <div className="holographic-container" ref={containerRef} onClick={isAuthenticated && authAnimationComplete ? generateRipple : null}>
-        <div className={`hologram ${scanLines ? 'with-scan-lines' : ''}`}>
-          {/* Ripples */}
-          {ripples.map((id) => (
-            <span key={id} className="ripple" />
-          ))}
+      {/* Only show hologram after authentication and welcome message are complete */}
+      {showHologram && (
+        <div className="holographic-container" ref={containerRef} onClick={generateRipple}>
+          <div className={`hologram ${scanLines ? 'with-scan-lines' : ''}`}>
+            {/* Ripples */}
+            {ripples.map((id) => (
+              <span key={id} className="ripple" />
+            ))}
 
-          {/* Music Player Interface (only shown when authenticated) */}
-          {isAuthenticated && authAnimationComplete && isPlaying && (
-            <div className="holo-music-player">
-              <div className="holo-music-visualizer">
-                {Array(5).fill().map((_, i) => (
-                  <div key={i} className="holo-music-bar" />
-                ))}
+            {/* Music Player Interface (only shown when authenticated) */}
+            {isPlaying && (
+              <div className="holo-music-player">
+                <div className="holo-music-visualizer">
+                  {Array(5).fill().map((_, i) => (
+                    <div key={i} className="holo-music-bar" />
+                  ))}
+                </div>
+                <div className="holo-music-title">Now Playing</div>
+                <div className="holo-song-name">
+                  {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
+                </div>
               </div>
-              <div className="holo-music-title">Now Playing</div>
-              <div className="holo-song-name">
-                {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {isAuthenticated && authAnimationComplete && (
+      {/* Only show controls after authentication and welcome message are complete */}
+      {isAuthenticated && authAnimationComplete && showHologram && (
         <div className="controls">
           <button className="command-button" onClick={startListening} disabled={isListening}>
             Say Command
