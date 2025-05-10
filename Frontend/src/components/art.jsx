@@ -45,11 +45,11 @@ import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
 import genesis from '../Transcendence - GENESIS.mp3';
 import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
 import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
-import ma_meilleure_enemie from '../Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2) [Official Visualizer].mp3';
+import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../"Hall That Never Ends," featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album "Log Log Land," streaming now!.mp3';
+import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
 import mit from '../mit.mp3';
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
@@ -137,7 +137,7 @@ export default function Art() {
     "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
     "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
     "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    "46": { name: "Stromae, Pomme - "Ma Meilleure Ennemie" (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
     "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
     "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
     "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
