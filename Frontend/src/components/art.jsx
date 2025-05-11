@@ -65,6 +65,10 @@ import classic from '../MKTO - Classic (Lyrics).mp3';
 import classic_slowed from '../𝙘𝙡𝙖𝙨𝙨𝙞𝙘 - 𝙈𝙆𝙏𝙊 (𝙨𝙡𝙤𝙬𝙚𝙙  𝙡𝙮𝙧𝙞𝙘𝙨).mp3';
 import sound_of_april from '../Sound of April.mp3';
 
+// Audio to be used for authentication
+import access_granted_audio from '../Access Granted Sound.mp3';
+import access_denied_audio from '../Access Denied - Sound Effect (HD).mp3';
+
 
 export default function Art() {
   const containerRef = useRef(null);
@@ -89,6 +93,11 @@ export default function Art() {
   const [scanLines, setScanLines] = useState(true);
   const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
   const [showHologram, setShowHologram] = useState(false); // New state to control hologram visibility
+  const [currentDateTime, setCurrentDateTime] = useState("");
+  
+  // Audio refs for authentication sounds
+  const accessGrantedAudioRef = useRef(null);
+  const accessDeniedAudioRef = useRef(null);
 
   // Song library
   const songs = {
@@ -156,6 +165,27 @@ export default function Art() {
     "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
   };
 
+  // Function to get current date and time formatted
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const options = { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    };
+    const timeOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    
+    const dateFormatted = now.toLocaleDateString('en-US', options);
+    const timeFormatted = now.toLocaleTimeString('en-US', timeOptions);
+    
+    return `${dateFormatted} • ${timeFormatted}`;
+  };
+
   // Filtered songs based on search term
   const filteredSongs = Object.entries(songs).filter(([key, song]) =>
     song.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -163,6 +193,9 @@ export default function Art() {
 
   useEffect(() => {
     const container = containerRef.current;
+
+    // Set current date and time
+    setCurrentDateTime(getCurrentDateTime());
 
     // Mouse movement effect
     const handleMouseMove = (e) => {
@@ -214,8 +247,6 @@ export default function Art() {
       };
     }
 
-    // No boot sequence here - we'll initialize it after authentication
-
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
@@ -242,9 +273,18 @@ export default function Art() {
     if (username.trim() === "Tlotlo Motingwe") {
       setAuthError("");
       setAuthStage("password");
-      // Play authentication sound effect here if you have one
+      // Play authentication progress sound
+      if (accessGrantedAudioRef.current) {
+        accessGrantedAudioRef.current.volume = 0.5;
+        accessGrantedAudioRef.current.play();
+      }
     } else {
       setAuthError("Identity verification failed. Please try again.");
+      // Play access denied sound
+      if (accessDeniedAudioRef.current) {
+        accessDeniedAudioRef.current.volume = 0.5;
+        accessDeniedAudioRef.current.play();
+      }
       setTimeout(() => setAuthError(""), 3000);
     }
   };
@@ -257,15 +297,25 @@ export default function Art() {
       setIsAuthenticated(true);
       setAuthStage("authenticated");
       setShowWelcome(true);
+      // Update date/time when authenticated
+      setCurrentDateTime(getCurrentDateTime());
+      // Play access granted sound
+      if (accessGrantedAudioRef.current) {
+        accessGrantedAudioRef.current.volume = 0.5;
+        accessGrantedAudioRef.current.play();
+      }
       // Start authentication success animation
-      
-      // Play welcome audio here if you have one
       setTimeout(() => {
         setScanLines(false);
         setAuthAnimationComplete(true);
       }, 3000);
     } else {
       setAuthError("Invalid password format. Please try again.");
+      // Play access denied sound
+      if (accessDeniedAudioRef.current) {
+        accessDeniedAudioRef.current.volume = 0.5;
+        accessDeniedAudioRef.current.play();
+      }
       setTimeout(() => setAuthError(""), 3000);
     }
   };
@@ -420,7 +470,7 @@ export default function Art() {
             </div>
             <div className="info-item">
               <span className="info-label">Last Login:</span>
-              <span className="info-value">May 10, 2025 • 17:23:48</span>
+              <span className="info-value">{currentDateTime}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Security Level:</span>
@@ -481,8 +531,12 @@ export default function Art() {
         </div>
       )}
 
-      {/* Audio Element */}
+      {/* Audio Elements */}
       <audio ref={audioRef} src={currentSong} loop />
+      
+      {/* Authentication sound effects */}
+      <audio ref={accessGrantedAudioRef} src={access_granted_audio} />
+      <audio ref={accessDeniedAudioRef} src={access_denied_audio} />
 
       {/* Song Selection Modal */}
       {showSongModal && (
