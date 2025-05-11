@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 import Cookies from 'js-cookie';
 import access_granted_audio from '../Access Granted Sound.mp3';
-import access_denied_audio from '../Access Granted Sound.mp3';
+import access_denied_audio from '../Access Denied - Sound Effect (HD).mp3';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -115,7 +115,7 @@ export default function Login() {
                 // Wait for animation to complete before navigating
                 setTimeout(() => {
                     navigate(`/personal_info`);
-                }, 2000);
+                }, 5000);
             } else {
                 setError("AUTHENTICATION FAILED: Invalid Credentials");
                 playAccessDenied();
