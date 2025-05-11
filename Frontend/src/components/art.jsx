@@ -273,11 +273,7 @@ export default function Art() {
     if (username.trim() === "Tlotlo Motingwe") {
       setAuthError("");
       setAuthStage("password");
-      // Play authentication progress sound
-      if (accessGrantedAudioRef.current) {
-        accessGrantedAudioRef.current.volume = 0.5;
-        accessGrantedAudioRef.current.play();
-      }
+      // Don't play the access granted sound here anymore
     } else {
       setAuthError("Identity verification failed. Please try again.");
       // Play access denied sound
@@ -299,7 +295,7 @@ export default function Art() {
       setShowWelcome(true);
       // Update date/time when authenticated
       setCurrentDateTime(getCurrentDateTime());
-      // Play access granted sound
+      // Play access granted sound - moved from identity submit to here
       if (accessGrantedAudioRef.current) {
         accessGrantedAudioRef.current.volume = 0.5;
         accessGrantedAudioRef.current.play();
