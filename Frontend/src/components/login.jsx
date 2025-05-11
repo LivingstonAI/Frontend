@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 import Cookies from 'js-cookie';
+import access_granted_audio from '../Access Granted Sound.mp3';
+import access_denied_audio from '../Access Granted Sound.mp3';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -15,16 +17,21 @@ export default function Login() {
     const [accessGranted, setAccessGranted] = useState(false);
     const uniqueID = uuidv4();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
-    const audioRef = useRef(null);
+    const accessGrantedAudioRef = useRef(null);
+    const accessDeniedAudioRef = useRef(null);
 
     // References for animation
     const scanlineRef = useRef(null);
     const containerRef = useRef(null);
 
-    // Create the audio element for the voice
+    // Create the audio elements
     useEffect(() => {
-        const audio = new Audio("https://ssl.gstatic.com/dictionary/static/pronunciation/2022-03-02/audio/ac/access_granted_female_en_us_1.mp3");
-        audioRef.current = audio;
+        // Create references to the imported audio files
+        const grantedAudio = new Audio(access_granted_audio);
+        const deniedAudio = new Audio(access_denied_audio);
+        
+        accessGrantedAudioRef.current = grantedAudio;
+        accessDeniedAudioRef.current = deniedAudio;
         
         // Add scan effect
         const intervalId = setInterval(() => {
@@ -36,15 +43,24 @@ export default function Login() {
         
         return () => {
             clearInterval(intervalId);
-            if (audioRef.current) {
-                audioRef.current.pause();
+            if (accessGrantedAudioRef.current) {
+                accessGrantedAudioRef.current.pause();
+            }
+            if (accessDeniedAudioRef.current) {
+                accessDeniedAudioRef.current.pause();
             }
         };
     }, []);
 
     const playAccessGranted = () => {
-        if (audioRef.current) {
-            audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+        if (accessGrantedAudioRef.current) {
+            accessGrantedAudioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+        }
+    };
+
+    const playAccessDenied = () => {
+        if (accessDeniedAudioRef.current) {
+            accessDeniedAudioRef.current.play().catch(e => console.error("Audio playback failed:", e));
         }
     };
 
@@ -102,9 +118,11 @@ export default function Login() {
                 }, 2000);
             } else {
                 setError("AUTHENTICATION FAILED: Invalid Credentials");
+                playAccessDenied();
             }
         } catch (error) {
             setError("CONNECTION ERROR: Unable to reach authentication server");
+            playAccessDenied();
         } finally {
             setLoading(false);
         }
