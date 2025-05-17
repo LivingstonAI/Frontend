@@ -64,6 +64,8 @@ import dizzy from '../Dizzy  Joakim Karud (No Copyright Music).mp3';
 import classic from '../MKTO - Classic (Lyrics).mp3';
 import classic_slowed from '../𝙘𝙡𝙖𝙨𝙨𝙞𝙘 - 𝙈𝙆𝙏𝙊 (𝙨𝙡𝙤𝙬𝙚𝙙  𝙡𝙮𝙧𝙞𝙘𝙨).mp3';
 import sound_of_april from '../Sound of April.mp3';
+import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics).mp3';
+
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -163,6 +165,7 @@ export default function Art() {
     "60": { name: "Classic 😎🏖️", file: classic },
     "61": { name: "Classic (slowed) 🏄‍♂️", file: classic_slowed },
     "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
+    "63": { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
   };
 
   // Function to get current date and time formatted
