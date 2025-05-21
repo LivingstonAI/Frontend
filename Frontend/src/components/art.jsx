@@ -226,7 +226,7 @@ export default function Art() {
     "61": { name: "Classic (slowed) 🏄‍♂️", file: classic_slowed },
     "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
     "63": { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
-    "64": { name: "A Million Colors 👨‍💻", file: a_million_colors },
+    "64": { name: "A Million Colors 🎺", file: a_million_colors },
   };
 
   // Function to get current date and time formatted
