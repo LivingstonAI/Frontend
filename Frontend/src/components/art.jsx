@@ -97,6 +97,11 @@ export default function Art() {
   const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
   const [showHologram, setShowHologram] = useState(false); // New state to control hologram visibility
   const [currentDateTime, setCurrentDateTime] = useState("");
+
+  // Inside your Art component, add these state variables near your other states:
+const [hologramColor, setHologramColor] = useState("#00ccff"); // Default color
+const [originalColor, setOriginalColor] = useState("#00ccff"); // Store original color
+const [showColorPicker, setShowColorPicker] = useState(false); // Control color picker visibility
   
   // Audio refs for authentication sounds
   const accessGrantedAudioRef = useRef(null);
@@ -238,6 +243,21 @@ export default function Art() {
         } else if (transcript.includes("wave")) {
           generateRipple();
         } 
+
+        // Color change commands
+  else if (transcript.includes("change color to blue") || transcript.includes("blue color")) {
+    handleColorChange("#00ccff");
+  } else if (transcript.includes("change color to green") || transcript.includes("green color")) {
+    handleColorChange("#00ff00");
+  } else if (transcript.includes("change color to purple") || transcript.includes("purple color")) {
+    handleColorChange("#ff00ff");
+  } else if (transcript.includes("change color to red") || transcript.includes("red color")) {
+    handleColorChange("#ff0000");
+  } else if (transcript.includes("change color to yellow") || transcript.includes("yellow color")) {
+    handleColorChange("#ffff00");
+  } else if (transcript.includes("reset color") || transcript.includes("original color")) {
+    handleColorChange(originalColor); 
+    }
         // Music control commands
         else if (transcript.includes("play music")) {
           handlePlayToggle();
@@ -258,19 +278,26 @@ export default function Art() {
   }, [isPlaying, isAuthenticated]);
 
   // Effect to initialize hologram after authentication is complete
-  useEffect(() => {
-    if (showHologram && containerRef.current) {
-      const container = containerRef.current;
-      // Boot sequence for hologram
-      container.style.opacity = 0;
-      container.style.transform = "scale(0.5)";
-      setTimeout(() => {
-        container.style.transition = "transform 2s ease, opacity 2s ease";
-        container.style.opacity = 1;
-        container.style.transform = "scale(1)";
-      }, 100);
-    }
-  }, [showHologram]);
+useEffect(() => {
+  if (showHologram && containerRef.current) {
+    const container = containerRef.current;
+    // Boot sequence for hologram
+    container.style.opacity = 0;
+    container.style.transform = "scale(0.5)";
+    setTimeout(() => {
+      container.style.transition = "transform 2s ease, opacity 2s ease";
+      container.style.opacity = 1;
+      container.style.transform = "scale(1)";
+      
+      // Apply initial color
+      const hologram = container.querySelector(".hologram");
+      if (hologram) {
+        hologram.style.filter = `drop-shadow(0 0 25px ${hologramColor}) drop-shadow(0 0 40px ${hologramColor.replace('ff', '88')})`;
+        hologram.style.boxShadow = `0 0 50px ${hologramColor.replace('ff', '80')}, inset 0 0 60px ${hologramColor.replace('ff', '99')}`;
+      }
+    }, 100);
+  }
+}, [showHologram, hologramColor]);
 
   // Authentication Functions
   const handleIdentitySubmit = (e) => {
@@ -446,13 +473,88 @@ export default function Art() {
     }
   };
 
+  // Add this function to your component
+const handleColorChange = (color) => {
+  setHologramColor(color);
+  setShowColorPicker(false);
+  
+  // Apply the color change to the hologram
+  if (containerRef.current) {
+    const hologram = containerRef.current.querySelector(".hologram");
+    if (hologram) {
+      hologram.style.filter = `drop-shadow(0 0 25px ${color}) drop-shadow(0 0 40px ${color.replace('ff', '88')})`;
+      hologram.style.boxShadow = `0 0 50px ${color.replace('ff', '80')}, inset 0 0 60px ${color.replace('ff', '99')}`;
+      
+      // Update the background gradients
+      hologram.style.background = `
+        radial-gradient(circle at center, ${color.replace('ff', '80')} 0%, ${color.replace('ff', '40')} 40%, transparent 70%),
+        radial-gradient(circle at top left, ${color.replace('ff', '60')} 10%, transparent 50%)
+      `;
+    }
+  }
+};
+
   return (
     <div className="holo-background">
-      <div className="navigation-link">
-        <Link to="/calendar_data" className="back-link">
-          Go Back to SnowAI
-        </Link>
+      
+<div className="navigation-link">
+  <Link to="/calendar_data" className="back-link">
+    Go Back to SnowAI
+  </Link>
+  {isAuthenticated && (
+    <button 
+      className="color-change-button" 
+      onClick={() => setShowColorPicker(true)}
+    >
+      Change Color
+    </button>
+  )}
+</div>
+
+{/* Add Color Picker Modal */}
+{showColorPicker && (
+  <div className="color-picker-overlay">
+    <div className="color-picker-modal">
+      <h3>Select Hologram Color</h3>
+      <div className="color-options">
+        <div 
+          className="color-option" 
+          style={{backgroundColor: "#00ccff"}} 
+          onClick={() => handleColorChange("#00ccff")}
+          title="Default Blue"
+        ></div>
+        <div 
+          className="color-option" 
+          style={{backgroundColor: "#00ff00"}} 
+          onClick={() => handleColorChange("#00ff00")}
+          title="Green"
+        ></div>
+        <div 
+          className="color-option" 
+          style={{backgroundColor: "#ff00ff"}} 
+          onClick={() => handleColorChange("#ff00ff")}
+          title="Purple"
+        ></div>
+        <div 
+          className="color-option" 
+          style={{backgroundColor: "#ff0000"}} 
+          onClick={() => handleColorChange("#ff0000")}
+          title="Red"
+        ></div>
+        <div 
+          className="color-option" 
+          style={{backgroundColor: "#ffff00"}} 
+          onClick={() => handleColorChange("#ffff00")}
+          title="Yellow"
+        ></div>
       </div>
+      <div className="color-picker-actions">
+        <button onClick={() => handleColorChange(originalColor)}>Reset to Original</button>
+        <button onClick={() => setShowColorPicker(false)}>Close</button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Authentication UI - Positioned outside the hologram */}
       {!isAuthenticated && renderAuthUI()}
