@@ -554,7 +554,7 @@ export default function Art() {
         
         {/* Color switcher button - only shown when authenticated */}
         {isAuthenticated && authAnimationComplete && showHologram && (
-          <button className="color-button" onClick={toggleColorPalette}>
+          <button className="color-button btn btn-primary" onClick={toggleColorPalette}>
             Change Color
           </button>
         )}
