@@ -554,7 +554,7 @@ export default function Art() {
         
         {/* Color switcher button - only shown when authenticated */}
         {isAuthenticated && authAnimationComplete && showHologram && (
-          <button className="color-button btn btn-primary" onClick={toggleColorPalette}>
+          <button className="color-button" onClick={toggleColorPalette}>
             Change Color
           </button>
         )}
@@ -711,7 +711,7 @@ export default function Art() {
             
             <div className="color-modal-footer">
               <button 
-                className="reset-color-btn"
+                className="reset-color-btn btn btn-primary"
                 onClick={() => applyColorTheme(colorThemes.default)}
               >
                 Reset to Default
