@@ -7499,6 +7499,49 @@ img {
   transition: all 0.3s ease;
 }
 
+/* Navigation Bar Styles */
+.navigation-bar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000; /* High z-index to ensure it stays on top of other elements */
+  display: flex;
+  gap: 10px;
+}
+
+.back-link {
+  color: #00ccff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  transition: color 0.3s;
+  background-color: rgba(0, 25, 50, 0.7);
+  padding: 8px 15px;
+  border-radius: 5px;
+  display: inline-block;
+}
+
+.back-link:hover {
+  color: #ffffff;
+  background-color: rgba(0, 119, 204, 0.8);
+}
+
+/* Color Button Styles */
+.color-button {
+  background-color: rgba(0, 119, 204, 0.7);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.color-button:hover {
+  background-color: rgba(0, 150, 255, 0.8);
+}
+
 .color-button:hover {
   background-color: rgba(0, 204, 255, 0.2);
   box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);

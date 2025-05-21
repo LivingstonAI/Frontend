@@ -545,14 +545,14 @@ export default function Art() {
   };
 
   return (
-    <div className="">
-      {/* Navigation Links */}
+    <div className="holo-background">
+      {/* Navigation Links - Always at the top of the screen */}
       <div className="navigation-bar">
         <Link to="/calendar_data" className="back-link">
           Go Back to SnowAI
         </Link>
         
-        {/* NEW: Color switcher button - only shown when authenticated */}
+        {/* Color switcher button - only shown when authenticated */}
         {isAuthenticated && authAnimationComplete && showHologram && (
           <button className="color-button" onClick={toggleColorPalette}>
             Change Color
@@ -562,7 +562,6 @@ export default function Art() {
 
       {/* Authentication UI - Positioned outside the hologram */}
       {!isAuthenticated && renderAuthUI()}
-
       {/* Welcome Message - Positioned outside the hologram */}
       {isAuthenticated && showWelcome && (
         <div className="welcome-container">
