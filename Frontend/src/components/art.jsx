@@ -545,7 +545,7 @@ export default function Art() {
   };
 
   return (
-    <div className="holo-background">
+    <div className="">
       {/* Navigation Links */}
       <div className="navigation-bar">
         <Link to="/calendar_data" className="back-link">

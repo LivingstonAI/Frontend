@@ -7828,3 +7828,230 @@ img {
   background: rgba(0, 204, 255, 0.5);
   box-shadow: 0 0 10px #00ccff;
 }
+
+
+.holo-background {
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(ellipse at center, #0a0f25 0%, #050517 80%, #000010 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.holographic-container {
+  width: 400px;
+  height: 400px;
+  perspective: 1500px;
+  transition: transform 0.5s ease, opacity 2s ease;
+  position: relative;
+}
+
+.hologram {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 150, 255, 0.8) 0%, rgba(0, 50, 100, 0.4) 40%, transparent 70%),
+              radial-gradient(circle at top left, rgba(0, 150, 255, 0.6) 10%, transparent 50%);
+  border-radius: 50%;
+  position: relative;
+  filter: drop-shadow(0 0 25px #00ccff) drop-shadow(0 0 40px #0088cc);
+  transform-style: preserve-3d;
+  animation: rotateHolo 10s linear infinite, pulseGlow 1.5s ease-in-out infinite alternate;
+  box-shadow: 0 0 50px rgba(0, 150, 255, 0.5), inset 0 0 60px rgba(0, 150, 255, 0.6);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+/* Ripples */
+.ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 200, 255, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: rippleExpand 1s ease-out forwards;
+}
+
+@keyframes rippleExpand {
+  100% {
+    transform: translate(-50%, -50%) scale(10);
+    opacity: 0;
+  }
+}
+
+@keyframes rotateHolo {
+  0% {
+    transform: rotateY(0deg) rotateX(0deg);
+  }
+  100% {
+    transform: rotateY(360deg) rotateX(360deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Music Player Styles */
+.holo-music-player {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  text-align: center;
+  color: #00ccff;
+  text-shadow: 0 0 5px #00ccff;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.holo-music-visualizer {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.holo-music-bar {
+  width: 4px;
+  height: 20px;
+  background-color: #00ccff;
+  border-radius: 2px;
+  animation: musicBars 1.2s ease-in-out infinite alternate;
+}
+
+.holo-music-bar:nth-child(1) { animation-delay: 0s; }
+.holo-music-bar:nth-child(2) { animation-delay: 0.2s; }
+.holo-music-bar:nth-child(3) { animation-delay: 0.4s; }
+.holo-music-bar:nth-child(4) { animation-delay: 0.6s; }
+.holo-music-bar:nth-child(5) { animation-delay: 0.8s; }
+
+@keyframes musicBars {
+  0% { height: 5px; }
+  100% { height: 20px; }
+}
+
+.holo-music-title {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.holo-song-name {
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Navigation bar */
+.navigation-bar {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.back-link {
+  color: #00ccff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.back-link:hover {
+  color: #0088cc;
+}
+
+/* NEW: Color Button */
+.color-button {
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 2px solid #00ccff;
+  color: #00ccff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.color-button:hover {
+  background-color: rgba(0, 204, 255, 0.2);
+  box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+}
+
+/* Controls */
+.controls {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.command-button, .stop-button, .music-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.command-button {
+  background-color: #0077cc;
+  color: white;
+}
+
+.command-button:hover {
+  background-color: #005fa3;
+}
+
+.command-button:disabled {
+  background-color: #aaaaaa;
+  cursor: not-allowed;
+}
+
+.stop-button {
+  background-color: #cc0000;
+  color: white;
+}
+
+.stop-button:hover {
+  background-color: #a80000;
+}
+
+.stop-button:disabled {
+  background-color: #aaaaaa;
+  cursor: not-allowed;
+}
+
+.music-button {
+  background-color: #00aacc;
+  color: white;
+}
+
+.music-button:hover {
+  background-color: #008aaa;
+}
