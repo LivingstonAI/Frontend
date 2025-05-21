@@ -67,11 +67,9 @@ import sound_of_april from '../Sound of April.mp3';
 import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics).mp3';
 import a_million_colors from '../A Million Colors.mp3';
 
-
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
 import access_denied_audio from '../Access Denied - Sound Effect (HD).mp3';
-
 
 export default function Art() {
   const containerRef = useRef(null);
@@ -95,17 +93,73 @@ export default function Art() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [scanLines, setScanLines] = useState(true);
   const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
-  const [showHologram, setShowHologram] = useState(false); // New state to control hologram visibility
+  const [showHologram, setShowHologram] = useState(false); // State to control hologram visibility
   const [currentDateTime, setCurrentDateTime] = useState("");
-
-  // Inside your Art component, add these state variables near your other states:
-const [hologramColor, setHologramColor] = useState("#00ccff"); // Default color
-const [originalColor, setOriginalColor] = useState("#00ccff"); // Store original color
-const [showColorPicker, setShowColorPicker] = useState(false); // Control color picker visibility
   
   // Audio refs for authentication sounds
   const accessGrantedAudioRef = useRef(null);
   const accessDeniedAudioRef = useRef(null);
+
+  // NEW: Color customization states
+  const [showColorPalette, setShowColorPalette] = useState(false);
+  const [hologramColor, setHologramColor] = useState({
+    primary: "rgba(0, 150, 255, 0.8)",
+    secondary: "rgba(0, 50, 100, 0.4)",
+    glow: "#00ccff",
+    shadowGlow: "#0088cc"
+  });
+  const [originalColor] = useState({
+    primary: "rgba(0, 150, 255, 0.8)",
+    secondary: "rgba(0, 50, 100, 0.4)",
+    glow: "#00ccff",
+    shadowGlow: "#0088cc"
+  });
+
+  // Predefined color themes
+  const colorThemes = {
+    default: {
+      name: "Default Blue",
+      primary: "rgba(0, 150, 255, 0.8)",
+      secondary: "rgba(0, 50, 100, 0.4)",
+      glow: "#00ccff",
+      shadowGlow: "#0088cc"
+    },
+    deepBlue: {
+      name: "Deep Blue",
+      primary: "rgba(0, 50, 200, 0.8)",
+      secondary: "rgba(0, 20, 100, 0.4)",
+      glow: "#0033cc",
+      shadowGlow: "#001a66"
+    },
+    skyBlue: {
+      name: "Sky Blue",
+      primary: "rgba(135, 206, 250, 0.8)",
+      secondary: "rgba(65, 105, 225, 0.4)",
+      glow: "#87cefa",
+      shadowGlow: "#4169e1"
+    },
+    tealBlue: {
+      name: "Teal Blue",
+      primary: "rgba(0, 128, 128, 0.8)",
+      secondary: "rgba(0, 64, 64, 0.4)",
+      glow: "#008080",
+      shadowGlow: "#004040"
+    },
+    navyBlue: {
+      name: "Navy Blue",
+      primary: "rgba(0, 0, 128, 0.8)",
+      secondary: "rgba(0, 0, 64, 0.4)",
+      glow: "#000080",
+      shadowGlow: "#000040"
+    },
+    azure: {
+      name: "Azure",
+      primary: "rgba(0, 127, 255, 0.8)",
+      secondary: "rgba(0, 63, 127, 0.4)",
+      glow: "#007fff",
+      shadowGlow: "#003f7f"
+    }
+  };
 
   // Song library
   const songs = {
@@ -233,7 +287,7 @@ const [showColorPicker, setShowColorPicker] = useState(false); // Control color 
 
         // Hologram control commands
         if (transcript.includes("glow") && container) {
-          container.querySelector(".hologram").style.filter = "drop-shadow(0 0 25px #00ccff) drop-shadow(0 0 40px #0088cc)";
+          container.querySelector(".hologram").style.filter = `drop-shadow(0 0 25px ${hologramColor.glow}) drop-shadow(0 0 40px ${hologramColor.shadowGlow})`;
         } else if (transcript.includes("pulse") && container) {
           container.querySelector(".hologram").style.animationDuration = "1.5s";
         } else if (transcript.includes("expand") && container) {
@@ -243,21 +297,6 @@ const [showColorPicker, setShowColorPicker] = useState(false); // Control color 
         } else if (transcript.includes("wave")) {
           generateRipple();
         } 
-
-        // Color change commands
-  else if (transcript.includes("change color to blue") || transcript.includes("blue color")) {
-    handleColorChange("#00ccff");
-  } else if (transcript.includes("change color to green") || transcript.includes("green color")) {
-    handleColorChange("#00ff00");
-  } else if (transcript.includes("change color to purple") || transcript.includes("purple color")) {
-    handleColorChange("#ff00ff");
-  } else if (transcript.includes("change color to red") || transcript.includes("red color")) {
-    handleColorChange("#ff0000");
-  } else if (transcript.includes("change color to yellow") || transcript.includes("yellow color")) {
-    handleColorChange("#ffff00");
-  } else if (transcript.includes("reset color") || transcript.includes("original color")) {
-    handleColorChange(originalColor); 
-    }
         // Music control commands
         else if (transcript.includes("play music")) {
           handlePlayToggle();
@@ -269,35 +308,59 @@ const [showColorPicker, setShowColorPicker] = useState(false); // Control color 
         } else if (transcript.includes("choose song")) {
           setShowSongModal(true);
         }
+        // NEW: Color control commands
+        else if (transcript.includes("color default") || transcript.includes("default color")) {
+          applyColorTheme(colorThemes.default);
+        } else if (transcript.includes("deep blue")) {
+          applyColorTheme(colorThemes.deepBlue);
+        } else if (transcript.includes("sky blue")) {
+          applyColorTheme(colorThemes.skyBlue);
+        } else if (transcript.includes("teal blue")) {
+          applyColorTheme(colorThemes.tealBlue);
+        } else if (transcript.includes("navy blue")) {
+          applyColorTheme(colorThemes.navyBlue);
+        } else if (transcript.includes("azure")) {
+          applyColorTheme(colorThemes.azure);
+        } else if (transcript.includes("change color")) {
+          setShowColorPalette(true);
+        }
       };
     }
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [isPlaying, isAuthenticated]);
+  }, [isPlaying, isAuthenticated, hologramColor]);
 
   // Effect to initialize hologram after authentication is complete
-useEffect(() => {
-  if (showHologram && containerRef.current) {
-    const container = containerRef.current;
-    // Boot sequence for hologram
-    container.style.opacity = 0;
-    container.style.transform = "scale(0.5)";
-    setTimeout(() => {
-      container.style.transition = "transform 2s ease, opacity 2s ease";
-      container.style.opacity = 1;
-      container.style.transform = "scale(1)";
-      
-      // Apply initial color
-      const hologram = container.querySelector(".hologram");
+  useEffect(() => {
+    if (showHologram && containerRef.current) {
+      const container = containerRef.current;
+      // Boot sequence for hologram
+      container.style.opacity = 0;
+      container.style.transform = "scale(0.5)";
+      setTimeout(() => {
+        container.style.transition = "transform 2s ease, opacity 2s ease";
+        container.style.opacity = 1;
+        container.style.transform = "scale(1)";
+      }, 100);
+    }
+  }, [showHologram]);
+
+  // Effect to update hologram colors when changed
+  useEffect(() => {
+    if (containerRef.current && showHologram) {
+      const hologram = containerRef.current.querySelector(".hologram");
       if (hologram) {
-        hologram.style.filter = `drop-shadow(0 0 25px ${hologramColor}) drop-shadow(0 0 40px ${hologramColor.replace('ff', '88')})`;
-        hologram.style.boxShadow = `0 0 50px ${hologramColor.replace('ff', '80')}, inset 0 0 60px ${hologramColor.replace('ff', '99')}`;
+        hologram.style.background = `
+          radial-gradient(circle at center, ${hologramColor.primary} 0%, ${hologramColor.secondary} 40%, transparent 70%),
+          radial-gradient(circle at top left, ${hologramColor.primary} 10%, transparent 50%)
+        `;
+        hologram.style.filter = `drop-shadow(0 0 25px ${hologramColor.glow}) drop-shadow(0 0 40px ${hologramColor.shadowGlow})`;
+        hologram.style.boxShadow = `0 0 50px ${hologramColor.primary}, inset 0 0 60px ${hologramColor.primary}`;
       }
-    }, 100);
-  }
-}, [showHologram, hologramColor]);
+    }
+  }, [hologramColor, showHologram]);
 
   // Authentication Functions
   const handleIdentitySubmit = (e) => {
@@ -305,10 +368,8 @@ useEffect(() => {
     if (username.trim() === "Tlotlo Motingwe") {
       setAuthError("");
       setAuthStage("password");
-      // Don't play the access granted sound here anymore
     } else {
       setAuthError("Identity verification failed. Please try again.");
-      // Play access denied sound
       if (accessDeniedAudioRef.current) {
         accessDeniedAudioRef.current.volume = 0.5;
         accessDeniedAudioRef.current.play();
@@ -325,21 +386,17 @@ useEffect(() => {
       setIsAuthenticated(true);
       setAuthStage("authenticated");
       setShowWelcome(true);
-      // Update date/time when authenticated
       setCurrentDateTime(getCurrentDateTime());
-      // Play access granted sound - moved from identity submit to here
       if (accessGrantedAudioRef.current) {
         accessGrantedAudioRef.current.volume = 0.5;
         accessGrantedAudioRef.current.play();
       }
-      // Start authentication success animation
       setTimeout(() => {
         setScanLines(false);
         setAuthAnimationComplete(true);
       }, 3000);
     } else {
       setAuthError("Invalid password format. Please try again.");
-      // Play access denied sound
       if (accessDeniedAudioRef.current) {
         accessDeniedAudioRef.current.volume = 0.5;
         accessDeniedAudioRef.current.play();
@@ -351,8 +408,7 @@ useEffect(() => {
   const closeWelcomeMessage = () => {
     setShowWelcome(false);
     setAuthAnimationComplete(true);
-    setShowHologram(true); // Show hologram after welcome message is closed
-    // Generate initial ripples for effect when hologram appears
+    setShowHologram(true);
     setTimeout(() => {
       generateRipple();
       generateRipple();
@@ -403,6 +459,21 @@ useEffect(() => {
       audio.play();
     };
     audio.load();
+  };
+
+  // NEW: Color theme functions
+  const applyColorTheme = (theme) => {
+    setHologramColor({
+      primary: theme.primary,
+      secondary: theme.secondary,
+      glow: theme.glow,
+      shadowGlow: theme.shadowGlow
+    });
+    setShowColorPalette(false);
+  };
+
+  const toggleColorPalette = () => {
+    setShowColorPalette(!showColorPalette);
   };
 
   // Render authentication UI based on stage
@@ -473,88 +544,21 @@ useEffect(() => {
     }
   };
 
-  // Add this function to your component
-const handleColorChange = (color) => {
-  setHologramColor(color);
-  setShowColorPicker(false);
-  
-  // Apply the color change to the hologram
-  if (containerRef.current) {
-    const hologram = containerRef.current.querySelector(".hologram");
-    if (hologram) {
-      hologram.style.filter = `drop-shadow(0 0 25px ${color}) drop-shadow(0 0 40px ${color.replace('ff', '88')})`;
-      hologram.style.boxShadow = `0 0 50px ${color.replace('ff', '80')}, inset 0 0 60px ${color.replace('ff', '99')}`;
-      
-      // Update the background gradients
-      hologram.style.background = `
-        radial-gradient(circle at center, ${color.replace('ff', '80')} 0%, ${color.replace('ff', '40')} 40%, transparent 70%),
-        radial-gradient(circle at top left, ${color.replace('ff', '60')} 10%, transparent 50%)
-      `;
-    }
-  }
-};
-
   return (
     <div className="holo-background">
-      
-<div className="navigation-link">
-  <Link to="/calendar_data" className="back-link">
-    Go Back to SnowAI
-  </Link>
-  {isAuthenticated && (
-    <button 
-      className="color-change-button" 
-      onClick={() => setShowColorPicker(true)}
-    >
-      Change Color
-    </button>
-  )}
-</div>
-
-{/* Add Color Picker Modal */}
-{showColorPicker && (
-  <div className="color-picker-overlay">
-    <div className="color-picker-modal">
-      <h3>Select Hologram Color</h3>
-      <div className="color-options">
-        <div 
-          className="color-option" 
-          style={{backgroundColor: "#00ccff"}} 
-          onClick={() => handleColorChange("#00ccff")}
-          title="Default Blue"
-        ></div>
-        <div 
-          className="color-option" 
-          style={{backgroundColor: "#00ff00"}} 
-          onClick={() => handleColorChange("#00ff00")}
-          title="Green"
-        ></div>
-        <div 
-          className="color-option" 
-          style={{backgroundColor: "#ff00ff"}} 
-          onClick={() => handleColorChange("#ff00ff")}
-          title="Purple"
-        ></div>
-        <div 
-          className="color-option" 
-          style={{backgroundColor: "#ff0000"}} 
-          onClick={() => handleColorChange("#ff0000")}
-          title="Red"
-        ></div>
-        <div 
-          className="color-option" 
-          style={{backgroundColor: "#ffff00"}} 
-          onClick={() => handleColorChange("#ffff00")}
-          title="Yellow"
-        ></div>
+      {/* Navigation Links */}
+      <div className="navigation-bar">
+        <Link to="/calendar_data" className="back-link">
+          Go Back to SnowAI
+        </Link>
+        
+        {/* NEW: Color switcher button - only shown when authenticated */}
+        {isAuthenticated && authAnimationComplete && showHologram && (
+          <button className="color-button" onClick={toggleColorPalette}>
+            Change Color
+          </button>
+        )}
       </div>
-      <div className="color-picker-actions">
-        <button onClick={() => handleColorChange(originalColor)}>Reset to Original</button>
-        <button onClick={() => setShowColorPicker(false)}>Close</button>
-      </div>
-    </div>
-  </div>
-)}
 
       {/* Authentication UI - Positioned outside the hologram */}
       {!isAuthenticated && renderAuthUI()}
@@ -683,6 +687,49 @@ const handleColorChange = (color) => {
           </div>
         </div>
       )}
+
+      {/* NEW: Color Palette Modal */}
+      {showColorPalette && (
+        <div className="color-modal-overlay">
+          <div className="color-modal">
+            <h2>Select Hologram Color</h2>
+            
+            <div className="color-options">
+              {Object.entries(colorThemes).map(([key, theme]) => (
+                <div 
+                  key={key} 
+                  className="color-option"
+                  onClick={() => applyColorTheme(theme)}
+                  style={{
+                    background: `radial-gradient(circle at center, ${theme.primary} 0%, ${theme.secondary} 100%)`,
+                    border: hologramColor.glow === theme.glow ? "2px solid white" : "1px solid rgba(255,255,255,0.3)"
+                  }}
+                >
+                  <span className="color-name">{theme.name}</span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="color-modal-footer">
+              <button 
+                className="reset-color-btn"
+                onClick={() => applyColorTheme(colorThemes.default)}
+              >
+                Reset to Default
+              </button>
+              <button
+                className="close-modal-btn"
+                onClick={() => setShowColorPalette(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice command feedback */}
+      {isListening && <div className="voice-indicator">Listening for commands...</div>}
     </div>
   );
 }
