@@ -50,6 +50,7 @@ import Art from './components/art.jsx';
 import Calendar from './components/calendar.jsx';
 import CalendarData from './components/calendar_metrics.jsx';
 import EconExplainer from './components/econ_explainer.jsx';
+import Equations from './components/equations.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -138,7 +139,9 @@ function App() {
         <Route path='/music' element={<Art />}></Route>
         <Route path='/calendar' element={<Calendar />}></Route>
         <Route path='/calendar_data' element={<CalendarData />}></Route>
-        <Route path='econ_explainer' element={<EconExplainer />}></Route>
+        <Route path='/econ_explainer' element={<EconExplainer />}></Route>
+        <Route path='/equations' element={<Equations />}></Route>
+
 
 
 
