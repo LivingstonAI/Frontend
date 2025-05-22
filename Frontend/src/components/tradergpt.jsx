@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Header from "./header";
+import SideNavs from "./side_navs";
 
 export default function TraderGPTAnalysis() {
   const [loading, setLoading] = useState(false);
@@ -18,9 +20,9 @@ export default function TraderGPTAnalysis() {
     } catch (error) {
         console.error("Error fetching API key:", error);
     }
-};
+  };
 
-useEffect(() => {
+  useEffect(() => {
         console.log("Fetching API key...");
         fetchAPIKey();
     }, []);
@@ -198,104 +200,105 @@ useEffect(() => {
     }
   };
 
-  const renderTraderForm = (traderId) => (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-      <h6 className="text-lg font-semibold mb-4 text-gray-800">
-        {traderId === 'trader1' ? 'TraderGPT 1' : 'TraderGPT 2'} Settings
-      </h6>
-      
-      <div className="mb-6">
-        <h6 className="text-md font-medium mb-3 text-gray-700">Market Settings</h6>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select
-            value={traderSettings[traderId].asset}
-            onChange={(e) => handleSettingChange(traderId, 'asset', e.target.value)}
-            className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {forexPairs.map((pair) => (
-              <option key={pair.value} value={pair.value}>
-                {pair.label}
-              </option>
-            ))}
-          </select>
+  const renderTraderForm = (traderId) => {
+    return (
+      <div className="analysis-card">
+        <h6 className="card-title">
+          {traderId === 'trader1' ? 'TraderGPT 1' : 'TraderGPT 2'} Settings
+        </h6>
+        
+        <div className="settings-group market-settings">
+          <h6>Market Settings</h6>
+          <div className="form-grid">
+            <select
+              value={traderSettings[traderId].asset}
+              onChange={(e) => handleSettingChange(traderId, 'asset', e.target.value)}
+              className="form-control"
+            >
+              {forexPairs.map((pair) => (
+                <option key={pair.value} value={pair.value}>
+                  {pair.label}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={traderSettings[traderId].interval}
-            onChange={(e) => handleSettingChange(traderId, 'interval', e.target.value)}
-            className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="5m">5 Minute</option>
-            <option value="15m">15 Minute</option>
-            <option value="1h">1 Hour</option>
-            <option value="1d">1 Day</option>
-          </select>
+            <select
+              value={traderSettings[traderId].interval}
+              onChange={(e) => handleSettingChange(traderId, 'interval', e.target.value)}
+              className="form-control"
+            >
+              <option value="5m">5 Minute</option>
+              <option value="15m">15 Minute</option>
+              <option value="1h">1 Hour</option>
+              <option value="1d">1 Day</option>
+            </select>
 
-          <input
-            type="number"
-            placeholder="Number of days"
-            value={traderSettings[traderId].numDays}
-            onChange={(e) => handleSettingChange(traderId, 'numDays', parseInt(e.target.value))}
-            className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            min="1"
-            max="30"
-          />
+            <input
+              type="number"
+              placeholder="Number of days"
+              value={traderSettings[traderId].numDays}
+              onChange={(e) => handleSettingChange(traderId, 'numDays', parseInt(e.target.value))}
+              className="form-control"
+              min="1"
+              max="30"
+            />
+          </div>
+        </div>
+
+        <div className="settings-group personality-settings">
+          <h6>Personality Settings</h6>
+          <div className="form-grid">
+            <select
+              value={traderSettings[traderId].style}
+              onChange={(e) => handleSettingChange(traderId, 'style', e.target.value)}
+              className="form-control"
+            >
+              {tradingStyles.map((style) => (
+                <option key={style.value} value={style.value}>
+                  {style.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={traderSettings[traderId].focus}
+              onChange={(e) => handleSettingChange(traderId, 'focus', e.target.value)}
+              className="form-control"
+            >
+              {tradingFocus.map((focus) => (
+                <option key={focus.value} value={focus.value}>
+                  {focus.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={traderSettings[traderId].risk_tolerance}
+              onChange={(e) => handleSettingChange(traderId, 'risk_tolerance', e.target.value)}
+              className="form-control"
+            >
+              {riskTolerances.map((risk) => (
+                <option key={risk.value} value={risk.value}>
+                  {risk.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Economic Events Preview */}
+        <div className="economic-events-preview">
+          <div className="economic-events-header">
+            <span className="economic-icon">📊</span>
+            <span className="economic-title">Economic Events Included</span>
+          </div>
+          <div className="economic-currencies">
+            Analysis will include economic events for: {extractCurrenciesFromPair(traderSettings[traderId].asset).join(' & ')}
+          </div>
         </div>
       </div>
-
-      <div className="mb-4">
-        <h6 className="text-md font-medium mb-3 text-gray-700">Personality Settings</h6>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select
-            value={traderSettings[traderId].style}
-            onChange={(e) => handleSettingChange(traderId, 'style', e.target.value)}
-            className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {tradingStyles.map((style) => (
-              <option key={style.value} value={style.value}>
-                {style.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={traderSettings[traderId].focus}
-            onChange={(e) => handleSettingChange(traderId, 'focus', e.target.value)}
-            className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {tradingFocus.map((focus) => (
-              <option key={focus.value} value={focus.value}>
-                {focus.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={traderSettings[traderId].risk_tolerance}
-            onChange={(e) => handleSettingChange(traderId, 'risk_tolerance', e.target.value)}
-            className="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {riskTolerances.map((risk) => (
-              <option key={risk.value} value={risk.value}>
-                {risk.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Economic Events Preview */}
-      <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
-        <div className="flex items-center mb-2">
-          <span className="text-blue-600 mr-2">📊</span>
-          <span className="text-sm font-medium text-blue-800">Economic Events Included</span>
-        </div>
-        <div className="text-xs text-blue-600">
-          Analysis will include economic events for: {extractCurrenciesFromPair(traderSettings[traderId].asset).join(' & ')}
-        </div>
-      </div>
-    </div>
-  );
-}
+    );
+  };
 
   const renderContent = (msg) => {
     try {
@@ -303,25 +306,19 @@ useEffect(() => {
       const contentObj = typeof content === 'string' ? JSON.parse(content) : content;
       
       return (
-        <div className="space-y-4">
+        <div className="message-section">
           {contentObj.analysis && (
             <div>
-              <h6 className="font-semibold text-gray-800 mb-2">Analysis:</h6>
-              <div className="text-gray-700 whitespace-pre-wrap">
+              <h6>Analysis:</h6>
+              <div className="analysis-text">
                 {contentObj.analysis}
               </div>
             </div>
           )}
           {contentObj.recommendation && (
             <div>
-              <h6 className="font-semibold text-gray-800 mb-2">Recommendation:</h6>
-              <p className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                contentObj.recommendation.toLowerCase() === 'buy' 
-                  ? 'bg-green-100 text-green-800' 
-                  : contentObj.recommendation.toLowerCase() === 'sell'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
+              <h6>Recommendation:</h6>
+              <p className={`recommendation ${contentObj.recommendation.toLowerCase()}`}>
                 {contentObj.recommendation.toUpperCase()}
               </p>
             </div>
@@ -329,133 +326,127 @@ useEffect(() => {
         </div>
       );
     } catch (e) {
-      return <pre className="text-sm text-gray-600 whitespace-pre-wrap">{msg.content}</pre>;
+      return <pre className="message-content-raw">{msg.content}</pre>;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
-              <h5 className="text-xl font-bold text-white">TraderGPT Analysis</h5>
-              <p className="text-blue-100 text-sm mt-1">
-                Enhanced with Economic Events & Fundamental Analysis
-              </p>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {renderTraderForm('trader1')}
-                {renderTraderForm('trader2')}
-              </div>
-
-              <button 
-                onClick={handleAnalysis} 
-                disabled={loading}
-                className={`w-full py-3 px-6 rounded-lg font-medium text-white transition-all duration-200 ${
-                  loading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
-                }`}
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Analyzing Market & Economic Data...
-                  </div>
-                ) : (
-                  'Generate Enhanced Analysis'
-                )}
-              </button>
-
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center">
-                    <span className="text-red-500 mr-2">⚠️</span>
-                    <span className="text-red-700">{error}</span>
-                  </div>
+    <div>
+      <div className="header">
+        <Header />
+      </div>
+      <div className="main-page-body">
+        <SideNavs />
+        <div className="main-body-info">
+          <div className="app-container">
+            <div className="trader-analysis-container">
+              <div className="analysis-card">
+                <div className="card-header">
+                  <h5 className="card-title">TraderGPT Analysis</h5>
+                  <p className="card-subtitle">
+                    Enhanced with Economic Events & Fundamental Analysis
+                  </p>
                 </div>
-              )}
 
-              {analysis && (
-                <div className="mt-8 space-y-6">
-                  {/* Analysis Summary */}
-                  {analysis.economic_events_included && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center mb-2">
-                        <span className="text-green-600 mr-2">✅</span>
-                        <span className="font-medium text-green-800">Economic Events Integrated</span>
-                      </div>
-                      <div className="text-sm text-green-700">
-                        {analysis.currencies_analyzed && analysis.currencies_analyzed.map((curr, idx) => (
-                          <div key={idx} className="mb-1">
-                            {curr.pair}: {curr.base_currency} & {curr.quote_currency} economic events included
-                          </div>
-                        ))}
-                      </div>
+                <div className="traders-form-container">
+                  {renderTraderForm('trader1')}
+                  {renderTraderForm('trader2')}
+                </div>
+
+                <button 
+                  onClick={handleAnalysis} 
+                  disabled={loading}
+                  className="analysis-button"
+                >
+                  {loading ? (
+                    <div className="loading-content">
+                      <div className="loading-spinner"></div>
+                      Analyzing Market & Economic Data...
                     </div>
+                  ) : (
+                    'Generate Enhanced Analysis'
                   )}
+                </button>
 
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <img 
-                      src={`data:image/png;base64,${analysis.chart_image}`}
-                      alt="Trading Analysis Chart"
-                      className={`w-full cursor-pointer transition-transform duration-200 ${expanded ? 'transform scale-105' : 'hover:transform hover:scale-102'}`}
-                      onClick={() => setExpanded(!expanded)}
-                    />
+                {error && (
+                  <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    {error}
                   </div>
+                )}
 
-                  <div className="space-y-4">
-                    {analysis.conversation.map((msg, index) => (
-                      <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div className={`px-4 py-3 ${
-                          msg.message_type === 'consensus' 
-                            ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white' 
-                            : 'bg-gray-50 border-b border-gray-200'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">
-                              {msg.trader_id}
-                              {msg.message_type === 'consensus' && ' - Final Decision'}
-                            </span>
-                            {msg.responding_to && (
-                              <span className="text-xs opacity-75">
-                                Responding to {msg.responding_to}
+                {analysis && (
+                  <div className="analysis-results">
+                    {/* Analysis Summary */}
+                    {analysis.economic_events_included && (
+                      <div className="economic-summary">
+                        <div className="economic-summary-header">
+                          <span className="success-icon">✅</span>
+                          <span className="success-title">Economic Events Integrated</span>
+                        </div>
+                        <div className="economic-summary-content">
+                          {analysis.currencies_analyzed && analysis.currencies_analyzed.map((curr, idx) => (
+                            <div key={idx} className="currency-info">
+                              {curr.pair}: {curr.base_currency} & {curr.quote_currency} economic events included
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="chart-container">
+                      <img 
+                        src={`data:image/png;base64,${analysis.chart_image}`}
+                        alt="Trading Analysis Chart"
+                        className={`responsive-image ${expanded ? 'expanded' : ''}`}
+                        onClick={() => setExpanded(!expanded)}
+                      />
+                    </div>
+
+                    <div className="conversation-container">
+                      {analysis.conversation.map((msg, index) => (
+                        <div key={index} className="message-container">
+                          <div className={`message-header ${msg.message_type === 'consensus' ? 'consensus' : ''}`}>
+                            <div className="trader-info">
+                              <span className="trader-id">
+                                {msg.trader_id}
+                                {msg.message_type === 'consensus' && ' - Final Decision'}
                               </span>
+                              {msg.responding_to && (
+                                <span className="responding-to">
+                                  Responding to {msg.responding_to}
+                                </span>
+                              )}
+                            </div>
+                            {msg.settings && (
+                              <div className="trader-settings-info">
+                                {msg.settings.asset} • {msg.settings.interval} • {msg.settings.style} • {msg.settings.risk_tolerance} risk
+                              </div>
                             )}
                           </div>
-                          {msg.settings && (
-                            <div className="text-xs mt-1 opacity-75">
-                              {msg.settings.asset} • {msg.settings.interval} • {msg.settings.style} • {msg.settings.risk_tolerance} risk
-                            </div>
-                          )}
+                          <div className="message-content">
+                            {renderContent(msg)}
+                          </div>
                         </div>
-                        <div className="p-4">
-                          {renderContent(msg)}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {expanded && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-            onClick={() => setExpanded(false)}
-          >
-            <img 
-              src={`data:image/png;base64,${analysis.chart_image}`}
-              alt="Expanded Chart"
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-        )}
+          {expanded && (
+            <div className="overlay" onClick={() => setExpanded(false)}>
+              <img 
+                src={`data:image/png;base64,${analysis.chart_image}`}
+                alt="Expanded Chart"
+                className="expanded-image"
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
+}
