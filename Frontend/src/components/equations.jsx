@@ -243,13 +243,13 @@ export default function Equations() {
                     {/* Equation of the Day */}
                     <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4" style={{borderLeftColor: equations[currentEquation].color}}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                            <h5 className="text-xl font-bold text-gray-800 flex items-center">
                                 <Zap className="mr-2" style={{color: equations[currentEquation].color}} />
                                 Equation of the Day
-                            </h3>
+                            </h5>
                             <button 
                                 onClick={nextEquation}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+                                className="btn btn-primary bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Next
@@ -264,7 +264,7 @@ export default function Equations() {
                             >
                                 {equations[currentEquation].equation}
                             </div>
-                            <h4 className="text-lg font-semibold text-gray-700">{equations[currentEquation].name}</h4>
+                            <h5 className="text-lg font-semibold text-gray-700">{equations[currentEquation].name}</h5>
                             <p className="text-sm text-gray-500 mb-2">{equations[currentEquation].context} • {equations[currentEquation].field}</p>
                             <p className="text-gray-600">{equations[currentEquation].description}</p>
                         </div>
@@ -274,7 +274,7 @@ export default function Equations() {
                             <button 
                                 onClick={() => generateExplanation(equations[currentEquation])}
                                 disabled={isLoadingExplanation || !OPENAI_API_KEY}
-                                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center mb-3 transition-colors"
+                                className="btn btn-primary bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center mb-3 transition-colors"
                             >
                                 <Brain className="w-4 h-4 mr-2" />
                                 {isLoadingExplanation ? "Breaking it down..." : "Break it Down"}
@@ -291,13 +291,13 @@ export default function Equations() {
                     {/* Observatory */}
                     <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                            <h5 className="text-xl font-bold text-gray-800 flex items-center">
                                 <Eye className="mr-2 text-purple-500" />
                                 Mathematical Observatory
-                            </h3>
+                            </h5>
                             <button 
                                 onClick={() => setShowObservatory(!showObservatory)}
-                                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+                                className="btn btn-primary bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
                             >
                                 {showObservatory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </button>
@@ -308,7 +308,7 @@ export default function Equations() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Sine Wave Visualization */}
                                     <div className="bg-gray-50 p-4 rounded-lg">
-                                        <h4 className="font-semibold mb-2">Sine Wave: y = sin({observatoryValue}x)</h4>
+                                        <h5 className="font-semibold mb-2">Sine Wave: y = sin({observatoryValue}x)</h5>
                                         <svg width="100%" height="120" viewBox="0 0 360 100" className="border rounded">
                                             <polyline
                                                 fill="none"
@@ -331,7 +331,7 @@ export default function Equations() {
 
                                     {/* Golden Ratio Spiral */}
                                     <div className="bg-gray-50 p-4 rounded-lg">
-                                        <h4 className="font-semibold mb-2">Fibonacci Spiral (φ = 1.618...)</h4>
+                                        <h5 className="font-semibold mb-2">Fibonacci Spiral (φ = 1.618...)</h5>
                                         <svg width="100%" height="120" viewBox="0 0 200 120" className="border rounded">
                                             <path
                                                 fill="none"
@@ -350,13 +350,13 @@ export default function Equations() {
                     {/* Quote Generator */}
                     <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                            <h5 className="text-xl font-bold text-gray-800 flex items-center">
                                 <Quote className="mr-2 text-indigo-500" />
                                 Wisdom from the Giants
-                            </h3>
+                            </h5>
                             <button 
                                 onClick={nextQuote}
-                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+                                className="btn btn-primary bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
                             >
                                 <Sparkles className="w-4 h-4 mr-2" />
                                 New Quote
@@ -385,13 +385,13 @@ export default function Equations() {
                                 <div key={index} className="bg-gray-50 p-4 rounded-lg">
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
-                                            <h4 className="font-semibold text-gray-800">{scientist.name}</h4>
+                                            <h5 className="font-semibold text-gray-800">{scientist.name}</h5>
                                             <p className="text-sm text-gray-600">{scientist.field} • {scientist.born}</p>
                                         </div>
                                         <button
                                             onClick={() => simulateAudioPlay(scientist)}
                                             disabled={isPlayingAudio}
-                                            className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white p-2 rounded-full transition-colors"
+                                            className="btn btn-primary bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white p-2 rounded-full transition-colors"
                                         >
                                             {isPlayingAudio && selectedScientist?.name === scientist.name ? (
                                                 <Pause className="w-4 h-4" />
@@ -414,10 +414,10 @@ export default function Equations() {
 
                     {/* Fun Facts */}
                     <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-lg p-6">
-                        <h3 className="text-xl font-bold mb-4 flex items-center">
+                        <h5 className="text-xl font-bold mb-4 flex items-center">
                             <Target className="mr-2" />
                             Did You Know?
-                        </h3>
+                        </h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>• The number π appears in the most unexpected places, including the probability that two random numbers are coprime!</div>
                             <div>• E=mc² means a single raisin contains enough energy to power a city for a day (if we could convert it all).</div>
