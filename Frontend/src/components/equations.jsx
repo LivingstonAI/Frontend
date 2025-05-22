@@ -1,7 +1,5 @@
+
 import React, { useEffect, useState } from "react";
-import Header from "./header";
-import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 import { 
     Play, Pause, RefreshCw, Brain, Eye, Quote, Volume2, VolumeX, ChevronDown, ChevronUp, 
     Zap, Target, Sparkles, X, Search, Calendar, BookOpen, Headphones, Activity,
@@ -415,7 +413,7 @@ export default function Equations() {
                     </div>
                 </div>
                 <div className="p-4">
-                    <div className="grid gap-2">
+                    <div className="space-y-2">
                         {equationCategories.map((category, index) => (
                             <button
                                 key={index}
@@ -428,7 +426,7 @@ export default function Equations() {
                                     setShowEquationModal(false);
                                 }}
                                 disabled={isGeneratingContent}
-                                className="text-left p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50"
+                                className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors disabled:opacity-50"
                             >
                                 <div className="font-medium text-gray-800">{category}</div>
                             </button>
@@ -454,7 +452,7 @@ export default function Equations() {
                     </div>
                 </div>
                 <div className="p-4">
-                    <div className="grid gap-2">
+                    <div className="space-y-2">
                         {Object.entries(visualizationTypes).map(([key, viz]) => {
                             const IconComponent = viz.icon;
                             return (
@@ -464,9 +462,9 @@ export default function Equations() {
                                         setCurrentVisualization(key);
                                         setShowVisualizationModal(false);
                                     }}
-                                    className="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                                    className="w-full flex items-center p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
                                 >
-                                    <IconComponent className="w-5 h-5 mr-3 text-blue-600" />
+                                    <IconComponent className="w-5 h-5 mr-3 text-blue-600 flex-shrink-0" />
                                     <div className="text-left">
                                         <div className="font-medium text-gray-800">{viz.name}</div>
                                         <div className="text-sm text-gray-600">{viz.description}</div>
@@ -481,190 +479,186 @@ export default function Equations() {
     );
 
     return (
-        <div>
-            <div className="header">
-                <Header />
-            </div>
-            <div className="main-page-body">
-                <SideNavs />
-                <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Mathematical & Physics Playground</h5>
-                    <br />
-                    
-                    {/* Quick Action Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <button
-                            onClick={() => setShowEquationModal(true)}
-                            className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800">New Equation</h3>
-                                    <p className="text-sm text-gray-600">Discover mathematics</p>
-                                </div>
-                                <Zap className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+        <div className="min-h-screen bg-gray-50">
+            {/* Main Content */}
+            <div className="max-w-6xl mx-auto p-6">
+                <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+                    Mathematical & Physics Playground
+                </h1>
+                
+                {/* Quick Action Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <button
+                        onClick={() => setShowEquationModal(true)}
+                        className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="text-left">
+                                <h3 className="font-bold text-gray-800">New Equation</h3>
+                                <p className="text-sm text-gray-600">Discover mathematics</p>
                             </div>
-                        </button>
+                            <Zap className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                        </div>
+                    </button>
 
-                        <button
-                            onClick={async () => {
-                                const scientist = await generateScientist();
-                                if (scientist) setCurrentScientist(scientist);
-                            }}
-                            disabled={isGeneratingContent}
-                            className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group disabled:opacity-50"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800">Meet a Genius</h3>
-                                    <p className="text-sm text-gray-600">Inspiring scientists</p>
-                                </div>
-                                <Brain className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <button
+                        onClick={async () => {
+                            const scientist = await generateScientist();
+                            if (scientist) setCurrentScientist(scientist);
+                        }}
+                        disabled={isGeneratingContent}
+                        className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group disabled:opacity-50"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="text-left">
+                                <h3 className="font-bold text-gray-800">Meet a Genius</h3>
+                                <p className="text-sm text-gray-600">Inspiring scientists</p>
                             </div>
-                        </button>
+                            <Brain className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                        </div>
+                    </button>
 
-                        <button
-                            onClick={() => setShowVisualizationModal(true)}
-                            className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800">Visualize</h3>
-                                    <p className="text-sm text-gray-600">See math in action</p>
-                                </div>
-                                <Eye className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <button
+                        onClick={() => setShowVisualizationModal(true)}
+                        className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="text-left">
+                                <h3 className="font-bold text-gray-800">Visualize</h3>
+                                <p className="text-sm text-gray-600">See math in action</p>
                             </div>
-                        </button>
+                            <Eye className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                        </div>
+                    </button>
 
-                        <button
-                            onClick={async () => {
-                                const quote = await generateQuote();
-                                if (quote) setCurrentQuote(quote);
-                            }}
-                            disabled={isGeneratingContent}
-                            className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group disabled:opacity-50"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="text-left">
-                                    <h3 className="font-bold text-gray-800">Get Inspired</h3>
-                                    <p className="text-sm text-gray-600">Wisdom & quotes</p>
-                                </div>
-                                <Sparkles className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <button
+                        onClick={async () => {
+                            const quote = await generateQuote();
+                            if (quote) setCurrentQuote(quote);
+                        }}
+                        disabled={isGeneratingContent}
+                        className="bg-white hover:bg-blue-50 rounded-lg shadow-lg p-4 border-l-4 border-blue-600 transition-colors group disabled:opacity-50"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="text-left">
+                                <h3 className="font-bold text-gray-800">Get Inspired</h3>
+                                <p className="text-sm text-gray-600">Wisdom & quotes</p>
                             </div>
-                        </button>
-                    </div>
+                            <Sparkles className="w-8 h-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                        </div>
+                    </button>
+                </div>
 
-                    {/* Current Equation Display */}
-                    {currentEquation && (
-                        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-blue-600">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl font-bold text-gray-800 flex items-center">
-                                    <Zap className="mr-2 text-blue-600" />
-                                    {currentEquation.name}
-                                </h3>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => speakText(`${currentEquation.name}. ${currentEquation.description}. ${currentEquation.funFact}`)}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                                        title="Listen to equation"
-                                    >
-                                        {isPlayingAudio ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="text-center mb-4">
-                                <div className="text-4xl font-mono bg-blue-50 p-6 rounded-lg mb-4 text-blue-800">
-                                    {currentEquation.equation}
-                                </div>
-                                <h4 className="text-lg font-semibold text-gray-700">{currentEquation.context} • {currentEquation.field}</h4>
-                                <p className="text-gray-600 mb-2">{currentEquation.description}</p>
-                                
-                                {currentEquation.funFact && (
-                                    <div className="bg-yellow-50 p-3 rounded-lg mb-3 border-l-4 border-yellow-400">
-                                        <p className="text-sm text-yellow-800">
-                                            <Lightbulb className="w-4 h-4 inline mr-1" />
-                                            <strong>Fun Fact:</strong> {currentEquation.funFact}
-                                        </p>
-                                    </div>
-                                )}
-                                
-                                {currentEquation.realWorldApplication && (
-                                    <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
-                                        <p className="text-sm text-green-800">
-                                            <Target className="w-4 h-4 inline mr-1" />
-                                            <strong>Real World:</strong> {currentEquation.realWorldApplication}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="border-t pt-4">
+                {/* Current Equation Display */}
+                {currentEquation && (
+                    <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-blue-600">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                                <Zap className="mr-2 text-blue-600" />
+                                {currentEquation.name}
+                            </h3>
+                            <div className="flex gap-2">
                                 <button 
-                                    onClick={() => generateExplanation(currentEquation)}
-                                    disabled={isLoadingExplanation || !OPENAI_API_KEY}
-                                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center mb-3 transition-colors"
+                                    onClick={() => speakText(`${currentEquation.name}. ${currentEquation.description}. ${currentEquation.funFact}`)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
+                                    title="Listen to equation"
                                 >
-                                    <Brain className="w-4 h-4 mr-2" />
-                                    {isLoadingExplanation ? "Breaking it down..." : "Break it Down"}
+                                    {isPlayingAudio ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                                 </button>
-                                
-                                {explanation && (
-                                    <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
-                                        <p className="text-gray-700">{explanation}</p>
-                                        <button 
-                                            onClick={() => speakText(explanation)}
-                                            className="mt-2 text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                                        >
-                                            <Headphones className="w-4 h-4 mr-1" />
-                                            Listen to explanation
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         </div>
-                    )}
-
-                    {/* Current Scientist Display */}
-                    {currentScientist && (
-                        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-blue-600">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800">{currentScientist.name}</h3>
-                                    <p className="text-blue-600 font-medium">{currentScientist.field} • {currentScientist.nationality}</p>
-                                    <p className="text-sm text-gray-600">{currentScientist.born}</p>
-                                </div>
-                                <button 
-                                    onClick={() => speakText(`${currentScientist.name} was a ${currentScientist.field} expert. ${currentScientist.summary} ${currentScientist.quirkyFact} ${currentScientist.modernRelevance}`)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                                >
-                                    {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                                </button>
+                        
+                        <div className="text-center mb-4">
+                            <div className="text-4xl font-mono bg-blue-50 p-6 rounded-lg mb-4 text-blue-800">
+                                {currentEquation.equation}
                             </div>
+                            <h4 className="text-lg font-semibold text-gray-700">{currentEquation.context} • {currentEquation.field}</h4>
+                            <p className="text-gray-600 mb-2">{currentEquation.description}</p>
                             
-                            <p className="text-gray-700 mb-4">{currentScientist.summary}</p>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-blue-50 p-3 rounded-lg">
-                                    <h4 className="font-semibold text-blue-800 mb-1">Major Contribution</h4>
-                                    <p className="text-sm text-blue-700">{currentScientist.majorContribution}</p>
+                            {currentEquation.funFact && (
+                                <div className="bg-yellow-50 p-3 rounded-lg mb-3 border-l-4 border-yellow-400">
+                                    <p className="text-sm text-yellow-800">
+                                        <Lightbulb className="w-4 h-4 inline mr-1" />
+                                        <strong>Fun Fact:</strong> {currentEquation.funFact}
+                                    </p>
                                 </div>
-                                <div className="bg-purple-50 p-3 rounded-lg">
-                                    <h4 className="font-semibold text-purple-800 mb-1">Fun Fact</h4>
-                                    <p className="text-sm text-purple-700">{currentScientist.quirkyFact}</p>
-                                </div>
-                            </div>
+                            )}
                             
-                            {currentScientist.modernRelevance && (
-                                <div className="mt-4 bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
-                                    <h4 className="font-semibold text-green-800 mb-1">Why They Matter Today</h4>
-                                    <p className="text-sm text-green-700">{currentScientist.modernRelevance}</p>
+                            {currentEquation.realWorldApplication && (
+                                <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
+                                    <p className="text-sm text-green-800">
+                                        <Target className="w-4 h-4 inline mr-1" />
+                                        <strong>Real World:</strong> {currentEquation.realWorldApplication}
+                                    </p>
                                 </div>
                             )}
                         </div>
-                    )}
 
-                    {/* Current Quote Display */}
+                        <div className="border-t pt-4">
+                            <button 
+                                onClick={() => generateExplanation(currentEquation)}
+                                disabled={isLoadingExplanation || !OPENAI_API_KEY}
+                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center mb-3 transition-colors"
+                            >
+                                <Brain className="w-4 h-4 mr-2" />
+                                {isLoadingExplanation ? "Breaking it down..." : "Break it Down"}
+                            </button>
+                            
+                            {explanation && (
+                                <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                                    <p className="text-gray-700">{explanation}</p>
+                                    <button 
+                                        onClick={() => speakText(explanation)}
+                                        className="mt-2 text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                                    >
+                                        <Headphones className="w-4 h-4 mr-1" />
+                                        Listen to explanation
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Current Scientist Display */}
+                {currentScientist && (
+                    <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-blue-600">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">{currentScientist.name}</h3>
+                                <p className="text-blue-600 font-medium">{currentScientist.field} • {currentScientist.nationality}</p>
+                                <p className="text-sm text-gray-600">{currentScientist.born}</p>
+                            </div>
+                            <button 
+                                onClick={() => speakText(`${currentScientist.name} was a ${currentScientist.field} expert. ${currentScientist.summary} ${currentScientist.quirkyFact} ${currentScientist.modernRelevance}`)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
+                            >
+                                {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                            </button>
+                        </div>
+                        
+                        <p className="text-gray-700 mb-4">{currentScientist.summary}</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                                <h4 className="font-semibold text-blue-800 mb-1">Major Contribution</h4>
+                                <p className="text-sm text-blue-700">{currentScientist.majorContribution}</p>
+                            </div>
+                            <div className="bg-purple-50 p-3 rounded-lg">
+                                <h4 className="font-semibold text-purple-800 mb-1">Fun Fact</h4>
+                                <p className="text-sm text-purple-700">{currentScientist.quirkyFact}</p>
+                            </div>
+                        </div>
+                        
+                        {currentScientist.modernRelevance && (
+                            <div className="mt-4 bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
+                                <h4 className="font-semibold text-green-800 mb-1">Why They Matter Today</h4>
+                                <p className="text-sm text-green-700">{currentScientist.modernRelevance}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+                     {/* Current Quote Display */}
                     {currentQuote && (
                         <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-blue-600">
                             <div className="flex justify-between items-start mb-4">
@@ -868,43 +862,12 @@ export default function Equations() {
                         </div>
                     )}
 
-                    {/* Getting Started Message */}
-                    {!currentEquation && !currentScientist && !currentQuote && !isGeneratingContent && (
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8 text-center border border-blue-200">
-                            <div className="mb-4">
-                                <Brain className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                                <h3 className="text-2xl font-bold text-gray-800 mb-2">Ready to Rediscover Mathematics?</h3>
-                                <p className="text-gray-600 mb-6">
-                                    Click any of the cards above to start your journey. Each equation, scientist, and visualization 
-                                    is generated fresh by AI, so every exploration is unique!
-                                </p>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <Zap className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                                    <h4 className="font-semibold mb-1">Discover Equations</h4>
-                                    <p className="text-gray-600">From basic algebra to quantum mechanics</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <Eye className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                                    <h4 className="font-semibold mb-1">Visualize Functions</h4>
-                                    <p className="text-gray-600">See mathematics come alive with animations</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <Volume2 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                                    <h4 className="font-semibold mb-1">Listen & Learn</h4>
-                                    <p className="text-gray-600">Audio explanations for every concept</p>
-                                </div>
-                            </div>
                         </div>
-                    )}
-                </div>
+                
+                            {/* Modals */}
+                            {showEquationModal && <EquationModal />}
+                            {showVisualizationModal && <VisualizationModal />}
             </div>
-
-            {/* Modals */}
-            {showEquationModal && <EquationModal />}
-            {showVisualizationModal && <VisualizationModal />}
-        </div>
+        // </div>
     );
 }
