@@ -7887,11 +7887,6 @@ img {
 
 
 
-/* For Webkit browsers (Chrome, Safari) */
-::-webkit-scrollbar {
-    width: 10px; /* Adjust width */
-}
-
 ::-webkit-scrollbar-track {
     background: #1a1a2e; /* Dark blue shade */
 }
