@@ -604,8 +604,10 @@ export default function Art() {
               <span key={id} className="ripple" />
             ))}
 
+            
+
             {/* Music Player Interface (only shown when authenticated) */}
-            {isPlaying && (
+            {isPlaying ? (
               <div className="holo-music-player">
                 <div className="holo-music-visualizer">
                   {Array(5).fill().map((_, i) => (
@@ -617,10 +619,21 @@ export default function Art() {
                   {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
                 </div>
               </div>
+            ) : (
+              <div className="holo-idle-animation">
+                <div className="orb-core"></div>
+                <div className="floating-particles">
+                  {Array(6).fill().map((_, i) => (
+                    <div key={i} className={`particle particle-${i + 1}`} />
+                  ))}
+                </div>
+                <div className="energy-rings">
+                  <div className="ring ring-1"></div>
+                  <div className="ring ring-2"></div>
+                  <div className="ring ring-3"></div>
+                </div>
+              </div>
             )}
-          </div>
-        </div>
-      )}
 
       {/* Only show controls after authentication and welcome message are complete */}
       {isAuthenticated && authAnimationComplete && showHologram && (
