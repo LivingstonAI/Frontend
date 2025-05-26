@@ -605,22 +605,7 @@ export default function Art() {
             ))}
 
             
-
-            {/* Music Player Interface (only shown when authenticated) */}
-            {isPlaying ? (
-              <div className="holo-music-player">
-                <div className="holo-music-visualizer">
-                  {Array(5).fill().map((_, i) => (
-                    <div key={i} className="holo-music-bar" />
-                  ))}
-                </div>
-                <div className="holo-music-title">Now Playing</div>
-                <div className="holo-song-name">
-                  {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
-                </div>
-              </div>
-            ) : (
-              <div className="holo-idle-animation">
+            <div className="holo-idle-animation">
                 <div className="orb-core"></div>
                 <div className="floating-particles">
                   {Array(6).fill().map((_, i) => (
@@ -631,6 +616,19 @@ export default function Art() {
                   <div className="ring ring-1"></div>
                   <div className="ring ring-2"></div>
                   <div className="ring ring-3"></div>
+                </div>
+              </div>
+            {/* Music Player Interface (only shown when authenticated) */}
+            {isPlaying && (
+              <div className="holo-music-player">
+                <div className="holo-music-visualizer">
+                  {Array(5).fill().map((_, i) => (
+                    <div key={i} className="holo-music-bar" />
+                  ))}
+                </div>
+                <div className="holo-music-title">Now Playing</div>
+                <div className="holo-song-name">
+                  {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
                 </div>
               </div>
             )}
