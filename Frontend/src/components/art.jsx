@@ -634,6 +634,9 @@ export default function Art() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
 
       {/* Only show controls after authentication and welcome message are complete */}
       {isAuthenticated && authAnimationComplete && showHologram && (
