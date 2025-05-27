@@ -8050,3 +8050,17 @@ img {
     opacity: 0;
   }
 }
+
+.side-navs-cellphone::-webkit-scrollbar {
+    width: 8px; /* Adjust width if needed */
+    height: 8px;
+}
+
+.side-navs-cellphone::-webkit-scrollbar-track {
+    background: #e0f7ff; /* Light blue track */
+}
+
+.side-navs-cellphone::-webkit-scrollbar-thumb {
+    background: #0077cc; /* Your nice shade of blue */
+    border-radius: 4px; /* Optional: rounded corners */
+}
