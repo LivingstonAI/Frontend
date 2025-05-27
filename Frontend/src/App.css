@@ -8053,7 +8053,7 @@ img {
 
 .side-navs-cellphone::-webkit-scrollbar {
     width: 5px; /* Adjust width if needed */
-    height: 8px;
+    height: 5px;
 }
 
 .side-navs-cellphone::-webkit-scrollbar-track {
