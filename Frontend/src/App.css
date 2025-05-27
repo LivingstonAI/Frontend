@@ -8062,5 +8062,5 @@ img {
 
 .side-navs-cellphone::-webkit-scrollbar-thumb {
     background: #0077cc; /* Your nice shade of blue */
-    border-radius: 4px; /* Optional: rounded corners */
+    /* border-radius: 4p/x; Optional: rounded corners */
 }
