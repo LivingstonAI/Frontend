@@ -8052,7 +8052,7 @@ img {
 }
 
 .side-navs-cellphone::-webkit-scrollbar {
-    width: 5px; /* Adjust width if needed */
+    width: 4px; /* Adjust width if needed */
     height: 5px;
 }
 
