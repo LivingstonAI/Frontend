@@ -274,59 +274,85 @@ export default function Art() {
     window.addEventListener("mousemove", handleMouseMove);
 
     // Voice command setup
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recog = new SpeechRecognition();
-      recog.continuous = true;
-      recog.lang = "en-US";
-      setRecognition(recog);
+    // Replace the voice command setup section in your useEffect with this:
 
-      recog.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        console.log("Voice Command:", transcript);
+// Voice command setup
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  const recog = new SpeechRecognition();
+  recog.continuous = true;
+  recog.interimResults = false;
+  recog.lang = "en-US";
+  setRecognition(recog);
 
-        // Hologram control commands
-        if (transcript.includes("glow") && container) {
-          container.querySelector(".hologram").style.filter = `drop-shadow(0 0 25px ${hologramColor.glow}) drop-shadow(0 0 40px ${hologramColor.shadowGlow})`;
-        } else if (transcript.includes("pulse") && container) {
-          container.querySelector(".hologram").style.animationDuration = "1.5s";
-        } else if (transcript.includes("expand") && container) {
-          container.style.transform = "scale(1.2)";
-        } else if (transcript.includes("shrink") && container) {
-          container.style.transform = "scale(0.8)";
-        } else if (transcript.includes("wave")) {
-          generateRipple();
-        } 
-        // Music control commands
-        else if (transcript.includes("play music")) {
-          handlePlayToggle();
-        } else if (transcript.includes("stop music")) {
-          if (isPlaying) {
-            audioRef.current.pause();
-            setIsPlaying(false);
-          }
-        } else if (transcript.includes("choose song")) {
-          setShowSongModal(true);
-        }
-        // NEW: Color control commands
-        else if (transcript.includes("color default") || transcript.includes("default color")) {
-          applyColorTheme(colorThemes.default);
-        } else if (transcript.includes("deep blue")) {
-          applyColorTheme(colorThemes.deepBlue);
-        } else if (transcript.includes("sky blue")) {
-          applyColorTheme(colorThemes.skyBlue);
-        } else if (transcript.includes("teal blue")) {
-          applyColorTheme(colorThemes.tealBlue);
-        } else if (transcript.includes("navy blue")) {
-          applyColorTheme(colorThemes.navyBlue);
-        } else if (transcript.includes("azure")) {
-          applyColorTheme(colorThemes.azure);
-        } else if (transcript.includes("change color")) {
-          setShowColorPalette(true);
-        }
-      };
+  recog.onresult = (event) => {
+    const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+    console.log("Voice Command:", transcript);
+
+    // Your existing command handling code stays the same...
+    if (transcript.includes("glow") && container) {
+      container.querySelector(".hologram").style.filter = `drop-shadow(0 0 25px ${hologramColor.glow}) drop-shadow(0 0 40px ${hologramColor.shadowGlow})`;
+    } else if (transcript.includes("pulse") && container) {
+      container.querySelector(".hologram").style.animationDuration = "1.5s";
+    } else if (transcript.includes("expand") && container) {
+      container.style.transform = "scale(1.2)";
+    } else if (transcript.includes("shrink") && container) {
+      container.style.transform = "scale(0.8)";
+    } else if (transcript.includes("wave")) {
+      generateRipple();
+    } 
+    // Music control commands
+    else if (transcript.includes("play music")) {
+      handlePlayToggle();
+    } else if (transcript.includes("stop music")) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    } else if (transcript.includes("choose song")) {
+      setShowSongModal(true);
     }
+    // Color control commands
+    else if (transcript.includes("color default") || transcript.includes("default color")) {
+      applyColorTheme(colorThemes.default);
+    } else if (transcript.includes("deep blue")) {
+      applyColorTheme(colorThemes.deepBlue);
+    } else if (transcript.includes("sky blue")) {
+      applyColorTheme(colorThemes.skyBlue);
+    } else if (transcript.includes("teal blue")) {
+      applyColorTheme(colorThemes.tealBlue);
+    } else if (transcript.includes("navy blue")) {
+      applyColorTheme(colorThemes.navyBlue);
+    } else if (transcript.includes("azure")) {
+      applyColorTheme(colorThemes.azure);
+    } else if (transcript.includes("change color")) {
+      setShowColorPalette(true);
+    }
+  };
 
+  // This is the key fix - handle when recognition ends
+  recog.onend = () => {
+    // Only restart if we're supposed to be listening
+    if (isListening) {
+      try {
+        recog.start();
+      } catch (error) {
+        console.log("Speech recognition restart failed:", error);
+        // If restart fails, update the state
+        setIsListening(false);
+      }
+    }
+  };
+
+  // Handle errors
+  recog.onerror = (event) => {
+    console.log("Speech recognition error:", event.error);
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      setIsListening(false);
+      alert("Microphone access denied. Please allow microphone access and try again.");
+    }
+  };
+}
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
@@ -425,15 +451,19 @@ export default function Art() {
 
   const startListening = () => {
     if (recognition && !isListening) {
-      recognition.start();
-      setIsListening(true);
+      try {
+        recognition.start();
+        setIsListening(true);
+      } catch (error) {
+        console.log("Could not start speech recognition:", error);
+      }
     }
   };
 
   const stopListening = () => {
     if (recognition && isListening) {
+      setIsListening(false); // Set this first so onend doesn't restart
       recognition.stop();
-      setIsListening(false);
     }
   };
 
