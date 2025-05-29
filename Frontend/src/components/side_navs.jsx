@@ -247,7 +247,8 @@ const handlePlay = (songUrl) => {
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
         <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
-        <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
+        {/* <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
+        <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
 
       </div>
 
@@ -327,8 +328,11 @@ const handlePlay = (songUrl) => {
         <Link to="/econ_explainer" className="side-nav">
             <i className="bi bi-cash-stack"></i>
         </Link>
-        <Link to="/equations" className="side-nav">
+        {/* <Link to="/equations" className="side-nav">
             <i className="bi bi-infinity"></i>
+        </Link> */}
+        <Link to="/forex_factory" className="side-nav">
+            <i className="bi bi-camera-fill"></i>
         </Link>
       </div>
       <br />

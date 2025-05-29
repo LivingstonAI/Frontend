@@ -51,6 +51,7 @@ import Calendar from './components/calendar.jsx';
 import CalendarData from './components/calendar_metrics.jsx';
 import EconExplainer from './components/econ_explainer.jsx';
 import Equations from './components/equations.jsx';
+import ForexFactoryCapturer from './components/forex_factory.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -141,6 +142,8 @@ function App() {
         <Route path='/calendar_data' element={<CalendarData />}></Route>
         <Route path='/econ_explainer' element={<EconExplainer />}></Route>
         <Route path='/equations' element={<Equations />}></Route>
+        <Route path='/forex_factory' element={<ForexFactoryCapturer />}></Route>
+
 
 
 
