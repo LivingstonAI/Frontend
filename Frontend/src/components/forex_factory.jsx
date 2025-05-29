@@ -163,6 +163,8 @@ export default function ForexFactoryCapturer() {
 
             const data = await response.json();
             const jsonResponse = data.choices[0].message.content;
+            console.log('Json Response from GPT: ');
+            console.log(jsonResponse);
             
             try {
                 const parsedEvents = JSON.parse(jsonResponse);
