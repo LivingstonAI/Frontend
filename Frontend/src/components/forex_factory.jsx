@@ -81,6 +81,8 @@ export default function ForexFactoryCapturer() {
                                 {
                                     type: "text",
                                     text: `Analyze this Forex Factory screenshot and extract economic events data. Return a JSON array of events with the following structure for each event:
+
+                                    EXAMPLE 1:
                                     {
                                         "date_time": "YYYY-MM-DD HH:MM:SS",
                                         "currency": "USD/EUR/GBP/JPY/AUD/CAD/CHF/CNY",
@@ -91,6 +93,50 @@ export default function ForexFactoryCapturer() {
                                         "previous": "Previous value or null"
                                     }
                                     
+                                    EXAMPLE 2:
+                                    {
+                                        "date_time": "YYYY-MM-DD HH:MM:SS",
+                                        "currency": "USD/EUR/GBP/JPY/AUD/CAD/CHF/CNY",
+                                        "impact": "low/medium/high",
+                                        "event_name": "Event name",
+                                        "actual": "Actual value or null",
+                                        "forecast": "Forecast value or null", 
+                                        "previous": "Previous value or null"
+                                    }
+
+                                    EXAMPLE 3:
+                                    {
+                                        "date_time": "YYYY-MM-DD HH:MM:SS",
+                                        "currency": "USD/EUR/GBP/JPY/AUD/CAD/CHF/CNY",
+                                        "impact": "low/medium/high",
+                                        "event_name": "Event name",
+                                        "actual": "Actual value or null",
+                                        "forecast": "Forecast value or null", 
+                                        "previous": "Previous value or null"
+                                    }
+
+                                    EXAMPLE 4:
+                                    {
+                                        "date_time": "YYYY-MM-DD HH:MM:SS",
+                                        "currency": "USD/EUR/GBP/JPY/AUD/CAD/CHF/CNY",
+                                        "impact": "low/medium/high",
+                                        "event_name": "Event name",
+                                        "actual": "Actual value or null",
+                                        "forecast": "Forecast value or null", 
+                                        "previous": "Previous value or null"
+                                    }
+
+                                    EXAMPLE 5:
+                                    {
+                                        "date_time": "YYYY-MM-DD HH:MM:SS",
+                                        "currency": "USD/EUR/GBP/JPY/AUD/CAD/CHF/CNY",
+                                        "impact": "low/medium/high",
+                                        "event_name": "Event name",
+                                        "actual": "Actual value or null",
+                                        "forecast": "Forecast value or null", 
+                                        "previous": "Previous value or null"
+                                    }
+
                                     Important notes:
                                     - Use ISO datetime format for date_time
                                     - Impact should be classified as low, medium, or high based on the color coding (red=high, orange=medium, yellow=low)
