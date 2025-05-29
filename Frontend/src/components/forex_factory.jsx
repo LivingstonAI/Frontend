@@ -160,9 +160,10 @@ export default function ForexFactoryCapturer() {
             if (!response.ok) {
                 throw new Error(`OpenAI API error: ${response.status}`);
             }
+            
+            const data = await response.json();
             console.log('Data Response from GPT: ');
             console.log(data);
-            const data = await response.json();
             const jsonResponse = data.choices[0].message.content;
             console.log('Json Response from GPT: ');
             console.log(jsonResponse);
