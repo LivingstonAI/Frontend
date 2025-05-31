@@ -34,6 +34,27 @@ export default function ForexFactoryCapturer() {
     fetchDataFromAPI();
   }, []);
 
+  // Function to correct dates to current year
+  const correctDateToCurrentYear = (dateTimeString) => {
+    if (!dateTimeString) return dateTimeString;
+    
+    try {
+      const currentYear = new Date().getFullYear();
+      const parsedDate = new Date(dateTimeString);
+      
+      // If the year is 2023 or 2024, update it to current year
+      if (parsedDate.getFullYear() === 2023 || parsedDate.getFullYear() === 2024) {
+        parsedDate.setFullYear(currentYear);
+        return parsedDate.toISOString().slice(0, 19); // Remove the 'Z' suffix
+      }
+      
+      return dateTimeString;
+    } catch (error) {
+      console.error('Error correcting date:', error);
+      return dateTimeString;
+    }
+  };
+
   // Handle file selection
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -147,8 +168,14 @@ export default function ForexFactoryCapturer() {
         throw new Error('Response is not an array');
       }
 
-      setEconomicEvents(events);
-      setSaveStatus({ type: 'info', message: `Extracted ${events.length} events` });
+      // Correct dates to current year before setting state
+      const correctedEvents = events.map(event => ({
+        ...event,
+        date_time: correctDateToCurrentYear(event.date_time)
+      }));
+
+      setEconomicEvents(correctedEvents);
+      setSaveStatus({ type: 'info', message: `Extracted ${correctedEvents.length} events (dates corrected to current year)` });
     } catch (error) {
       console.error('Analysis error:', error);
       setSaveStatus({ type: 'error', message: `Analysis failed: ${error.message}` });
@@ -182,7 +209,7 @@ const saveEvents = async () => {
   setSaveStatus(null);
 
   try {
-    const savedCount = 0;
+    let savedCount = 0;
     const errors = [];
 
     // Save events one by one using the same REST API endpoint as Calendar
@@ -619,7 +646,6 @@ const saveEvents = async () => {
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
                             <option value="GBP">GBP</option>
-                            <option value="JPY">JPY</option>
                             <option value="AUD">AUD</option>
                             <option value="CAD">CAD</option>
                             <option value="CHF">CHF</option>
