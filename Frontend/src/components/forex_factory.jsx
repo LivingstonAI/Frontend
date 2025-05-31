@@ -274,7 +274,7 @@ const saveEvents = async () => {
       <style jsx>{`
         .forex-capturer-container {
           font-family: 'Arial', sans-serif;
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
           min-height: 100vh;
         }
 
@@ -328,9 +328,9 @@ const saveEvents = async () => {
         }
 
         .preview-toggle {
-          background: #f1f5f9;
-          border: 1px solid #cbd5e1;
-          color: #475569;
+          background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+          border: 1px solid #2563eb;
+          color: white;
           padding: 0.5rem 1rem;
           border-radius: 6px;
           cursor: pointer;
@@ -338,6 +338,13 @@ const saveEvents = async () => {
           align-items: center;
           gap: 0.5rem;
           margin-bottom: 1rem;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .preview-toggle:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 3px 10px rgba(59, 130, 246, 0.3);
         }
 
         .preview-image {
@@ -348,7 +355,7 @@ const saveEvents = async () => {
         }
 
         .analyze-button {
-          background: linear-gradient(90deg, #059669 0%, #047857 100%);
+          background: linear-gradient(90deg, #1d4ed8 0%, #1e40af 100%);
           color: white;
           border: none;
           padding: 0.75rem 2rem;
@@ -364,7 +371,7 @@ const saveEvents = async () => {
 
         .analyze-button:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+          box-shadow: 0 4px 15px rgba(29, 78, 216, 0.4);
         }
 
         .analyze-button:disabled {
@@ -385,14 +392,41 @@ const saveEvents = async () => {
           to { transform: rotate(360deg); }
         }
 
+        /* Mobile-responsive table container */
+        .table-container {
+          width: 100%;
+          overflow-x: auto;
+          margin-top: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+          /* Custom blue scrollbar */
+          scrollbar-width: thin;
+          scrollbar-color: #3b82f6 #e2e8f0;
+        }
+
+        .table-container::-webkit-scrollbar {
+          height: 8px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+          background: #e2e8f0;
+          border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+          background: linear-gradient(90deg, #3b82f6 0%, #1e40af 100%);
+          border-radius: 4px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(90deg, #1e40af 0%, #1e3a8a 100%);
+        }
+
         .events-table {
           width: 100%;
+          min-width: 1000px; /* Ensures table doesn't get too cramped */
           border-collapse: collapse;
-          margin-top: 2rem;
           background: white;
-          border-radius: 8px;
-          overflow: hidden;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
         .events-table th {
@@ -402,12 +436,14 @@ const saveEvents = async () => {
           text-align: left;
           font-weight: 600;
           font-size: 0.9rem;
+          white-space: nowrap;
         }
 
         .events-table td {
           padding: 0.75rem;
           border-bottom: 1px solid #e2e8f0;
           vertical-align: top;
+          min-width: 120px;
         }
 
         .events-table tr:hover {
@@ -417,6 +453,7 @@ const saveEvents = async () => {
         .events-table input,
         .events-table select {
           width: 100%;
+          min-width: 100px;
           padding: 0.4rem;
           border: 1px solid #cbd5e1;
           border-radius: 4px;
@@ -451,13 +488,15 @@ const saveEvents = async () => {
         }
 
         .edit-button {
-          background: #dbeafe;
+          background: linear-gradient(90deg, #dbeafe 0%, #bfdbfe 100%);
           color: #1e40af;
+          border: 1px solid #93c5fd;
         }
 
         .delete-button {
-          background: #fef2f2;
+          background: linear-gradient(90deg, #fef2f2 0%, #fecaca 100%);
           color: #dc2626;
+          border: 1px solid #f87171;
         }
 
         .action-button:hover {
@@ -470,7 +509,7 @@ const saveEvents = async () => {
         }
 
         .save-button {
-          background: linear-gradient(90deg, #7c3aed 0%, #5b21b6 100%);
+          background: linear-gradient(90deg, #1e40af 0%, #1e3a8a 100%);
           color: white;
           border: none;
           padding: 1rem 2rem;
@@ -486,7 +525,7 @@ const saveEvents = async () => {
 
         .save-button:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+          box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
         }
 
         .save-button:disabled {
@@ -531,6 +570,76 @@ const saveEvents = async () => {
           border-radius: 8px;
           margin-top: 1rem;
         }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+          .upload-section {
+            padding: 1.5rem;
+          }
+
+          .upload-button {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+          }
+
+          .analyze-button {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+          }
+
+          .save-button {
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+          }
+
+          .events-table th,
+          .events-table td {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+          }
+
+          .events-table input,
+          .events-table select {
+            font-size: 0.8rem;
+            padding: 0.3rem;
+          }
+
+          .table-container {
+            margin: 1rem -1rem 0; /* Extend to screen edges on mobile */
+            border-radius: 0;
+          }
+
+          .status-message {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .upload-section {
+            padding: 1rem;
+          }
+
+          .upload-button {
+            padding: 0.625rem 1rem;
+            font-size: 0.85rem;
+          }
+
+          .preview-toggle {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+          }
+
+          .analyze-button {
+            padding: 0.625rem 1.25rem;
+            font-size: 0.85rem;
+          }
+
+          .save-button {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+          }
+        }
       `}</style>
 
       <div className="forex-capturer-container">
@@ -542,7 +651,7 @@ const saveEvents = async () => {
           <div className="main-body-info">
             <h5 className="major-upcoming-news-events-header">
               Forex Factory Screenshot Analyzer
-            </h5><br />
+            </h5><br /><br /><br />
 
             {/* Upload Section */}
             <div className="upload-section">
@@ -614,105 +723,106 @@ const saveEvents = async () => {
             {/* Events Table */}
             {economicEvents.length > 0 ? (
               <>
-                <table className="events-table">
-                  <thead>
-                    <tr>
-                      <th>Date & Time</th>
-                      <th>Currency</th>
-                      <th>Impact</th>
-                      <th>Event Name</th>
-                      <th>Actual</th>
-                      <th>Forecast</th>
-                      <th>Previous</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {economicEvents.map((event, index) => (
-                      <tr key={index}>
-                        <td>
-                          <input
-                            type="datetime-local"
-                            value={event.date_time?.replace('Z', '') || ''}
-                            onChange={(e) => handleEdit(index, 'date_time', e.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            value={event.currency || ''}
-                            onChange={(e) => handleEdit(index, 'currency', e.target.value)}
-                          >
-                            <option value="">Select</option>
-                            <option value="USD">USD</option>
-                            <option value="EUR">EUR</option>
-                            <option value="GBP">GBP</option>
-                            <option value="AUD">AUD</option>
-                            <option value="CAD">CAD</option>
-                            <option value="CHF">CHF</option>
-                            <option value="CNY">JPY</option>
-                            <option value="CNY">CNY</option>
-                            
-                          </select>
-                        </td>
-                        <td>
-                          <select
-                            value={event.impact || ''}
-                            onChange={(e) => handleEdit(index, 'impact', e.target.value)}
-                            className={`impact-${event.impact}`}
-                          >
-                            <option value="">Select</option>
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                          </select>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={event.event_name || ''}
-                            onChange={(e) => handleEdit(index, 'event_name', e.target.value)}
-                            placeholder="Event name"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={event.actual || ''}
-                            onChange={(e) => handleEdit(index, 'actual', e.target.value)}
-                            placeholder="Actual"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={event.forecast || ''}
-                            onChange={(e) => handleEdit(index, 'forecast', e.target.value)}
-                            placeholder="Forecast"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={event.previous || ''}
-                            onChange={(e) => handleEdit(index, 'previous', e.target.value)}
-                            placeholder="Previous"
-                          />
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              onClick={() => deleteEvent(index)}
-                              className="action-button delete-button"
-                              title="Delete event"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
+                <div className="table-container">
+                  <table className="events-table">
+                    <thead>
+                      <tr>
+                        <th>Date & Time</th>
+                        <th>Currency</th>
+                        <th>Impact</th>
+                        <th>Event Name</th>
+                        <th>Actual</th>
+                        <th>Forecast</th>
+                        <th>Previous</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {economicEvents.map((event, index) => (
+                        <tr key={index}>
+                          <td>
+                            <input
+                              type="datetime-local"
+                              value={event.date_time?.replace('Z', '') || ''}
+                              onChange={(e) => handleEdit(index, 'date_time', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <select
+                              value={event.currency || ''}
+                              onChange={(e) => handleEdit(index, 'currency', e.target.value)}
+                            >
+                              <option value="">Select</option>
+                              <option value="USD">USD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="GBP">GBP</option>
+                              <option value="AUD">AUD</option>
+                              <option value="CAD">CAD</option>
+                              <option value="CHF">CHF</option>
+                              <option value="JPY">JPY</option>
+                              <option value="CNY">CNY</option>
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                              value={event.impact || ''}
+                              onChange={(e) => handleEdit(index, 'impact', e.target.value)}
+                              className={`impact-${event.impact}`}
+                            >
+                              <option value="">Select</option>
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={event.event_name || ''}
+                              onChange={(e) => handleEdit(index, 'event_name', e.target.value)}
+                              placeholder="Event name"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={event.actual || ''}
+                              onChange={(e) => handleEdit(index, 'actual', e.target.value)}
+                              placeholder="Actual"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={event.forecast || ''}
+                              onChange={(e) => handleEdit(index, 'forecast', e.target.value)}
+                              placeholder="Forecast"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={event.previous || ''}
+                              onChange={(e) => handleEdit(index, 'previous', e.target.value)}
+                              placeholder="Previous"
+                            />
+                          </td>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                onClick={() => deleteEvent(index)}
+                                className="action-button delete-button"
+                                title="Delete event"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
                 {/* Save Section */}
                 <div className="save-section">
