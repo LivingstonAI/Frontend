@@ -170,31 +170,56 @@ export default function ForexFactoryCapturer() {
     setEconomicEvents(updatedEvents);
   };
 
-  // Save events to backend
-  const saveEvents = async () => {
-    if (economicEvents.length === 0) {
-      alert('No events to save');
-      return;
+  // Replace the saveEvents function in ForexFactoryCapturer with this:
+
+const saveEvents = async () => {
+  if (economicEvents.length === 0) {
+    alert('No events to save');
+    return;
+  }
+
+  setSaving(true);
+  setSaveStatus(null);
+
+  try {
+    const savedCount = 0;
+    const errors = [];
+
+    // Save events one by one using the same REST API endpoint as Calendar
+    for (const event of economicEvents) {
+      try {
+        const response = await fetch(`${baseUrl}/api/economic-events/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date_time: event.date_time,
+            currency: event.currency,
+            impact: event.impact,
+            event_name: event.event_name,
+            actual: event.actual || '',
+            forecast: event.forecast || '',
+            previous: event.previous || ''
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          errors.push(`Failed to save "${event.event_name}": ${errorData.detail || response.statusText}`);
+        } else {
+          savedCount++;
+        }
+      } catch (error) {
+        errors.push(`Failed to save "${event.event_name}": ${error.message}`);
+      }
     }
 
-    setSaving(true);
-    setSaveStatus(null);
-
-    try {
-      const response = await fetch(`${baseUrl}/save_forex_factory_news`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ events: economicEvents })
+    if (savedCount > 0) {
+      setSaveStatus({ 
+        type: 'success', 
+        message: `Successfully saved ${savedCount} events${errors.length > 0 ? ` (${errors.length} failed)` : ''}` 
       });
-
-      if (!response.ok) {
-        throw new Error(`Save failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      setSaveStatus({ type: 'success', message: `Successfully saved ${economicEvents.length} events` });
       
       // Clear the form after successful save
       setTimeout(() => {
@@ -203,13 +228,19 @@ export default function ForexFactoryCapturer() {
         setPreviewUrl(null);
         setSaveStatus(null);
       }, 2000);
-    } catch (error) {
-      console.error('Save error:', error);
-      setSaveStatus({ type: 'error', message: `Save failed: ${error.message}` });
-    } finally {
-      setSaving(false);
+    } else {
+      setSaveStatus({ 
+        type: 'error', 
+        message: `Save failed. Errors: ${errors.join(', ')}` 
+      });
     }
-  };
+  } catch (error) {
+    console.error('Save error:', error);
+    setSaveStatus({ type: 'error', message: `Save failed: ${error.message}` });
+  } finally {
+    setSaving(false);
+  }
+};
 
   return (
     <>
@@ -219,7 +250,7 @@ export default function ForexFactoryCapturer() {
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
           min-height: 100vh;
         }
-          
+
         .upload-section {
           background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
           border: 2px dashed #3b82f6;
