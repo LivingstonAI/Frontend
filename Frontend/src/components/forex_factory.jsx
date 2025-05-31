@@ -542,7 +542,7 @@ const saveEvents = async () => {
           <div className="main-body-info">
             <h5 className="major-upcoming-news-events-header">
               Forex Factory Screenshot Analyzer
-            </h5>
+            </h5><br />
 
             {/* Upload Section */}
             <div className="upload-section">
