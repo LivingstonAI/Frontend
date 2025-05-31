@@ -605,7 +605,6 @@ const saveEvents = async () => {
           }
 
           .table-container {
-            margin: 1rem -1rem 0; /* Extend to screen edges on mobile */
             border-radius: 0;
           }
 
