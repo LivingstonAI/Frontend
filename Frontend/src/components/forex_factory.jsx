@@ -219,38 +219,7 @@ export default function ForexFactoryCapturer() {
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
           min-height: 100vh;
         }
-
-        .header {
-          background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
-          color: white;
-          padding: 1rem;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .main-page-body {
-          display: flex;
-          min-height: calc(100vh - 80px);
-        }
-
-        .main-body-info {
-          flex: 1;
-          padding: 2rem;
-          background: white;
-          margin: 1rem;
-          border-radius: 12px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .major-upcoming-news-events-header {
-          color: #1e40af;
-          font-size: 1.75rem;
-          font-weight: 700;
-          margin-bottom: 2rem;
-          text-align: center;
-          border-bottom: 3px solid #3b82f6;
-          padding-bottom: 0.5rem;
-        }
-
+          
         .upload-section {
           background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
           border: 2px dashed #3b82f6;
