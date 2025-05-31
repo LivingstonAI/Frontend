@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Upload, Camera, Save, Edit3, Trash2, Plus, AlertCircle, CheckCircle } from "lucide-react";
 
-// Mock components - replace with your actual imports
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -161,7 +160,7 @@ export default function ForexFactoryCapturer() {
         <Header />
       </div>
       
-      <div className="main-page-body" style={{ display: 'flex', gap: '20px', padding: '20px' }}>
+      <div className="main-page-body">
         <SideNavs />
         
         <div className="main-body-info" style={{ flex: 1, maxWidth: '1200px' }}>
