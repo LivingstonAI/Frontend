@@ -52,6 +52,7 @@ import CalendarData from './components/calendar_metrics.jsx';
 import EconExplainer from './components/econ_explainer.jsx';
 import Equations from './components/equations.jsx';
 import ForexFactoryCapturer from './components/forex_factory.jsx';
+import TradingEconDashboard from './components/trading_econ_dashboard.jsx';
 
 
 import Zhenya from './components/zhenya';

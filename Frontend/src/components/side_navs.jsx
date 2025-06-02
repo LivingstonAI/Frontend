@@ -249,6 +249,7 @@ const handlePlay = (songUrl) => {
         <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
         {/* <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
+        <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cup-hot-fill"></i></p></button></Link>
 
       </div>
 
@@ -333,6 +334,9 @@ const handlePlay = (songUrl) => {
         </Link> */}
         <Link to="/forex_factory" className="side-nav">
             <i className="bi bi-camera-fill"></i>
+        </Link>
+        <Link to="/trading_econ_dashboard" className="side-nav">
+            <i className="bi bi-cup-hot-fill"></i>
         </Link>
       </div>
       <br />
