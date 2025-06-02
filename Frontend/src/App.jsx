@@ -144,6 +144,8 @@ function App() {
         <Route path='/econ_explainer' element={<EconExplainer />}></Route>
         <Route path='/equations' element={<Equations />}></Route>
         <Route path='/forex_factory' element={<ForexFactoryCapturer />}></Route>
+        <Route path='/trading_econ_dashboard' element={<TradingEconDashboard />}></Route>
+
 
 
 
