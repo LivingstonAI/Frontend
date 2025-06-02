@@ -135,7 +135,7 @@ export default function TradingEconDashboard() {
     const fetchNewsAndEconomicData = async (asset) => {
         setLoading(true);
         try {
-            const response = await fetch(`${baseUrl}/fetch_news_data`, {
+            const response = await fetch(`${baseUrl}/fetch_news_data_api`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
