@@ -2,11 +2,9 @@ import React, { useEffect, useState } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Brain, DollarSign, Calendar, Target, Activity, BarChart3, Zap } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 
 export default function TradingEconDashboard() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
-    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [selectedAsset, setSelectedAsset] = useState("EURUSD");
     const [economicData, setEconomicData] = useState(null);
     const [newsData, setNewsData] = useState([]);
@@ -14,17 +12,123 @@ export default function TradingEconDashboard() {
     const [bias, setBias] = useState("NEUTRAL");
     const [confidence, setConfidence] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [apiKey, setApiKey] = useState(""); // You'll need to set your OpenAI API key here
 
     const popularAssets = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD", "USDCAD", "EURJPY"];
 
-    const fetchAPIKey = async () => {
+    
+      const fetchAPIKey = async () => {
         try {
             const response = await fetch(`${baseUrl}/get_openai_key`);
             if (!response.ok) throw new Error("Network response was not ok");
             const { OPENAI_API_KEY } = await response.json();
-            setOPENAI_API_KEY(OPENAI_API_KEY);
+            setApiKey(OPENAI_API_KEY);
         } catch (error) {
             console.error("Error fetching API key:", error);
+        }
+      };
+    
+      useEffect(() => {
+            console.log("Fetching API key...");
+            fetchAPIKey();
+        }, []);
+
+    // CSS Styles object
+    const styles = {
+        container: {
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            color: '#1e293b'
+        },
+        mainContent: {
+            flex: 1,
+            padding: '2rem',
+            background: 'rgba(248, 250, 252, 0.8)'
+        },
+        title: {
+            fontSize: '2.5rem',
+            fontWeight: 'bold',
+            marginBottom: '1rem',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+        },
+        assetButton: {
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.75rem',
+            fontWeight: '600',
+            transition: 'all 0.3s ease',
+            border: 'none',
+            cursor: 'pointer',
+            margin: '0.25rem'
+        },
+        activeAssetButton: {
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            color: 'white',
+            boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)',
+            transform: 'translateY(-2px)'
+        },
+        inactiveAssetButton: {
+            backgroundColor: 'white',
+            color: '#475569',
+            border: '2px solid #e2e8f0',
+            ':hover': {
+                backgroundColor: '#f1f5f9',
+                borderColor: '#3b82f6'
+            }
+        },
+        card: {
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: '1rem',
+            padding: '2rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.08)',
+            backdropFilter: 'blur(10px)'
+        },
+        loadingSpinner: {
+            width: '3rem',
+            height: '3rem',
+            border: '4px solid #e2e8f0',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+        },
+        biasIndicator: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            color: 'white'
+        },
+        metricCard: {
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            border: '2px solid #e2e8f0',
+            transition: 'all 0.3s ease'
+        },
+        newsCard: {
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            border: '2px solid #e2e8f0',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            ':hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 15px 35px rgba(59, 130, 246, 0.15)',
+                borderColor: '#3b82f6'
+            }
+        },
+        economicEvent: {
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: '0.75rem',
+            padding: '1rem',
+            borderLeft: '4px solid #3b82f6',
+            marginBottom: '1rem'
         }
     };
 
@@ -36,7 +140,7 @@ export default function TradingEconDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     assets: [asset],
-                    user_email: 'trader@example.com'
+                    user_email: 'butterrobot83@gmail.com'
                 })
             });
             
@@ -45,7 +149,7 @@ export default function TradingEconDashboard() {
                 setNewsData(data.message || []);
                 setEconomicData(data.economic_events?.[0] || null);
                 
-                // Generate AI analysis
+                // Generate AI analysis on frontend
                 await generateAIAnalysis(data, asset);
             }
         } catch (error) {
@@ -55,7 +159,10 @@ export default function TradingEconDashboard() {
     };
 
     const generateAIAnalysis = async (data, asset) => {
-        if (!OPENAI_API_KEY) return;
+        if (!apiKey) {
+            console.warn("OpenAI API key not set");
+            return;
+        }
         
         try {
             const prompt = `Analyze the following trading data for ${asset}:
@@ -78,22 +185,37 @@ Provide a comprehensive trading analysis with:
 
 Format as JSON object.`;
 
-            const response = await fetch(`${baseUrl}/chat_gpt`, {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.7
+                })
             });
 
             if (response.ok) {
                 const result = await response.json();
+                const aiResponse = result.choices[0].message.content;
+                
                 try {
-                    const analysis = JSON.parse(result.response);
+                    const analysis = JSON.parse(aiResponse);
                     setAiAnalysis(analysis);
                     setBias(analysis.BIAS || "NEUTRAL");
                     setConfidence(analysis.CONFIDENCE || 0);
                 } catch {
                     // Fallback if JSON parsing fails
-                    setAiAnalysis({ raw: result.response });
+                    setAiAnalysis({ raw: aiResponse });
                 }
             }
         } catch (error) {
@@ -101,29 +223,30 @@ Format as JSON object.`;
         }
     };
 
-    useEffect(() => {
-        fetchAPIKey();
-    }, []);
+    // useEffect(() => {
+    //     // Set your OpenAI API key here
+    //     setApiKey("your-openai-api-key-here");
+    // }, []);
 
     useEffect(() => {
-        if (OPENAI_API_KEY) {
+        if (apiKey) {
             fetchNewsAndEconomicData(selectedAsset);
         }
-    }, [selectedAsset, OPENAI_API_KEY]);
+    }, [selectedAsset, apiKey]);
 
     const getBiasColor = (bias) => {
         switch (bias) {
-            case 'BULLISH': return 'text-green-400';
-            case 'BEARISH': return 'text-red-400';
-            default: return 'text-yellow-400';
+            case 'BULLISH': return '#10b981';
+            case 'BEARISH': return '#ef4444';
+            default: return '#f59e0b';
         }
     };
 
     const getBiasIcon = (bias) => {
         switch (bias) {
-            case 'BULLISH': return <TrendingUp className="w-6 h-6" />;
-            case 'BEARISH': return <TrendingDown className="w-6 h-6" />;
-            default: return <Activity className="w-6 h-6" />;
+            case 'BULLISH': return <TrendingUp style={{ width: '1.5rem', height: '1.5rem' }} />;
+            case 'BEARISH': return <TrendingDown style={{ width: '1.5rem', height: '1.5rem' }} />;
+            default: return <Activity style={{ width: '1.5rem', height: '1.5rem' }} />;
         }
     };
 
@@ -155,33 +278,53 @@ Format as JSON object.`;
             events.push(currentEvent);
         }
         
-        return events.slice(0, 5); // Show top 5 events
+        return events.slice(0, 5);
     };
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white">
+        <div style={styles.container}>
+            <style>{`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .asset-button:hover {
+                    background-color: #f1f5f9;
+                    border-color: #3b82f6;
+                }
+                .news-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 15px 35px rgba(59, 130, 246, 0.15);
+                    border-color: #3b82f6;
+                }
+                .metric-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1);
+                }
+            `}</style>
+            
             <div className="header">
                 <Header />
             </div>
-            <div className="main-page-body flex">
+            <div className="main-page-body" style={{ display: 'flex' }}>
                 <SideNavs />
-                <div className="flex-1 p-6">
-                    <div className="mb-8">
-                        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                <div style={styles.mainContent}>
+                    <div style={{ marginBottom: '2rem' }}>
+                        <h1 style={styles.title}>
                             Trading Economic Dashboard
                         </h1>
                         
                         {/* Asset Selector */}
-                        <div className="flex flex-wrap gap-2 mb-6">
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
                             {popularAssets.map(asset => (
                                 <button
                                     key={asset}
                                     onClick={() => setSelectedAsset(asset)}
-                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                                        selectedAsset === asset 
-                                            ? 'bg-blue-600 text-white shadow-lg' 
-                                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                                    }`}
+                                    className="asset-button"
+                                    style={{
+                                        ...styles.assetButton,
+                                        ...(selectedAsset === asset ? styles.activeAssetButton : styles.inactiveAssetButton)
+                                    }}
                                 >
                                     {asset}
                                 </button>
@@ -189,151 +332,166 @@ Format as JSON object.`;
                         </div>
 
                         {loading && (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                                <span className="ml-3 text-lg">Analyzing market data...</span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 0' }}>
+                                <div style={styles.loadingSpinner}></div>
+                                <span style={{ marginLeft: '1rem', fontSize: '1.125rem', color: '#3b82f6' }}>
+                                    Analyzing market data...
+                                </span>
                             </div>
                         )}
 
                         {!loading && (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
                                 {/* AI Analysis Panel */}
-                                <div className="lg:col-span-2 bg-gray-900 rounded-xl p-6 border border-gray-800">
-                                    <div className="flex items-center mb-4">
-                                        <Brain className="w-6 h-6 text-purple-400 mr-2" />
-                                        <h2 className="text-2xl font-bold">AI Market Analysis</h2>
+                                <div style={{ ...styles.card, gridColumn: '1 / 3' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                        <Brain style={{ width: '1.5rem', height: '1.5rem', color: '#3b82f6', marginRight: '0.75rem' }} />
+                                        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e40af' }}>AI Market Analysis</h2>
                                     </div>
                                     
                                     {aiAnalysis ? (
-                                        <div className="space-y-4">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                             {/* Bias & Confidence */}
-                                            <div className="flex items-center justify-between bg-gray-800 rounded-lg p-4">
-                                                <div className="flex items-center">
-                                                    {getBiasIcon(bias)}
-                                                    <span className={`ml-2 text-xl font-bold ${getBiasColor(bias)}`}>
+                                            <div style={styles.biasIndicator}>
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <span style={{ color: getBiasColor(bias) }}>
+                                                        {getBiasIcon(bias)}
+                                                    </span>
+                                                    <span style={{ marginLeft: '0.75rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
                                                         {bias}
                                                     </span>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="text-sm text-gray-400">Confidence</div>
-                                                    <div className="text-2xl font-bold text-blue-400">{confidence}%</div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>Confidence</div>
+                                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{confidence}%</div>
                                                 </div>
                                             </div>
 
                                             {/* Key Metrics Grid */}
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                 {aiAnalysis.RISK_LEVEL && (
-                                                    <div className="bg-gray-800 rounded-lg p-4">
-                                                        <div className="flex items-center mb-2">
-                                                            <AlertTriangle className="w-4 h-4 text-orange-400 mr-2" />
-                                                            <span className="text-sm text-gray-400">Risk Level</span>
+                                                    <div style={styles.metricCard} className="metric-card">
+                                                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                            <AlertTriangle style={{ width: '1rem', height: '1rem', color: '#f59e0b', marginRight: '0.5rem' }} />
+                                                            <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Risk Level</span>
                                                         </div>
-                                                        <div className="text-lg font-bold">{aiAnalysis.RISK_LEVEL}</div>
+                                                        <div style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1e40af' }}>
+                                                            {aiAnalysis.RISK_LEVEL}
+                                                        </div>
                                                     </div>
                                                 )}
                                                 
                                                 {aiAnalysis.TIME_HORIZON && (
-                                                    <div className="bg-gray-800 rounded-lg p-4">
-                                                        <div className="flex items-center mb-2">
-                                                            <Calendar className="w-4 h-4 text-blue-400 mr-2" />
-                                                            <span className="text-sm text-gray-400">Time Horizon</span>
+                                                    <div style={styles.metricCard} className="metric-card">
+                                                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                            <Calendar style={{ width: '1rem', height: '1rem', color: '#3b82f6', marginRight: '0.5rem' }} />
+                                                            <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Time Horizon</span>
                                                         </div>
-                                                        <div className="text-lg font-bold">{aiAnalysis.TIME_HORIZON}</div>
+                                                        <div style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1e40af' }}>
+                                                            {aiAnalysis.TIME_HORIZON}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {/* Key Factors */}
                                             {aiAnalysis.KEY_FACTORS && (
-                                                <div className="bg-gray-800 rounded-lg p-4">
-                                                    <h3 className="font-bold mb-2 flex items-center">
-                                                        <Target className="w-4 h-4 text-green-400 mr-2" />
+                                                <div style={styles.metricCard}>
+                                                    <h3 style={{ fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', color: '#1e40af' }}>
+                                                        <Target style={{ width: '1rem', height: '1rem', color: '#10b981', marginRight: '0.5rem' }} />
                                                         Key Factors
                                                     </h3>
-                                                    <ul className="space-y-1 text-sm">
+                                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                                         {Array.isArray(aiAnalysis.KEY_FACTORS) 
                                                             ? aiAnalysis.KEY_FACTORS.map((factor, idx) => (
-                                                                <li key={idx} className="text-gray-300">• {factor}</li>
+                                                                <li key={idx} style={{ color: '#475569', marginBottom: '0.5rem', paddingLeft: '1rem', position: 'relative' }}>
+                                                                    <span style={{ position: 'absolute', left: 0, color: '#3b82f6' }}>•</span>
+                                                                    {factor}
+                                                                </li>
                                                             ))
-                                                            : <li className="text-gray-300">{aiAnalysis.KEY_FACTORS}</li>
+                                                            : <li style={{ color: '#475569', paddingLeft: '1rem', position: 'relative' }}>
+                                                                <span style={{ position: 'absolute', left: 0, color: '#3b82f6' }}>•</span>
+                                                                {aiAnalysis.KEY_FACTORS}
+                                                              </li>
                                                         }
                                                     </ul>
                                                 </div>
                                             )}
 
                                             {/* Trading Levels */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                 {aiAnalysis.PRICE_TARGETS && (
-                                                    <div className="bg-gray-800 rounded-lg p-4">
-                                                        <h3 className="font-bold mb-2 text-green-400">Price Targets</h3>
-                                                        <div className="text-sm text-gray-300">{aiAnalysis.PRICE_TARGETS}</div>
+                                                    <div style={styles.metricCard}>
+                                                        <h3 style={{ fontWeight: 'bold', marginBottom: '1rem', color: '#10b981' }}>Price Targets</h3>
+                                                        <div style={{ fontSize: '0.875rem', color: '#475569' }}>{aiAnalysis.PRICE_TARGETS}</div>
                                                     </div>
                                                 )}
                                                 
                                                 {aiAnalysis.STOP_LOSS && (
-                                                    <div className="bg-gray-800 rounded-lg p-4">
-                                                        <h3 className="font-bold mb-2 text-red-400">Stop Loss</h3>
-                                                        <div className="text-sm text-gray-300">{aiAnalysis.STOP_LOSS}</div>
+                                                    <div style={styles.metricCard}>
+                                                        <h3 style={{ fontWeight: 'bold', marginBottom: '1rem', color: '#ef4444' }}>Stop Loss</h3>
+                                                        <div style={{ fontSize: '0.875rem', color: '#475569' }}>{aiAnalysis.STOP_LOSS}</div>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {/* Entry Strategy */}
                                             {aiAnalysis.ENTRY_STRATEGY && (
-                                                <div className="bg-gray-800 rounded-lg p-4">
-                                                    <h3 className="font-bold mb-2 flex items-center">
-                                                        <Zap className="w-4 h-4 text-yellow-400 mr-2" />
+                                                <div style={styles.metricCard}>
+                                                    <h3 style={{ fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', color: '#1e40af' }}>
+                                                        <Zap style={{ width: '1rem', height: '1rem', color: '#f59e0b', marginRight: '0.5rem' }} />
                                                         Entry Strategy
                                                     </h3>
-                                                    <div className="text-sm text-gray-300">{aiAnalysis.ENTRY_STRATEGY}</div>
+                                                    <div style={{ fontSize: '0.875rem', color: '#475569' }}>{aiAnalysis.ENTRY_STRATEGY}</div>
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="text-center text-gray-400 py-8">
-                                            <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                        <div style={{ textAlign: 'center', color: '#64748b', padding: '4rem 0' }}>
+                                            <Brain style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', opacity: 0.5, color: '#3b82f6' }} />
                                             <p>AI analysis will appear here once data is loaded</p>
+                                            {!apiKey && <p style={{ color: '#ef4444', marginTop: '0.5rem' }}>Please set your OpenAI API key</p>}
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Economic Events Panel */}
-                                <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                                    <div className="flex items-center mb-4">
-                                        <BarChart3 className="w-6 h-6 text-orange-400 mr-2" />
-                                        <h2 className="text-xl font-bold">Economic Events</h2>
+                                <div style={styles.card}>
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                        <BarChart3 style={{ width: '1.5rem', height: '1.5rem', color: '#f59e0b', marginRight: '0.75rem' }} />
+                                        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e40af' }}>Economic Events</h2>
                                     </div>
                                     
                                     {economicData ? (
-                                        <div className="space-y-3">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                             {parseEconomicEvents(economicData.economic_events).map((event, idx) => (
-                                                <div key={idx} className="bg-gray-800 rounded-lg p-3 border-l-4 border-blue-500">
-                                                    <div className="text-sm font-semibold text-blue-400 mb-1">
+                                                <div key={idx} style={styles.economicEvent}>
+                                                    <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#3b82f6', marginBottom: '0.5rem' }}>
                                                         {event.date}
                                                     </div>
-                                                    <div className="text-sm font-medium mb-2">
+                                                    <div style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '1rem', color: '#1e293b' }}>
                                                         {event.event?.replace(/🔴|🟠|🟢/g, '').trim()}
                                                     </div>
-                                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
                                                         <div>
-                                                            <span className="text-gray-400">Actual:</span>
-                                                            <div className="font-medium">{event.actual || 'N/A'}</div>
+                                                            <span style={{ color: '#64748b' }}>Actual:</span>
+                                                            <div style={{ fontWeight: '500', color: '#1e40af' }}>{event.actual || 'N/A'}</div>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-400">Forecast:</span>
-                                                            <div className="font-medium">{event.forecast || 'N/A'}</div>
+                                                            <span style={{ color: '#64748b' }}>Forecast:</span>
+                                                            <div style={{ fontWeight: '500', color: '#1e40af' }}>{event.forecast || 'N/A'}</div>
                                                         </div>
                                                         <div>
-                                                            <span className="text-gray-400">Previous:</span>
-                                                            <div className="font-medium">{event.previous || 'N/A'}</div>
+                                                            <span style={{ color: '#64748b' }}>Previous:</span>
+                                                            <div style={{ fontWeight: '500', color: '#1e40af' }}>{event.previous || 'N/A'}</div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center text-gray-400 py-8">
-                                            <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                        <div style={{ textAlign: 'center', color: '#64748b', padding: '4rem 0' }}>
+                                            <Calendar style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', opacity: 0.5, color: '#3b82f6' }} />
                                             <p>Economic events will appear here</p>
                                         </div>
                                     )}
@@ -343,20 +501,33 @@ Format as JSON object.`;
 
                         {/* News Section */}
                         {!loading && newsData.length > 0 && (
-                            <div className="mt-6 bg-gray-900 rounded-xl p-6 border border-gray-800">
-                                <div className="flex items-center mb-4">
-                                    <DollarSign className="w-6 h-6 text-green-400 mr-2" />
-                                    <h2 className="text-xl font-bold">Market News</h2>
+                            <div style={{ ...styles.card, marginTop: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                    <DollarSign style={{ width: '1.5rem', height: '1.5rem', color: '#10b981', marginRight: '0.75rem' }} />
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e40af' }}>Market News</h2>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                                     {newsData.slice(0, 6).map((news, idx) => (
-                                        <div key={idx} className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors">
-                                            <div className="text-sm text-blue-400 mb-2">{news.source}</div>
-                                            <h3 className="font-semibold mb-2 line-clamp-2">{news.title}</h3>
-                                            <p className="text-sm text-gray-400 mb-3 line-clamp-3">{news.description}</p>
+                                        <div key={idx} style={styles.newsCard} className="news-card">
+                                            <div style={{ fontSize: '0.875rem', color: '#3b82f6', marginBottom: '0.5rem', fontWeight: '600' }}>
+                                                {news.source}
+                                            </div>
+                                            <h3 style={{ fontWeight: '600', marginBottom: '0.75rem', color: '#1e293b', lineHeight: '1.4' }}>
+                                                {news.title}
+                                            </h3>
+                                            <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem', lineHeight: '1.5' }}>
+                                                {news.description}
+                                            </p>
                                             {news.highlights && (
-                                                <div className="text-xs text-yellow-400 bg-yellow-400/10 rounded px-2 py-1">
+                                                <div style={{
+                                                    fontSize: '0.75rem',
+                                                    color: '#1e40af',
+                                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                    borderRadius: '0.5rem',
+                                                    padding: '0.5rem 0.75rem',
+                                                    border: '1px solid rgba(59, 130, 246, 0.2)'
+                                                }}>
                                                     {news.highlights}
                                                 </div>
                                             )}
