@@ -306,7 +306,7 @@ Format as JSON object.`;
             <div className="header">
                 <Header />
             </div>
-            <div className="main-page-body" style={{ display: 'flex' }}>
+            <div className="main-page-body">
                 <SideNavs />
                 <div style={styles.mainContent}>
                     <div style={{ marginBottom: '2rem' }}>
