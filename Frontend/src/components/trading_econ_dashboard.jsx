@@ -12,26 +12,38 @@ export default function TradingEconDashboard() {
     const [bias, setBias] = useState("NEUTRAL");
     const [confidence, setConfidence] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [apiKey, setApiKey] = useState(""); // You'll need to set your OpenAI API key here
+    const [apiKey, setApiKey] = useState("");
+    const [error, setError] = useState(null);
+    const [hasAnalyzed, setHasAnalyzed] = useState(false);
+    const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
 
     const popularAssets = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCHF", "NZDUSD", "USDCAD", "EURJPY"];
 
-    
-      const fetchAPIKey = async () => {
+    const fetchAPIKey = async () => {
         try {
+            setError(null);
             const response = await fetch(`${baseUrl}/get_openai_key`);
-            if (!response.ok) throw new Error("Network response was not ok");
-            const { OPENAI_API_KEY } = await response.json();
-            setApiKey(OPENAI_API_KEY);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch API key: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (data.OPENAI_API_KEY) {
+                setApiKey(data.OPENAI_API_KEY);
+                setApiKeyLoaded(true);
+            } else {
+                throw new Error("No API key found in response");
+            }
         } catch (error) {
             console.error("Error fetching API key:", error);
+            setError(`Failed to load API key: ${error.message}`);
+            setApiKeyLoaded(true); // Set to true to stop loading state
         }
-      };
-    
-      useEffect(() => {
-            console.log("Fetching API key...");
-            fetchAPIKey();
-        }, []);
+    };
+
+    useEffect(() => {
+        console.log("Fetching API key...");
+        fetchAPIKey();
+    }, []);
 
     // CSS Styles object
     const styles = {
@@ -72,11 +84,28 @@ export default function TradingEconDashboard() {
         inactiveAssetButton: {
             backgroundColor: 'white',
             color: '#475569',
-            border: '2px solid #e2e8f0',
-            ':hover': {
-                backgroundColor: '#f1f5f9',
-                borderColor: '#3b82f6'
-            }
+            border: '2px solid #e2e8f0'
+        },
+        analyzeButton: {
+            padding: '1rem 2rem',
+            borderRadius: '0.75rem',
+            fontWeight: '700',
+            fontSize: '1.125rem',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            margin: '1rem 0'
+        },
+        analyzeButtonDisabled: {
+            opacity: 0.5,
+            cursor: 'not-allowed',
+            background: '#9ca3af'
         },
         card: {
             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -93,6 +122,14 @@ export default function TradingEconDashboard() {
             borderTop: '4px solid #3b82f6',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
+        },
+        errorCard: {
+            background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+            borderRadius: '1rem',
+            padding: '1.5rem',
+            border: '2px solid #fecaca',
+            color: '#dc2626',
+            marginBottom: '1rem'
         },
         biasIndicator: {
             display: 'flex',
@@ -116,12 +153,7 @@ export default function TradingEconDashboard() {
             padding: '1.5rem',
             border: '2px solid #e2e8f0',
             cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            ':hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 15px 35px rgba(59, 130, 246, 0.15)',
-                borderColor: '#3b82f6'
-            }
+            transition: 'all 0.3s ease'
         },
         economicEvent: {
             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -129,11 +161,21 @@ export default function TradingEconDashboard() {
             padding: '1rem',
             borderLeft: '4px solid #3b82f6',
             marginBottom: '1rem'
+        },
+        welcomeCard: {
+            background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+            borderRadius: '1rem',
+            padding: '2rem',
+            border: '2px solid #bae6fd',
+            textAlign: 'center',
+            color: '#0c4a6e'
         }
     };
 
     const fetchNewsAndEconomicData = async (asset) => {
         setLoading(true);
+        setError(null);
+        
         try {
             const response = await fetch(`${baseUrl}/fetch_news_data_api`, {
                 method: 'POST',
@@ -144,23 +186,41 @@ export default function TradingEconDashboard() {
                 })
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                setNewsData(data.message || []);
-                setEconomicData(data.economic_events?.[0] || null);
-                
-                // Generate AI analysis on frontend
-                await generateAIAnalysis(data, asset);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch news data: ${response.status} ${response.statusText}`);
             }
+            
+            const data = await response.json();
+            
+            if (!data.message && !data.economic_events) {
+                throw new Error("No data received from API");
+            }
+            
+            setNewsData(Array.isArray(data.message) ? data.message : []);
+            setEconomicData(data.economic_events?.[0] || null);
+            
+            // Generate AI analysis if API key is available
+            if (apiKey) {
+                await generateAIAnalysis(data, asset);
+            } else {
+                setError("AI analysis unavailable: No API key");
+            }
+            
         } catch (error) {
             console.error("Error fetching data:", error);
+            setError(`Failed to fetch market data: ${error.message}`);
+            // Reset data on error
+            setNewsData([]);
+            setEconomicData(null);
+            setAiAnalysis(null);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const generateAIAnalysis = async (data, asset) => {
         if (!apiKey) {
-            console.warn("OpenAI API key not set");
+            setError("Cannot generate AI analysis: API key not available");
             return;
         }
         
@@ -204,35 +264,53 @@ Format as JSON object.`;
                 })
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                const aiResponse = result.choices[0].message.content;
-                
-                try {
-                    const analysis = JSON.parse(aiResponse);
-                    setAiAnalysis(analysis);
-                    setBias(analysis.BIAS || "NEUTRAL");
-                    setConfidence(analysis.CONFIDENCE || 0);
-                } catch {
-                    // Fallback if JSON parsing fails
-                    setAiAnalysis({ raw: aiResponse });
-                }
+            if (!response.ok) {
+                throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (!result.choices || !result.choices[0]) {
+                throw new Error("Invalid response from OpenAI API");
+            }
+            
+            const aiResponse = result.choices[0].message.content;
+            
+            try {
+                const analysis = JSON.parse(aiResponse);
+                setAiAnalysis(analysis);
+                setBias(analysis.BIAS || "NEUTRAL");
+                setConfidence(parseInt(analysis.CONFIDENCE) || 0);
+            } catch (parseError) {
+                console.warn("Failed to parse AI response as JSON, using raw response");
+                setAiAnalysis({ raw: aiResponse });
+                setBias("NEUTRAL");
+                setConfidence(0);
             }
         } catch (error) {
             console.error("Error generating AI analysis:", error);
+            setError(`AI analysis failed: ${error.message}`);
         }
     };
 
-    // useEffect(() => {
-    //     // Set your OpenAI API key here
-    //     setApiKey("your-openai-api-key-here");
-    // }, []);
+    const handleAnalyze = () => {
+        if (!apiKeyLoaded || loading) return;
+        setHasAnalyzed(true);
+        fetchNewsAndEconomicData(selectedAsset);
+    };
 
-    useEffect(() => {
-        if (apiKey) {
-            fetchNewsAndEconomicData(selectedAsset);
+    const handleAssetChange = (asset) => {
+        setSelectedAsset(asset);
+        // Reset analysis state when asset changes
+        if (hasAnalyzed) {
+            setNewsData([]);
+            setEconomicData(null);
+            setAiAnalysis(null);
+            setBias("NEUTRAL");
+            setConfidence(0);
+            setError(null);
         }
-    }, [selectedAsset, apiKey]);
+    };
 
     const getBiasColor = (bias) => {
         switch (bias) {
@@ -258,19 +336,22 @@ Format as JSON object.`;
         let currentEvent = {};
         
         lines.forEach(line => {
-            if (line.startsWith('Date:')) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return;
+            
+            if (trimmedLine.startsWith('Date:')) {
                 if (Object.keys(currentEvent).length > 0) {
                     events.push(currentEvent);
                 }
-                currentEvent = { date: line.replace('Date:', '').trim() };
-            } else if (line.startsWith('Event:')) {
-                currentEvent.event = line.replace('Event:', '').trim();
-            } else if (line.startsWith('Actual:')) {
-                currentEvent.actual = line.replace('Actual:', '').trim();
-            } else if (line.startsWith('Forecast:')) {
-                currentEvent.forecast = line.replace('Forecast:', '').trim();
-            } else if (line.startsWith('Previous:')) {
-                currentEvent.previous = line.replace('Previous:', '').trim();
+                currentEvent = { date: trimmedLine.replace('Date:', '').trim() };
+            } else if (trimmedLine.startsWith('Event:')) {
+                currentEvent.event = trimmedLine.replace('Event:', '').trim();
+            } else if (trimmedLine.startsWith('Actual:')) {
+                currentEvent.actual = trimmedLine.replace('Actual:', '').trim();
+            } else if (trimmedLine.startsWith('Forecast:')) {
+                currentEvent.forecast = trimmedLine.replace('Forecast:', '').trim();
+            } else if (trimmedLine.startsWith('Previous:')) {
+                currentEvent.previous = trimmedLine.replace('Previous:', '').trim();
             }
         });
         
@@ -288,9 +369,9 @@ Format as JSON object.`;
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
-                .asset-button:hover {
-                    background-color: #f1f5f9;
-                    border-color: #3b82f6;
+                .asset-button:hover:not(:disabled) {
+                    background-color: #f1f5f9 !important;
+                    border-color: #3b82f6 !important;
                 }
                 .news-card:hover {
                     transform: translateY(-4px);
@@ -300,6 +381,10 @@ Format as JSON object.`;
                 .metric-card:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1);
+                }
+                .analyze-button:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);
                 }
             `}</style>
             
@@ -314,22 +399,48 @@ Format as JSON object.`;
                             Trading Economic Dashboard
                         </h1>
                         
+                        {/* Error Display */}
+                        {error && (
+                            <div style={styles.errorCard}>
+                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <AlertTriangle style={{ width: '1.25rem', height: '1.25rem', marginRight: '0.5rem' }} />
+                                    <strong>Error</strong>
+                                </div>
+                                <p style={{ margin: 0 }}>{error}</p>
+                            </div>
+                        )}
+                        
                         {/* Asset Selector */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                             {popularAssets.map(asset => (
                                 <button
                                     key={asset}
-                                    onClick={() => setSelectedAsset(asset)}
+                                    onClick={() => handleAssetChange(asset)}
                                     className="asset-button"
                                     style={{
                                         ...styles.assetButton,
                                         ...(selectedAsset === asset ? styles.activeAssetButton : styles.inactiveAssetButton)
                                     }}
+                                    disabled={loading}
                                 >
                                     {asset}
                                 </button>
                             ))}
                         </div>
+
+                        {/* Analyze Button */}
+                        <button
+                            onClick={handleAnalyze}
+                            className="analyze-button"
+                            style={{
+                                ...styles.analyzeButton,
+                                ...(loading || !apiKeyLoaded ? styles.analyzeButtonDisabled : {})
+                            }}
+                            disabled={loading || !apiKeyLoaded}
+                        >
+                            <Brain style={{ width: '1.25rem', height: '1.25rem' }} />
+                            {loading ? 'Analyzing...' : `Analyze ${selectedAsset}`}
+                        </button>
 
                         {loading && (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 0' }}>
@@ -340,7 +451,27 @@ Format as JSON object.`;
                             </div>
                         )}
 
-                        {!loading && (
+                        {/* Welcome Message */}
+                        {!hasAnalyzed && !loading && (
+                            <div style={styles.welcomeCard}>
+                                <Brain style={{ width: '4rem', height: '4rem', margin: '0 auto 1rem', color: '#0369a1' }} />
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#0c4a6e' }}>
+                                    Welcome to Trading Dashboard
+                                </h2>
+                                <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                                    Select an asset and click "Analyze" to get comprehensive market analysis including:
+                                </p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', textAlign: 'left' }}>
+                                    <div>• AI-powered sentiment analysis</div>
+                                    <div>• Economic events impact</div>
+                                    <div>• Latest market news</div>
+                                    <div>• Trading recommendations</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Analysis Results */}
+                        {!loading && hasAnalyzed && (aiAnalysis || newsData.length > 0 || economicData) && (
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
                                 {/* AI Analysis Panel */}
                                 <div style={{ ...styles.card, gridColumn: '1 / 3' }}>
@@ -450,7 +581,6 @@ Format as JSON object.`;
                                         <div style={{ textAlign: 'center', color: '#64748b', padding: '4rem 0' }}>
                                             <Brain style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', opacity: 0.5, color: '#3b82f6' }} />
                                             <p>AI analysis will appear here once data is loaded</p>
-                                            {!apiKey && <p style={{ color: '#ef4444', marginTop: '0.5rem' }}>Please set your OpenAI API key</p>}
                                         </div>
                                     )}
                                 </div>
@@ -500,7 +630,7 @@ Format as JSON object.`;
                         )}
 
                         {/* News Section */}
-                        {!loading && newsData.length > 0 && (
+                        {!loading && hasAnalyzed && newsData.length > 0 && (
                             <div style={{ ...styles.card, marginTop: '2rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
                                     <DollarSign style={{ width: '1.5rem', height: '1.5rem', color: '#10b981', marginRight: '0.75rem' }} />
