@@ -279,8 +279,20 @@ Format as JSON object.`;
             console.log('AI Response');
             console.log(aiResponse);
             
-            try {
-                const analysis = JSON.parse(aiResponse);
+                try {
+                // Extract JSON from markdown code block if present
+                let jsonString = aiResponse;
+                if (aiResponse.includes('```json')) {
+                    const start = aiResponse.indexOf('```json') + 7;
+                    const end = aiResponse.lastIndexOf('```');
+                    jsonString = aiResponse.substring(start, end).trim();
+                } else if (aiResponse.includes('```')) {
+                    const start = aiResponse.indexOf('```') + 3;
+                    const end = aiResponse.lastIndexOf('```');
+                    jsonString = aiResponse.substring(start, end).trim();
+                }
+                
+                const analysis = JSON.parse(jsonString);
                 setAiAnalysis(analysis);
                 setBias(analysis.BIAS || "NEUTRAL");
                 setConfidence(parseInt(analysis.CONFIDENCE) || 0);
