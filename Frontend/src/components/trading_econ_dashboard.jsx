@@ -658,7 +658,15 @@ Format as JSON object.`;
                                                     padding: '0.5rem 0.75rem',
                                                     border: '1px solid rgba(59, 130, 246, 0.2)'
                                                 }}>
-                                                    {news.highlights}
+                                                    {(() => {
+                                                        if (typeof news.highlights === 'string') {
+                                                            return news.highlights;
+                                                        } else if (typeof news.highlights === 'object' && news.highlights.highlight) {
+                                                            return news.highlights.highlight;
+                                                        } else {
+                                                            return 'Market highlight available';
+                                                        }
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
