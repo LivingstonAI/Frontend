@@ -275,6 +275,9 @@ Format as JSON object.`;
             }
             
             const aiResponse = result.choices[0].message.content;
+
+            console.log('AI Response');
+            console.log(aiResponse);
             
             try {
                 const analysis = JSON.parse(aiResponse);
@@ -472,7 +475,7 @@ Format as JSON object.`;
 
                         {/* Analysis Results */}
                         {!loading && hasAnalyzed && (aiAnalysis || newsData.length > 0 || economicData) && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
+                            <div style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
                                 {/* AI Analysis Panel */}
                                 <div style={{ ...styles.card, gridColumn: '1 / 3' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
