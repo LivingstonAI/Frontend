@@ -514,7 +514,7 @@ Format as JSON object.`;
                                             </div>
 
                                             {/* Key Metrics Grid */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                 {aiAnalysis.RISK_LEVEL && (
                                                     <div style={styles.metricCard} className="metric-card">
                                                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -565,7 +565,7 @@ Format as JSON object.`;
                                             )}
 
                                             {/* Trading Levels */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                 {aiAnalysis.PRICE_TARGETS && (
                                                     <div style={styles.metricCard}>
                                                         <h3 style={{ fontWeight: 'bold', marginBottom: '1rem', color: '#10b981' }}>Price Targets</h3>
