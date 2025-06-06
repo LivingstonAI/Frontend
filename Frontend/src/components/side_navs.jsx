@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
-import { FaSun, FaMoon, FaMusic, FaSave, FaChartLine, FaAngleDown, FaAngleUp, FaPlay, FaStop } from 'react-icons/fa';
+import { FaSun, FaMoon, FaMusic, FaSave, FaChartLine, FaAngleDown, FaAngleUp } from 'react-icons/fa';
 import { useAudio } from './audio_context';
 import AssetTracker from "./asset_tracker";
 
-// Import statements for songs would go here...
+
+
+// Import all the songs
 import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
 import love_story from '../Indila - Love Story (Piano Cover).mp3';
@@ -85,13 +87,11 @@ export default function SideNavs() {
   const [showAssetTracker, setShowAssetTracker] = useState(false);
   const [songsFromBackend, setSongsFromBackend] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [nowPlaying, setNowPlaying] = useState(null);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
-  // Songs array - you'll populate this
+  // Import song files - Fixed the undefined imports
   const songs = [
-    // Your songs will go here
-    { name: "MIT👨‍🎓📖🚀", file: mit },
+        { name: "MIT👨‍🎓📖🚀", file: mit },
         { name: "Atreides Theme ⚔️", file: atreides_theme },
         { name: "Jingle Bells", file: jingleBells },
         { name: "Snow Storm", file: snowStorm },
@@ -219,7 +219,7 @@ export default function SideNavs() {
     return () => clearInterval(interval);
   }, []);
 
-  // Access audio context
+  // Access audio context - This is working correctly!
   const { isPlaying, currentSong, playMusic, stopMusic } = useAudio();
 
   // Function to save all songs to the backend
@@ -285,44 +285,14 @@ export default function SideNavs() {
     setTimeout(() => setSavingStatus(""), 5000);
   };
 
-  // Handle play for any song with modal close
+  // Handle play for any song (backend or local) - Fixed to use the correct file property
   const handlePlay = (song) => {
     console.log("Playing song:", song.name);
+    // For backend songs, use song.file (which should be the URL)
+    // For local songs, use song.file (which is the imported file)
     const songUrl = songsFromBackend.length > 0 ? song.file : song.file;
     console.log("Song URL:", songUrl);
-    
-    // Set now playing
-    setNowPlaying(song.name);
-    
-    // Play the music
     playMusic(songUrl);
-    
-    // Close the modal
-    const modal = document.getElementById('sideNavsMusicModal');
-    const modalInstance = window.bootstrap?.Modal.getInstance(modal);
-    if (modalInstance) {
-      modalInstance.hide();
-    } else {
-      // Fallback if bootstrap instance not available
-      modal?.classList.remove('show');
-      modal?.setAttribute('aria-hidden', 'true');
-      modal?.style.setProperty('display', 'none');
-      
-      // Remove backdrop
-      const backdrop = document.querySelector('.modal-backdrop');
-      backdrop?.remove();
-      
-      // Remove modal-open class from body
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
-    }
-  };
-
-  // Handle stop music
-  const handleStopMusic = () => {
-    stopMusic();
-    setNowPlaying(null);
   };
 
   // Filter songs based on search term
@@ -360,8 +330,10 @@ export default function SideNavs() {
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
         <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
+        {/* <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
         <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cup-hot-fill"></i></p></button></Link>
+
       </div>
 
       <div className="side-navs-cellphone">
@@ -440,6 +412,9 @@ export default function SideNavs() {
         <Link to="/econ_explainer" className="side-nav">
             <i className="bi bi-cash-stack"></i>
         </Link>
+        {/* <Link to="/equations" className="side-nav">
+            <i className="bi bi-infinity"></i>
+        </Link> */}
         <Link to="/forex_factory" className="side-nav">
             <i className="bi bi-camera-fill"></i>
         </Link>
@@ -480,31 +455,9 @@ export default function SideNavs() {
         </div>
       </div>
       
+
       {/* Conditional rendering of AssetTracker */}
       {showAssetTracker && <AssetTracker />}
-
-      {/* Now Playing Indicator */}
-      {nowPlaying && (
-        <div className="card shadow-sm mb-3">
-          <div className="card-body bg-success text-white">
-            <div className="d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-center">
-                <FaPlay className="me-2" />
-                <span className="fw-bold">Now Playing:</span>
-              </div>
-              <button 
-                className="btn btn-sm btn-outline-light"
-                onClick={handleStopMusic}
-              >
-                <FaStop />
-              </button>
-            </div>
-            <div className="mt-1">
-              <small>{nowPlaying}</small>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Music Player, Admin buttons and Modal */}
       <div className="music-color-mode">
@@ -555,7 +508,7 @@ export default function SideNavs() {
                           className="btn btn-sm btn-outline-primary" 
                           onClick={() => handlePlay(song)}
                         >
-                          <FaPlay className="me-1" /> Play
+                          Play
                         </button>
                       </li>
                     ))}
@@ -563,9 +516,7 @@ export default function SideNavs() {
                 )}
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-danger" onClick={handleStopMusic}>
-                  <FaStop className="me-1" /> Stop Music
-                </button>
+                <button type="button" className="btn btn-danger" onClick={stopMusic}>Stop Music</button>
                 <button type="button" className="btn btn-primary" data-bs-dismiss="modal">Close</button>
               </div>
             </div>
