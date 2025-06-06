@@ -66,6 +66,7 @@ import classic_slowed from '../𝙘𝙡𝙖𝙨𝙨𝙞𝙘 - 𝙈𝙆𝙏𝙊 (
 import sound_of_april from '../Sound of April.mp3';
 import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics).mp3';
 import a_million_colors from '../A Million Colors.mp3';
+import annas_smile from "../Anna's Smile.mp3";
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -227,6 +228,7 @@ export default function Art() {
     "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
     "63": { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
     "64": { name: "A Million Colors 🎺", file: a_million_colors },
+    "65": { name: "Anna's Smile 🌹", file: annas_smile},
   };
 
   // Function to get current date and time formatted
