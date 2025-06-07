@@ -73,6 +73,7 @@ import sound_of_april from '../Sound of April.mp3';
 import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics).mp3';
 import a_million_colors from '../A Million Colors.mp3';
 import annas_smile from "../Anna's Smile.mp3";
+import strangers from '../Kenya Grace - Strangers (Official Lyric Video).mp3';
 
 
 export default function SideNavs() {
@@ -155,7 +156,8 @@ export default function SideNavs() {
         { name: "Sound of April 🌃🎧", file: sound_of_april },
         { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
         { name: "A Million Colors 🎺", file: a_million_colors },
-        { name: "Anna's Smile 🌹", file: annas_smile},
+        { name: "Anna's Smile 🌹", file: annas_smile },
+        { name: "Strangers 🪶", file: strangers },
   ];
 
   // Toggle functions
