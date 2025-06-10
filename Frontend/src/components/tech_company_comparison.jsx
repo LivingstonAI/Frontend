@@ -70,7 +70,7 @@ const MarketShareInfographic = () => {
           name: "OLED Displays",
           share: "49.9%",
           note: "Korean OLED market (with Samsung)",
-          icon: "🖥️"
+          icon: "�️"
         },
         {
           name: "Automotive OLED",
@@ -88,207 +88,229 @@ const MarketShareInfographic = () => {
     }
   ];
 
-  // Define styles as a constant object
-  const styles = {
-    // Main container
-    mainContainer: {
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom right, #F8FAFC, #E2E8F0)', // bg-gradient-to-br from-slate-100 to-slate-200
-      padding: '1rem', // p-4
-      fontFamily: 'Inter, sans-serif', // Using Inter font
-    },
-    // Max width wrapper
-    maxWidthWrapper: {
-      maxWidth: '80rem', // max-w-7xl
-      margin: '0 auto', // mx-auto
-    },
-    // Header section
-    headerContainer: {
-      textAlign: 'center',
-      marginBottom: '3rem', // mb-12
-    },
-    headerTitle: {
-      fontSize: '2.5rem', // text-4xl (responsive for sm:text-5xl would need JS or external CSS)
-      fontWeight: '800', // font-extrabold
-      color: '#1F2937', // text-gray-900
-      marginBottom: '1rem', // mb-4
-      letterSpacing: '-0.025em', // tracking-tight
-    },
-    headerGradientText: {
-      background: 'linear-gradient(to right, #8B5CF6, #6366F1)', // from-purple-600 to-indigo-600
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      MozBackgroundClip: 'text', // For Firefox
-      MozTextFillColor: 'transparent', // For Firefox
-    },
-    headerSubtitle: {
-      fontSize: '1.125rem', // text-lg (responsive for sm:text-xl would need JS or external CSS)
-      color: '#374151', // text-gray-700
-      maxWidth: '48rem', // max-w-3xl
-      margin: '0 auto',
-      lineHeight: '1.625', // leading-relaxed
-    },
-    headerInfo: {
-      marginTop: '1.5rem', // mt-6
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: '0.5rem', // space-x-2
-      fontSize: '0.875rem', // text-sm
-      color: '#6B7280', // text-gray-500
-    },
+  // Define styles as a constant object using a function to allow for dynamic responsive styles
+  // For proper responsiveness without external CSS or libraries, we use dynamic inline styles
+  // based on window width.
+  const [windowWidth, setWindowWidth] = React.useState(window.innerWidth);
 
-    // Companies Grid
-    companiesGrid: {
-      display: 'grid',
-      // For responsiveness (md:grid-cols-2 lg:grid-cols-3), this would require media queries
-      // or dynamic style application based on screen width.
-      gridTemplateColumns: '1fr', // Default for small screens
-      gap: '1.5rem', // gap-6
-      marginBottom: '3rem', // mb-12
-      // Media queries not directly supported by inline styles.
-      // You would typically use a responsive library or JavaScript to manage this.
-    },
-    // Company Card Base Style (properties that are common to all cards)
-    companyCardBase: {
-      borderWidth: '2px',
-      borderRadius: '1.5rem', // rounded-3xl
-      padding: '2rem', // p-6 sm:p-8
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-xl
-      transition: 'all 0.3s ease-in-out', // transition-all duration-300
-      display: 'flex',
-      flexDirection: 'column',
-      // Hover effect would require onMouseEnter/onMouseLeave in component
-      // transform: 'translateY(0px)', // For hover effect
-    },
-    // Company Header within card
-    companyHeader: {
-      textAlign: 'center',
-      marginBottom: '2rem', // mb-8
-      paddingBottom: '1rem', // pb-4
-      borderBottom: '1px dashed #D1D5DB', // border-b border-dashed border-gray-300
-    },
-    companyLogo: {
-      fontSize: '4rem', // text-6xl
-      marginBottom: '1rem', // mb-4
-      // Animation would be handled by a separate CSS class or keyframes
-    },
-    companyNameText: {
-      fontSize: '2.25rem', // text-3xl (responsive for sm:text-4xl)
-      fontWeight: '700', // font-bold
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      MozBackgroundClip: 'text', // For Firefox
-      MozTextFillColor: 'transparent', // For Firefox
-    },
+  React.useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-    // Industries Section
-    industriesSection: {
-      flexGrow: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.5rem', // space-y-6
-    },
-    industryCard: {
-      backgroundColor: '#FFFFFF', // bg-white
-      borderRadius: '1rem', // rounded-2xl
-      padding: '1.25rem', // p-5
-      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', // shadow-md
-      border: '1px solid #F3F4F6', // border border-gray-100
-    },
-    industryHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: '0.75rem', // mb-3
-    },
-    industryIconName: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem', // space-x-3
-    },
-    industryIcon: {
-      fontSize: '1.5rem', // text-2xl
-      color: '#4B5563', // text-gray-700
-    },
-    industryName: {
-      fontWeight: '600', // font-semibold
-      fontSize: '1.125rem', // text-lg
-      color: '#1F2937', // text-gray-800
-    },
-    industryShareSection: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    industryShareValue: {
-      fontSize: '1.875rem', // text-3xl
-      fontWeight: '800', // font-extrabold
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      MozBackgroundClip: 'text', // For Firefox
-      MozTextFillColor: 'transparent', // For Firefox
-    },
-    industryNote: {
-      fontSize: '0.875rem', // text-sm
-      color: '#4B5563', // text-gray-600
-      marginTop: '0.25rem', // mt-1
-      fontStyle: 'italic',
-    },
+  const getResponsiveStyles = () => {
+    const isSmallScreen = windowWidth < 768; // Tailwind's 'md' breakpoint is 768px
 
-    // Key Insights Section
-    insightsContainer: {
-      backgroundColor: '#FFFFFF', // bg-white
-      borderRadius: '1.5rem', // rounded-3xl
-      padding: '2rem', // p-6 sm:p-8
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-xl
-      border: '1px solid #F3F4F6', // border border-gray-100
-    },
-    insightsTitle: {
-      fontSize: '1.875rem', // text-3xl
-      fontWeight: '700', // font-bold
-      textAlign: 'center',
-      color: '#1F2937', // text-gray-900
-      marginBottom: '2rem', // mb-8
-    },
-    insightsGrid: {
-      display: 'grid',
-      gridTemplateColumns: '1fr', // Default for small screens
-      gap: '1.5rem', // gap-6
-      // Media queries not directly supported by inline styles.
-      // You would typically use a responsive library or JavaScript to manage this.
-    },
-    insightCardBase: { // This now serves as a true base for common properties
-      textAlign: 'center',
-      padding: '1.5rem', // p-6
-      borderRadius: '1rem', // rounded-2xl
-      borderWidth: '1px',
-      transition: 'transform 0.2s ease-in-out', // For potential hover effect
-      // Hover effect would require onMouseEnter/onMouseLeave
-    },
-    insightIcon: {
-      fontSize: '2.25rem', // text-4xl
-      marginBottom: '0.75rem', // mb-3
-    },
-    insightTitle: {
-      fontWeight: '700', // font-bold
-      fontSize: '1.25rem', // text-xl
-      marginBottom: '0.5rem', // mb-2
-    },
-    insightDescription: {
-      fontSize: '0.875rem', // text-sm
-      color: '#374151', // text-gray-700
-      lineHeight: '1.5', // leading-relaxed
-    },
+    return {
+      // Main container
+      mainContainer: {
+        minHeight: '100vh',
+        background: 'linear-gradient(to bottom right, #F8FAFC, #E2E8F0)', // bg-gradient-to-br from-slate-100 to-slate-200
+        padding: '1rem', // p-4
+        fontFamily: 'Inter, sans-serif', // Using Inter font
+      },
+      // Max width wrapper
+      maxWidthWrapper: {
+        maxWidth: '80rem', // max-w-7xl
+        margin: '0 auto', // mx-auto
+      },
+      // Header section
+      headerContainer: {
+        textAlign: 'center',
+        marginBottom: '3rem', // mb-12
+      },
+      headerTitle: {
+        fontSize: isSmallScreen ? '2rem' : '2.5rem', // text-4xl (responsive for sm:text-5xl)
+        fontWeight: '800', // font-extrabold
+        color: '#1F2937', // text-gray-900
+        marginBottom: '1rem', // mb-4
+        letterSpacing: '-0.025em', // tracking-tight
+      },
+      headerGradientText: {
+        background: 'linear-gradient(to right, #8B5CF6, #6366F1)', // from-purple-600 to-indigo-600
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        MozBackgroundClip: 'text', // For Firefox
+        MozTextFillColor: 'transparent', // For Firefox
+      },
+      headerSubtitle: {
+        fontSize: isSmallScreen ? '1rem' : '1.125rem', // text-lg (responsive for sm:text-xl)
+        color: '#374151', // text-gray-700
+        maxWidth: '48rem', // max-w-3xl
+        margin: '0 auto',
+        lineHeight: '1.625', // leading-relaxed
+      },
+      headerInfo: {
+        marginTop: '1.5rem', // mt-6
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '0.5rem', // space-x-2
+        fontSize: '0.875rem', // text-sm
+        color: '#6B7280', // text-gray-500
+      },
 
-    // Footer
-    footer: {
-      textAlign: 'center',
-      marginTop: '3rem', // mt-12
-      color: '#6B7280', // text-gray-500
-      fontSize: '0.75rem', // text-xs (sm:text-sm)
-    }
+      // Companies Grid - Modified to always be a single column
+      companiesGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr', // Always one column
+        gap: '1.5rem', // gap-6
+        marginBottom: '3rem', // mb-12
+      },
+      // Company Card Base Style (properties that are common to all cards)
+      companyCardBase: {
+        borderWidth: '2px',
+        borderRadius: '1.5rem', // rounded-3xl
+        padding: isSmallScreen ? '1.5rem' : '2rem', // p-6 sm:p-8
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-xl
+        transition: 'all 0.3s ease-in-out', // transition-all duration-300
+        display: 'flex',
+        flexDirection: 'column',
+        // Hover effect would require onMouseEnter/onMouseLeave in component
+        // transform: 'translateY(0px)', // For hover effect
+      },
+      // Company Header within card
+      companyHeader: {
+        textAlign: 'center',
+        marginBottom: '2rem', // mb-8
+        paddingBottom: '1rem', // pb-4
+        borderBottom: '1px dashed #D1D5DB', // border-b border-dashed border-gray-300
+      },
+      companyLogo: {
+        fontSize: '4rem', // text-6xl
+        marginBottom: '1rem', // mb-4
+        // Animation would be handled by a separate CSS class or keyframes
+      },
+      companyNameText: {
+        fontSize: isSmallScreen ? '2rem' : '2.25rem', // text-3xl (responsive for sm:text-4xl)
+        fontWeight: '700', // font-bold
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        MozBackgroundClip: 'text', // For Firefox
+        MozTextFillColor: 'transparent', // For Firefox
+      },
+
+      // Industries Section - Modified for horizontal layout
+      industriesSection: {
+        flexGrow: 1,
+        display: 'flex',
+        flexDirection: isSmallScreen ? 'column' : 'row', // Column on small, row on larger
+        flexWrap: 'wrap', // Allow wrapping on small screens
+        gap: '1.5rem', // space-y-6
+        justifyContent: 'space-around', // Distribute items horizontally
+        alignItems: 'stretch', // Make sure cards have equal height if needed
+      },
+      industryCard: {
+        backgroundColor: '#FFFFFF', // bg-white
+        borderRadius: '1rem', // rounded-2xl
+        padding: '1.25rem', // p-5
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', // shadow-md
+        border: '1px solid #F3F4F6', // border border-gray-100
+        flex: isSmallScreen ? 'none' : '1', // No flex on small screens, flex:1 on larger
+        minWidth: isSmallScreen ? 'auto' : 'calc(33% - 1rem)', // Approx 3 items per row on larger screens
+        maxWidth: isSmallScreen ? '100%' : 'calc(33% - 1rem)', // Max width to control wrapping
+        display: 'flex', // Ensure content within card is flexible
+        flexDirection: 'column', // Stack content within each industry card vertically
+        justifyContent: 'space-between',
+      },
+      industryHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '0.75rem', // mb-3
+      },
+      industryIconName: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem', // space-x-3
+      },
+      industryIcon: {
+        fontSize: '1.5rem', // text-2xl
+        color: '#4B5563', // text-gray-700
+      },
+      industryName: {
+        fontWeight: '600', // font-semibold
+        fontSize: '1.125rem', // text-lg
+        color: '#1F2937', // text-gray-800
+      },
+      industryShareSection: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 'auto', // Push to bottom if card grows
+      },
+      industryShareValue: {
+        fontSize: '1.875rem', // text-3xl
+        fontWeight: '800', // font-extrabold
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        MozBackgroundClip: 'text', // For Firefox
+        MozTextFillColor: 'transparent', // For Firefox
+      },
+      industryNote: {
+        fontSize: '0.875rem', // text-sm
+        color: '#4B5563', // text-gray-600
+        marginTop: '0.25rem', // mt-1
+        fontStyle: 'italic',
+      },
+
+      // Key Insights Section
+      insightsContainer: {
+        backgroundColor: '#FFFFFF', // bg-white
+        borderRadius: '1.5rem', // rounded-3xl
+        padding: isSmallScreen ? '1.5rem' : '2rem', // p-6 sm:p-8
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-xl
+        border: '1px solid #F3F4F6', // border border-gray-100
+      },
+      insightsTitle: {
+        fontSize: isSmallScreen ? '1.5rem' : '1.875rem', // text-3xl
+        fontWeight: '700', // font-bold
+        textAlign: 'center',
+        color: '#1F2937', // text-gray-900
+        marginBottom: '2rem', // mb-8
+      },
+      insightsGrid: {
+        display: 'grid',
+        gridTemplateColumns: isSmallScreen ? '1fr' : 'repeat(3, 1fr)', // Default for small screens, 3 for larger
+        gap: '1.5rem', // gap-6
+      },
+      insightCardBase: { // This now serves as a true base for common properties
+        textAlign: 'center',
+        padding: '1.5rem', // p-6
+        borderRadius: '1rem', // rounded-2xl
+        borderWidth: '1px',
+        transition: 'transform 0.2s ease-in-out', // For potential hover effect
+        // Hover effect would require onMouseEnter/onMouseLeave
+      },
+      insightIcon: {
+        fontSize: '2.25rem', // text-4xl
+        marginBottom: '0.75rem', // mb-3
+      },
+      insightTitle: {
+        fontWeight: '700', // font-bold
+        fontSize: '1.25rem', // text-xl
+        marginBottom: '0.5rem', // mb-2
+      },
+      insightDescription: {
+        fontSize: '0.875rem', // text-sm
+        color: '#374151', // text-gray-700
+        lineHeight: '1.5', // leading-relaxed
+      },
+
+      // Footer
+      footer: {
+        textAlign: 'center',
+        marginTop: '3rem', // mt-12
+        color: '#6B7280', // text-gray-500
+        fontSize: '0.75rem', // text-xs (sm:text-sm)
+      }
+    };
   };
+
+  const styles = getResponsiveStyles(); // Get styles dynamically
 
   const CircularProgress = ({ percentage, color, size = 120 }) => {
     const radius = (size - 20) / 2; // size-20 for stroke-width 8 on each side
