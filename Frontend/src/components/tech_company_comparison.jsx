@@ -70,7 +70,7 @@ const MarketShareInfographic = () => {
           name: "OLED Displays",
           share: "49.9%",
           note: "Korean OLED market (with Samsung)",
-          icon: "�️"
+          icon: "🖥️"
         },
         {
           name: "Automotive OLED",
@@ -85,6 +85,28 @@ const MarketShareInfographic = () => {
           icon: "🏠"
         }
       ]
+    }
+  ];
+
+  // New data for Digital Infrastructure comparison
+  const digitalInfrastructureData = [
+    {
+      metric: "Internet Users",
+      southKorea: "97.4 % (50.4M)",
+      southAfrica: "74.7 % (45.34M)",
+      icon: "🧑‍💻"
+    },
+    {
+      metric: "Internet Speed",
+      southKorea: "World-leading",
+      southAfrica: "Developing",
+      icon: "⚡"
+    },
+    {
+      metric: "5G Coverage",
+      southKorea: "Comprehensive",
+      southAfrica: "Limited",
+      icon: "📶"
     }
   ];
 
@@ -257,6 +279,60 @@ const MarketShareInfographic = () => {
         fontStyle: 'italic',
       },
 
+      // Digital Infrastructure Section (Table-based)
+      digitalInfraContainer: {
+        backgroundColor: '#FFFFFF', // bg-white
+        borderRadius: '1.5rem', // rounded-3xl
+        padding: isSmallScreen ? '1.5rem' : '2rem', // p-6 sm:p-8
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-xl
+        border: '1px solid #F3F4F6', // border border-gray-100
+        marginTop: '3rem', // mt-12
+      },
+      digitalInfraTitle: {
+        fontSize: isSmallScreen ? '1.5rem' : '1.875rem', // text-3xl
+        fontWeight: '700', // font-bold
+        textAlign: 'center',
+        color: '#1F2937', // text-gray-900
+        marginBottom: '2rem', // mb-8
+      },
+      digitalInfraTable: {
+        width: '100%',
+        borderCollapse: 'collapse',
+        borderRadius: '0.75rem', // rounded-xl
+        overflow: 'hidden', // Ensures rounded corners apply to children
+        backgroundColor: '#F8FAFC', // slate-50
+      },
+      digitalInfraTableHead: {
+        backgroundColor: '#E2E8F0', // slate-200
+        color: '#1F2937', // gray-900
+        fontWeight: '700', // font-bold
+        fontSize: isSmallScreen ? '0.875rem' : '1rem', // text-sm / text-base
+      },
+      digitalInfraTableHeadTh: {
+        padding: '1rem', // p-4
+        textAlign: 'left',
+        borderBottom: '2px solid #CBD5E1', // slate-300
+      },
+      // digitalInfraTableRow: { // This rule will be handled dynamically
+      //   '&:nth-child(even)': { // Zebra striping (requires specific CSS or JavaScript for inline)
+      //     backgroundColor: '#F0F9FF', // blue-50
+      //   },
+      //   '&:hover': {
+      //     backgroundColor: '#EBF8FF', // blue-100
+      //   }
+      // },
+      digitalInfraTableCell: {
+        padding: '1rem', // p-4
+        borderBottom: '1px solid #E2E8F0', // slate-200
+        color: '#374151', // gray-700
+        fontSize: isSmallScreen ? '0.875rem' : '0.9375rem', // text-sm / text-base-ish
+        fontWeight: '500', // font-medium
+      },
+      digitalInfraIcon: {
+        marginRight: '0.5rem', // mr-2
+      },
+
+
       // Key Insights Section
       insightsContainer: {
         backgroundColor: '#FFFFFF', // bg-white
@@ -264,6 +340,7 @@ const MarketShareInfographic = () => {
         padding: isSmallScreen ? '1.5rem' : '2rem', // p-6 sm:p-8
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', // shadow-xl
         border: '1px solid #F3F4F6', // border border-gray-100
+        marginTop: '3rem', // mt-12
       },
       insightsTitle: {
         fontSize: isSmallScreen ? '1.5rem' : '1.875rem', // text-3xl
@@ -313,9 +390,15 @@ const MarketShareInfographic = () => {
   const styles = getResponsiveStyles(); // Get styles dynamically
 
   const CircularProgress = ({ percentage, color, size = 120 }) => {
+    // Convert percentage to a number, remove '%' and trim spaces
+    const numericPercentage = parseFloat(percentage.replace('%', '').trim());
+
+    // Ensure numericPercentage is a valid number, default to 0 if not
+    const validPercentage = isNaN(numericPercentage) ? 0 : numericPercentage;
+
     const radius = (size - 20) / 2; // size-20 for stroke-width 8 on each side
     const circumference = 2 * Math.PI * radius;
-    const strokeDasharray = `${(parseFloat(percentage) / 100) * circumference} ${circumference}`;
+    const strokeDashoffset = circumference - (validPercentage / 100) * circumference;
     
     // Inline styles for the SVG component
     const svgStyles = {
@@ -337,7 +420,8 @@ const MarketShareInfographic = () => {
             stroke: color, // Dynamic color passed
             strokeWidth: '8',
             fill: 'transparent',
-            strokeDasharray: strokeDasharray,
+            strokeDasharray: circumference,
+            strokeDashoffset: strokeDashoffset,
             strokeLinecap: 'round',
             transition: 'all 1s ease-out', // transition-all duration-1000 ease-out
         },
@@ -458,6 +542,41 @@ const MarketShareInfographic = () => {
           ))}
         </div>
 
+        {/* Digital Infrastructure Comparison Section (Table-based) */}
+        <div style={styles.digitalInfraContainer}>
+          <h2 style={styles.digitalInfraTitle}>Digital Infrastructure: South Korea vs. South Africa</h2>
+          <table style={styles.digitalInfraTable}>
+            <thead style={styles.digitalInfraTableHead}>
+              <tr>
+                <th style={styles.digitalInfraTableHeadTh}>Metric</th>
+                <th style={styles.digitalInfraTableHeadTh}>South Korea</th>
+                <th style={styles.digitalInfraTableHeadTh}>South Africa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {digitalInfrastructureData.map((data, index) => (
+                <tr 
+                  key={index} 
+                  style={{
+                    ...styles.digitalInfraTableCell, // Apply base cell styles
+                    backgroundColor: index % 2 === 0 ? '#F8FAFC' : '#F0F9FF', // Zebra striping: slate-50 for even, blue-50 for odd
+                    // You can add hover effect here if needed, e.g., using onMouseEnter/onMouseLeave
+                    // onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#EBF8FF', // blue-100
+                    // onMouseLeave: (e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#F8FAFC' : '#F0F9FF',
+                  }}
+                >
+                  <td style={styles.digitalInfraTableCell}>
+                    <span style={styles.digitalInfraIcon}>{data.icon}</span>
+                    {data.metric}
+                  </td>
+                  <td style={styles.digitalInfraTableCell}>{data.southKorea}</td>
+                  <td style={styles.digitalInfraTableCell}>{data.southAfrica}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         {/* Key Insights */}
         <div style={styles.insightsContainer}>
           <h2 style={styles.insightsTitle}>Key Market Insights</h2>
@@ -473,7 +592,7 @@ const MarketShareInfographic = () => {
               <div style={styles.insightIcon}>🏆</div>
               <h3 style={{ ...styles.insightTitle, color: '#1E40AF' }}>Samsung's Unrivaled Leadership</h3>
               <p style={styles.insightDescription}>
-                Samsung continues to dominate the global smartphone market with a 20% share and stands as a key leader in memory semiconductors.
+                Samsung continues to dominate the global smartphone market with a **20% share** and stands as a key leader in memory semiconductors.
               </p>
             </div>
             {/* Hyundai Insight Card */}
@@ -487,7 +606,7 @@ const MarketShareInfographic = () => {
               <div style={styles.insightIcon}>🚀</div>
               <h3 style={{ ...styles.insightTitle, color: '#374151' }}>Hyundai's Automotive Ascension</h3>
               <p style={styles.insightDescription}>
-                As the 3rd largest automaker worldwide, Hyundai shows significant growth, especially within the burgeoning EV market.
+                As the **3rd largest automaker worldwide**, Hyundai shows significant growth, especially within the burgeoning EV market.
               </p>
             </div>
             {/* LG Insight Card */}
@@ -501,7 +620,7 @@ const MarketShareInfographic = () => {
               <div style={styles.insightIcon}>🔥</div>
               <h3 style={{ ...styles.insightTitle, color: '#991B1B' }}>LG's Display and Appliance Prowess</h3>
               <p style={styles.insightDescription}>
-                LG remains an OLED technology pioneer, boasting over 90% market share in automotive AMOLEDs and a strong presence in home appliances.
+                LG remains an **OLED technology pioneer**, boasting over 90% market share in automotive AMOLEDs and a strong presence in home appliances.
               </p>
             </div>
           </div>
@@ -510,7 +629,7 @@ const MarketShareInfographic = () => {
         {/* Footer */}
         <div style={styles.footer}>
           <p style={{ lineHeight: '1.5' }}>
-            Sources: Counterpoint Research, Omdia, Statista, and various industry reports.
+            Sources: Counterpoint Research, Omdia, Statista, and various industry reports. Digital Infrastructure data from provided image.
             <br />
             *All market data reflects the latest available figures as of Q4 2024 and is subject to change. Percentages are approximate.
           </p>
