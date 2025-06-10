@@ -473,7 +473,7 @@ const MarketShareInfographic = () => {
               <div style={styles.insightIcon}>🏆</div>
               <h3 style={{ ...styles.insightTitle, color: '#1E40AF' }}>Samsung's Unrivaled Leadership</h3>
               <p style={styles.insightDescription}>
-                Samsung continues to dominate the global smartphone market with a **20% share** and stands as a key leader in memory semiconductors.
+                Samsung continues to dominate the global smartphone market with a 20% share and stands as a key leader in memory semiconductors.
               </p>
             </div>
             {/* Hyundai Insight Card */}
@@ -487,7 +487,7 @@ const MarketShareInfographic = () => {
               <div style={styles.insightIcon}>🚀</div>
               <h3 style={{ ...styles.insightTitle, color: '#374151' }}>Hyundai's Automotive Ascension</h3>
               <p style={styles.insightDescription}>
-                As the **3rd largest automaker worldwide**, Hyundai shows significant growth, especially within the burgeoning EV market.
+                As the 3rd largest automaker worldwide, Hyundai shows significant growth, especially within the burgeoning EV market.
               </p>
             </div>
             {/* LG Insight Card */}
@@ -501,7 +501,7 @@ const MarketShareInfographic = () => {
               <div style={styles.insightIcon}>🔥</div>
               <h3 style={{ ...styles.insightTitle, color: '#991B1B' }}>LG's Display and Appliance Prowess</h3>
               <p style={styles.insightDescription}>
-                LG remains an **OLED technology pioneer**, boasting over 90% market share in automotive AMOLEDs and a strong presence in home appliances.
+                LG remains an OLED technology pioneer, boasting over 90% market share in automotive AMOLEDs and a strong presence in home appliances.
               </p>
             </div>
           </div>
