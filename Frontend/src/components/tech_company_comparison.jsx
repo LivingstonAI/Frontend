@@ -110,6 +110,40 @@ const MarketShareInfographic = () => {
     }
   ];
 
+  // New data for Major Tech Company Usage comparison
+  const majorTechUsageData = [
+    {
+      category: "Search Engines",
+      southKorea: "Naver - 60% market share\nGoogle (35%)",
+      southAfrica: "Google - 95%+ dominant\nBing/Yahoo (minor)",
+    },
+    {
+      category: "Smartphones",
+      southKorea: "Samsung - strong local loyalty\nLG (historically strong)",
+      southAfrica: "Samsung, Huawei, Xiaomi\nApple (upper segment)",
+    },
+    {
+      category: "Messaging Apps",
+      southKorea: "KakaoTalk - 90%+ user base\nLine (minor)",
+      southAfrica: "WhatsApp - near-universal\nTelegram, Signal (small %s)",
+    },
+    {
+      category: "E-commerce",
+      southKorea: "Coupang - dominant delivery app\nGmarket, 11st",
+      southAfrica: "Takealot - largest local player\nMakro, Loot, Jumia",
+    },
+    {
+      category: "Streaming",
+      southKorea: "TVING, Wavve, Netflix\nHigh demand for local content",
+      southAfrica: "Netflix, Showmax, YouTube\nMix of global + local",
+    },
+    {
+      category: "Digital Payment",
+      southKorea: "Naver Pay, Kakao Pay, Toss",
+      southAfrica: "SnapScan, Zapper, EFT, credit cards",
+    },
+  ];
+
   // Define styles as a constant object using a function to allow for dynamic responsive styles
   // For proper responsiveness without external CSS or libraries, we use dynamic inline styles
   // based on window width.
@@ -279,8 +313,8 @@ const MarketShareInfographic = () => {
         fontStyle: 'italic',
       },
 
-      // Digital Infrastructure Section (Table-based)
-      digitalInfraContainer: {
+      // Table-based styles for both digital infra and major tech usage
+      tableContainer: {
         backgroundColor: '#FFFFFF', // bg-white
         borderRadius: '1.5rem', // rounded-3xl
         padding: isSmallScreen ? '1.5rem' : '2rem', // p-6 sm:p-8
@@ -288,47 +322,40 @@ const MarketShareInfographic = () => {
         border: '1px solid #F3F4F6', // border border-gray-100
         marginTop: '3rem', // mt-12
       },
-      digitalInfraTitle: {
+      tableTitle: {
         fontSize: isSmallScreen ? '1.5rem' : '1.875rem', // text-3xl
         fontWeight: '700', // font-bold
         textAlign: 'center',
         color: '#1F2937', // text-gray-900
         marginBottom: '2rem', // mb-8
       },
-      digitalInfraTable: {
+      table: {
         width: '100%',
         borderCollapse: 'collapse',
         borderRadius: '0.75rem', // rounded-xl
         overflow: 'hidden', // Ensures rounded corners apply to children
         backgroundColor: '#F8FAFC', // slate-50
       },
-      digitalInfraTableHead: {
+      tableHead: {
         backgroundColor: '#E2E8F0', // slate-200
         color: '#1F2937', // gray-900
         fontWeight: '700', // font-bold
         fontSize: isSmallScreen ? '0.875rem' : '1rem', // text-sm / text-base
       },
-      digitalInfraTableHeadTh: {
+      tableHeadTh: {
         padding: '1rem', // p-4
         textAlign: 'left',
         borderBottom: '2px solid #CBD5E1', // slate-300
       },
-      // digitalInfraTableRow: { // This rule will be handled dynamically
-      //   '&:nth-child(even)': { // Zebra striping (requires specific CSS or JavaScript for inline)
-      //     backgroundColor: '#F0F9FF', // blue-50
-      //   },
-      //   '&:hover': {
-      //     backgroundColor: '#EBF8FF', // blue-100
-      //   }
-      // },
-      digitalInfraTableCell: {
+      tableCell: {
         padding: '1rem', // p-4
         borderBottom: '1px solid #E2E8F0', // slate-200
         color: '#374151', // gray-700
         fontSize: isSmallScreen ? '0.875rem' : '0.9375rem', // text-sm / text-base-ish
         fontWeight: '500', // font-medium
+        whiteSpace: 'pre-wrap', // Preserve new lines in the text
       },
-      digitalInfraIcon: {
+      tableIcon: {
         marginRight: '0.5rem', // mr-2
       },
 
@@ -543,14 +570,14 @@ const MarketShareInfographic = () => {
         </div>
 
         {/* Digital Infrastructure Comparison Section (Table-based) */}
-        <div style={styles.digitalInfraContainer}>
-          <h2 style={styles.digitalInfraTitle}>Digital Infrastructure: South Korea vs. South Africa</h2>
-          <table style={styles.digitalInfraTable}>
-            <thead style={styles.digitalInfraTableHead}>
+        <div style={styles.tableContainer}>
+          <h2 style={styles.tableTitle}>Digital Infrastructure: South Korea vs. South Africa</h2>
+          <table style={styles.table}>
+            <thead style={styles.tableHead}>
               <tr>
-                <th style={styles.digitalInfraTableHeadTh}>Metric</th>
-                <th style={styles.digitalInfraTableHeadTh}>South Korea</th>
-                <th style={styles.digitalInfraTableHeadTh}>South Africa</th>
+                <th style={styles.tableHeadTh}>Metric</th>
+                <th style={styles.tableHeadTh}>South Korea</th>
+                <th style={styles.tableHeadTh}>South Africa</th>
               </tr>
             </thead>
             <tbody>
@@ -558,19 +585,46 @@ const MarketShareInfographic = () => {
                 <tr 
                   key={index} 
                   style={{
-                    ...styles.digitalInfraTableCell, // Apply base cell styles
                     backgroundColor: index % 2 === 0 ? '#F8FAFC' : '#F0F9FF', // Zebra striping: slate-50 for even, blue-50 for odd
                     // You can add hover effect here if needed, e.g., using onMouseEnter/onMouseLeave
                     // onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#EBF8FF', // blue-100
                     // onMouseLeave: (e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#F8FAFC' : '#F0F9FF',
                   }}
                 >
-                  <td style={styles.digitalInfraTableCell}>
-                    <span style={styles.digitalInfraIcon}>{data.icon}</span>
+                  <td style={styles.tableCell}>
+                    <span style={styles.tableIcon}>{data.icon}</span>
                     {data.metric}
                   </td>
-                  <td style={styles.digitalInfraTableCell}>{data.southKorea}</td>
-                  <td style={styles.digitalInfraTableCell}>{data.southAfrica}</td>
+                  <td style={styles.tableCell}>{data.southKorea}</td>
+                  <td style={styles.tableCell}>{data.southAfrica}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Major Tech Company Usage Comparison Section (Table-based) */}
+        <div style={styles.tableContainer}>
+          <h2 style={styles.tableTitle}>Major Tech Company Usage: South Korea vs. South Africa</h2>
+          <table style={styles.table}>
+            <thead style={styles.tableHead}>
+              <tr>
+                <th style={styles.tableHeadTh}>Category</th>
+                <th style={styles.tableHeadTh}>South Korea KR</th>
+                <th style={styles.tableHeadTh}>South Africa ZA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {majorTechUsageData.map((data, index) => (
+                <tr 
+                  key={index} 
+                  style={{
+                    backgroundColor: index % 2 === 0 ? '#F8FAFC' : '#F0F9FF', // Zebra striping
+                  }}
+                >
+                  <td style={styles.tableCell}>{data.category}</td>
+                  <td style={styles.tableCell}>{data.southKorea}</td>
+                  <td style={styles.tableCell}>{data.southAfrica}</td>
                 </tr>
               ))}
             </tbody>
@@ -629,7 +683,7 @@ const MarketShareInfographic = () => {
         {/* Footer */}
         <div style={styles.footer}>
           <p style={{ lineHeight: '1.5' }}>
-            Sources: Counterpoint Research, Omdia, Statista, and various industry reports. Digital Infrastructure data from provided image.
+            Sources: Counterpoint Research, Omdia, Statista, and various industry reports. Digital Infrastructure data from provided image. Major Tech Company Usage data from provided image.
             <br />
             *All market data reflects the latest available figures as of Q4 2024 and is subject to change. Percentages are approximate.
           </p>
