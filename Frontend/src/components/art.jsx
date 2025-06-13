@@ -68,6 +68,7 @@ import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics
 import a_million_colors from '../A Million Colors.mp3';
 import annas_smile from "../Anna's Smile.mp3";
 import strangers from '../Kenya Grace - Strangers (Official Lyric Video).mp3';
+import tiger_is_coming from '../이날치 LEENALCHI - 범 내려온다 Tiger is Coming [360 Official MV].mp3'
 
 
 // Audio to be used for authentication
@@ -232,6 +233,7 @@ export default function Art() {
     "64": { name: "A Million Colors 🎺", file: a_million_colors },
     "65": { name: "Anna's Smile 🌹", file: annas_smile},
     "66": { name: "Strangers 🪶", file: strangers },
+    "67": { name: "Tiger is coming 🐯", file: tiger_is_coming },
     
   };
 
