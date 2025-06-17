@@ -69,7 +69,7 @@ import a_million_colors from '../A Million Colors.mp3';
 import annas_smile from "../Anna's Smile.mp3";
 import strangers from '../Kenya Grace - Strangers (Official Lyric Video).mp3';
 import tiger_is_coming from '../이날치 LEENALCHI - 범 내려온다 Tiger is Coming [360 Official MV].mp3'
-
+import memory from '../hojean - memory [lyrics] (1).mp3';
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -233,7 +233,7 @@ export default function Art() {
     "64": { name: "A Million Colors 🎺", file: a_million_colors },
     "65": { name: "Anna's Smile 🌹", file: annas_smile},
     "66": { name: "Strangers 🪶", file: strangers },
-    "67": { name: "Tiger is coming 🐯", file: tiger_is_coming },
+    "67": { name: "Memory 🪶", file: memory },
     
   };
 
