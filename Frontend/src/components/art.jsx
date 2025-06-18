@@ -162,6 +162,76 @@ export default function Art() {
       secondary: "rgba(0, 63, 127, 0.4)",
       glow: "#007fff",
       shadowGlow: "#003f7f"
+    },
+    electricBlue: {
+      name: "Electric Blue",
+      primary: "rgba(30, 144, 255, 0.8)",
+      secondary: "rgba(15, 72, 127, 0.4)",
+      glow: "#1e90ff",
+      shadowGlow: "#0f487f"
+    },
+    cobaltBlue: {
+      name: "Cobalt Blue",
+      primary: "rgba(61, 89, 171, 0.8)",
+      secondary: "rgba(30, 44, 85, 0.4)",
+      glow: "#3d59ab",
+      shadowGlow: "#1e2c55"
+    },
+    sapphireBlue: {
+      name: "Sapphire Blue",
+      primary: "rgba(15, 82, 186, 0.8)",
+      secondary: "rgba(7, 41, 93, 0.4)",
+      glow: "#0f52ba",
+      shadowGlow: "#07295d"
+    },
+    royalBlue: {
+      name: "Royal Blue",
+      primary: "rgba(65, 105, 225, 0.8)",
+      secondary: "rgba(32, 52, 112, 0.4)",
+      glow: "#4169e1",
+      shadowGlow: "#203470"
+    },
+    midnightBlue: {
+      name: "Midnight Blue",
+      primary: "rgba(25, 25, 112, 0.8)",
+      secondary: "rgba(12, 12, 56, 0.4)",
+      glow: "#191970",
+      shadowGlow: "#0c0c38"
+    },
+    steelBlue: {
+      name: "Steel Blue",
+      primary: "rgba(70, 130, 180, 0.8)",
+      secondary: "rgba(35, 65, 90, 0.4)",
+      glow: "#4682b4",
+      shadowGlow: "#23415a"
+    },
+    powderBlue: {
+      name: "Powder Blue",
+      primary: "rgba(176, 224, 230, 0.8)",
+      secondary: "rgba(88, 112, 115, 0.4)",
+      glow: "#b0e0e6",
+      shadowGlow: "#587073"
+    },
+    ceruleanBlue: {
+      name: "Cerulean Blue",
+      primary: "rgba(0, 123, 167, 0.8)",
+      secondary: "rgba(0, 61, 83, 0.4)",
+      glow: "#007ba7",
+      shadowGlow: "#003d53"
+    },
+    glacialBlue: {
+      name: "Glacial Blue",
+      primary: "rgba(198, 226, 255, 0.8)",
+      secondary: "rgba(99, 113, 127, 0.4)",
+      glow: "#c6e2ff",
+      shadowGlow: "#63717f"
+    },
+    periwinkle: {
+      name: "Periwinkle",
+      primary: "rgba(204, 204, 255, 0.8)",
+      secondary: "rgba(102, 102, 127, 0.4)",
+      glow: "#ccccff",
+      shadowGlow: "#66667f"
     }
   };
 
