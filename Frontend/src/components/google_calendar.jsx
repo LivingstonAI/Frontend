@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
+import './GoogleCalendar.css';
 
 export default function GoogleCalendar() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -104,19 +105,6 @@ export default function GoogleCalendar() {
         return 'neutral';
     };
 
-    const formatAmount = (amount) => {
-        if (amount === 0) return '0';
-        const absAmount = Math.abs(amount);
-        if (absAmount >= 1000) {
-            return (absAmount / 1000).toFixed(1) + 'k';
-        }
-        return absAmount.toString();
-    };
-
-    const getDayTotal = (dayTrades) => {
-        return dayTrades.reduce((total, trade) => total + trade.amount, 0);
-    };
-
     const days = getDaysInMonth(currentDate);
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -145,7 +133,7 @@ export default function GoogleCalendar() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Trading Calendar</h5><br />
+                    <h5 className="major-upcoming-news-events-header">Trading Calendar</h5>
                     
                     <div className="calendar-container">
                         <div className="calendar-header">
@@ -187,23 +175,16 @@ export default function GoogleCalendar() {
                                             <>
                                                 <span className="day-number">{day}</span>
                                                 {dayTrades.length > 0 && (
-                                                    <div className="trade-amounts">
-                                                        {dayTrades.slice(0, 4).map((trade, i) => (
+                                                    <div className="trade-indicators">
+                                                        {dayTrades.slice(0, 3).map((trade, i) => (
                                                             <div
                                                                 key={i}
-                                                                className={`trade-amount ${getProfitLossColor(trade.outcome, trade.amount)}`}
+                                                                className={`trade-dot ${getProfitLossColor(trade.outcome, trade.amount)}`}
                                                                 title={`${trade.asset} - ${trade.outcome}: $${trade.amount}`}
-                                                            >
-                                                                {trade.amount > 0 ? '+' : ''}{formatAmount(trade.amount)}
-                                                            </div>
+                                                            />
                                                         ))}
-                                                        {dayTrades.length > 4 && (
-                                                            <div className="trade-count">+{dayTrades.length - 4}</div>
-                                                        )}
-                                                        {dayTrades.length > 1 && (
-                                                            <div className={`day-total ${getProfitLossColor('', getDayTotal(dayTrades))}`}>
-                                                                Total: {getDayTotal(dayTrades) > 0 ? '+' : ''}{formatAmount(getDayTotal(dayTrades))}
-                                                            </div>
+                                                        {dayTrades.length > 3 && (
+                                                            <div className="trade-count">+{dayTrades.length - 3}</div>
                                                         )}
                                                     </div>
                                                 )}
