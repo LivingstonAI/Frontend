@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-import './GoogleCalendar.css';
 
 export default function GoogleCalendar() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
