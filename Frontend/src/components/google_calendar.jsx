@@ -145,7 +145,7 @@ export default function GoogleCalendar() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Trading Calendar</h5>
+                    <h5 className="major-upcoming-news-events-header">Trading Calendar</h5><br />
                     
                     <div className="calendar-container">
                         <div className="calendar-header">
