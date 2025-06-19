@@ -54,6 +54,7 @@ import Equations from './components/equations.jsx';
 import ForexFactoryCapturer from './components/forex_factory.jsx';
 import TradingEconDashboard from './components/trading_econ_dashboard.jsx';
 import MarketShareInfographic from './components/tech_company_comparison.jsx';
+import GoogleCalendar from './components/google_calendar.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -146,6 +147,13 @@ function App() {
         <Route path='/equations' element={<Equations />}></Route>
         <Route path='/forex_factory' element={<ForexFactoryCapturer />}></Route>
         <Route path='/trading_econ_dashboard' element={<TradingEconDashboard />}></Route>
+        <Route path='/trading_calendar' element={<GoogleCalendar />}></Route>
+
+
+
+
+
+
 
         <Route path='/market_share_infographic' element={<MarketShareInfographic />}></Route>
 

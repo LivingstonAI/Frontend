@@ -338,6 +338,7 @@ export default function SideNavs() {
         {/* <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
         <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cup-hot-fill"></i></p></button></Link>
+        <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
 
       </div>
 
@@ -425,6 +426,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/trading_econ_dashboard" className="side-nav">
             <i className="bi bi-cup-hot-fill"></i>
+        </Link>
+        <Link to="/trading_calendar" className="side-nav">
+            <i className="bi bi-calendar-date-fill"></i>
         </Link>
       </div>
       <br />
