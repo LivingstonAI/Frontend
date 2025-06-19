@@ -8,9 +8,15 @@ export default function TraderGPTAnalysis() {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+  const [isPlaying, setIsPlaying] = useState({});
+  const [speechSupported, setSpeechSupported] = useState(false);
   const baseUrl = "https://backend-production-c0ab.up.railway.app";
 
-  
+  // Check for speech synthesis support
+  useEffect(() => {
+    setSpeechSupported('speechSynthesis' in window);
+  }, []);
+
   const fetchAPIKey = async () => {
     try {
         const response = await fetch(`${baseUrl}/get_openai_key`);
@@ -26,7 +32,6 @@ export default function TraderGPTAnalysis() {
         console.log("Fetching API key...");
         fetchAPIKey();
     }, []);
-  
   
   const [traderSettings, setTraderSettings] = useState({
     trader1: {
@@ -76,6 +81,67 @@ export default function TraderGPTAnalysis() {
     { value: 'medium', label: 'Medium Risk' },
     { value: 'high', label: 'High Risk' }
   ];
+
+  // Voice synthesis functions
+  const extractTextFromContent = (content) => {
+    try {
+      if (typeof content === 'string') {
+        try {
+          const parsed = JSON.parse(content);
+          return `${parsed.analysis || ''} ${parsed.recommendation || ''}`.trim();
+        } catch {
+          return content;
+        }
+      }
+      if (typeof content === 'object') {
+        return `${content.analysis || ''} ${content.recommendation || ''}`.trim();
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  const speakText = (text, messageId, traderId) => {
+    if (!speechSupported || !text.trim()) return;
+
+    // Stop any currently playing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Set voice characteristics based on trader
+    if (traderId === 'TraderGPT_1') {
+      utterance.pitch = 0.9;
+      utterance.rate = 0.9;
+    } else if (traderId === 'TraderGPT_2') {
+      utterance.pitch = 1.1;
+      utterance.rate = 1.0;
+    } else if (traderId.includes('consensus') || traderId.includes('Final')) {
+      utterance.pitch = 1.0;
+      utterance.rate = 0.8;
+      utterance.volume = 0.9;
+    }
+
+    utterance.onstart = () => {
+      setIsPlaying(prev => ({ ...prev, [messageId]: true }));
+    };
+
+    utterance.onend = () => {
+      setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+    };
+
+    utterance.onerror = () => {
+      setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeech = (messageId) => {
+    window.speechSynthesis.cancel();
+    setIsPlaying(prev => ({ ...prev, [messageId]: false }));
+  };
 
   const handleSettingChange = (trader, field, value) => {
     setTraderSettings(prev => ({
@@ -300,13 +366,74 @@ export default function TraderGPTAnalysis() {
     );
   };
 
-  const renderContent = (msg) => {
+  const renderContent = (msg, messageId) => {
     try {
       const content = formatContent(msg.content);
       const contentObj = typeof content === 'string' ? JSON.parse(content) : content;
+      const textToSpeak = extractTextFromContent(contentObj);
       
       return (
         <div className="message-section">
+          {/* Voice Controls */}
+          {speechSupported && textToSpeak && (
+            <div className="voice-controls" style={{ 
+              display: 'flex', 
+              gap: '10px', 
+              marginBottom: '15px',
+              alignItems: 'center'
+            }}>
+              <button
+                onClick={() => speakText(textToSpeak, messageId, msg.trader_id)}
+                disabled={isPlaying[messageId]}
+                style={{
+                  background: isPlaying[messageId] ? '#ff6b6b' : '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: isPlaying[messageId] ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '14px'
+                }}
+              >
+                {isPlaying[messageId] ? '🔊' : '🔈'} 
+                {isPlaying[messageId] ? 'Playing...' : 'Listen'}
+              </button>
+              
+              {isPlaying[messageId] && (
+                <button
+                  onClick={() => stopSpeech(messageId)}
+                  style={{
+                    background: '#f44336',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '14px'
+                  }}
+                >
+                  ⏹️ Stop
+                </button>
+              )}
+              
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#666',
+                fontStyle: 'italic' 
+              }}>
+                {msg.trader_id === 'TraderGPT_1' ? 'Conservative Voice' : 
+                 msg.trader_id === 'TraderGPT_2' ? 'Aggressive Voice' : 
+                 'Consensus Voice'}
+              </span>
+            </div>
+          )}
+
           {contentObj.analysis && (
             <div>
               <h6>Analysis:</h6>
@@ -345,6 +472,15 @@ export default function TraderGPTAnalysis() {
                   <h5 className="card-title">TraderGPT Analysis</h5>
                   <p className="card-subtitle">
                     Enhanced with Economic Events & Fundamental Analysis
+                    {speechSupported && (
+                      <span style={{ 
+                        marginLeft: '10px', 
+                        fontSize: '12px', 
+                        color: '#4CAF50' 
+                      }}>
+                        🔈 Voice Reader Available
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -404,31 +540,34 @@ export default function TraderGPTAnalysis() {
                     </div>
 
                     <div className="conversation-container">
-                      {analysis.conversation.map((msg, index) => (
-                        <div key={index} className="message-container">
-                          <div className={`message-header ${msg.message_type === 'consensus' ? 'consensus' : ''}`}>
-                            <div className="trader-info">
-                              <span className="trader-id">
-                                {msg.trader_id}
-                                {msg.message_type === 'consensus' && ' - Final Decision'}
-                              </span>
-                              {msg.responding_to && (
-                                <span className="responding-to">
-                                  Responding to {msg.responding_to}
+                      {analysis.conversation.map((msg, index) => {
+                        const messageId = `msg-${index}`;
+                        return (
+                          <div key={index} className="message-container">
+                            <div className={`message-header ${msg.message_type === 'consensus' ? 'consensus' : ''}`}>
+                              <div className="trader-info">
+                                <span className="trader-id">
+                                  {msg.trader_id}
+                                  {msg.message_type === 'consensus' && ' - Final Decision'}
                                 </span>
+                                {msg.responding_to && (
+                                  <span className="responding-to">
+                                    Responding to {msg.responding_to}
+                                  </span>
+                                )}
+                              </div>
+                              {msg.settings && (
+                                <div className="trader-settings-info">
+                                  {msg.settings.asset} • {msg.settings.interval} • {msg.settings.style} • {msg.settings.risk_tolerance} risk
+                                </div>
                               )}
                             </div>
-                            {msg.settings && (
-                              <div className="trader-settings-info">
-                                {msg.settings.asset} • {msg.settings.interval} • {msg.settings.style} • {msg.settings.risk_tolerance} risk
-                              </div>
-                            )}
+                            <div className="message-content">
+                              {renderContent(msg, messageId)}
+                            </div>
                           </div>
-                          <div className="message-content">
-                            {renderContent(msg)}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
