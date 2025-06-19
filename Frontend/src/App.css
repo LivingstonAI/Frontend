@@ -8125,13 +8125,15 @@ img {
 }
 
 .calendar-day {
-    min-height: 100px;
+    min-height: 120px;
     padding: 8px;
     border-right: 1px solid #e9ecef;
     border-bottom: 1px solid #e9ecef;
     cursor: pointer;
     transition: background 0.2s;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .calendar-day:nth-child(7n) {
@@ -8164,36 +8166,77 @@ img {
     color: #333;
 }
 
-.trade-indicators {
+.trade-amounts {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 2px;
     margin-top: 4px;
+    flex: 1;
 }
 
-.trade-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
+.trade-amount {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 3px;
+    border-radius: 3px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.trade-dot.profit {
-    background: #28a745;
+.trade-amount.profit {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.3);
 }
 
-.trade-dot.loss {
-    background: #dc3545;
+.trade-amount.loss {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
-.trade-dot.neutral {
-    background: #6c757d;
+.trade-amount.neutral {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    border: 1px solid rgba(108, 117, 125, 0.3);
+}
+
+.day-total {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 3px;
+    border-radius: 3px;
+    text-align: center;
+    margin-top: 2px;
+    border: 1px solid;
+}
+
+.day-total.profit {
+    background: rgba(40, 167, 69, 0.2);
+    color: #1e7e34;
+    border-color: #28a745;
+}
+
+.day-total.loss {
+    background: rgba(220, 53, 69, 0.2);
+    color: #bd2130;
+    border-color: #dc3545;
+}
+
+.day-total.neutral {
+    background: rgba(108, 117, 125, 0.2);
+    color: #495057;
+    border-color: #6c757d;
 }
 
 .trade-count {
-    font-size: 10px;
+    font-size: 9px;
     color: #666;
-    margin-left: 2px;
+    margin-top: 2px;
+    text-align: center;
+    font-style: italic;
 }
 
 .trade-details {
@@ -8320,7 +8363,7 @@ img {
     }
     
     .calendar-day {
-        min-height: 80px;
+        min-height: 100px;
         padding: 6px;
     }
     
@@ -8331,6 +8374,14 @@ img {
     
     .day-number {
         font-size: 14px;
+    }
+    
+    .trade-amount {
+        font-size: 9px;
+    }
+    
+    .day-total {
+        font-size: 8px;
     }
     
     .trade-details {
@@ -8362,12 +8413,16 @@ img {
     }
     
     .calendar-day {
-        min-height: 60px;
+        min-height: 80px;
         padding: 4px;
     }
     
-    .trade-dot {
-        width: 6px;
-        height: 6px;
+    .trade-amount {
+        font-size: 8px;
+        padding: 1px 2px;
+    }
+    
+    .day-total {
+        font-size: 7px;
     }
 }
