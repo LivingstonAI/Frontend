@@ -43,3 +43,14 @@ export default function PaperGPT() {
         </div>
     );
 }
+
+// class PaperGPT(models.Model):
+//     # here include the actual pdf file for later viewing and the AI summary (if there is one)
+//     # include also date and time created (this will likely be able to be changed over time)
+//     # also add 'personal notes', should I have an ideas about a specific paper.
+//     # and anything else you might think is worth adding.
+
+
+// @csrf_exempt
+// def paper_gpt(request):
+//     # create views here. and no funny authentication stuff too.
