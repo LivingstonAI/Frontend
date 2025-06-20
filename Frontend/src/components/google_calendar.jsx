@@ -54,7 +54,7 @@ export default function GoogleCalendar() {
                 // Shift the date back by 2 days before processing
                 date_entered: trade.date_entered ? (() => {
                     const originalDate = new Date(trade.date_entered);
-                    originalDate.setDate(originalDate.getDate() - 2);
+                    originalDate.setDate(originalDate.getDate() - 1);
                     return originalDate.toISOString();
                 })() : null
             }));
