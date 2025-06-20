@@ -46,11 +46,43 @@ export default function PaperGPT() {
     }, []);
 
     const extractTextFromPDF = async (file) => {
-        // Simulate PDF text extraction
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(`This is extracted text from ${file.name}. In a real implementation, you would use a PDF parsing library like pdf-parse or PDF.js to extract the actual text content from the uploaded PDF file.`);
-            }, 1000);
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async function() {
+                try {
+                    // Load PDF.js from CDN
+                    if (!window.pdfjsLib) {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                        document.head.appendChild(script);
+                        
+                        await new Promise((resolve) => {
+                            script.onload = resolve;
+                        });
+                        
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    }
+
+                    const typedarray = new Uint8Array(reader.result);
+                    const pdf = await window.pdfjsLib.getDocument(typedarray).promise;
+                    let fullText = '';
+
+                    // Extract text from all pages
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += pageText + '\n\n';
+                    }
+
+                    resolve(fullText.trim());
+                } catch (error) {
+                    console.error('Error extracting PDF text:', error);
+                    reject(new Error('Failed to extract text from PDF: ' + error.message));
+                }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
         });
     };
 
@@ -97,12 +129,13 @@ export default function PaperGPT() {
         }
 
         setIsUploading(true);
-        setIsSummarizing(true);
+        setIsSummarizing(false);
 
         try {
             // Extract text from PDF
             const extractedText = await extractTextFromPDF(newPaper.file);
             
+            setIsSummarizing(true);
             // Generate AI summary
             const summary = await generateSummary(extractedText);
 
@@ -189,230 +222,720 @@ export default function PaperGPT() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <Header />
-            <div className="flex">
-                <SideNavs />
-                <div className="flex-1 p-6">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="flex justify-between items-center mb-6">
-                            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                                <BookOpen className="text-blue-600" />
-                                PaperGPT
-                            </h1>
-                            <button
-                                onClick={() => setShowUploadModal(true)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-                            >
-                                <Plus size={20} />
-                                Add Paper
-                            </button>
-                        </div>
+        <>
+            <style jsx>{`
+                .paper-gpt-container {
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                
+                .main-content {
+                    flex: 1;
+                    padding: 2rem;
+                }
+                
+                .content-wrapper {
+                    max-width: 88rem;
+                    margin: 0 auto;
+                }
+                
+                .header-section {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                    background: white;
+                    padding: 1.5rem 2rem;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    border: 1px solid rgba(59, 130, 246, 0.1);
+                }
+                
+                .main-title {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                
+                .add-paper-btn {
+                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                    color: white;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    border: none;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+                }
+                
+                .add-paper-btn:hover {
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.5);
+                }
+                
+                .grid-layout {
+                    display: grid;
+                    grid-template-columns: 1fr 2fr;
+                    gap: 2rem;
+                }
+                
+                @media (max-width: 1024px) {
+                    .grid-layout {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                
+                .papers-list-card {
+                    background: white;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    border: 1px solid rgba(59, 130, 246, 0.1);
+                    overflow: hidden;
+                }
+                
+                .search-section {
+                    padding: 1.5rem;
+                    border-bottom: 1px solid #e2e8f0;
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                }
+                
+                .search-wrapper {
+                    position: relative;
+                }
+                
+                .search-icon {
+                    position: absolute;
+                    left: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #64748b;
+                }
+                
+                .search-input {
+                    width: 100%;
+                    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    background: white;
+                    transition: all 0.2s ease;
+                    font-size: 0.875rem;
+                }
+                
+                .search-input:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                
+                .papers-scroll {
+                    max-height: 32rem;
+                    overflow-y: auto;
+                }
+                
+                .papers-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                
+                .papers-scroll::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                }
+                
+                .papers-scroll::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 3px;
+                }
+                
+                .papers-scroll::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+                
+                .empty-state {
+                    padding: 3rem;
+                    text-align: center;
+                    color: #64748b;
+                }
+                
+                .empty-icon {
+                    margin: 0 auto 1rem;
+                    color: #cbd5e1;
+                }
+                
+                .paper-item {
+                    padding: 1.25rem;
+                    border-bottom: 1px solid #f1f5f9;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    position: relative;
+                }
+                
+                .paper-item:hover {
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                }
+                
+                .paper-item.selected {
+                    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+                    border-color: #93c5fd;
+                }
+                
+                .paper-item-content {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }
+                
+                .paper-info {
+                    flex: 1;
+                }
+                
+                .paper-title {
+                    font-weight: 600;
+                    color: #1e293b;
+                    margin-bottom: 0.5rem;
+                    line-height: 1.4;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+                
+                .paper-filename {
+                    font-size: 0.875rem;
+                    color: #64748b;
+                    margin-bottom: 0.75rem;
+                }
+                
+                .paper-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    font-size: 0.75rem;
+                    color: #94a3b8;
+                }
+                
+                .meta-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                }
+                
+                .delete-btn {
+                    color: #ef4444;
+                    background: white;
+                    border: 1px solid #fee2e2;
+                    border-radius: 8px;
+                    padding: 0.5rem;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    margin-left: 0.5rem;
+                }
+                
+                .delete-btn:hover {
+                    background: #fef2f2;
+                    border-color: #fecaca;
+                    color: #dc2626;
+                }
+                
+                .details-card {
+                    background: white;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    border: 1px solid rgba(59, 130, 246, 0.1);
+                    overflow: hidden;
+                }
+                
+                .details-content {
+                    padding: 2rem;
+                }
+                
+                .paper-header {
+                    margin-bottom: 2rem;
+                }
+                
+                .paper-detail-title {
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 1rem;
+                    line-height: 1.3;
+                }
+                
+                .paper-detail-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: 1.5rem;
+                    font-size: 0.875rem;
+                    color: #64748b;
+                    flex-wrap: wrap;
+                }
+                
+                .sections-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2rem;
+                }
+                
+                .section-title {
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: #1e293b;
+                    margin-bottom: 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+                
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    background: #10b981;
+                    border-radius: 50%;
+                }
+                
+                .summary-content {
+                    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    border: 1px solid #93c5fd;
+                }
+                
+                .summary-text {
+                    color: #1e293b;
+                    line-height: 1.7;
+                    font-size: 0.95rem;
+                }
+                
+                .notes-textarea {
+                    width: 100%;
+                    height: 8rem;
+                    padding: 1rem;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    resize: none;
+                    font-family: inherit;
+                    font-size: 0.875rem;
+                    line-height: 1.5;
+                    transition: all 0.2s ease;
+                }
+                
+                .notes-textarea:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                
+                .extracted-text-preview {
+                    background: #f8fafc;
+                    padding: 1.5rem;
+                    border-radius: 12px;
+                    max-height: 12rem;
+                    overflow-y: auto;
+                    border: 1px solid #e2e8f0;
+                }
+                
+                .extracted-text-preview::-webkit-scrollbar {
+                    width: 6px;
+                }
+                
+                .extracted-text-preview::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                }
+                
+                .extracted-text-preview::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 3px;
+                }
+                
+                .preview-text {
+                    font-size: 0.825rem;
+                    color: #64748b;
+                    line-height: 1.6;
+                    white-space: pre-wrap;
+                }
+                
+                .empty-details {
+                    padding: 4rem;
+                    text-align: center;
+                    color: #64748b;
+                }
+                
+                .empty-details-icon {
+                    margin: 0 auto 1rem;
+                    color: #cbd5e1;
+                }
+                
+                .modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 50;
+                    backdrop-filter: blur(4px);
+                }
+                
+                .modal-content {
+                    background: white;
+                    border-radius: 16px;
+                    padding: 2rem;
+                    width: 100%;
+                    max-width: 28rem;
+                    margin: 1rem;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    border: 1px solid rgba(59, 130, 246, 0.1);
+                }
+                
+                .modal-title {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    margin-bottom: 1.5rem;
+                    color: #1e293b;
+                }
+                
+                .form-group {
+                    margin-bottom: 1.5rem;
+                }
+                
+                .form-label {
+                    display: block;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 0.5rem;
+                }
+                
+                .form-input {
+                    width: 100%;
+                    padding: 0.75rem;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    font-size: 0.875rem;
+                    transition: all 0.2s ease;
+                }
+                
+                .form-input:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                
+                .form-textarea {
+                    width: 100%;
+                    padding: 0.75rem;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    resize: none;
+                    font-family: inherit;
+                    font-size: 0.875rem;
+                    transition: all 0.2s ease;
+                }
+                
+                .form-textarea:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                
+                .modal-buttons {
+                    display: flex;
+                    gap: 1rem;
+                    margin-top: 2rem;
+                }
+                
+                .cancel-btn {
+                    flex: 1;
+                    padding: 0.75rem 1rem;
+                    color: #64748b;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    background: white;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                }
+                
+                .cancel-btn:hover:not(:disabled) {
+                    background: #f8fafc;
+                    border-color: #cbd5e1;
+                }
+                
+                .upload-btn {
+                    flex: 1;
+                    padding: 0.75rem 1rem;
+                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+                }
+                
+                .upload-btn:hover:not(:disabled) {
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                    transform: translateY(-1px);
+                    box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.5);
+                }
+                
+                .upload-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                
+                .loading-spinner {
+                    width: 1rem;
+                    height: 1rem;
+                    border: 2px solid white;
+                    border-top-color: transparent;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+            `}</style>
+            
+            <div className="paper-gpt-container">
+                <Header />
+                <div style={{ display: 'flex' }}>
+                    <SideNavs />
+                    <div className="main-content">
+                        <div className="content-wrapper">
+                            <div className="header-section">
+                                <h1 className="main-title">
+                                    <BookOpen size={32} style={{ color: '#3b82f6' }} />
+                                    PaperGPT
+                                </h1>
+                                <button
+                                    onClick={() => setShowUploadModal(true)}
+                                    className="add-paper-btn"
+                                >
+                                    <Plus size={20} />
+                                    Add Paper
+                                </button>
+                            </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Papers List */}
-                            <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border">
-                                <div className="p-4 border-b">
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                                        <input
-                                            type="text"
-                                            placeholder="Search papers..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="max-h-96 overflow-y-auto">
-                                    {filteredPapers.length === 0 ? (
-                                        <div className="p-8 text-center text-gray-500">
-                                            <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-                                            <p>No papers yet.</p>
-                                            <p className="text-sm">Upload your first research paper to get started!</p>
+                            <div className="grid-layout">
+                                {/* Papers List */}
+                                <div className="papers-list-card">
+                                    <div className="search-section">
+                                        <div className="search-wrapper">
+                                            <Search className="search-icon" size={20} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search papers..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="search-input"
+                                            />
                                         </div>
-                                    ) : (
-                                        filteredPapers.map((paper) => (
-                                            <div
-                                                key={paper.id}
-                                                className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                                                    selectedPaper?.id === paper.id ? 'bg-blue-50 border-blue-200' : ''
-                                                }`}
-                                                onClick={() => setSelectedPaper(paper)}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <div className="flex-1">
-                                                        <h3 className="font-medium text-gray-900 mb-1 line-clamp-2">
-                                                            {paper.title}
-                                                        </h3>
-                                                        <p className="text-sm text-gray-600 mb-2">{paper.fileName}</p>
-                                                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                                                            <span className="flex items-center gap-1">
-                                                                <Calendar size={12} />
-                                                                {formatDate(paper.uploadDate)}
-                                                            </span>
-                                                            <span>{formatFileSize(paper.fileSize)}</span>
+                                    </div>
+                                    <div className="papers-scroll">
+                                        {filteredPapers.length === 0 ? (
+                                            <div className="empty-state">
+                                                <FileText size={48} className="empty-icon" />
+                                                <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No papers yet.</p>
+                                                <p style={{ fontSize: '0.875rem' }}>Upload your first research paper to get started!</p>
+                                            </div>
+                                        ) : (
+                                            filteredPapers.map((paper) => (
+                                                <div
+                                                    key={paper.id}
+                                                    className={`paper-item ${selectedPaper?.id === paper.id ? 'selected' : ''}`}
+                                                    onClick={() => setSelectedPaper(paper)}
+                                                >
+                                                    <div className="paper-item-content">
+                                                        <div className="paper-info">
+                                                            <h3 className="paper-title">
+                                                                {paper.title}
+                                                            </h3>
+                                                            <p className="paper-filename">{paper.fileName}</p>
+                                                            <div className="paper-meta">
+                                                                <span className="meta-item">
+                                                                    <Calendar size={12} />
+                                                                    {formatDate(paper.uploadDate)}
+                                                                </span>
+                                                                <span>{formatFileSize(paper.fileSize)}</span>
+                                                            </div>
                                                         </div>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeletePaper(paper.id);
+                                                            }}
+                                                            className="delete-btn"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeletePaper(paper.id);
-                                                        }}
-                                                        className="text-red-500 hover:text-red-700 ml-2"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Paper Details */}
+                                <div className="details-card">
+                                    {selectedPaper ? (
+                                        <div className="details-content">
+                                            <div className="paper-header">
+                                                <h2 className="paper-detail-title">
+                                                    {selectedPaper.title}
+                                                </h2>
+                                                <div className="paper-detail-meta">
+                                                    <span className="meta-item">
+                                                        <FileText size={16} />
+                                                        {selectedPaper.fileName}
+                                                    </span>
+                                                    <span className="meta-item">
+                                                        <Calendar size={16} />
+                                                        {formatDate(selectedPaper.uploadDate)}
+                                                    </span>
+                                                    <span>{formatFileSize(selectedPaper.fileSize)}</span>
                                                 </div>
                                             </div>
-                                        ))
+
+                                            <div className="sections-container">
+                                                {/* AI Summary */}
+                                                <div>
+                                                    <h3 className="section-title">
+                                                        <div className="status-dot"></div>
+                                                        AI Summary
+                                                    </h3>
+                                                    <div className="summary-content">
+                                                        <p className="summary-text">
+                                                            {selectedPaper.aiSummary}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Personal Notes */}
+                                                <div>
+                                                    <h3 className="section-title">Personal Notes</h3>
+                                                    <textarea
+                                                        value={selectedPaper.personalNotes}
+                                                        onChange={(e) => updatePersonalNotes(selectedPaper.id, e.target.value)}
+                                                        placeholder="Add your personal notes about this paper..."
+                                                        className="notes-textarea"
+                                                    />
+                                                </div>
+
+                                                {/* Extracted Text Preview */}
+                                                <div>
+                                                    <h3 className="section-title">Extracted Text (Preview)</h3>
+                                                    <div className="extracted-text-preview">
+                                                        <p className="preview-text">
+                                                            {selectedPaper.extractedText}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="empty-details">
+                                            <Eye size={48} className="empty-details-icon" />
+                                            <p style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Select a paper to view details</p>
+                                            <p style={{ fontSize: '0.875rem' }}>Choose a paper from the list to see its AI summary and details.</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
-
-                            {/* Paper Details */}
-                            <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border">
-                                {selectedPaper ? (
-                                    <div className="p-6">
-                                        <div className="mb-6">
-                                            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                                {selectedPaper.title}
-                                            </h2>
-                                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                                                <span className="flex items-center gap-1">
-                                                    <FileText size={16} />
-                                                    {selectedPaper.fileName}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar size={16} />
-                                                    {formatDate(selectedPaper.uploadDate)}
-                                                </span>
-                                                <span>{formatFileSize(selectedPaper.fileSize)}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-6">
-                                            {/* AI Summary */}
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                    AI Summary
-                                                </h3>
-                                                <div className="bg-blue-50 p-4 rounded-lg">
-                                                    <p className="text-gray-700 leading-relaxed">
-                                                        {selectedPaper.aiSummary}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Personal Notes */}
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Personal Notes</h3>
-                                                <textarea
-                                                    value={selectedPaper.personalNotes}
-                                                    onChange={(e) => updatePersonalNotes(selectedPaper.id, e.target.value)}
-                                                    placeholder="Add your personal notes about this paper..."
-                                                    className="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                                />
-                                            </div>
-
-                                            {/* Extracted Text Preview */}
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Extracted Text (Preview)</h3>
-                                                <div className="bg-gray-50 p-4 rounded-lg max-h-48 overflow-y-auto">
-                                                    <p className="text-sm text-gray-600 leading-relaxed">
-                                                        {selectedPaper.extractedText}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="p-12 text-center text-gray-500">
-                                        <Eye size={48} className="mx-auto mb-4 text-gray-300" />
-                                        <p className="text-lg mb-2">Select a paper to view details</p>
-                                        <p className="text-sm">Choose a paper from the list to see its AI summary and details.</p>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Upload Modal */}
+                {showUploadModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h2 className="modal-title">Upload New Paper</h2>
+                            <div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Paper Title *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newPaper.title}
+                                        onChange={(e) => setNewPaper({ ...newPaper, title: e.target.value })}
+                                        className="form-input"
+                                        placeholder="Enter paper title..."
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        PDF File *
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => setNewPaper({ ...newPaper, file: e.target.files[0] })}
+                                        className="form-input"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Initial Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={newPaper.personalNotes}
+                                        onChange={(e) => setNewPaper({ ...newPaper, personalNotes: e.target.value })}
+                                        className="form-textarea"
+                                        rows="3"
+                                        placeholder="Add any initial thoughts or notes..."
+                                    />
+                                </div>
+                                <div className="modal-buttons">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUploadModal(false)}
+                                        className="cancel-btn"
+                                        disabled={isUploading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleFileUpload}
+                                        disabled={isUploading}
+                                        className="upload-btn"
+                                    >
+                                        {isUploading ? (
+                                            <>
+                                                <div className="loading-spinner"></div>
+                                                {isSummarizing ? 'Generating Summary...' : 'Extracting Text...'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload size={16} />
+                                                Upload & Summarize
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Upload Modal */}
-            {showUploadModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-                        <h2 className="text-xl font-bold mb-4">Upload New Paper</h2>
-                        <div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Paper Title *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newPaper.title}
-                                    onChange={(e) => setNewPaper({ ...newPaper, title: e.target.value })}
-                                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Enter paper title..."
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    PDF File *
-                                </label>
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) => setNewPaper({ ...newPaper, file: e.target.files[0] })}
-                                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Initial Notes (Optional)
-                                </label>
-                                <textarea
-                                    value={newPaper.personalNotes}
-                                    onChange={(e) => setNewPaper({ ...newPaper, personalNotes: e.target.value })}
-                                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                    rows="3"
-                                    placeholder="Add any initial thoughts or notes..."
-                                />
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowUploadModal(false)}
-                                    className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                                    disabled={isUploading}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleFileUpload}
-                                    disabled={isUploading}
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isUploading ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            {isSummarizing ? 'Generating Summary...' : 'Processing...'}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload size={16} />
-                                            Upload & Summarize
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+        </>
     );
 }
