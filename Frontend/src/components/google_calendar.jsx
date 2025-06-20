@@ -202,7 +202,7 @@ export default function GoogleCalendar() {
                                                                 className={`trade-amount ${getProfitLossColor(trade.outcome, trade.amount)}`}
                                                                 title={`${trade.asset} - ${trade.outcome}: $${trade.amount}`}
                                                             >
-                                                                {trade.amount > 0 ? '+' : ''}{formatAmount(trade.amount)}
+                                                                {trade.amount > 0 ? '+' : '-'}{formatAmount(trade.amount)}
                                                             </div>
                                                         ))}
                                                         {dayTrades.length > 4 && (
