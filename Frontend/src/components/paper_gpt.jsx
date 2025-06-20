@@ -715,7 +715,7 @@ export default function PaperGPT() {
             
             <div className="paper-gpt-container">
                 <Header />
-                <div style={{ display: 'flex' }}>
+                <div>
                     <SideNavs />
                     <div className="main-content">
                         <div className="content-wrapper">
