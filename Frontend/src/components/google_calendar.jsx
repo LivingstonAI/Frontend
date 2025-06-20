@@ -11,6 +11,7 @@ export default function GoogleCalendar() {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedTrades, setSelectedTrades] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const accountName = Cookies.get('account_name');
 
     useEffect(() => {
@@ -18,24 +19,48 @@ export default function GoogleCalendar() {
     }, []);
 
     const fetchTrades = async () => {
-    try {
-        setLoading(true);
-        const response = await fetch(`${baseUrl}/api/trades-calendar/?account_name=${accountName}`);
-        const data = await response.json();
-        
-        // Normalize amounts based on outcome
-        const normalizedTrades = data.map(trade => ({
-            ...trade,
-            amount: trade.outcome === 'Loss' ? -Math.abs(trade.amount) : Math.abs(trade.amount)
-        }));
-        
-        setTrades(normalizedTrades);
-    } catch (error) {
-        console.error('Error fetching trades:', error);
-    } finally {
-        setLoading(false);
-    }
-};
+        try {
+            setLoading(true);
+            setError(null);
+            
+            if (!accountName) {
+                throw new Error('Account name not found. Please log in again.');
+            }
+
+            const response = await fetch(`${baseUrl}/api/trades-calendar/?account_name=${accountName}`);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('No trading data found for this account.');
+                } else if (response.status === 401) {
+                    throw new Error('Unauthorized access. Please log in again.');
+                } else if (response.status >= 500) {
+                    throw new Error('Server error. Please try again later.');
+                } else {
+                    throw new Error(`Failed to fetch trades: ${response.status}`);
+                }
+            }
+
+            const data = await response.json();
+            
+            if (!Array.isArray(data)) {
+                throw new Error('Invalid data format received from server.');
+            }
+            
+            // Normalize amounts based on outcome
+            const normalizedTrades = data.map(trade => ({
+                ...trade,
+                amount: trade.outcome === 'Loss' ? -Math.abs(trade.amount) : Math.abs(trade.amount)
+            }));
+            
+            setTrades(normalizedTrades);
+        } catch (error) {
+            console.error('Error fetching trades:', error);
+            setError(error.message || 'An unexpected error occurred while loading your trades.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getDaysInMonth = (date) => {
         const year = date.getFullYear();
@@ -121,13 +146,73 @@ export default function GoogleCalendar() {
         return absAmount.toString();
     };
 
+    // Fixed currency formatting function
+    const formatCurrency = (amount) => {
+        if (amount === 0) return '$0';
+        if (amount < 0) {
+            return `-$${Math.abs(amount)}`;
+        } else {
+            return `$${amount}`;
+        }
+    };
+
     const getDayTotal = (dayTrades) => {
         return dayTrades.reduce((total, trade) => total + trade.amount, 0);
+    };
+
+    const handleRetry = () => {
+        fetchTrades();
     };
 
     const days = getDaysInMonth(currentDate);
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+    // Error state
+    if (error && !loading) {
+        return (
+            <div>
+                <div className="header">
+                    <Header />
+                </div>
+                <div className="main-page-body">
+                    <SideNavs />
+                    <div className="main-body-info">
+                        <h5 className="major-upcoming-news-events-header">Trading Calendar</h5>
+                        <div className="error-container" style={{
+                            background: '#fee',
+                            border: '1px solid #fcc',
+                            borderRadius: '8px',
+                            padding: '20px',
+                            margin: '20px 0',
+                            textAlign: 'center'
+                        }}>
+                            <h4 style={{color: '#c33', marginBottom: '10px'}}>
+                                Unable to Load Trading Data
+                            </h4>
+                            <p style={{color: '#666', marginBottom: '15px'}}>
+                                {error}
+                            </p>
+                            <button 
+                                onClick={handleRetry}
+                                style={{
+                                    background: '#007cba',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '10px 20px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Loading state
     if (loading) {
         return (
             <div>
@@ -137,8 +222,14 @@ export default function GoogleCalendar() {
                 <div className="main-page-body">
                     <SideNavs />
                     <div className="main-body-info">
-                        <h5 className="major-upcoming-news-events-header">Google Calendar</h5>
-                        <div className="loading">Loading trades...</div>
+                        <h5 className="major-upcoming-news-events-header">Trading Calendar</h5>
+                        <div className="loading" style={{
+                            textAlign: 'center',
+                            padding: '40px',
+                            color: '#666'
+                        }}>
+                            Loading trades...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -200,7 +291,7 @@ export default function GoogleCalendar() {
                                                             <div
                                                                 key={i}
                                                                 className={`trade-amount ${getProfitLossColor(trade.outcome, trade.amount)}`}
-                                                                title={`${trade.asset} - ${trade.outcome}: $${trade.amount}`}
+                                                                title={`${trade.asset} - ${trade.outcome}: ${formatCurrency(trade.amount)}`}
                                                             >
                                                                 {trade.amount > 0 ? '+' : '-'}{formatAmount(trade.amount)}
                                                             </div>
@@ -231,7 +322,7 @@ export default function GoogleCalendar() {
                                             <div className="trade-header">
                                                 <h5>{trade.asset}</h5>
                                                 <span className={`trade-outcome ${getProfitLossColor(trade.outcome, trade.amount)}`}>
-                                                    ${trade.amount}
+                                                    {formatCurrency(trade.amount)}
                                                 </span>
                                             </div>
                                             <div className="trade-info">
