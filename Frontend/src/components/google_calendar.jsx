@@ -47,10 +47,16 @@ export default function GoogleCalendar() {
                 throw new Error('Invalid data format received from server.');
             }
             
-            // Normalize amounts based on outcome
+            // Normalize amounts based on outcome and adjust dates
             const normalizedTrades = data.map(trade => ({
                 ...trade,
-                amount: trade.outcome === 'Loss' ? -Math.abs(trade.amount) : Math.abs(trade.amount)
+                amount: trade.outcome === 'Loss' ? -Math.abs(trade.amount) : Math.abs(trade.amount),
+                // Shift the date back by 2 days before processing
+                date_entered: trade.date_entered ? (() => {
+                    const originalDate = new Date(trade.date_entered);
+                    originalDate.setDate(originalDate.getDate() - 2);
+                    return originalDate.toISOString();
+                })() : null
             }));
             
             setTrades(normalizedTrades);
