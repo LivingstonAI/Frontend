@@ -18,17 +18,24 @@ export default function GoogleCalendar() {
     }, []);
 
     const fetchTrades = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch(`${baseUrl}/api/trades-calendar/?account_name=${accountName}`);
-            const data = await response.json();
-            setTrades(data);
-        } catch (error) {
-            console.error('Error fetching trades:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    try {
+        setLoading(true);
+        const response = await fetch(`${baseUrl}/api/trades-calendar/?account_name=${accountName}`);
+        const data = await response.json();
+        
+        // Normalize amounts based on outcome
+        const normalizedTrades = data.map(trade => ({
+            ...trade,
+            amount: trade.outcome === 'Loss' ? -Math.abs(trade.amount) : Math.abs(trade.amount)
+        }));
+        
+        setTrades(normalizedTrades);
+    } catch (error) {
+        console.error('Error fetching trades:', error);
+    } finally {
+        setLoading(false);
+    }
+};
 
     const getDaysInMonth = (date) => {
         const year = date.getFullYear();
@@ -99,19 +106,11 @@ export default function GoogleCalendar() {
     };
 
     const getProfitLossColor = (outcome, amount) => {
-    // If amount is negative, it's always a loss regardless of outcome field
-    if (amount < 0) return 'loss';
-    // If amount is positive, it's always a profit regardless of outcome field  
-    if (amount > 0) return 'profit';
-    // If amount is exactly 0, it's neutral
-    if (amount === 0) return 'neutral';
-    
-    // Fallback to outcome field if amount logic doesn't catch it
-    if (outcome === 'Loss') return 'loss';
-    if (outcome === 'Profit') return 'profit';
-    
-    return 'neutral';
-};
+        if (amount < 0) return 'loss';
+        if (amount > 0) return 'profit';
+        if (amount === 0) return 'neutral';
+        return 'neutral';
+    };
 
     const formatAmount = (amount) => {
         if (amount === 0) return '0';
