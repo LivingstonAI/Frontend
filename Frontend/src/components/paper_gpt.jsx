@@ -29,6 +29,91 @@ export default function PaperGPT() {
         }
     };
 
+    const savePaperToBackend = async (paper) => {
+    try {
+        const response = await fetch(`${baseUrl}/paper-gpt/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: paper.title,
+                fileName: paper.fileName,
+                fileData: paper.fileData,
+                fileSize: paper.fileSize,
+                extractedText: paper.extractedText,
+                aiSummary: paper.aiSummary,
+                personalNotes: paper.personalNotes
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('Error saving paper to backend:', error);
+        throw error;
+    }
+};
+
+const loadPapersFromBackend = async () => {
+    try {
+        const response = await fetch(`${baseUrl}/paper-gpt/`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const papers = await response.json();
+        setPapers(papers);
+    } catch (error) {
+        console.error('Error loading papers from backend:', error);
+        // Fallback to localStorage if backend fails
+        loadPapers();
+    }
+};
+
+const updatePaperNotesInBackend = async (paperId, notes) => {
+    try {
+        const response = await fetch(`${baseUrl}/paper-gpt/${paperId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                personalNotes: notes
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating notes in backend:', error);
+        throw error;
+    }
+};
+
+const deletePaperFromBackend = async (paperId) => {
+    try {
+        const response = await fetch(`${baseUrl}/paper-gpt/${paperId}/`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting paper from backend:', error);
+        throw error;
+    }
+};
+
     const loadPapers = () => {
         const storedPapers = JSON.parse(localStorage.getItem('paperGPT_papers') || '[]');
         setPapers(storedPapers);
@@ -39,10 +124,11 @@ export default function PaperGPT() {
         setPapers(updatedPapers);
     };
 
+        // Replace loadPapers() call in useEffect:
     useEffect(() => {
         console.log("Fetching API key...");
         fetchAPIKey();
-        loadPapers();
+        loadPapersFromBackend(); // Changed from loadPapers()
     }, []);
 
     const extractTextFromPDF = async (file) => {
@@ -123,51 +209,52 @@ export default function PaperGPT() {
     };
 
     const handleFileUpload = async () => {
-        if (!newPaper.file || !newPaper.title) {
-            alert("Please provide both a title and select a PDF file");
-            return;
-        }
+    if (!newPaper.file || !newPaper.title) {
+        alert("Please provide both a title and select a PDF file");
+        return;
+    }
 
-        setIsUploading(true);
+    setIsUploading(true);
+    setIsSummarizing(false);
+
+    try {
+        // Extract text from PDF
+        const extractedText = await extractTextFromPDF(newPaper.file);
+        
+        setIsSummarizing(true);
+        // Generate AI summary
+        const summary = await generateSummary(extractedText);
+
+        // Create new paper object
+        const paper = {
+            title: newPaper.title,
+            fileName: newPaper.file.name,
+            fileSize: newPaper.file.size,
+            extractedText: extractedText,
+            aiSummary: summary,
+            personalNotes: newPaper.personalNotes,
+            fileData: await fileToBase64(newPaper.file)
+        };
+
+        // Save to backend first
+        const savedPaper = await savePaperToBackend(paper);
+        
+        // Then update local state with the backend response (which includes the ID)
+        const updatedPapers = [...papers, { ...paper, id: savedPaper.id }];
+        setPapers(updatedPapers);
+
+        // Reset form
+        setNewPaper({ title: "", file: null, personalNotes: "" });
+        setShowUploadModal(false);
+        
+    } catch (error) {
+        console.error("Error processing paper:", error);
+        alert("Error processing paper: " + error.message);
+    } finally {
+        setIsUploading(false);
         setIsSummarizing(false);
-
-        try {
-            // Extract text from PDF
-            const extractedText = await extractTextFromPDF(newPaper.file);
-            
-            setIsSummarizing(true);
-            // Generate AI summary
-            const summary = await generateSummary(extractedText);
-
-            // Create new paper object
-            const paper = {
-                id: Date.now(),
-                title: newPaper.title,
-                fileName: newPaper.file.name,
-                fileSize: newPaper.file.size,
-                uploadDate: new Date().toISOString(),
-                extractedText: extractedText,
-                aiSummary: summary,
-                personalNotes: newPaper.personalNotes,
-                // Store file as base64 for demo purposes
-                fileData: await fileToBase64(newPaper.file)
-            };
-
-            const updatedPapers = [...papers, paper];
-            savePapers(updatedPapers);
-
-            // Reset form
-            setNewPaper({ title: "", file: null, personalNotes: "" });
-            setShowUploadModal(false);
-            
-        } catch (error) {
-            console.error("Error processing paper:", error);
-            alert("Error processing paper: " + error.message);
-        } finally {
-            setIsUploading(false);
-            setIsSummarizing(false);
-        }
-    };
+    }
+};
 
     const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -178,26 +265,47 @@ export default function PaperGPT() {
         });
     };
 
-    const handleDeletePaper = (paperId) => {
-        if (window.confirm("Are you sure you want to delete this paper?")) {
+    // Replace handleDeletePaper function:
+const handleDeletePaper = async (paperId) => {
+    if (window.confirm("Are you sure you want to delete this paper?")) {
+        try {
+            // Delete from backend first
+            await deletePaperFromBackend(paperId);
+            
+            // Then update local state
             const updatedPapers = papers.filter(paper => paper.id !== paperId);
-            savePapers(updatedPapers);
+            setPapers(updatedPapers);
+            
             if (selectedPaper && selectedPaper.id === paperId) {
                 setSelectedPaper(null);
             }
+        } catch (error) {
+            console.error("Error deleting paper:", error);
+            alert("Error deleting paper: " + error.message);
         }
-    };
+    }
+};
 
-    const updatePersonalNotes = (paperId, notes) => {
+    // Replace updatePersonalNotes function:
+const updatePersonalNotes = async (paperId, notes) => {
+    try {
+        // Update in backend first
+        await updatePaperNotesInBackend(paperId, notes);
+        
+        // Then update local state
         const updatedPapers = papers.map(paper => 
             paper.id === paperId ? { ...paper, personalNotes: notes } : paper
         );
-        savePapers(updatedPapers);
+        setPapers(updatedPapers);
+        
         if (selectedPaper && selectedPaper.id === paperId) {
             setSelectedPaper({ ...selectedPaper, personalNotes: notes });
         }
-    };
-
+    } catch (error) {
+        console.error("Error updating notes:", error);
+        alert("Error updating notes: " + error.message);
+    }
+};
     const filteredPapers = papers.filter(paper =>
         paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         paper.fileName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -944,3 +1052,4 @@ export default function PaperGPT() {
         </>
     );
 }
+
