@@ -12,6 +12,7 @@ export default function GoogleCalendar() {
     const [selectedTrades, setSelectedTrades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showAnalytics, setShowAnalytics] = useState(false);
     const accountName = Cookies.get('account_name');
 
     useEffect(() => {
@@ -66,6 +67,190 @@ export default function GoogleCalendar() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Filter trades for current month
+    const getMonthTrades = () => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        return trades.filter(trade => {
+            if (!trade.date_entered) return false;
+            const tradeDate = new Date(trade.date_entered);
+            return tradeDate.getFullYear() === year && tradeDate.getMonth() === month;
+        });
+    };
+
+    // Analytics calculations
+    const calculateMetrics = (monthTrades) => {
+        if (monthTrades.length === 0) return null;
+
+        const wins = monthTrades.filter(trade => trade.amount > 0);
+        const losses = monthTrades.filter(trade => trade.amount < 0);
+        
+        const winRate = (wins.length / monthTrades.length) * 100;
+        const averageWin = wins.length > 0 ? wins.reduce((sum, trade) => sum + trade.amount, 0) / wins.length : 0;
+        const averageLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, trade) => sum + trade.amount, 0)) / losses.length : 0;
+        const grossWin = wins.reduce((sum, trade) => sum + trade.amount, 0);
+        const grossLoss = Math.abs(losses.reduce((sum, trade) => sum + trade.amount, 0));
+        const profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? 999 : 0;
+
+        return {
+            winRate: winRate.toFixed(2),
+            averageWin: averageWin.toFixed(2),
+            averageLoss: averageLoss.toFixed(2),
+            profitFactor: profitFactor.toFixed(2),
+            totalTrades: monthTrades.length,
+            netProfit: (grossWin - grossLoss).toFixed(2)
+        };
+    };
+
+    // Group trades by different categories
+    const getPerformanceByCategory = (monthTrades, category) => {
+        const grouped = {};
+        
+        monthTrades.forEach(trade => {
+            let key = '';
+            switch (category) {
+                case 'day':
+                    key = trade.day_of_week_entered || 'Unknown';
+                    break;
+                case 'session':
+                    key = trade.trading_session_entered || 'Unknown';
+                    break;
+                case 'strategy':
+                    key = trade.strategy || 'Unknown';
+                    break;
+                case 'asset':
+                    key = trade.asset || 'Unknown';
+                    break;
+                default:
+                    key = 'Unknown';
+            }
+            
+            if (!grouped[key]) {
+                grouped[key] = { total: 0, count: 0, wins: 0, losses: 0 };
+            }
+            
+            grouped[key].total += trade.amount;
+            grouped[key].count += 1;
+            if (trade.amount > 0) grouped[key].wins += 1;
+            else if (trade.amount < 0) grouped[key].losses += 1;
+        });
+
+        return Object.entries(grouped).map(([key, data]) => ({
+            category: key,
+            total: parseFloat(data.total.toFixed(2)),
+            count: data.count,
+            wins: data.wins,
+            losses: data.losses,
+            winRate: data.count > 0 ? ((data.wins / data.count) * 100).toFixed(1) : 0
+        }));
+    };
+
+    // Generate equity curve data
+    const getEquityCurveData = (monthTrades) => {
+        const sortedTrades = [...monthTrades].sort((a, b) => new Date(a.date_entered) - new Date(b.date_entered));
+        let runningTotal = 0;
+        
+        return sortedTrades.map((trade, index) => {
+            runningTotal += trade.amount;
+            return {
+                tradeNumber: index + 1,
+                equity: parseFloat(runningTotal.toFixed(2)),
+                date: new Date(trade.date_entered).toLocaleDateString()
+            };
+        });
+    };
+
+    // Bar chart component
+    const BarChart = ({ data, title, xKey, yKey, color = '#007cba' }) => {
+        if (!data || data.length === 0) return <div>No data available</div>;
+
+        const maxValue = Math.max(...data.map(d => Math.abs(d[yKey])));
+        const chartHeight = 200;
+
+        return (
+            <div className="chart-container">
+                <h4>{title}</h4>
+                <div className="bar-chart" style={{ height: chartHeight + 50 }}>
+                    {data.map((item, index) => {
+                        const barHeight = Math.abs(item[yKey]) / maxValue * chartHeight;
+                        const isNegative = item[yKey] < 0;
+                        
+                        return (
+                            <div key={index} className="bar-item" style={{ display: 'inline-block', margin: '0 5px', textAlign: 'center' }}>
+                                <div 
+                                    className="bar"
+                                    style={{
+                                        width: '40px',
+                                        height: `${barHeight}px`,
+                                        backgroundColor: isNegative ? '#e74c3c' : color,
+                                        marginBottom: '5px',
+                                        position: 'relative',
+                                        top: isNegative ? '0' : `${chartHeight - barHeight}px`
+                                    }}
+                                    title={`${item[xKey]}: ${item[yKey]}`}
+                                ></div>
+                                <div style={{ fontSize: '12px', transform: 'rotate(-45deg)', transformOrigin: 'center', width: '40px' }}>
+                                    {item[xKey]}
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#666' }}>
+                                    ${item[yKey]}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    // Line chart for equity curve
+    const LineChart = ({ data, title }) => {
+        if (!data || data.length === 0) return <div>No data available</div>;
+
+        const maxValue = Math.max(...data.map(d => d.equity));
+        const minValue = Math.min(...data.map(d => d.equity));
+        const range = maxValue - minValue;
+        const chartHeight = 200;
+        const chartWidth = 400;
+
+        const points = data.map((item, index) => {
+            const x = (index / (data.length - 1)) * chartWidth;
+            const y = chartHeight - ((item.equity - minValue) / range) * chartHeight;
+            return `${x},${y}`;
+        }).join(' ');
+
+        return (
+            <div className="chart-container">
+                <h4>{title}</h4>
+                <svg width={chartWidth + 50} height={chartHeight + 50} style={{ border: '1px solid #ddd' }}>
+                    <polyline
+                        points={points}
+                        fill="none"
+                        stroke="#007cba"
+                        strokeWidth="2"
+                        transform="translate(25, 25)"
+                    />
+                    {data.map((item, index) => {
+                        const x = (index / (data.length - 1)) * chartWidth + 25;
+                        const y = chartHeight - ((item.equity - minValue) / range) * chartHeight + 25;
+                        return (
+                            <circle
+                                key={index}
+                                cx={x}
+                                cy={y}
+                                r="3"
+                                fill="#007cba"
+                            >
+                                <title>{`Trade ${item.tradeNumber}: $${item.equity}`}</title>
+                            </circle>
+                        );
+                    })}
+                </svg>
+            </div>
+        );
     };
 
     const getDaysInMonth = (date) => {
@@ -172,6 +357,8 @@ export default function GoogleCalendar() {
 
     const days = getDaysInMonth(currentDate);
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthTrades = getMonthTrades();
+    const metrics = calculateMetrics(monthTrades);
 
     // Error state
     if (error && !loading) {
@@ -251,6 +438,116 @@ export default function GoogleCalendar() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Trading Calendar</h5><br />
+                    
+                    {/* Analytics Toggle Button */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <button 
+                            onClick={() => setShowAnalytics(!showAnalytics)}
+                            style={{
+                                background: '#007cba',
+                                color: 'white',
+                                border: 'none',
+                                padding: '10px 20px',
+                                borderRadius: '5px',
+                                cursor: 'pointer',
+                                marginRight: '10px'
+                            }}
+                        >
+                            {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+                        </button>
+                    </div>
+
+                    {/* Analytics Section */}
+                    {showAnalytics && metrics && (
+                        <div className="analytics-section" style={{ 
+                            marginBottom: '30px', 
+                            padding: '20px', 
+                            background: '#f9f9f9', 
+                            borderRadius: '8px' 
+                        }}>
+                            <h3>Monthly Analytics - {getMonthName(currentDate)}</h3>
+                            
+                            {/* Key Metrics */}
+                            <div className="metrics-grid" style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                                gap: '15px', 
+                                marginBottom: '30px' 
+                            }}>
+                                <div className="metric-card" style={{ background: 'white', padding: '15px', borderRadius: '5px', textAlign: 'center' }}>
+                                    <h5>Win Rate</h5>
+                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007cba' }}>{metrics.winRate}%</div>
+                                </div>
+                                <div className="metric-card" style={{ background: 'white', padding: '15px', borderRadius: '5px', textAlign: 'center' }}>
+                                    <h5>Average Win</h5>
+                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#27ae60' }}>${metrics.averageWin}</div>
+                                </div>
+                                <div className="metric-card" style={{ background: 'white', padding: '15px', borderRadius: '5px', textAlign: 'center' }}>
+                                    <h5>Average Loss</h5>
+                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e74c3c' }}>${metrics.averageLoss}</div>
+                                </div>
+                                <div className="metric-card" style={{ background: 'white', padding: '15px', borderRadius: '5px', textAlign: 'center' }}>
+                                    <h5>Profit Factor</h5>
+                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007cba' }}>{metrics.profitFactor}</div>
+                                </div>
+                                <div className="metric-card" style={{ background: 'white', padding: '15px', borderRadius: '5px', textAlign: 'center' }}>
+                                    <h5>Total Trades</h5>
+                                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#007cba' }}>{metrics.totalTrades}</div>
+                                </div>
+                                <div className="metric-card" style={{ background: 'white', padding: '15px', borderRadius: '5px', textAlign: 'center' }}>
+                                    <h5>Net Profit</h5>
+                                    <div style={{ 
+                                        fontSize: '24px', 
+                                        fontWeight: 'bold', 
+                                        color: parseFloat(metrics.netProfit) >= 0 ? '#27ae60' : '#e74c3c' 
+                                    }}>
+                                        ${metrics.netProfit}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Charts Grid */}
+                            <div className="charts-grid" style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                                gap: '20px',
+                                marginBottom: '20px'
+                            }}>
+                                <BarChart 
+                                    data={getPerformanceByCategory(monthTrades, 'day')} 
+                                    title="Performance by Day of Week" 
+                                    xKey="category" 
+                                    yKey="total" 
+                                />
+                                <BarChart 
+                                    data={getPerformanceByCategory(monthTrades, 'session')} 
+                                    title="Performance by Trading Session" 
+                                    xKey="category" 
+                                    yKey="total" 
+                                />
+                                <BarChart 
+                                    data={getPerformanceByCategory(monthTrades, 'strategy')} 
+                                    title="Performance by Strategy" 
+                                    xKey="category" 
+                                    yKey="total" 
+                                />
+                                <BarChart 
+                                    data={getPerformanceByCategory(monthTrades, 'asset')} 
+                                    title="Performance by Asset" 
+                                    xKey="category" 
+                                    yKey="total" 
+                                />
+                            </div>
+
+                            {/* Equity Curve */}
+                            <div style={{ marginTop: '20px' }}>
+                                <LineChart 
+                                    data={getEquityCurveData(monthTrades)} 
+                                    title="Equity Curve" 
+                                />
+                            </div>
+                        </div>
+                    )}
                     
                     <div className="calendar-container">
                         <div className="calendar-header">
