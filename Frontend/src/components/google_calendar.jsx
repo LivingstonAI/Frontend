@@ -93,6 +93,140 @@ export default function GoogleCalendar() {
         }
     };
 
+    // Add these state variables at the top with your other useState hooks
+const [selectedChart, setSelectedChart] = useState(null);
+const [chartMetrics, setChartMetrics] = useState({});
+
+// Add this function to calculate detailed metrics for each chart
+const getChartMetrics = (chartType) => {
+    const monthTrades = getCurrentMonthTrades();
+    
+    switch(chartType) {
+        case 'dayOfWeek':
+            const dayStats = {};
+            const dayPerformance = {
+                'Monday': [], 'Tuesday': [], 'Wednesday': [], 'Thursday': [], 
+                'Friday': [], 'Saturday': [], 'Sunday': []
+            };
+            
+            monthTrades.forEach(trade => {
+                if (trade.day_of_week_entered && dayPerformance.hasOwnProperty(trade.day_of_week_entered)) {
+                    dayPerformance[trade.day_of_week_entered].push(trade.amount);
+                }
+            });
+            
+            Object.keys(dayPerformance).forEach(day => {
+                const trades = dayPerformance[day];
+                const wins = trades.filter(t => t > 0);
+                const losses = trades.filter(t => t < 0);
+                const total = trades.reduce((sum, t) => sum + t, 0);
+                
+                dayStats[day] = {
+                    total: total,
+                    trades: trades.length,
+                    wins: wins.length,
+                    losses: losses.length,
+                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                };
+            });
+            return dayStats;
+            
+        case 'session':
+            const sessionStats = {};
+            const sessionPerformance = {};
+            
+            monthTrades.forEach(trade => {
+                if (trade.trading_session_entered) {
+                    if (!sessionPerformance[trade.trading_session_entered]) {
+                        sessionPerformance[trade.trading_session_entered] = [];
+                    }
+                    sessionPerformance[trade.trading_session_entered].push(trade.amount);
+                }
+            });
+            
+            Object.keys(sessionPerformance).forEach(session => {
+                const trades = sessionPerformance[session];
+                const wins = trades.filter(t => t > 0);
+                const losses = trades.filter(t => t < 0);
+                const total = trades.reduce((sum, t) => sum + t, 0);
+                
+                sessionStats[session] = {
+                    total: total,
+                    trades: trades.length,
+                    wins: wins.length,
+                    losses: losses.length,
+                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                };
+            });
+            return sessionStats;
+            
+        case 'strategy':
+            const strategyStats = {};
+            const strategyPerformance = {};
+            
+            monthTrades.forEach(trade => {
+                if (trade.strategy) {
+                    if (!strategyPerformance[trade.strategy]) {
+                        strategyPerformance[trade.strategy] = [];
+                    }
+                    strategyPerformance[trade.strategy].push(trade.amount);
+                }
+            });
+            
+            Object.keys(strategyPerformance).forEach(strategy => {
+                const trades = strategyPerformance[strategy];
+                const wins = trades.filter(t => t > 0);
+                const losses = trades.filter(t => t < 0);
+                const total = trades.reduce((sum, t) => sum + t, 0);
+                
+                strategyStats[strategy] = {
+                    total: total,
+                    trades: trades.length,
+                    wins: wins.length,
+                    losses: losses.length,
+                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                };
+            });
+            return strategyStats;
+            
+        case 'asset':
+            const assetStats = {};
+            const assetPerformance = {};
+            
+            monthTrades.forEach(trade => {
+                if (trade.asset) {
+                    if (!assetPerformance[trade.asset]) {
+                        assetPerformance[trade.asset] = [];
+                    }
+                    assetPerformance[trade.asset].push(trade.amount);
+                }
+            });
+            
+            Object.keys(assetPerformance).forEach(asset => {
+                const trades = assetPerformance[asset];
+                const wins = trades.filter(t => t > 0);
+                const losses = trades.filter(t => t < 0);
+                const total = trades.reduce((sum, t) => sum + t, 0);
+                
+                assetStats[asset] = {
+                    total: total,
+                    trades: trades.length,
+                    wins: wins.length,
+                    losses: losses.length,
+                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                };
+            });
+            return assetStats;
+            
+        default:
+            return {};
+    }
+};
+
     // Get trades for current month
     const getCurrentMonthTrades = () => {
         const year = currentDate.getFullYear();
@@ -295,31 +429,63 @@ export default function GoogleCalendar() {
         };
     };
 
-    const chartOptions = {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
-                    }
-                }
-            }
+    // Updated chart options with click handler
+const getChartOptions = (chartType) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    onClick: () => handleChartClick(chartType),
+    plugins: {
+        legend: {
+            position: 'top',
         },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return '$' + value;
-                    }
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
                 }
             }
         }
-    };
+    },
+    scales: {
+        y: {
+            beginAtZero: true,
+            ticks: {
+                callback: function(value) {
+                    return '$' + value;
+                }
+            }
+        }
+    }
+});
+
+// Special options for equity curve to fix stretching
+const getEquityChartOptions = () => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    aspectRatio: window.innerWidth < 768 ? 1.5 : 2.5, // Better aspect ratio for desktop
+    plugins: {
+        legend: {
+            position: 'top',
+        },
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                }
+            }
+        }
+    },
+    scales: {
+        y: {
+            beginAtZero: true,
+            ticks: {
+                callback: function(value) {
+                    return '$' + value;
+                }
+            }
+        }
+    }
+});
 
     const getDaysInMonth = (date) => {
         const year = date.getFullYear();
@@ -376,6 +542,17 @@ export default function GoogleCalendar() {
             setSelectedTrades(dayTrades);
         }
     };
+
+    // Handle chart click
+const handleChartClick = (chartType) => {
+    if (selectedChart === chartType) {
+        setSelectedChart(null);
+        setChartMetrics({});
+    } else {
+        setSelectedChart(chartType);
+        setChartMetrics(getChartMetrics(chartType));
+    }
+};
 
     const navigateMonth = (direction) => {
         const newDate = new Date(currentDate);
@@ -603,36 +780,153 @@ export default function GoogleCalendar() {
                             </div>
 
                             {/* Charts */}
+                            {/* Charts */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                                gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))',
                                 gap: '20px',
                                 marginBottom: '20px'
                             }}>
-                                <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Day of Week</h6>
-                                    <Bar data={getDayOfWeekPerformance()} options={chartOptions} />
+                                <div 
+                                    style={{ 
+                                        background: '#f8f9fa', 
+                                        padding: '15px', 
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        border: selectedChart === 'dayOfWeek' ? '2px solid #007cba' : '1px solid #e9ecef',
+                                        transition: 'border-color 0.2s'
+                                    }}
+                                    onClick={() => handleChartClick('dayOfWeek')}
+                                >
+                                    <h6 style={{ marginBottom: '15px', fontSize: '14px' }}>Performance by Day of Week (Click for details)</h6>
+                                    <div style={{ height: window.innerWidth < 768 ? '250px' : '300px' }}>
+                                        <Bar data={getDayOfWeekPerformance()} options={getChartOptions('dayOfWeek')} />
+                                    </div>
                                 </div>
-                                <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Trading Session</h6>
-                                    <Bar data={getTradingSessionPerformance()} options={chartOptions} />
+                                
+                                <div 
+                                    style={{ 
+                                        background: '#f8f9fa', 
+                                        padding: '15px', 
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        border: selectedChart === 'session' ? '2px solid #007cba' : '1px solid #e9ecef',
+                                        transition: 'border-color 0.2s'
+                                    }}
+                                    onClick={() => handleChartClick('session')}
+                                >
+                                    <h6 style={{ marginBottom: '15px', fontSize: '14px' }}>Performance by Trading Session (Click for details)</h6>
+                                    <div style={{ height: window.innerWidth < 768 ? '250px' : '300px' }}>
+                                        <Bar data={getTradingSessionPerformance()} options={getChartOptions('session')} />
+                                    </div>
                                 </div>
-                                <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Strategy</h6>
-                                    <Bar data={getStrategyPerformance()} options={chartOptions} />
+                                
+                                <div 
+                                    style={{ 
+                                        background: '#f8f9fa', 
+                                        padding: '15px', 
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        border: selectedChart === 'strategy' ? '2px solid #007cba' : '1px solid #e9ecef',
+                                        transition: 'border-color 0.2s'
+                                    }}
+                                    onClick={() => handleChartClick('strategy')}
+                                >
+                                    <h6 style={{ marginBottom: '15px', fontSize: '14px' }}>Performance by Strategy (Click for details)</h6>
+                                    <div style={{ height: window.innerWidth < 768 ? '250px' : '300px' }}>
+                                        <Bar data={getStrategyPerformance()} options={getChartOptions('strategy')} />
+                                    </div>
                                 </div>
-                                <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Asset</h6>
-                                    <Bar data={getAssetPerformance()} options={chartOptions} />
+                                
+                                <div 
+                                    style={{ 
+                                        background: '#f8f9fa', 
+                                        padding: '15px', 
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        border: selectedChart === 'asset' ? '2px solid #007cba' : '1px solid #e9ecef',
+                                        transition: 'border-color 0.2s'
+                                    }}
+                                    onClick={() => handleChartClick('asset')}
+                                >
+                                    <h6 style={{ marginBottom: '15px', fontSize: '14px' }}>Performance by Asset (Click for details)</h6>
+                                    <div style={{ height: window.innerWidth < 768 ? '250px' : '300px' }}>
+                                        <Bar data={getAssetPerformance()} options={getChartOptions('asset')} />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Equity Curve */}
-                            <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+                            {/* Chart Metrics Modal */}
+                            {selectedChart && Object.keys(chartMetrics).length > 0 && (
+                                <div style={{
+                                    background: '#f8f9fa',
+                                    border: '2px solid #007cba',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    marginBottom: '20px',
+                                    position: 'relative'
+                                }}>
+                                    <button 
+                                        onClick={() => setSelectedChart(null)}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '10px',
+                                            right: '10px',
+                                            background: 'none',
+                                            border: 'none',
+                                            fontSize: '20px',
+                                            cursor: 'pointer',
+                                            color: '#666'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                    
+                                    <h6 style={{ marginBottom: '15px', color: '#007cba' }}>
+                                        Detailed Metrics - {selectedChart.charAt(0).toUpperCase() + selectedChart.slice(1)}
+                                    </h6>
+                                    
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+                                        gap: '15px'
+                                    }}>
+                                        {Object.entries(chartMetrics).map(([key, metrics]) => (
+                                            <div key={key} style={{
+                                                background: 'white',
+                                                padding: '15px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #e9ecef'
+                                            }}>
+                                                <h6 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '14px' }}>{key}</h6>
+                                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                                    <div>Total P&L: <span style={{ color: metrics.total >= 0 ? '#22c55e' : '#ef4444', fontWeight: 'bold' }}>
+                                                        ${metrics.total.toFixed(2)}
+                                                    </span></div>
+                                                    <div>Trades: {metrics.trades}</div>
+                                                    <div>Wins: {metrics.wins} | Losses: {metrics.losses}</div>
+                                                    <div>Win Rate: {metrics.winRate}%</div>
+                                                    <div>Avg Trade: ${metrics.avgTrade}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Equity Curve - Fixed stretching issue */}
+                            <div style={{ 
+                                background: '#f8f9fa', 
+                                padding: '20px', 
+                                borderRadius: '8px', 
+                                marginBottom: '20px' 
+                            }}>
                                 <h6 style={{ marginBottom: '15px' }}>Equity Curve</h6>
-                                <Line data={getEquityCurve()} options={chartOptions} />
+                                <div style={{ height: window.innerWidth < 768 ? '300px' : '400px' }}>
+                                    <Line data={getEquityCurve()} options={getEquityChartOptions()} />
+                                </div>
                             </div>
-                        </div>
+                                </div>
                     )}
                     
                     <div className="calendar-container">
