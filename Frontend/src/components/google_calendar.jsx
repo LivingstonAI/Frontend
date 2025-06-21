@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
@@ -158,97 +159,122 @@ export default function GoogleCalendar() {
             return {
                 tradeNumber: index + 1,
                 equity: parseFloat(runningTotal.toFixed(2)),
-                date: new Date(trade.date_entered).toLocaleDateString()
+                date: new Date(trade.date_entered).toLocaleDateString(),
+                amount: trade.amount
             };
         });
     };
 
-    // Bar chart component
-    const BarChart = ({ data, title, xKey, yKey, color = '#007cba' }) => {
+    // Custom tooltip for bar charts
+    const CustomBarTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            return (
+                <div style={{
+                    backgroundColor: 'white',
+                    padding: '10px',
+                    border: '1px solid #ccc',
+                    borderRadius: '5px',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }}>
+                    <p style={{ margin: 0, fontWeight: 'bold' }}>{label}</p>
+                    <p style={{ margin: 0, color: payload[0].value >= 0 ? '#27ae60' : '#e74c3c' }}>
+                        Total: ${payload[0].value}
+                    </p>
+                    <p style={{ margin: 0 }}>Trades: {data.count}</p>
+                    <p style={{ margin: 0 }}>Win Rate: {data.winRate}%</p>
+                    <p style={{ margin: 0 }}>Wins: {data.wins} | Losses: {data.losses}</p>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    // Custom tooltip for equity curve
+    const CustomLineTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            return (
+                <div style={{
+                    backgroundColor: 'white',
+                    padding: '10px',
+                    border: '1px solid #ccc',
+                    borderRadius: '5px',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }}>
+                    <p style={{ margin: 0, fontWeight: 'bold' }}>Trade #{data.tradeNumber}</p>
+                    <p style={{ margin: 0 }}>Date: {data.date}</p>
+                    <p style={{ margin: 0 }}>Running Total: ${data.equity}</p>
+                    <p style={{ margin: 0, color: data.amount >= 0 ? '#27ae60' : '#e74c3c' }}>
+                        Trade P&L: ${data.amount}
+                    </p>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    // Interactive Bar Chart component
+    const InteractiveBarChart = ({ data, title, color = '#007cba' }) => {
         if (!data || data.length === 0) return <div>No data available</div>;
 
-        const maxValue = Math.max(...data.map(d => Math.abs(d[yKey])));
-        const chartHeight = 200;
-
         return (
-            <div className="chart-container">
-                <h4>{title}</h4>
-                <div className="bar-chart" style={{ height: chartHeight + 50 }}>
-                    {data.map((item, index) => {
-                        const barHeight = Math.abs(item[yKey]) / maxValue * chartHeight;
-                        const isNegative = item[yKey] < 0;
-                        
-                        return (
-                            <div key={index} className="bar-item" style={{ display: 'inline-block', margin: '0 5px', textAlign: 'center' }}>
-                                <div 
-                                    className="bar"
-                                    style={{
-                                        width: '40px',
-                                        height: `${barHeight}px`,
-                                        backgroundColor: isNegative ? '#e74c3c' : color,
-                                        marginBottom: '5px',
-                                        position: 'relative',
-                                        top: isNegative ? '0' : `${chartHeight - barHeight}px`
-                                    }}
-                                    title={`${item[xKey]}: ${item[yKey]}`}
-                                ></div>
-                                <div style={{ fontSize: '12px', transform: 'rotate(-45deg)', transformOrigin: 'center', width: '40px' }}>
-                                    {item[xKey]}
-                                </div>
-                                <div style={{ fontSize: '10px', color: '#666' }}>
-                                    ${item[yKey]}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                <h4 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>{title}</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                            dataKey="category" 
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                            interval={0}
+                        />
+                        <YAxis 
+                            tickFormatter={(value) => `$${value}`}
+                        />
+                        <Tooltip content={<CustomBarTooltip />} />
+                        <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.total >= 0 ? '#27ae60' : '#e74c3c'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         );
     };
 
-    // Line chart for equity curve
-    const LineChart = ({ data, title }) => {
+    // Interactive Line Chart for equity curve
+    const InteractiveLineChart = ({ data, title }) => {
         if (!data || data.length === 0) return <div>No data available</div>;
 
-        const maxValue = Math.max(...data.map(d => d.equity));
-        const minValue = Math.min(...data.map(d => d.equity));
-        const range = maxValue - minValue;
-        const chartHeight = 200;
-        const chartWidth = 400;
-
-        const points = data.map((item, index) => {
-            const x = (index / (data.length - 1)) * chartWidth;
-            const y = chartHeight - ((item.equity - minValue) / range) * chartHeight;
-            return `${x},${y}`;
-        }).join(' ');
-
         return (
-            <div className="chart-container">
-                <h4>{title}</h4>
-                <svg width={chartWidth + 50} height={chartHeight + 50} style={{ border: '1px solid #ddd' }}>
-                    <polyline
-                        points={points}
-                        fill="none"
-                        stroke="#007cba"
-                        strokeWidth="2"
-                        transform="translate(25, 25)"
-                    />
-                    {data.map((item, index) => {
-                        const x = (index / (data.length - 1)) * chartWidth + 25;
-                        const y = chartHeight - ((item.equity - minValue) / range) * chartHeight + 25;
-                        return (
-                            <circle
-                                key={index}
-                                cx={x}
-                                cy={y}
-                                r="3"
-                                fill="#007cba"
-                            >
-                                <title>{`Trade ${item.tradeNumber}: $${item.equity}`}</title>
-                            </circle>
-                        );
-                    })}
-                </svg>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                <h4 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>{title}</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                            dataKey="tradeNumber" 
+                            label={{ value: 'Trade Number', position: 'insideBottom', offset: -10 }}
+                        />
+                        <YAxis 
+                            tickFormatter={(value) => `$${value}`}
+                            label={{ value: 'Equity', angle: -90, position: 'insideLeft' }}
+                        />
+                        <Tooltip content={<CustomLineTooltip />} />
+                        <Line 
+                            type="monotone" 
+                            dataKey="equity" 
+                            stroke="#007cba" 
+                            strokeWidth={2}
+                            dot={{ fill: '#007cba', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, stroke: '#007cba', strokeWidth: 2 }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
             </div>
         );
     };
@@ -506,44 +532,36 @@ export default function GoogleCalendar() {
                                 </div>
                             </div>
 
-                            {/* Charts Grid */}
+                            {/* Interactive Charts Grid */}
                             <div className="charts-grid" style={{ 
                                 display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
                                 gap: '20px',
                                 marginBottom: '20px'
                             }}>
-                                <BarChart 
+                                <InteractiveBarChart 
                                     data={getPerformanceByCategory(monthTrades, 'day')} 
                                     title="Performance by Day of Week" 
-                                    xKey="category" 
-                                    yKey="total" 
                                 />
-                                <BarChart 
+                                <InteractiveBarChart 
                                     data={getPerformanceByCategory(monthTrades, 'session')} 
                                     title="Performance by Trading Session" 
-                                    xKey="category" 
-                                    yKey="total" 
                                 />
-                                <BarChart 
+                                <InteractiveBarChart 
                                     data={getPerformanceByCategory(monthTrades, 'strategy')} 
                                     title="Performance by Strategy" 
-                                    xKey="category" 
-                                    yKey="total" 
                                 />
-                                <BarChart 
+                                <InteractiveBarChart 
                                     data={getPerformanceByCategory(monthTrades, 'asset')} 
                                     title="Performance by Asset" 
-                                    xKey="category" 
-                                    yKey="total" 
                                 />
                             </div>
 
-                            {/* Equity Curve */}
+                            {/* Interactive Equity Curve */}
                             <div style={{ marginTop: '20px' }}>
-                                <LineChart 
+                                <InteractiveLineChart 
                                     data={getEquityCurveData(monthTrades)} 
-                                    title="Equity Curve" 
+                                    title="Monthly Equity Curve" 
                                 />
                             </div>
                         </div>
