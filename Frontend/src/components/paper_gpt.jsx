@@ -711,6 +711,11 @@ export default function PaperGPT() {
                         transform: rotate(360deg);
                     }
                 }
+                @media (max-width: 768px) {
+                    .header-section {
+                        display: block;
+                    }
+                    }
             `}</style>
             
             <div className="paper-gpt-container">
