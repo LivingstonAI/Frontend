@@ -227,23 +227,23 @@ export default function TradingEconDashboard() {
         try {
             const prompt = `Analyze the following trading data for ${asset}:
 
-NEWS DATA:
-${JSON.stringify(data.message?.slice(0, 3) || [], null, 2)}
+            NEWS DATA:
+            ${JSON.stringify(data.message?.slice(0, 3) || [], null, 2)}
 
-ECONOMIC EVENTS:
-${data.economic_events?.[0]?.economic_events || 'No recent events'}
+            ECONOMIC EVENTS:
+            ${data.economic_events?.[0]?.economic_events || 'No recent events'}
 
-Provide a comprehensive trading analysis with:
-1. BIAS: BULLISH/BEARISH/NEUTRAL
-2. CONFIDENCE: 1-100%
-3. KEY_FACTORS: Top 3 factors affecting price
-4. RISK_LEVEL: LOW/MEDIUM/HIGH
-5. ENTRY_STRATEGY: Recommended approach
-6. TIME_HORIZON: SHORT/MEDIUM/LONG term outlook
-7. PRICE_TARGETS: Potential levels
-8. STOP_LOSS: Risk management levels
+            Provide a comprehensive trading analysis with:
+            1. BIAS: BULLISH/BEARISH/NEUTRAL
+            2. CONFIDENCE: 1-100%
+            3. KEY_FACTORS: Top 3 factors affecting price
+            4. RISK_LEVEL: LOW/MEDIUM/HIGH
+            5. ENTRY_STRATEGY: Recommended approach
+            6. TIME_HORIZON: SHORT/MEDIUM/LONG term outlook
+            7. PRICE_TARGETS: Potential levels
+            8. STOP_LOSS: Risk management levels
 
-Format as JSON object.`;
+            Format as JSON object.`;
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
