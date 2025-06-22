@@ -29,39 +29,57 @@ export default function PaperGPT() {
         }
     };
 
-    const downloadPDF = (paper) => {
-    try {
-        // Convert base64 to blob
-        const base64Data = paper.fileData.split(',')[1]; // Remove data:application/pdf;base64, prefix
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        const downloadPDF = (paper) => {
+        try {
+            // Check if fileData exists
+            if (!paper.fileData) {
+                alert('PDF data is not available for this paper.');
+                return;
+            }
+
+            // Check if fileData is properly formatted (should start with data:application/pdf;base64,)
+            if (!paper.fileData.includes('data:application/pdf;base64,')) {
+                alert('Invalid PDF data format.');
+                return;
+            }
+
+            // Convert base64 to blob
+            const base64Data = paper.fileData.split(',')[1]; // Remove data:application/pdf;base64, prefix
+            
+            if (!base64Data) {
+                alert('No PDF data found after base64 prefix.');
+                return;
+            }
+
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = paper.fileName || `${paper.title}.pdf`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
+            alert('Error downloading PDF: ' + error.message);
         }
-        
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/pdf' });
-        
-        // Create download link
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = paper.fileName || `${paper.title}.pdf`;
-        
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        
-        // Cleanup
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-    } catch (error) {
-        console.error('Error downloading PDF:', error);
-        alert('Error downloading PDF: ' + error.message);
-    }
-};
+    };
 
     const savePaperToBackend = async (paper) => {
     try {
