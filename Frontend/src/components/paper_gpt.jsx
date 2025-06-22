@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Upload, FileText, Calendar, Eye, Trash2, Plus, Search, Download, BookOpen } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
+import { Volume2, VolumeX, Pause, Play } from "lucide-react";
 
 export default function PaperGPT() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -18,6 +19,76 @@ export default function PaperGPT() {
         personalNotes: ""
     });
 
+    // Add these state variables to your existing useState declarations:
+    const [isReading, setIsReading] = useState(false);
+    const [currentUtterance, setCurrentUtterance] = useState(null);
+    const [readingType, setReadingType] = useState(null); // 'summary' or 'text'
+
+    const searchInputFix = `
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            color: #1e293b; /* Add this line for text visibility */
+            font-family: inherit; /* Add this line */
+        }
+
+        .search-input::placeholder {
+            color: #94a3b8; /* Add this for placeholder visibility */
+        }
+        `;
+
+            // Add these functions to your component:
+        const speak = (text, type) => {
+            // Stop any current speech
+            window.speechSynthesis.cancel();
+            
+            if (isReading && readingType === type) {
+                // If already reading this type, stop
+                setIsReading(false);
+                setCurrentUtterance(null);
+                setReadingType(null);
+                return;
+            }
+
+            // Create new utterance
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.8;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            utterance.onstart = () => {
+                setIsReading(true);
+                setReadingType(type);
+            };
+
+            utterance.onend = () => {
+                setIsReading(false);
+                setCurrentUtterance(null);
+                setReadingType(null);
+            };
+
+            utterance.onerror = () => {
+                setIsReading(false);
+                setCurrentUtterance(null);
+                setReadingType(null);
+            };
+
+            setCurrentUtterance(utterance);
+            window.speechSynthesis.speak(utterance);
+        };
+
+        const stopSpeaking = () => {
+            window.speechSynthesis.cancel();
+            setIsReading(false);
+            setCurrentUtterance(null);
+            setReadingType(null);
+        };
+
     const fetchAPIKey = async () => {
         try {
             const response = await fetch(`${baseUrl}/get_openai_key`);
@@ -28,6 +99,58 @@ export default function PaperGPT() {
             console.error("Error fetching API key:", error);
         }
     };
+
+    // 3. Voice reader button component:
+const VoiceButton = ({ text, type, label }) => (
+    <button
+        onClick={() => speak(text, type)}
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: isReading && readingType === type 
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '0.5rem 0.75rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px 0 rgba(16, 185, 129, 0.3)'
+        }}
+        onMouseOver={(e) => {
+            if (isReading && readingType === type) {
+                e.target.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            } else {
+                e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+            }
+            e.target.style.transform = 'translateY(-1px)';
+        }}
+        onMouseOut={(e) => {
+            if (isReading && readingType === type) {
+                e.target.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            } else {
+                e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            }
+            e.target.style.transform = 'translateY(0)';
+        }}
+    >
+        {isReading && readingType === type ? (
+            <>
+                <VolumeX size={16} />
+                Stop Reading
+            </>
+        ) : (
+            <>
+                <Volume2 size={16} />
+                {label}
+            </>
+        )}
+    </button>
+);
 
         const downloadPDF = (paper) => {
         try {
@@ -380,6 +503,27 @@ const updatePersonalNotes = async (paperId, notes) => {
             minute: '2-digit'
         });
     };
+
+    // 4. Mobile crash prevention - add this to your search input:
+const handleSearchChange = (e) => {
+    try {
+        setSearchTerm(e.target.value);
+    } catch (error) {
+        console.error('Search error:', error);
+        // Fallback
+        setSearchTerm("");
+    }
+
+};
+
+// 7. Cleanup effect - add this useEffect:
+useEffect(() => {
+    return () => {
+        // Cleanup speech synthesis when component unmounts
+        window.speechSynthesis.cancel();
+    };
+}, []);
+
 
     return (
         <>
@@ -878,6 +1022,7 @@ const updatePersonalNotes = async (paperId, notes) => {
                     }
             `}</style>
             
+            
             <div className="paper-gpt-container">
                 <Header />
                 <div>
@@ -905,12 +1050,16 @@ const updatePersonalNotes = async (paperId, notes) => {
                                         <div className="search-wrapper">
                                             <Search className="search-icon" size={20} />
                                             <input
-                                                type="text"
-                                                placeholder="Search papers..."
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                                className="search-input"
-                                            />
+                                            type="text"
+                                            placeholder="Search papers..."
+                                            value={searchTerm}
+                                            onChange={handleSearchChange} // Use the new handler
+                                            className="search-input"
+                                            style={{
+                                                color: '#1e293b',
+                                                backgroundColor: 'white'
+                                            }}
+                                        />
                                         </div>
                                     </div>
                                     <div className="papers-scroll">
@@ -1011,17 +1160,24 @@ const updatePersonalNotes = async (paperId, notes) => {
 
                                             <div className="sections-container">
                                                 {/* AI Summary */}
-                                                <div>
+                                                 <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                                     <h3 className="section-title">
                                                         <div className="status-dot"></div>
                                                         AI Summary
                                                     </h3>
-                                                    <div className="summary-content">
-                                                        <p className="summary-text">
-                                                            {selectedPaper.aiSummary}
-                                                        </p>
-                                                    </div>
+                                                    <VoiceButton 
+                                                        text={selectedPaper.aiSummary} 
+                                                        type="summary" 
+                                                        label="Read Summary" 
+                                                    />
                                                 </div>
+                                                <div className="summary-content">
+                                                    <p className="summary-text">
+                                                        {selectedPaper.aiSummary}
+                                                    </p>
+                                                </div>
+                                            </div>
 
                                                 {/* Personal Notes */}
                                                 <div>
@@ -1036,13 +1192,20 @@ const updatePersonalNotes = async (paperId, notes) => {
 
                                                 {/* Extracted Text Preview */}
                                                 <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                                     <h3 className="section-title">Extracted Text (Preview)</h3>
-                                                    <div className="extracted-text-preview">
-                                                        <p className="preview-text">
-                                                            {selectedPaper.extractedText}
-                                                        </p>
-                                                    </div>
+                                                    <VoiceButton 
+                                                        text={selectedPaper.extractedText} 
+                                                        type="text" 
+                                                        label="Read Text" 
+                                                    />
                                                 </div>
+                                                <div className="extracted-text-preview">
+                                                    <p className="preview-text">
+                                                        {selectedPaper.extractedText}
+                                                    </p>
+                                                </div>
+                                            </div>
                                             </div>
                                         </div>
                                     ) : (
