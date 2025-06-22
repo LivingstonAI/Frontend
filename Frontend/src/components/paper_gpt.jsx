@@ -29,6 +29,40 @@ export default function PaperGPT() {
         }
     };
 
+    const downloadPDF = (paper) => {
+    try {
+        // Convert base64 to blob
+        const base64Data = paper.fileData.split(',')[1]; // Remove data:application/pdf;base64, prefix
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = paper.fileName || `${paper.title}.pdf`;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('Error downloading PDF: ' + error.message);
+    }
+};
+
     const savePaperToBackend = async (paper) => {
     try {
         const response = await fetch(`${baseUrl}/paper-gpt/`, {
@@ -923,6 +957,37 @@ const updatePersonalNotes = async (paperId, notes) => {
                                                         {formatDate(selectedPaper.uploadDate)}
                                                     </span>
                                                     <span>{formatFileSize(selectedPaper.fileSize)}</span>
+                                                    <span className="meta-item">
+                                                    <button
+                                                        onClick={() => downloadPDF(selectedPaper)}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.25rem',
+                                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            padding: '0.5rem 0.75rem',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: '500',
+                                                            transition: 'all 0.2s ease',
+                                                            boxShadow: '0 2px 8px 0 rgba(16, 185, 129, 0.3)'
+                                                        }}
+                                                        onMouseOver={(e) => {
+                                                            e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                                                            e.target.style.transform = 'translateY(-1px)';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                                                            e.target.style.transform = 'translateY(0)';
+                                                        }}
+                                                    >
+                                                        <Download size={16} />
+                                                        Download PDF
+                                                    </button>
+                                                </span>
                                                 </div>
                                             </div>
 
@@ -1052,4 +1117,3 @@ const updatePersonalNotes = async (paperId, notes) => {
         </>
     );
 }
-
