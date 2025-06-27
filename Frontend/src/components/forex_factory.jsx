@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Upload, Edit3, Save, Trash2, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { Upload, Edit3, Save, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, Plus } from "lucide-react";
+
 
 import Header from "./header";
 import SideNavs from "./side_navs";
@@ -196,6 +197,19 @@ export default function ForexFactoryCapturer() {
     const updatedEvents = economicEvents.filter((_, i) => i !== index);
     setEconomicEvents(updatedEvents);
   };
+
+  const addNewEvent = () => {
+  const newEvent = {
+    date_time: new Date().toISOString().slice(0, 19), // Current date/time
+    currency: '',
+    impact: '',
+    event_name: '',
+    actual: '',
+    forecast: '',
+    previous: ''
+  };
+  setEconomicEvents([...economicEvents, newEvent]);
+};
 
   // Replace the saveEvents function in ForexFactoryCapturer with this:
 
@@ -638,6 +652,29 @@ const saveEvents = async () => {
             padding: 0.75rem 1.25rem;
             font-size: 0.9rem;
           }
+            .add-event-section {
+              margin: 1rem 0;
+              text-align: center;
+            }
+
+            .add-button {
+              background: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
+              color: white;
+              border: none;
+              padding: 0.75rem 1.5rem;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: 600;
+              display: inline-flex;
+              align-items: center;
+              gap: 0.5rem;
+              transition: all 0.3s ease;
+            }
+
+            .add-button:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+            }
         }
       `}</style>
 
@@ -718,6 +755,16 @@ const saveEvents = async () => {
                 {saveStatus.message}
               </div>
             )}
+
+              {/* Add Event Button - only show when we have events or after analysis */}
+              {(economicEvents.length > 0 || (selectedFile && !isAnalyzing)) && (
+                <div className="add-event-section">
+                  <button onClick={addNewEvent} className="add-button">
+                    <Plus size={20} />
+                    Add New Event
+                  </button>
+                </div>
+              )}
 
             {/* Events Table */}
             {economicEvents.length > 0 ? (
