@@ -22,7 +22,7 @@ export default function PaperGPT() {
 
     const [editingNotes, setEditingNotes] = useState("");
     const [isEditingNotes, setIsEditingNotes] = useState(false);
-    const [isUpdatingNotes, setIsUpdatingNotes] = useState('Save');
+    const [isUpdatingNotes, setIsUpdatingNotes] = useState('Update');
 
     // Add these state variables to your existing useState declarations:
     const [isReading, setIsReading] = useState(false);
@@ -486,7 +486,7 @@ const updatePersonalNotes = async (paperId, notes) => {
         console.error("Error updating notes:", error);
         alert("Error updating notes: " + error.message);
     };
-    setIsUpdatingNotes('Save');
+    setIsUpdatingNotes('Update');
 };
     const filteredPapers = papers.filter(paper =>
         paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
