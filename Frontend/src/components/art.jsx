@@ -779,7 +779,7 @@ useEffect(() => {
         <div className="three-container" ref={threeContainerRef}></div>
         
         {/* Keep your existing idle animation as overlay */}
-        <div className="holo-idle-animation">
+        {/* <div className="holo-idle-animation">
           <div className="orb-core"></div>
           <div className="floating-particles">
             {Array(6).fill().map((_, i) => (
@@ -791,7 +791,7 @@ useEffect(() => {
             <div className="ring ring-2"></div>
             <div className="ring ring-3"></div>
           </div>
-        </div>
+        </div> */}
 
         {/* Your existing music player interface */}
         {isPlaying && (
