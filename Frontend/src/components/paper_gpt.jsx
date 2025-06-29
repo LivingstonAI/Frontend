@@ -19,6 +19,9 @@ export default function PaperGPT() {
         personalNotes: ""
     });
 
+    const [editingNotes, setEditingNotes] = useState("");
+    const [isEditingNotes, setIsEditingNotes] = useState(false);
+
     // Add these state variables to your existing useState declarations:
     const [isReading, setIsReading] = useState(false);
     const [currentUtterance, setCurrentUtterance] = useState(null);
@@ -524,6 +527,10 @@ useEffect(() => {
     };
 }, []);
 
+    useEffect(() => {
+    setIsEditingNotes(false);
+    setEditingNotes("");
+}, [selectedPaper]);
 
     return (
         <>
@@ -1181,15 +1188,94 @@ useEffect(() => {
 
                                                 {/* Personal Notes */}
                                                 <div>
-                                                    <h3 className="section-title">Personal Notes</h3>
-                                                    <textarea
-                                                        value={selectedPaper.personalNotes}
-                                                        onChange={(e) => updatePersonalNotes(selectedPaper.id, e.target.value)}
-                                                        placeholder="Add your personal notes about this paper..."
-                                                        className="notes-textarea"
-                                                    />
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                        <h3 className="section-title">Personal Notes</h3>
+                                                        {!isEditingNotes ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsEditingNotes(true);
+                                                                    setEditingNotes(selectedPaper.personalNotes || "");
+                                                                }}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.5rem',
+                                                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    padding: '0.5rem 0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '0.875rem',
+                                                                    fontWeight: '500',
+                                                                    transition: 'all 0.2s ease'
+                                                                }}
+                                                            >
+                                                                Edit Notes
+                                                            </button>
+                                                        ) : (
+                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            await updatePersonalNotes(selectedPaper.id, editingNotes);
+                                                                            setIsEditingNotes(false);
+                                                                        } catch (error) {
+                                                                            console.error("Error saving notes:", error);
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                                        color: 'white',
+                                                                        border: 'none',
+                                                                        borderRadius: '8px',
+                                                                        padding: '0.5rem 0.75rem',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.875rem'
+                                                                    }}
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setIsEditingNotes(false);
+                                                                        setEditingNotes("");
+                                                                    }}
+                                                                    style={{
+                                                                        background: '#6b7280',
+                                                                        color: 'white',
+                                                                        border: 'none',
+                                                                        borderRadius: '8px',
+                                                                        padding: '0.5rem 0.75rem',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.875rem'
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {isEditingNotes ? (
+                                                        <textarea
+                                                            value={editingNotes}
+                                                            onChange={(e) => setEditingNotes(e.target.value)}
+                                                            placeholder="Add your personal notes about this paper..."
+                                                            className="notes-textarea"
+                                                        />
+                                                    ) : (
+                                                        <div style={{
+                                                            background: '#f8fafc',
+                                                            padding: '1rem',
+                                                            borderRadius: '12px',
+                                                            border: '1px solid #e2e8f0',
+                                                            minHeight: '8rem',
+                                                            whiteSpace: 'pre-wrap'
+                                                        }}>
+                                                            {selectedPaper.personalNotes || "No notes added yet. Click 'Edit Notes' to add your thoughts."}
+                                                        </div>
+                                                    )}
                                                 </div>
-
                                                 {/* Extracted Text Preview */}
                                                 <div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
