@@ -1202,7 +1202,6 @@ useEffect(() => {
                                                                 cursor: 'pointer',
                                                                 fontSize: '0.875rem',
                                                                 fontWeight: '600',
-                                                                marginTop: '0.75rem',
                                                                 textDecoration: 'underline'
                                                             }}
                                                         >
