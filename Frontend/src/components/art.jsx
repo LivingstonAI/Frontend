@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import * as THREE from 'three';
+
 
 // Import all the songs
 import jingleBells from '../jingle_bells.mp3';
@@ -99,6 +101,10 @@ export default function Art() {
   const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
   const [showHologram, setShowHologram] = useState(false); // State to control hologram visibility
   const [currentDateTime, setCurrentDateTime] = useState("");
+
+  const [threeScene, setThreeScene] = useState(null);
+  const [threeRenderer, setThreeRenderer] = useState(null);
+  const threeContainerRef = useRef(null);
   
   // Audio refs for authentication sounds
   const accessGrantedAudioRef = useRef(null);
@@ -549,6 +555,98 @@ if (SpeechRecognition) {
     setShowColorPalette(!showColorPalette);
   };
 
+  useEffect(() => {
+  if (showHologram && threeContainerRef.current) {
+    // Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ 
+      alpha: true, 
+      antialias: true 
+    });
+    
+    // Set renderer size to match your hologram container
+    renderer.setSize(400, 400);
+    renderer.setClearColor(0x000000, 0); // Transparent background
+    threeContainerRef.current.appendChild(renderer.domElement);
+    
+    // Create sphere geometry (your orb)
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    
+    // Create holographic material
+    const material = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(hologramColor.glow),
+      transparent: true,
+      opacity: 0.3,
+      wireframe: true
+    });
+    
+    // Create the sphere mesh
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+    
+    // Add subtle inner glow sphere
+    const innerGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(hologramColor.primary),
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.BackSide
+    });
+    const innerSphere = new THREE.Mesh(innerGeometry, innerMaterial);
+    scene.add(innerSphere);
+    
+    // Position camera
+    camera.position.z = 3;
+    
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      
+      // Very subtle rotation
+      sphere.rotation.x += 0.002;
+      sphere.rotation.y += 0.003;
+      
+      innerSphere.rotation.x -= 0.001;
+      innerSphere.rotation.y -= 0.002;
+      
+      renderer.render(scene, camera);
+    };
+    
+    animate();
+    
+    // Store references
+    setThreeScene(scene);
+    setThreeRenderer(renderer);
+    
+    // Cleanup function
+    return () => {
+      if (threeContainerRef.current && renderer.domElement) {
+        threeContainerRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+      geometry.dispose();
+      material.dispose();
+      innerGeometry.dispose();
+      innerMaterial.dispose();
+    };
+  }
+}, [showHologram, hologramColor]);
+
+useEffect(() => {
+  if (threeScene && showHologram) {
+    threeScene.traverse((child) => {
+      if (child.isMesh) {
+        if (child.material.wireframe) {
+          child.material.color.setHex(hologramColor.glow.replace('#', '0x'));
+        } else {
+          child.material.color.setHex(hologramColor.primary.replace('#', '0x'));
+        }
+      }
+    });
+  }
+}, [hologramColor, threeScene, showHologram]);
+
   // Render authentication UI based on stage
   const renderAuthUI = () => {
     switch (authStage) {
@@ -668,44 +766,48 @@ if (SpeechRecognition) {
         </div>
       )}
 
-      {/* Only show hologram after authentication and welcome message are complete */}
-      {showHologram && (
-        <div className="holographic-container" ref={containerRef} onClick={generateRipple}>
-          <div className={`hologram ${scanLines ? 'with-scan-lines' : ''}`}>
-            {/* Ripples */}
-            {ripples.map((id) => (
-              <span key={id} className="ripple" />
-            ))}
+            {/* Only show hologram after authentication and welcome message are complete */}
+            {showHologram && (
+              <div className="holographic-container" ref={containerRef} onClick={generateRipple}>
+                <div className={`hologram ${scanLines ? 'with-scan-lines' : ''}`}>
+        {/* Ripples */}
+        {ripples.map((id) => (
+          <span key={id} className="ripple" />
+        ))}
 
-            
-            <div className="holo-idle-animation">
-                <div className="orb-core"></div>
-                <div className="floating-particles">
-                  {Array(6).fill().map((_, i) => (
-                    <div key={i} className={`particle particle-${i + 1}`} />
-                  ))}
-                </div>
-                <div className="energy-rings">
-                  <div className="ring ring-1"></div>
-                  <div className="ring ring-2"></div>
-                  <div className="ring ring-3"></div>
-                </div>
-              </div>
-            {/* Music Player Interface (only shown when authenticated) */}
-            {isPlaying && (
-              <div className="holo-music-player">
-                <div className="holo-music-visualizer">
-                  {Array(5).fill().map((_, i) => (
-                    <div key={i} className="holo-music-bar" />
-                  ))}
-                </div>
-                <div className="holo-music-title">Now Playing</div>
-                <div className="holo-song-name">
-                  {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
-                </div>
-              </div>
-            )}
+        {/* 3D Holographic Orb Container */}
+        <div className="three-container" ref={threeContainerRef}></div>
+        
+        {/* Keep your existing idle animation as overlay */}
+        <div className="holo-idle-animation">
+          <div className="orb-core"></div>
+          <div className="floating-particles">
+            {Array(6).fill().map((_, i) => (
+              <div key={i} className={`particle particle-${i + 1}`} />
+            ))}
           </div>
+          <div className="energy-rings">
+            <div className="ring ring-1"></div>
+            <div className="ring ring-2"></div>
+            <div className="ring ring-3"></div>
+          </div>
+        </div>
+
+        {/* Your existing music player interface */}
+        {isPlaying && (
+          <div className="holo-music-player">
+            <div className="holo-music-visualizer">
+              {Array(5).fill().map((_, i) => (
+                <div key={i} className="holo-music-bar" />
+              ))}
+            </div>
+            <div className="holo-music-title">Now Playing</div>
+            <div className="holo-song-name">
+              {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
+            </div>
+          </div>
+        )}
+      </div>
         </div>
       )}
 
