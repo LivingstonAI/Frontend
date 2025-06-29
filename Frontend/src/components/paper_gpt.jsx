@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Upload, FileText, Calendar, Eye, Trash2, Plus, Search, Download, BookOpen } from "lucide-react";
+import { Upload, FileText, Calendar, Eye, Trash2, Plus, Search, Download, BookOpen, Edit3  } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import { Volume2, VolumeX, Pause, Play } from "lucide-react";
@@ -13,6 +13,7 @@ export default function PaperGPT() {
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showFullSummary, setShowFullSummary] = useState(false);
     const [newPaper, setNewPaper] = useState({
         title: "",
         file: null,
@@ -1181,8 +1182,30 @@ useEffect(() => {
                                                 </div>
                                                 <div className="summary-content">
                                                     <p className="summary-text">
-                                                        {selectedPaper.aiSummary}
+                                                        {showFullSummary 
+                                                            ? selectedPaper.aiSummary 
+                                                            : selectedPaper.aiSummary.length > 300 
+                                                                ? selectedPaper.aiSummary.substring(0, 300) + "..." 
+                                                                : selectedPaper.aiSummary
+                                                        }
                                                     </p>
+                                                    {selectedPaper.aiSummary.length > 300 && (
+                                                        <button
+                                                            onClick={() => setShowFullSummary(!showFullSummary)}
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                color: '#3b82f6',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.875rem',
+                                                                fontWeight: '600',
+                                                                marginTop: '0.75rem',
+                                                                textDecoration: 'underline'
+                                                            }}
+                                                        >
+                                                            {showFullSummary ? 'Read Less' : 'Read More'}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1191,28 +1214,38 @@ useEffect(() => {
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                                         <h3 className="section-title">Personal Notes</h3>
                                                         {!isEditingNotes ? (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setIsEditingNotes(true);
-                                                                    setEditingNotes(selectedPaper.personalNotes || "");
-                                                                }}
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '0.5rem',
-                                                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                                                    color: 'white',
-                                                                    border: 'none',
-                                                                    borderRadius: '8px',
-                                                                    padding: '0.5rem 0.75rem',
-                                                                    cursor: 'pointer',
-                                                                    fontSize: '0.875rem',
-                                                                    fontWeight: '500',
-                                                                    transition: 'all 0.2s ease'
-                                                                }}
-                                                            >
-                                                                Edit Notes
-                                                            </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsEditingNotes(true);
+                                                                setEditingNotes(selectedPaper.personalNotes || "");
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.5rem',
+                                                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                padding: '0.5rem 0.75rem',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.875rem',
+                                                                fontWeight: '500',
+                                                                transition: 'all 0.2s ease',
+                                                                boxShadow: '0 2px 8px 0 rgba(16, 185, 129, 0.3)'
+                                                            }}
+                                                            onMouseOver={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                                                                e.target.style.transform = 'translateY(-1px)';
+                                                            }}
+                                                            onMouseOut={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                                                                e.target.style.transform = 'translateY(0)';
+                                                            }}
+                                                        >
+                                                            <Edit3 size={16} />
+                                                            Edit Notes
+                                                        </button>
                                                         ) : (
                                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                                 <button
