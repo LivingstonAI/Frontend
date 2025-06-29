@@ -14,6 +14,7 @@ export default function PaperGPT() {
     const [searchTerm, setSearchTerm] = useState("");
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showFullSummary, setShowFullSummary] = useState(false);
+    const [showFullNotes, setShowFullNotes] = useState(false);
     const [newPaper, setNewPaper] = useState({
         title: "",
         file: null,
@@ -445,6 +446,8 @@ const deletePaperFromBackend = async (paperId) => {
         });
     };
 
+    
+
     // Replace handleDeletePaper function:
 const handleDeletePaper = async (paperId) => {
     if (window.confirm("Are you sure you want to delete this paper?")) {
@@ -534,7 +537,10 @@ useEffect(() => {
     useEffect(() => {
     setIsEditingNotes(false);
     setEditingNotes("");
+    setShowFullNotes(false); // Add this line
 }, [selectedPaper]);
+
+
 
     return (
         <>
@@ -1299,15 +1305,56 @@ useEffect(() => {
                                                             className="notes-textarea"
                                                         />
                                                     ) : (
-                                                        <div style={{
-                                                            background: '#f8fafc',
-                                                            padding: '1rem',
-                                                            borderRadius: '12px',
-                                                            border: '1px solid #e2e8f0',
-                                                            minHeight: '8rem',
-                                                            whiteSpace: 'pre-wrap'
-                                                        }}>
-                                                            {selectedPaper.personalNotes || "No notes added yet. Click 'Edit Notes' to add your thoughts."}
+                                                        <div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                                <div></div> {/* Empty div for spacing */}
+                                                                {selectedPaper.personalNotes && (
+                                                                    <VoiceButton 
+                                                                        text={selectedPaper.personalNotes} 
+                                                                        type="notes" 
+                                                                        label="Read Notes" 
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                            <div style={{
+                                                                background: '#f8fafc',
+                                                                padding: '1rem',
+                                                                borderRadius: '12px',
+                                                                border: '1px solid #e2e8f0',
+                                                                minHeight: '8rem',
+                                                                whiteSpace: 'pre-wrap'
+                                                            }}>
+                                                                {selectedPaper.personalNotes ? (
+                                                                    <>
+                                                                        {showFullNotes 
+                                                                            ? selectedPaper.personalNotes 
+                                                                            : selectedPaper.personalNotes.length > 300 
+                                                                                ? selectedPaper.personalNotes.substring(0, 300) + "..." 
+                                                                                : selectedPaper.personalNotes
+                                                                        }
+                                                                        {selectedPaper.personalNotes.length > 300 && (
+                                                                            <button
+                                                                                onClick={() => setShowFullNotes(!showFullNotes)}
+                                                                                style={{
+                                                                                    background: 'none',
+                                                                                    border: 'none',
+                                                                                    color: '#3b82f6',
+                                                                                    cursor: 'pointer',
+                                                                                    fontSize: '0.875rem',
+                                                                                    fontWeight: '600',
+                                                                                    textDecoration: 'underline',
+                                                                                    marginTop: '0.5rem',
+                                                                                    display: 'block'
+                                                                                }}
+                                                                            >
+                                                                                {showFullNotes ? 'Read Less' : 'Read More'}
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    "No notes added yet. Click 'Edit Notes' to add your thoughts."
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
