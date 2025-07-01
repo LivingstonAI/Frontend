@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { BookOpen, Bookmark, ChevronLeft, Edit2, Trash2, Volume2, VolumeX, PlusCircle, Folder, Image, MessageSquare, Save, X, List, Grid, RefreshCw } from "react-feather";
 
 // Custom Brain Icon Component
-const BrainIcon = ({ size = 24, color = "currentColor", className = "", ...props }) => {
+const BrainIcon = ({ size = 30, color = "currentColor", className = "", ...props }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -452,9 +452,9 @@ export default function Chill() {
                         {chatOpen && (
                             <div className="chat-window">
                                 <div className="chat-header">
-                                    <h4><MessageSquare size={18} /> Livingston AI Assistant</h4>
+                                    <h4><MessageSquare size={30} /> Livingston AI Assistant</h4>
                                     <button onClick={() => setChatOpen(false)} className="close-btn">
-                                        <X size={18} />
+                                        <X size={30} />
                                     </button>
                                 </div>
                                 <div className="messages-container">
@@ -499,7 +499,7 @@ export default function Chill() {
                             <div className="dashboard-section">
                                 <div className="section-controls">
                                     <button onClick={fetchImages} className="control-btn image-btn">
-                                        <RefreshCw size={16} className={imageProcess === 'Fetching Images...' ? 'spinning' : ''} />
+                                        <RefreshCw size={30} className={imageProcess === 'Fetching Images...' ? 'spinning' : ''} />
                                         {imageProcess}
                                     </button>
                                     
@@ -508,13 +508,13 @@ export default function Chill() {
                                             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`} 
                                             onClick={() => setViewMode('grid')}
                                         >
-                                            <Grid size={16} />
+                                            <Grid size={30} />
                                         </button>
                                         <button 
                                             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`} 
                                             onClick={() => setViewMode('list')}
                                         >
-                                            <List size={16} />
+                                            <List size={30} />
                                         </button>
                                     </div>
                                 </div>
@@ -534,7 +534,7 @@ export default function Chill() {
                                 {imageFolders && (
                                     <div className="image-folders">
                                         <h6 className="section-subheading">
-                                            <Folder size={16} /> Image Folders
+                                            <Folder size={30} /> Image Folders
                                         </h6>
                                         <div className="folder-grid">
                                             {Object.keys(imageFolders).map((folder, index) => (
@@ -543,7 +543,7 @@ export default function Chill() {
                                                     onClick={() => handleFolderClick(folder)}
                                                     className="folder-btn"
                                                 >
-                                                    <Folder size={16} />
+                                                    <Folder size={30} />
                                                     <span>{folder}</span>
                                                     <span className="file-count">{imageFolders[folder].length}</span>
                                                 </button>
@@ -557,9 +557,9 @@ export default function Chill() {
                         {selectedFolder && folderState && (
                             <div className="folder-view">
                                 <div className="folder-header">
-                                    <h6><Folder size={16} /> {selectedFolder}</h6>
+                                    <h6><Folder size={30} /> {selectedFolder}</h6>
                                     <button onClick={closeFolder} className="close-folder-btn">
-                                        <X size={16} />
+                                        <X size={30} />
                                     </button>
                                 </div>
                                 <div className="images-grid">
@@ -585,7 +585,7 @@ export default function Chill() {
                             <div className="expanded-image-overlay" onClick={handleCloseExpandedImage}>
                                 <div className="expanded-image-container" onClick={e => e.stopPropagation()}>
                                     <button className="close-expanded-btn" onClick={handleCloseExpandedImage}>
-                                        <X size={20} />
+                                        <X size={30} />
                                     </button>
                                     <img
                                         src={expandedImage.data}
@@ -606,7 +606,7 @@ export default function Chill() {
                             <div className="section-view">
                                 <div className="section-header">
                                     <h4 className="section-title">
-                                        <Bookmark size={18} className="icon" />
+                                        <Bookmark size={30} className="icon" />
                                         {selectedSection.section}
                                     </h4>
                                     <div className="section-actions">
@@ -616,7 +616,7 @@ export default function Chill() {
                                                 className="action-btn assistant-btn"
                                                 title="AI Assistant"
                                             >
-                                                <MessageSquare size={16} />
+                                                <MessageSquare size={30} />
                                             </button>
                                         )}
                                         {!editing && !isSpeaking && (
@@ -625,7 +625,7 @@ export default function Chill() {
                                                 className="action-btn"
                                                 title="Read Aloud"
                                             >
-                                                <Volume2 size={16} />
+                                                <Volume2 size={30} />
                                             </button>
                                         )}
                                         {isSpeaking && (
@@ -634,7 +634,7 @@ export default function Chill() {
                                                 className="action-btn stop-btn"
                                                 title="Stop Reading"
                                             >
-                                                <VolumeX size={16} />
+                                                <VolumeX size={30} />
                                             </button>
                                         )}
                                         {!editing && (
@@ -643,7 +643,7 @@ export default function Chill() {
                                                 className="action-btn"
                                                 title="Edit"
                                             >
-                                                <Edit2 size={16} />
+                                                <Edit2 size={30} />
                                             </button>
                                         )}
                                         {editing && (
@@ -652,7 +652,7 @@ export default function Chill() {
                                                 className="action-btn save-btn"
                                                 title="Save"
                                             >
-                                                <Save size={16} />
+                                                <Save size={30} />
                                             </button>
                                         )}
                                     </div>
@@ -673,19 +673,19 @@ export default function Chill() {
 
                                 <div className="section-footer">
                                     <button onClick={handleBack} className="footer-btn back-btn">
-                                        <ChevronLeft size={16} />
+                                        <ChevronLeft size={30} />
                                         Back to Sections
                                     </button>
                                     <div className="footer-actions">
                                         <button onClick={quizMe} className="footer-btn quiz-btn">
-                                            <BrainIcon size={16} />
+                                            <BrainIcon size={30} />
                                             Quiz Me
                                         </button>
                                         <button 
                                             onClick={() => handleDelete(selectedSection.section)} 
                                             className="footer-btn delete-btn"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={30} />
                                             Delete
                                         </button>
                                     </div>
@@ -701,7 +701,7 @@ export default function Chill() {
                                                 className="section-item"
                                                 onClick={() => fetchSectionData(section)}
                                             >
-                                                <Bookmark size={16} className="section-icon" />
+                                                <Bookmark size={30} className="section-icon" />
                                                 <span className="section-name">{section.section}</span>
                                             </div>
                                         ))
@@ -722,7 +722,7 @@ export default function Chill() {
                                     onClick={() => setShowNewEntryForm(!showNewEntryForm)} 
                                     className="add-section-btn"
                                 >
-                                    <PlusCircle size={16} />
+                                    <PlusCircle size={30} />
                                     {showNewEntryForm ? "Cancel" : "Add New Section"}
                                 </button>
                             )}
@@ -730,7 +730,7 @@ export default function Chill() {
                             {showNewEntryForm && (
                                 <div className="new-section-form">
                                     <h5 className="form-title">
-                                        <PlusCircle size={18} />
+                                        <PlusCircle size={30} />
                                         Create New Section
                                     </h5>
                                     <input
@@ -747,7 +747,7 @@ export default function Chill() {
                                         onChange={(e) => setNewText(e.target.value)}
                                     />
                                     <button onClick={handleCreateNewEntry} className="save-new-section-btn">
-                                        <Save size={16} />
+                                        <Save size={30} />
                                         Save New Section
                                     </button>
                                 </div>
