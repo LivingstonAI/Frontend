@@ -279,10 +279,20 @@ export default function Chill() {
         utterance.onerror = (event) => console.error("Speech error:", event.error);
     
         const voices = window.speechSynthesis.getVoices();
-        
+
         if (voices.length > 0) {
-            utterance.voice = voices[0];
-        } else {
+            // Look for a female British voice
+            const britishFemaleVoice = voices.find(voice => 
+                voice.lang.includes('en-GB') && voice.name.toLowerCase().includes('female')
+            ) || voices.find(voice => 
+                voice.lang.includes('en-GB')
+            ) || voices.find(voice => 
+                voice.name.toLowerCase().includes('female')
+            );
+            
+            utterance.voice = britishFemaleVoice || voices[0];
+        }
+        else {
             window.speechSynthesis.onvoiceschanged = () => {
                 const voices = window.speechSynthesis.getVoices();
                 if (voices.length > 0) {
