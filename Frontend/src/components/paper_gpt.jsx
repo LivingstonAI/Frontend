@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Upload, FileText, Calendar, Eye, Trash2, Plus, Search, Download, BookOpen, Edit3  } from "lucide-react";
+import { Upload, FileText, Calendar, Eye, Trash2, Plus, Search, Download, BookOpen, Edit3, Copy } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import { Volume2, VolumeX, Pause, Play } from "lucide-react";
@@ -48,45 +48,57 @@ export default function PaperGPT() {
         }
         `;
 
-            // Add these functions to your component:
-        const speak = (text, type) => {
-            // Stop any current speech
-            window.speechSynthesis.cancel();
-            
-            if (isReading && readingType === type) {
-                // If already reading this type, stop
-                setIsReading(false);
-                setCurrentUtterance(null);
-                setReadingType(null);
-                return;
-            }
+         const speak = (text, type) => {
+    window.speechSynthesis.cancel();
+    
+    if (isReading && readingType === type) {
+        setIsReading(false);
+        setCurrentUtterance(null);
+        setReadingType(null);
+        return;
+    }
 
-            // Create new utterance
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.8;
-            utterance.pitch = 1;
-            utterance.volume = 1;
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Set British female voice
+    const voices = window.speechSynthesis.getVoices();
+    const britishFemaleVoice = voices.find(voice => 
+        voice.lang.includes('en-GB') && voice.name.toLowerCase().includes('female')
+    ) || voices.find(voice => 
+        voice.lang.includes('en-GB')
+    ) || voices.find(voice => 
+        voice.name.toLowerCase().includes('female')
+    );
+    
+    if (britishFemaleVoice) {
+        utterance.voice = britishFemaleVoice;
+    }
+    
+    utterance.rate = 0.8;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    utterance.lang = 'en-GB';
 
-            utterance.onstart = () => {
-                setIsReading(true);
-                setReadingType(type);
-            };
+    utterance.onstart = () => {
+        setIsReading(true);
+        setReadingType(type);
+    };
 
-            utterance.onend = () => {
-                setIsReading(false);
-                setCurrentUtterance(null);
-                setReadingType(null);
-            };
+    utterance.onend = () => {
+        setIsReading(false);
+        setCurrentUtterance(null);
+        setReadingType(null);
+    };
 
-            utterance.onerror = () => {
-                setIsReading(false);
-                setCurrentUtterance(null);
-                setReadingType(null);
-            };
+    utterance.onerror = () => {
+        setIsReading(false);
+        setCurrentUtterance(null);
+        setReadingType(null);
+    };
 
-            setCurrentUtterance(utterance);
-            window.speechSynthesis.speak(utterance);
-        };
+    setCurrentUtterance(utterance);
+    window.speechSynthesis.speak(utterance);
+};
 
         const stopSpeaking = () => {
             window.speechSynthesis.cancel();
@@ -155,6 +167,47 @@ const VoiceButton = ({ text, type, label }) => (
                 {label}
             </>
         )}
+    </button>
+);
+
+    const copyToClipboard = async (text, type) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        // Optional: Add a temporary "Copied!" state if you want visual feedback
+    } catch (error) {
+        console.error('Failed to copy text:', error);
+    }
+};
+
+const CopyButton = ({ text, label }) => (
+    <button
+        onClick={() => copyToClipboard(text)}
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '0.5rem 0.75rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px 0 rgba(99, 102, 241, 0.3)'
+        }}
+        onMouseOver={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)';
+            e.target.style.transform = 'translateY(-1px)';
+        }}
+        onMouseOut={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+            e.target.style.transform = 'translateY(0)';
+        }}
+    >
+        <Copy size={16} />
+        {label}
     </button>
 );
 
@@ -1183,11 +1236,14 @@ useEffect(() => {
                                                         <div className="status-dot"></div>
                                                         AI Summary
                                                     </h3>
-                                                    <VoiceButton 
-                                                        text={selectedPaper.aiSummary} 
-                                                        type="summary" 
-                                                        label="Read Summary" 
-                                                    />
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <CopyButton text={selectedPaper.aiSummary} label="Copy" />
+                                                        <VoiceButton 
+                                                            text={selectedPaper.aiSummary} 
+                                                            type="summary" 
+                                                            label="Read Summary" 
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="summary-content">
                                                     <p className="summary-text">
@@ -1307,15 +1363,18 @@ useEffect(() => {
                                                     ) : (
                                                         <div>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                                <div></div> {/* Empty div for spacing */}
-                                                                {selectedPaper.personalNotes && (
+                                                            <div></div>
+                                                            {selectedPaper.personalNotes && (
+                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                    <CopyButton text={selectedPaper.personalNotes} label="Copy" />
                                                                     <VoiceButton 
                                                                         text={selectedPaper.personalNotes} 
                                                                         type="notes" 
                                                                         label="Read Notes" 
                                                                     />
-                                                                )}
-                                                            </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                             <div style={{
                                                                 background: '#f8fafc',
                                                                 padding: '1rem',
@@ -1362,11 +1421,14 @@ useEffect(() => {
                                                 <div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                                     <h3 className="section-title">Extracted Text (Preview)</h3>
-                                                    <VoiceButton 
-                                                        text={selectedPaper.extractedText} 
-                                                        type="text" 
-                                                        label="Read Text" 
-                                                    />
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <CopyButton text={selectedPaper.extractedText} label="Copy" />
+                                                        <VoiceButton 
+                                                            text={selectedPaper.extractedText} 
+                                                            type="text" 
+                                                            label="Read Text" 
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="extracted-text-preview">
                                                     <p className="preview-text">
