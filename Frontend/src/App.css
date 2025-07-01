@@ -7022,6 +7022,11 @@ body.dark .asset-item:hover {
   cursor: not-allowed;
 }
 
+.chill-interface svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
 /* Chat Styles */
 .chat-window {
   position: fixed;
