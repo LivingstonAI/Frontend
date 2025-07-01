@@ -174,6 +174,7 @@ const VoiceButton = ({ text, type, label }) => (
     try {
         await navigator.clipboard.writeText(text);
         // Optional: Add a temporary "Copied!" state if you want visual feedback
+        alert('Text copied successfully!');
     } catch (error) {
         console.error('Failed to copy text:', error);
     }
