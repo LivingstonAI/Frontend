@@ -7027,6 +7027,32 @@ body.dark .asset-item:hover {
   height: 20px !important;
 }
 
+.action-btn svg,
+.footer-btn svg,
+.control-btn svg,
+.form-title svg,
+.chat-header h4 svg,
+.section-subheading svg,
+.folder-btn svg,
+.folder-header h6 svg {
+  font-size: 20px;
+}
+
+.chill-title .icon {
+  font-size: 28px; 
+}
+
+.section-icon,
+.section-title .icon {
+  font-size: 20px;
+}
+
+.close-expanded-btn svg,
+.close-btn svg,
+.close-folder-btn svg {
+  font-size: 20px;
+}
+
 /* Chat Styles */
 .chat-window {
   position: fixed;
