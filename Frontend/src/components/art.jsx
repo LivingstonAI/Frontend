@@ -70,8 +70,8 @@ import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics
 import a_million_colors from '../A Million Colors.mp3';
 import annas_smile from "../Anna's Smile.mp3";
 import strangers from '../Kenya Grace - Strangers (Official Lyric Video).mp3';
-import tiger_is_coming from '../이날치 LEENALCHI - 범 내려온다 Tiger is Coming [360 Official MV].mp3'
 import memory from '../hojean - memory [lyrics] (1).mp3';
+import any_song from '../Any song (아무노래).mp3';
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -275,7 +275,7 @@ export default function Art() {
     "65": { name: "Anna's Smile 🌹", file: annas_smile},
     "66": { name: "Strangers 🪶", file: strangers },
     "67": { name: "Memory 🪶", file: memory },
-    
+    "68": { name: "아무노래 ~ ZICO 🇰🇷", file: any_song },
   };
 
   // Function to get current date and time formatted
