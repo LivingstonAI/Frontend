@@ -641,7 +641,7 @@ export default function ProcessChecker() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Process Checker — Trade Validation Flow</h5>
+                    <h5 className="major-upcoming-news-events-header">Process Checker — Trade Validation Flow</h5><br />
                     
                     <div className="pc-main-container-unique">
                         {!showFinalAction && (
