@@ -340,10 +340,10 @@ export default function SideNavs() {
         <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
         {/* <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
-        <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cup-hot-fill"></i></p></button></Link>
+        <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link>
         <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
         <Link to="/paper_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-mortarboard-fill"></i></p></button></Link>
-
+        <Link to="/process_checker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-patch-check-fill"></i></p></button></Link>
       </div>
 
       <div className="side-navs-cellphone">
@@ -429,13 +429,16 @@ export default function SideNavs() {
             <i className="bi bi-camera-fill"></i>
         </Link>
         <Link to="/trading_econ_dashboard" className="side-nav">
-            <i className="bi bi-cup-hot-fill"></i>
+            <i className="bi bi-graph-up-arrow"></i>
         </Link>
         <Link to="/trading_calendar" className="side-nav">
             <i className="bi bi-calendar-date-fill"></i>
         </Link>
         <Link to="/paper_gpt" className="side-nav">
             <i className="bi bi-mortarboard-fill"></i>
+        </Link>
+        <Link to="/process_checker" className="side-nav">
+            <i className="bi bi-patch-check-fill"></i>
         </Link>
       </div>
       <br />
