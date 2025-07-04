@@ -18,6 +18,7 @@ export default function ProcessChecker() {
         mentorApproval: ''
     });
     const [aiAnalysis, setAiAnalysis] = useState('');
+    const [aiRecommendation, setAiRecommendation] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showFinalAction, setShowFinalAction] = useState(false);
 
@@ -62,8 +63,11 @@ export default function ProcessChecker() {
         setIsAnalyzing(true);
         try {
             const analysisPrompt = `
-                Analyze these trading validation responses and provide a 1-2 sentence AI feedback:
+                Analyze these trading validation responses and provide:
+                1. A 1-2 sentence analysis of the trader's state
+                2. A clear recommendation: "PROCEED", "RECONSIDER", or "CANCEL"
                 
+                Responses:
                 Emotional State: ${responses.emotionalState}
                 Trading Logic: ${responses.tradingLogic}
                 Strategy Alignment: ${responses.strategyAlignment}
@@ -72,7 +76,11 @@ export default function ProcessChecker() {
                 Market Conditions: ${responses.marketConditions}
                 Mentor Approval: ${responses.mentorApproval}
                 
-                Flag any concerns and give brief advice. Focus on emotional state, rule-breaking, overexposure, or market mismatch.
+                Focus on emotional state, rule-breaking, overexposure, or market mismatch.
+                
+                Format your response as:
+                ANALYSIS: [your analysis]
+                RECOMMENDATION: [PROCEED/RECONSIDER/CANCEL]
             `;
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -89,16 +97,24 @@ export default function ProcessChecker() {
                             content: analysisPrompt
                         }
                     ],
-                    max_tokens: 150
+                    max_tokens: 200
                 })
             });
 
             const data = await response.json();
-            setAiAnalysis(data.choices[0].message.content);
+            const fullResponse = data.choices[0].message.content;
+            
+            // Parse the response to extract analysis and recommendation
+            const analysisMatch = fullResponse.match(/ANALYSIS:\s*(.*?)(?=RECOMMENDATION:|$)/s);
+            const recommendationMatch = fullResponse.match(/RECOMMENDATION:\s*(PROCEED|RECONSIDER|CANCEL)/i);
+            
+            setAiAnalysis(analysisMatch ? analysisMatch[1].trim() : fullResponse);
+            setAiRecommendation(recommendationMatch ? recommendationMatch[1].toUpperCase() : 'RECONSIDER');
             setShowFinalAction(true);
         } catch (error) {
             console.error('Error analyzing responses:', error);
             setAiAnalysis('Analysis unavailable. Please review your responses manually.');
+            setAiRecommendation('RECONSIDER');
             setShowFinalAction(true);
         } finally {
             setIsAnalyzing(false);
@@ -117,6 +133,7 @@ export default function ProcessChecker() {
             mentorApproval: ''
         });
         setAiAnalysis('');
+        setAiRecommendation('');
         setShowFinalAction(false);
     };
 
@@ -192,16 +209,17 @@ export default function ProcessChecker() {
                         <p className="pc-step-hint-unique">👉 Prompt: Is this normally a strong or weak session for you?</p>
                         <div className="pc-performance-options-unique">
                             {[
-                                { value: 'strong', text: 'Strong' },
-                                { value: 'neutral', text: 'Neutral' },
-                                { value: 'weak', text: 'Weak' }
+                                { value: 'strong', text: 'Strong', icon: '💪' },
+                                { value: 'neutral', text: 'Neutral', icon: '😐' },
+                                { value: 'weak', text: 'Weak', icon: '📉' }
                             ].map((option) => (
                                 <button
                                     key={option.value}
                                     className={`pc-performance-btn-unique ${responses.sessionPerformance === option.value ? 'pc-selected-unique' : ''}`}
                                     onClick={() => handleResponse('sessionPerformance', option.value)}
                                 >
-                                    {option.text}
+                                    <span className="pc-icon-unique">{option.icon}</span>
+                                    <span className="pc-performance-text-unique">{option.text}</span>
                                 </button>
                             ))}
                         </div>
@@ -215,16 +233,17 @@ export default function ProcessChecker() {
                         <p className="pc-step-hint-unique">👉 Prompt: Will this trade risk breaching your daily loss cap?</p>
                         <div className="pc-risk-options-unique">
                             {[
-                                { value: 'within-limits', text: 'Within limits', color: 'green' },
-                                { value: 'close-to-limit', text: 'Close to limit', color: 'orange' },
-                                { value: 'exceeds-limit', text: 'Exceeds limit', color: 'red' }
+                                { value: 'within-limits', text: 'Within limits', color: 'green', icon: '✅' },
+                                { value: 'close-to-limit', text: 'Close to limit', color: 'orange', icon: '⚠️' },
+                                { value: 'exceeds-limit', text: 'Exceeds limit', color: 'red', icon: '🚨' }
                             ].map((option) => (
                                 <button
                                     key={option.value}
                                     className={`pc-risk-btn-unique pc-risk-${option.color}-unique ${responses.riskExposure === option.value ? 'pc-selected-unique' : ''}`}
                                     onClick={() => handleResponse('riskExposure', option.value)}
                                 >
-                                    {option.text}
+                                    <span className="pc-icon-unique">{option.icon}</span>
+                                    <span className="pc-risk-text-unique">{option.text}</span>
                                 </button>
                             ))}
                         </div>
@@ -290,6 +309,39 @@ export default function ProcessChecker() {
             case 6: return responses.marketConditions !== '';
             case 7: return responses.mentorApproval !== '';
             default: return false;
+        }
+    };
+
+    const executeAiRecommendation = () => {
+        switch (aiRecommendation) {
+            case 'PROCEED':
+                alert('✅ AI Analysis: Trade approved! Proceed with confidence.');
+                break;
+            case 'CANCEL':
+                alert('❌ AI Analysis: Trade cancelled. Better to be safe.');
+                break;
+            case 'RECONSIDER':
+            default:
+                alert('⚠️ AI Analysis: Take a moment to reconsider your approach.');
+                break;
+        }
+    };
+
+    const getRecommendationColor = () => {
+        switch (aiRecommendation) {
+            case 'PROCEED': return '#4caf50';
+            case 'CANCEL': return '#f44336';
+            case 'RECONSIDER': 
+            default: return '#ff9800';
+        }
+    };
+
+    const getRecommendationIcon = () => {
+        switch (aiRecommendation) {
+            case 'PROCEED': return '✅';
+            case 'CANCEL': return '❌';
+            case 'RECONSIDER': 
+            default: return '⚠️';
         }
     };
 
@@ -456,7 +508,9 @@ export default function ProcessChecker() {
 
                 .pc-alignment-text-unique,
                 .pc-market-text-unique,
-                .pc-mentor-text-unique {
+                .pc-mentor-text-unique,
+                .pc-performance-text-unique,
+                .pc-risk-text-unique {
                     font-size: 1rem;
                     color: #333;
                 }
@@ -523,6 +577,17 @@ export default function ProcessChecker() {
                 .pc-analysis-text-unique {
                     color: #333;
                     line-height: 1.6;
+                    margin-bottom: 15px;
+                }
+
+                .pc-recommendation-unique {
+                    display: flex;
+                    align-items: center;
+                    padding: 15px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                    margin-bottom: 20px;
                 }
 
                 .pc-loading-unique {
@@ -531,14 +596,7 @@ export default function ProcessChecker() {
                     padding: 20px;
                 }
 
-                .pc-final-actions-unique {
-                    display: flex;
-                    gap: 15px;
-                    justify-content: center;
-                    margin-top: 30px;
-                }
-
-                .pc-final-action-btn-unique {
+                .pc-ai-action-btn-unique {
                     padding: 15px 30px;
                     border: none;
                     border-radius: 8px;
@@ -546,56 +604,33 @@ export default function ProcessChecker() {
                     font-size: 1.1rem;
                     font-weight: 600;
                     transition: all 0.3s ease;
-                }
-
-                .pc-proceed-btn-unique {
-                    background: #4caf50;
-                    color: white;
-                }
-
-                .pc-proceed-btn-unique:hover {
-                    background: #45a049;
-                }
-
-                .pc-reconsider-btn-unique {
-                    background: #ff9800;
-                    color: white;
-                }
-
-                .pc-reconsider-btn-unique:hover {
-                    background: #f57c00;
-                }
-
-                .pc-cancel-btn-unique {
-                    background: #f44336;
-                    color: white;
-                }
-
-                .pc-cancel-btn-unique:hover {
-                    background: #d32f2f;
+                    width: 100%;
+                    margin-bottom: 10px;
                 }
 
                 .pc-reset-btn-unique {
                     background: #2196f3;
                     color: white;
-                    margin-top: 20px;
+                    margin-top: 10px;
+                    padding: 12px 24px;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 1rem;
+                    transition: all 0.3s ease;
                 }
 
                 .pc-reset-btn-unique:hover {
                     background: #1976d2;
                 }
 
+                .pc-actions-container-unique {
+                    text-align: center;
+                }
+
                 @media (max-width: 768px) {
                     .pc-main-container-unique {
                         padding: 15px;
-                    }
-                    
-                    .pc-final-actions-unique {
-                        flex-direction: column;
-                    }
-                    
-                    .pc-final-action-btn-unique {
-                        width: 100%;
                     }
                 }
             `}</style>
@@ -656,32 +691,27 @@ export default function ProcessChecker() {
                                 <div className="pc-analysis-container-unique">
                                     <h4 className="pc-analysis-title-unique">✨ AI Analysis / Feedback</h4>
                                     <p className="pc-analysis-text-unique">{aiAnalysis}</p>
+                                    
+                                    <div 
+                                        className="pc-recommendation-unique"
+                                        style={{ backgroundColor: getRecommendationColor() + '20', border: `2px solid ${getRecommendationColor()}` }}
+                                    >
+                                        <span className="pc-icon-unique">{getRecommendationIcon()}</span>
+                                        AI Recommendation: {aiRecommendation}
+                                    </div>
                                 </div>
                                 
-                                <div className="pc-final-actions-unique">
+                                <div className="pc-actions-container-unique">
                                     <button 
-                                        className="pc-final-action-btn-unique pc-proceed-btn-unique"
-                                        onClick={() => alert('Trade approved! Proceed with confidence.')}
+                                        className="pc-ai-action-btn-unique"
+                                        style={{ backgroundColor: getRecommendationColor(), color: 'white' }}
+                                        onClick={executeAiRecommendation}
                                     >
-                                        ✅ Proceed
+                                        {getRecommendationIcon()} Execute AI Recommendation: {aiRecommendation}
                                     </button>
+                                    
                                     <button 
-                                        className="pc-final-action-btn-unique pc-reconsider-btn-unique"
-                                        onClick={() => alert('Take a moment to reconsider your approach.')}
-                                    >
-                                        ⚠️ Reconsider
-                                    </button>
-                                    <button 
-                                        className="pc-final-action-btn-unique pc-cancel-btn-unique"
-                                        onClick={() => alert('Trade cancelled. Better to be safe.')}
-                                    >
-                                        ❌ Cancel
-                                    </button>
-                                </div>
-                                
-                                <div style={{ textAlign: 'center' }}>
-                                    <button 
-                                        className="pc-nav-btn-unique pc-reset-btn-unique"
+                                        className="pc-reset-btn-unique"
                                         onClick={resetChecker}
                                     >
                                         Start New Process Check
