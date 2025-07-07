@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { FaPlus, FaTrash, FaSync, FaChartLine } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from "react";
+import { FaPlus, FaTrash, FaSync, FaChartLine, FaVolumeUp, FaVolumeMute, FaClock } from 'react-icons/fa';
 
-// AssetTracker component with improved styling and UX
+// AssetTracker component with improved styling and UX plus voice timer
 const AssetTracker = () => {
   const [assets, setAssets] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -10,6 +10,18 @@ const AssetTracker = () => {
   const [actionStatus, setActionStatus] = useState({ type: "", message: "" });
   const [currentAction, setCurrentAction] = useState("");
   const [processingId, setProcessingId] = useState(null);
+  
+  // Voice timer states
+  const [voiceTimer, setVoiceTimer] = useState({
+    isActive: false,
+    minutes: 5,
+    timeLeft: 0
+  });
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [tempMinutes, setTempMinutes] = useState(5);
+  
+  const timerRef = useRef(null);
+  const countdownRef = useRef(null);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
   // Common currency pairs
@@ -18,6 +30,127 @@ const AssetTracker = () => {
     'NZDUSD', 'EURJPY', 'EURGBP', 'EURCHF', 'GBPJPY', 'GBPCHF',
     'AUDJPY', 'CADJPY', 'NZDJPY', 'EURAUD', 'EURCAD'
   ];
+
+  // Voice reading function
+  const readAssetPrices = () => {
+    if (assets.length === 0) {
+      const utterance = new SpeechSynthesisUtterance("No assets are currently being tracked.");
+      setVoiceSettings(utterance);
+      window.speechSynthesis.speak(utterance);
+      return;
+    }
+
+    let announcement = "Asset price update: ";
+    assets.forEach((asset, index) => {
+      const changeDirection = asset.percent_change > 0 ? "up" : asset.percent_change < 0 ? "down" : "unchanged";
+      const changeValue = Math.abs(asset.percent_change);
+      
+      announcement += `${asset.asset} is ${changeDirection} ${changeValue} percent`;
+      
+      if (index < assets.length - 1) {
+        announcement += ", ";
+      }
+    });
+
+    const utterance = new SpeechSynthesisUtterance(announcement);
+    setVoiceSettings(utterance);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Set voice settings
+  const setVoiceSettings = (utterance) => {
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(voice => 
+      voice.lang.startsWith('en') && voice.name.includes('Natural')
+    ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+    
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+    
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+  };
+
+  // Start voice timer
+  const startVoiceTimer = () => {
+    if (assets.length === 0) {
+      setActionStatus({ type: "warning", message: "Add assets to track before starting voice timer" });
+      setTimeout(() => setActionStatus({ type: "", message: "" }), 3000);
+      return;
+    }
+
+    setVoiceTimer({
+      isActive: true,
+      minutes: tempMinutes,
+      timeLeft: tempMinutes * 60
+    });
+
+    // Read prices immediately
+    readAssetPrices();
+
+    // Set up recurring timer
+    timerRef.current = setInterval(() => {
+      fetchAssetUpdates();
+      setTimeout(() => {
+        readAssetPrices();
+      }, 2000); // Wait 2 seconds after fetch to ensure data is updated
+    }, tempMinutes * 60 * 1000);
+
+    // Set up countdown timer
+    countdownRef.current = setInterval(() => {
+      setVoiceTimer(prev => ({
+        ...prev,
+        timeLeft: prev.timeLeft - 1
+      }));
+    }, 1000);
+
+    setIsVoiceModalOpen(false);
+    setActionStatus({ type: "success", message: `Voice timer started for ${tempMinutes} minutes` });
+    setTimeout(() => setActionStatus({ type: "", message: "" }), 3000);
+  };
+
+  // Stop voice timer
+  const stopVoiceTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    
+    setVoiceTimer({
+      isActive: false,
+      minutes: 5,
+      timeLeft: 0
+    });
+
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+
+    setActionStatus({ type: "info", message: "Voice timer stopped" });
+    setTimeout(() => setActionStatus({ type: "", message: "" }), 2000);
+  };
+
+  // Reset countdown when it reaches 0
+  useEffect(() => {
+    if (voiceTimer.timeLeft <= 0 && voiceTimer.isActive) {
+      setVoiceTimer(prev => ({
+        ...prev,
+        timeLeft: prev.minutes * 60
+      }));
+    }
+  }, [voiceTimer.timeLeft, voiceTimer.isActive]);
+
+  // Format time display
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   // Fetch tracked assets from backend
   const fetchAssets = async () => {
@@ -145,12 +278,19 @@ const AssetTracker = () => {
   // Initial fetch on component mount
   useEffect(() => {
     fetchAssets();
-    
-    // Set up interval for auto-refresh (every 60 seconds)
-    // const interval = setInterval(fetchAssetUpdates, 60000);
-    
-    // // Clean up interval on component unmount
-    // return () => clearInterval(interval);
+  }, []);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+      window.speechSynthesis.cancel();
+    };
   }, []);
 
   // Determine status alert class
@@ -170,8 +310,36 @@ const AssetTracker = () => {
         <div className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0 text-primary d-flex align-items-center">
             <FaChartLine className="me-2" />
+            Asset Tracker
           </h5>
-          <div>
+          <div className="d-flex align-items-center">
+            {/* Voice Timer Controls */}
+            <div className="me-3">
+              {voiceTimer.isActive ? (
+                <div className="d-flex align-items-center">
+                  <span className="badge bg-success me-2">
+                    <FaClock className="me-1" />
+                    {formatTime(voiceTimer.timeLeft)}
+                  </span>
+                  <button 
+                    className="btn btn-sm btn-outline-danger me-2" 
+                    onClick={stopVoiceTimer}
+                    title="Stop voice timer"
+                  >
+                    <FaVolumeMute />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  className="btn btn-sm btn-outline-primary me-2" 
+                  onClick={() => setIsVoiceModalOpen(true)}
+                  title="Start voice timer"
+                >
+                  <FaVolumeUp />
+                </button>
+              )}
+            </div>
+            
             <button 
               className="btn btn-sm btn-primary me-2" 
               onClick={() => setIsModalOpen(true)}
@@ -282,7 +450,7 @@ const AssetTracker = () => {
                     ))}
                   </select>
                   <div className="small text-muted mt-2">
-                    Selected assets will be tracked and updated automatically every minute.
+                    Selected assets will be tracked and updated automatically.
                   </div>
                 </div>
               </div>
@@ -309,6 +477,62 @@ const AssetTracker = () => {
                   ) : (
                     <>Add</>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Timer Modal */}
+      {isVoiceModalOpen && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header bg-light">
+                <h5 className="modal-title">
+                  <FaVolumeUp className="me-2 text-primary" />
+                  Voice Timer Settings
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setIsVoiceModalOpen(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="minutesInput" className="form-label">Timer interval (minutes):</label>
+                  <input 
+                    id="minutesInput"
+                    type="number" 
+                    className="form-control form-control-lg" 
+                    value={tempMinutes} 
+                    onChange={(e) => setTempMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                    max="60"
+                  />
+                  <div className="small text-muted mt-2">
+                    Set how often you want to hear price updates (1-60 minutes). 
+                    The voice will announce price changes for all your tracked assets.
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setIsVoiceModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={startVoiceTimer}
+                >
+                  <FaVolumeUp className="me-1" />
+                  Start Timer
                 </button>
               </div>
             </div>
