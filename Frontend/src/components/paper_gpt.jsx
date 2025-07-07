@@ -48,7 +48,7 @@ export default function PaperGPT() {
         }
         `;
 
-         const speak = (text, type) => {
+    const speak = (text, type) => {
     window.speechSynthesis.cancel();
     
     if (isReading && readingType === type) {

@@ -109,6 +109,8 @@ export default function TraderGPTAnalysis() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+
 
     const englishVoice = voices.find(voice => 
       voice.lang.startsWith('en') && voice.name.includes('Natural')

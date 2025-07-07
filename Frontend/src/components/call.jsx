@@ -289,6 +289,8 @@ export default function CallAI() {
     const textToSpeech = async (text) => {
         // Using Web Speech API for text-to-speech
         const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+
         const englishVoice = voices.find(voice => 
             voice.lang.startsWith('en') && voice.name.includes('Natural')
             ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
