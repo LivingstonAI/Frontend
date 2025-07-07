@@ -62,17 +62,19 @@ export default function PaperGPT() {
     
     // Set British female voice
     const voices = window.speechSynthesis.getVoices();
-    const britishFemaleVoice = voices.find(voice => 
-        voice.lang.includes('en-GB') && voice.name.toLowerCase().includes('female')
-    ) || voices.find(voice => 
-        voice.lang.includes('en-GB')
-    ) || voices.find(voice => 
-        voice.name.toLowerCase().includes('female')
-    );
+
+    // Configure voice settings
+    const englishVoice = voices.find(voice => 
+      voice.lang.startsWith('en') && voice.name.includes('Natural')
+    ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
     
-    if (britishFemaleVoice) {
-        utterance.voice = britishFemaleVoice;
-    }
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    };
+    
+    // if (britishFemaleVoice) {
+    //     utterance.voice = britishFemaleVoice;
+    // }
     
     utterance.rate = 0.8;
     utterance.pitch = 1;
