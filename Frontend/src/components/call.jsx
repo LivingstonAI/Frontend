@@ -57,6 +57,13 @@ export default function CallAI() {
         
         // Use the Web Speech API to speak the initial greeting
         const utterance = new SpeechSynthesisUtterance("Hello, how can I help you today?");
+        const englishVoice = voices.find(voice => 
+      voice.lang.startsWith('en') && voice.name.includes('Natural')
+    ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+    
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    };
         window.speechSynthesis.speak(utterance);
     };
     
@@ -282,9 +289,16 @@ export default function CallAI() {
     const textToSpeech = async (text) => {
         // Using Web Speech API for text-to-speech
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        
+        const englishVoice = voices.find(voice => 
+            voice.lang.startsWith('en') && voice.name.includes('Natural')
+            ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+            
+            if (englishVoice) {
+            utterance.voice = englishVoice;
+            };
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                
         window.speechSynthesis.speak(utterance);
     };
     

@@ -109,6 +109,14 @@ export default function TraderGPTAnalysis() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
+
+    const englishVoice = voices.find(voice => 
+      voice.lang.startsWith('en') && voice.name.includes('Natural')
+    ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+    
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    };
     
     // Set voice characteristics based on trader
     if (traderId === 'TraderGPT_1') {
