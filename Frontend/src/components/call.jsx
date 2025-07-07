@@ -14,6 +14,8 @@ export default function CallAI() {
     const [newsData, setNewsData] = useState([]); // State to store news data
     const [accountData, setAccountData] = useState(null);
     const [avatarColorIndex, setAvatarColorIndex] = useState(0); // State to track color index
+    const voices = window.speechSynthesis.getVoices();
+
     
     // Define a list of gradient colors for the avatar
     const avatarGradients = [
@@ -289,7 +291,6 @@ export default function CallAI() {
     const textToSpeech = async (text) => {
         // Using Web Speech API for text-to-speech
         const utterance = new SpeechSynthesisUtterance(text);
-        const voices = window.speechSynthesis.getVoices();
 
         const englishVoice = voices.find(voice => 
             voice.lang.startsWith('en') && voice.name.includes('Natural')
