@@ -1,74 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 
-
-
-import jingleBells from '../jingle_bells.mp3';
-import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
-import love_story from '../Indila - Love Story (Piano Cover).mp3';
-import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3";
-import hymn_for_the_weekend from '../Coldplay - Hymn For The Weekend (Lyrics).mp3';
-import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
-import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop  NCS - Copyright Free Music.mp3';
-import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
-import should_i_stay from '../The Clash - Should I Stay or Should I Go (Official Audio).mp3';
-import the_middle from '../Zedd, Maren Morris, Grey - The Middle (Lyric Video).mp3';
-import quiet_night from '../Tokyo Music Walker - Quiet Night.mp3';
-import feels from '../Calvin Harris - Feels (Official Video) ft. Pharrell Williams, Katy Perry, Big Sean.mp3';
-import im_good from "../David Guetta x Bebe Rexha - I'm Good (Blue) (Senses & Shadow Remix).mp3";
-import never_give_up from '../Never Give Up.mp3';
-import gravity from '../Sara Bareilles - Gravity (Official HD Video).mp3';
-import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
-import bloody_mary_edit from '../bloody mary (instrumental x dum dum, da-di-da) [full version] - lady gaga [edit audio].mp3';
-import waiting from '../Waiting.mp3';
-import wish_wonderland from '../Wonderland 원더랜드 OST WISH_ Wonderland is here 박보검 Park Bo-gum 배수지 Bae Suzy HanRomEnglish Lyrics.mp3';
-import welcome_to_columbia from '../Congratulations! Welcome to Columbia!.mp3';
-import 沉溺 from '../沉溺（你让我的心不再结冰）.mp3';
-import shoot_to_thrill from '../ACDC - Shoot to Thrill.mp3';
-import when_im_with_you from "../When I'm with you.mp3";
-import coffee_time from '../321Jazz - Coffee Time [ Cafe Jazz Music 2024 ].mp3'
-import coffee_lounge from '../Coffee Lounge.mp3';
-import good_vibes from '../Good Vibes.mp3';
-import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright music  vlog music  royalty free music).mp3';
-import sitting_in_a_cafe from '../Sitting in a Café.mp3';
-import lex_mit_car from '../LexMITCar.mp3';
-import keep_it_lowkey from '../spotifydown.com - keep it lowkey - take your time.mp3';
-import honey_jam from '../massobeats - honey jam (royalty free lofi music).mp3';
-import floral from '../massobeats - floral (royalty free lofi music).mp3';
-import lemon_cake from '../샛별 - Lemon Cake (Royalty Free Music).mp3';
-import marshmellow from '../lukrembo - marshmallow (royalty free vlog music).mp3';
-import rose from '../lukrembo - rose (royalty free vlog music).mp3';
-import this_is_mit from '../This is MIT.mp3';
-import time_between_storms from '../Dune_ Part Two Soundtrack  A Time of Quiet Between the Storms - Hans Zimmer  WaterTower.mp3';
-import somnus_theme from '../Final fantasy XIII versus somnus theme [bOyYigKniW4].mp3';
-import your_man from '../Your Man.mp3';
-import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
-import genesis from '../Transcendence - GENESIS.mp3';
-import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
-import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
-import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
-import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
-import atreides_theme from '../Atreides Theme.mp3';
-import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
-import mit from '../mit.mp3';
-import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
-import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
-import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
-import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Official Lyric Video).mp3';
-import spin_u_round from '../spin u round.mp3';
-import feel_it from '../d4vd - Feel It.mp3';
-import mona_lisa from '../Dominic Fike - Mona Lisa (Official Audio) (1).mp3';
-import forever_star from '../Forever Star偷偷藏不住電視劇插曲 -  張洢豪Wherever you goIll surround you still動態歌詞.mp3';
-import copines from '../Aya Nakamura - Copines (Clip officiel).mp3';
-
-
 export default function SnowAILandingPage() {
-
   const [times, setTimes] = useState({
     NewYork: new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }),
     London: new Date().toLocaleTimeString("en-GB", { timeZone: "Europe/London" }),
     Tokyo: new Date().toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }),
   });
+
+  const [orbClicked, setOrbClicked] = useState(false);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -77,180 +16,46 @@ export default function SnowAILandingPage() {
         London: new Date().toLocaleTimeString("en-GB", { timeZone: "Europe/London" }),
         Tokyo: new Date().toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }),
       });
-    }, 1000); // Update every second
+    }, 1000);
 
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
-  const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSong, setCurrentSong] = useState(ezio_family); // Default song
-  const [showSongModal, setShowSongModal] = useState(false); // State for showing the song selection modal
-
-  
-  const songs = {
-    "1": { name: "MIT👨‍🎓📖🚀", file: mit },
-    "2": { name: "Atreides Theme ⚔️", file: atreides_theme },
-    "3": { name: "Jingle Bells", file: jingleBells },
-    "4": { name: "Snow Storm", file: snowStorm },
-    "5": { name: "Love Story", file: love_story },
-    "6": { name: "Ezio's Family", file: ezio_family },
-    "7": { name: "Hymn for The Weekend", file: hymn_for_the_weekend },
-    "8": { name: "Daydreaming", file: daydreaming },
-    "9": { name: "Me Times Two", file: me_times_two},
-    "10": { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
-    "11": { name: "Should I Stay or Should I Go", file: should_i_stay },
-    "12": { name: "The Middle", file: the_middle },
-    "13": { name: "Quiet Night", file: quiet_night },
-    "14": { name: "Feels", file: feels },
-    "15": { name: "I'm Good (Blue)", file: im_good },
-    "16": { name: "Never Give Up", file: never_give_up },
-    "17": { name: "Gravity", file: gravity },
-    "18": { name: "Closer", file: closer },
-    "19": { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
-    "20": { name: "Waiting 💙", file: waiting },
-    "21": { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
-    "22": { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
-    "23": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
-    "24": { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
-    "25": { name: "When I'm With You - Arcando", file: when_im_with_you },
-    "26": { name: "Coffee Time ☕", file: coffee_time },
-    "27": { name: "Coffee Lounge ☕", file: coffee_lounge },
-    "28": { name: "Good Vibes 😌", file: good_vibes },
-    "29": { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
-    "30": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
-    "31": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
-    "32": { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
-    "33": { name: "Honey Jam 🍯", file: honey_jam },
-    "34": { name: "Floral 🌺💮", file: floral },
-    "35": { name: "Lemon Cake 🍋🍰", file: lemon_cake },
-    "36": { name: "Marshmellow 😋", file: marshmellow},
-    "37": { name: "Rose 🌹", file: rose},
-    "38": { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
-    "39": { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
-    "40": { name: "Somnus Theme 🐺🥷", file: somnus_theme },
-    "41": { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man },
-    "42": { name: "Cry Baby - SZA 🌃🌃", file: cry_baby },
-    "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
-    "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
-    "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-    "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
-    "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
-    "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
-    "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
-    "50": { name: "Empire State of Mind 🗽🌆", file: empire_state_of_mind },
-    "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
-    "52": { name: "Afternoon of Konoha 🌳", file: afternoon_of_konoha },
-    "53": { name: "Chosen ⌛", file: chosen },
-    "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
-    "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it },
-    "56": { name: "Mona Lisa 🎨🖌️", file: mona_lisa },
-    "57": { name: "Forever Star 🌃", file: forever_star },
-    "58": { name: "Copines 🌳", file: copines }
+  const handleOrbClick = () => {
+    setOrbClicked(true);
+    setTimeout(() => setOrbClicked(false), 1000);
   };
-
-    // State for search term and filtered songs
-  const [searchTerm, setSearchTerm] = useState("");
-  
-   // Filtered songs based on the search term
-   const filteredSongs = Object.entries(songs).filter(([key, song]) =>
-    song.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  // useEffect(() => {
-  //   createSnowflakes();
-  // }, []);
-
-  const handlePlayToggle = () => {
-    const audio = audioRef.current;
-
-    if (!isPlaying) {
-      // Prompt the user to select a song
-      setShowSongModal(true); // Show the song selection modal
-    } else {
-      audio.pause();
-      setIsPlaying(false); // Stop the music
-    }
-  };
-
-  const handleSongSelection = (songFile) => {
-    const audio = audioRef.current;
-    setCurrentSong(songFile); // Set the chosen song
-    setIsPlaying(true); // Update the state to indicate playing
-    setShowSongModal(false); // Close the modal
-
-    // Set up the audio to play only when it's ready
-    audio.oncanplay = () => {
-      // audio.volume = 0.2;
-      audio.play();
-    };
-    audio.load(); // Load the new song
-  };
-
-  // const createSnowflakes = () => {
-  //   const container = document.getElementById("snowflake-container");
-  //   if (container) {
-  //     for (let i = 0; i < 80; i++) {
-  //       const snowflake = document.createElement("div");
-  //       snowflake.className = "snowflake";
-
-  //       snowflake.style.left = `${Math.random() * 100}vw`;
-  //       snowflake.style.width = `${Math.random() * 5 + 5}px`;
-  //       snowflake.style.height = snowflake.style.width;
-  //       snowflake.style.animationDuration = `${Math.random() * 6 + 10}s`;
-  //       snowflake.style.animationDelay = `${Math.random() * 6}s`;
-  //       snowflake.style.opacity = Math.random() * 0.8 + 0.2;
-
-  //       container.appendChild(snowflake);
-
-  //       snowflake.addEventListener("animationend", () => {
-  //         snowflake.remove();
-  //       });
-  //     }
-  //   }
-  // };
 
   const createFallingCharacters = () => {
     const container = document.getElementById("snowflake-container");
     if (container) {
-      // Array of Chinese and Korean characters
       const characters = [
-        // Chinese characters
         '雪', '冬', '美', '爱', '风', '光', '云', '星', '梦', '智', 
         '慧', '学', '研', '科', '技', '未', '来', '创', '新', '思',
         '天', '地', '山', '水', '人', '心', '情', '感', '知', '道',
-        
-        // Korean characters
         '눈', '겨', '울', '아', '름', '사', '랑', '바', '람', '빛', 
         '구', '름', '별', '꿈', '지', '혜', '배', '움', '과', '학',
         '미', '래', '창', '조', '생', '각', '하', '늘', '땅', '산'
       ];
       
-      // Limit the number of characters created at once
-      const characterCount = 25; // Reduced from 10 to 5
+      const characterCount = 15;
       
       for (let i = 0; i < characterCount; i++) {
         const character = document.createElement("div");
         character.className = "falling-character";
         
-        // Randomly select a character from the array
         const randomChar = characters[Math.floor(Math.random() * characters.length)];
         character.innerText = randomChar;
         
-        // Random positioning and timing with more spacing
         character.style.left = `${Math.random() * 100}vw`;
-        character.style.fontSize = `${Math.random() * 12 + 14}px`;
-        // Increase animation duration for slower falling
-        character.style.animationDuration = `${Math.random() * 8 + 15}s`; // Longer duration (15-23s)
-        character.style.animationDelay = `${Math.random() * 3}s`; // Shorter delay for more even distribution
-        character.style.opacity = Math.random() * 0.7 + 0.3;
-        
-        // Add subtle rotation
+        character.style.fontSize = `${Math.random() * 10 + 12}px`;
+        character.style.animationDuration = `${Math.random() * 10 + 20}s`;
+        character.style.animationDelay = `${Math.random() * 3}s`;
+        character.style.opacity = Math.random() * 0.3 + 0.1;
         character.style.transform = `rotate(${Math.random() * 360}deg)`;
         
         container.appendChild(character);
         
-        // Ensure removal when animation ends
         character.addEventListener("animationend", () => {
           if (character.parentNode === container) {
             container.removeChild(character);
@@ -260,95 +65,467 @@ export default function SnowAILandingPage() {
     }
   };
   
-  // In your useEffect
   useEffect(() => {
-    // Initial creation
     createFallingCharacters();
     
-    // Check the number of characters and limit if necessary
-    const maxCharacters = 40; // Maximum allowed characters on screen
+    const maxCharacters = 25;
     
     const intervalId = setInterval(() => {
       const container = document.getElementById("snowflake-container");
       if (container && container.children.length < maxCharacters) {
         createFallingCharacters();
       }
-    }, 5000); // Create new batch every 5 seconds if below limit
+    }, 8000);
     
     return () => clearInterval(intervalId);
   }, []);
 
-  
-  useEffect(() => {
-    const glow = document.createElement("div");
-    glow.className = "mouse-glow";
-    document.body.appendChild(glow);
-
-    const handleMouseMove = (e) => {
-      glow.style.transform = `translate(${e.clientX - 25}px, ${e.clientY - 25}px)`;
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
   return (
-    <div className="snowai-landing-page">
+    <div className="snowai-hud-container">
       <div id="snowflake-container"></div>
-      <h1 className="snowai-title">
-        {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
-          <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
-        ))}
-      </h1>
-      <a href="/login" className="snowai-button">Log In</a>
-      <br />
-      {/* <button className="snowai-button" onClick={handlePlayToggle}>
-        {isPlaying ? "Stop Music" : "Play Music"}
-      </button> */}
-      <audio ref={audioRef} src={currentSong} loop />
-
-      {showSongModal && (
-        <div className="landing-page-song-modal-overlay">
-          <div className="landing-page-song-modal">
-            <h2>Select a Song</h2>
-
-            {/* Search Bar */}
-            <div className="mb-3">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search for a song..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Song List */}
-            <ul className="song-list">
-              {filteredSongs.length > 0 ? (
-                filteredSongs.map(([key, song]) => (
-                  <li
-                    key={key}
-                    className="song-option"
-                    onClick={() => handleSongSelection(song.file)}
-                  >
-                    {song.name}
-                  </li>
-                ))
-              ) : (
-                <li className="song-option">No songs found</li>
-              )}
-            </ul>
-
-            <button
-              className="close-modal-btn-lp"
-              onClick={() => setShowSongModal(false)}
-            >
-              Close
-            </button>
+      
+      {/* HUD Background Elements */}
+      <div className="hud-background"></div>
+      
+      {/* Corner HUD Elements */}
+      <div className="hud-corner hud-top-left"></div>
+      <div className="hud-corner hud-top-right"></div>
+      <div className="hud-corner hud-bottom-left"></div>
+      <div className="hud-corner hud-bottom-right"></div>
+      
+      {/* Side HUD Panels */}
+      <div className="hud-side-panel hud-left">
+        <div className="hud-data-item">
+          <span className="hud-label">NYC</span>
+          <span className="hud-value">{times.NewYork}</span>
+        </div>
+        <div className="hud-data-item">
+          <span className="hud-label">LON</span>
+          <span className="hud-value">{times.London}</span>
+        </div>
+        <div className="hud-data-item">
+          <span className="hud-label">TKY</span>
+          <span className="hud-value">{times.Tokyo}</span>
+        </div>
+      </div>
+      
+      {/* Central Content */}
+      <div className="hud-central-content">
+        {/* 3D Orb */}
+        <div className="orb-container" onClick={handleOrbClick}>
+          <div className={`orb-3d ${orbClicked ? 'orb-clicked' : ''}`}>
+            <div className="orb-inner"></div>
+            <div className="orb-glow"></div>
           </div>
         </div>
-      )}
+        
+        {/* Title */}
+        <h1 className="snowai-title">
+          {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
+            <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
+          ))}
+        </h1>
+        
+        {/* Subtitle */}
+        <p className="hud-subtitle">ARTIFICIAL INTELLIGENCE SYSTEM</p>
+        
+        {/* Action Button */}
+        <a href="/login" className="hud-button">
+          <span className="button-text">INITIALIZE</span>
+          <div className="button-glow"></div>
+        </a>
+      </div>
+      
+      {/* Bottom HUD Bar */}
+      <div className="hud-bottom-bar">
+        <div className="hud-progress-bar">
+          <div className="hud-progress-fill"></div>
+        </div>
+        <span className="hud-bottom-text">SYSTEM READY</span>
+      </div>
+      
+      <style jsx>{`
+        .snowai-hud-container {
+          position: relative;
+          height: 100vh;
+          width: 100vw;
+          background: linear-gradient(135deg, #0a0f1f 0%, #1a2332 50%, #0d1421 100%);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          overflow: hidden;
+          font-family: 'Orbitron', 'Arial', sans-serif;
+          color: #00d4ff;
+        }
+        
+        .hud-background {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: 
+            radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(41, 121, 255, 0.1) 0%, transparent 50%);
+          pointer-events: none;
+        }
+        
+        .hud-corner {
+          position: absolute;
+          width: 60px;
+          height: 60px;
+          border: 2px solid #00d4ff;
+          pointer-events: none;
+          opacity: 0.7;
+        }
+        
+        .hud-top-left {
+          top: 20px;
+          left: 20px;
+          border-right: none;
+          border-bottom: none;
+        }
+        
+        .hud-top-right {
+          top: 20px;
+          right: 20px;
+          border-left: none;
+          border-bottom: none;
+        }
+        
+        .hud-bottom-left {
+          bottom: 20px;
+          left: 20px;
+          border-right: none;
+          border-top: none;
+        }
+        
+        .hud-bottom-right {
+          bottom: 20px;
+          right: 20px;
+          border-left: none;
+          border-top: none;
+        }
+        
+        .hud-side-panel {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(0, 212, 255, 0.05);
+          border: 1px solid rgba(0, 212, 255, 0.3);
+          padding: 20px;
+          backdrop-filter: blur(10px);
+          min-width: 150px;
+        }
+        
+        .hud-left {
+          left: 30px;
+        }
+        
+        .hud-data-item {
+          display: flex;
+          justify-content: space-between;
+          margin: 10px 0;
+          font-size: 12px;
+        }
+        
+        .hud-label {
+          color: #00d4ff;
+          opacity: 0.8;
+        }
+        
+        .hud-value {
+          color: #ffffff;
+          font-weight: bold;
+        }
+        
+        .hud-central-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          z-index: 10;
+        }
+        
+        .orb-container {
+          position: relative;
+          margin-bottom: 30px;
+          cursor: pointer;
+        }
+        
+        .orb-3d {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #0066cc 0%, #00d4ff 50%, #0099ff 100%);
+          box-shadow: 
+            0 0 30px rgba(0, 212, 255, 0.5),
+            inset 0 0 20px rgba(255, 255, 255, 0.2);
+          animation: orb-pulse 3s ease-in-out infinite;
+          transition: all 0.3s ease;
+        }
+        
+        .orb-3d:hover {
+          transform: scale(1.05);
+          box-shadow: 
+            0 0 40px rgba(0, 212, 255, 0.7),
+            inset 0 0 25px rgba(255, 255, 255, 0.3);
+        }
+        
+        .orb-clicked {
+          animation: orb-explosion 1s ease-out;
+        }
+        
+        @keyframes orb-explosion {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+          }
+          50% {
+            transform: scale(1.3);
+            box-shadow: 
+              0 0 80px rgba(0, 212, 255, 1),
+              0 0 120px rgba(255, 255, 255, 0.8);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+          }
+        }
+        
+        .orb-inner {
+          position: absolute;
+          top: 20%;
+          left: 20%;
+          width: 60%;
+          height: 60%;
+          border-radius: 50%;
+          background: linear-gradient(45deg, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+        }
+        
+        .orb-glow {
+          position: absolute;
+          top: -10px;
+          left: -10px;
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%);
+          animation: orb-glow-pulse 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes orb-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        
+        @keyframes orb-glow-pulse {
+          0% { opacity: 0.3; }
+          100% { opacity: 0.6; }
+        }
+        
+        .snowai-title {
+          font-size: 4rem;
+          color: #ffffff;
+          text-shadow: 0 0 20px #00d4ff, 0 0 40px #00d4ff;
+          margin: 0;
+          font-weight: bold;
+          letter-spacing: 2px;
+        }
+        
+        .snowai-title span {
+          animation: title-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes title-glow {
+          0%, 100% {
+            color: #ffffff;
+            text-shadow: 0 0 20px #00d4ff, 0 0 40px #00d4ff;
+          }
+          50% {
+            color: #00d4ff;
+            text-shadow: 0 0 30px #ffffff, 0 0 60px #00d4ff;
+          }
+        }
+        
+        .hud-subtitle {
+          font-size: 0.9rem;
+          color: #00d4ff;
+          margin: 10px 0 30px 0;
+          opacity: 0.8;
+          letter-spacing: 3px;
+        }
+        
+        .hud-button {
+          position: relative;
+          display: inline-block;
+          padding: 15px 30px;
+          background: linear-gradient(135deg, #0066cc 0%, #00d4ff 100%);
+          color: #ffffff;
+          text-decoration: none;
+          border: 2px solid #00d4ff;
+          font-size: 1.1rem;
+          font-weight: bold;
+          letter-spacing: 1px;
+          transition: all 0.3s ease;
+          overflow: hidden;
+        }
+        
+        .button-text {
+          position: relative;
+          z-index: 2;
+        }
+        
+        .button-glow {
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          transition: left 0.5s ease;
+        }
+        
+        .hud-button:hover {
+          box-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
+          transform: translateY(-2px);
+        }
+        
+        .hud-button:hover .button-glow {
+          left: 100%;
+        }
+        
+        .hud-bottom-bar {
+          position: absolute;
+          bottom: 30px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+        
+        .hud-progress-bar {
+          width: 200px;
+          height: 3px;
+          background: rgba(0, 212, 255, 0.3);
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        
+        .hud-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #00d4ff, #0099ff);
+          width: 75%;
+          animation: progress-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes progress-pulse {
+          0%, 100% { opacity: 0.8; }
+          50% { opacity: 1; }
+        }
+        
+        .hud-bottom-text {
+          font-size: 0.8rem;
+          color: #00d4ff;
+          opacity: 0.7;
+        }
+        
+        .falling-character {
+          position: absolute;
+          top: -5%;
+          color: rgba(0, 212, 255, 0.3);
+          font-size: 14px;
+          opacity: 0.4;
+          animation: fall linear infinite;
+          pointer-events: none;
+        }
+        
+        @keyframes fall {
+          to {
+            transform: translateY(110vh);
+          }
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+          .snowai-title {
+            font-size: 2.5rem;
+          }
+          
+          .orb-3d {
+            width: 80px;
+            height: 80px;
+          }
+          
+          .orb-glow {
+            width: 100px;
+            height: 100px;
+            top: -10px;
+            left: -10px;
+          }
+          
+          .hud-side-panel {
+            display: none;
+          }
+          
+          .hud-corner {
+            width: 40px;
+            height: 40px;
+          }
+          
+          .hud-button {
+            padding: 12px 24px;
+            font-size: 1rem;
+          }
+          
+          .hud-progress-bar {
+            width: 150px;
+          }
+          
+          .hud-subtitle {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .snowai-title {
+            font-size: 2rem;
+          }
+          
+          .orb-3d {
+            width: 60px;
+            height: 60px;
+          }
+          
+          .orb-glow {
+            width: 80px;
+            height: 80px;
+            top: -10px;
+            left: -10px;
+          }
+          
+          .hud-corner {
+            width: 30px;
+            height: 30px;
+          }
+          
+          .hud-button {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+          }
+          
+          .hud-progress-bar {
+            width: 120px;
+          }
+          
+          .hud-subtitle {
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
