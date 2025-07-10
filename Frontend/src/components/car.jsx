@@ -58,73 +58,323 @@ const Part3D = ({ part, isSelected, onClick, onDragStart }) => {
     directionalLight.position.set(2, 2, 2);
     scene.add(directionalLight);
 
-    // Create geometry based on part type
+    // Create realistic geometry based on part type
     let geometry, material;
     
     switch (part.type) {
       case 'engine':
-        geometry = new THREE.BoxGeometry(1, 0.8, 1.2);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
-        // Add cylinder for engine block detail
-        const cylinderGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.6, 8);
-        const cylinderMaterial = new THREE.MeshPhongMaterial({ color: '#444444' });
-        const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
-        cylinder.position.set(0, 0.2, 0);
-        cylinder.rotation.x = Math.PI / 2;
-        scene.add(cylinder);
+        // Create detailed V8 engine block
+        geometry = new THREE.BoxGeometry(1.2, 0.8, 1.4);
+        material = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 30,
+          specular: 0x333333
+        });
+        
+        // Add cylinder heads
+        for (let i = 0; i < 8; i++) {
+          const cylinderGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.15, 8);
+          const cylinderMaterial = new THREE.MeshPhongMaterial({ 
+            color: '#2a2a2a',
+            shininess: 50,
+            specular: 0x666666
+          });
+          const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+          cylinder.position.set(
+            (i % 2 === 0 ? -0.25 : 0.25), 
+            0.5, 
+            -0.5 + (Math.floor(i / 2) * 0.33)
+          );
+          scene.add(cylinder);
+        }
+        
+        // Add intake manifold
+        const intakeGeometry = new THREE.BoxGeometry(0.8, 0.3, 1.0);
+        const intakeMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#1a1a1a',
+          shininess: 80
+        });
+        const intake = new THREE.Mesh(intakeGeometry, intakeMaterial);
+        intake.position.set(0, 0.4, 0);
+        scene.add(intake);
         break;
         
       case 'motor':
-        geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 16);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
+        // Create realistic electric motor
+        geometry = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 20);
+        material = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 60,
+          specular: 0x444444
+        });
+        
+        // Add cooling fins
+        for (let i = 0; i < 12; i++) {
+          const finGeometry = new THREE.BoxGeometry(0.52, 0.02, 0.1);
+          const finMaterial = new THREE.MeshPhongMaterial({ 
+            color: '#666666',
+            shininess: 40
+          });
+          const fin = new THREE.Mesh(finGeometry, finMaterial);
+          fin.position.set(0, -0.4 + (i * 0.08), 0);
+          scene.add(fin);
+        }
+        
+        // Add connector housing
+        const connectorGeometry = new THREE.BoxGeometry(0.3, 0.2, 0.3);
+        const connectorMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#333333',
+          shininess: 20
+        });
+        const connector = new THREE.Mesh(connectorGeometry, connectorMaterial);
+        connector.position.set(0.4, 0, 0);
+        scene.add(connector);
         break;
         
       case 'jet':
-        geometry = new THREE.ConeGeometry(0.4, 1.5, 16);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
+        // Create realistic jet engine
+        geometry = new THREE.CylinderGeometry(0.3, 0.5, 1.8, 16);
+        material = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 80,
+          specular: 0x555555
+        });
+        
+        // Add intake cone
+        const intakeConeGeometry = new THREE.ConeGeometry(0.45, 0.4, 16);
+        const intakeConeMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#1a1a1a',
+          shininess: 100
+        });
+        const intakeCone = new THREE.Mesh(intakeConeGeometry, intakeConeMaterial);
+        intakeCone.position.set(0, 0, 0.9);
+        intakeCone.rotation.x = Math.PI;
+        scene.add(intakeCone);
+        
+        // Add exhaust nozzle
+        const exhaustGeometry = new THREE.CylinderGeometry(0.25, 0.35, 0.3, 16);
+        const exhaustMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#444444',
+          shininess: 90
+        });
+        const exhaust = new THREE.Mesh(exhaustGeometry, exhaustMaterial);
+        exhaust.position.set(0, 0, -1.05);
+        scene.add(exhaust);
         break;
         
       case 'wheel':
-        geometry = new THREE.CylinderGeometry(0.6, 0.6, 0.3, 16);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
-        // Add rim detail
-        const rimGeometry = new THREE.TorusGeometry(0.4, 0.1, 8, 16);
-        const rimMaterial = new THREE.MeshPhongMaterial({ color: '#888888' });
+        // Create realistic car wheel with tire and rim
+        geometry = new THREE.CylinderGeometry(0.6, 0.6, 0.35, 20);
+        material = new THREE.MeshPhongMaterial({ 
+          color: '#1a1a1a', // Tire color
+          shininess: 10,
+          specular: 0x111111
+        });
+        
+        // Add tire tread pattern
+        for (let i = 0; i < 24; i++) {
+          const treadGeometry = new THREE.BoxGeometry(0.02, 0.02, 0.3);
+          const treadMaterial = new THREE.MeshPhongMaterial({ color: '#0a0a0a' });
+          const tread = new THREE.Mesh(treadGeometry, treadMaterial);
+          const angle = (i / 24) * Math.PI * 2;
+          tread.position.set(
+            Math.cos(angle) * 0.61,
+            Math.sin(angle) * 0.61,
+            0
+          );
+          tread.rotation.z = angle;
+          scene.add(tread);
+        }
+        
+        // Add realistic rim
+        const rimGeometry = new THREE.CylinderGeometry(0.45, 0.45, 0.25, 20);
+        const rimMaterial = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 90,
+          specular: 0x888888
+        });
         const rim = new THREE.Mesh(rimGeometry, rimMaterial);
-        rim.rotation.x = Math.PI / 2;
         scene.add(rim);
+        
+        // Add rim spokes
+        for (let i = 0; i < 5; i++) {
+          const spokeGeometry = new THREE.BoxGeometry(0.05, 0.4, 0.2);
+          const spokeMaterial = new THREE.MeshPhongMaterial({ 
+            color: '#cccccc',
+            shininess: 80
+          });
+          const spoke = new THREE.Mesh(spokeGeometry, spokeMaterial);
+          const angle = (i / 5) * Math.PI * 2;
+          spoke.position.set(
+            Math.cos(angle) * 0.15,
+            Math.sin(angle) * 0.15,
+            0
+          );
+          spoke.rotation.z = angle;
+          scene.add(spoke);
+        }
         break;
         
       case 'wing':
-        geometry = new THREE.BoxGeometry(2, 0.1, 0.5);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
+        // Create realistic aircraft wing with airfoil shape
+        const wingShape = new THREE.Shape();
+        wingShape.moveTo(0, 0);
+        wingShape.quadraticCurveTo(0.5, 0.15, 2, 0.05);
+        wingShape.lineTo(2, -0.05);
+        wingShape.quadraticCurveTo(0.5, -0.1, 0, 0);
+        
+        const extrudeSettings = {
+          depth: 0.8,
+          bevelEnabled: true,
+          bevelSegments: 2,
+          steps: 2,
+          bevelSize: 0.02,
+          bevelThickness: 0.02
+        };
+        
+        geometry = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
+        material = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 70,
+          specular: 0x666666
+        });
+        
+        // Add wing tip
+        const tipGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+        const tipMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#ff4444',
+          shininess: 90
+        });
+        const tip = new THREE.Mesh(tipGeometry, tipMaterial);
+        tip.position.set(2, 0, 0.4);
+        scene.add(tip);
         break;
         
       case 'tank':
-        geometry = new THREE.CylinderGeometry(0.4, 0.4, 1, 16);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
+        // Create realistic fuel tank
+        geometry = new THREE.CylinderGeometry(0.45, 0.45, 1.2, 16);
+        material = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 50,
+          specular: 0x444444
+        });
+        
+        // Add tank caps
+        const capGeometry = new THREE.CylinderGeometry(0.46, 0.46, 0.05, 16);
+        const capMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#666666',
+          shininess: 70
+        });
+        const topCap = new THREE.Mesh(capGeometry, capMaterial);
+        topCap.position.set(0, 0.625, 0);
+        scene.add(topCap);
+        
+        const bottomCap = new THREE.Mesh(capGeometry, capMaterial);
+        bottomCap.position.set(0, -0.625, 0);
+        scene.add(bottomCap);
+        
+        // Add fuel gauge
+        const gaugeGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.08, 8);
+        const gaugeMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#333333',
+          shininess: 60
+        });
+        const gauge = new THREE.Mesh(gaugeGeometry, gaugeMaterial);
+        gauge.position.set(0.4, 0.2, 0);
+        gauge.rotation.z = Math.PI / 2;
+        scene.add(gauge);
         break;
         
       case 'chassis':
-        geometry = new THREE.BoxGeometry(2, 0.2, 1);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
+        // Create realistic chassis frame
+        geometry = new THREE.BoxGeometry(2.2, 0.15, 1.2);
+        material = new THREE.MeshPhongMaterial({ 
+          color: part.color,
+          shininess: 40,
+          specular: 0x555555
+        });
+        
+        // Add cross members
+        for (let i = 0; i < 4; i++) {
+          const crossGeometry = new THREE.BoxGeometry(0.08, 0.08, 1.2);
+          const crossMaterial = new THREE.MeshPhongMaterial({ 
+            color: '#444444',
+            shininess: 30
+          });
+          const cross = new THREE.Mesh(crossGeometry, crossMaterial);
+          cross.position.set(-0.8 + (i * 0.5), -0.1, 0);
+          scene.add(cross);
+        }
+        
+        // Add mounting points
+        for (let i = 0; i < 6; i++) {
+          const mountGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.1, 8);
+          const mountMaterial = new THREE.MeshPhongMaterial({ 
+            color: '#666666',
+            shininess: 80
+          });
+          const mount = new THREE.Mesh(mountGeometry, mountMaterial);
+          mount.position.set(
+            -1 + (i % 3) * 1,
+            0.12,
+            i < 3 ? -0.4 : 0.4
+          );
+          scene.add(mount);
+        }
         break;
         
       case 'propeller':
-        geometry = new THREE.BoxGeometry(1.5, 0.05, 0.2);
-        material = new THREE.MeshPhongMaterial({ color: part.color });
-        // Add second blade
-        const blade2Geometry = new THREE.BoxGeometry(0.2, 0.05, 1.5);
-        const blade2Material = new THREE.MeshPhongMaterial({ color: part.color });
-        const blade2 = new THREE.Mesh(blade2Geometry, blade2Material);
-        scene.add(blade2);
+        // Create realistic propeller with hub
+        const hubGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.2, 12);
+        const hubMaterial = new THREE.MeshPhongMaterial({ 
+          color: '#333333',
+          shininess: 80,
+          specular: 0x666666
+        });
+        const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+        hub.rotation.z = Math.PI / 2;
+        scene.add(hub);
+        
+        // Create curved propeller blades
+        for (let i = 0; i < 4; i++) {
+          const bladeShape = new THREE.Shape();
+          bladeShape.moveTo(0, 0);
+          bladeShape.quadraticCurveTo(0.3, 0.08, 0.8, 0.02);
+          bladeShape.lineTo(0.8, -0.02);
+          bladeShape.quadraticCurveTo(0.3, -0.08, 0, 0);
+          
+          const bladeExtrudeSettings = {
+            depth: 0.05,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 2,
+            bevelSize: 0.01,
+            bevelThickness: 0.01
+          };
+          
+          const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, bladeExtrudeSettings);
+          const bladeMaterial = new THREE.MeshPhongMaterial({ 
+            color: part.color,
+            shininess: 60,
+            specular: 0x555555
+          });
+          const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+          
+          blade.rotation.z = (i / 4) * Math.PI * 2;
+          blade.position.set(0.15, 0, 0);
+          scene.add(blade);
+        }
+        
+        // Don't create main geometry for propeller as we built it from components
+        geometry = null;
+        material = null;
         break;
         
       default:
         geometry = new THREE.BoxGeometry(1, 1, 1);
         material = new THREE.MeshPhongMaterial({ color: part.color });
     }
-
+    
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
     meshRef.current = mesh;
