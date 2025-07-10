@@ -576,7 +576,7 @@ export default function ScientificPlayground() {
         {/* Toolbar */}
         <div style={toolbarStyle}>
           <div style={toolbarLeftStyle}>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Building Parts Playground</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Science Playground</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Car size={20} color="#6b7280" />
               <Plane size={20} color="#6b7280" />
