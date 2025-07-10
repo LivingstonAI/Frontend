@@ -26,7 +26,7 @@ const PARTS_LIBRARY = {
 };
 
 // 3D Part Component
-const Part3D = ({ part, isSelected, onClick }) => {
+const Part3D = ({ part, isSelected, onClick, onDragStart }) => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
@@ -35,21 +35,27 @@ const Part3D = ({ part, isSelected, onClick }) => {
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // Scene setup
+    // Scene setup with higher resolution
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ 
+      alpha: true, 
+      antialias: true,
+      powerPreference: "high-performance"
+    });
     
-    renderer.setSize(64, 64);
+    // Higher resolution rendering
+    renderer.setSize(80, 80);
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.setClearColor(0x000000, 0);
     mountRef.current.appendChild(renderer.domElement);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Better lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(1, 1, 1);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(2, 2, 2);
     scene.add(directionalLight);
 
     // Create geometry based on part type
@@ -126,15 +132,8 @@ const Part3D = ({ part, isSelected, onClick }) => {
     camera.position.set(2, 2, 2);
     camera.lookAt(0, 0, 0);
 
-    // Animation loop
-    const animate = () => {
-      requestAnimationFrame(animate);
-      if (meshRef.current) {
-        meshRef.current.rotation.y += 0.01;
-      }
-      renderer.render(scene, camera);
-    };
-    animate();
+    // Static render - no rotation animation
+    renderer.render(scene, camera);
 
     sceneRef.current = scene;
     rendererRef.current = renderer;
@@ -147,22 +146,40 @@ const Part3D = ({ part, isSelected, onClick }) => {
     };
   }, [part.type, part.color]);
 
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    onDragStart(e, part, offset);
+  };
+
   const containerStyle = {
     position: 'absolute',
     left: `${part.x}px`,
     top: `${part.y}px`,
-    width: '64px',
-    height: '64px',
-    cursor: 'pointer',
-    transform: `rotate(${part.rotation}deg)`,
-    transition: 'all 0.2s ease',
-    filter: isSelected ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.8))' : 'none',
-    zIndex: isSelected ? 10 : 1
+    width: '80px',
+    height: '80px',
+    cursor: 'move',
+    transform: `rotate(${part.rotation || 0}deg)`,
+    transition: 'filter 0.2s ease',
+    filter: isSelected ? 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.8))' : 'none',
+    zIndex: isSelected ? 10 : 1,
+    userSelect: 'none'
   };
 
   return (
-    <div style={containerStyle} onClick={onClick}>
-      <div ref={mountRef} style={{ width: '64px', height: '64px' }} />
+    <div 
+      style={containerStyle} 
+      onMouseDown={handleMouseDown}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(part);
+      }}
+    >
+      <div ref={mountRef} style={{ width: '80px', height: '80px' }} />
     </div>
   );
 };
@@ -177,6 +194,7 @@ export default function ScientificPlayground() {
   const [showParameters, setShowParameters] = useState(false);
   const canvasRef = useRef(null);
 
+  // Handle dragging from library
   const handleDragStart = (e, part) => {
     setIsDragging(true);
     const rect = e.currentTarget.getBoundingClientRect();
@@ -187,6 +205,44 @@ export default function ScientificPlayground() {
     setSelectedPart(part);
   };
 
+  // Handle dragging within playground
+  const handlePartDragStart = (e, part, offset) => {
+    setIsDragging(true);
+    setDragOffset(offset);
+    setSelectedPart(part);
+    
+    const handleMouseMove = (e) => {
+      if (!canvasRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left - offset.x;
+      const y = e.clientY - rect.top - offset.y;
+
+      // Update part position
+      setPlacedParts(parts =>
+        parts.map(p =>
+          p.id === part.id
+            ? {
+                ...p,
+                x: Math.max(0, Math.min(x, rect.width - 80)),
+                y: Math.max(0, Math.min(y, rect.height - 80))
+              }
+            : p
+        )
+      );
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   const handleDragOver = (e) => {
     e.preventDefault();
   };
@@ -194,6 +250,12 @@ export default function ScientificPlayground() {
   const handleDrop = (e) => {
     e.preventDefault();
     if (!selectedPart || !isDragging) return;
+
+    // Only handle drops from library (new parts)
+    if (placedParts.find(p => p.id === selectedPart.id)) {
+      setIsDragging(false);
+      return;
+    }
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
@@ -203,8 +265,8 @@ export default function ScientificPlayground() {
     const newPart = {
       ...selectedPart,
       id: `${selectedPart.id}-${Date.now()}`,
-      x: Math.max(0, Math.min(x, rect.width - 64)),
-      y: Math.max(0, Math.min(y, rect.height - 64)),
+      x: Math.max(0, Math.min(x, rect.width - 80)),
+      y: Math.max(0, Math.min(y, rect.height - 80)),
       rotation: 0
     };
 
@@ -514,7 +576,7 @@ export default function ScientificPlayground() {
         {/* Toolbar */}
         <div style={toolbarStyle}>
           <div style={toolbarLeftStyle}>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>3D Parts Playground</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937', margin: 0 }}>Building Parts Playground</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Car size={20} color="#6b7280" />
               <Plane size={20} color="#6b7280" />
@@ -553,7 +615,8 @@ export default function ScientificPlayground() {
                 key={part.id}
                 part={part}
                 isSelected={selectedPart?.id === part.id}
-                onClick={() => handlePartClick(part)}
+                onClick={handlePartClick}
+                onDragStart={handlePartDragStart}
               />
             ))}
 
