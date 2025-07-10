@@ -45,7 +45,9 @@ const Part3D = ({ part, isSelected, onClick, onDragStart }) => {
     });
     
     // Higher resolution rendering
-    renderer.setSize(80, 80);
+    const renderSize = 120; // Increased from 80
+
+    renderer.setSize(renderSize, renderSize);
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.setClearColor(0x000000, 0);
     mountRef.current.appendChild(renderer.domElement);
@@ -323,8 +325,8 @@ const Part3D = ({ part, isSelected, onClick, onDragStart }) => {
         }
         break;
         
-      case 'propeller':
-        // Create realistic propeller with hub
+        case 'propeller':
+        // Create realistic propeller with hub - FIXED: Use group instead of null geometry
         const hubGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.2, 12);
         const hubMaterial = new THREE.MeshPhongMaterial({ 
           color: '#333333',
@@ -332,8 +334,10 @@ const Part3D = ({ part, isSelected, onClick, onDragStart }) => {
           specular: 0x666666
         });
         const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+        hub.castShadow = true;
+        hub.receiveShadow = true;
         hub.rotation.z = Math.PI / 2;
-        scene.add(hub);
+        group.add(hub);
         
         // Create curved propeller blades
         for (let i = 0; i < 4; i++) {
@@ -359,22 +363,22 @@ const Part3D = ({ part, isSelected, onClick, onDragStart }) => {
             specular: 0x555555
           });
           const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+          blade.castShadow = true;
           
           blade.rotation.z = (i / 4) * Math.PI * 2;
           blade.position.set(0.15, 0, 0);
-          scene.add(blade);
+          group.add(blade);
         }
         
-        // Don't create main geometry for propeller as we built it from components
-        geometry = null;
-        material = null;
-        break;
-        
-      default:
+        default:
         geometry = new THREE.BoxGeometry(1, 1, 1);
         material = new THREE.MeshPhongMaterial({ color: part.color });
+        const defaultMesh = new THREE.Mesh(geometry, material);
+        defaultMesh.castShadow = true;
+        defaultMesh.receiveShadow = true;
+        group.add(defaultMesh);
     }
-    
+
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
     meshRef.current = mesh;
