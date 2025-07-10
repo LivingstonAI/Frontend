@@ -57,6 +57,7 @@ import MarketShareInfographic from './components/tech_company_comparison.jsx';
 import GoogleCalendar from './components/google_calendar.jsx';
 import PaperGPT from './components/paper_gpt.jsx';
 import ProcessChecker from './components/process_checker.jsx';
+import ScientificPlayground from './components/car.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -152,6 +153,8 @@ function App() {
         <Route path='/trading_calendar' element={<GoogleCalendar />}></Route>
         <Route path='/paper_gpt' element={<PaperGPT />}></Route>
         <Route path='/process_checker' element={<ProcessChecker />}></Route>
+        <Route path='/science_playground' element={<ScientificPlayground />}></Route>
+
 
 
 

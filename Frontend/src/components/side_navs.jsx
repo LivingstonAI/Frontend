@@ -344,6 +344,8 @@ export default function SideNavs() {
         <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
         <Link to="/paper_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-mortarboard-fill"></i></p></button></Link>
         <Link to="/process_checker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-patch-check-fill"></i></p></button></Link>
+        <Link to="/science_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
+
       </div>
 
       <div className="side-navs-cellphone">
@@ -439,6 +441,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/process_checker" className="side-nav">
             <i className="bi bi-patch-check-fill"></i>
+        </Link>
+        <Link to="/science_playground" className="side-nav">
+            <i className="bi bi-infinity"></i>
         </Link>
       </div>
       <br />
