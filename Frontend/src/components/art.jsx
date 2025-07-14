@@ -73,6 +73,8 @@ import strangers from '../Kenya Grace - Strangers (Official Lyric Video).mp3';
 import memory from '../hojean - memory [lyrics] (1).mp3';
 import any_song from '../Any song (아무노래).mp3';
 import nokia_remix from '../Katy Perry Last Friday Night - Drake (Remix) [NOKIA X T.G.I.F.].mp3';
+import levitating from '../Dua Lipa - Levitating Featuring DaBaby (Official Music Video).mp3';
+
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -278,6 +280,7 @@ export default function Art() {
     "67": { name: "Memory 🪶", file: memory },
     "68": { name: "아무노래 ~ ZICO 🇰🇷", file: any_song },
     "69": { name: "NOKIA X T.G.I.F. 🌃", file: nokia_remix },
+    "70": { name: "Levitating 🦸‍♂️", file: levitating },
   };
 
   // Function to get current date and time formatted
