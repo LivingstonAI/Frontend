@@ -174,6 +174,7 @@ export default function SideNavs() {
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
+    
     document.body.className = newTheme;
     localStorage.setItem('theme', newTheme);
   };
