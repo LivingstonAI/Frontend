@@ -382,13 +382,13 @@ export default function EconomicsGPT() {
                 }
             `}</style>
             
-            <div className="economics-gpt-header-section">
+            <div className="header">
                 <Header />
             </div>
             
-            <div className="economics-gpt-main-page-body">
+            <div className="main-page-body">
                 <SideNavs />
-                <div className="economics-gpt-content-area">
+                <div className="main-body-info">
                     <h1 className="economics-gpt-page-title">
                         <TrendingUp size={36} />
                         EconomicsGPT
