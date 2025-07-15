@@ -243,6 +243,15 @@ export default function Chill() {
             window.speechSynthesis.cancel();
             const cleanText = text.replace(/#{1,3}/g, '');
             const utterance = new SpeechSynthesisUtterance(cleanText);
+             const voices = window.speechSynthesis.getVoices();
+
+            const englishVoice = voices.find(voice => 
+                voice.lang.startsWith('en') && voice.name.includes('Natural')
+            ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+            
+            if (englishVoice) {
+                utterance.voice = englishVoice;
+            }
             speechQueue.push(cleanText);
             processQueue();
             utterance.onend = () => {
