@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import { Send, TrendingUp, DollarSign, MessageSquare, Loader2 } from "lucide-react";
+import { Send, TrendingUp, DollarSign, MessageSquare, Loader2, Image, X, Upload } from "lucide-react";
 
 export default function EconomicsGPT() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -12,7 +12,10 @@ export default function EconomicsGPT() {
     const [currentMessage, setCurrentMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingData, setIsFetchingData] = useState(false);
+    const [uploadedImage, setUploadedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
     
     const currencies = [
         { code: 'USD', name: 'US Dollar' },
@@ -48,7 +51,7 @@ export default function EconomicsGPT() {
             const systemMessage = {
                 id: Date.now(),
                 role: 'system',
-                content: `Economic data for ${currency} has been loaded. I now have access to recent economic events, forecasts, and data for this currency. You can ask me questions about economic indicators, trends, or analysis for ${currency}.`,
+                content: `Economic data for ${currency} has been loaded. I now have access to recent economic events, forecasts, and data for this currency. You can ask me questions about economic indicators, trends, or analysis for ${currency}. You can also upload trading charts for visual analysis.`,
                 timestamp: new Date().toISOString()
             };
             setMessages([systemMessage]);
@@ -70,17 +73,64 @@ export default function EconomicsGPT() {
         setSelectedCurrency(currency);
         setMessages([]);
         setEconomicData([]);
+        setUploadedImage(null);
+        setImagePreview(null);
         if (currency) {
             fetchEconomicDataForCurrency(currency);
         }
     };
+
+    const handleImageUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Check if file is an image
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            // Check file size (limit to 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Image size should be less than 10MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setImagePreview(e.target.result);
+                setUploadedImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeImage = () => {
+        setUploadedImage(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
     
-    const sendMessageToGPT = async (userMessage, economicContext) => {
-        const systemPrompt = `You are an expert economics analyst. You have access to the following economic data for ${selectedCurrency}:
+    const sendMessageToGPT = async (userMessage, economicContext, imageData = null) => {
+        const systemPrompt = `You are an expert economics analyst and trading chart specialist. You have access to the following economic data for ${selectedCurrency}:
         
         ${JSON.stringify(economicContext, null, 2)}
         
-        Based on this data, provide insightful analysis and answers to user questions about ${selectedCurrency} economics, trends, forecasts, and market implications. Be specific and reference the actual data when relevant.`;
+        ${imageData ? 'You are also analyzing a trading chart image that the user has uploaded.' : ''}
+        
+        Based on this data${imageData ? ' and the chart image' : ''}, provide insightful analysis and answers to user questions about ${selectedCurrency} economics, trends, forecasts, market implications, and technical analysis. Be specific and reference the actual data and chart patterns when relevant.`;
+        
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { 
+                role: 'user', 
+                content: imageData ? [
+                    { type: 'text', text: userMessage },
+                    { type: 'image_url', image_url: { url: imageData } }
+                ] : userMessage
+            }
+        ];
         
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -91,10 +141,7 @@ export default function EconomicsGPT() {
                 },
                 body: JSON.stringify({
                     model: 'gpt-4o-mini',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userMessage }
-                    ],
+                    messages: messages,
                     max_tokens: 1000,
                     temperature: 0.7
                 })
@@ -111,12 +158,15 @@ export default function EconomicsGPT() {
     };
     
     const handleSendMessage = async () => {
-        if (!currentMessage.trim() || !selectedCurrency || !OPENAI_API_KEY) return;
+        if ((!currentMessage.trim() && !uploadedImage) || !selectedCurrency || !OPENAI_API_KEY) return;
+        
+        const messageContent = currentMessage.trim() || (uploadedImage ? "Please analyze this trading chart" : "");
         
         const userMessage = {
             id: Date.now(),
             role: 'user',
-            content: currentMessage,
+            content: messageContent,
+            image: uploadedImage,
             timestamp: new Date().toISOString()
         };
         
@@ -125,7 +175,7 @@ export default function EconomicsGPT() {
         setIsLoading(true);
         
         try {
-            const aiResponse = await sendMessageToGPT(currentMessage, economicData);
+            const aiResponse = await sendMessageToGPT(messageContent, economicData, uploadedImage);
             
             const aiMessage = {
                 id: Date.now() + 1,
@@ -135,6 +185,13 @@ export default function EconomicsGPT() {
             };
             
             setMessages(prev => [...prev, aiMessage]);
+            
+            // Clear the image after sending
+            setUploadedImage(null);
+            setImagePreview(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
@@ -274,6 +331,13 @@ export default function EconomicsGPT() {
                     box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
                 }
                 
+                .economics-gpt-message-image {
+                    margin-top: 8px;
+                    max-width: 300px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                }
+                
                 .economics-gpt-ai-message {
                     background: white;
                     color: #334155;
@@ -281,6 +345,7 @@ export default function EconomicsGPT() {
                     border-radius: 20px 20px 20px 8px;
                     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                     border-left: 4px solid #3b82f6;
+                    white-space: pre-wrap;
                 }
                 
                 .economics-gpt-system-message {
@@ -297,6 +362,72 @@ export default function EconomicsGPT() {
                     padding: 20px;
                     background: white;
                     border-top: 1px solid #e2e8f0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+                
+                .economics-gpt-image-upload-section {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+                
+                .economics-gpt-image-upload-button {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                
+                .economics-gpt-image-upload-button:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+                }
+                
+                .economics-gpt-image-preview {
+                    position: relative;
+                    display: inline-block;
+                }
+                
+                .economics-gpt-image-preview img {
+                    max-width: 200px;
+                    max-height: 100px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                }
+                
+                .economics-gpt-image-remove-button {
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 12px;
+                    transition: all 0.3s ease;
+                }
+                
+                .economics-gpt-image-remove-button:hover {
+                    background: #dc2626;
+                    transform: scale(1.1);
+                }
+                
+                .economics-gpt-message-input-row {
                     display: flex;
                     gap: 12px;
                     align-items: flex-end;
@@ -380,6 +511,10 @@ export default function EconomicsGPT() {
                     justify-content: center;
                     gap: 8px;
                 }
+                
+                .economics-gpt-hidden {
+                    display: none;
+                }
             `}</style>
             
             <div className="header">
@@ -435,13 +570,20 @@ export default function EconomicsGPT() {
                                                 'economics-gpt-ai-message'
                                             }>
                                                 {message.content}
+                                                {message.image && (
+                                                    <img 
+                                                        src={message.image} 
+                                                        alt="Trading chart" 
+                                                        className="economics-gpt-message-image"
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     ))}
                                     {isLoading && (
                                         <div className="economics-gpt-loading-indicator">
                                             <Loader2 size={16} className="animate-spin" />
-                                            Analyzing economic data...
+                                            Analyzing economic data and chart...
                                         </div>
                                     )}
                                     <div ref={messagesEndRef} />
@@ -450,22 +592,57 @@ export default function EconomicsGPT() {
                         </div>
                         
                         <div className="economics-gpt-input-section">
-                            <textarea
-                                value={currentMessage}
-                                onChange={(e) => setCurrentMessage(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder={selectedCurrency ? `Ask me about ${selectedCurrency} economics...` : "Select a currency first"}
-                                className="economics-gpt-message-input"
-                                disabled={!selectedCurrency || isFetchingData}
-                            />
-                            <button
-                                onClick={handleSendMessage}
-                                disabled={!currentMessage.trim() || !selectedCurrency || isLoading || isFetchingData}
-                                className="economics-gpt-send-button"
-                            >
-                                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                                Send
-                            </button>
+                            <div className="economics-gpt-image-upload-section">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    ref={fileInputRef}
+                                    className="economics-gpt-hidden"
+                                />
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="economics-gpt-image-upload-button"
+                                    disabled={!selectedCurrency || isFetchingData}
+                                >
+                                    <Upload size={16} />
+                                    Upload Chart
+                                </button>
+                                
+                                {imagePreview && (
+                                    <div className="economics-gpt-image-preview">
+                                        <img src={imagePreview} alt="Chart preview" />
+                                        <button
+                                            onClick={removeImage}
+                                            className="economics-gpt-image-remove-button"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="economics-gpt-message-input-row">
+                                <textarea
+                                    value={currentMessage}
+                                    onChange={(e) => setCurrentMessage(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder={selectedCurrency ? 
+                                        `Ask me about ${selectedCurrency} economics or upload a chart to analyze...` : 
+                                        "Select a currency first"
+                                    }
+                                    className="economics-gpt-message-input"
+                                    disabled={!selectedCurrency || isFetchingData}
+                                />
+                                <button
+                                    onClick={handleSendMessage}
+                                    disabled={(!currentMessage.trim() && !uploadedImage) || !selectedCurrency || isLoading || isFetchingData}
+                                    className="economics-gpt-send-button"
+                                >
+                                    {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                                    Send
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
