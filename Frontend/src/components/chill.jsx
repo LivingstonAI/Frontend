@@ -286,20 +286,14 @@ export default function Chill() {
         };
         
         utterance.onerror = (event) => console.error("Speech error:", event.error);
-    
-        const voices = window.speechSynthesis.getVoices();
+         const voices = window.speechSynthesis.getVoices();
 
-        if (voices.length > 0) {
-            // Look for a female British voice
-            const britishFemaleVoice = voices.find(voice => 
-                voice.lang.includes('en-GB') && voice.name.toLowerCase().includes('female')
-            ) || voices.find(voice => 
-                voice.lang.includes('en-GB')
-            ) || voices.find(voice => 
-                voice.name.toLowerCase().includes('female')
-            );
-            
-            utterance.voice = britishFemaleVoice || voices[0];
+        const englishVoice = voices.find(voice => 
+            voice.lang.startsWith('en') && voice.name.includes('Natural')
+        ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+        
+        if (englishVoice) {
+            utterance.voice = englishVoice;
         }
         else {
             window.speechSynthesis.onvoiceschanged = () => {
