@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import { Send, TrendingUp, DollarSign, MessageSquare, Loader2, Image, X, Upload } from "lucide-react";
+import { Send, TrendingUp, DollarSign, MessageSquare, Loader2, Image, X, Upload, Volume2, VolumeX, Pause, Play } from "lucide-react";
 
 export default function EconomicsGPT() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -14,8 +14,12 @@ export default function EconomicsGPT() {
     const [isFetchingData, setIsFetchingData] = useState(false);
     const [uploadedImage, setUploadedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [currentSpeakingId, setCurrentSpeakingId] = useState(null);
+    const [isPaused, setIsPaused] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const speechSynthesisRef = useRef(null);
     
     const currencies = [
         { code: 'USD', name: 'US Dollar' },
@@ -70,6 +74,9 @@ export default function EconomicsGPT() {
     };
     
     const handleCurrencyChange = (currency) => {
+        // Stop any ongoing speech
+        stopSpeech();
+        
         setSelectedCurrency(currency);
         setMessages([]);
         setEconomicData([]);
@@ -109,6 +116,82 @@ export default function EconomicsGPT() {
         setImagePreview(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
+        }
+    };
+    
+    const speakText = (text, messageId) => {
+        // Stop any ongoing speech
+        stopSpeech();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+
+        const englishVoice = voices.find(voice => 
+            voice.lang.startsWith('en') && voice.name.includes('Natural')
+        ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+        
+        if (englishVoice) {
+            utterance.voice = englishVoice;
+        }
+
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        utterance.onstart = () => {
+            setIsSpeaking(true);
+            setCurrentSpeakingId(messageId);
+            setIsPaused(false);
+        };
+
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            setCurrentSpeakingId(null);
+            setIsPaused(false);
+        };
+
+        utterance.onerror = () => {
+            setIsSpeaking(false);
+            setCurrentSpeakingId(null);
+            setIsPaused(false);
+        };
+
+        speechSynthesisRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const stopSpeech = () => {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        setIsSpeaking(false);
+        setCurrentSpeakingId(null);
+        setIsPaused(false);
+    };
+
+    const pauseSpeech = () => {
+        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+            window.speechSynthesis.pause();
+            setIsPaused(true);
+        }
+    };
+
+    const resumeSpeech = () => {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            setIsPaused(false);
+        }
+    };
+
+    const toggleSpeech = (messageId) => {
+        if (currentSpeakingId === messageId) {
+            if (isPaused) {
+                resumeSpeech();
+            } else {
+                pauseSpeech();
+            }
+        } else {
+            stopSpeech();
         }
     };
     
@@ -209,6 +292,16 @@ export default function EconomicsGPT() {
     useEffect(() => {
         console.log("Fetching API key...");
         fetchAPIKey();
+        
+        // Load voices on component mount
+        if (window.speechSynthesis) {
+            window.speechSynthesis.getVoices();
+        }
+        
+        return () => {
+            // Cleanup: stop speech on unmount
+            stopSpeech();
+        };
     }, []);
     
     useEffect(() => {
@@ -322,6 +415,12 @@ export default function EconomicsGPT() {
                     to { opacity: 1; transform: translateY(0); }
                 }
                 
+                .economics-gpt-message-wrapper {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 8px;
+                }
+                
                 .economics-gpt-user-message {
                     margin-left: auto;
                     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
@@ -346,6 +445,7 @@ export default function EconomicsGPT() {
                     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                     border-left: 4px solid #3b82f6;
                     white-space: pre-wrap;
+                    flex: 1;
                 }
                 
                 .economics-gpt-system-message {
@@ -356,6 +456,76 @@ export default function EconomicsGPT() {
                     text-align: center;
                     font-style: italic;
                     border: 1px solid #0ea5e9;
+                }
+                
+                .economics-gpt-tts-controls {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    align-items: center;
+                    margin-top: 4px;
+                }
+                
+                .economics-gpt-tts-button {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    border: none;
+                    padding: 6px 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    transition: all 0.3s ease;
+                    min-width: 32px;
+                    height: 32px;
+                }
+                
+                .economics-gpt-tts-button:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                }
+                
+                .economics-gpt-tts-button:disabled {
+                    background: #94a3b8;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                
+                .economics-gpt-tts-button.active {
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    animation: pulse 2s infinite;
+                }
+                
+                .economics-gpt-tts-button.paused {
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                
+                .economics-gpt-stop-button {
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    color: white;
+                    border: none;
+                    padding: 4px 6px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 10px;
+                    transition: all 0.3s ease;
+                    min-width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .economics-gpt-stop-button:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
                 }
                 
                 .economics-gpt-input-section {
@@ -564,18 +734,57 @@ export default function EconomicsGPT() {
                                 <>
                                     {messages.map(message => (
                                         <div key={message.id} className="economics-gpt-message-bubble">
-                                            <div className={
-                                                message.role === 'user' ? 'economics-gpt-user-message' :
-                                                message.role === 'system' ? 'economics-gpt-system-message' :
-                                                'economics-gpt-ai-message'
-                                            }>
-                                                {message.content}
-                                                {message.image && (
-                                                    <img 
-                                                        src={message.image} 
-                                                        alt="Trading chart" 
-                                                        className="economics-gpt-message-image"
-                                                    />
+                                            <div className="economics-gpt-message-wrapper">
+                                                <div className={
+                                                    message.role === 'user' ? 'economics-gpt-user-message' :
+                                                    message.role === 'system' ? 'economics-gpt-system-message' :
+                                                    'economics-gpt-ai-message'
+                                                }>
+                                                    {message.content}
+                                                    {message.image && (
+                                                        <img 
+                                                            src={message.image} 
+                                                            alt="Trading chart" 
+                                                            className="economics-gpt-message-image"
+                                                        />
+                                                    )}
+                                                </div>
+                                                {message.role === 'assistant' && (
+                                                    <div className="economics-gpt-tts-controls">
+                                                        <button
+                                                            onClick={() => {
+                                                                if (currentSpeakingId === message.id) {
+                                                                    toggleSpeech(message.id);
+                                                                } else {
+                                                                    speakText(message.content, message.id);
+                                                                }
+                                                            }}
+                                                            className={`economics-gpt-tts-button ${
+                                                                currentSpeakingId === message.id ? 
+                                                                    (isPaused ? 'paused' : 'active') : ''
+                                                            }`}
+                                                            title={
+                                                                currentSpeakingId === message.id ?
+                                                                    (isPaused ? 'Resume' : 'Pause') :
+                                                                    'Listen'
+                                                            }
+                                                        >
+                                                            {currentSpeakingId === message.id ? (
+                                                                isPaused ? <Play size={14} /> : <Pause size={14} />
+                                                            ) : (
+                                                                <Volume2 size={14} />
+                                                            )}
+                                                        </button>
+                                                        {currentSpeakingId === message.id && (
+                                                            <button
+                                                                onClick={stopSpeech}
+                                                                className="economics-gpt-stop-button"
+                                                                title="Stop"
+                                                            >
+                                                                <VolumeX size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
