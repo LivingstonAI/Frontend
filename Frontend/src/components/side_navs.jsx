@@ -336,7 +336,7 @@ export default function SideNavs() {
         <Link to="/ideas_section" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-lightbulb-fill"></i></p></button></Link>
         <Link to="/call_ai" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-telephone-fill"></i></p></button></Link>
         <Link to="/trade_ideas" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-snow2"></i></p></button></Link>
-        <Link to="/prop_firm_management" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
+        <Link to="/prop_firm_management" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-database-fill"></i></p></button></Link>
         <Link to="/music" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-music-note-beamed"></i></p></button></Link>
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
@@ -348,6 +348,7 @@ export default function SideNavs() {
         <Link to="/paper_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-mortarboard-fill"></i></p></button></Link>
         <Link to="/process_checker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-patch-check-fill"></i></p></button></Link>
         <Link to="/science_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
+        <Link to="/economics_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
 
       </div>
 
@@ -413,7 +414,7 @@ export default function SideNavs() {
             <i className="bi bi-snow2"></i>
         </Link>
         <Link to="/prop_firm_management" className="side-nav">
-            <i className="bi bi-currency-dollar"></i>
+            <i className="bi bi-database-fill"></i>
         </Link>
         <Link to="/music" className="side-nav">
             <i className="bi bi-music-note-beamed"></i>
@@ -447,6 +448,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/science_playground" className="side-nav">
             <i className="bi bi-infinity"></i>
+        </Link>
+        <Link to="/economics_gpt" className="side-nav">
+            <i className="bi bi-currency-dollar"></i>
         </Link>
       </div>
       <br />
