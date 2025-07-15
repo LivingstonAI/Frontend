@@ -74,6 +74,7 @@ import memory from '../hojean - memory [lyrics] (1).mp3';
 import any_song from '../Any song (아무노래).mp3';
 import nokia_remix from '../Katy Perry Last Friday Night - Drake (Remix) [NOKIA X T.G.I.F.].mp3';
 import levitating from '../Dua Lipa - Levitating Featuring DaBaby (Official Music Video).mp3';
+import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp3';
 
 
 // Audio to be used for authentication
@@ -281,6 +282,8 @@ export default function Art() {
     "68": { name: "아무노래 ~ ZICO 🇰🇷", file: any_song },
     "69": { name: "NOKIA X T.G.I.F. 🌃", file: nokia_remix },
     "70": { name: "Levitating 🦸‍♂️", file: levitating },
+    "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
+
   };
 
   // Function to get current date and time formatted
