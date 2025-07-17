@@ -442,7 +442,6 @@ const ChartGenerationModal = () => {
                 </div>
                 </div>
 
-                
                 <div className="economics-gpt-modal-footer">
                     <button 
                         onClick={() => setShowChartModal(false)}
@@ -1174,18 +1173,6 @@ const ChartGenerationModal = () => {
                                 )}
                             </div>
 
-                                
-                                {imagePreview && (
-                                    <div className="economics-gpt-image-preview">
-                                        <img src={imagePreview} alt="Chart preview" />
-                                        <button
-                                            onClick={removeImage}
-                                            className="economics-gpt-image-remove-button"
-                                        >
-                                            <X size={12} />
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                             
                             <div className="economics-gpt-message-input-row">
