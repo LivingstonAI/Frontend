@@ -20,6 +20,20 @@ export default function EconomicsGPT() {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const speechSynthesisRef = useRef(null);
+    const [chartCurrencyPair, setChartCurrencyPair] = useState('EURUSD');
+
+    const currencyPairs = [
+    { value: 'EURUSD', label: 'EUR/USD' },
+    { value: 'GBPUSD', label: 'GBP/USD' },
+    { value: 'USDJPY', label: 'USD/JPY' },
+    { value: 'USDCHF', label: 'USD/CHF' },
+    { value: 'AUDUSD', label: 'AUD/USD' },
+    { value: 'USDCAD', label: 'USD/CAD' },
+    { value: 'NZDUSD', label: 'NZD/USD' },
+    { value: 'EURGBP', label: 'EUR/GBP' },
+    { value: 'EURJPY', label: 'EUR/JPY' },
+    { value: 'GBPJPY', label: 'GBP/JPY' }
+];
     
     const currencies = [
         { code: 'USD', name: 'US Dollar' },
@@ -328,10 +342,7 @@ const lookbackPeriods = [
     { value: '1y', label: '1 year' }
 ];
 
-// 3. ADD THIS NEW FUNCTION TO GENERATE CHART
 const generateChart = async () => {
-    if (!selectedCurrency) return;
-    
     setIsGeneratingChart(true);
     try {
         const response = await fetch(`${baseUrl}/api/v1/economics/generate-dynamic-chart/`, {
@@ -340,7 +351,7 @@ const generateChart = async () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                currency: selectedCurrency,
+                currency_pair: chartCurrencyPair,
                 timeframe: chartTimeframe,
                 lookback: chartLookback
             })
@@ -350,16 +361,9 @@ const generateChart = async () => {
         
         const data = await response.json();
         
-        // Add chart message to chat
-        const chartMessage = {
-            id: Date.now(),
-            role: 'assistant',
-            content: `Generated ${selectedCurrency} chart for ${chartLookback} lookback with ${chartTimeframe} timeframe`,
-            image: `data:image/png;base64,${data.chart_image}`,
-            timestamp: new Date().toISOString()
-        };
-        
-        setMessages(prev => [...prev, chartMessage]);
+        // Set the generated chart as uploaded image for next message
+        setUploadedImage(`data:image/png;base64,${data.chart_image}`);
+        setImagePreview(`data:image/png;base64,${data.chart_image}`);
         setShowChartModal(false);
         
     } catch (error) {
@@ -423,6 +427,19 @@ const ChartGenerationModal = () => {
                             ))}
                         </select>
                     </div>
+                </div>
+
+                <div className="economics-gpt-form-group">
+                    <label>Currency Pair:</label>
+                    <select 
+                        value={chartCurrencyPair} 
+                        onChange={(e) => setChartCurrencyPair(e.target.value)}
+                        className="economics-gpt-form-select"
+                    >
+                        {currencyPairs.map(pair => (
+                            <option key={pair.value} value={pair.value}>{pair.label}</option>
+                        ))}
+                    </select>
                 </div>
                 
                 <div className="economics-gpt-modal-footer">
@@ -1199,5 +1216,3 @@ const ChartGenerationModal = () => {
         </div>
     );
 }
-
-// Hey! Please, in addition to the already existing upload chart capability I have, enable me to be able to dynamically generate a chart. So, I should be able to click a button, and a modal shows up. Then I should be able to set the timeframe and lookback period, and send this data to my backend, with the backend url provided already in the code, and generate a chart which shows up in the messaging section of my chats with EconomicsGPT.  I was thinking we could create a backend function to do this, and it would need to have a very unique name and url for the urls.py, and have a csrf_exempt thingy, but if there's a way you know how to generate it in the frontend, then that's dope too. NO NEED TO PROVIDE ME THE FULL CODE. Just tell me what to include/remove.
