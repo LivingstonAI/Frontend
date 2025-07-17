@@ -427,8 +427,7 @@ const ChartGenerationModal = () => {
                             ))}
                         </select>
                     </div>
-                </div>
-
+                    
                 <div className="economics-gpt-form-group">
                     <label>Currency Pair:</label>
                     <select 
@@ -441,6 +440,8 @@ const ChartGenerationModal = () => {
                         ))}
                     </select>
                 </div>
+                </div>
+
                 
                 <div className="economics-gpt-modal-footer">
                     <button 
