@@ -1116,21 +1116,6 @@ const ChartGenerationModal = () => {
                         
                         <div className="economics-gpt-input-section">
                             <div className="economics-gpt-image-upload-section">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    ref={fileInputRef}
-                                    className="economics-gpt-hidden"
-                                />
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="economics-gpt-image-upload-button"
-                                    disabled={!selectedCurrency || isFetchingData}
-                                >
-                                    <Upload size={16} />
-                                    Upload Chart
-                                </button>
                                 <div className="economics-gpt-image-upload-section">
                                 <input
                                     type="file"
