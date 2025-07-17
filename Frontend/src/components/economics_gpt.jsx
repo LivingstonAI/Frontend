@@ -303,6 +303,158 @@ export default function EconomicsGPT() {
             stopSpeech();
         };
     }, []);
+
+    // 1. ADD THESE NEW STATE VARIABLES (after your existing useState declarations)
+const [showChartModal, setShowChartModal] = useState(false);
+const [chartTimeframe, setChartTimeframe] = useState('1h');
+const [chartLookback, setChartLookback] = useState('1d');
+const [isGeneratingChart, setIsGeneratingChart] = useState(false);
+
+// 2. ADD THESE TIMEFRAME AND LOOKBACK OPTIONS
+const timeframes = [
+    { value: '1m', label: '1 minute' },
+    { value: '5m', label: '5 minutes' },
+    { value: '15m', label: '15 minutes' },
+    { value: '1h', label: '1 hour' },
+    { value: '4h', label: '4 hours' },
+    { value: '1d', label: '1 day' }
+];
+
+const lookbackPeriods = [
+    { value: '1d', label: '1 day' },
+    { value: '7d', label: '7 days' },
+    { value: '30d', label: '30 days' },
+    { value: '90d', label: '3 months' },
+    { value: '1y', label: '1 year' }
+];
+
+// 3. ADD THIS NEW FUNCTION TO GENERATE CHART
+const generateChart = async () => {
+    if (!selectedCurrency) return;
+    
+    setIsGeneratingChart(true);
+    try {
+        const response = await fetch(`${baseUrl}/api/v1/economics/generate-dynamic-chart/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                currency: selectedCurrency,
+                timeframe: chartTimeframe,
+                lookback: chartLookback
+            })
+        });
+        
+        if (!response.ok) throw new Error('Failed to generate chart');
+        
+        const data = await response.json();
+        
+        // Add chart message to chat
+        const chartMessage = {
+            id: Date.now(),
+            role: 'assistant',
+            content: `Generated ${selectedCurrency} chart for ${chartLookback} lookback with ${chartTimeframe} timeframe`,
+            image: `data:image/png;base64,${data.chart_image}`,
+            timestamp: new Date().toISOString()
+        };
+        
+        setMessages(prev => [...prev, chartMessage]);
+        setShowChartModal(false);
+        
+    } catch (error) {
+        console.error('Error generating chart:', error);
+        const errorMessage = {
+            id: Date.now(),
+            role: 'system',
+            content: 'Failed to generate chart. Please try again.',
+            timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+    } finally {
+        setIsGeneratingChart(false);
+    }
+};
+
+// 4. ADD THIS MODAL COMPONENT (place it right before the closing </div> of your main container)
+const ChartGenerationModal = () => {
+    if (!showChartModal) return null;
+    
+    return (
+        <div className="economics-gpt-modal-overlay">
+            <div className="economics-gpt-modal-content">
+                <div className="economics-gpt-modal-header">
+                    <h3>Generate Dynamic Chart</h3>
+                    <button 
+                        onClick={() => setShowChartModal(false)}
+                        className="economics-gpt-modal-close"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+                
+                <div className="economics-gpt-modal-body">
+                    <div className="economics-gpt-form-group">
+                        <label>Currency: {selectedCurrency}</label>
+                    </div>
+                    
+                    <div className="economics-gpt-form-group">
+                        <label>Timeframe:</label>
+                        <select 
+                            value={chartTimeframe} 
+                            onChange={(e) => setChartTimeframe(e.target.value)}
+                            className="economics-gpt-form-select"
+                        >
+                            {timeframes.map(tf => (
+                                <option key={tf.value} value={tf.value}>{tf.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    <div className="economics-gpt-form-group">
+                        <label>Lookback Period:</label>
+                        <select 
+                            value={chartLookback} 
+                            onChange={(e) => setChartLookback(e.target.value)}
+                            className="economics-gpt-form-select"
+                        >
+                            {lookbackPeriods.map(lb => (
+                                <option key={lb.value} value={lb.value}>{lb.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                
+                <div className="economics-gpt-modal-footer">
+                    <button 
+                        onClick={() => setShowChartModal(false)}
+                        className="economics-gpt-modal-button-secondary"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={generateChart}
+                        disabled={isGeneratingChart}
+                        className="economics-gpt-modal-button-primary"
+                    >
+                        {isGeneratingChart ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" />
+                                Generating...
+                            </>
+                        ) : (
+                            <>
+                                <TrendingUp size={16} />
+                                Generate Chart
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
     
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -684,6 +836,169 @@ export default function EconomicsGPT() {
                 .economics-gpt-hidden {
                     display: none;
                 }
+
+                .economics-gpt-chart-generate-button {
+                    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+
+                .economics-gpt-chart-generate-button:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+                }
+
+                .economics-gpt-chart-generate-button:disabled {
+                    background: #94a3b8;
+                    cursor: not-allowed;
+                    transform: none;
+                    box-shadow: none;
+                }
+
+                .economics-gpt-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+
+                .economics-gpt-modal-content {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 0;
+                    max-width: 500px;
+                    width: 90%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                }
+
+                .economics-gpt-modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+
+                .economics-gpt-modal-header h3 {
+                    margin: 0;
+                    color: #1e40af;
+                    font-size: 20px;
+                    font-weight: 600;
+                }
+
+                .economics-gpt-modal-close {
+                    background: none;
+                    border: none;
+                    color: #64748b;
+                    cursor: pointer;
+                    padding: 4px;
+                    border-radius: 4px;
+                    transition: all 0.3s ease;
+                }
+
+                .economics-gpt-modal-close:hover {
+                    background: #f1f5f9;
+                    color: #1e40af;
+                }
+
+                .economics-gpt-modal-body {
+                    padding: 20px;
+                }
+
+                .economics-gpt-form-group {
+                    margin-bottom: 16px;
+                }
+
+                .economics-gpt-form-group label {
+                    display: block;
+                    margin-bottom: 6px;
+                    font-weight: 500;
+                    color: #374151;
+                }
+
+                .economics-gpt-form-select {
+                    width: 100%;
+                    padding: 8px 12px;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    background: white;
+                    color: #374151;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+
+                .economics-gpt-form-select:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+
+                .economics-gpt-modal-footer {
+                    display: flex;
+                    gap: 12px;
+                    justify-content: flex-end;
+                    padding: 20px;
+                    border-top: 1px solid #e2e8f0;
+                }
+
+                .economics-gpt-modal-button-secondary {
+                    background: #f8fafc;
+                    color: #64748b;
+                    border: 2px solid #e2e8f0;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+
+                .economics-gpt-modal-button-secondary:hover {
+                    background: #e2e8f0;
+                    color: #475569;
+                }
+
+                .economics-gpt-modal-button-primary {
+                    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: all 0.3s ease;
+                }
+
+                .economics-gpt-modal-button-primary:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+                }
+
+                .economics-gpt-modal-button-primary:disabled {
+                    background: #94a3b8;
+                    cursor: not-allowed;
+                    transform: none;
+                    box-shadow: none;
+                }
             `}</style>
             
             <div className="header">
@@ -816,6 +1131,46 @@ export default function EconomicsGPT() {
                                     <Upload size={16} />
                                     Upload Chart
                                 </button>
+                                <div className="economics-gpt-image-upload-section">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    ref={fileInputRef}
+                                    className="economics-gpt-hidden"
+                                />
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="economics-gpt-image-upload-button"
+                                    disabled={!selectedCurrency || isFetchingData}
+                                >
+                                    <Upload size={16} />
+                                    Upload Chart
+                                </button>
+                                
+                                {/* NEW BUTTON FOR DYNAMIC CHART GENERATION */}
+                                <button
+                                    onClick={() => setShowChartModal(true)}
+                                    className="economics-gpt-chart-generate-button"
+                                    disabled={!selectedCurrency || isFetchingData}
+                                >
+                                    <TrendingUp size={16} />
+                                    Generate Chart
+                                </button>
+                                
+                                {imagePreview && (
+                                    <div className="economics-gpt-image-preview">
+                                        <img src={imagePreview} alt="Chart preview" />
+                                        <button
+                                            onClick={removeImage}
+                                            className="economics-gpt-image-remove-button"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                                 
                                 {imagePreview && (
                                     <div className="economics-gpt-image-preview">
@@ -855,6 +1210,9 @@ export default function EconomicsGPT() {
                     </div>
                 </div>
             </div>
+            <ChartGenerationModal />
         </div>
     );
 }
+
+// Hey! Please, in addition to the already existing upload chart capability I have, enable me to be able to dynamically generate a chart. So, I should be able to click a button, and a modal shows up. Then I should be able to set the timeframe and lookback period, and send this data to my backend, with the backend url provided already in the code, and generate a chart which shows up in the messaging section of my chats with EconomicsGPT.  I was thinking we could create a backend function to do this, and it would need to have a very unique name and url for the urls.py, and have a csrf_exempt thingy, but if there's a way you know how to generate it in the frontend, then that's dope too. NO NEED TO PROVIDE ME THE FULL CODE. Just tell me what to include/remove.
