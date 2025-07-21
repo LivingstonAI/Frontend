@@ -27,7 +27,7 @@ export default function AICouncil() {
         setAvailableCurrencies(currencyPairs);
         fetchWatchedAssets();
         fetchTraderAnalyses();
-        fetchSchedulerStatus();
+        // fetchSchedulerStatus();
     }, []);
 
     const currencyPairs = [
