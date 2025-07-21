@@ -15,20 +15,6 @@ export default function AICouncil() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAssetForAnalysis, setSelectedAssetForAnalysis] = useState('');
     const [runningAnalysis, setRunningAnalysis] = useState(false);
-    const [schedulerStatus, setSchedulerStatus] = useState({
-        running: false,
-        interval_hours: 4,
-        last_run: null,
-        next_run: null
-    });
-    const [schedulerLoading, setSchedulerLoading] = useState(false);
-
-    useEffect(() => {
-        setAvailableCurrencies(currencyPairs);
-        fetchWatchedAssets();
-        fetchTraderAnalyses();
-        // fetchSchedulerStatus();
-    }, []);
 
     const currencyPairs = [
         'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD',
@@ -36,53 +22,11 @@ export default function AICouncil() {
         'USDCNH', 'GBPAUD', 'EURCHF', 'AUDCAD', 'GBPCAD', 'EURCAD'
     ];
 
-    const startScheduler = async () => {
-        try {
-            setSchedulerLoading(true);
-            const response = await fetch(`${baseUrl}/api/start-analysis-scheduler/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setSchedulerStatus(data.status || {});
-                setError('');
-            } else {
-                setError('Failed to start scheduler');
-            }
-        } catch (error) {
-            setError('Network error occurred');
-        } finally {
-            setSchedulerLoading(false);
-        }
-    };
-
-    const stopScheduler = async () => {
-        try {
-            setSchedulerLoading(true);
-            const response = await fetch(`${baseUrl}/api/stop-analysis-scheduler/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setSchedulerStatus(data.status || {});
-                setError('');
-            } else {
-                setError('Failed to stop scheduler');
-            }
-        } catch (error) {
-            setError('Network error occurred');
-        } finally {
-            setSchedulerLoading(false);
-        }
-    };
+    useEffect(() => {
+        setAvailableCurrencies(currencyPairs);
+        fetchWatchedAssets();
+        fetchTraderAnalyses();
+    }, []);
 
     const fetchWatchedAssets = async () => {
         try {
@@ -225,65 +169,6 @@ export default function AICouncil() {
                             {error}
                         </div>
                     )}
-
-                    {/* Scheduler Control Section */}
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h6 className="text-lg font-semibold text-blue-800 mb-4">Analysis Scheduler</h6>
-                        
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full ${schedulerStatus.running ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                    <span className="text-sm font-medium">
-                                        Status: {schedulerStatus.running ? 'Running' : 'Stopped'}
-                                    </span>
-                                </div>
-                                
-                                {schedulerStatus.running && (
-                                    <div className="text-sm text-gray-600">
-                                        <span>Interval: {schedulerStatus.interval_hours}h</span>
-                                        {schedulerStatus.last_run && (
-                                            <span className="ml-3">
-                                                Last run: {new Date(schedulerStatus.last_run).toLocaleString()}
-                                            </span>
-                                        )}
-                                        {schedulerStatus.next_run && (
-                                            <span className="ml-3">
-                                                Next run: {new Date(schedulerStatus.next_run).toLocaleString()}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={fetchSchedulerStatus}
-                                    className="bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 transition-colors text-sm"
-                                >
-                                    Refresh Status
-                                </button>
-                                
-                                {schedulerStatus.running ? (
-                                    <button
-                                        onClick={stopScheduler}
-                                        disabled={schedulerLoading}
-                                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400 transition-colors"
-                                    >
-                                        {schedulerLoading ? 'Stopping...' : 'Stop Scheduler'}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={startScheduler}
-                                        disabled={schedulerLoading}
-                                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 transition-colors"
-                                    >
-                                        {schedulerLoading ? 'Starting...' : 'Start Scheduler'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Currency Selection Section */}
                     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
