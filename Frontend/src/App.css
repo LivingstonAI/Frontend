@@ -8295,16 +8295,31 @@ img {
   }
 }
 
-.side-navs-cellphone::-webkit-scrollbar .side-navs::-webkit-scrollbar {
+.side-navs-cellphone::-webkit-scrollbar {
     width: 4px; /* Adjust width if needed */
     height: 5px;
 }
 
-.side-navs-cellphone::-webkit-scrollbar-track .side-navs::-webkit-scrollbar-track {
+.side-navs-cellphone::-webkit-scrollbar-track {
     background: #e0f7ff; /* Light blue track */
 }
 
-.side-navs-cellphone::-webkit-scrollbar-thumb .side-navs::-webkit-scrollbar-thumb {
+.side-navs-cellphone::-webkit-scrollbar-thumb {
+    background: #0077cc; /* Your nice shade of blue */
+    /* border-radius: 4p/x; Optional: rounded corners */
+}
+
+
+.side-navs::-webkit-scrollbar {
+    width: 4px; /* Adjust width if needed */
+    height: 5px;
+}
+
+.side-navs::-webkit-scrollbar-track {
+    background: #e0f7ff; /* Light blue track */
+}
+
+.side-navs::-webkit-scrollbar-thumb {
     background: #0077cc; /* Your nice shade of blue */
     /* border-radius: 4p/x; Optional: rounded corners */
 }
