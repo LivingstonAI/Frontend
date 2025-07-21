@@ -3601,7 +3601,9 @@ body.dark {
     }
   }
   
-  
+.all-side-navs {
+  overflow: auto;
+}
 
   
   /* Background and container styling */
