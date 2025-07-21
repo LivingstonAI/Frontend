@@ -59,6 +59,7 @@ import PaperGPT from './components/paper_gpt.jsx';
 import ProcessChecker from './components/process_checker.jsx';
 import ScientificPlayground from './components/car.jsx';
 import EconomicsGPT from './components/economics_gpt.jsx';
+import AICouncil from './components/ai_council.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -156,6 +157,8 @@ function App() {
         <Route path='/process_checker' element={<ProcessChecker />}></Route>
         <Route path='/science_playground' element={<ScientificPlayground />}></Route>
         <Route path='/economics_gpt' element={<EconomicsGPT />}></Route>
+        <Route path='/ai_council' element={<AICouncil />}></Route>
+
 
 
 
