@@ -138,43 +138,323 @@ export default function AICouncil() {
 
     const getRiskColor = (riskLevel) => {
         switch (riskLevel?.toLowerCase()) {
-            case 'low': return 'text-green-600';
-            case 'medium': return 'text-yellow-600';
-            case 'high': return 'text-red-600';
-            default: return 'text-gray-600';
+            case 'low': return '#10b981';
+            case 'medium': return '#f59e0b';
+            case 'high': return '#ef4444';
+            default: return '#6b7280';
         }
     };
 
-    const getSentimentColor = (sentiment) => {
+    const getSentimentStyle = (sentiment) => {
         switch (sentiment?.toLowerCase()) {
-            case 'bullish': return 'text-green-600 bg-green-50';
-            case 'bearish': return 'text-red-600 bg-red-50';
-            case 'neutral': return 'text-gray-600 bg-gray-50';
-            default: return 'text-gray-600 bg-gray-50';
+            case 'bullish': return { color: '#10b981', backgroundColor: '#f0fdf4' };
+            case 'bearish': return { color: '#ef4444', backgroundColor: '#fef2f2' };
+            case 'neutral': return { color: '#6b7280', backgroundColor: '#f9fafb' };
+            default: return { color: '#6b7280', backgroundColor: '#f9fafb' };
         }
     };
+
+    // Styles object
+    const styles = {
+        container: {
+            minHeight: '100vh',
+            backgroundColor: '#f8fafc'
+        },
+        mainContent: {
+            padding: '20px',
+            maxWidth: '1200px',
+            margin: '0 auto'
+        },
+        pageTitle: {
+            fontSize: '28px',
+            fontWeight: '600',
+            color: '#1e40af',
+            marginBottom: '24px',
+            textAlign: 'center'
+        },
+        errorAlert: {
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            padding: '16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px'
+        },
+        card: {
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            padding: '24px',
+            marginBottom: '24px'
+        },
+        cardTitle: {
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1e40af',
+            marginBottom: '16px'
+        },
+        currencyGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+            gap: '8px',
+            marginBottom: '20px'
+        },
+        currencyButton: {
+            padding: '8px 12px',
+            fontSize: '12px',
+            borderRadius: '6px',
+            border: '1px solid #bfdbfe',
+            backgroundColor: 'white',
+            color: '#1e40af',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            textAlign: 'center'
+        },
+        currencyButtonSelected: {
+            backgroundColor: '#1e40af',
+            color: 'white',
+            borderColor: '#1e40af'
+        },
+        addButtonsContainer: {
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px'
+        },
+        addButton: {
+            backgroundColor: '#059669',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '13px',
+            transition: 'background-color 0.2s ease'
+        },
+        watchedAssetsGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '12px'
+        },
+        watchedAssetItem: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#eff6ff',
+            padding: '12px',
+            borderRadius: '8px',
+            border: '1px solid #e0e7ff'
+        },
+        watchedAssetText: {
+            fontWeight: '500',
+            color: '#1e40af',
+            fontSize: '14px'
+        },
+        removeButton: {
+            color: '#dc2626',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold'
+        },
+        analysisHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+            flexWrap: 'wrap',
+            gap: '12px'
+        },
+        analysisControls: {
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center',
+            flexWrap: 'wrap'
+        },
+        input: {
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px',
+            outline: 'none',
+            transition: 'border-color 0.2s ease'
+        },
+        select: {
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px',
+            outline: 'none',
+            backgroundColor: 'white',
+            minWidth: '180px'
+        },
+        primaryButton: {
+            backgroundColor: '#1e40af',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            transition: 'background-color 0.2s ease'
+        },
+        primaryButtonDisabled: {
+            backgroundColor: '#9ca3af',
+            cursor: 'not-allowed'
+        },
+        analysisGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+            gap: '20px'
+        },
+        analysisCard: {
+            border: '1px solid #e5e7eb',
+            borderRadius: '10px',
+            padding: '20px',
+            backgroundColor: 'white',
+            transition: 'box-shadow 0.2s ease'
+        },
+        analysisCardHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            gap: '8px'
+        },
+        analysisAssetTitle: {
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#1e40af',
+            margin: '0'
+        },
+        sentimentBadge: {
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '500'
+        },
+        analysisMetrics: {
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '16px',
+            marginBottom: '16px'
+        },
+        metricItem: {
+            display: 'flex',
+            flexDirection: 'column'
+        },
+        metricLabel: {
+            fontSize: '12px',
+            fontWeight: '500',
+            color: '#6b7280',
+            marginBottom: '4px'
+        },
+        metricValue: {
+            fontSize: '14px',
+            fontWeight: '600'
+        },
+        analysisSection: {
+            marginBottom: '12px'
+        },
+        analysisSectionTitle: {
+            fontSize: '12px',
+            fontWeight: '500',
+            color: '#6b7280',
+            marginBottom: '4px'
+        },
+        analysisSectionContent: {
+            fontSize: '13px',
+            color: '#374151',
+            lineHeight: '1.4'
+        },
+        analysisFooter: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '11px',
+            color: '#9ca3af',
+            borderTop: '1px solid #f3f4f6',
+            paddingTop: '12px',
+            marginTop: '16px'
+        },
+        refreshButton: {
+            color: '#1e40af',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '11px',
+            fontWeight: '500'
+        },
+        loadingText: {
+            textAlign: 'center',
+            padding: '40px',
+            color: '#1e40af',
+            fontSize: '16px'
+        },
+        emptyState: {
+            textAlign: 'center',
+            padding: '40px',
+            color: '#6b7280',
+            fontSize: '14px'
+        }
+    };
+
+    // Media query styles for mobile
+    const mobileStyles = `
+        @media (max-width: 768px) {
+            .analysis-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .analysis-controls {
+                flex-direction: column;
+                width: 100%;
+            }
+            .analysis-controls input,
+            .analysis-controls select,
+            .analysis-controls button {
+                width: 100%;
+            }
+            .currency-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .watched-assets-grid {
+                grid-template-columns: 1fr;
+            }
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            .analysis-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    `;
 
     return (
-        <div>
+        <div style={styles.container}>
+            <style>{mobileStyles}</style>
             <div className="header">
                 <Header />
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">AI Trading Council</h5>
+                <div style={styles.mainContent}>
+                    <h5 style={styles.pageTitle}>AI Trading Council</h5>
                     
                     {error && (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        <div style={styles.errorAlert}>
                             {error}
                         </div>
                     )}
 
                     {/* Currency Selection Section */}
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h6 className="text-lg font-semibold text-blue-800 mb-4">Select Currency Pairs to Analyze</h6>
+                    <div style={styles.card}>
+                        <h6 style={styles.cardTitle}>Select Currency Pairs to Analyze</h6>
                         
-                        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+                        <div className="currency-grid" style={styles.currencyGrid}>
                             {availableCurrencies.map(currency => (
                                 <button
                                     key={currency}
@@ -185,11 +465,20 @@ export default function AICouncil() {
                                             setSelectedCurrencies(prev => [...prev, currency]);
                                         }
                                     }}
-                                    className={`px-3 py-2 text-sm rounded border transition-colors ${
-                                        selectedCurrencies.includes(currency)
-                                            ? 'bg-blue-600 text-white border-blue-600'
-                                            : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'
-                                    }`}
+                                    style={{
+                                        ...styles.currencyButton,
+                                        ...(selectedCurrencies.includes(currency) ? styles.currencyButtonSelected : {})
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!selectedCurrencies.includes(currency)) {
+                                            e.target.style.backgroundColor = '#eff6ff';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!selectedCurrencies.includes(currency)) {
+                                            e.target.style.backgroundColor = 'white';
+                                        }
+                                    }}
                                 >
                                     {currency}
                                 </button>
@@ -197,12 +486,14 @@ export default function AICouncil() {
                         </div>
 
                         {selectedCurrencies.length > 0 && (
-                            <div className="flex gap-2">
+                            <div style={styles.addButtonsContainer}>
                                 {selectedCurrencies.map(currency => (
                                     <button
                                         key={`add-${currency}`}
                                         onClick={() => addCurrencyToWatch(currency)}
-                                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
+                                        style={styles.addButton}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = '#047857'}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = '#059669'}
                                     >
                                         Add {currency} to Watch
                                     </button>
@@ -212,19 +503,21 @@ export default function AICouncil() {
                     </div>
 
                     {/* Watched Assets Section */}
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h6 className="text-lg font-semibold text-blue-800 mb-4">Watched Assets</h6>
+                    <div style={styles.card}>
+                        <h6 style={styles.cardTitle}>Watched Assets</h6>
                         
                         {watchedAssets.length === 0 ? (
-                            <p className="text-gray-500">No assets being watched. Select currencies above to start analyzing.</p>
+                            <p style={styles.emptyState}>No assets being watched. Select currencies above to start analyzing.</p>
                         ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="watched-assets-grid" style={styles.watchedAssetsGrid}>
                                 {watchedAssets.map(asset => (
-                                    <div key={asset.id} className="flex items-center justify-between bg-blue-50 p-3 rounded border">
-                                        <span className="font-medium text-blue-800">{asset.asset}</span>
+                                    <div key={asset.id} style={styles.watchedAssetItem}>
+                                        <span style={styles.watchedAssetText}>{asset.asset}</span>
                                         <button
                                             onClick={() => removeWatchedAsset(asset.id)}
-                                            className="text-red-500 hover:text-red-700 text-sm"
+                                            style={styles.removeButton}
+                                            onMouseEnter={(e) => e.target.style.color = '#b91c1c'}
+                                            onMouseLeave={(e) => e.target.style.color = '#dc2626'}
                                         >
                                             ✕
                                         </button>
@@ -235,21 +528,23 @@ export default function AICouncil() {
                     </div>
 
                     {/* Analysis Section */}
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h6 className="text-lg font-semibold text-blue-800">TraderGPT Analyses</h6>
-                            <div className="flex gap-3">
+                    <div style={styles.card}>
+                        <div className="analysis-header" style={styles.analysisHeader}>
+                            <h6 style={styles.cardTitle}>TraderGPT Analyses</h6>
+                            <div className="analysis-controls" style={styles.analysisControls}>
                                 <input
                                     type="text"
                                     placeholder="Search analyses..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                                    style={styles.input}
+                                    onFocus={(e) => e.target.style.borderColor = '#1e40af'}
+                                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                                 />
                                 <select
                                     value={selectedAssetForAnalysis}
                                     onChange={(e) => setSelectedAssetForAnalysis(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                                    style={styles.select}
                                 >
                                     <option value="">Select Asset for Fresh Analysis</option>
                                     {watchedAssets.map(asset => (
@@ -259,7 +554,20 @@ export default function AICouncil() {
                                 <button
                                     onClick={() => selectedAssetForAnalysis && runFreshAnalysis(selectedAssetForAnalysis)}
                                     disabled={runningAnalysis || !selectedAssetForAnalysis}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                                    style={{
+                                        ...styles.primaryButton,
+                                        ...(runningAnalysis || !selectedAssetForAnalysis ? styles.primaryButtonDisabled : {})
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!e.target.disabled) {
+                                            e.target.style.backgroundColor = '#1d4ed8';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!e.target.disabled) {
+                                            e.target.style.backgroundColor = '#1e40af';
+                                        }
+                                    }}
                                 >
                                     {runningAnalysis ? 'Analyzing...' : 'Run Analysis'}
                                 </button>
@@ -267,52 +575,65 @@ export default function AICouncil() {
                         </div>
 
                         {loading ? (
-                            <div className="text-center py-8">
-                                <p className="text-blue-600">Loading analyses...</p>
+                            <div style={styles.loadingText}>
+                                <p>Loading analyses...</p>
                             </div>
                         ) : filteredAnalyses.length === 0 ? (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">No analyses available yet. Add some assets to watch and wait for the AI council to analyze them.</p>
+                            <div style={styles.emptyState}>
+                                <p>No analyses available yet. Add some assets to watch and wait for the AI council to analyze them.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="analysis-grid" style={styles.analysisGrid}>
                                 {filteredAnalyses.map(analysis => (
-                                    <div key={analysis.id} className="border border-gray-200 rounded-lg p-5 hover:shadow-lg transition-shadow">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <h3 className="text-xl font-bold text-blue-800">{analysis.asset}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getSentimentColor(analysis.market_sentiment)}`}>
+                                    <div 
+                                        key={analysis.id} 
+                                        style={styles.analysisCard}
+                                        onMouseEnter={(e) => e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'}
+                                        onMouseLeave={(e) => e.target.style.boxShadow = 'none'}
+                                    >
+                                        <div className="analysis-card-header" style={styles.analysisCardHeader}>
+                                            <h3 style={styles.analysisAssetTitle}>{analysis.asset}</h3>
+                                            <span style={{
+                                                ...styles.sentimentBadge,
+                                                ...getSentimentStyle(analysis.market_sentiment)
+                                            }}>
                                                 {analysis.market_sentiment} ({analysis.confidence_score}%)
                                             </span>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-600">Risk Level</label>
-                                                <p className={`font-semibold ${getRiskColor(analysis.risk_level)}`}>
+                                        <div style={styles.analysisMetrics}>
+                                            <div style={styles.metricItem}>
+                                                <label style={styles.metricLabel}>Risk Level</label>
+                                                <p style={{
+                                                    ...styles.metricValue,
+                                                    color: getRiskColor(analysis.risk_level)
+                                                }}>
                                                     {analysis.risk_level}
                                                 </p>
                                             </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-600">Time Horizon</label>
-                                                <p className="font-semibold text-gray-800">{analysis.time_horizon}</p>
+                                            <div style={styles.metricItem}>
+                                                <label style={styles.metricLabel}>Time Horizon</label>
+                                                <p style={{...styles.metricValue, color: '#374151'}}>{analysis.time_horizon}</p>
                                             </div>
                                         </div>
 
-                                        <div className="mb-3">
-                                            <label className="text-sm font-medium text-gray-600">Entry Strategy</label>
-                                            <p className="text-sm text-gray-700 mt-1">{analysis.entry_strategy}</p>
+                                        <div style={styles.analysisSection}>
+                                            <label style={styles.analysisSectionTitle}>Entry Strategy</label>
+                                            <p style={styles.analysisSectionContent}>{analysis.entry_strategy}</p>
                                         </div>
 
-                                        <div className="mb-3">
-                                            <label className="text-sm font-medium text-gray-600">Key Factors</label>
-                                            <p className="text-sm text-gray-700 mt-1">{analysis.key_factors}</p>
+                                        <div style={styles.analysisSection}>
+                                            <label style={styles.analysisSectionTitle}>Key Factors</label>
+                                            <p style={styles.analysisSectionContent}>{analysis.key_factors}</p>
                                         </div>
 
-                                        <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-3">
+                                        <div style={styles.analysisFooter}>
                                             <span>Updated: {new Date(analysis.updated_at).toLocaleDateString()}</span>
                                             <button
                                                 onClick={() => runFreshAnalysis(analysis.asset)}
-                                                className="text-blue-600 hover:text-blue-800 font-medium"
+                                                style={styles.refreshButton}
+                                                onMouseEnter={(e) => e.target.style.color = '#1d4ed8'}
+                                                onMouseLeave={(e) => e.target.style.color = '#1e40af'}
                                             >
                                                 Refresh Analysis
                                             </button>
