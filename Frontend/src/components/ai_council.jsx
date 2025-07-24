@@ -305,7 +305,7 @@ export default function AICouncil() {
         },
         analysisGrid: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '20px'
         },
         analysisCard: {
@@ -313,7 +313,9 @@ export default function AICouncil() {
             borderRadius: '10px',
             padding: '20px',
             backgroundColor: 'white',
-            transition: 'box-shadow 0.2s ease'
+            transition: 'box-shadow 0.2s ease',
+            width: '100%',
+            boxSizing: 'border-box'
         },
         analysisCardHeader: {
             display: 'flex',
@@ -327,13 +329,17 @@ export default function AICouncil() {
             fontSize: '20px',
             fontWeight: '700',
             color: '#1e40af',
-            margin: '0'
+            margin: '0',
+            flex: '1',
+            minWidth: '0'
         },
         sentimentBadge: {
             padding: '6px 12px',
             borderRadius: '20px',
             fontSize: '12px',
-            fontWeight: '500'
+            fontWeight: '500',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
         },
         analysisMetrics: {
             display: 'grid',
@@ -367,7 +373,8 @@ export default function AICouncil() {
         analysisSectionContent: {
             fontSize: '13px',
             color: '#374151',
-            lineHeight: '1.4'
+            lineHeight: '1.4',
+            wordWrap: 'break-word'
         },
         analysisFooter: {
             display: 'flex',
@@ -377,7 +384,9 @@ export default function AICouncil() {
             color: '#9ca3af',
             borderTop: '1px solid #f3f4f6',
             paddingTop: '12px',
-            marginTop: '16px'
+            marginTop: '16px',
+            flexWrap: 'wrap',
+            gap: '8px'
         },
         refreshButton: {
             color: '#1e40af',
@@ -401,34 +410,155 @@ export default function AICouncil() {
         }
     };
 
-    // Media query styles for mobile
+    // Enhanced media query styles for mobile
     const mobileStyles = `
         @media (max-width: 768px) {
+            .main-content {
+                padding: 16px !important;
+            }
+            
+            .page-title {
+                font-size: 24px !important;
+            }
+            
+            .card {
+                padding: 16px !important;
+                margin-bottom: 16px !important;
+            }
+            
             .analysis-header {
-                flex-direction: column;
-                align-items: stretch;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 16px !important;
             }
+            
             .analysis-controls {
-                flex-direction: column;
-                width: 100%;
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 12px !important;
             }
+            
             .analysis-controls input,
             .analysis-controls select,
             .analysis-controls button {
-                width: 100%;
+                width: 100% !important;
+                min-width: unset !important;
             }
+            
             .currency-grid {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 6px !important;
             }
+            
+            .currency-button {
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+            }
+            
             .watched-assets-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr !important;
             }
+            
             .analysis-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr !important;
+                gap: 16px !important;
             }
+            
+            .analysis-card {
+                padding: 16px !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                overflow: hidden !important;
+            }
+            
             .analysis-card-header {
-                flex-direction: column;
-                align-items: flex-start;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+            
+            .analysis-asset-title {
+                font-size: 18px !important;
+                width: 100% !important;
+            }
+            
+            .sentiment-badge {
+                align-self: flex-start !important;
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+            }
+            
+            .analysis-metrics {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            
+            .metric-item {
+                padding: 8px 0 !important;
+                border-bottom: 1px solid #f3f4f6 !important;
+            }
+            
+            .metric-item:last-child {
+                border-bottom: none !important;
+            }
+            
+            .analysis-section-content {
+                font-size: 12px !important;
+                line-height: 1.5 !important;
+            }
+            
+            .analysis-footer {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            
+            .add-buttons-container {
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+            
+            .add-button {
+                width: 100% !important;
+                text-align: center !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 12px !important;
+            }
+            
+            .card {
+                padding: 12px !important;
+                border-radius: 8px !important;
+            }
+            
+            .analysis-card {
+                padding: 12px !important;
+                border-radius: 8px !important;
+            }
+            
+            .currency-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .currency-button {
+                font-size: 10px !important;
+                padding: 4px 6px !important;
+            }
+            
+            .page-title {
+                font-size: 20px !important;
+                margin-bottom: 16px !important;
+            }
+            
+            .card-title {
+                font-size: 16px !important;
+            }
+            
+            .analysis-asset-title {
+                font-size: 16px !important;
             }
         }
     `;
@@ -441,8 +571,8 @@ export default function AICouncil() {
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div style={styles.mainContent}>
-                    <h5 style={styles.pageTitle}>AI Trading Council</h5>
+                <div className="main-content" style={styles.mainContent}>
+                    <h5 className="page-title" style={styles.pageTitle}>AI Trading Council</h5>
                     
                     {error && (
                         <div style={styles.errorAlert}>
@@ -451,13 +581,14 @@ export default function AICouncil() {
                     )}
 
                     {/* Currency Selection Section */}
-                    <div style={styles.card}>
+                    <div className="card" style={styles.card}>
                         <h6 style={styles.cardTitle}>Select Currency Pairs to Analyze</h6>
                         
                         <div className="currency-grid" style={styles.currencyGrid}>
                             {availableCurrencies.map(currency => (
                                 <button
                                     key={currency}
+                                    className="currency-button"
                                     onClick={() => {
                                         if (selectedCurrencies.includes(currency)) {
                                             setSelectedCurrencies(prev => prev.filter(c => c !== currency));
@@ -486,10 +617,11 @@ export default function AICouncil() {
                         </div>
 
                         {selectedCurrencies.length > 0 && (
-                            <div style={styles.addButtonsContainer}>
+                            <div className="add-buttons-container" style={styles.addButtonsContainer}>
                                 {selectedCurrencies.map(currency => (
                                     <button
                                         key={`add-${currency}`}
+                                        className="add-button"
                                         onClick={() => addCurrencyToWatch(currency)}
                                         style={styles.addButton}
                                         onMouseEnter={(e) => e.target.style.backgroundColor = '#047857'}
@@ -503,7 +635,7 @@ export default function AICouncil() {
                     </div>
 
                     {/* Watched Assets Section */}
-                    <div style={styles.card}>
+                    <div className="card" style={styles.card}>
                         <h6 style={styles.cardTitle}>Watched Assets</h6>
                         
                         {watchedAssets.length === 0 ? (
@@ -528,7 +660,7 @@ export default function AICouncil() {
                     </div>
 
                     {/* Analysis Section */}
-                    <div style={styles.card}>
+                    <div className="card" style={styles.card}>
                         <div className="analysis-header" style={styles.analysisHeader}>
                             <h6 style={styles.cardTitle}>TraderGPT Analyses</h6>
                             <div className="analysis-controls" style={styles.analysisControls}>
@@ -586,14 +718,15 @@ export default function AICouncil() {
                             <div className="analysis-grid" style={styles.analysisGrid}>
                                 {filteredAnalyses.map(analysis => (
                                     <div 
-                                        key={analysis.id} 
+                                        key={analysis.id}
+                                        className="analysis-card"
                                         style={styles.analysisCard}
                                         onMouseEnter={(e) => e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'}
                                         onMouseLeave={(e) => e.target.style.boxShadow = 'none'}
                                     >
                                         <div className="analysis-card-header" style={styles.analysisCardHeader}>
-                                            <h3 style={styles.analysisAssetTitle}>{analysis.asset}</h3>
-                                            <span style={{
+                                            <h3 className="analysis-asset-title" style={styles.analysisAssetTitle}>{analysis.asset}</h3>
+                                            <span className="sentiment-badge" style={{
                                                 ...styles.sentimentBadge,
                                                 ...getSentimentStyle(analysis.market_sentiment)
                                             }}>
@@ -601,8 +734,8 @@ export default function AICouncil() {
                                             </span>
                                         </div>
 
-                                        <div style={styles.analysisMetrics}>
-                                            <div style={styles.metricItem}>
+                                        <div className="analysis-metrics" style={styles.analysisMetrics}>
+                                            <div className="metric-item" style={styles.metricItem}>
                                                 <label style={styles.metricLabel}>Risk Level</label>
                                                 <p style={{
                                                     ...styles.metricValue,
@@ -611,7 +744,7 @@ export default function AICouncil() {
                                                     {analysis.risk_level}
                                                 </p>
                                             </div>
-                                            <div style={styles.metricItem}>
+                                            <div className="metric-item" style={styles.metricItem}>
                                                 <label style={styles.metricLabel}>Time Horizon</label>
                                                 <p style={{...styles.metricValue, color: '#374151'}}>{analysis.time_horizon}</p>
                                             </div>
@@ -619,15 +752,15 @@ export default function AICouncil() {
 
                                         <div style={styles.analysisSection}>
                                             <label style={styles.analysisSectionTitle}>Entry Strategy</label>
-                                            <p style={styles.analysisSectionContent}>{analysis.entry_strategy}</p>
+                                            <p className="analysis-section-content" style={styles.analysisSectionContent}>{analysis.entry_strategy}</p>
                                         </div>
 
                                         <div style={styles.analysisSection}>
                                             <label style={styles.analysisSectionTitle}>Key Factors</label>
-                                            <p style={styles.analysisSectionContent}>{analysis.key_factors}</p>
+                                            <p className="analysis-section-content" style={styles.analysisSectionContent}>{analysis.key_factors}</p>
                                         </div>
 
-                                        <div style={styles.analysisFooter}>
+                                        <div className="analysis-footer" style={styles.analysisFooter}>
                                             <span>Updated: {new Date(analysis.updated_at).toLocaleDateString()}</span>
                                             <button
                                                 onClick={() => runFreshAnalysis(analysis.asset)}
