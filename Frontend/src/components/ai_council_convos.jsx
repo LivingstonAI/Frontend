@@ -369,19 +369,16 @@ export default function AICouncilConvos() {
             color: '#333'
         },
         header: {
-            position: 'sticky',
             top: 0,
             zIndex: 100
         },
         mainPageBody: {
-            display: 'flex',
             minHeight: '100vh',
             backgroundColor: '#f8f9fa'
         },
         mainBodyInfo: {
             flex: 1,
             padding: '20px',
-            marginLeft: '250px',
             '@media (max-width: 768px)': {
                 marginLeft: 0,
                 padding: '15px'
