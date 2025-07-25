@@ -352,6 +352,8 @@ export default function SideNavs() {
         <Link to="/science_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
         <Link to="/economics_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
         <Link to="/ai_council" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pentagon-fill"></i></p></button></Link>
+        <Link to="/ai_council_conversations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chat-fill"></i></p></button></Link>
+
 
       </div>
 
@@ -457,6 +459,10 @@ export default function SideNavs() {
         </Link>
         <Link to="/ai_council" className="side-nav">
             <i className="bi bi-pentagon-fill"></i>
+        </Link>
+        
+        <Link to="/ai_council_conversations" className="side-nav">
+            <i className="bi bi-chat-fill"></i>
         </Link>
       </div>
       <br />
