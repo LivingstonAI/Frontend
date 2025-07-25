@@ -159,7 +159,7 @@ function App() {
         <Route path='/science_playground' element={<ScientificPlayground />}></Route>
         <Route path='/economics_gpt' element={<EconomicsGPT />}></Route>
         <Route path='/ai_council' element={<AICouncil />}></Route>
-        <Route path='/ai_council_conversations' element={<AICouncil />}></Route>
+        <Route path='/ai_council_conversations' element={<AICouncilConvos />}></Route>
 
 
 
