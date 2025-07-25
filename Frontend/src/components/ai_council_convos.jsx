@@ -13,7 +13,7 @@ export default function AICouncilConvos() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">AI Council Conversations</h5>
+                    <h5 className="major-upcoming-news-events-header">AI Trading Council Conversations</h5>
                    
                     <br />
     
