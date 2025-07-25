@@ -3,6 +3,31 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 import { embed } from '@bokeh/bokehjs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 export default function BacktestedResults() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -29,6 +54,15 @@ export default function BacktestedResults() {
     maxWinRate: '',
   });
   const [showFilters, setShowFilters] = useState(false);
+
+  // New state for charts
+  const [showCharts, setShowCharts] = useState(false);
+  const [chartTypes, setChartTypes] = useState({
+    performance: true,
+    riskMetrics: true,
+    tradeStats: true,
+    distribution: true,
+  });
 
   useEffect(() => {
     fetchBacktestResults();
@@ -252,6 +286,133 @@ export default function BacktestedResults() {
     setSearchTerm('');
   };
 
+  // Chart data preparation functions
+  const getPerformanceChartData = () => {
+    const allResults = filteredData.flatMap(model => 
+      model.results.map(result => ({
+        ...result,
+        dataset: model.model_info.dataset,
+        modelId: model.model_info.id
+      }))
+    );
+
+    return {
+      labels: allResults.map((_, index) => `Result ${index + 1}`),
+      datasets: [
+        {
+          label: 'Return %',
+          data: allResults.map(result => result.return_percent),
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+        },
+        {
+          label: 'Buy & Hold Return %',
+          data: allResults.map(result => result.buy_hold_return),
+          borderColor: 'rgb(255, 99, 132)',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          tension: 0.1,
+        }
+      ]
+    };
+  };
+
+  const getRiskMetricsChartData = () => {
+    const allResults = filteredData.flatMap(model => 
+      model.results.map(result => ({
+        ...result,
+        dataset: model.model_info.dataset
+      }))
+    );
+
+    return {
+      labels: allResults.map((_, index) => `Result ${index + 1}`),
+      datasets: [
+        {
+          label: 'Sharpe Ratio',
+          data: allResults.map(result => result.sharpe_ratio),
+          backgroundColor: 'rgba(54, 162, 235, 0.8)',
+        },
+        {
+          label: 'Sortino Ratio',
+          data: allResults.map(result => result.sortino_ratio),
+          backgroundColor: 'rgba(255, 206, 86, 0.8)',
+        },
+        {
+          label: 'Calmar Ratio',
+          data: allResults.map(result => result.calmar_ratio),
+          backgroundColor: 'rgba(75, 192, 192, 0.8)',
+        }
+      ]
+    };
+  };
+
+  const getTradeStatsChartData = () => {
+    const allResults = filteredData.flatMap(model => 
+      model.results.map(result => ({
+        ...result,
+        dataset: model.model_info.dataset
+      }))
+    );
+
+    return {
+      labels: allResults.map((_, index) => `Result ${index + 1}`),
+      datasets: [
+        {
+          label: 'Win Rate %',
+          data: allResults.map(result => result.win_rate),
+          backgroundColor: 'rgba(153, 102, 255, 0.8)',
+        },
+        {
+          label: 'Profit Factor',
+          data: allResults.map(result => result.profit_factor * 10), // Scale for visibility
+          backgroundColor: 'rgba(255, 159, 64, 0.8)',
+        }
+      ]
+    };
+  };
+
+  const getDistributionChartData = () => {
+    const allResults = filteredData.flatMap(model => model.results);
+    const positivePnL = allResults.filter(result => result.return_percent > 0).length;
+    const negativePnL = allResults.filter(result => result.return_percent <= 0).length;
+
+    return {
+      labels: ['Positive Returns', 'Negative/Zero Returns'],
+      datasets: [{
+        data: [positivePnL, negativePnL],
+        backgroundColor: [
+          'rgba(75, 192, 192, 0.8)',
+          'rgba(255, 99, 132, 0.8)',
+        ],
+        borderColor: [
+          'rgba(75, 192, 192, 1)',
+          'rgba(255, 99, 132, 1)',
+        ],
+        borderWidth: 1,
+      }]
+    };
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Backtest Results Analysis',
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
+  };
+
   const deleteBacktestModel = async (modelId) => {
     // Prevent multiple delete operations at once
     if (deleteInProgress) return;
@@ -330,6 +491,13 @@ export default function BacktestedResults() {
         setExpandedResult(resultIndex);
       }, 100);
     }
+  };
+
+  const toggleChartType = (chartType) => {
+    setChartTypes(prev => ({
+      ...prev,
+      [chartType]: !prev[chartType]
+    }));
   };
 
   return (
@@ -477,6 +645,128 @@ export default function BacktestedResults() {
               )}
             </div>
           </div><br />
+
+          {/* Charts Section */}
+          {filteredData.length > 0 && (
+            <div className="charts-section">
+              <div className="charts-header">
+                <button 
+                  className="btn btn-primary charts-toggle-btn"
+                  onClick={() => setShowCharts(!showCharts)}
+                >
+                  {showCharts ? 'Hide Charts' : 'Show Analytics Charts'}
+                </button>
+              </div>
+              
+              {showCharts && (
+                <div className="charts-container">
+                  <div className="chart-controls">
+                    <h6>Chart Types:</h6>
+                    <div className="chart-toggles">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={chartTypes.performance}
+                          onChange={() => toggleChartType('performance')}
+                        />
+                        Performance Comparison
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={chartTypes.riskMetrics}
+                          onChange={() => toggleChartType('riskMetrics')}
+                        />
+                        Risk Metrics
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={chartTypes.tradeStats}
+                          onChange={() => toggleChartType('tradeStats')}
+                        />
+                        Trade Statistics
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={chartTypes.distribution}
+                          onChange={() => toggleChartType('distribution')}
+                        />
+                        P&L Distribution
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="charts-grid">
+                    {chartTypes.performance && (
+                      <div className="chart-item">
+                        <h6>Performance Comparison</h6>
+                        <div className="chart-wrapper">
+                          <Line data={getPerformanceChartData()} options={chartOptions} />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {chartTypes.riskMetrics && (
+                      <div className="chart-item">
+                        <h6>Risk Metrics</h6>
+                        <div className="chart-wrapper">
+                          <Bar data={getRiskMetricsChartData()} options={chartOptions} />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {chartTypes.tradeStats && (
+                      <div className="chart-item">
+                        <h6>Trade Statistics</h6>
+                        <div className="chart-wrapper">
+                          <Bar data={getTradeStatsChartData()} options={{
+                            ...chartOptions,
+                            plugins: {
+                              ...chartOptions.plugins,
+                              tooltip: {
+                                callbacks: {
+                                  label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label === 'Profit Factor') {
+                                      return `${label}: ${(context.parsed.y / 10).toFixed(2)}`;
+                                    }
+                                    return `${label}: ${context.parsed.y.toFixed(2)}`;
+                                  }
+                                }
+                              }
+                            }
+                          }} />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {chartTypes.distribution && (
+                      <div className="chart-item">
+                        <h6>P&L Distribution</h6>
+                        <div className="chart-wrapper">
+                          <Doughnut data={getDistributionChartData()} options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: {
+                                position: 'bottom',
+                              },
+                              title: {
+                                display: true,
+                                text: 'Positive vs Negative Returns',
+                              },
+                            },
+                          }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Debug Panel (Toggle Button) */}
           <div className="debug-section">
@@ -729,6 +1019,98 @@ export default function BacktestedResults() {
 
       {/* CSS styles */}
       <style jsx>{`
+        .charts-section {
+          margin-bottom: 30px;
+          padding: 20px;
+          background-color: #f8f9fa;
+          border-radius: 8px;
+          border: 1px solid #dee2e6;
+        }
+        
+        .charts-header {
+          margin-bottom: 20px;
+        }
+        
+        .charts-toggle-btn {
+          background-color: #28a745;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        
+        .charts-toggle-btn:hover {
+          background-color: #218838;
+        }
+        
+        .charts-container {
+          margin-top: 20px;
+        }
+        
+        .chart-controls {
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: white;
+          border-radius: 4px;
+          border: 1px solid #dee2e6;
+        }
+        
+        .chart-toggles {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+          margin-top: 10px;
+        }
+        
+        .chart-toggles label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+        
+        .chart-toggles input[type="checkbox"] {
+          margin: 0;
+        }
+        
+        .charts-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+          gap: 20px;
+        }
+        
+        .chart-item {
+          background-color: white;
+          padding: 20px;
+          border-radius: 8px;
+          border: 1px solid #dee2e6;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-item h6 {
+          margin-bottom: 15px;
+          color: #495057;
+          font-weight: 600;
+        }
+        
+        .chart-wrapper {
+          height: 300px;
+          position: relative;
+        }
+        
+        @media (max-width: 768px) {
+          .charts-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .chart-toggles {
+            flex-direction: column;
+          }
+        }
+        
         .debug-section {
           margin-bottom: 20px;
         }
