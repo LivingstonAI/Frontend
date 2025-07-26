@@ -321,32 +321,6 @@ export default function SnowAILandingPage() {
           overflow-x: hidden;
         }
 
-
-        @keyframes gradientShift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        
-
-        @keyframes glow-letter {
-          0%, 100% {
-            color: #ffffff;
-            text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
-          }
-          50% {
-            color: #2979ff;
-            text-shadow: 0 0 20px #68a6db, 0 0 30px #68a6db;
-          }
-        }
-
         .snowai-slogan {
           font-size: clamp(1rem, 3vw, 1.5rem);
           color: #ffffff;
