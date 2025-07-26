@@ -225,25 +225,6 @@ export default function SnowAILandingPage() {
     <div className="snowai-landing-page">
       <style>{`
         /* Background and container styling */
-        .snowai-landing-page {
-          position: relative;
-          height: 100vh;
-          width: 100vw;
-          background: linear-gradient(180deg, #0a0f1f, #1c2235);
-          background-size: 400% 400%;
-          animation: gradientShift 10s infinite ease-in-out;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          overflow: hidden;
-          color: white;
-          font-family: "Arial", sans-serif;
-          border: 10px solid transparent;
-          background-clip: padding-box, border-box;
-          background-origin: border-box;
-          box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.2) inset;
-        }
 
         /* Gradient shift animation */
         @keyframes gradientShift {
