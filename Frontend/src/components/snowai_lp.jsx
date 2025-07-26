@@ -334,9 +334,7 @@ export default function SnowAILandingPage() {
           }
         }
 
-        .snowai-title span {
-          animation: glow-letter 1.5s infinite;
-        }
+        
 
         @keyframes glow-letter {
           0%, 100% {
