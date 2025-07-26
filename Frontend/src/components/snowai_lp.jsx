@@ -187,7 +187,8 @@ export default function SnowAILandingPage() {
       "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
   
     };
-
+  
+    
   const [searchTerm, setSearchTerm] = useState("");
   
   const filteredSongs = Object.entries(songs).filter(([key, song]) =>
@@ -227,6 +228,9 @@ export default function SnowAILandingPage() {
     if (!isPlaying) {
       setShowSongModal(true);
     } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       setIsPlaying(false);
     }
   };
@@ -236,6 +240,15 @@ export default function SnowAILandingPage() {
     setIsPlaying(true);
     setShowSongModal(false);
   };
+
+  // Effect to handle audio playback when currentSong changes
+  useEffect(() => {
+    if (currentSong && isPlaying && audioRef.current) {
+      audioRef.current.play().catch(error => {
+        console.error("Error playing audio:", error);
+      });
+    }
+  }, [currentSong, isPlaying]);
 
   const createFallingCharacters = () => {
     const container = document.getElementById("snowflake-container");
@@ -320,6 +333,7 @@ export default function SnowAILandingPage() {
           height: 100%;
           overflow-x: hidden;
         }
+
 
         .snowai-slogan {
           font-size: clamp(1rem, 3vw, 1.5rem);
