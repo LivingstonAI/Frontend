@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 
-
 // Import all the songs
 import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
@@ -60,6 +59,19 @@ import feel_it from '../d4vd - Feel It.mp3';
 import mona_lisa from '../Dominic Fike - Mona Lisa (Official Audio) (1).mp3';
 import forever_star from '../Forever Star偷偷藏不住電視劇插曲 -  張洢豪Wherever you goIll surround you still動態歌詞.mp3';
 import copines from '../Aya Nakamura - Copines (Clip officiel).mp3';
+import dizzy from '../Dizzy  Joakim Karud (No Copyright Music).mp3';
+import classic from '../MKTO - Classic (Lyrics).mp3';
+import classic_slowed from '../𝙘𝙡𝙖𝙨𝙨𝙞𝙘 - 𝙈𝙆𝙏𝙊 (𝙨𝙡𝙤𝙬𝙚𝙙  𝙡𝙮𝙧𝙞𝙘𝙨).mp3';
+import sound_of_april from '../Sound of April.mp3';
+import what_are_you_waiting_for from '../d4vd - What Are You Waiting For (Lyrics).mp3';
+import a_million_colors from '../A Million Colors.mp3';
+import annas_smile from "../Anna's Smile.mp3";
+import strangers from '../Kenya Grace - Strangers (Official Lyric Video).mp3';
+import memory from '../hojean - memory [lyrics] (1).mp3';
+import any_song from '../Any song (아무노래).mp3';
+import nokia_remix from '../Katy Perry Last Friday Night - Drake (Remix) [NOKIA X T.G.I.F.].mp3';
+import levitating from '../Dua Lipa - Levitating Featuring DaBaby (Official Music Video).mp3';
+import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -83,7 +95,7 @@ export default function SnowAILandingPage() {
 
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSong, setCurrentSong] = useState(""); // Default song
+  const [currentSong, setCurrentSong] = useState("");
   const [showSongModal, setShowSongModal] = useState(false);
 
   // Slogan animation state
@@ -100,7 +112,8 @@ export default function SnowAILandingPage() {
     "Где передовые технологии пересекаются с финансами."
   ];
 
-  const songs = {
+  // Song library
+    const songs = {
       "1": { name: "MIT👨‍🎓📖🚀", file: mit },
       "2": { name: "Atreides Theme ⚔️", file: atreides_theme },
       "3": { name: "Jingle Bells", file: jingleBells },
@@ -159,8 +172,21 @@ export default function SnowAILandingPage() {
       "56": { name: "Mona Lisa 🎨🖌️", file: mona_lisa },
       "57": { name: "Forever Star 🌃", file: forever_star },
       "58": { name: "Copines 🌳", file: copines },
-    };
+      "59": { name: "Dizzy Joakim Karud 🎒👨‍🎓", file: dizzy },
+      "60": { name: "Classic 😎🏖️", file: classic },
+      "61": { name: "Classic (slowed) 🏄‍♂️", file: classic_slowed },
+      "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
+      "63": { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
+      "64": { name: "A Million Colors 🎺", file: a_million_colors },
+      "65": { name: "Anna's Smile 🌹", file: annas_smile},
+      "66": { name: "Strangers 🪶", file: strangers },
+      "67": { name: "Memory 🪶", file: memory },
+      "68": { name: "아무노래 ~ ZICO 🇰🇷", file: any_song },
+      "69": { name: "NOKIA X T.G.I.F. 🌃", file: nokia_remix },
+      "70": { name: "Levitating 🦸‍♂️", file: levitating },
+      "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
   
+    };
 
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -168,53 +194,47 @@ export default function SnowAILandingPage() {
     song.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Slogan typewriter effect
+  // Fixed slogan typewriter effect
   useEffect(() => {
     const timeout = setTimeout(() => {
       const currentSloganText = slogans[sloganIndex];
       
       if (!isDeleting && charIndex < currentSloganText.length) {
-        // Typing forward
-        setCurrentSlogan(currentSloganText.substring(0, charIndex + 1));
+        // Typing forward - use proper Unicode-aware substring
+        const nextChar = [...currentSloganText][charIndex];
+        setCurrentSlogan(prev => prev + nextChar);
         setCharIndex(charIndex + 1);
       } else if (isDeleting && charIndex > 0) {
-        // Deleting backward
-        setCurrentSlogan(currentSloganText.substring(0, charIndex - 1));
+        // Deleting backward - use proper Unicode-aware substring
+        const chars = [...currentSlogan];
+        setCurrentSlogan(chars.slice(0, -1).join(''));
         setCharIndex(charIndex - 1);
       } else if (!isDeleting && charIndex === currentSloganText.length) {
-        // Finished typing, wait then start deleting
-        setTimeout(() => setIsDeleting(true), 2000);
+        // Finished typing, wait longer then start deleting
+        setTimeout(() => setIsDeleting(true), 3000);
       } else if (isDeleting && charIndex === 0) {
         // Finished deleting, move to next slogan
         setIsDeleting(false);
+        setCurrentSlogan("");
         setSloganIndex((prev) => (prev + 1) % slogans.length);
       }
-    }, isDeleting ? 50 : 100);
+    }, isDeleting ? 75 : 120); // Slightly slower typing for better visibility
 
     return () => clearTimeout(timeout);
-  }, [charIndex, isDeleting, sloganIndex, slogans]);
+  }, [charIndex, isDeleting, sloganIndex, currentSlogan]);
 
   const handlePlayToggle = () => {
-    const audio = audioRef.current;
-
     if (!isPlaying) {
       setShowSongModal(true);
     } else {
-      audio.pause();
       setIsPlaying(false);
     }
   };
 
   const handleSongSelection = (songFile) => {
-    const audio = audioRef.current;
     setCurrentSong(songFile);
     setIsPlaying(true);
     setShowSongModal(false);
-
-    audio.oncanplay = () => {
-      audio.play();
-    };
-    audio.load();
   };
 
   const createFallingCharacters = () => {
@@ -287,14 +307,12 @@ export default function SnowAILandingPage() {
   return (
     <div className="snowai-landing-page">
       <style>{`
-        /* Reset all default margins and padding */
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
         }
 
-        /* Remove default body and html padding/margin */
         html, body {
           margin: 0;
           padding: 0;
@@ -303,9 +321,7 @@ export default function SnowAILandingPage() {
           overflow-x: hidden;
         }
 
-        
 
-        /* Gradient shift animation */
         @keyframes gradientShift {
           0% {
             background-position: 0% 50%;
@@ -317,8 +333,6 @@ export default function SnowAILandingPage() {
             background-position: 0% 50%;
           }
         }
-
-        /* Title styling with responsive font size */
 
         .snowai-title span {
           animation: glow-letter 1.5s infinite;
@@ -335,32 +349,40 @@ export default function SnowAILandingPage() {
           }
         }
 
-        /* Slogan styling with responsive text and wrapping */
         .snowai-slogan {
           font-size: clamp(1rem, 3vw, 1.5rem);
           color: #ffffff;
           text-shadow: 0 0 8px #9ecffb, 0 0 16px #9ecffb;
           z-index: 10;
           margin-bottom: 30px;
-          min-height: 2.5em;
+          min-height: 3em;
           display: flex;
           align-items: center;
           justify-content: center;
           text-align: center;
-          border-right: 2px solid #ffffff;
-          animation: blink 0.8s step-end infinite;
           white-space: pre-wrap;
           word-wrap: break-word;
           max-width: 90vw;
           padding: 0 10px;
           line-height: 1.4;
+          position: relative;
         }
 
-        /* Mobile-specific slogan adjustments */
+        .snowai-slogan::after {
+          content: '';
+          position: absolute;
+          right: -2px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: #ffffff;
+          animation: blink 0.8s step-end infinite;
+        }
+
         @media (max-width: 768px) {
           .snowai-slogan {
             font-size: clamp(0.9rem, 4vw, 1.2rem);
-            min-height: 3em;
+            min-height: 3.5em;
             max-width: 95vw;
             padding: 0 5px;
             line-height: 1.3;
@@ -370,24 +392,22 @@ export default function SnowAILandingPage() {
         @media (max-width: 480px) {
           .snowai-slogan {
             font-size: clamp(0.8rem, 4.5vw, 1rem);
-            min-height: 3.5em;
+            min-height: 4em;
             max-width: 98vw;
             padding: 0 2px;
             line-height: 1.2;
           }
         }
 
-        /* Blinking cursor effect */
         @keyframes blink {
           from, to {
-            border-color: transparent;
+            opacity: 1;
           }
           50% {
-            border-color: #ffffff;
+            opacity: 0;
           }
         }
 
-        /* Button styling with responsive sizing */
         .snowai-button {
           font-size: clamp(1rem, 2.5vw, 1.2rem);
           color: #ffffff;
@@ -405,7 +425,6 @@ export default function SnowAILandingPage() {
           display: inline-block;
         }
 
-        /* Button glow animation */
         @keyframes glow {
           0%, 100% {
             box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
@@ -415,7 +434,6 @@ export default function SnowAILandingPage() {
           }
         }
 
-        /* Button hover effect */
         .snowai-button:hover {
           background-color: #68a6db;
           box-shadow: 0 4px 20px rgba(41, 121, 255, 0.6);
@@ -429,9 +447,9 @@ export default function SnowAILandingPage() {
           pointer-events: none;
           mix-blend-mode: screen;
           transition: transform 0.1s ease;
+          z-index: 5;
         }
 
-        /* Character styling (replacing snowflakes) */
         .falling-character {
           position: absolute;
           top: -5%;
@@ -440,22 +458,20 @@ export default function SnowAILandingPage() {
           opacity: 0.8;
           animation: fall linear infinite;
           transition: transform 0.2s ease, opacity 0.2s ease;
+          z-index: 1;
         }
 
-        /* Character falling animation */
         @keyframes fall {
           to {
             transform: translateY(110vh);
           }
         }
 
-        /* Character hover effect */
         .falling-character:hover {
           transform: scale(1.5) rotate(15deg);
           opacity: 0.5;
         }
 
-        /* Modal styling */
         .landing-page-song-modal-overlay {
           position: fixed;
           top: 0;
@@ -552,7 +568,6 @@ export default function SnowAILandingPage() {
           margin-bottom: 1rem;
         }
 
-        /* Mobile-specific adjustments for modal */
         @media (max-width: 480px) {
           .landing-page-song-modal {
             padding: 20px;
