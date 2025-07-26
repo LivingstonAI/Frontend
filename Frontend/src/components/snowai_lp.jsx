@@ -1,5 +1,67 @@
 import React, { useEffect, useRef, useState } from "react";
 
+
+// Import all the songs
+import jingleBells from '../jingle_bells.mp3';
+import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
+import love_story from '../Indila - Love Story (Piano Cover).mp3';
+import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (Track 03).mp3";
+import hymn_for_the_weekend from '../Coldplay - Hymn For The Weekend (Lyrics).mp3';
+import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
+import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop  NCS - Copyright Free Music.mp3';
+import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
+import should_i_stay from '../The Clash - Should I Stay or Should I Go (Official Audio).mp3';
+import the_middle from '../Zedd, Maren Morris, Grey - The Middle (Lyric Video).mp3';
+import quiet_night from '../Tokyo Music Walker - Quiet Night.mp3';
+import feels from '../Calvin Harris - Feels (Official Video) ft. Pharrell Williams, Katy Perry, Big Sean.mp3';
+import im_good from "../David Guetta x Bebe Rexha - I'm Good (Blue) (Senses & Shadow Remix).mp3";
+import never_give_up from '../Never Give Up.mp3';
+import gravity from '../Sara Bareilles - Gravity (Official HD Video).mp3';
+import closer from '../The Chainsmokers - Closer (Lyric) ft. Halsey.mp3';
+import bloody_mary_edit from '../bloody mary (instrumental x dum dum, da-di-da) [full version] - lady gaga [edit audio].mp3';
+import waiting from '../Waiting.mp3';
+import wish_wonderland from '../Wonderland 원더랜드 OST WISH_ Wonderland is here 박보검 Park Bo-gum 배수지 Bae Suzy HanRomEnglish Lyrics.mp3';
+import welcome_to_columbia from '../Congratulations! Welcome to Columbia!.mp3';
+import 沉溺 from '../沉溺（你让我的心不再结冰）.mp3';
+import shoot_to_thrill from '../ACDC - Shoot to Thrill.mp3';
+import when_im_with_you from "../When I'm with you.mp3";
+import coffee_time from '../321Jazz - Coffee Time [ Cafe Jazz Music 2024 ].mp3';
+import coffee_lounge from '../Coffee Lounge.mp3';
+import good_vibes from '../Good Vibes.mp3';
+import iced_coffee_jazz from '../iced coffee  jazz lofi vibes (no copyright music  vlog music  royalty free music).mp3';
+import sitting_in_a_cafe from '../Sitting in a Café.mp3';
+import lex_mit_car from '../LexMITCar.mp3';
+import keep_it_lowkey from '../spotifydown.com - keep it lowkey - take your time.mp3';
+import honey_jam from '../massobeats - honey jam (royalty free lofi music).mp3';
+import floral from '../massobeats - floral (royalty free lofi music).mp3';
+import lemon_cake from '../샛별 - Lemon Cake (Royalty Free Music).mp3';
+import marshmellow from '../lukrembo - marshmallow (royalty free vlog music).mp3';
+import rose from '../lukrembo - rose (royalty free vlog music).mp3';
+import this_is_mit from '../This is MIT.mp3';
+import time_between_storms from '../Dune_ Part Two Soundtrack  A Time of Quiet Between the Storms - Hans Zimmer  WaterTower.mp3';
+import somnus_theme from '../Final fantasy XIII versus somnus theme [bOyYigKniW4].mp3';
+import your_man from '../Your Man.mp3';
+import cry_baby from '../SZA - Cry Baby (Lyrics).mp3';
+import genesis from '../Transcendence - GENESIS.mp3';
+import rewrite_the_stars from '../rewrite the stars (speed up  lyrics).mp3';
+import bloodline from '../Ariana Grande - bloodline (Official Audio).mp3';
+import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2) [Official Visualizer].mp3';
+import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
+import atreides_theme from '../Atreides Theme.mp3';
+import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
+import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
+import mit from '../mit.mp3';
+import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
+import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
+import afternoon_of_konoha from '../Naruto - Afternoon of Konoha.mp3';
+import chosen from '../ilyaugust - Chosen Dreaming, Dreaming of This Moment (Official Lyric Video).mp3';
+import spin_u_round from '../spin u round.mp3';
+import feel_it from '../d4vd - Feel It.mp3';
+import mona_lisa from '../Dominic Fike - Mona Lisa (Official Audio) (1).mp3';
+import forever_star from '../Forever Star偷偷藏不住電視劇插曲 -  張洢豪Wherever you goIll surround you still動態歌詞.mp3';
+import copines from '../Aya Nakamura - Copines (Clip officiel).mp3';
+
+
 export default function SnowAILandingPage() {
   const [times, setTimes] = useState({
     NewYork: new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }),
@@ -39,65 +101,66 @@ export default function SnowAILandingPage() {
   ];
 
   const songs = {
-    "1": { name: "MIT👨‍🎓📖🚀", file: "" },
-    "2": { name: "Atreides Theme ⚔️", file: "" },
-    "3": { name: "Jingle Bells", file: "" },
-    "4": { name: "Snow Storm", file: "" },
-    "5": { name: "Love Story", file: "" },
-    "6": { name: "Ezio's Family", file: "" },
-    "7": { name: "Hymn for The Weekend", file: "" },
-    "8": { name: "Daydreaming", file: "" },
-    "9": { name: "Me Times Two", file: "" },
-    "10": { name: "We Don't Talk Anymore", file: "" },
-    "11": { name: "Should I Stay or Should I Go", file: "" },
-    "12": { name: "The Middle", file: "" },
-    "13": { name: "Quiet Night", file: "" },
-    "14": { name: "Feels", file: "" },
-    "15": { name: "I'm Good (Blue)", file: "" },
-    "16": { name: "Never Give Up", file: "" },
-    "17": { name: "Gravity", file: "" },
-    "18": { name: "Closer", file: "" },
-    "19": { name: "Bloody Mary (Edit)", file: "" },
-    "20": { name: "Waiting 💙", file: "" },
-    "21": { name: "Wish (Wonderland) ✨🎸", file: "" },
-    "22": { name: "Welcome to Columbia!📖🚀", file: "" },
-    "23": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: "" },
-    "24": { name: "Shoot to Thrill - ACDC 🤖🎸", file: "" },
-    "25": { name: "When I'm With You - Arcando", file: "" },
-    "26": { name: "Coffee Time ☕", file: "" },
-    "27": { name: "Coffee Lounge ☕", file: "" },
-    "28": { name: "Good Vibes 😌", file: "" },
-    "29": { name: "Iced Coffee Jazz ☕🎶", file: "" },
-    "30": { name: "Sitting in a Café ☕👨‍💻", file: "" },
-    "31": { name: "Lex MIT Car 🤖🚗", file: "" },
-    "32": { name: "Keep it lowkey 🎺", file: "" },
-    "33": { name: "Honey Jam 🍯", file: "" },
-    "34": { name: "Floral 🌺💮", file: "" },
-    "35": { name: "Lemon Cake 🍋🍰", file: "" },
-    "36": { name: "Marshmellow 😋", file: "" },
-    "37": { name: "Rose 🌹", file: "" },
-    "38": { name: "This is MIT 👨‍🎓📚", file: "" },
-    "39": { name: "Dune: Time between storms ⌛🗡️", file: "" },
-    "40": { name: "Somnus Theme 🐺🥷", file: "" },
-    "41": { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: "" },
-    "42": { name: "Cry Baby - SZA 🌃🌃", file: "" },
-    "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: "" },
-    "44": { name: "Rewrite the Stars 🌃", file: "" },
-    "45": { name: "Bloodline - Ariana Grande 🎤", file: "" },
-    "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: "" },
-    "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: "" },
-    "48": { name: "Duncan's Theme 🗡️", file: "" },
-    "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: "" },
-    "50": { name: "Empire State of Mind 🗽🌆", file: "" },
-    "51": { name: "Here Comes The Sun 🌄", file: "" },
-    "52": { name: "Afternoon of Konoha 🌳", file: "" },
-    "53": { name: "Chosen ⌛", file: "" },
-    "54": { name: "Spin U Around 🎼💙", file: "" },
-    "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: "" },
-    "56": { name: "Mona Lisa 🎨🖌️", file: "" },
-    "57": { name: "Forever Star 🌃", file: "" },
-    "58": { name: "Copines 🌳", file: "" }
-  };
+      "1": { name: "MIT👨‍🎓📖🚀", file: mit },
+      "2": { name: "Atreides Theme ⚔️", file: atreides_theme },
+      "3": { name: "Jingle Bells", file: jingleBells },
+      "4": { name: "Snow Storm", file: snowStorm },
+      "5": { name: "Love Story", file: love_story },
+      "6": { name: "Ezio's Family", file: ezio_family },
+      "7": { name: "Hymn for The Weekend", file: hymn_for_the_weekend },
+      "8": { name: "Daydreaming", file: daydreaming },
+      "9": { name: "Me Times Two", file: me_times_two},
+      "10": { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+      "11": { name: "Should I Stay or Should I Go", file: should_i_stay },
+      "12": { name: "The Middle", file: the_middle },
+      "13": { name: "Quiet Night", file: quiet_night },
+      "14": { name: "Feels", file: feels },
+      "15": { name: "I'm Good (Blue)", file: im_good },
+      "16": { name: "Never Give Up", file: never_give_up },
+      "17": { name: "Gravity", file: gravity },
+      "18": { name: "Closer", file: closer },
+      "19": { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
+      "20": { name: "Waiting 💙", file: waiting },
+      "21": { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
+      "22": { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
+      "23": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
+      "24": { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
+      "25": { name: "When I'm With You - Arcando", file: when_im_with_you },
+      "26": { name: "Coffee Time ☕", file: coffee_time },
+      "27": { name: "Coffee Lounge ☕", file: coffee_lounge },
+      "28": { name: "Good Vibes 😌", file: good_vibes },
+      "29": { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
+      "30": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
+      "31": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
+      "32": { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
+      "33": { name: "Honey Jam 🍯", file: honey_jam },
+      "34": { name: "Floral 🌺💮", file: floral },
+      "35": { name: "Lemon Cake 🍋🍰", file: lemon_cake },
+      "36": { name: "Marshmellow 😋", file: marshmellow},
+      "37": { name: "Rose 🌹", file: rose},
+      "38": { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
+      "39": { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
+      "40": { name: "Somnus Theme 🐺🥷", file: somnus_theme },
+      "41": { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man },
+      "42": { name: "Cry Baby - SZA 🌃🌃", file: cry_baby },
+      "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
+      "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
+      "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
+      "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+      "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
+      "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
+      "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
+      "50": { name: "Empire State of Mind 🗽🌆", file: empire_state_of_mind },
+      "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
+      "52": { name: "Afternoon of Konoha 🌳", file: afternoon_of_konoha },
+      "53": { name: "Chosen ⌛", file: chosen },
+      "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
+      "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it },
+      "56": { name: "Mona Lisa 🎨🖌️", file: mona_lisa },
+      "57": { name: "Forever Star 🌃", file: forever_star },
+      "58": { name: "Copines 🌳", file: copines },
+    };
+  
 
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -224,7 +287,39 @@ export default function SnowAILandingPage() {
   return (
     <div className="snowai-landing-page">
       <style>{`
-        /* Background and container styling */
+        /* Reset all default margins and padding */
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        /* Remove default body and html padding/margin */
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          overflow-x: hidden;
+        }
+
+        /* Main container styling */
+        .snowai-landing-page {
+          min-height: 100vh;
+          width: 100vw;
+          background: linear-gradient(-45deg, #0a0f1f, #1c2235, #2d3748, #4a5568);
+          background-size: 400% 400%;
+          animation: gradientShift 15s ease infinite;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+          margin: 0;
+          padding: 20px;
+        }
 
         /* Gradient shift animation */
         @keyframes gradientShift {
@@ -239,9 +334,9 @@ export default function SnowAILandingPage() {
           }
         }
 
-        /* Title styling */
+        /* Title styling with responsive font size */
         .snowai-title {
-          font-size: 5rem;
+          font-size: clamp(2.5rem, 8vw, 5rem);
           color: #ffffff;
           text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
           z-index: 10;
@@ -263,22 +358,46 @@ export default function SnowAILandingPage() {
           }
         }
 
-        /* Slogan styling */
+        /* Slogan styling with responsive text and wrapping */
         .snowai-slogan {
-          font-size: 1.5rem;
+          font-size: clamp(1rem, 3vw, 1.5rem);
           color: #ffffff;
           text-shadow: 0 0 8px #9ecffb, 0 0 16px #9ecffb;
           z-index: 10;
           margin-bottom: 30px;
-          min-height: 2em;
+          min-height: 2.5em;
           display: flex;
           align-items: center;
           justify-content: center;
           text-align: center;
           border-right: 2px solid #ffffff;
           animation: blink 0.8s step-end infinite;
-          white-space: nowrap;
-          overflow: hidden;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          max-width: 90vw;
+          padding: 0 10px;
+          line-height: 1.4;
+        }
+
+        /* Mobile-specific slogan adjustments */
+        @media (max-width: 768px) {
+          .snowai-slogan {
+            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            min-height: 3em;
+            max-width: 95vw;
+            padding: 0 5px;
+            line-height: 1.3;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .snowai-slogan {
+            font-size: clamp(0.8rem, 4.5vw, 1rem);
+            min-height: 3.5em;
+            max-width: 98vw;
+            padding: 0 2px;
+            line-height: 1.2;
+          }
         }
 
         /* Blinking cursor effect */
@@ -291,13 +410,13 @@ export default function SnowAILandingPage() {
           }
         }
 
-        /* Button styling */
+        /* Button styling with responsive sizing */
         .snowai-button {
-          font-size: 1.2rem;
+          font-size: clamp(1rem, 2.5vw, 1.2rem);
           color: #ffffff;
           text-decoration: none;
           background-color: #2979ff;
-          padding: 15px 30px;
+          padding: clamp(12px, 3vw, 15px) clamp(20px, 5vw, 30px);
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
           transition: background-color 0.3s ease, box-shadow 0.3s ease;
@@ -306,6 +425,7 @@ export default function SnowAILandingPage() {
           border: none;
           cursor: pointer;
           margin: 10px;
+          display: inline-block;
         }
 
         /* Button glow animation */
@@ -370,6 +490,7 @@ export default function SnowAILandingPage() {
           justify-content: center;
           align-items: center;
           z-index: 1000;
+          padding: 20px;
         }
 
         .landing-page-song-modal {
@@ -388,6 +509,7 @@ export default function SnowAILandingPage() {
           text-align: center;
           margin-bottom: 20px;
           text-shadow: 0 0 10px #9ecffb;
+          font-size: clamp(1.2rem, 3vw, 1.5rem);
         }
 
         .form-control {
@@ -397,7 +519,7 @@ export default function SnowAILandingPage() {
           border-radius: 8px;
           background: #0a0f1f;
           color: #ffffff;
-          font-size: 16px;
+          font-size: clamp(14px, 2.5vw, 16px);
           margin-bottom: 20px;
         }
 
@@ -424,6 +546,7 @@ export default function SnowAILandingPage() {
           cursor: pointer;
           transition: background-color 0.3s ease;
           border: 1px solid #2979ff;
+          font-size: clamp(12px, 2vw, 14px);
         }
 
         .song-option:hover {
@@ -438,7 +561,7 @@ export default function SnowAILandingPage() {
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          font-size: 16px;
+          font-size: clamp(14px, 2.5vw, 16px);
           cursor: pointer;
           margin-top: 20px;
           transition: background-color 0.3s ease;
@@ -450,6 +573,14 @@ export default function SnowAILandingPage() {
 
         .mb-3 {
           margin-bottom: 1rem;
+        }
+
+        /* Mobile-specific adjustments for modal */
+        @media (max-width: 480px) {
+          .landing-page-song-modal {
+            padding: 20px;
+            width: 95%;
+          }
         }
       `}</style>
 
