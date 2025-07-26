@@ -397,14 +397,7 @@ export default function SnowAILandingPage() {
           }
         }
 
-        @keyframes blink {
-          from, to {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0;
-          }
-        }
+        
 
         .snowai-button {
           font-size: clamp(1rem, 2.5vw, 1.2rem);
