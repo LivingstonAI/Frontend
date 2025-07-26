@@ -303,23 +303,7 @@ export default function SnowAILandingPage() {
           overflow-x: hidden;
         }
 
-        /* Main container styling */
-        .snowai-landing-page {
-          min-height: 100vh;
-          width: 100vw;
-          background: linear-gradient(-45deg, #0a0f1f, #1c2235, #2d3748, #4a5568);
-          background-size: 400% 400%;
-          animation: gradientShift 15s ease infinite;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          text-align: center;
-          position: relative;
-          overflow: hidden;
-          margin: 0;
-          padding: 20px;
-        }
+        
 
         /* Gradient shift animation */
         @keyframes gradientShift {
