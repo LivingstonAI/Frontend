@@ -335,13 +335,6 @@ export default function SnowAILandingPage() {
         }
 
         /* Title styling with responsive font size */
-        .snowai-title {
-          font-size: clamp(2.5rem, 8vw, 5rem);
-          color: #ffffff;
-          text-shadow: 0 0 10px #9ecffb, 0 0 20px #9ecffb;
-          z-index: 10;
-          margin-bottom: 30px;
-        }
 
         .snowai-title span {
           animation: glow-letter 1.5s infinite;
