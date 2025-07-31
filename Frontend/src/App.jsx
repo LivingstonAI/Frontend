@@ -61,6 +61,7 @@ import ScientificPlayground from './components/car.jsx';
 import EconomicsGPT from './components/economics_gpt.jsx';
 import AICouncil from './components/ai_council.jsx';
 import AICouncilConvos from './components/ai_council_convos.jsx';
+import Compliance from './components/compliance.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -160,15 +161,7 @@ function App() {
         <Route path='/economics_gpt' element={<EconomicsGPT />}></Route>
         <Route path='/ai_council' element={<AICouncil />}></Route>
         <Route path='/ai_council_conversations' element={<AICouncilConvos />}></Route>
-
-
-
-
-
-
-
-
-
+        <Route path='/firm_compliance' element={<Compliance />}></Route>
 
 
 

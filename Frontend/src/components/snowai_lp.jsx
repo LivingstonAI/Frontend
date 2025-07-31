@@ -187,7 +187,7 @@ export default function SnowAILandingPage() {
       "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
   
     };
-  
+
     
   const [searchTerm, setSearchTerm] = useState("");
   
