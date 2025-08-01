@@ -1023,10 +1023,11 @@ export default function Compliance() {
                                                             <span style={styles.notesTitle}>Notes</span>
                                                         </div>
                                                         <p style={styles.notesText}>
-                                                            {record.personal_notes.length > 150 
+                                                            {/* {record.personal_notes.length > 150 
                                                                 ? `${record.personal_notes.substring(0, 150)}...`
                                                                 : record.personal_notes
-                                                            }
+                                                            } */}
+                                                            {record.personal_notes}
                                                         </p>
                                                     </div>
                                                 )}
