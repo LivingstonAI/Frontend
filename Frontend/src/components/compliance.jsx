@@ -943,7 +943,7 @@ const formatNotesTextTwo = (text) => {
                                                 <div style={styles.formGroup}>
                                                     <label style={styles.label}>
                                                         Personal Notes
-                                                        <span style={{color: '#6b7280', fontWeight: 'normal'}}> (Use '---' to create line breaks)</span>
+                                                        <span style={{color: '#6b7280', fontWeight: 'normal'}}> (Use '---' for line breaks, '###' for headings)</span>
                                                     </label>
                                                     <textarea
                                                         value={formData.personal_notes}
