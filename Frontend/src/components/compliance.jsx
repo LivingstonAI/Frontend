@@ -398,10 +398,7 @@ export default function Compliance() {
             border: '1px solid #d1d5db',
             backgroundColor: 'white'
         },
-        mainPageBody: {
-            display: 'flex',
-            minHeight: 'calc(100vh - 60px)' // Assuming header is 60px
-        }
+    
     };
 
     // CSS animations
