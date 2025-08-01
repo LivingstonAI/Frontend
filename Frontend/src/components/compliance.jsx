@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Search, Plus, Edit2, Trash2, Building2, FileText, Upload, X, Save, AlertCircle } from "lucide-react";
+import Header from "./header";
+import SideNavs from "./side_navs";
+
 
 export default function Compliance() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -20,6 +23,464 @@ export default function Compliance() {
         logo_file: null,
         logo_preview: null
     });
+
+    // Styles object for easier management
+    const styles = {
+        container: {
+            minHeight: '100vh',
+            backgroundColor: '#f8fafc'
+        },
+        header: {
+            backgroundColor: 'white',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            borderBottom: '1px solid #e2e8f0'
+        },
+        headerContent: {
+            maxWidth: '80rem',
+            margin: '0 auto',
+            padding: '1.5rem 1rem',
+            '@media (min-width: 640px)': {
+                padding: '1.5rem 1.5rem'
+            },
+            '@media (min-width: 1024px)': {
+                padding: '1.5rem 2rem'
+            }
+        },
+        headerFlex: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            '@media (min-width: 640px)': {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+            }
+        },
+        titleSection: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+        },
+        title: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: '#111827',
+            margin: 0
+        },
+        addButton: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'background-color 0.2s',
+            textDecoration: 'none'
+        },
+        mainContent: {
+            maxWidth: '80rem',
+            margin: '0 auto',
+            padding: '2rem 1rem',
+            '@media (min-width: 640px)': {
+                padding: '2rem 1.5rem'
+            },
+            '@media (min-width: 1024px)': {
+                padding: '2rem 2rem'
+            }
+        },
+        messageBox: {
+            marginBottom: '1.5rem',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+        },
+        errorBox: {
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b'
+        },
+        successBox: {
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            color: '#166534'
+        },
+        closeButton: {
+            marginLeft: 'auto',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0.25rem'
+        },
+        searchContainer: {
+            marginBottom: '1.5rem',
+            position: 'relative'
+        },
+        searchInput: {
+            width: '100%',
+            paddingLeft: '2.5rem',
+            paddingRight: '1rem',
+            paddingTop: '0.75rem',
+            paddingBottom: '0.75rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '1rem',
+            outline: 'none',
+            transition: 'all 0.2s'
+        },
+        searchIcon: {
+            position: 'absolute',
+            left: '0.75rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#9ca3af'
+        },
+        modal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            zIndex: 50
+        },
+        modalContent: {
+            backgroundColor: 'white',
+            borderRadius: '0.5rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            maxWidth: '42rem',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+        },
+        modalHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.5rem'
+        },
+        modalTitle: {
+            fontSize: '1.25rem',
+            fontWeight: '600',
+            color: '#111827',
+            margin: 0
+        },
+        formGroup: {
+            marginBottom: '1.5rem'
+        },
+        label: {
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#374151',
+            marginBottom: '0.5rem'
+        },
+        input: {
+            width: '100%',
+            padding: '0.5rem 0.75rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '1rem',
+            outline: 'none',
+            transition: 'all 0.2s'
+        },
+        textarea: {
+            width: '100%',
+            padding: '0.5rem 0.75rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '1rem',
+            outline: 'none',
+            transition: 'all 0.2s',
+            resize: 'vertical',
+            minHeight: '6rem'
+        },
+        fileUploadSection: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap'
+        },
+        fileUploadButton: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            transition: 'background-color 0.2s'
+        },
+        logoPreview: {
+            width: '4rem',
+            height: '4rem',
+            objectFit: 'cover',
+            borderRadius: '0.5rem',
+            border: '1px solid #d1d5db'
+        },
+        buttonGroup: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem',
+            paddingTop: '1rem',
+            '@media (min-width: 640px)': {
+                flexDirection: 'row'
+            }
+        },
+        primaryButton: {
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'background-color 0.2s'
+        },
+        secondaryButton: {
+            flex: 1,
+            padding: '0.5rem 1rem',
+            backgroundColor: '#d1d5db',
+            color: '#374151',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'background-color 0.2s'
+        },
+        loadingContainer: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '3rem 0',
+            gap: '0.75rem'
+        },
+        spinner: {
+            width: '2rem',
+            height: '2rem',
+            border: '2px solid #e5e7eb',
+            borderTop: '2px solid #2563eb',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+        },
+        emptyState: {
+            textAlign: 'center',
+            padding: '3rem 0'
+        },
+        emptyStateTitle: {
+            fontSize: '1.125rem',
+            fontWeight: '500',
+            color: '#111827',
+            marginBottom: '0.5rem'
+        },
+        emptyStateText: {
+            color: '#6b7280',
+            marginBottom: '1.5rem'
+        },
+        grid: {
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '1.5rem',
+            '@media (min-width: 768px)': {
+                gridTemplateColumns: 'repeat(2, 1fr)'
+            },
+            '@media (min-width: 1024px)': {
+                gridTemplateColumns: 'repeat(3, 1fr)'
+            }
+        },
+        card: {
+            backgroundColor: 'white',
+            borderRadius: '0.5rem',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden',
+            transition: 'box-shadow 0.2s'
+        },
+        cardContent: {
+            padding: '1.5rem'
+        },
+        cardHeader: {
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            marginBottom: '1rem'
+        },
+        firmInfo: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flex: 1,
+            minWidth: 0
+        },
+        logoContainer: {
+            width: '3rem',
+            height: '3rem',
+            backgroundColor: '#dbeafe',
+            borderRadius: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+        },
+        firmDetails: {
+            flex: 1,
+            minWidth: 0
+        },
+        firmName: {
+            fontSize: '1.125rem',
+            fontWeight: '600',
+            color: '#111827',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+        },
+        firmDate: {
+            fontSize: '0.875rem',
+            color: '#6b7280',
+            margin: 0
+        },
+        cardActions: {
+            display: 'flex',
+            gap: '0.5rem'
+        },
+        iconButton: {
+            padding: '0.5rem',
+            backgroundColor: 'transparent',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            color: '#6b7280',
+            transition: 'all 0.2s'
+        },
+        notesSection: {
+            backgroundColor: '#f8fafc',
+            borderRadius: '0.5rem',
+            padding: '1rem'
+        },
+        notesHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.5rem'
+        },
+        notesTitle: {
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#374151',
+            margin: 0
+        },
+        notesText: {
+            fontSize: '0.875rem',
+            color: '#6b7280',
+            lineHeight: '1.5',
+            margin: 0
+        }
+    };
+
+    // CSS animations
+    const cssAnimations = `
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .search-input:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+        }
+        
+        .form-input:focus {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+        }
+        
+        .add-button:hover {
+            background-color: #1d4ed8 !important;
+        }
+        
+        .primary-button:hover:not(:disabled) {
+            background-color: #1d4ed8 !important;
+        }
+        
+        .secondary-button:hover {
+            background-color: #9ca3af !important;
+        }
+        
+        .file-upload-button:hover {
+            background-color: #e5e7eb !important;
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .icon-button:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .edit-button:hover {
+            color: #2563eb !important;
+            background-color: #eff6ff !important;
+        }
+        
+        .delete-button:hover {
+            color: #dc2626 !important;
+            background-color: #fef2f2 !important;
+        }
+        
+        .close-error:hover {
+            color: #7f1d1d !important;
+        }
+        
+        .close-success:hover {
+            color: #14532d !important;
+        }
+        
+        .modal-close:hover {
+            color: #4b5563 !important;
+        }
+        
+        @media (max-width: 640px) {
+            .header-flex {
+                flex-direction: column !important;
+                gap: 1rem !important;
+            }
+            
+            .button-group {
+                flex-direction: column !important;
+            }
+            
+            .file-upload-section {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    `;
 
     // Fetch all records
     const fetchRecords = async () => {
@@ -176,7 +637,7 @@ export default function Compliance() {
         });
     };
 
-    // Handle file upload
+    // Handle file change
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -206,253 +667,303 @@ export default function Compliance() {
     }, [error, success]);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center space-x-3 mb-4 sm:mb-0">
-                            <Building2 className="w-8 h-8 text-blue-600" />
-                            <h1 className="text-2xl font-bold text-gray-900">Prop Firms Compliance</h1>
-                        </div>
-                        <button
-                            onClick={() => {
-                                resetForm();
-                                setShowForm(true);
-                            }}
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                        >
-                            <Plus className="w-5 h-5 mr-2" />
-                            Add New Firm
-                        </button>
-                    </div>
+        <>
+            <style>{cssAnimations}</style>
+            <div style={styles.container}>
+                {/* Header */}
+                <div className="header">
+                                <Header />
                 </div>
-            </div>
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Messages */}
-                {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-                        <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
-                        <span className="text-red-700">{error}</span>
-                        <button onClick={clearMessages} className="ml-auto text-red-600 hover:text-red-800">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                )}
+                <div className="main-page-body">
+                                <SideNavs />
                 
-                {success && (
-                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-                        <div className="w-5 h-5 bg-green-600 rounded-full mr-3 flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                        </div>
-                        <span className="text-green-700">{success}</span>
-                        <button onClick={clearMessages} className="ml-auto text-green-600 hover:text-green-800">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                )}
-
-                {/* Search Bar */}
-                <div className="mb-6">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Search firms or notes..."
-                            value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-                </div>
-
-                {/* Form Modal */}
-                {showForm && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                            <div className="p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-semibold text-gray-900">
-                                        {editingRecord ? 'Edit Firm' : 'Add New Firm'}
-                                    </h2>
-                                    <button
-                                        onClick={resetForm}
-                                        className="text-gray-400 hover:text-gray-600"
-                                    >
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Firm Name *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.firm_name}
-                                            onChange={(e) => setFormData({...formData, firm_name: e.target.value})}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            placeholder="Enter firm name"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Firm Logo
-                                        </label>
-                                        <div className="flex items-center space-x-4">
-                                            <label className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors duration-200">
-                                                <Upload className="w-5 h-5 mr-2" />
-                                                Choose File
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handleFileChange}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                            {formData.logo_preview && (
-                                                <img
-                                                    src={formData.logo_preview}
-                                                    alt="Logo preview"
-                                                    className="w-16 h-16 object-cover rounded-lg border"
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Personal Notes
-                                        </label>
-                                        <textarea
-                                            value={formData.personal_notes}
-                                            onChange={(e) => setFormData({...formData, personal_notes: e.target.value})}
-                                            rows="6"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            placeholder="Enter your compliance notes and rules..."
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                                        <button
-                                            onClick={handleSubmit}
-                                            disabled={loading}
-                                            className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                        >
-                                            <Save className="w-5 h-5 mr-2" />
-                                            {loading ? 'Saving...' : (editingRecord ? 'Update' : 'Create')}
-                                        </button>
-                                        <button
-                                            onClick={resetForm}
-                                            className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors duration-200"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
+                <div style={styles.header}>
+                    <div style={styles.headerContent}>
+                        <div style={styles.headerFlex} className="header-flex">
+                            <div style={styles.titleSection}>
+                                <Building2 size={32} color="#2563eb" />
+                                <h1 style={styles.title}>Prop Firms Compliance</h1>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Records Grid */}
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <span className="ml-3 text-gray-600">Loading...</span>
-                    </div>
-                ) : filteredRecords.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            {searchQuery ? 'No records found' : 'No compliance records yet'}
-                        </h3>
-                        <p className="text-gray-600 mb-6">
-                            {searchQuery 
-                                ? 'Try adjusting your search terms'
-                                : 'Start by adding your first prop firm compliance record'
-                            }
-                        </p>
-                        {!searchQuery && (
                             <button
                                 onClick={() => {
                                     resetForm();
                                     setShowForm(true);
                                 }}
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                                style={styles.addButton}
+                                className="add-button"
                             >
-                                <Plus className="w-5 h-5 mr-2" />
-                                Add Your First Firm
+                                <Plus size={20} />
+                                Add New Firm
                             </button>
-                        )}
+                        </div>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredRecords.map((record) => (
-                            <div key={record.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-                                <div className="p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center space-x-3 flex-1">
-                                            {record.logo_url ? (
-                                                <img
-                                                    src={record.logo_url}
-                                                    alt={`${record.firm_name} logo`}
-                                                    className="w-12 h-12 object-cover rounded-lg border"
-                                                />
-                                            ) : (
-                                                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                                    <Building2 className="w-6 h-6 text-blue-600" />
-                                                </div>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-semibold text-gray-900 truncate">
-                                                    {record.firm_name}
-                                                </h3>
-                                                <p className="text-sm text-gray-500">
-                                                    Created {new Date(record.created_at).toLocaleDateString()}
-                                                </p>
+                </div>
+
+                <div style={styles.mainContent}>
+                    {/* Messages */}
+                    {error && (
+                        <div style={{...styles.messageBox, ...styles.errorBox}}>
+                            <AlertCircle size={20} />
+                            <span>{error}</span>
+                            <button 
+                                onClick={clearMessages} 
+                                style={styles.closeButton}
+                                className="close-error"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    )}
+                    
+                    {success && (
+                        <div style={{...styles.messageBox, ...styles.successBox}}>
+                            <div style={{
+                                width: '20px',
+                                height: '20px',
+                                backgroundColor: '#16a34a',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <div style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    backgroundColor: 'white',
+                                    borderRadius: '50%'
+                                }}></div>
+                            </div>
+                            <span>{success}</span>
+                            <button 
+                                onClick={clearMessages} 
+                                style={styles.closeButton}
+                                className="close-success"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Search Bar */}
+                    <div style={styles.searchContainer}>
+                        <div style={{position: 'relative'}}>
+                            <Search style={styles.searchIcon} size={20} />
+                            <input
+                                type="text"
+                                placeholder="Search firms or notes..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                style={styles.searchInput}
+                                className="search-input"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Form Modal */}
+                    {showForm && (
+                        <div style={styles.modal}>
+                            <div style={styles.modalContent}>
+                                <div style={{padding: '1.5rem'}}>
+                                    <div style={styles.modalHeader}>
+                                        <h2 style={styles.modalTitle}>
+                                            {editingRecord ? 'Edit Firm' : 'Add New Firm'}
+                                        </h2>
+                                        <button
+                                            onClick={resetForm}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: '#9ca3af',
+                                                padding: '0.25rem'
+                                            }}
+                                            className="modal-close"
+                                        >
+                                            <X size={24} />
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>
+                                                Firm Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.firm_name}
+                                                onChange={(e) => setFormData({...formData, firm_name: e.target.value})}
+                                                style={styles.input}
+                                                className="form-input"
+                                                placeholder="Enter firm name"
+                                            />
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>
+                                                Firm Logo
+                                            </label>
+                                            <div style={styles.fileUploadSection} className="file-upload-section">
+                                                <label style={styles.fileUploadButton} className="file-upload-button">
+                                                    <Upload size={20} />
+                                                    Choose File
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleFileChange}
+                                                        style={{display: 'none'}}
+                                                    />
+                                                </label>
+                                                {formData.logo_preview && (
+                                                    <img
+                                                        src={formData.logo_preview}
+                                                        alt="Logo preview"
+                                                        style={styles.logoPreview}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="flex space-x-2">
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>
+                                                Personal Notes
+                                            </label>
+                                            <textarea
+                                                value={formData.personal_notes}
+                                                onChange={(e) => setFormData({...formData, personal_notes: e.target.value})}
+                                                style={styles.textarea}
+                                                className="form-input"
+                                                placeholder="Enter your compliance notes and rules..."
+                                            />
+                                        </div>
+
+                                        <div style={styles.buttonGroup} className="button-group">
                                             <button
-                                                onClick={() => handleEdit(record)}
-                                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                                                onClick={handleSubmit}
+                                                disabled={loading}
+                                                style={{
+                                                    ...styles.primaryButton,
+                                                    opacity: loading ? 0.5 : 1,
+                                                    cursor: loading ? 'not-allowed' : 'pointer'
+                                                }}
+                                                className="primary-button"
                                             >
-                                                <Edit2 className="w-4 h-4" />
+                                                <Save size={20} />
+                                                {loading ? 'Saving...' : (editingRecord ? 'Update' : 'Create')}
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(record.id)}
-                                                className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                                onClick={resetForm}
+                                                style={styles.secondaryButton}
+                                                className="secondary-button"
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                Cancel
                                             </button>
                                         </div>
                                     </div>
-                                    
-                                    {record.personal_notes && (
-                                        <div className="bg-gray-50 rounded-lg p-4">
-                                            <div className="flex items-center mb-2">
-                                                <FileText className="w-4 h-4 text-gray-600 mr-2" />
-                                                <span className="text-sm font-medium text-gray-700">Notes</span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 leading-relaxed">
-                                                {record.personal_notes.length > 150 
-                                                    ? `${record.personal_notes.substring(0, 150)}...`
-                                                    : record.personal_notes
-                                                }
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
+                        </div>
+                    )}
+
+                    {/* Records Grid */}
+                    {loading ? (
+                        <div style={styles.loadingContainer}>
+                            <div style={styles.spinner}></div>
+                            <span style={{color: '#6b7280'}}>Loading...</span>
+                        </div>
+                    ) : filteredRecords.length === 0 ? (
+                        <div style={styles.emptyState}>
+                            <Building2 size={64} color="#d1d5db" style={{margin: '0 auto 1rem'}} />
+                            <h3 style={styles.emptyStateTitle}>
+                                {searchQuery ? 'No records found' : 'No compliance records yet'}
+                            </h3>
+                            <p style={styles.emptyStateText}>
+                                {searchQuery 
+                                    ? 'Try adjusting your search terms'
+                                    : 'Start by adding your first prop firm compliance record'
+                                }
+                            </p>
+                            {!searchQuery && (
+                                <button
+                                    onClick={() => {
+                                        resetForm();
+                                        setShowForm(true);
+                                    }}
+                                    style={styles.addButton}
+                                    className="add-button"
+                                >
+                                    <Plus size={20} />
+                                    Add Your First Firm
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <div style={styles.grid} className="grid">
+                            {filteredRecords.map((record) => (
+                                <div key={record.id} style={styles.card} className="card">
+                                    <div style={styles.cardContent}>
+                                        <div style={styles.cardHeader}>
+                                            <div style={styles.firmInfo}>
+                                                {record.logo_url ? (
+                                                    <img
+                                                        src={record.logo_url}
+                                                        alt={`${record.firm_name} logo`}
+                                                        style={styles.logoPreview}
+                                                    />
+                                                ) : (
+                                                    <div style={styles.logoContainer}>
+                                                        <Building2 size={24} color="#2563eb" />
+                                                    </div>
+                                                )}
+                                                <div style={styles.firmDetails}>
+                                                    <h3 style={styles.firmName}>
+                                                        {record.firm_name}
+                                                    </h3>
+                                                    <p style={styles.firmDate}>
+                                                        Created {new Date(record.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div style={styles.cardActions}>
+                                                <button
+                                                    onClick={() => handleEdit(record)}
+                                                    style={styles.iconButton}
+                                                    className="icon-button edit-button"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(record.id)}
+                                                    style={styles.iconButton}
+                                                    className="icon-button delete-button"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        {record.personal_notes && (
+                                            <div style={styles.notesSection}>
+                                                <div style={styles.notesHeader}>
+                                                    <FileText size={16} color="#6b7280" />
+                                                    <span style={styles.notesTitle}>Notes</span>
+                                                </div>
+                                                <p style={styles.notesText}>
+                                                    {record.personal_notes.length > 150 
+                                                        ? `${record.personal_notes.substring(0, 150)}...`
+                                                        : record.personal_notes
+                                                    }
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
