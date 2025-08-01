@@ -3,7 +3,6 @@ import { Search, Plus, Edit2, Trash2, Building2, FileText, Upload, X, Save, Aler
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-
 export default function Compliance() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
@@ -24,6 +23,21 @@ export default function Compliance() {
         logo_preview: null
     });
 
+    // Helper function to format notes text
+    const formatNotesText = (text) => {
+        if (!text) return '';
+        
+        // Replace '---' with line breaks and handle other formatting
+        return text
+            .split('---')
+            .map((part, index) => (
+                <React.Fragment key={index}>
+                    {part.trim()}
+                    {index < text.split('---').length - 1 && <><br /><br /></>}
+                </React.Fragment>
+            ));
+    };
+
     // Styles object for easier management
     const styles = {
         container: {
@@ -38,23 +52,14 @@ export default function Compliance() {
         headerContent: {
             maxWidth: '80rem',
             margin: '0 auto',
-            padding: '1.5rem 1rem',
-            '@media (min-width: 640px)': {
-                padding: '1.5rem 1.5rem'
-            },
-            '@media (min-width: 1024px)': {
-                padding: '1.5rem 2rem'
-            }
+            padding: '1.5rem 1rem'
         },
         headerFlex: {
             display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            '@media (min-width: 640px)': {
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-            }
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem'
         },
         titleSection: {
             display: 'flex',
@@ -85,13 +90,7 @@ export default function Compliance() {
         mainContent: {
             maxWidth: '80rem',
             margin: '0 auto',
-            padding: '2rem 1rem',
-            '@media (min-width: 640px)': {
-                padding: '2rem 1.5rem'
-            },
-            '@media (min-width: 1024px)': {
-                padding: '2rem 2rem'
-            }
+            padding: '2rem 1rem'
         },
         messageBox: {
             marginBottom: '1.5rem',
@@ -132,7 +131,8 @@ export default function Compliance() {
             borderRadius: '0.5rem',
             fontSize: '1rem',
             outline: 'none',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            boxSizing: 'border-box'
         },
         searchIcon: {
             position: 'absolute',
@@ -192,7 +192,8 @@ export default function Compliance() {
             borderRadius: '0.5rem',
             fontSize: '1rem',
             outline: 'none',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            boxSizing: 'border-box'
         },
         textarea: {
             width: '100%',
@@ -203,7 +204,8 @@ export default function Compliance() {
             outline: 'none',
             transition: 'all 0.2s',
             resize: 'vertical',
-            minHeight: '6rem'
+            minHeight: '6rem',
+            boxSizing: 'border-box'
         },
         fileUploadSection: {
             display: 'flex',
@@ -225,20 +227,18 @@ export default function Compliance() {
             transition: 'background-color 0.2s'
         },
         logoPreview: {
-            width: '4rem',
-            height: '4rem',
-            objectFit: 'cover',
+            width: '8rem',
+            height: '8rem',
+            objectFit: 'contain',
             borderRadius: '0.5rem',
-            border: '1px solid #d1d5db'
+            border: '1px solid #d1d5db',
+            backgroundColor: 'white'
         },
         buttonGroup: {
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'row',
             gap: '0.75rem',
-            paddingTop: '1rem',
-            '@media (min-width: 640px)': {
-                flexDirection: 'row'
-            }
+            paddingTop: '1rem'
         },
         primaryButton: {
             flex: 1,
@@ -299,14 +299,8 @@ export default function Compliance() {
         },
         grid: {
             display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: '1.5rem',
-            '@media (min-width: 768px)': {
-                gridTemplateColumns: 'repeat(2, 1fr)'
-            },
-            '@media (min-width: 1024px)': {
-                gridTemplateColumns: 'repeat(3, 1fr)'
-            }
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '1.5rem'
         },
         card: {
             backgroundColor: 'white',
@@ -333,8 +327,8 @@ export default function Compliance() {
             minWidth: 0
         },
         logoContainer: {
-            width: '3rem',
-            height: '3rem',
+            width: '5rem',
+            height: '5rem',
             backgroundColor: '#dbeafe',
             borderRadius: '0.5rem',
             display: 'flex',
@@ -395,6 +389,18 @@ export default function Compliance() {
             color: '#6b7280',
             lineHeight: '1.5',
             margin: 0
+        },
+        cardLogo: {
+            width: '5rem',
+            height: '5rem',
+            objectFit: 'contain',
+            borderRadius: '0.5rem',
+            border: '1px solid #d1d5db',
+            backgroundColor: 'white'
+        },
+        mainPageBody: {
+            display: 'flex',
+            minHeight: 'calc(100vh - 60px)' // Assuming header is 60px
         }
     };
 
@@ -461,7 +467,7 @@ export default function Compliance() {
             color: #4b5563 !important;
         }
         
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
             .header-flex {
                 flex-direction: column !important;
                 gap: 1rem !important;
@@ -480,6 +486,24 @@ export default function Compliance() {
                 grid-template-columns: 1fr !important;
             }
         }
+        
+        @media (min-width: 640px) {
+            .header-content {
+                padding: 1.5rem 1.5rem !important;
+            }
+            .main-content {
+                padding: 2rem 1.5rem !important;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .header-content {
+                padding: 1.5rem 2rem !important;
+            }
+            .main-content {
+                padding: 2rem 2rem !important;
+            }
+        }
     `;
 
     // Fetch all records
@@ -487,15 +511,21 @@ export default function Compliance() {
         try {
             setLoading(true);
             const response = await fetch(`${baseUrl}/api/firm-compliance/`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
                 setRecords(data.data);
                 setFilteredRecords(data.data);
             } else {
-                setError('Failed to fetch records');
+                setError(data.message || 'Failed to fetch records');
             }
         } catch (err) {
+            console.error('Fetch error:', err);
             setError('Network error. Please try again.');
         } finally {
             setLoading(false);
@@ -509,8 +539,8 @@ export default function Compliance() {
             setFilteredRecords(records);
         } else {
             const filtered = records.filter(record =>
-                record.firm_name.toLowerCase().includes(query.toLowerCase()) ||
-                record.personal_notes.toLowerCase().includes(query.toLowerCase())
+                (record.firm_name || '').toLowerCase().includes(query.toLowerCase()) ||
+                (record.personal_notes || '').toLowerCase().includes(query.toLowerCase())
             );
             setFilteredRecords(filtered);
         }
@@ -518,7 +548,6 @@ export default function Compliance() {
 
     // Handle form submission
     const handleSubmit = async () => {
-        
         if (!formData.firm_name.trim()) {
             setError('Firm name is required');
             return;
@@ -540,26 +569,40 @@ export default function Compliance() {
             if (formData.logo_file) {
                 const reader = new FileReader();
                 reader.onload = async () => {
-                    payload.logo_data = reader.result;
-                    payload.logo_filename = formData.logo_file.name;
-                    
-                    const response = await fetch(url, {
-                        method,
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(payload),
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        setSuccess(editingRecord ? 'Record updated successfully!' : 'Record created successfully!');
-                        resetForm();
-                        fetchRecords();
-                    } else {
-                        setError(data.message || 'Operation failed');
+                    try {
+                        payload.logo_data = reader.result;
+                        payload.logo_filename = formData.logo_file.name;
+                        
+                        const response = await fetch(url, {
+                            method,
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(payload),
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            setSuccess(editingRecord ? 'Record updated successfully!' : 'Record created successfully!');
+                            resetForm();
+                            fetchRecords();
+                        } else {
+                            setError(data.message || 'Operation failed');
+                        }
+                    } catch (err) {
+                        console.error('Submit error:', err);
+                        setError('Network error. Please try again.');
+                    } finally {
+                        setLoading(false);
                     }
+                };
+                reader.onerror = () => {
+                    setError('Error reading file');
                     setLoading(false);
                 };
                 reader.readAsDataURL(formData.logo_file);
@@ -571,6 +614,10 @@ export default function Compliance() {
                     },
                     body: JSON.stringify(payload),
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 
@@ -584,6 +631,7 @@ export default function Compliance() {
                 setLoading(false);
             }
         } catch (err) {
+            console.error('Submit error:', err);
             setError('Network error. Please try again.');
             setLoading(false);
         }
@@ -600,6 +648,10 @@ export default function Compliance() {
                 method: 'DELETE',
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
@@ -609,6 +661,7 @@ export default function Compliance() {
                 setError(data.message || 'Delete failed');
             }
         } catch (err) {
+            console.error('Delete error:', err);
             setError('Network error. Please try again.');
         }
     };
@@ -617,10 +670,10 @@ export default function Compliance() {
     const handleEdit = (record) => {
         setEditingRecord(record);
         setFormData({
-            firm_name: record.firm_name,
-            personal_notes: record.personal_notes,
+            firm_name: record.firm_name || '',
+            personal_notes: record.personal_notes || '',
             logo_file: null,
-            logo_preview: record.logo_url
+            logo_preview: record.logo_url || null
         });
         setShowForm(true);
     };
@@ -639,8 +692,20 @@ export default function Compliance() {
 
     // Handle file change
     const handleFileChange = (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
         if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                setError('Please select a valid image file');
+                return;
+            }
+            
+            // Validate file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                setError('File size must be less than 5MB');
+                return;
+            }
+            
             setFormData({
                 ...formData,
                 logo_file: file,
@@ -654,6 +719,15 @@ export default function Compliance() {
         setError('');
         setSuccess('');
     };
+
+    // Cleanup function for URL objects
+    useEffect(() => {
+        return () => {
+            if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
+                URL.revokeObjectURL(formData.logo_preview);
+            }
+        };
+    }, [formData.logo_preview]);
 
     useEffect(() => {
         fetchRecords();
@@ -672,296 +746,300 @@ export default function Compliance() {
             <div style={styles.container}>
                 {/* Header */}
                 <div className="header">
-                                <Header />
+                    <Header />
                 </div>
-                <div className="main-page-body">
-                                <SideNavs />
                 
-                <div style={styles.header}>
-                    <div style={styles.headerContent}>
-                        <div style={styles.headerFlex} className="header-flex">
-                            <div style={styles.titleSection}>
-                                <Building2 size={32} color="#2563eb" />
-                                <h1 style={styles.title}>Prop Firms Compliance</h1>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    resetForm();
-                                    setShowForm(true);
-                                }}
-                                style={styles.addButton}
-                                className="add-button"
-                            >
-                                <Plus size={20} />
-                                Add New Firm
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div style={styles.mainContent}>
-                    {/* Messages */}
-                    {error && (
-                        <div style={{...styles.messageBox, ...styles.errorBox}}>
-                            <AlertCircle size={20} />
-                            <span>{error}</span>
-                            <button 
-                                onClick={clearMessages} 
-                                style={styles.closeButton}
-                                className="close-error"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                    )}
+                <div className="main-page-body" style={styles.mainPageBody}>
+                    <SideNavs />
                     
-                    {success && (
-                        <div style={{...styles.messageBox, ...styles.successBox}}>
-                            <div style={{
-                                width: '20px',
-                                height: '20px',
-                                backgroundColor: '#16a34a',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <div style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    backgroundColor: 'white',
-                                    borderRadius: '50%'
-                                }}></div>
-                            </div>
-                            <span>{success}</span>
-                            <button 
-                                onClick={clearMessages} 
-                                style={styles.closeButton}
-                                className="close-success"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Search Bar */}
-                    <div style={styles.searchContainer}>
-                        <div style={{position: 'relative'}}>
-                            <Search style={styles.searchIcon} size={20} />
-                            <input
-                                type="text"
-                                placeholder="Search firms or notes..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                style={styles.searchInput}
-                                className="search-input"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Form Modal */}
-                    {showForm && (
-                        <div style={styles.modal}>
-                            <div style={styles.modalContent}>
-                                <div style={{padding: '1.5rem'}}>
-                                    <div style={styles.modalHeader}>
-                                        <h2 style={styles.modalTitle}>
-                                            {editingRecord ? 'Edit Firm' : 'Add New Firm'}
-                                        </h2>
-                                        <button
-                                            onClick={resetForm}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                color: '#9ca3af',
-                                                padding: '0.25rem'
-                                            }}
-                                            className="modal-close"
-                                        >
-                                            <X size={24} />
-                                        </button>
+                    <div style={{flex: 1}}>
+                        <div style={styles.header}>
+                            <div style={styles.headerContent} className="header-content">
+                                <div style={styles.headerFlex} className="header-flex">
+                                    <div style={styles.titleSection}>
+                                        <Building2 size={32} color="#2563eb" />
+                                        <h1 style={styles.title}>Prop Firms Compliance</h1>
                                     </div>
-
-                                    <div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>
-                                                Firm Name *
-                                            </label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={formData.firm_name}
-                                                onChange={(e) => setFormData({...formData, firm_name: e.target.value})}
-                                                style={styles.input}
-                                                className="form-input"
-                                                placeholder="Enter firm name"
-                                            />
-                                        </div>
-
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>
-                                                Firm Logo
-                                            </label>
-                                            <div style={styles.fileUploadSection} className="file-upload-section">
-                                                <label style={styles.fileUploadButton} className="file-upload-button">
-                                                    <Upload size={20} />
-                                                    Choose File
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleFileChange}
-                                                        style={{display: 'none'}}
-                                                    />
-                                                </label>
-                                                {formData.logo_preview && (
-                                                    <img
-                                                        src={formData.logo_preview}
-                                                        alt="Logo preview"
-                                                        style={styles.logoPreview}
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>
-                                                Personal Notes
-                                            </label>
-                                            <textarea
-                                                value={formData.personal_notes}
-                                                onChange={(e) => setFormData({...formData, personal_notes: e.target.value})}
-                                                style={styles.textarea}
-                                                className="form-input"
-                                                placeholder="Enter your compliance notes and rules..."
-                                            />
-                                        </div>
-
-                                        <div style={styles.buttonGroup} className="button-group">
-                                            <button
-                                                onClick={handleSubmit}
-                                                disabled={loading}
-                                                style={{
-                                                    ...styles.primaryButton,
-                                                    opacity: loading ? 0.5 : 1,
-                                                    cursor: loading ? 'not-allowed' : 'pointer'
-                                                }}
-                                                className="primary-button"
-                                            >
-                                                <Save size={20} />
-                                                {loading ? 'Saving...' : (editingRecord ? 'Update' : 'Create')}
-                                            </button>
-                                            <button
-                                                onClick={resetForm}
-                                                style={styles.secondaryButton}
-                                                className="secondary-button"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            resetForm();
+                                            setShowForm(true);
+                                        }}
+                                        style={styles.addButton}
+                                        className="add-button"
+                                    >
+                                        <Plus size={20} />
+                                        Add New Firm
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* Records Grid */}
-                    {loading ? (
-                        <div style={styles.loadingContainer}>
-                            <div style={styles.spinner}></div>
-                            <span style={{color: '#6b7280'}}>Loading...</span>
-                        </div>
-                    ) : filteredRecords.length === 0 ? (
-                        <div style={styles.emptyState}>
-                            <Building2 size={64} color="#d1d5db" style={{margin: '0 auto 1rem'}} />
-                            <h3 style={styles.emptyStateTitle}>
-                                {searchQuery ? 'No records found' : 'No compliance records yet'}
-                            </h3>
-                            <p style={styles.emptyStateText}>
-                                {searchQuery 
-                                    ? 'Try adjusting your search terms'
-                                    : 'Start by adding your first prop firm compliance record'
-                                }
-                            </p>
-                            {!searchQuery && (
-                                <button
-                                    onClick={() => {
-                                        resetForm();
-                                        setShowForm(true);
-                                    }}
-                                    style={styles.addButton}
-                                    className="add-button"
-                                >
-                                    <Plus size={20} />
-                                    Add Your First Firm
-                                </button>
+                        <div style={styles.mainContent} className="main-content">
+                            {/* Messages */}
+                            {error && (
+                                <div style={{...styles.messageBox, ...styles.errorBox}}>
+                                    <AlertCircle size={20} />
+                                    <span>{error}</span>
+                                    <button 
+                                        onClick={clearMessages} 
+                                        style={styles.closeButton}
+                                        className="close-error"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
                             )}
-                        </div>
-                    ) : (
-                        <div style={styles.grid} className="grid">
-                            {filteredRecords.map((record) => (
-                                <div key={record.id} style={styles.card} className="card">
-                                    <div style={styles.cardContent}>
-                                        <div style={styles.cardHeader}>
-                                            <div style={styles.firmInfo}>
-                                                {record.logo_url ? (
-                                                    <img
-                                                        src={record.logo_url}
-                                                        alt={`${record.firm_name} logo`}
-                                                        style={styles.logoPreview}
+                            
+                            {success && (
+                                <div style={{...styles.messageBox, ...styles.successBox}}>
+                                    <div style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        backgroundColor: '#16a34a',
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <div style={{
+                                            width: '8px',
+                                            height: '8px',
+                                            backgroundColor: 'white',
+                                            borderRadius: '50%'
+                                        }}></div>
+                                    </div>
+                                    <span>{success}</span>
+                                    <button 
+                                        onClick={clearMessages} 
+                                        style={styles.closeButton}
+                                        className="close-success"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Search Bar */}
+                            <div style={styles.searchContainer}>
+                                <div style={{position: 'relative'}}>
+                                    <Search style={styles.searchIcon} size={20} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search firms or notes..."
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        style={styles.searchInput}
+                                        className="search-input"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Form Modal */}
+                            {showForm && (
+                                <div style={styles.modal}>
+                                    <div style={styles.modalContent}>
+                                        <div style={{padding: '1.5rem'}}>
+                                            <div style={styles.modalHeader}>
+                                                <h2 style={styles.modalTitle}>
+                                                    {editingRecord ? 'Edit Firm' : 'Add New Firm'}
+                                                </h2>
+                                                <button
+                                                    onClick={resetForm}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        color: '#9ca3af',
+                                                        padding: '0.25rem'
+                                                    }}
+                                                    className="modal-close"
+                                                >
+                                                    <X size={24} />
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>
+                                                        Firm Name *
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        value={formData.firm_name}
+                                                        onChange={(e) => setFormData({...formData, firm_name: e.target.value})}
+                                                        style={styles.input}
+                                                        className="form-input"
+                                                        placeholder="Enter firm name"
                                                     />
-                                                ) : (
-                                                    <div style={styles.logoContainer}>
-                                                        <Building2 size={24} color="#2563eb" />
+                                                </div>
+
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>
+                                                        Firm Logo
+                                                    </label>
+                                                    <div style={styles.fileUploadSection} className="file-upload-section">
+                                                        <label style={styles.fileUploadButton} className="file-upload-button">
+                                                            <Upload size={20} />
+                                                            Choose File
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={handleFileChange}
+                                                                style={{display: 'none'}}
+                                                            />
+                                                        </label>
+                                                        {formData.logo_preview && (
+                                                            <img
+                                                                src={formData.logo_preview}
+                                                                alt="Logo preview"
+                                                                style={styles.logoPreview}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div style={styles.formGroup}>
+                                                    <label style={styles.label}>
+                                                        Personal Notes
+                                                        <span style={{color: '#6b7280', fontWeight: 'normal'}}> (Use '---' to create line breaks)</span>
+                                                    </label>
+                                                    <textarea
+                                                        value={formData.personal_notes}
+                                                        onChange={(e) => setFormData({...formData, personal_notes: e.target.value})}
+                                                        style={styles.textarea}
+                                                        className="form-input"
+                                                        placeholder="Enter your compliance notes and rules... Use '---' for line breaks"
+                                                    />
+                                                </div>
+
+                                                <div style={styles.buttonGroup} className="button-group">
+                                                    <button
+                                                        onClick={handleSubmit}
+                                                        disabled={loading}
+                                                        style={{
+                                                            ...styles.primaryButton,
+                                                            opacity: loading ? 0.5 : 1,
+                                                            cursor: loading ? 'not-allowed' : 'pointer'
+                                                        }}
+                                                        className="primary-button"
+                                                    >
+                                                        <Save size={20} />
+                                                        {loading ? 'Saving...' : (editingRecord ? 'Update' : 'Create')}
+                                                    </button>
+                                                    <button
+                                                        onClick={resetForm}
+                                                        style={styles.secondaryButton}
+                                                        className="secondary-button"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Records Grid */}
+                            {loading ? (
+                                <div style={styles.loadingContainer}>
+                                    <div style={styles.spinner}></div>
+                                    <span style={{color: '#6b7280'}}>Loading...</span>
+                                </div>
+                            ) : filteredRecords.length === 0 ? (
+                                <div style={styles.emptyState}>
+                                    <Building2 size={64} color="#d1d5db" style={{margin: '0 auto 1rem'}} />
+                                    <h3 style={styles.emptyStateTitle}>
+                                        {searchQuery ? 'No records found' : 'No compliance records yet'}
+                                    </h3>
+                                    <p style={styles.emptyStateText}>
+                                        {searchQuery 
+                                            ? 'Try adjusting your search terms'
+                                            : 'Start by adding your first prop firm compliance record'
+                                        }
+                                    </p>
+                                    {!searchQuery && (
+                                        <button
+                                            onClick={() => {
+                                                resetForm();
+                                                setShowForm(true);
+                                            }}
+                                            style={styles.addButton}
+                                            className="add-button"
+                                        >
+                                            <Plus size={20} />
+                                            Add Your First Firm
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div style={styles.grid} className="grid">
+                                    {filteredRecords.map((record) => (
+                                        <div key={record.id} style={styles.card} className="card">
+                                            <div style={styles.cardContent}>
+                                                <div style={styles.cardHeader}>
+                                                    <div style={styles.firmInfo}>
+                                                        {record.logo_url ? (
+                                                            <img
+                                                                src={record.logo_url}
+                                                                alt={`${record.firm_name} logo`}
+                                                                style={styles.cardLogo}
+                                                            />
+                                                        ) : (
+                                                            <div style={styles.logoContainer}>
+                                                                <Building2 size={24} color="#2563eb" />
+                                                            </div>
+                                                        )}
+                                                        <div style={styles.firmDetails}>
+                                                            <h3 style={styles.firmName}>
+                                                                {record.firm_name}
+                                                            </h3>
+                                                            <p style={styles.firmDate}>
+                                                                Created {new Date(record.created_at).toLocaleDateString()}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div style={styles.cardActions}>
+                                                        <button
+                                                            onClick={() => handleEdit(record)}
+                                                            style={styles.iconButton}
+                                                            className="icon-button edit-button"
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(record.id)}
+                                                            style={styles.iconButton}
+                                                            className="icon-button delete-button"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                {record.personal_notes && (
+                                                    <div style={styles.notesSection}>
+                                                        <div style={styles.notesHeader}>
+                                                            <FileText size={16} color="#6b7280" />
+                                                            <span style={styles.notesTitle}>Notes</span>
+                                                        </div>
+                                                        <p style={styles.notesText}>
+                                                            {record.personal_notes.length > 150 
+                                                                ? `${record.personal_notes.substring(0, 150)}...`
+                                                                : record.personal_notes
+                                                            }
+                                                        </p>
                                                     </div>
                                                 )}
-                                                <div style={styles.firmDetails}>
-                                                    <h3 style={styles.firmName}>
-                                                        {record.firm_name}
-                                                    </h3>
-                                                    <p style={styles.firmDate}>
-                                                        Created {new Date(record.created_at).toLocaleDateString()}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div style={styles.cardActions}>
-                                                <button
-                                                    onClick={() => handleEdit(record)}
-                                                    style={styles.iconButton}
-                                                    className="icon-button edit-button"
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(record.id)}
-                                                    style={styles.iconButton}
-                                                    className="icon-button delete-button"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
                                             </div>
                                         </div>
-                                        
-                                        {record.personal_notes && (
-                                            <div style={styles.notesSection}>
-                                                <div style={styles.notesHeader}>
-                                                    <FileText size={16} color="#6b7280" />
-                                                    <span style={styles.notesTitle}>Notes</span>
-                                                </div>
-                                                <p style={styles.notesText}>
-                                                    {record.personal_notes.length > 150 
-                                                        ? `${record.personal_notes.substring(0, 150)}...`
-                                                        : record.personal_notes
-                                                    }
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
                         </div>
-                    )}
-                </div>
+                    </div>
                 </div>
             </div>
         </>
