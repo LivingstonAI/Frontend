@@ -711,6 +711,8 @@ export default function Compliance() {
         }
     };
 
+
+    
     // Clear messages
     const clearMessages = () => {
         setError('');
@@ -736,6 +738,47 @@ export default function Compliance() {
             return () => clearTimeout(timer);
         }
     }, [error, success]);
+
+    // Enhanced function to format notes text with line breaks and headings
+const formatNotesTextTwo = (text) => {
+    if (!text) return '';
+    
+    // Split by '---' for line breaks and process each part
+    const parts = text.split('---');
+    
+    return parts.map((part, index) => {
+        const trimmedPart = part.trim();
+        if (!trimmedPart) return null;
+        
+        // Check if the part starts with '###' for heading
+        if (trimmedPart.startsWith('###')) {
+            const headingText = trimmedPart.substring(3).trim();
+            return (
+                <React.Fragment key={index}>
+                    <strong style={{ 
+                        display: 'block', 
+                        fontSize: '1rem', 
+                        fontWeight: '600', 
+                        color: '#374151', 
+                        marginBottom: '0.5rem',
+                        marginTop: index > 0 ? '1rem' : '0'
+                    }}>
+                        {headingText}
+                    </strong>
+                    {index < parts.length - 1 && <br />}
+                </React.Fragment>
+            );
+        }
+        
+        // Regular text
+        return (
+            <React.Fragment key={index}>
+                {trimmedPart}
+                {index < parts.length - 1 && <><br /><br /></>}
+            </React.Fragment>
+        );
+    }).filter(Boolean); // Remove null entries
+};
 
     return (
         <>
@@ -1027,7 +1070,8 @@ export default function Compliance() {
                                                                 ? `${record.personal_notes.substring(0, 150)}...`
                                                                 : record.personal_notes
                                                             } */}
-                                                            {record.personal_notes}
+                                                            {formatNotesTextTwo(record.personal_notes)}
+
                                                         </p>
                                                     </div>
                                                 )}
