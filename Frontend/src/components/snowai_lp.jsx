@@ -72,6 +72,7 @@ import any_song from '../Any song (아무노래).mp3';
 import nokia_remix from '../Katy Perry Last Friday Night - Drake (Remix) [NOKIA X T.G.I.F.].mp3';
 import levitating from '../Dua Lipa - Levitating Featuring DaBaby (Official Music Video).mp3';
 import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp3';
+import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
 
 
 export default function SnowAILandingPage() {
@@ -185,7 +186,7 @@ export default function SnowAILandingPage() {
       "69": { name: "NOKIA X T.G.I.F. 🌃", file: nokia_remix },
       "70": { name: "Levitating 🦸‍♂️", file: levitating },
       "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
-  
+      "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
     };
 
     
