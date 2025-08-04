@@ -14,6 +14,19 @@ export default function Compliance() {
     const [editingRecord, setEditingRecord] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [expandedCards, setExpandedCards] = useState(new Set());
+
+    const toggleExpanded = (recordId) => {
+    const newExpanded = new Set(expandedCards);
+    if (newExpanded.has(recordId)) {
+        newExpanded.delete(recordId);
+    } else {
+        newExpanded.add(recordId);
+    }
+    setExpandedCards(newExpanded);
+};
+
+const isExpanded = (recordId) => expandedCards.has(recordId);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -1060,21 +1073,35 @@ const formatNotesTextTwo = (text) => {
                                                 </div>
                                                 
                                                 {record.personal_notes && (
-                                                    <div style={styles.notesSection}>
-                                                        <div style={styles.notesHeader}>
-                                                            <FileText size={16} color="#6b7280" />
-                                                            <span style={styles.notesTitle}>Notes</span>
-                                                        </div>
-                                                        <p style={styles.notesText}>
-                                                            {/* {record.personal_notes.length > 150 
-                                                                ? `${record.personal_notes.substring(0, 150)}...`
-                                                                : record.personal_notes
-                                                            } */}
-                                                            {formatNotesTextTwo(record.personal_notes)}
-
-                                                        </p>
+                                                <div style={styles.notesSection}>
+                                                    <div style={styles.notesHeader}>
+                                                        <FileText size={16} color="#6b7280" />
+                                                        <span style={styles.notesTitle}>Notes</span>
                                                     </div>
-                                                )}
+                                                    <p style={styles.notesText}>
+                                                        {isExpanded(record.id) || record.personal_notes.length <= 150
+                                                            ? formatNotesTextTwo(record.personal_notes)
+                                                            : `${record.personal_notes.substring(0, 150)}...`
+                                                        }
+                                                    </p>
+                                                    {record.personal_notes.length > 150 && (
+                                                        <button
+                                                            onClick={() => toggleExpanded(record.id)}
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                color: '#2563eb',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.875rem',
+                                                                fontWeight: '500',
+                                                                marginTop: '0.5rem'
+                                                            }}
+                                                        >
+                                                            {isExpanded(record.id) ? 'Read less' : 'Read more'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                             </div>
                                         </div>
                                     ))}
