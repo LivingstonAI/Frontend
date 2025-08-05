@@ -351,7 +351,7 @@ export default function Login() {
                 // Show access granted message with animation
                 setAccessGranted(true);
                 // playAccessGranted();
-                speak("Access granted. Welcome back. Initializing secure connection.");
+                speak("Access granted. Welcome back Mr Motingwe. Initializing secure connection.");
                 
                 // Wait for animation to complete before navigating
                 setTimeout(() => {
