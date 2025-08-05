@@ -355,6 +355,7 @@ export default function Login() {
                 
                 // Wait for animation to complete before navigating
                 setTimeout(() => {
+                    Cookies.set('account_name', email);
                     navigate(`/personal_info`);
                 }, 5000);
             } else {
