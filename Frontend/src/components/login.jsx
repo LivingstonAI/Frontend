@@ -249,11 +249,16 @@ export default function Login() {
                 if (streamRef.current) {
                     streamRef.current.getTracks().forEach(track => track.stop());
                 }
+
+                const { email } = await response.json();
+                Cookies.set('email', email);
                 
                 setTimeout(() => {
                     setShowFacialRecognition(false);
-                    speak("You may now proceed with password authentication.");
-                }, 2000);
+                    speak("Facial identity confirmed. Welcome back, Mr Motingwe.");
+                    Cookies.set('account_name', email);
+                    navigate(`/personal_info`);
+                }, 5000);
                 
             } else {
                 speak("Facial recognition failed. Identity could not be verified. Please try again.");
@@ -351,7 +356,7 @@ export default function Login() {
                 // Show access granted message with animation
                 setAccessGranted(true);
                 // playAccessGranted();
-                speak("Access granted. Welcome back Mr Motingwe. Initializing secure connection.");
+                speak("Access granted. Welcome back, Mr Motingwe. Initializing secure connection.");
                 
                 // Wait for animation to complete before navigating
                 setTimeout(() => {
