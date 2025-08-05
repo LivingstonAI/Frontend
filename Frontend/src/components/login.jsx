@@ -181,98 +181,101 @@ export default function Login() {
     };
 
     // Capture image and verify with OpenAI
-    const captureAndVerifyFace = async () => {
-        if (!videoRef.current || !canvasRef.current) return;
+const captureAndVerifyFace = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    setFacialRecognitionStep('analyzing');
+    speak("Analyzing facial features. Please wait.");
+    
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    
+    // Convert canvas to base64
+    const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+    
+    try {
+        // Convert reference image to base64
+        const referenceImageBase64 = await imageToBase64(tlotlo_motingwe);
         
-        setFacialRecognitionStep('analyzing');
-        speak("Analyzing facial features. Please wait.");
-        
-        const canvas = canvasRef.current;
-        const video = videoRef.current;
-        const context = canvas.getContext('2d');
-        
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0);
-        
-        // Convert canvas to base64
-        const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
-        
-        try {
-            // Convert reference image to base64 (you'll need to implement this)
-            const referenceImageBase64 = await imageToBase64(tlotlo_motingwe);
-            
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o-mini",
-                    messages: [
-                        {
-                            role: "user",
-                            content: [
-                                {
-                                    type: "text",
-                                    text: "Compare these two images and determine if they show the same person. Respond with only 'MATCH' if they are the same person, or 'NO_MATCH' if they are different people. Be strict in your comparison."
-                                },
-                                {
-                                    type: "image_url",
-                                    image_url: {
-                                        url: referenceImageBase64
-                                    }
-                                },
-                                {
-                                    type: "image_url",
-                                    image_url: {
-                                        url: capturedImage
-                                    }
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: "Compare these two images and determine if they show the same person. Respond with only 'MATCH' if they are the same person, or 'NO_MATCH' if they are different people. Be strict in your comparison."
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: referenceImageBase64
                                 }
-                            ]
-                        }
-                    ],
-                    max_tokens: 10
-                })
-            });
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: capturedImage
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens: 10
+            })
+        });
+        
+        const result = await response.json();
+        const verification = result.choices[0].message.content.trim();
+        
+        if (verification === 'MATCH') {
+            setFaceVerified(true);
+            setFacialRecognitionStep('complete');
+            speak("Facial recognition successful. Identity verified.");
             
-            const result = await response.json();
-            const verification = result.choices[0].message.content.trim();
-            
-            if (verification === 'MATCH') {
-                setFaceVerified(true);
-                setFacialRecognitionStep('complete');
-                speak("Facial recognition successful. Identity verified.");
-                
-                // Stop camera stream
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
-                }
-
-                const { email } = await response.json();
-                Cookies.set('email', email);
-                
-                setTimeout(() => {
-                    setShowFacialRecognition(false);
-                    speak("Facial identity confirmed. Welcome back, Mr Motingwe.");
-                    Cookies.set('account_name', email);
-                    navigate(`/personal_info`);
-                }, 5000);
-                
-            } else {
-                speak("Facial recognition failed. Identity could not be verified. Please try again.");
-                setError("FACIAL RECOGNITION FAILED: Identity not verified");
-                setFacialRecognitionStep('prepare');
+            // Stop camera stream
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
             }
+
+            // ✅ Fixed: Use the email from your login state or set it appropriately
+            // Since this is facial recognition, you might want to set a default email
+            // or get it from your application state
+            const userEmail = email || 'tlotlo.motingwe@example.com'; // Use the email from your login form
+            Cookies.set('email', userEmail);
             
-        } catch (error) {
-            console.error("Error in facial recognition:", error);
-            speak(`Facial recognition system error. Please try again. ${error}`);
-            setError("SYSTEM ERROR: Facial recognition unavailable");
+            setTimeout(() => {
+                setShowFacialRecognition(false);
+                speak("Facial identity confirmed. Welcome back, Mr Motingwe.");
+                Cookies.set('account_name', userEmail);
+                navigate(`/personal_info`);
+            }, 5000);
+            
+        } else {
+            speak("Facial recognition failed. Identity could not be verified. Please try again.");
+            setError("FACIAL RECOGNITION FAILED: Identity not verified");
             setFacialRecognitionStep('prepare');
         }
-    };
+        
+    } catch (error) {
+        console.error("Error in facial recognition:", error);
+        speak(`Facial recognition system error. Please try again.`);
+        setError("SYSTEM ERROR: Facial recognition unavailable");
+        setFacialRecognitionStep('prepare');
+    }
+};
 
     // Helper function to convert image to base64
     const imageToBase64 = (imageUrl) => {
