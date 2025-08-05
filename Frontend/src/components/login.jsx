@@ -350,7 +350,7 @@ export default function Login() {
                 
                 // Show access granted message with animation
                 setAccessGranted(true);
-                playAccessGranted();
+                // playAccessGranted();
                 speak("Access granted. Welcome back. Initializing secure connection.");
                 
                 // Wait for animation to complete before navigating
@@ -366,18 +366,18 @@ export default function Login() {
                     setIsLockedOut(true);
                     setError("ACCOUNT LOCKED: Too many failed attempts. Facial recognition required.");
                     speak("Account locked due to multiple failed attempts. Please complete facial recognition to unlock.");
-                    playAccessDenied();
+                    // playAccessDenied();
                 } else {
                     const remainingAttempts = 3 - newFailedAttempts;
                     setError(`AUTHENTICATION FAILED: Invalid Credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
                     speak(`Authentication failed. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
-                    playAccessDenied();
+                    // playAccessDenied();
                 }
             }
         } catch (error) {
             setError("CONNECTION ERROR: Unable to reach authentication server");
             speak("Connection error. Please check your network and try again.");
-            playAccessDenied();
+            // playAccessDenied();
         } finally {
             setLoading(false);
         }
