@@ -268,7 +268,7 @@ export default function Login() {
             
         } catch (error) {
             console.error("Error in facial recognition:", error);
-            speak("Facial recognition system error. Please try again.");
+            speak(`Facial recognition system error. Please try again. ${error}`);
             setError("SYSTEM ERROR: Facial recognition unavailable");
             setFacialRecognitionStep('prepare');
         }
