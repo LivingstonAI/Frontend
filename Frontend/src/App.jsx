@@ -123,7 +123,6 @@ function App() {
             {/* Public routes - no authentication required */}
             <Route path='/' element={<SnowAILandingPage />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             
             {/* Protected routes - authentication required */}
             <Route path="/tell_us_more" element={
