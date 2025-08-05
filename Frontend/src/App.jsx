@@ -205,9 +205,9 @@ function App() {
             } />
             
             <Route path="/personal_info" element={
-              <ProtectedRoute>
+              // <ProtectedRoute>
                 <ModifyPersonalInfo selectedAssets={assets} />
-              </ProtectedRoute>
+              {/* </ProtectedRoute> */}
             } />
             
             <Route path="/models" element={
