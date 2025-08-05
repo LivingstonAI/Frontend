@@ -63,7 +63,6 @@ import AICouncil from './components/ai_council.jsx';
 import AICouncilConvos from './components/ai_council_convos.jsx';
 import Compliance from './components/compliance.jsx';
 
-
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
 import WW2 from './components/ww2';
@@ -78,145 +77,440 @@ import PoetryCollection from './components/poetry_collection';
 import React, { useState, useEffect } from 'react';
 import { FaSun, FaMoon } from 'react-icons/fa';
 
-
 import Legodi from './components/legodi';
 import OrderTab from './components/order_tab';
 // import GeofenceMap from './components/map';
 import LegodiRegistration from './components/legodi_registration';
 import LegodiLogin from './components/legodi_login';
-import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
+import {BrowserRouter as Router, Route, Routes, useNavigate, useLocation} from 'react-router-dom';
 import Blockly from 'blockly';
 import 'blockly/python';
+import Cookies from 'js-cookie'; // npm install js-cookie
 
+// Protected Route wrapper component
+const ProtectedRoute = ({ children }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const accountName = Cookies.get('account_name');
+    
+    if (!accountName) {
+      console.error('Account name not found');
+      navigate('/login', { 
+        state: { from: location.pathname } // Remember where they were trying to go
+      });
+    }
+  }, [navigate, location]);
+
+  const accountName = Cookies.get('account_name');
+  
+  if (!accountName) {
+    return null; // Or a loading spinner while redirecting
+  }
+
+  return children;
+};
 
 function App() {
   const [assets, setAssets] = useState([]);
 
   return (
-
     <AudioProvider>
-    <Router>
-    <div>
+      <Router>
+        <div>
+          <Routes>
+            {/* Public routes - no authentication required */}
+            <Route path='/' element={<SnowAILandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Protected routes - authentication required */}
+            <Route path="/tell_us_more" element={
+              <ProtectedRoute>
+                <TellUsMore />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/all_trades" element={
+              <ProtectedRoute>
+                <AllTrades />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/update_news" element={
+              <ProtectedRoute>
+                <UpdateNews />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/enter_new_trade" element={
+              <ProtectedRoute>
+                <EnterNewTrade />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/full_trade" element={
+              <ProtectedRoute>
+                <FullTrade />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/trading_history_analytics" element={
+              <ProtectedRoute>
+                <TradingHistory />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/full_trade/:tradeId" element={
+              <ProtectedRoute>
+                <FullTrade />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/journal" element={
+              <ProtectedRoute>
+                <Journal />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/all_journals" element={
+              <ProtectedRoute>
+                <AllJournals />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/full_journal/:journalId" element={
+              <ProtectedRoute>
+                <ViewJournal />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/major_news" element={
+              <ProtectedRoute>
+                <MajorNews />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/conversation/:conversationID" element={
+              <ProtectedRoute>
+                <ChatBotInterface />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/assets" element={
+              <ProtectedRoute>
+                <AssetsTraded />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/personal_info" element={
+              <ProtectedRoute>
+                <ModifyPersonalInfo selectedAssets={assets} />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/models" element={
+              <ProtectedRoute>
+                <Models />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/market_makers' element={
+              <ProtectedRoute>
+                <MarketMakers/>
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/risk_bot' element={
+              <ProtectedRoute>
+                <RiskBot />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/photo' element={
+              <ProtectedRoute>
+                <Photo />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/scratch' element={
+              <ProtectedRoute>
+                <ScratchInterFace />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/model_performance' element={
+              <ProtectedRoute>
+                <ModelPerformance />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/alert_bot' element={
+              <ProtectedRoute>
+                <AlertBot />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/daily_brief' element={
+              <ProtectedRoute>
+                <DailyBrief />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/performance_review/:asset' element={
+              <ProtectedRoute>
+                <PerformanceReview />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/chill' element={
+              <ProtectedRoute>
+                <Chill />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/account_analytics' element={
+              <ProtectedRoute>
+                <AccountAnalytics />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/enter_new_trade_info' element={
+              <ProtectedRoute>
+                <EnterNewTradeInfo />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/quizifier' element={
+              <ProtectedRoute>
+                <Quizzifier />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/saved_quizzes' element={
+              <ProtectedRoute>
+                <SavedQuizzes />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/tradergpt_analysis' element={
+              <ProtectedRoute>
+                <TraderGPTAnalysis />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/backtested_results' element={
+              <ProtectedRoute>
+                <BacktestedResults />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/ideas_section' element={
+              <ProtectedRoute>
+                <IdeasSection />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/call_ai' element={
+              <ProtectedRoute>
+                <CallAI />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/trade_ideas' element={
+              <ProtectedRoute>
+                <TradeIdeas />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/prop_firm_management' element={
+              <ProtectedRoute>
+                <PropFirmManagement />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/music' element={
+              <ProtectedRoute>
+                <Art />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/calendar' element={
+              <ProtectedRoute>
+                <Calendar />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/calendar_data' element={
+              <ProtectedRoute>
+                <CalendarData />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/econ_explainer' element={
+              <ProtectedRoute>
+                <EconExplainer />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/equations' element={
+              <ProtectedRoute>
+                <Equations />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/forex_factory' element={
+              <ProtectedRoute>
+                <ForexFactoryCapturer />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/trading_econ_dashboard' element={
+              <ProtectedRoute>
+                <TradingEconDashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/trading_calendar' element={
+              <ProtectedRoute>
+                <GoogleCalendar />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/paper_gpt' element={
+              <ProtectedRoute>
+                <PaperGPT />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/process_checker' element={
+              <ProtectedRoute>
+                <ProcessChecker />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/science_playground' element={
+              <ProtectedRoute>
+                <ScientificPlayground />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/economics_gpt' element={
+              <ProtectedRoute>
+                <EconomicsGPT />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/ai_council' element={
+              <ProtectedRoute>
+                <AICouncil />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/ai_council_conversations' element={
+              <ProtectedRoute>
+                <AICouncilConvos />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/firm_compliance' element={
+              <ProtectedRoute>
+                <Compliance />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/market_share_infographic' element={
+              <ProtectedRoute>
+                <MarketShareInfographic />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/legodi' element={
+              <ProtectedRoute>
+                <Legodi />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/order_tab' element={
+              <ProtectedRoute>
+                <OrderTab />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/regr' element={
+              <ProtectedRoute>
+                <LegodiRegistration />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/legodi-login' element={
+              <ProtectedRoute>
+                <LegodiLogin />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/zhenya' element={
+              <ProtectedRoute>
+                <Zhenya />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/sections' element={
+              <ProtectedRoute>
+                <Sections />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/sections/ww2' element={
+              <ProtectedRoute>
+                <WW2 />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/sections/ww1' element={
+              <ProtectedRoute>
+                <WW1 />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/sections/holocaust' element={
+              <ProtectedRoute>
+                <Holocaust />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/sections/stalin_soviet_union' element={
+              <ProtectedRoute>
+                <StalinistSovietUnion />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/michelle' element={
+              <ProtectedRoute>
+                <Michelle />
+              </ProtectedRoute>
+            } />
+            
+            <Route path='/floating_flowers' element={
+              <ProtectedRoute>
+                <FloatingFlowers />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/poetry_collection" element={
+              <ProtectedRoute>
+                <PoetryCollection />
+              </ProtectedRoute>
+            } />
 
-      
-
-        {/* Define Routes */}
-      {/* <li><Link to="/tell_us_more">Tell us more</Link></li> */}
-      <Routes>
-        <Route path='/' element={<SnowAILandingPage />}></Route>
-        {/* <Route path="/" element={<LandingPage />} /> */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/tell_us_more" element={<TellUsMore />} />
-        <Route path="/all_trades" element={<AllTrades />} />
-        <Route path="/update_news" element={<UpdateNews />} />
-        <Route path="/enter_new_trade" element={<EnterNewTrade />} />
-        <Route path="/full_trade" element={<FullTrade />} />
-        <Route path="/trading_history_analytics" element={<TradingHistory />} />
-        {/* <Route path="/overview" element={<OverView />} /> */}
-        {/* <Route path="/trading_history_analytics" element={<TradingHistory />} />
-        <Route path="/trading_history_analytics/seven_days" element={<TradingHistorySevenDays />} />
-        <Route path="/trading_history_analytics/one_month" element={<TradingHistoryOneMonth />} />
-        <Route path="/trading_history_analytics/three_months" element={<TradingThreeMonths />} /> */}
-        <Route path="/full_trade/:tradeId" element={<FullTrade />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/all_journals" element={<AllJournals />} />
-        <Route path="/full_journal/:journalId" element={<ViewJournal />} />
-        <Route path="/major_news" element={<MajorNews />} />
-        <Route path="/conversation/:conversationID" element={<ChatBotInterface />} />
-        <Route path="/assets" element={<AssetsTraded />} />
-        <Route path="/personal_info" element={<ModifyPersonalInfo selectedAssets={assets} />} />
-        <Route path="/models" element={<Models />} />
-        <Route path='/market_makers' element={<MarketMakers/>} />
-        <Route path='/risk_bot' element={<RiskBot />}></Route>
-        <Route path='/photo' element={<Photo />}></Route>
-        <Route path='/scratch' element={<ScratchInterFace />}></Route>
-        <Route path='/model_performance' element={<ModelPerformance />}></Route>
-        <Route path='/alert_bot' element={<AlertBot />}></Route>
-        <Route path='/daily_brief' element={<DailyBrief />}></Route>
-        <Route path='/performance_review/:asset' element={<PerformanceReview />}></Route>
-        <Route path='/chill' element={<Chill />}></Route>
-        <Route path='/account_analytics' element={<AccountAnalytics />}></Route>
-        <Route path='/enter_new_trade_info' element={<EnterNewTradeInfo />}></Route>
-        <Route path='/quizifier' element={<Quizzifier />}></Route>
-        <Route path='/saved_quizzes' element={<SavedQuizzes />}></Route>
-        {/* <Route path='/time' element={<Time />}></Route> */}
-        <Route path='/tradergpt_analysis' element={<TraderGPTAnalysis />}></Route>
-        <Route path='/backtested_results' element={<BacktestedResults />}></Route>
-        <Route path='/ideas_section' element={<IdeasSection />}></Route>
-        <Route path='/call_ai' element={<CallAI />}></Route>
-        <Route path='/trade_ideas' element={<TradeIdeas />}></Route>
-        <Route path='/prop_firm_management' element={<PropFirmManagement />}></Route>
-        <Route path='/music' element={<Art />}></Route>
-        <Route path='/calendar' element={<Calendar />}></Route>
-        <Route path='/calendar_data' element={<CalendarData />}></Route>
-        <Route path='/econ_explainer' element={<EconExplainer />}></Route>
-        <Route path='/equations' element={<Equations />}></Route>
-        <Route path='/forex_factory' element={<ForexFactoryCapturer />}></Route>
-        <Route path='/trading_econ_dashboard' element={<TradingEconDashboard />}></Route>
-        <Route path='/trading_calendar' element={<GoogleCalendar />}></Route>
-        <Route path='/paper_gpt' element={<PaperGPT />}></Route>
-        <Route path='/process_checker' element={<ProcessChecker />}></Route>
-        <Route path='/science_playground' element={<ScientificPlayground />}></Route>
-        <Route path='/economics_gpt' element={<EconomicsGPT />}></Route>
-        <Route path='/ai_council' element={<AICouncil />}></Route>
-        <Route path='/ai_council_conversations' element={<AICouncilConvos />}></Route>
-        <Route path='/firm_compliance' element={<Compliance />}></Route>
-
-
-
-
-
-        <Route path='/market_share_infographic' element={<MarketShareInfographic />}></Route>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-        <Route path='/legodi' element={<Legodi />}></Route>
-        <Route path='/order_tab' element={<OrderTab />}></Route>
-        {/* <Route path='/map' element={<GeofenceMap />}></Route> */}
-        <Route path='/regr' element={<LegodiRegistration />}></Route>
-        <Route path='/legodi-login' element={<LegodiLogin />}></Route>
-
-
-
-        <Route path='/zhenya' element={<Zhenya />}></Route>
-        <Route path='/sections' element={<Sections />}></Route>
-        <Route path='/sections/ww2' element={<WW2 />}></Route>
-        <Route path='/sections/ww1' element={<WW1 />}></Route>
-        <Route path='/sections/holocaust' element={<Holocaust />}></Route>
-        <Route path='/sections/stalin_soviet_union' element={<StalinistSovietUnion />}></Route>
-
-
-        <Route path='/michelle' element={<Michelle />}></Route>
-        <Route path='/floating_flowers' element={<FloatingFlowers />}></Route>
-        <Route path="/poetry_collection" element={<PoetryCollection />} />
-
-
-
-        {/* <Route path="/payment" element={<Payment />} /> */}
-        <Route path="*" element={<h1>404: page not found</h1>} />
-
-
-    </Routes>
-
-    </div>
-      
-    </Router>
+            {/* 404 route */}
+            <Route path="*" element={<h1>404: page not found</h1>} />
+          </Routes>
+        </div>
+      </Router>
     </AudioProvider>
   );
 }
 
 export default App;
-

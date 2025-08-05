@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Cookies from 'js-cookie';
 import access_granted_audio from '../Access Granted Sound.mp3';
 import access_denied_audio from '../Access Denied - Sound Effect (HD).mp3';
+import tlotlo_motingwe from '../Tlotlo.jpg';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -15,17 +16,73 @@ export default function Login() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [accessGranted, setAccessGranted] = useState(false);
+    const [failedAttempts, setFailedAttempts] = useState(0);
+    const [isLockedOut, setIsLockedOut] = useState(false);
+    const [showFacialRecognition, setShowFacialRecognition] = useState(false);
+    const [facialRecognitionStep, setFacialRecognitionStep] = useState('prepare'); // prepare, capturing, analyzing, complete
+    const [faceVerified, setFaceVerified] = useState(false);
+    const [userInteracted, setUserInteracted] = useState(false);
+    
     const uniqueID = uuidv4();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
     const accessGrantedAudioRef = useRef(null);
     const accessDeniedAudioRef = useRef(null);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    
+    // Camera and facial recognition refs
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const streamRef = useRef(null);
 
     // References for animation
     const scanlineRef = useRef(null);
     const containerRef = useRef(null);
 
+    const fetchAPIKey = async () => {
+        try {
+            const response = await fetch(`${baseURL}/get_openai_key`);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching API key:", error);
+        }
+    };
+
+    // Voice synthesis function
+    const speak = (text) => {
+        if (!userInteracted) return; // Don't speak if user hasn't interacted yet
+        
+        window.speechSynthesis.cancel(); // Cancel any ongoing speech
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+
+        const englishVoice = voices.find(voice => 
+            voice.lang.startsWith('en') && voice.name.includes('Natural')
+        ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+        
+        if (englishVoice) {
+            utterance.voice = englishVoice;
+        }
+        
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // Handle user interaction to enable audio
+    const handleUserInteraction = () => {
+        if (!userInteracted) {
+            setUserInteracted(true);
+            speak("Welcome to the secure authentication system. Please enter your credentials.");
+        }
+    };
+
     // Create the audio elements
     useEffect(() => {
+        fetchAPIKey();
+        
         // Create references to the imported audio files
         const grantedAudio = new Audio(access_granted_audio);
         const deniedAudio = new Audio(access_denied_audio);
@@ -41,6 +98,13 @@ export default function Login() {
             }
         }, 1000);
         
+        // Add click listener to container for user interaction
+        const container = containerRef.current;
+        if (container) {
+            container.addEventListener('click', handleUserInteraction);
+            container.addEventListener('keydown', handleUserInteraction);
+        }
+        
         return () => {
             clearInterval(intervalId);
             if (accessGrantedAudioRef.current) {
@@ -49,23 +113,196 @@ export default function Login() {
             if (accessDeniedAudioRef.current) {
                 accessDeniedAudioRef.current.pause();
             }
+            if (container) {
+                container.removeEventListener('click', handleUserInteraction);
+                container.removeEventListener('keydown', handleUserInteraction);
+            }
+            // Clean up camera stream
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
         };
     }, []);
 
+    // Load voices when they're available
+    useEffect(() => {
+        const loadVoices = () => {
+            window.speechSynthesis.getVoices();
+        };
+        
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }, []);
+
     const playAccessGranted = () => {
-        if (accessGrantedAudioRef.current) {
+        if (accessGrantedAudioRef.current && userInteracted) {
             accessGrantedAudioRef.current.play().catch(e => console.error("Audio playback failed:", e));
         }
     };
 
     const playAccessDenied = () => {
-        if (accessDeniedAudioRef.current) {
+        if (accessDeniedAudioRef.current && userInteracted) {
             accessDeniedAudioRef.current.play().catch(e => console.error("Audio playback failed:", e));
         }
     };
 
+    // Start facial recognition camera
+    const startFacialRecognition = async () => {
+        setShowFacialRecognition(true);
+        setFacialRecognitionStep('prepare');
+        speak("Initiating facial recognition. Please position yourself in front of the camera.");
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480 } 
+            });
+            streamRef.current = stream;
+            
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.play();
+            }
+            
+            setTimeout(() => {
+                setFacialRecognitionStep('capturing');
+                speak("Please look directly at the camera. Capturing image in 3, 2, 1.");
+                
+                setTimeout(() => {
+                    captureAndVerifyFace();
+                }, 3000);
+            }, 2000);
+            
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+            speak("Camera access denied. Please ensure camera permissions are granted and try again.");
+            setError("Camera access required for facial recognition");
+        }
+    };
+
+    // Capture image and verify with OpenAI
+    const captureAndVerifyFace = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
+        
+        setFacialRecognitionStep('analyzing');
+        speak("Analyzing facial features. Please wait.");
+        
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+        const context = canvas.getContext('2d');
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+        
+        // Convert canvas to base64
+        const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+        
+        try {
+            // Convert reference image to base64 (you'll need to implement this)
+            const referenceImageBase64 = await imageToBase64(tlotlo_motingwe);
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "Compare these two images and determine if they show the same person. Respond with only 'MATCH' if they are the same person, or 'NO_MATCH' if they are different people. Be strict in your comparison."
+                                },
+                                {
+                                    type: "image_url",
+                                    image_url: {
+                                        url: referenceImageBase64
+                                    }
+                                },
+                                {
+                                    type: "image_url",
+                                    image_url: {
+                                        url: capturedImage
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 10
+                })
+            });
+            
+            const result = await response.json();
+            const verification = result.choices[0].message.content.trim();
+            
+            if (verification === 'MATCH') {
+                setFaceVerified(true);
+                setFacialRecognitionStep('complete');
+                speak("Facial recognition successful. Identity verified.");
+                
+                // Stop camera stream
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                }
+                
+                setTimeout(() => {
+                    setShowFacialRecognition(false);
+                    speak("You may now proceed with password authentication.");
+                }, 2000);
+                
+            } else {
+                speak("Facial recognition failed. Identity could not be verified. Please try again.");
+                setError("FACIAL RECOGNITION FAILED: Identity not verified");
+                setFacialRecognitionStep('prepare');
+            }
+            
+        } catch (error) {
+            console.error("Error in facial recognition:", error);
+            speak("Facial recognition system error. Please try again.");
+            setError("SYSTEM ERROR: Facial recognition unavailable");
+            setFacialRecognitionStep('prepare');
+        }
+    };
+
+    // Helper function to convert image to base64
+    const imageToBase64 = (imageUrl) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.onerror = reject;
+            img.src = imageUrl;
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!userInteracted) {
+            handleUserInteraction();
+            return;
+        }
+        
+        // Check if locked out
+        if (isLockedOut) {
+            speak("Account is locked due to multiple failed attempts. Please try facial recognition.");
+            if (!faceVerified) {
+                startFacialRecognition();
+            }
+            return;
+        }
         
         // Reset error states
         setEmailError("");
@@ -76,11 +313,13 @@ export default function Login() {
         // Validate inputs
         if (!email) {
             setEmailError("Email is required.");
+            speak("Please enter your email address.");
             setLoading(false);
             return;
         }
         if (!password) {
             setPasswordError("Password is required.");
+            speak("Please enter your password.");
             setLoading(false);
             return;
         }
@@ -94,6 +333,7 @@ export default function Login() {
         
         try {
             // Simulate scanning effect
+            speak("Verifying credentials. Please wait.");
             await new Promise(resolve => setTimeout(resolve, 1500));
             
             const response = await fetch(`${baseURL}/login/`, {
@@ -111,17 +351,31 @@ export default function Login() {
                 // Show access granted message with animation
                 setAccessGranted(true);
                 playAccessGranted();
+                speak("Access granted. Welcome back. Initializing secure connection.");
                 
                 // Wait for animation to complete before navigating
                 setTimeout(() => {
                     navigate(`/personal_info`);
                 }, 5000);
             } else {
-                setError("AUTHENTICATION FAILED: Invalid Credentials");
-                playAccessDenied();
+                const newFailedAttempts = failedAttempts + 1;
+                setFailedAttempts(newFailedAttempts);
+                
+                if (newFailedAttempts >= 3) {
+                    setIsLockedOut(true);
+                    setError("ACCOUNT LOCKED: Too many failed attempts. Facial recognition required.");
+                    speak("Account locked due to multiple failed attempts. Please complete facial recognition to unlock.");
+                    playAccessDenied();
+                } else {
+                    const remainingAttempts = 3 - newFailedAttempts;
+                    setError(`AUTHENTICATION FAILED: Invalid Credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
+                    speak(`Authentication failed. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
+                    playAccessDenied();
+                }
             }
         } catch (error) {
             setError("CONNECTION ERROR: Unable to reach authentication server");
+            speak("Connection error. Please check your network and try again.");
             playAccessDenied();
         } finally {
             setLoading(false);
@@ -131,12 +385,66 @@ export default function Login() {
     return (
         <div className="hud-container" ref={containerRef}>
             <div className="scanline" ref={scanlineRef}></div>
+            
+            {showFacialRecognition && (
+                <div className="facial-recognition-overlay">
+                    <div className="facial-recognition-container">
+                        <div className="facial-recognition-header">
+                            <h3>FACIAL RECOGNITION</h3>
+                            <div className="status-indicator">
+                                STATUS: {facialRecognitionStep.toUpperCase()}
+                            </div>
+                        </div>
+                        
+                        <div className="camera-container">
+                            <video ref={videoRef} autoPlay muted className="camera-feed" />
+                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+                            
+                            {facialRecognitionStep === 'capturing' && (
+                                <div className="capture-overlay">
+                                    <div className="capture-frame"></div>
+                                </div>
+                            )}
+                            
+                            {facialRecognitionStep === 'analyzing' && (
+                                <div className="analyzing-overlay">
+                                    <div className="analyzing-spinner"></div>
+                                    <div className="analyzing-text">ANALYZING...</div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="facial-recognition-controls">
+                            {facialRecognitionStep === 'prepare' && (
+                                <button 
+                                    onClick={startFacialRecognition}
+                                    className="hud-button"
+                                >
+                                    START SCAN
+                                </button>
+                            )}
+                            
+                            {facialRecognitionStep === 'complete' && faceVerified && (
+                                <div className="verification-success">
+                                    ✓ IDENTITY VERIFIED
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <div className="hud-login-wrapper">
                 <div className="hud-hexagon"></div>
                 <div className="hud-login-inner">
                     <div className="hud-header">
                         <h3 className="hud-title">SECURE ACCESS</h3>
                         <div className="hud-subtitle">AUTHENTICATION REQUIRED</div>
+                        {isLockedOut && (
+                            <div className="lockout-warning">
+                                🔒 ACCOUNT LOCKED - FACIAL RECOGNITION REQUIRED
+                            </div>
+                        )}
                     </div>
                     
                     {accessGranted ? (
@@ -159,6 +467,7 @@ export default function Login() {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="Enter email"
+                                            disabled={isLockedOut && !faceVerified}
                                         />
                                         <div className="hud-input-border"></div>
                                     </div>
@@ -176,6 +485,7 @@ export default function Login() {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="Enter password"
+                                            disabled={isLockedOut && !faceVerified}
                                         />
                                         <div className="hud-input-border"></div>
                                     </div>
@@ -185,23 +495,33 @@ export default function Login() {
                             
                             <button 
                                 type="submit" 
-                                className={`hud-button ${loading ? 'hud-button-loading' : ''}`} 
-                                disabled={loading}
+                                className={`hud-button ${loading ? 'hud-button-loading' : ''} ${isLockedOut && !faceVerified ? 'hud-button-disabled' : ''}`} 
+                                disabled={loading || (isLockedOut && !faceVerified)}
                             >
                                 {loading ? (
                                     <>
                                         <span className="hud-button-text">VERIFYING</span>
                                         <span className="hud-loading-dots">...</span>
                                     </>
-                                ) : 'AUTHENTICATE'}
+                                ) : isLockedOut && !faceVerified ? 'LOCKED - FACIAL SCAN REQUIRED' : 'AUTHENTICATE'}
                             </button>
+                            
+                            {isLockedOut && !faceVerified && (
+                                <button 
+                                    type="button"
+                                    className="hud-button facial-recognition-button"
+                                    onClick={startFacialRecognition}
+                                >
+                                    START FACIAL RECOGNITION
+                                </button>
+                            )}
                         </form>
                     )}
                 </div>
             </div>
             
             <style jsx>{`
-                /* HUD-style futuristic interface styles */
+                /* Original HUD styles remain the same */
                 .hud-container {
                     position: relative;
                     width: 100%;
@@ -310,6 +630,24 @@ export default function Login() {
                     margin-top: 0.5rem;
                 }
                 
+                .lockout-warning {
+                    background-color: rgba(255, 69, 0, 0.2);
+                    border: 1px solid rgba(255, 69, 0, 0.5);
+                    color: #ff4500;
+                    padding: 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                    margin-top: 1rem;
+                    letter-spacing: 1px;
+                    animation: pulseRed 2s infinite;
+                }
+                
+                @keyframes pulseRed {
+                    0% { box-shadow: 0 0 5px rgba(255, 69, 0, 0.3); }
+                    50% { box-shadow: 0 0 15px rgba(255, 69, 0, 0.6); }
+                    100% { box-shadow: 0 0 5px rgba(255, 69, 0, 0.3); }
+                }
+                
                 .hud-form {
                     display: flex;
                     flex-direction: column;
@@ -350,6 +688,12 @@ export default function Login() {
                     transition: all 0.3s ease;
                     border-radius: 4px;
                     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+                }
+                
+                .hud-input:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                    background-color: rgba(0, 26, 56, 0.2);
                 }
                 
                 .hud-input:focus {
@@ -421,6 +765,24 @@ export default function Login() {
                     text-shadow: 0 0 5px rgba(0, 162, 255, 0.7);
                     margin-top: 1rem;
                     box-shadow: 0 0 15px rgba(0, 162, 255, 0.3);
+                }
+                
+                .hud-button-disabled {
+                    background: linear-gradient(90deg, 
+                                rgba(100, 50, 0, 0.5) 0%, 
+                                rgba(180, 90, 0, 0.6) 50%,
+                                rgba(100, 50, 0, 0.5) 100%);
+                    border-color: rgba(255, 162, 0, 0.5);
+                    cursor: not-allowed;
+                }
+                
+                .facial-recognition-button {
+                    background: linear-gradient(90deg, 
+                                rgba(0, 100, 50, 0.5) 0%, 
+                                rgba(0, 180, 90, 0.6) 50%,
+                                rgba(0, 100, 50, 0.5) 100%);
+                    border-color: rgba(0, 255, 127, 0.5);
+                    margin-top: 0.5rem;
                 }
                 
                 .hud-button::before {
@@ -522,6 +884,138 @@ export default function Login() {
                     letter-spacing: 1px;
                 }
                 
+                /* Facial Recognition Overlay Styles */
+                .facial-recognition-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                    animation: fadeIn 0.3s ease;
+                }
+                
+                .facial-recognition-container {
+                    background-color: rgba(11, 25, 48, 0.9);
+                    border: 1px solid rgba(0, 162, 255, 0.5);
+                    border-radius: 8px;
+                    padding: 2rem;
+                    max-width: 600px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 0 30px rgba(0, 162, 255, 0.3);
+                }
+                
+                .facial-recognition-header h3 {
+                    color: #00a2ff;
+                    font-size: 1.5rem;
+                    letter-spacing: 2px;
+                    margin: 0 0 1rem 0;
+                    text-shadow: 0 0 10px rgba(0, 162, 255, 0.7);
+                }
+                
+                .status-indicator {
+                    color: rgba(0, 162, 255, 0.8);
+                    font-size: 0.9rem;
+                    letter-spacing: 1px;
+                    margin-bottom: 2rem;
+                }
+                
+                .camera-container {
+                    position: relative;
+                    width: 100%;
+                    max-width: 400px;
+                    margin: 0 auto 2rem auto;
+                    border: 2px solid rgba(0, 162, 255, 0.5);
+                    border-radius: 8px;
+                    overflow: hidden;
+                    aspect-ratio: 4/3;
+                }
+                
+                .camera-feed {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+                
+                .capture-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    background-color: rgba(0, 0, 0, 0.3);
+                }
+                
+                .capture-frame {
+                    width: 200px;
+                    height: 200px;
+                    border: 3px solid #00ff9d;
+                    border-radius: 50%;
+                    animation: pulseCapture 1s infinite;
+                }
+                
+                @keyframes pulseCapture {
+                    0% { 
+                        transform: scale(1);
+                        border-color: #00ff9d;
+                    }
+                    50% { 
+                        transform: scale(1.1);
+                        border-color: #00a2ff;
+                    }
+                    100% { 
+                        transform: scale(1);
+                        border-color: #00ff9d;
+                    }
+                }
+                
+                .analyzing-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    background-color: rgba(0, 0, 0, 0.8);
+                }
+                
+                .analyzing-spinner {
+                    width: 60px;
+                    height: 60px;
+                    border: 4px solid rgba(0, 162, 255, 0.1);
+                    border-top: 4px solid #00a2ff;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 1rem;
+                }
+                
+                .analyzing-text {
+                    color: #00a2ff;
+                    font-size: 1.2rem;
+                    letter-spacing: 2px;
+                    text-shadow: 0 0 10px rgba(0, 162, 255, 0.7);
+                }
+                
+                .verification-success {
+                    color: #00ff9d;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                    text-shadow: 0 0 10px rgba(0, 255, 157, 0.7);
+                    animation: pulseGreen 2s infinite;
+                }
+                
                 @keyframes fadeIn {
                     from { opacity: 0; }
                     to { opacity: 1; }
@@ -551,6 +1045,14 @@ export default function Login() {
                     .hud-button {
                         padding: 0.7rem 1.5rem;
                         font-size: 0.9rem;
+                    }
+                    
+                    .facial-recognition-container {
+                        padding: 1.5rem;
+                    }
+                    
+                    .camera-container {
+                        max-width: 300px;
                     }
                 }
             `}</style>
