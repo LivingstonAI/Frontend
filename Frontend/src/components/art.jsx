@@ -76,6 +76,7 @@ import nokia_remix from '../Katy Perry Last Friday Night - Drake (Remix) [NOKIA 
 import levitating from '../Dua Lipa - Levitating Featuring DaBaby (Official Music Video).mp3';
 import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp3';
 import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
+import once_upon_a_time_trend from '../Once Upon A Time - remix slowed (0.8x降调DJ抖音版) HOK & DANCING - 𝐓𝐈𝐊𝐓𝐎𝐊.mp3';
 
 
 // Audio to be used for authentication
@@ -285,6 +286,7 @@ export default function Art() {
     "70": { name: "Levitating 🦸‍♂️", file: levitating },
     "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
     "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
+    "73": { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },
   };
 
   // Function to get current date and time formatted
