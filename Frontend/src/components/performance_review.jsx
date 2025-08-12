@@ -136,7 +136,7 @@ export default function PerformanceReview() {
 
     const barChartOptions = {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false, // Changed to false for better responsive behavior
         plugins: {
             title: {
                 display: true,
@@ -151,9 +151,22 @@ export default function PerformanceReview() {
                 display: false
             },
             tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#007bff',
+                borderWidth: 1,
+                cornerRadius: 6,
+                displayColors: false,
                 callbacks: {
+                    title: function(tooltipItems) {
+                        return tooltipItems[0].label;
+                    },
                     label: function(context) {
-                        return `Return: ${context.parsed.y.toFixed(2)}`;
+                        const returnValue = context.parsed.y;
+                        const percentage = returnValue >= 0 ? '+' : '';
+                        return `Return: ${percentage}${returnValue.toFixed(2)}%`;
                     }
                 }
             }
@@ -163,7 +176,7 @@ export default function PerformanceReview() {
                 beginAtZero: true,
                 title: {
                     display: true,
-                    text: 'Overall Return',
+                    text: 'Overall Return (%)',
                     font: {
                         size: 12,
                         weight: 'bold'
@@ -171,6 +184,11 @@ export default function PerformanceReview() {
                 },
                 grid: {
                     color: 'rgba(0, 0, 0, 0.1)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
                 }
             },
             x: {
@@ -186,8 +204,95 @@ export default function PerformanceReview() {
                     display: false
                 }
             }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
         }
     };
+
+    // Enhanced options for equity curve charts
+    const getEquityCurveOptions = (modelId) => ({
+        responsive: true,
+        maintainAspectRatio: false, // Changed to false for better responsive behavior
+        plugins: {
+            title: {
+                display: true,
+                text: `Equity Curve - Model ${modelId}`,
+                font: {
+                    size: 14,
+                    weight: 'bold'
+                },
+                color: '#2c3e50'
+            },
+            tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: 'rgba(75,192,192,1)',
+                borderWidth: 1,
+                cornerRadius: 6,
+                displayColors: false,
+                callbacks: {
+                    title: function(tooltipItems) {
+                        return `Trade #${tooltipItems[0].label}`;
+                    },
+                    label: function(context) {
+                        const equity = context.parsed.y;
+                        return `Equity: $${equity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                title: {
+                    display: true,
+                    text: 'Equity ($)',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Trade Number',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)'
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        elements: {
+            point: {
+                radius: 0,
+                hoverRadius: 6,
+                hoverBorderWidth: 2
+            },
+            line: {
+                tension: 0.1
+            }
+        }
+    });
 
     const barChartData = getBarChartData();
 
@@ -242,27 +347,28 @@ export default function PerformanceReview() {
                                         {modelData.map((model, index) => (
                                             <div key={index} className="chart-container">
                                                 <h6 className="performance-review-header">Model ID: {model.model_id}</h6>
-                                                <Line
-                                                    data={{
-                                                        labels: model.equity_curve.map((_, idx) => idx + 1),
-                                                        datasets: [
-                                                            {
-                                                                label: 'Equity Curve',
-                                                                data: model.equity_curve,
-                                                                fill: false,
-                                                                backgroundColor: 'rgba(75,192,192,0.6)',
-                                                                borderColor: 'rgba(75,192,192,1)',
-                                                            },
-                                                        ],
-                                                    }}
-                                                    options={{
-                                                        maintainAspectRatio: true,
-                                                    }}
-                                                />
+                                                <div className="equity-chart-container">
+                                                    <Line
+                                                        data={{
+                                                            labels: model.equity_curve.map((_, idx) => idx + 1),
+                                                            datasets: [
+                                                                {
+                                                                    label: 'Equity Curve',
+                                                                    data: model.equity_curve,
+                                                                    fill: false,
+                                                                    backgroundColor: 'rgba(75,192,192,0.6)',
+                                                                    borderColor: 'rgba(75,192,192,1)',
+                                                                    borderWidth: 2,
+                                                                },
+                                                            ],
+                                                        }}
+                                                        options={getEquityCurveOptions(model.model_id)}
+                                                    />
+                                                </div>
                                                 <div className="model-metrics">
                                                     <p>Win Rate: {model.win_rate}%</p>
                                                     <p>Loss Rate: {model.loss_rate}%</p>
-                                                    <p>Overall Return: {model.overall_return}</p>
+                                                    <p>Overall Return: {model.overall_return}%</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -285,8 +391,16 @@ export default function PerformanceReview() {
                 }
 
                 .bar-chart-container {
-                    height: 400px;
+                    height: 350px;
+                    width: 100%;
                     position: relative;
+                }
+
+                .equity-chart-container {
+                    height: 300px;
+                    width: 100%;
+                    position: relative;
+                    margin-bottom: 15px;
                 }
 
                 .chart-container {
@@ -344,6 +458,7 @@ export default function PerformanceReview() {
                     gap: 20px;
                 }
 
+                /* Mobile responsiveness */
                 @media (max-width: 768px) {
                     .model-metrics {
                         flex-direction: column;
@@ -351,7 +466,49 @@ export default function PerformanceReview() {
                     }
                     
                     .bar-chart-container {
-                        height: 300px;
+                        height: 250px;
+                    }
+
+                    .equity-chart-container {
+                        height: 220px;
+                    }
+
+                    .model-returns-comparison,
+                    .personal-asset-review {
+                        padding: 15px;
+                    }
+
+                    .chart-container {
+                        padding: 15px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .bar-chart-container {
+                        height: 200px;
+                    }
+
+                    .equity-chart-container {
+                        height: 180px;
+                    }
+
+                    .model-metrics {
+                        gap: 8px;
+                    }
+
+                    .model-metrics p {
+                        font-size: 12px;
+                    }
+                }
+
+                /* Large screens */
+                @media (min-width: 1200px) {
+                    .bar-chart-container {
+                        height: 400px;
+                    }
+
+                    .equity-chart-container {
+                        height: 350px;
                     }
                 }
             `}</style>
