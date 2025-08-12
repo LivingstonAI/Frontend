@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 import { FaSun, FaMoon, FaMusic, FaSave, FaChartLine, FaAngleDown, FaAngleUp, FaKeyboard, FaTimes } from 'react-icons/fa';
 import { useAudio } from './audio_context';
@@ -53,7 +53,7 @@ import ma_meilleure_enemie from '../Stromae, Pomme - “Ma Meilleure Ennemie” 
 import procrastination from '../Diverseddie 舵 - Procrastination 拖延症.mp3';
 import atreides_theme from '../Atreides Theme.mp3';
 import duncan_theme from '../3m24 Duncan Arrives (Unreleased)  Dune (2021).mp3';
-import mit_hall from '../“Hall That Never Ends,” featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album “Log Log Land,” streaming now!.mp3';
+import mit_hall from '../"Hall That Never Ends," featuring the @mitlogs Written, directed, and edited by Reuben Fuchs.Check out their new album "Log Log Land," streaming now!.mp3';
 import mit from '../mit.mp3';
 import empire_state_of_mind from '../JAY-Z - Empire State Of Mind (Lyrics) ft. Alicia Keys.mp3';
 import here_comes_the_sun from '../The Beatles - Here Comes The Sun (2019 Mix).mp3';
@@ -80,244 +80,7 @@ import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp
 import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
 import once_upon_a_time_trend from '../Once Upon A Time - remix slowed (0.8x降调DJ抖音版) HOK & DANCING - 𝐓𝐈𝐊𝐓𝐎𝐊.mp3';
 
-// Virtual Keyboard Component
-const VirtualKeyboard = ({ showKeyboard, setShowKeyboard, navigate }) => {
-  const [isShift, setIsShift] = useState(false);
-  const [isCaps, setIsCaps] = useState(false);
-  const [currentInput, setCurrentInput] = useState(null);
-  const [showNavKeys, setShowNavKeys] = useState(false);
-
-  // Navigation routes mapping
-  const navRoutes = [
-    { key: 'Person', route: '/personal_info', icon: '👤' },
-    { key: 'Analytics', route: '/account_analytics', icon: '📊' },
-    { key: 'Banks', route: '/market_makers', icon: '🏦' },
-    { key: 'Chat', route: `/conversation/${uuidv4()}`, icon: '💬' },
-    { key: 'Brief', route: '/daily_brief', icon: '💼' },
-    { key: 'Review', route: '/performance_review/asset', icon: '📝' },
-    { key: 'News', route: '/update_news', icon: '📰' },
-    { key: 'Trade Info', route: '/enter_new_trade_info', icon: 'ℹ️' },
-    { key: 'Scratch', route: '/scratch', icon: '🤖' },
-    { key: 'Model', route: '/model_performance', icon: '🖊️' },
-    { key: 'Risk', route: '/risk_bot', icon: '💱' },
-    { key: 'Chill', route: '/chill', icon: '🎧' },
-    { key: 'Quiz', route: '/quizifier', icon: '🚀' },
-    { key: 'Saved', route: '/saved_quizzes', icon: '⭐' },
-    { key: 'Alerts', route: '/alert_bot', icon: '🔔' },
-    { key: 'Analysis', route: '/tradergpt_analysis', icon: '🛟' },
-    { key: 'Backtest', route: '/backtested_results', icon: '☯️' },
-    { key: 'Ideas', route: '/ideas_section', icon: '💡' },
-    { key: 'Call AI', route: '/call_ai', icon: '📞' },
-    { key: 'Trades', route: '/trade_ideas', icon: '❄️' },
-    { key: 'Prop', route: '/prop_firm_management', icon: '🗄️' },
-    { key: 'Music', route: '/music', icon: '🎵' },
-    { key: 'Calendar', route: '/calendar', icon: '📅' },
-    { key: 'Cal Data', route: '/calendar_data', icon: '📋' },
-    { key: 'Econ', route: '/econ_explainer', icon: '💰' },
-    { key: 'Forex', route: '/forex_factory', icon: '📷' },
-    { key: 'Dashboard', route: '/trading_econ_dashboard', icon: '📈' },
-    { key: 'T-Cal', route: '/trading_calendar', icon: '📆' },
-    { key: 'Papers', route: '/paper_gpt', icon: '🎓' },
-    { key: 'Process', route: '/process_checker', icon: '✅' },
-    { key: 'Science', route: '/science_playground', icon: '∞' },
-    { key: 'EconGPT', route: '/economics_gpt', icon: '💵' },
-    { key: 'Council', route: '/ai_council', icon: '🔷' },
-    { key: 'Convos', route: '/ai_council_conversations', icon: '💭' },
-    { key: 'Compliance', route: '/firm_compliance', icon: '✔️' },
-  ];
-
-  const qwertyKeys = [
-    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
-    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-    ['z', 'x', 'c', 'v', 'b', 'n', 'm']
-  ];
-
-  const numberKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-  const specialKeys = ['-', '=', '[', ']', '\\', ';', "'", ',', '.', '/'];
-  const shiftSpecialKeys = ['_', '+', '{', '}', '|', ':', '"', '<', '>', '?'];
-
-  useEffect(() => {
-    const activeElement = document.activeElement;
-    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-      setCurrentInput(activeElement);
-    }
-  }, [showKeyboard]);
-
-  const handleKeyPress = (key) => {
-    if (currentInput) {
-      const start = currentInput.selectionStart;
-      const end = currentInput.selectionEnd;
-      const value = currentInput.value;
-      
-      let newValue;
-      if (key === 'Backspace') {
-        newValue = value.substring(0, start - 1) + value.substring(end);
-        currentInput.value = newValue;
-        currentInput.setSelectionRange(start - 1, start - 1);
-      } else if (key === 'Space') {
-        newValue = value.substring(0, start) + ' ' + value.substring(end);
-        currentInput.value = newValue;
-        currentInput.setSelectionRange(start + 1, start + 1);
-      } else if (key === 'Enter') {
-        const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
-        currentInput.dispatchEvent(event);
-      } else {
-        let charToInsert = key;
-        if (isShift || isCaps) {
-          if (qwertyKeys.flat().includes(key.toLowerCase())) {
-            charToInsert = key.toUpperCase();
-          }
-        }
-        newValue = value.substring(0, start) + charToInsert + value.substring(end);
-        currentInput.value = newValue;
-        currentInput.setSelectionRange(start + 1, start + 1);
-      }
-      
-      const inputEvent = new Event('input', { bubbles: true });
-      currentInput.dispatchEvent(inputEvent);
-    }
-    
-    if (isShift && key !== 'Shift') {
-      setIsShift(false);
-    }
-  };
-
-  const handleNavigation = (route) => {
-    navigate(route);
-    setShowKeyboard(false);
-  };
-
-  const getSpecialKey = (key, index) => {
-    if (isShift) {
-      return shiftSpecialKeys[index] || key;
-    }
-    return key;
-  };
-
-  if (!showKeyboard) return null;
-
-  return (
-    <div className="virtual-keyboard-overlay">
-      <div className="virtual-keyboard">
-        <div className="keyboard-header">
-          <div className="keyboard-tabs">
-            <button 
-              className={`tab-btn ${!showNavKeys ? 'active' : ''}`}
-              onClick={() => setShowNavKeys(false)}
-            >
-              Keyboard
-            </button>
-            <button 
-              className={`tab-btn ${showNavKeys ? 'active' : ''}`}
-              onClick={() => setShowNavKeys(true)}
-            >
-              Navigation
-            </button>
-          </div>
-          <button className="close-keyboard" onClick={() => setShowKeyboard(false)}>
-            <FaTimes />
-          </button>
-        </div>
-
-        {showNavKeys ? (
-          <div className="nav-keys">
-            <div className="nav-grid">
-              {navRoutes.map((nav, index) => (
-                <button
-                  key={index}
-                  className="nav-key"
-                  onClick={() => handleNavigation(nav.route)}
-                  title={nav.key}
-                >
-                  <span className="nav-icon">{nav.icon}</span>
-                  <span className="nav-label">{nav.key}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="standard-keys">
-            {/* Number row */}
-            <div className="key-row">
-              {numberKeys.map((key) => (
-                <button key={key} className="key" onClick={() => handleKeyPress(key)}>
-                  {key}
-                </button>
-              ))}
-              <button className="key special-key" onClick={() => handleKeyPress('Backspace')}>
-                ⌫
-              </button>
-            </div>
-
-            {/* Special characters row */}
-            <div className="key-row">
-              {specialKeys.slice(0, 5).map((key, index) => (
-                <button key={key} className="key" onClick={() => handleKeyPress(getSpecialKey(key, index))}>
-                  {getSpecialKey(key, index)}
-                </button>
-              ))}
-              {specialKeys.slice(5).map((key, index) => (
-                <button key={key} className="key" onClick={() => handleKeyPress(getSpecialKey(key, index + 5))}>
-                  {getSpecialKey(key, index + 5)}
-                </button>
-              ))}
-            </div>
-
-            {/* QWERTY rows */}
-            {qwertyKeys.map((row, rowIndex) => (
-              <div key={rowIndex} className="key-row">
-                {rowIndex === 2 && (
-                  <button 
-                    className={`key special-key ${isShift ? 'active' : ''}`}
-                    onClick={() => setIsShift(!isShift)}
-                  >
-                    ⇧
-                  </button>
-                )}
-                {row.map((key) => (
-                  <button 
-                    key={key} 
-                    className="key" 
-                    onClick={() => handleKeyPress(key)}
-                  >
-                    {(isShift || isCaps) ? key.toUpperCase() : key}
-                  </button>
-                ))}
-                {rowIndex === 2 && (
-                  <button 
-                    className={`key special-key ${isShift ? 'active' : ''}`}
-                    onClick={() => setIsShift(!isShift)}
-                  >
-                    ⇧
-                  </button>
-                )}
-              </div>
-            ))}
-
-            {/* Bottom row */}
-            <div className="key-row">
-              <button 
-                className={`key special-key ${isCaps ? 'active' : ''}`}
-                onClick={() => setIsCaps(!isCaps)}
-              >
-                Caps
-              </button>
-              <button className="key space-key" onClick={() => handleKeyPress('Space')}>
-                Space
-              </button>
-              <button className="key special-key" onClick={() => handleKeyPress('Enter')}>
-                ↵
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export default function SideNavs() {
-  const navigate = useNavigate();
   const uniqueID = uuidv4();
   const [timeNY, setTimeNY] = useState('');
   const [timeLondon, setTimeLondon] = useState('');
@@ -331,6 +94,45 @@ export default function SideNavs() {
   const [isLoading, setIsLoading] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
+
+  // Virtual keyboard navigation items with hieroglyphic symbols
+  const navigationItems = [
+    { route: "/personal_info", symbol: "𓀀", name: "Profile", description: "Personal Information" },
+    { route: "/account_analytics", symbol: "𓊖", name: "Analytics", description: "Account Analytics" },
+    { route: "/market_makers", symbol: "𓉤", name: "Markets", description: "Market Makers" },
+    { route: `/conversation/${uniqueID}`, symbol: "𓂋", name: "Chat", description: "Conversation" },
+    { route: "/daily_brief", symbol: "𓄿", name: "Brief", description: "Daily Brief" },
+    { route: "/performance_review/asset", symbol: "𓈖", name: "Review", description: "Performance Review" },
+    { route: "/update_news", symbol: "𓊪", name: "News", description: "Update News" },
+    { route: "/enter_new_trade_info", symbol: "𓇯", name: "Trade", description: "New Trade Info" },
+    { route: "/scratch", symbol: "𓌳", name: "AI", description: "Scratch AI" },
+    { route: "/model_performance", symbol: "𓊽", name: "Model", description: "Model Performance" },
+    { route: "/risk_bot", symbol: "𓈗", name: "Risk", description: "Risk Bot" },
+    { route: "/chill", symbol: "𓊝", name: "Music", description: "Chill Music" },
+    { route: "/quizifier", symbol: "𓊨", name: "Quiz", description: "Quizifier" },
+    { route: "/saved_quizzes", symbol: "𓈙", name: "Saved", description: "Saved Quizzes" },
+    { route: "/alert_bot", symbol: "𓊿", name: "Alert", description: "Alert Bot" },
+    { route: "/tradergpt_analysis", symbol: "𓋹", name: "GPT", description: "Trader GPT" },
+    { route: "/backtested_results", symbol: "𓊭", name: "Results", description: "Backtest Results" },
+    { route: "/ideas_section", symbol: "𓊤", name: "Ideas", description: "Ideas Section" },
+    { route: "/call_ai", symbol: "𓊚", name: "Call", description: "Call AI" },
+    { route: "/trade_ideas", symbol: "𓈘", name: "Trades", description: "Trade Ideas" },
+    { route: "/prop_firm_management", symbol: "𓉗", name: "Firm", description: "Prop Firm" },
+    { route: "/music", symbol: "𓊡", name: "Audio", description: "Music Player" },
+    { route: "/calendar", symbol: "𓊣", name: "Calendar", description: "Calendar" },
+    { route: "/calendar_data", symbol: "𓊦", name: "Data", description: "Calendar Data" },
+    { route: "/econ_explainer", symbol: "𓋻", name: "Econ", description: "Economics" },
+    { route: "/forex_factory", symbol: "𓊬", name: "Forex", description: "Forex Factory" },
+    { route: "/trading_econ_dashboard", symbol: "𓊲", name: "Dashboard", description: "Trading Dashboard" },
+    { route: "/trading_calendar", symbol: "𓊳", name: "TradeCal", description: "Trading Calendar" },
+    { route: "/paper_gpt", symbol: "𓊮", name: "Paper", description: "Paper GPT" },
+    { route: "/process_checker", symbol: "𓊯", name: "Process", description: "Process Checker" },
+    { route: "/science_playground", symbol: "𓊱", name: "Science", description: "Science Playground" },
+    { route: "/economics_gpt", symbol: "𓊴", name: "EconGPT", description: "Economics GPT" },
+    { route: "/ai_council", symbol: "𓊵", name: "Council", description: "AI Council" },
+    { route: "/ai_council_conversations", symbol: "𓊶", name: "Convos", description: "AI Conversations" },
+    { route: "/firm_compliance", symbol: "𓊷", name: "Compliance", description: "Firm Compliance" }
+  ];
 
   // Import song files - Fixed the undefined imports
   const songs = [
@@ -557,6 +359,231 @@ export default function SideNavs() {
 
   return (
     <div className="all-side-navs">
+      <style jsx>{`
+        .virtual-keyboard-container {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 1000;
+          background: linear-gradient(135deg, #001f3f 0%, #003366 50%, #004080 100%);
+          border-top: 2px solid #00aaff;
+          box-shadow: 0 -8px 32px rgba(0, 170, 255, 0.3);
+          backdrop-filter: blur(10px);
+          padding: 20px;
+          transform: translateY(${showKeyboard ? '0' : '100%'});
+          transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .keyboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          color: #00aaff;
+          font-weight: bold;
+        }
+
+        .keyboard-close-btn {
+          background: transparent;
+          border: 2px solid #00aaff;
+          color: #00aaff;
+          border-radius: 8px;
+          padding: 8px 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .keyboard-close-btn:hover {
+          background: #00aaff;
+          color: #001f3f;
+          box-shadow: 0 0 20px rgba(0, 170, 255, 0.6);
+        }
+
+        .navigation-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+          gap: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+          padding: 10px;
+          background: rgba(0, 50, 100, 0.5);
+          border-radius: 12px;
+          border: 1px solid #00aaff;
+        }
+
+        .nav-key {
+          background: linear-gradient(145deg, #003366, #001f3f);
+          border: 2px solid #00aaff;
+          border-radius: 12px;
+          padding: 12px;
+          min-height: 80px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          color: #00aaff;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .nav-key::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(0, 170, 255, 0.2), transparent);
+          transition: left 0.6s;
+        }
+
+        .nav-key:hover {
+          background: linear-gradient(145deg, #004080, #00aaff);
+          color: #ffffff;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 170, 255, 0.4);
+        }
+
+        .nav-key:hover::before {
+          left: 100%;
+        }
+
+        .nav-key:active {
+          transform: translateY(0);
+          box-shadow: 0 4px 15px rgba(0, 170, 255, 0.6);
+        }
+
+        .hieroglyph {
+          font-size: 24px;
+          margin-bottom: 4px;
+          font-family: 'Noto Sans Egyptian Hieroglyphs', serif;
+        }
+
+        .key-label {
+          font-size: 10px;
+          font-weight: bold;
+          text-align: center;
+          line-height: 1.2;
+        }
+
+        .keyboard-toggle-btn {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 1001;
+          background: linear-gradient(145deg, #00aaff, #0088cc);
+          border: none;
+          border-radius: 50%;
+          width: 60px;
+          height: 60px;
+          color: white;
+          font-size: 24px;
+          cursor: pointer;
+          box-shadow: 0 8px 25px rgba(0, 170, 255, 0.4);
+          transition: all 0.3s ease;
+        }
+
+        .keyboard-toggle-btn:hover {
+          background: linear-gradient(145deg, #0088cc, #0066aa);
+          transform: scale(1.1);
+          box-shadow: 0 12px 35px rgba(0, 170, 255, 0.6);
+        }
+
+        .keyboard-toggle-btn:active {
+          transform: scale(0.95);
+        }
+
+        .hud-glow {
+          position: relative;
+        }
+
+        .hud-glow::after {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          background: linear-gradient(45deg, #00aaff, #0088cc, #00aaff);
+          z-index: -1;
+          filter: blur(8px);
+          opacity: 0.7;
+          border-radius: inherit;
+        }
+
+        @media (max-width: 768px) {
+          .navigation-grid {
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 8px;
+          }
+          
+          .nav-key {
+            min-height: 60px;
+            padding: 8px;
+          }
+          
+          .hieroglyph {
+            font-size: 18px;
+          }
+          
+          .key-label {
+            font-size: 8px;
+          }
+          
+          .keyboard-toggle-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .navigation-grid {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+          }
+          
+          .nav-key {
+            min-height: 50px;
+            padding: 6px;
+          }
+          
+          .hieroglyph {
+            font-size: 16px;
+          }
+          
+          .key-label {
+            font-size: 7px;
+          }
+          
+          .virtual-keyboard-container {
+            padding: 15px 10px;
+          }
+        }
+
+        .scrollbar-hud::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .scrollbar-hud::-webkit-scrollbar-track {
+          background: rgba(0, 31, 63, 0.5);
+          border-radius: 4px;
+        }
+
+        .scrollbar-hud::-webkit-scrollbar-thumb {
+          background: linear-gradient(135deg, #00aaff, #0088cc);
+          border-radius: 4px;
+        }
+
+        .scrollbar-hud::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(135deg, #0088cc, #0066aa);
+        }
+      `}</style>
+
       <div className="side-navs trading-history-links">
         <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person-fill"></i></p></button></Link>
         <Link to="/account_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i></p></button></Link>
@@ -743,15 +770,11 @@ export default function SideNavs() {
       {/* Conditional rendering of AssetTracker */}
       {showAssetTracker && <AssetTracker />}
 
-      {/* Music Player, Keyboard, Admin buttons and Modal */}
+      {/* Music Player, Admin buttons and Modal */}
       <div className="music-color-mode">
         <div className="music-player">
           <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
             <FaMusic />
-          </button>
-          {/* Virtual Keyboard Toggle Button */}
-          <button className="btn btn-outline-info ms-2" onClick={toggleKeyboard}>
-            <FaKeyboard />
           </button>
           {/* Admin button to save all songs */}
           <button className="btn btn-outline-primary ms-2" onClick={saveAllSongsToBackend}>
@@ -821,322 +844,45 @@ export default function SideNavs() {
         </nav>
       </div>
 
-      {/* Virtual Keyboard Component */}
-      <VirtualKeyboard 
-        showKeyboard={showKeyboard} 
-        setShowKeyboard={setShowKeyboard}
-        navigate={navigate}
-      />
+      {/* Virtual Keyboard Toggle Button */}
+      <button 
+        className="keyboard-toggle-btn hud-glow"
+        onClick={toggleKeyboard}
+        title="Toggle Navigation Keyboard"
+      >
+        <FaKeyboard />
+      </button>
 
-      <style jsx>{`
-        /* Virtual Keyboard Styles */
-        .virtual-keyboard-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: flex-end;
-          z-index: 9999;
-          padding: 10px;
-        }
-
-        .virtual-keyboard {
-          background: white;
-          border-radius: 10px 10px 0 0;
-          width: 100%;
-          max-width: 100%;
-          box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2);
-          max-height: 60vh;
-          overflow-y: auto;
-        }
-
-        .keyboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 15px 20px;
-          border-bottom: 1px solid #e9ecef;
-          background: #f8f9fa;
-          border-radius: 10px 10px 0 0;
-        }
-
-        .keyboard-tabs {
-          display: flex;
-          gap: 5px;
-        }
-
-        .tab-btn {
-          padding: 8px 16px;
-          border: 1px solid #007bff;
-          background: white;
-          color: #007bff;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-size: 14px;
-        }
-
-        .tab-btn.active {
-          background: #007bff;
-          color: white;
-        }
-
-        .tab-btn:hover {
-          background: #0056b3;
-          color: white;
-        }
-
-        .close-keyboard {
-          background: #dc3545;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 14px;
-        }
-
-        .close-keyboard:hover {
-          background: #c82333;
-        }
-
-        .standard-keys, .nav-keys {
-          padding: 15px 20px;
-        }
-
-        .key-row {
-          display: flex;
-          justify-content: center;
-          gap: 5px;
-          margin-bottom: 8px;
-          flex-wrap: wrap;
-        }
-
-        .key {
-          min-width: 35px;
-          height: 40px;
-          background: white;
-          border: 1px solid #dee2e6;
-          border-radius: 5px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.1s;
-          user-select: none;
-          flex: 0 0 auto;
-        }
-
-        .key:hover {
-          background: #e9ecef;
-          border-color: #007bff;
-        }
-
-        .key:active {
-          background: #007bff;
-          color: white;
-          transform: scale(0.95);
-        }
-
-        .key.active {
-          background: #007bff;
-          color: white;
-          border-color: #0056b3;
-        }
-
-        .special-key {
-          background: #f8f9fa;
-          border-color: #adb5bd;
-          min-width: 50px;
-        }
-
-        .space-key {
-          flex: 1;
-          min-width: 200px;
-          max-width: 300px;
-        }
-
-        /* Navigation Keys */
-        .nav-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-          gap: 10px;
-          max-height: 300px;
-          overflow-y: auto;
-        }
-
-        .nav-key {
-          background: white;
-          border: 2px solid #007bff;
-          border-radius: 8px;
-          padding: 12px 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 5px;
-          min-height: 70px;
-        }
-
-        .nav-key:hover {
-          background: #007bff;
-          color: white;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-        }
-
-        .nav-icon {
-          font-size: 18px;
-          line-height: 1;
-        }
-
-        .nav-label {
-          font-size: 11px;
-          font-weight: 500;
-          text-align: center;
-          line-height: 1.2;
-          word-break: break-word;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-          .virtual-keyboard-overlay {
-            padding: 5px;
-          }
-
-          .virtual-keyboard {
-            max-height: 50vh;
-          }
-
-          .keyboard-header {
-            padding: 10px 15px;
-          }
-
-          .standard-keys, .nav-keys {
-            padding: 10px 15px;
-          }
-
-          .key {
-            min-width: 28px;
-            height: 35px;
-            font-size: 12px;
-          }
-
-          .special-key {
-            min-width: 40px;
-          }
-
-          .space-key {
-            min-width: 150px;
-            max-width: 250px;
-          }
-
-          .nav-grid {
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 8px;
-          }
-
-          .nav-key {
-            padding: 10px 6px;
-            min-height: 60px;
-          }
-
-          .nav-icon {
-            font-size: 16px;
-          }
-
-          .nav-label {
-            font-size: 10px;
-          }
-
-          .tab-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .key {
-            min-width: 25px;
-            height: 32px;
-            font-size: 11px;
-            gap: 2px;
-          }
-
-          .special-key {
-            min-width: 35px;
-          }
-
-          .space-key {
-            min-width: 120px;
-            max-width: 200px;
-          }
-
-          .nav-grid {
-            grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
-            gap: 6px;
-          }
-
-          .nav-key {
-            padding: 8px 4px;
-            min-height: 55px;
-          }
-
-          .nav-icon {
-            font-size: 14px;
-          }
-
-          .nav-label {
-            font-size: 9px;
-          }
-        }
-
-        /* Dark theme support */
-        .dark .virtual-keyboard {
-          background: #2d3748;
-          color: white;
-        }
-
-        .dark .keyboard-header {
-          background: #4a5568;
-          border-bottom-color: #718096;
-        }
-
-        .dark .key {
-          background: #4a5568;
-          border-color: #718096;
-          color: white;
-        }
-
-        .dark .key:hover {
-          background: #718096;
-        }
-
-        .dark .special-key {
-          background: #2d3748;
-        }
-
-        .dark .nav-key {
-          background: #4a5568;
-          color: white;
-        }
-
-        .dark .tab-btn {
-          background: #4a5568;
-          color: white;
-          border-color: #007bff;
-        }
-      `}</style>
+      {/* Virtual HUD Keyboard */}
+      <div className="virtual-keyboard-container">
+        <div className="keyboard-header">
+          <div>
+            <span>⚡ HUD NAVIGATION SYSTEM ⚡</span>
+            <div style={{ fontSize: '12px', opacity: 0.8 }}>Select destination with hieroglyphic keys</div>
+          </div>
+          <button 
+            className="keyboard-close-btn"
+            onClick={toggleKeyboard}
+          >
+            <FaTimes />
+          </button>
+        </div>
+        
+        <div className="navigation-grid scrollbar-hud">
+          {navigationItems.map((item, index) => (
+            <Link 
+              key={index}
+              to={item.route}
+              className="nav-key"
+              onClick={() => setShowKeyboard(false)}
+              title={item.description}
+            >
+              <div className="hieroglyph">{item.symbol}</div>
+              <div className="key-label">{item.name}</div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
