@@ -842,7 +842,7 @@ export default function SideNavs() {
             </button>
           </div>
         </nav>
-      </div>
+      </div><br />
 
       {/* Virtual Keyboard Toggle Button */}
       <button 
