@@ -345,7 +345,7 @@ export default function PerformanceReview() {
 
                                     <div className="model-performance-review-div">
                                         {modelData.map((model, index) => (
-                                            <div key={index} className="chart-container">
+                                            <div key={index} className="chart-container equity-chart-wrapper">
                                                 <h6 className="performance-review-header">Model ID: {model.model_id}</h6>
                                                 <div className="equity-chart-container">
                                                     <Line
@@ -396,13 +396,25 @@ export default function PerformanceReview() {
                     position: relative;
                 }
 
+                /* Fixed equity chart container to prevent movement/blinking */
                 .equity-chart-container {
                     height: 300px;
                     width: 100%;
                     position: relative;
                     margin-bottom: 15px;
+                    /* Prevent any layout shifts */
+                    min-height: 300px;
+                    max-height: 300px;
+                    overflow: hidden;
+                    /* Stabilize the container */
+                    will-change: auto;
+                    transform: translateZ(0);
+                    backface-visibility: hidden;
+                    /* Prevent flickering on hover */
+                    pointer-events: auto;
                 }
 
+                /* Enhanced chart container with stability fixes */
                 .chart-container {
                     background: white;
                     border-radius: 8px;
@@ -410,6 +422,31 @@ export default function PerformanceReview() {
                     padding: 20px;
                     margin-bottom: 20px;
                     border-left: 4px solid #007bff;
+                    /* Prevent movement and blinking */
+                    position: relative;
+                    will-change: auto;
+                    transform: translateZ(0);
+                    backface-visibility: hidden;
+                    /* Ensure stable positioning */
+                    isolation: isolate;
+                }
+
+                /* Specific fixes for equity chart wrapper */
+                .equity-chart-wrapper {
+                    /* Prevent any transitions that might cause blinking */
+                    transition: none !important;
+                    animation: none !important;
+                    /* Ensure stable rendering */
+                    contain: layout style paint;
+                }
+
+                /* Prevent hover effects that might cause movement */
+                .equity-chart-wrapper:hover {
+                    /* Override any inherited hover effects */
+                    transform: none !important;
+                    transition: none !important;
+                    animation: none !important;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
                 }
 
                 .model-metrics {
@@ -420,6 +457,9 @@ export default function PerformanceReview() {
                     background: #f8f9fa;
                     border-radius: 6px;
                     border: 1px solid #e9ecef;
+                    /* Prevent metrics from causing parent movement */
+                    position: relative;
+                    z-index: 1;
                 }
 
                 .model-metrics p {
@@ -451,11 +491,30 @@ export default function PerformanceReview() {
                     border-radius: 10px;
                     padding: 20px;
                     margin-top: 20px;
+                    /* Prevent parent container movement */
+                    position: relative;
+                    contain: layout style;
                 }
 
                 .model-performance-review-div {
                     display: grid;
                     gap: 20px;
+                    /* Ensure stable grid layout */
+                    grid-template-columns: 1fr;
+                    position: relative;
+                }
+
+                /* Additional stability for chart.js canvas */
+                .equity-chart-container canvas {
+                    /* Prevent canvas from causing layout shifts */
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    /* Prevent blinking */
+                    will-change: auto;
+                    backface-visibility: hidden;
                 }
 
                 /* Mobile responsiveness */
@@ -471,6 +530,8 @@ export default function PerformanceReview() {
 
                     .equity-chart-container {
                         height: 220px;
+                        min-height: 220px;
+                        max-height: 220px;
                     }
 
                     .model-returns-comparison,
@@ -490,6 +551,8 @@ export default function PerformanceReview() {
 
                     .equity-chart-container {
                         height: 180px;
+                        min-height: 180px;
+                        max-height: 180px;
                     }
 
                     .model-metrics {
@@ -509,6 +572,8 @@ export default function PerformanceReview() {
 
                     .equity-chart-container {
                         height: 350px;
+                        min-height: 350px;
+                        max-height: 350px;
                     }
                 }
             `}</style>
