@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 import { FaSun, FaMoon, FaMusic, FaSave, FaChartLine, FaAngleDown, FaAngleUp, FaKeyboard, FaTimes } from 'react-icons/fa';
 import { useAudio } from './audio_context';
 import AssetTracker from "./asset_tracker";
 
-// Import all the songs
+// Import all the songs (keeping the original imports)
 import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
 import love_story from '../Indila - Love Story (Piano Cover).mp3';
@@ -81,6 +81,7 @@ import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
 import once_upon_a_time_trend from '../Once Upon A Time - remix slowed (0.8x降调DJ抖音版) HOK & DANCING - 𝐓𝐈𝐊𝐓𝐎𝐊.mp3';
 
 export default function SideNavs() {
+  const navigate = useNavigate();
   const uniqueID = uuidv4();
   const [timeNY, setTimeNY] = useState('');
   const [timeLondon, setTimeLondon] = useState('');
@@ -93,6 +94,7 @@ export default function SideNavs() {
   const [songsFromBackend, setSongsFromBackend] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const [touchFeedback, setTouchFeedback] = useState(null);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
   // Virtual keyboard navigation items with hieroglyphic symbols
@@ -134,7 +136,7 @@ export default function SideNavs() {
     { route: "/firm_compliance", symbol: "𓊷", name: "Compliance", description: "Firm Compliance" }
   ];
 
-  // Import song files - Fixed the undefined imports
+  // Import song files
   const songs = [
         { name: "MIT👨‍🎓📖🚀", file: mit },
         { name: "Atreides Theme ⚔️", file: atreides_theme },
@@ -211,6 +213,29 @@ export default function SideNavs() {
         { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },    
   ];
 
+  // Enhanced touch navigation function
+  const handleTouchNavigation = (route, itemName) => {
+    // Provide immediate visual feedback
+    setTouchFeedback(itemName);
+    
+    // Add haptic feedback if available
+    if (navigator.vibrate) {
+      navigator.vibrate(50); // 50ms vibration
+    }
+    
+    // Audio feedback (optional)
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFAg+ltryxnkpBSl+zPLZjzoIGGS57OKdTgwPUarm7blmGggdDUJ6lc7xzHcrBSU1QwRGVJ2TbDZGJjJjpM/srzNHKtFQk8Pm7rtmGwcaDUNAr+HqtGcaCD1UltHwzHgqBSg5Tf'); // Optional sound effect
+    audio.volume = 0.1; // Keep it subtle
+    audio.play().catch(() => {}); // Ignore errors if audio fails
+    
+    // Navigate after a short delay to show visual feedback
+    setTimeout(() => {
+      navigate(route);
+      setShowKeyboard(false);
+      setTouchFeedback(null);
+    }, 150);
+  };
+
   // Toggle functions
   const toggleSideNav = () => setIsOpen(!isOpen);
   const toggleAssetTracker = () => setShowAssetTracker(!showAssetTracker);
@@ -274,7 +299,7 @@ export default function SideNavs() {
     return () => clearInterval(interval);
   }, []);
 
-  // Access audio context - This is working correctly!
+  // Access audio context
   const { isPlaying, currentSong, playMusic, stopMusic } = useAudio();
 
   // Function to save all songs to the backend
@@ -285,26 +310,19 @@ export default function SideNavs() {
 
     for (const song of songs) {
       try {
-        // Fetch the song file
         const response = await fetch(song.file);
-        
-        // Check if the fetch was successful
         if (!response.ok) {
           throw new Error(`Failed to fetch song file: ${song.file}`);
         }
         
         const blob = await response.blob();
-        
-        // Create a file object from the blob
         const fileName = song.file.split('/').pop();
         const songFile = new File([blob], fileName, { type: 'audio/mpeg' });
         
-        // Create form data
         const formData = new FormData();
         formData.append('name', song.name);
         formData.append('file', songFile);
         
-        // Send to backend
         const saveResponse = await fetch(`${baseURL}/save-music`, {
           method: 'POST',
           body: formData,
@@ -325,7 +343,6 @@ export default function SideNavs() {
     
     setSavingStatus(`Completed! Saved ${successCount} songs, Failed: ${errorCount}`);
     
-    // Refresh the songs list from backend
     try {
       const response = await fetch(`${baseURL}/fetch-music`);
       if (response.ok) {
@@ -336,15 +353,12 @@ export default function SideNavs() {
       console.error("Error refreshing songs list:", error);
     }
     
-    // Reset status message after 5 seconds
     setTimeout(() => setSavingStatus(""), 5000);
   };
 
-  // Handle play for any song (backend or local) - Fixed to use the correct file property
+  // Handle play for any song
   const handlePlay = (song) => {
     console.log("Playing song:", song.name);
-    // For backend songs, use song.file (which should be the URL)
-    // For local songs, use song.file (which is the imported file)
     const songUrl = songsFromBackend.length > 0 ? song.file : song.file;
     console.log("Song URL:", songUrl);
     playMusic(songUrl);
@@ -424,10 +438,14 @@ export default function SideNavs() {
           justify-content: center;
           cursor: pointer;
           transition: all 0.3s ease;
-          text-decoration: none;
           color: #00aaff;
           position: relative;
           overflow: hidden;
+          user-select: none;
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          touch-action: manipulation;
         }
 
         .nav-key::before {
@@ -441,26 +459,44 @@ export default function SideNavs() {
           transition: left 0.6s;
         }
 
-        .nav-key:hover {
+        .nav-key:hover,
+        .nav-key:focus,
+        .nav-key.touch-active {
           background: linear-gradient(145deg, #004080, #00aaff);
           color: #ffffff;
-          transform: translateY(-2px);
+          transform: translateY(-2px) scale(1.05);
           box-shadow: 0 8px 25px rgba(0, 170, 255, 0.4);
+          border-color: #ffffff;
         }
 
-        .nav-key:hover::before {
+        .nav-key:hover::before,
+        .nav-key:focus::before,
+        .nav-key.touch-active::before {
           left: 100%;
         }
 
         .nav-key:active {
-          transform: translateY(0);
+          transform: translateY(0) scale(0.95);
           box-shadow: 0 4px 15px rgba(0, 170, 255, 0.6);
+        }
+
+        .nav-key.feedback-pulse {
+          animation: touchFeedback 0.3s ease-out;
+          background: linear-gradient(145deg, #00ff88, #00aaff);
+          box-shadow: 0 0 30px rgba(0, 255, 136, 0.8);
+        }
+
+        @keyframes touchFeedback {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+          100% { transform: scale(1.05); }
         }
 
         .hieroglyph {
           font-size: 24px;
           margin-bottom: 4px;
           font-family: 'Noto Sans Egyptian Hieroglyphs', serif;
+          pointer-events: none;
         }
 
         .key-label {
@@ -468,6 +504,7 @@ export default function SideNavs() {
           font-weight: bold;
           text-align: center;
           line-height: 1.2;
+          pointer-events: none;
         }
 
         .keyboard-toggle-btn {
@@ -485,9 +522,11 @@ export default function SideNavs() {
           cursor: pointer;
           box-shadow: 0 8px 25px rgba(0, 170, 255, 0.4);
           transition: all 0.3s ease;
+          touch-action: manipulation;
         }
 
-        .keyboard-toggle-btn:hover {
+        .keyboard-toggle-btn:hover,
+        .keyboard-toggle-btn:focus {
           background: linear-gradient(145deg, #0088cc, #0066aa);
           transform: scale(1.1);
           box-shadow: 0 12px 35px rgba(0, 170, 255, 0.6);
@@ -515,9 +554,74 @@ export default function SideNavs() {
           border-radius: inherit;
         }
 
+        .touch-feedback-overlay {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 170, 255, 0.9);
+          color: white;
+          padding: 15px 25px;
+          border-radius: 12px;
+          font-size: 18px;
+          font-weight: bold;
+          z-index: 2000;
+          pointer-events: none;
+          animation: fadeInOut 0.5s ease-out;
+        }
+
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* Enhanced touch targets for better touchscreen experience */
+        @media (hover: none) and (pointer: coarse) {
+          .nav-key {
+            min-height: 90px;
+            padding: 15px;
+            font-size: 12px;
+          }
+          
+          .hieroglyph {
+            font-size: 28px;
+          }
+          
+          .key-label {
+            font-size: 11px;
+          }
+        }
+
         @media (max-width: 768px) {
           .navigation-grid {
-            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 10px;
+          }
+          
+          .nav-key {
+            min-height: 70px;
+            padding: 10px;
+          }
+          
+          .hieroglyph {
+            font-size: 20px;
+          }
+          
+          .key-label {
+            font-size: 9px;
+          }
+          
+          .keyboard-toggle-btn {
+            width: 55px;
+            height: 55px;
+            font-size: 22px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .navigation-grid {
+            grid-template-columns: repeat(6, 1fr);
             gap: 8px;
           }
           
@@ -534,34 +638,16 @@ export default function SideNavs() {
             font-size: 8px;
           }
           
+          .virtual-keyboard-container {
+            padding: 15px 10px;
+          }
+          
           .keyboard-toggle-btn {
             width: 50px;
             height: 50px;
             font-size: 20px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .navigation-grid {
-            grid-template-columns: repeat(6, 1fr);
-            gap: 6px;
-          }
-          
-          .nav-key {
-            min-height: 50px;
-            padding: 6px;
-          }
-          
-          .hieroglyph {
-            font-size: 16px;
-          }
-          
-          .key-label {
-            font-size: 7px;
-          }
-          
-          .virtual-keyboard-container {
-            padding: 15px 10px;
+            bottom: 15px;
+            right: 15px;
           }
         }
 
@@ -581,6 +667,16 @@ export default function SideNavs() {
 
         .scrollbar-hud::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(135deg, #0088cc, #0066aa);
+        }
+
+        /* Disable text selection on touch elements */
+        .virtual-keyboard-container * {
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          -khtml-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
         }
       `}</style>
 
@@ -610,7 +706,6 @@ export default function SideNavs() {
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
         <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
-        {/* <Link to="/equations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
         <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link>
         <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
@@ -699,9 +794,6 @@ export default function SideNavs() {
         <Link to="/econ_explainer" className="side-nav">
             <i className="bi bi-cash-stack"></i>
         </Link>
-        {/* <Link to="/equations" className="side-nav">
-            <i className="bi bi-infinity"></i>
-        </Link> */}
         <Link to="/forex_factory" className="side-nav">
             <i className="bi bi-camera-fill"></i>
         </Link>
@@ -766,7 +858,6 @@ export default function SideNavs() {
         </div>
       </div>
       
-
       {/* Conditional rendering of AssetTracker */}
       {showAssetTracker && <AssetTracker />}
 
@@ -776,7 +867,6 @@ export default function SideNavs() {
           <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
             <FaMusic />
           </button>
-          {/* Admin button to save all songs */}
           <button className="btn btn-outline-primary ms-2" onClick={saveAllSongsToBackend}>
             <FaSave /> Save All
           </button>
@@ -792,7 +882,6 @@ export default function SideNavs() {
                 <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div className="modal-body">
-                {/* Search Bar */}
                 <div className="mb-3">
                   <input
                     type="text"
@@ -803,7 +892,6 @@ export default function SideNavs() {
                   />
                 </div>
 
-                {/* Song List */}
                 {isLoading ? (
                   <div className="d-flex justify-content-center">
                     <div className="spinner-border text-primary" role="status">
@@ -844,25 +932,34 @@ export default function SideNavs() {
         </nav>
       </div><br />
 
+      {/* Touch Feedback Overlay */}
+      {touchFeedback && (
+        <div className="touch-feedback-overlay">
+          Navigating to {touchFeedback}
+        </div>
+      )}
+
       {/* Virtual Keyboard Toggle Button */}
       <button 
         className="keyboard-toggle-btn hud-glow"
         onClick={toggleKeyboard}
-        title="Toggle Navigation Keyboard"
+        title="Toggle Touch Navigation"
+        onTouchStart={(e) => e.preventDefault()}
       >
         <FaKeyboard />
       </button>
 
-      {/* Virtual HUD Keyboard */}
+      {/* Enhanced Virtual Touch Keyboard */}
       <div className="virtual-keyboard-container">
         <div className="keyboard-header">
           <div>
-            <span>⚡ HUD NAVIGATION SYSTEM ⚡</span>
-            <div style={{ fontSize: '12px', opacity: 0.8 }}>Select destination with hieroglyphic keys</div>
+            <span>⚡ TOUCH NAVIGATION SYSTEM ⚡</span>
+            <div style={{ fontSize: '12px', opacity: 0.8 }}>Touch hieroglyphics to navigate instantly</div>
           </div>
           <button 
             className="keyboard-close-btn"
             onClick={toggleKeyboard}
+            onTouchStart={(e) => e.preventDefault()}
           >
             <FaTimes />
           </button>
@@ -870,16 +967,23 @@ export default function SideNavs() {
         
         <div className="navigation-grid scrollbar-hud">
           {navigationItems.map((item, index) => (
-            <Link 
+            <div 
               key={index}
-              to={item.route}
-              className="nav-key"
-              onClick={() => setShowKeyboard(false)}
+              className={`nav-key ${touchFeedback === item.name ? 'feedback-pulse' : ''}`}
+              onClick={() => handleTouchNavigation(item.route, item.name)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleTouchNavigation(item.route, item.name);
+              }}
+              onMouseDown={(e) => e.preventDefault()}
               title={item.description}
+              tabIndex={0}
+              role="button"
+              aria-label={`Navigate to ${item.description}`}
             >
               <div className="hieroglyph">{item.symbol}</div>
               <div className="key-label">{item.name}</div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
