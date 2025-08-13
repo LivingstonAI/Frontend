@@ -504,16 +504,19 @@ const deletePaperFromBackend = async (paperId) => {
         // Generate AI summary
         const summary = await generateSummary(extractedText);
 
-        // Create new paper object
+        // Create new paper object - ADD THE CATEGORY HERE!
         const paper = {
             title: newPaper.title,
             fileName: newPaper.file.name,
             fileSize: newPaper.file.size,
             extractedText: extractedText,
             aiSummary: summary,
-            personalNotes: newPaper.personalNotes,
+            personalNotes: newPaper.personalNotes || '',
+            category: newPaper.category || '', // <- THIS WAS MISSING!
             fileData: await fileToBase64(newPaper.file)
         };
+
+        console.log('Paper object with category:', paper); // Debug line
 
         // Save to backend first
         const savedPaper = await savePaperToBackend(paper);
@@ -522,9 +525,12 @@ const deletePaperFromBackend = async (paperId) => {
         const updatedPapers = [...papers, { ...paper, id: savedPaper.id }];
         setPapers(updatedPapers);
 
-        // Reset form
-        setNewPaper({ title: "", file: null, personalNotes: "" });
+        // Reset form - make sure to reset category too
+        setNewPaper({ title: "", file: null, personalNotes: "", category: "" });
         setShowUploadModal(false);
+        
+        // Reload categories in case a new one was added
+        loadCategories();
         
     } catch (error) {
         console.error("Error processing paper:", error);
