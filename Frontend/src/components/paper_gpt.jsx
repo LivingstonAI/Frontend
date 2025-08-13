@@ -18,7 +18,8 @@ export default function PaperGPT() {
     const [newPaper, setNewPaper] = useState({
         title: "",
         file: null,
-        personalNotes: ""
+        personalNotes: "",
+        category: ""
     });
 
     const [editingNotes, setEditingNotes] = useState("");
@@ -29,6 +30,10 @@ export default function PaperGPT() {
     const [isReading, setIsReading] = useState(false);
     const [currentUtterance, setCurrentUtterance] = useState(null);
     const [readingType, setReadingType] = useState(null); // 'summary' or 'text'
+
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
 
     const searchInputFix = `
         .search-input {
@@ -47,6 +52,18 @@ export default function PaperGPT() {
             color: #94a3b8; /* Add this for placeholder visibility */
         }
         `;
+
+    const loadCategories = async () => {
+    try {
+        const response = await fetch(`${baseUrl}/paper-gpt/categories/`);
+        if (response.ok) {
+            const cats = await response.json();
+            setCategories(cats);
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+};
 
     const speak = (text, type) => {
     window.speechSynthesis.cancel();
@@ -221,6 +238,8 @@ const CopyButton = ({ text, label }) => (
     </button>
 );
 
+filter
+
         const downloadPDF = (paper) => {
         try {
             // Check if fileData exists
@@ -286,6 +305,7 @@ const CopyButton = ({ text, label }) => (
                 fileData: paper.fileData,
                 fileSize: paper.fileSize,
                 extractedText: paper.extractedText,
+                category: paper.category,
                 aiSummary: paper.aiSummary,
                 personalNotes: paper.personalNotes
             })
@@ -341,6 +361,21 @@ const updatePaperNotesInBackend = async (paperId, notes) => {
     }
 };
 
+const updatePaperInBackend = async (paperId, updates) => {
+    try {
+        const response = await fetch(`${baseUrl}/paper-gpt/${paperId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updates)
+        });
+        // ... rest of function
+    } catch (error) {
+        // ... error handling
+    }
+};
+
 const deletePaperFromBackend = async (paperId) => {
     try {
         const response = await fetch(`${baseUrl}/paper-gpt/${paperId}/`, {
@@ -373,6 +408,7 @@ const deletePaperFromBackend = async (paperId) => {
         console.log("Fetching API key...");
         fetchAPIKey();
         loadPapersFromBackend(); // Changed from loadPapers()
+        loadCategories();
     }, []);
 
     const extractTextFromPDF = async (file) => {
@@ -554,10 +590,12 @@ const updatePersonalNotes = async (paperId, notes) => {
     };
     setIsUpdatingNotes('Update');
 };
-    const filteredPapers = papers.filter(paper =>
-        paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        paper.fileName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredPapers = papers.filter(paper => {
+    const matchesSearch = paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        paper.fileName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !categoryFilter || paper.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+});
 
     const formatFileSize = (bytes) => {
         if (bytes === 0) return '0 Bytes';
@@ -1130,16 +1168,37 @@ useEffect(() => {
                                         <div className="search-wrapper">
                                             <Search className="search-icon" size={20} />
                                             <input
-                                            type="text"
-                                            placeholder="Search papers..."
-                                            value={searchTerm}
-                                            onChange={handleSearchChange} // Use the new handler
-                                            className="search-input"
-                                            style={{
-                                                color: '#1e293b',
-                                                backgroundColor: 'white'
-                                            }}
-                                        />
+                                                type="text"
+                                                placeholder="Search papers..."
+                                                value={searchTerm}
+                                                onChange={handleSearchChange}
+                                                className="search-input"
+                                                style={{
+                                                    color: '#1e293b',
+                                                    backgroundColor: 'white'
+                                                }}
+                                            />
+                                        </div>
+                                        {/* Add this category filter */}
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <select
+                                                value={categoryFilter}
+                                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem',
+                                                    border: '2px solid #e2e8f0',
+                                                    borderRadius: '12px',
+                                                    background: 'white',
+                                                    fontSize: '0.875rem',
+                                                    color: '#1e293b'
+                                                }}
+                                            >
+                                                <option value="">All Categories</option>
+                                                {categories.map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                     <div className="papers-scroll">
@@ -1168,6 +1227,18 @@ useEffect(() => {
                                                                     {formatDate(paper.uploadDate)}
                                                                 </span>
                                                                 <span>{formatFileSize(paper.fileSize)}</span>
+                                                                {/* ADD THE CATEGORY HERE */}
+                                                                {paper.category && (
+                                                                    <span style={{
+                                                                        background: '#8b5cf6',
+                                                                        color: 'white',
+                                                                        padding: '0.125rem 0.5rem',
+                                                                        borderRadius: '8px',
+                                                                        fontSize: '0.65rem'
+                                                                    }}>
+                                                                        {paper.category}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <button
@@ -1255,6 +1326,18 @@ useEffect(() => {
                                                         />
                                                     </div>
                                                 </div>
+                                                {selectedPaper.category && (
+                                                    <span className="meta-item" style={{
+                                                        background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                                                        color: 'white',
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '500'
+                                                    }}>
+                                                        {selectedPaper.category}
+                                                    </span>
+                                                )}
                                                 <div className="summary-content">
                                                     <p className="summary-text">
                                                         {showFullSummary 
@@ -1478,6 +1561,24 @@ useEffect(() => {
                                         className="form-input"
                                         placeholder="Enter paper title..."
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Category (Optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newPaper.category}
+                                        onChange={(e) => setNewPaper({ ...newPaper, category: e.target.value })}
+                                        className="form-input"
+                                        placeholder="e.g., AI Trading, Value Investing..."
+                                        list="category-suggestions"
+                                    />
+                                    <datalist id="category-suggestions">
+                                        {categories.map(cat => (
+                                            <option key={cat} value={cat} />
+                                        ))}
+                                    </datalist>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">
