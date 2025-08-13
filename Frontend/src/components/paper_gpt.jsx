@@ -238,7 +238,6 @@ const CopyButton = ({ text, label }) => (
     </button>
 );
 
-filter
 
         const downloadPDF = (paper) => {
         try {
