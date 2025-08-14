@@ -74,6 +74,7 @@ import levitating from '../Dua Lipa - Levitating Featuring DaBaby (Official Musi
 import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp3';
 import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
 import once_upon_a_time_trend from '../Once Upon A Time - remix slowed (0.8x降调DJ抖音版) HOK & DANCING - 𝐓𝐈𝐊𝐓𝐎𝐊.mp3';
+import little_time_youth from '../[ENGSUBPINYIN] 小时光 (Xiao Shi Guang - Little TimeYouth) - 胡期皓 (Hu Qi Hao) - Hot Douyin.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -189,6 +190,7 @@ export default function SnowAILandingPage() {
       "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
       "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
       "73": { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },
+      "74": { name: "Youth - Hu Qihao 🏄🎧", file: little_time_youth },
     };
 
     
