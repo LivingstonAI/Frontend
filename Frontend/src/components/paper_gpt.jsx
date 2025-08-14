@@ -1365,7 +1365,7 @@ useEffect(() => {
                                                             </span>
                                                         ))}
                                                     </div>
-                                                )}
+                                                )}<br />
                                                 <div className="summary-content">
                                                     <p className="summary-text">
                                                         {showFullSummary 
