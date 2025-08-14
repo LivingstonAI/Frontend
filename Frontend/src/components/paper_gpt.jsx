@@ -1351,16 +1351,20 @@ useEffect(() => {
                                                     </div>
                                                 </div>
                                                 {selectedPaper.category && (
-                                                    <span className="meta-item" style={{
-                                                        background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                                                        color: 'white',
-                                                        padding: '0.25rem 0.75rem',
-                                                        borderRadius: '12px',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: '500'
-                                                    }}>
-                                                        {selectedPaper.category}
-                                                    </span>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        {selectedPaper.category.split(',').map((cat, index) => (
+                                                            <span key={index} className="meta-item" style={{
+                                                                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                                                                color: 'white',
+                                                                padding: '0.25rem 0.75rem',
+                                                                borderRadius: '12px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: '500'
+                                                            }}>
+                                                                {cat.trim()}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 )}
                                                 <div className="summary-content">
                                                     <p className="summary-text">
