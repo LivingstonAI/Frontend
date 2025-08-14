@@ -78,6 +78,7 @@ import twentytwo_remix from '../Lil Candy Paint - 22 (Lyrics) ft. Bhad Bhabie.mp
 import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
 import once_upon_a_time_trend from '../Once Upon A Time - remix slowed (0.8x降调DJ抖音版) HOK & DANCING - 𝐓𝐈𝐊𝐓𝐎𝐊.mp3';
 import little_time_youth from '../[ENGSUBPINYIN] 小时光 (Xiao Shi Guang - Little TimeYouth) - 胡期皓 (Hu Qi Hao) - Hot Douyin.mp3';
+import bomb_2022 from '../Bomb比爾 - 1022-比爾的歌動態歌詞他們說今晚的夜色很好 應該有個人對我來撒嬌.mp3';
 
 
 // Audio to be used for authentication
@@ -289,6 +290,7 @@ export default function Art() {
     "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
     "73": { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },
     "74": { name: "Youth - Hu Qihao 😌🎧", file: little_time_youth },
+    "75": { name: "Bomb - 1022 🌃", file: bomb_2022 },
   };
 
   // Function to get current date and time formatted
