@@ -55,11 +55,16 @@ export default function PaperGPT() {
 
     const loadCategories = async () => {
     try {
-        const response = await fetch(`${baseUrl}/paper-gpt/categories/`);
-        if (response.ok) {
-            const cats = await response.json();
-            setCategories(cats);
-        }
+        // Get all unique categories from papers
+        const allCategories = new Set();
+        papers.forEach(paper => {
+            if (paper.category) {
+                paper.category.split(',').forEach(cat => {
+                    allCategories.add(cat.trim());
+                });
+            }
+        });
+        setCategories(Array.from(allCategories));
     } catch (error) {
         console.error('Error loading categories:', error);
     }
@@ -598,9 +603,14 @@ const updatePersonalNotes = async (paperId, notes) => {
     const filteredPapers = papers.filter(paper => {
     const matchesSearch = paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         paper.fileName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !categoryFilter || paper.category === categoryFilter;
+    
+    // Split categories and check if any match the filter
+    const paperCategories = paper.category ? paper.category.split(',').map(cat => cat.trim()) : [];
+    const matchesCategory = !categoryFilter || paperCategories.includes(categoryFilter);
+    
     return matchesSearch && matchesCategory;
 });
+
 
     const formatFileSize = (bytes) => {
         if (bytes === 0) return '0 Bytes';
@@ -645,6 +655,10 @@ useEffect(() => {
     setEditingNotes("");
     setShowFullNotes(false); // Add this line
 }, [selectedPaper]);
+
+useEffect(() => {
+    loadCategories();
+}, [papers]); // Add this useEffect to reload categories when papers change
 
 
 
@@ -1233,16 +1247,21 @@ useEffect(() => {
                                                                 </span>
                                                                 <span>{formatFileSize(paper.fileSize)}</span>
                                                                 {/* ADD THE CATEGORY HERE */}
+                                                                {/* // Replace single category display with: */}
                                                                 {paper.category && (
-                                                                    <span style={{
-                                                                        background: '#8b5cf6',
-                                                                        color: 'white',
-                                                                        padding: '0.125rem 0.5rem',
-                                                                        borderRadius: '8px',
-                                                                        fontSize: '0.65rem'
-                                                                    }}>
-                                                                        {paper.category}
-                                                                    </span>
+                                                                    <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                                                        {paper.category.split(',').map((cat, index) => (
+                                                                            <span key={index} style={{
+                                                                                background: '#8b5cf6',
+                                                                                color: 'white',
+                                                                                padding: '0.125rem 0.5rem',
+                                                                                borderRadius: '8px',
+                                                                                fontSize: '0.65rem'
+                                                                            }}>
+                                                                                {cat.trim()}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </div>
