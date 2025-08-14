@@ -288,7 +288,7 @@ export default function Art() {
     "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
     "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
     "73": { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },
-    "74": { name: "Youth - Hu Qihao 🏄🎧", file: little_time_youth },
+    "74": { name: "Youth - Hu Qihao 😌🎧", file: little_time_youth },
   };
 
   // Function to get current date and time formatted
