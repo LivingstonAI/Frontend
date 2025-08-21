@@ -806,11 +806,10 @@ const generateRaindrop = () => {
   
   setRaindrops(prev => [...prev.slice(-49), newRaindrop]); // Keep max 50 raindrops
   
-  // Remove raindrop after animation completes (longer on mobile for slower speed)
-  setTimeout(() => {
-    setRaindrops(prev => prev.filter(drop => drop.id !== id));
-  }, isMobile ? 10000 : 9000);
-};
+  const timeToFall = (window.innerHeight + 100) / newRaindrop.fallSpeed * 1000 * 1.2; // 20% buffer
+    setTimeout(() => {
+      setRaindrops(prev => prev.filter(drop => drop.id !== id));
+  }, timeToFall);
 
 const startRainshower = () => {
   if (selectedLanguages.length === 0) {
