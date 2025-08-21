@@ -760,24 +760,36 @@ useEffect(() => {
     }
   };
 
-  const generateRaindrop = () => {
+  // 3. ADD THESE FUNCTIONS (add after your existing functions)
+const generateRaindrop = () => {
   if (selectedLanguages.length === 0) return;
   
   const id = Date.now() + Math.random();
   const allChars = selectedLanguages.flatMap(lang => characterSets[lang]);
   const character = allChars[Math.floor(Math.random() * allChars.length)];
   
-  // Position raindrops outside the hologram area (400px width centered)
+  // Get hologram size based on screen size
+  const isMobile = window.innerWidth <= 768;
+  const isSmallMobile = window.innerWidth <= 480;
+  
+  const hologramSize = isSmallMobile ? 250 : isMobile ? 300 : 400;
   const screenCenter = window.innerWidth / 2;
-  const hologramRadius = 200; // Half of 400px hologram width
+  const hologramRadius = hologramSize / 2;
   
   let xPosition;
-  if (Math.random() < 0.5) {
+  const minMargin = isMobile ? 20 : 50;
+  const maxXLeft = screenCenter - hologramRadius - minMargin;
+  const minXRight = screenCenter + hologramRadius + minMargin;
+  
+  if (maxXLeft > 20 && Math.random() < 0.5) {
     // Left side of screen, avoiding hologram
-    xPosition = Math.random() * (screenCenter - hologramRadius - 50);
-  } else {
+    xPosition = Math.random() * maxXLeft;
+  } else if (minXRight < window.innerWidth - 20) {
     // Right side of screen, avoiding hologram
-    xPosition = screenCenter + hologramRadius + 50 + Math.random() * (window.innerWidth - screenCenter - hologramRadius - 50);
+    xPosition = minXRight + Math.random() * (window.innerWidth - minXRight - 20);
+  } else {
+    // Fallback for very small screens - place on sides
+    xPosition = Math.random() < 0.5 ? Math.random() * 30 : window.innerWidth - 30 - Math.random() * 30;
   }
   
   const newRaindrop = {
@@ -786,17 +798,18 @@ useEffect(() => {
     x: xPosition,
     y: -50,
     rotation: Math.random() * 360,
-    rotationSpeed: (Math.random() - 0.5) * 10,
-    fallSpeed: 2 + Math.random() * 3,
-    opacity: 0.6 + Math.random() * 0.4
+    rotationSpeed: (Math.random() - 0.5) * (isMobile ? 6 : 10), // Slower rotation on mobile
+    fallSpeed: isMobile ? 1 + Math.random() * 1.5 : 2 + Math.random() * 3, // Slower fall on mobile
+    opacity: 0.6 + Math.random() * 0.4,
+    fontSize: isMobile ? (isSmallMobile ? 16 : 18) : 20 // Bigger text on mobile
   };
   
   setRaindrops(prev => [...prev.slice(-49), newRaindrop]); // Keep max 50 raindrops
   
-  // Remove raindrop after animation completes
+  // Remove raindrop after animation completes (longer on mobile for slower speed)
   setTimeout(() => {
     setRaindrops(prev => prev.filter(drop => drop.id !== id));
-  }, 4000);
+  }, isMobile ? 6000 : 4000);
 };
 
 const startRainshower = () => {
@@ -825,7 +838,10 @@ const toggleLanguage = (language) => {
 useEffect(() => {
   let interval;
   if (showRainshower && selectedLanguages.length > 0) {
-    interval = setInterval(generateRaindrop, 150); // New raindrop every 150ms
+    // Slower generation on mobile
+    const isMobile = window.innerWidth <= 768;
+    const intervalTime = isMobile ? 250 : 180; // Slower on mobile
+    interval = setInterval(generateRaindrop, intervalTime);
   }
   return () => {
     if (interval) clearInterval(interval);
@@ -854,7 +870,8 @@ useEffect(() => {
   return () => {
     if (animationFrame) cancelAnimationFrame(animationFrame);
   };
-}, [showRainshower, raindrops.length])
+}, [showRainshower, raindrops.length]);
+
 
   return (
     <div className="holo-background">
@@ -964,9 +981,9 @@ useEffect(() => {
             transform: `rotate(${drop.rotation}deg)`,
             opacity: drop.opacity,
             color: hologramColor.glow,
-            fontSize: '18px',
+            fontSize: `${drop.fontSize}px`,
             fontWeight: 'bold',
-            textShadow: `0 0 10px ${hologramColor.glow}`,
+            textShadow: `0 0 15px ${hologramColor.glow}, 0 0 25px ${hologramColor.glow}`, // Enhanced glow for mobile
             pointerEvents: 'none',
             zIndex: 1,
             transition: 'none'

@@ -7790,7 +7790,6 @@ img {
   background-color: rgba(0, 204, 255, 0.2);
   box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
 }
-
 .raindrop {
   position: fixed;
   pointer-events: none;
@@ -7805,6 +7804,50 @@ img {
 
 .language-select-button:hover {
   background-color: #7a29a3 !important;
+}
+
+/* Mobile optimizations for controls */
+@media (max-width: 768px) {
+  .controls {
+    bottom: 10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: center !important;
+    max-width: 95vw !important;
+    max-height: 25vh !important;
+    overflow-y: auto !important;
+    padding: 10px !important;
+    background: rgba(0, 15, 37, 0.9) !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(0, 204, 255, 0.3) !important;
+  }
+
+  .controls button {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    min-width: calc(50% - 4px) !important;
+    flex: 1 1 calc(50% - 4px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    max-height: 30vh !important;
+  }
+  
+  .controls button {
+    min-width: 100% !important;
+    flex: 1 1 100% !important;
+    margin-bottom: 5px !important;
+  }
+  
+  .raindrop {
+    font-size: 20px !important; /* Force bigger size on very small screens */
+    text-shadow: 0 0 20px currentColor, 0 0 30px currentColor !important;
+  }
 }
 
 /* Calendar CSS */
