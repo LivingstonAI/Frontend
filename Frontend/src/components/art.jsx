@@ -116,7 +116,6 @@ export default function Art() {
   const [authAnimationComplete, setAuthAnimationComplete] = useState(false);
   const [showHologram, setShowHologram] = useState(false); // State to control hologram visibility
   const [currentDateTime, setCurrentDateTime] = useState("");
-
   const [threeScene, setThreeScene] = useState(null);
   const [threeRenderer, setThreeRenderer] = useState(null);
   const threeContainerRef = useRef(null);
@@ -124,6 +123,12 @@ export default function Art() {
   // Audio refs for authentication sounds
   const accessGrantedAudioRef = useRef(null);
   const accessDeniedAudioRef = useRef(null);
+
+  // Playlist States
+  const [playlist, setPlaylist] = useState([]); // Array of song objects
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
+  const [isPlaylistMode, setIsPlaylistMode] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
   // NEW: Color customization states
   const [showColorPalette, setShowColorPalette] = useState(false);
@@ -395,6 +400,25 @@ if (SpeechRecognition) {
       setSelectedLanguages(['chinese', 'korean', 'hebrew']);
     }
 
+    else if (transcript.includes("add to playlist")) {
+  // This would need the current song to be added - you might want to modify this logic
+  alert("Say 'choose song' first, then use the playlist button next to each song");
+} else if (transcript.includes("play playlist")) {
+  startPlaylistMode();
+} else if (transcript.includes("clear playlist")) {
+  clearPlaylist();
+} else if (transcript.includes("show playlist")) {
+  setShowPlaylistModal(true);
+} else if (transcript.includes("exit playlist") || transcript.includes("stop playlist")) {
+  if (isPlaylistMode) {
+    exitPlaylistMode();
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }
+}
+
     // Music control commands
     else if (transcript.includes("play music")) {
       handlePlayToggle();
@@ -573,17 +597,23 @@ if (SpeechRecognition) {
     }
   };
 
-  const handleSongSelection = (songFile) => {
-    const audio = audioRef.current;
-    setCurrentSong(songFile);
-    setIsPlaying(true);
-    setShowSongModal(false);
+  // 3. MODIFY YOUR EXISTING handleSongSelection FUNCTION:
+const handleSongSelection = (songFile, songKey = null, songData = null) => {
+  if (isPlaylistMode) {
+    // If in playlist mode, exit it and play single song
+    exitPlaylistMode();
+  }
+  
+  const audio = audioRef.current;
+  setCurrentSong(songFile);
+  setIsPlaying(true);
+  setShowSongModal(false);
 
-    audio.oncanplay = () => {
-      audio.play();
-    };
-    audio.load();
+  audio.oncanplay = () => {
+    audio.play();
   };
+  audio.load();
+};
 
   // NEW: Color theme functions
   const applyColorTheme = (theme) => {
@@ -874,6 +904,96 @@ useEffect(() => {
   };
 }, [showRainshower, raindrops.length]);
 
+const addToPlaylist = (songKey, songData) => {
+  const playlistSong = {
+    id: songKey,
+    name: songData.name,
+    file: songData.file
+  };
+  
+  // Check if song already exists in playlist
+  if (!playlist.some(song => song.id === songKey)) {
+    setPlaylist(prev => [...prev, playlistSong]);
+  }
+};
+
+const removeFromPlaylist = (index) => {
+  setPlaylist(prev => prev.filter((_, i) => i !== index));
+  // Adjust current index if needed
+  if (index <= currentPlaylistIndex && currentPlaylistIndex > 0) {
+    setCurrentPlaylistIndex(prev => prev - 1);
+  }
+};
+
+const playNextInPlaylist = () => {
+  if (playlist.length === 0) return;
+  
+  const nextIndex = (currentPlaylistIndex + 1) % playlist.length;
+  setCurrentPlaylistIndex(nextIndex);
+  
+  const nextSong = playlist[nextIndex];
+  setCurrentSong(nextSong.file);
+  
+  const audio = audioRef.current;
+  audio.oncanplay = () => {
+    audio.play();
+  };
+  audio.load();
+};
+
+const startPlaylistMode = () => {
+  if (playlist.length === 0) {
+    alert("Playlist is empty! Add some songs first.");
+    return;
+  }
+  
+  setIsPlaylistMode(true);
+  setCurrentPlaylistIndex(0);
+  const firstSong = playlist[0];
+  setCurrentSong(firstSong.file);
+  setIsPlaying(true);
+  setShowPlaylistModal(false);
+  
+  const audio = audioRef.current;
+  audio.oncanplay = () => {
+    audio.play();
+  };
+  audio.load();
+};
+
+const exitPlaylistMode = () => {
+  setIsPlaylistMode(false);
+  setCurrentPlaylistIndex(0);
+};
+
+const clearPlaylist = () => {
+  setPlaylist([]);
+  setCurrentPlaylistIndex(0);
+  if (isPlaylistMode) {
+    exitPlaylistMode();
+  }
+};
+
+useEffect(() => {
+  const audio = audioRef.current;
+  
+  const handleSongEnd = () => {
+    if (isPlaylistMode && playlist.length > 0) {
+      playNextInPlaylist();
+    }
+  };
+  
+  if (audio) {
+    audio.addEventListener('ended', handleSongEnd);
+  }
+  
+  return () => {
+    if (audio) {
+      audio.removeEventListener('ended', handleSongEnd);
+    }
+  };
+}, [isPlaylistMode, playlist, currentPlaylistIndex]);
+
 
   return (
     <div className="holo-background">
@@ -955,18 +1075,23 @@ useEffect(() => {
 
         {/* Your existing music player interface */}
         {isPlaying && (
-          <div className="holo-music-player">
-            <div className="holo-music-visualizer">
-              {Array(5).fill().map((_, i) => (
-                <div key={i} className="holo-music-bar" />
-              ))}
-            </div>
-            <div className="holo-music-title">Now Playing</div>
-            <div className="holo-song-name">
-              {Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"}
-            </div>
+        <div className="holo-music-player">
+          <div className="holo-music-visualizer">
+            {Array(5).fill().map((_, i) => (
+              <div key={i} className="holo-music-bar" />
+            ))}
           </div>
-        )}
+          <div className="holo-music-title">
+            {isPlaylistMode ? `Playlist Mode (${currentPlaylistIndex + 1}/${playlist.length})` : "Now Playing"}
+          </div>
+          <div className="holo-song-name">
+            {isPlaylistMode 
+              ? playlist[currentPlaylistIndex]?.name || "Unknown Song"
+              : Object.values(songs).find(song => song.file === currentSong)?.name || "Unknown Song"
+            }
+          </div>
+        </div>
+      )}
       </div>
         </div>
       )}
@@ -1006,6 +1131,23 @@ useEffect(() => {
     <button className="music-button" onClick={handlePlayToggle}>
       {isPlaying ? "Stop Music" : "Play Music"}
     </button>
+    {/* NEW PLAYLIST BUTTON */}
+    <button 
+      className="playlist-button"
+      onClick={() => setShowPlaylistModal(true)}
+      style={{
+        backgroundColor: isPlaylistMode ? '#ff6600' : '#6600cc',
+        color: 'white',
+        padding: '10px 20px',
+        fontSize: '16px',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s ease'
+      }}
+    >
+      Playlist ({playlist.length})
+    </button>
     <button 
       className="rainshower-button" 
       onClick={showRainshower ? stopRainshower : startRainshower}
@@ -1039,8 +1181,9 @@ useEffect(() => {
       Languages
     </button>
   </div>
-
 )}
+
+
       {/* Audio Elements */}
       <audio ref={audioRef} src={currentSong} loop />
       
@@ -1066,20 +1209,40 @@ useEffect(() => {
 
             {/* Song List */}
             <ul className="song-list">
-              {filteredSongs.length > 0 ? (
-                filteredSongs.map(([key, song]) => (
-                  <li
-                    key={key}
+            {filteredSongs.length > 0 ? (
+              filteredSongs.map(([key, song]) => (
+                <li key={key} className="song-option-container">
+                  <div 
                     className="song-option"
-                    onClick={() => handleSongSelection(song.file)}
+                    onClick={() => handleSongSelection(song.file, key, song)}
                   >
                     {song.name}
-                  </li>
-                ))
-              ) : (
-                <li className="song-option">No songs found</li>
-              )}
-            </ul>
+                  </div>
+                  <button
+                    className="add-to-playlist-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToPlaylist(key, song);
+                    }}
+                    style={{
+                      marginLeft: '10px',
+                      padding: '5px 10px',
+                      backgroundColor: '#6600cc',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    + Playlist
+                  </button>
+                </li>
+              ))
+            ) : (
+              <li className="song-option">No songs found</li>
+            )}
+          </ul>
 
             <button
               className="close-modal-btn"
@@ -1090,6 +1253,90 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      {/* Playlist Modal */}
+{showPlaylistModal && (
+  <div className="song-modal-overlay">
+    <div className="song-modal">
+      <h2>Playlist ({playlist.length} songs)</h2>
+      
+      {playlist.length > 0 ? (
+        <>
+          <div className="playlist-controls" style={{ marginBottom: '15px' }}>
+            <button
+              onClick={startPlaylistMode}
+              style={{
+                backgroundColor: '#00cc66',
+                color: 'white',
+                padding: '10px 15px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                marginRight: '10px'
+              }}
+            >
+              Play Playlist
+            </button>
+            <button
+              onClick={clearPlaylist}
+              style={{
+                backgroundColor: '#cc3300',
+                color: 'white',
+                padding: '10px 15px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Clear All
+            </button>
+          </div>
+          
+          <ul className="song-list">
+            {playlist.map((song, index) => (
+              <li key={song.id} className="playlist-item">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ 
+                    color: isPlaylistMode && index === currentPlaylistIndex ? '#00ff00' : 'white',
+                    fontWeight: isPlaylistMode && index === currentPlaylistIndex ? 'bold' : 'normal'
+                  }}>
+                    {index + 1}. {song.name}
+                    {isPlaylistMode && index === currentPlaylistIndex && ' ← Now Playing'}
+                  </span>
+                  <button
+                    onClick={() => removeFromPlaylist(index)}
+                    style={{
+                      backgroundColor: '#cc0000',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      padding: '3px 8px',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p style={{ color: 'white', textAlign: 'center', margin: '20px 0' }}>
+          Your playlist is empty. Add songs from the song selection modal!
+        </p>
+      )}
+
+      <button
+        className="close-modal-btn"
+        onClick={() => setShowPlaylistModal(false)}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
 
       {/* NEW: Color Palette Modal */}
       {showColorPalette && (
