@@ -806,10 +806,11 @@ const generateRaindrop = () => {
   
   setRaindrops(prev => [...prev.slice(-49), newRaindrop]); // Keep max 50 raindrops
   
-  const timeToFall = (window.innerHeight + 100) / newRaindrop.fallSpeed * 1000 * 1.2; // 20% buffer
-    setTimeout(() => {
-      setRaindrops(prev => prev.filter(drop => drop.id !== id));
-    }, timeToFall);
+  // Remove raindrop after animation completes (longer on mobile for slower speed)
+  setTimeout(() => {
+    setRaindrops(prev => prev.filter(drop => drop.id !== id));
+  }, isMobile ? 10000 : 9000);
+};
 
 const startRainshower = () => {
   if (selectedLanguages.length === 0) {
@@ -852,16 +853,15 @@ useEffect(() => {
   let animationFrame;
   
   const animateRaindrops = () => {
-  setRaindrops(prev => 
-    prev.map(drop => ({
-      ...drop,
-      y: drop.y + drop.fallSpeed,
-      rotation: drop.rotation + drop.rotationSpeed
-    }))
-    // Remove the .filter() line completely
-  );
-  animationFrame = requestAnimationFrame(animateRaindrops);
-};
+    setRaindrops(prev => 
+      prev.map(drop => ({
+        ...drop,
+        y: drop.y + drop.fallSpeed,
+        rotation: drop.rotation + drop.rotationSpeed
+      })).filter(drop => drop.y < window.innerHeight + 50)
+    );
+    animationFrame = requestAnimationFrame(animateRaindrops);
+  };
   
   if (showRainshower || raindrops.length > 0) {
     animationFrame = requestAnimationFrame(animateRaindrops);
@@ -1207,5 +1207,4 @@ useEffect(() => {
       {isListening && <div className="voice-indicator">Listening for commands...</div>}
     </div>
   );
-}
 }
