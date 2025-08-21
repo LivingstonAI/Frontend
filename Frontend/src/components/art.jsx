@@ -925,21 +925,6 @@ const removeFromPlaylist = (index) => {
   }
 };
 
-const playNextInPlaylist = () => {
-  if (playlist.length === 0) return;
-  
-  const nextIndex = (currentPlaylistIndex + 1) % playlist.length;
-  setCurrentPlaylistIndex(nextIndex);
-  
-  const nextSong = playlist[nextIndex];
-  setCurrentSong(nextSong.file);
-  
-  const audio = audioRef.current;
-  audio.oncanplay = () => {
-    audio.play();
-  };
-  audio.load();
-};
 
 const startPlaylistMode = () => {
   if (playlist.length === 0) {
@@ -958,6 +943,9 @@ const startPlaylistMode = () => {
   audio.oncanplay = () => {
     audio.play();
   };
+  audio.onloadstart = () => {
+    audio.load();
+  };
   audio.load();
 };
 
@@ -974,12 +962,31 @@ const clearPlaylist = () => {
   }
 };
 
+const playNextInPlaylist = () => {
+  if (playlist.length === 0) return;
+  
+  const nextIndex = (currentPlaylistIndex + 1) % playlist.length;
+  setCurrentPlaylistIndex(nextIndex);
+  
+  const nextSong = playlist[nextIndex];
+  setCurrentSong(nextSong.file);
+  
+  const audio = audioRef.current;
+  audio.oncanplay = () => {
+    audio.play();
+    setIsPlaying(true); // Make sure playing state is set
+  };
+  audio.load();
+};
+
 useEffect(() => {
   const audio = audioRef.current;
   
   const handleSongEnd = () => {
     if (isPlaylistMode && playlist.length > 0) {
       playNextInPlaylist();
+    } else {
+      setIsPlaying(false); // Stop playing if not in playlist mode
     }
   };
   
@@ -992,8 +999,7 @@ useEffect(() => {
       audio.removeEventListener('ended', handleSongEnd);
     }
   };
-}, [isPlaylistMode, playlist, currentPlaylistIndex]);
-
+}, [isPlaylistMode, playlist, currentPlaylistIndex, playNextInPlaylist]);
 
   return (
     <div className="holo-background">
@@ -1185,7 +1191,7 @@ useEffect(() => {
 
 
       {/* Audio Elements */}
-      <audio ref={audioRef} src={currentSong} loop />
+      <audio ref={audioRef} src={currentSong} />
       
       {/* Authentication sound effects */}
       <audio ref={accessGrantedAudioRef} src={access_granted_audio} />
