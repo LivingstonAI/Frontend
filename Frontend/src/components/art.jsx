@@ -809,7 +809,7 @@ const generateRaindrop = () => {
   // Remove raindrop after animation completes (longer on mobile for slower speed)
   setTimeout(() => {
     setRaindrops(prev => prev.filter(drop => drop.id !== id));
-  }, isMobile ? 6000 : 4000);
+  }, isMobile ? 10000 : 9000);
 };
 
 const startRainshower = () => {
