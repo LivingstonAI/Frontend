@@ -841,7 +841,7 @@ useEffect(() => {
   if (showRainshower && selectedLanguages.length > 0) {
     // Slower generation on mobile
     const isMobile = window.innerWidth <= 768;
-    const intervalTime = isMobile ? 700 : 180; // Much slower generation on mobile
+    const intervalTime = isMobile ? 900 : 180; // Much slower generation on mobile
     interval = setInterval(generateRaindrop, intervalTime);
   }
   return () => {
