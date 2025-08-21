@@ -7790,6 +7790,23 @@ img {
   background-color: rgba(0, 204, 255, 0.2);
   box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
 }
+
+.raindrop {
+  position: fixed;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'Arial Unicode MS', sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+.rainshower-button:hover {
+  background-color: #008aaa !important;
+}
+
+.language-select-button:hover {
+  background-color: #7a29a3 !important;
+}
+
 /* Calendar CSS */
 /* Add this to your CSS file or inline styles */
 .impact-high {

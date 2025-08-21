@@ -98,6 +98,13 @@ export default function Art() {
   const [showSongModal, setShowSongModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Rainshower states
+  const [showRainshower, setShowRainshower] = useState(false);
+  const [selectedLanguages, setSelectedLanguages] = useState(['chinese', 'korean', 'hebrew']);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [raindrops, setRaindrops] = useState([]);
+
+
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
@@ -293,6 +300,12 @@ export default function Art() {
     "75": { name: "Bomb - 1022 🌃", file: bomb_2022 },
   };
 
+  const characterSets = {
+  chinese: ['龍', '鳳', '愛', '和', '美', '光', '星', '月', '火', '水', '木', '金', '土', '天', '地', '雨', '雪', '風', '雲'],
+  korean: ['사', '랑', '행', '복', '꿈', '희', '망', '빛', '달', '별', '바', '다', '산', '하', '늘', '비', '눈', '바', '람'],
+  hebrew: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק']
+  };
+
   // Function to get current date and time formatted
   const getCurrentDateTime = () => {
     const now = new Date();
@@ -365,6 +378,23 @@ if (SpeechRecognition) {
     } else if (transcript.includes("wave")) {
       generateRipple();
     } 
+
+    else if (transcript.includes("start rain") || transcript.includes("rain shower") || transcript.includes("matrix rain")) {
+      startRainshower();
+    } else if (transcript.includes("stop rain")) {
+      stopRainshower();
+    } else if (transcript.includes("choose language") || transcript.includes("select language")) {
+      setShowLanguageModal(true);
+    } else if (transcript.includes("chinese only")) {
+      setSelectedLanguages(['chinese']);
+    } else if (transcript.includes("korean only")) {
+      setSelectedLanguages(['korean']);
+    } else if (transcript.includes("hebrew only")) {
+      setSelectedLanguages(['hebrew']);
+    } else if (transcript.includes("all languages")) {
+      setSelectedLanguages(['chinese', 'korean', 'hebrew']);
+    }
+
     // Music control commands
     else if (transcript.includes("play music")) {
       handlePlayToggle();
@@ -730,6 +760,102 @@ useEffect(() => {
     }
   };
 
+  const generateRaindrop = () => {
+  if (selectedLanguages.length === 0) return;
+  
+  const id = Date.now() + Math.random();
+  const allChars = selectedLanguages.flatMap(lang => characterSets[lang]);
+  const character = allChars[Math.floor(Math.random() * allChars.length)];
+  
+  // Position raindrops outside the hologram area (400px width centered)
+  const screenCenter = window.innerWidth / 2;
+  const hologramRadius = 200; // Half of 400px hologram width
+  
+  let xPosition;
+  if (Math.random() < 0.5) {
+    // Left side of screen, avoiding hologram
+    xPosition = Math.random() * (screenCenter - hologramRadius - 50);
+  } else {
+    // Right side of screen, avoiding hologram
+    xPosition = screenCenter + hologramRadius + 50 + Math.random() * (window.innerWidth - screenCenter - hologramRadius - 50);
+  }
+  
+  const newRaindrop = {
+    id,
+    character,
+    x: xPosition,
+    y: -50,
+    rotation: Math.random() * 360,
+    rotationSpeed: (Math.random() - 0.5) * 10,
+    fallSpeed: 2 + Math.random() * 3,
+    opacity: 0.6 + Math.random() * 0.4
+  };
+  
+  setRaindrops(prev => [...prev.slice(-49), newRaindrop]); // Keep max 50 raindrops
+  
+  // Remove raindrop after animation completes
+  setTimeout(() => {
+    setRaindrops(prev => prev.filter(drop => drop.id !== id));
+  }, 4000);
+};
+
+const startRainshower = () => {
+  if (selectedLanguages.length === 0) {
+    setShowLanguageModal(true);
+    return;
+  }
+  setShowRainshower(true);
+};
+
+const stopRainshower = () => {
+  setShowRainshower(false);
+  setRaindrops([]);
+};
+
+const toggleLanguage = (language) => {
+  setSelectedLanguages(prev => {
+    if (prev.includes(language)) {
+      return prev.filter(lang => lang !== language);
+    } else {
+      return [...prev, language];
+    }
+  });
+};
+
+useEffect(() => {
+  let interval;
+  if (showRainshower && selectedLanguages.length > 0) {
+    interval = setInterval(generateRaindrop, 150); // New raindrop every 150ms
+  }
+  return () => {
+    if (interval) clearInterval(interval);
+  };
+}, [showRainshower, selectedLanguages]);
+
+// Raindrop position animation
+useEffect(() => {
+  let animationFrame;
+  
+  const animateRaindrops = () => {
+    setRaindrops(prev => 
+      prev.map(drop => ({
+        ...drop,
+        y: drop.y + drop.fallSpeed,
+        rotation: drop.rotation + drop.rotationSpeed
+      })).filter(drop => drop.y < window.innerHeight + 50)
+    );
+    animationFrame = requestAnimationFrame(animateRaindrops);
+  };
+  
+  if (showRainshower || raindrops.length > 0) {
+    animationFrame = requestAnimationFrame(animateRaindrops);
+  }
+  
+  return () => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+  };
+}, [showRainshower, raindrops.length])
+
   return (
     <div className="holo-background">
       {/* Navigation Links - Always at the top of the screen */}
@@ -826,20 +952,76 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Raindrops Container */}
+      {raindrops.map(drop => (
+        <div
+          key={drop.id}
+          className="raindrop"
+          style={{
+            position: 'fixed',
+            left: `${drop.x}px`,
+            top: `${drop.y}px`,
+            transform: `rotate(${drop.rotation}deg)`,
+            opacity: drop.opacity,
+            color: hologramColor.glow,
+            fontSize: '18px',
+            fontWeight: 'bold',
+            textShadow: `0 0 10px ${hologramColor.glow}`,
+            pointerEvents: 'none',
+            zIndex: 1,
+            transition: 'none'
+          }}
+        >
+          {drop.character}
+        </div>
+      ))}
+
       {/* Only show controls after authentication and welcome message are complete */}
       {isAuthenticated && authAnimationComplete && showHologram && (
-        <div className="controls">
-          <button className="command-button" onClick={startListening} disabled={isListening}>
-            Say Command
-          </button>
-          <button className="stop-button" onClick={stopListening} disabled={!isListening}>
-            Stop Command
-          </button>
-          <button className="music-button" onClick={handlePlayToggle}>
-            {isPlaying ? "Stop Music" : "Play Music"}
-          </button>
-        </div>
-      )}
+      <div className="controls">
+        <button className="command-button" onClick={startListening} disabled={isListening}>
+          Say Command
+        </button>
+        <button className="stop-button" onClick={stopListening} disabled={!isListening}>
+          Stop Command
+        </button>
+        <button className="music-button" onClick={handlePlayToggle}>
+          {isPlaying ? "Stop Music" : "Play Music"}
+        </button>
+        <button 
+          className="rainshower-button" 
+          onClick={showRainshower ? stopRainshower : startRainshower}
+          style={{
+            backgroundColor: showRainshower ? '#cc6600' : '#00aacc',
+            color: 'white',
+            padding: '10px 20px',
+            fontSize: '16px',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease'
+          }}
+        >
+          {showRainshower ? "Stop Rain" : "Start Rain"}
+        </button>
+        <button 
+          className="language-select-button"
+          onClick={() => setShowLanguageModal(true)}
+          style={{
+            backgroundColor: '#9933cc',
+            color: 'white',
+            padding: '10px 20px',
+            fontSize: '16px',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease'
+          }}
+        >
+          Languages
+        </button>
+      </div>
+    )}
 
       {/* Audio Elements */}
       <audio ref={audioRef} src={currentSong} loop />
@@ -931,10 +1113,82 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Language Selection Modal */}
+      {showLanguageModal && (
+        <div className="song-modal-overlay">
+          <div className="song-modal">
+            <h2>Select Languages for Rainshower</h2>
+            
+            <div style={{ margin: '20px 0' }}>
+              {Object.keys(characterSets).map(language => (
+                <label 
+                  key={language}
+                  style={{
+                    display: 'block',
+                    margin: '10px 0',
+                    cursor: 'pointer',
+                    color: 'white',
+                    fontSize: '16px'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedLanguages.includes(language)}
+                    onChange={() => toggleLanguage(language)}
+                    style={{ marginRight: '10px' }}
+                  />
+                  {language.charAt(0).toUpperCase() + language.slice(1)}
+                  <span style={{ marginLeft: '10px', opacity: 0.7 }}>
+                    ({characterSets[language].slice(0, 5).join(' ')})
+                  </span>
+                </label>
+              ))}
+            </div>
+            
+            <div style={{ margin: '20px 0', color: '#00ccff' }}>
+              Selected: {selectedLanguages.length} language{selectedLanguages.length !== 1 ? 's' : ''}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button
+                onClick={() => setSelectedLanguages(['chinese', 'korean', 'hebrew'])}
+                style={{
+                  backgroundColor: '#00aacc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  padding: '10px 15px',
+                  cursor: 'pointer'
+                }}
+              >
+                Select All
+              </button>
+              <button
+                onClick={() => setSelectedLanguages([])}
+                style={{
+                  backgroundColor: '#cc6600',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  padding: '10px 15px',
+                  cursor: 'pointer'
+                }}
+              >
+                Clear All
+              </button>
+              <button
+                className="close-modal-btn"
+                onClick={() => setShowLanguageModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Voice command feedback */}
       {isListening && <div className="voice-indicator">Listening for commands...</div>}
     </div>
   );
 }
-
-
