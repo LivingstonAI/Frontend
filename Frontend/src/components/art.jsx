@@ -851,13 +851,14 @@ useEffect(() => {
 useEffect(() => {
   let animationFrame;
   
-  const animateRaindrops = () => {
+    const animateRaindrops = () => {
     setRaindrops(prev => 
       prev.map(drop => ({
         ...drop,
         y: drop.y + drop.fallSpeed,
         rotation: drop.rotation + drop.rotationSpeed
-      })).filter(drop => drop.y < window.innerHeight + 50)
+      }))
+      // Remove the .filter() line completely
     );
     animationFrame = requestAnimationFrame(animateRaindrops);
   };
@@ -1206,4 +1207,5 @@ useEffect(() => {
       {isListening && <div className="voice-indicator">Listening for commands...</div>}
     </div>
   );
+}
 }
