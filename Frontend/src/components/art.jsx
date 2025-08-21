@@ -993,53 +993,51 @@ useEffect(() => {
         </div>
       ))}
 
-      {/* Only show controls after authentication and welcome message are complete */}
       {isAuthenticated && authAnimationComplete && showHologram && (
-      <div className="controls">
-        <button className="command-button" onClick={startListening} disabled={isListening}>
-          Say Command
-        </button>
-        <button className="stop-button" onClick={stopListening} disabled={!isListening}>
-          Stop Command
-        </button>
-        <button className="music-button" onClick={handlePlayToggle}>
-          {isPlaying ? "Stop Music" : "Play Music"}
-        </button>
-        <button 
-          className="rainshower-button" 
-          onClick={showRainshower ? stopRainshower : startRainshower}
-          style={{
-            backgroundColor: showRainshower ? '#cc6600' : '#00aacc',
-            color: 'white',
-            padding: '10px 20px',
-            fontSize: '16px',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease'
-          }}
-        >
-          {showRainshower ? "Stop Rain" : "Start Rain"}
-        </button>
-        <button 
-          className="language-select-button"
-          onClick={() => setShowLanguageModal(true)}
-          style={{
-            backgroundColor: '#9933cc',
-            color: 'white',
-            padding: '10px 20px',
-            fontSize: '16px',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease'
-          }}
-        >
-          Languages
-        </button>
-      </div>
-    )}
-
+  <div className="controls">
+    <button className="command-button" onClick={startListening} disabled={isListening}>
+      Say Command
+    </button>
+    <button className="stop-button" onClick={stopListening} disabled={!isListening}>
+      Stop Command
+    </button>
+    <button className="music-button" onClick={handlePlayToggle}>
+      {isPlaying ? "Stop Music" : "Play Music"}
+    </button>
+    <button 
+      className="rainshower-button" 
+      onClick={showRainshower ? stopRainshower : startRainshower}
+      style={{
+        backgroundColor: showRainshower ? '#cc6600' : '#00aacc',
+        color: 'white',
+        padding: '10px 20px',
+        fontSize: '16px',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s ease'
+      }}
+    >
+      {showRainshower ? "Stop Rain" : "Start Rain"}
+    </button>
+    <button 
+      className="language-select-button"
+      onClick={() => setShowLanguageModal(true)}
+      style={{
+        backgroundColor: '#9933cc',
+        color: 'white',
+        padding: '10px 20px',
+        fontSize: '16px',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s ease'
+      }}
+    >
+      Languages
+    </button>
+  </div>
+)}
       {/* Audio Elements */}
       <audio ref={audioRef} src={currentSong} loop />
       
