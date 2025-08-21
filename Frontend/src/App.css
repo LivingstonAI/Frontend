@@ -7808,7 +7808,7 @@ img {
 
 /* Mobile optimizations for controls */
 @media (max-width: 768px) {
-  .controls {
+  .controls-div-encompass {
     overflow-x: auto;
   }
 }

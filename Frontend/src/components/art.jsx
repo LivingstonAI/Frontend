@@ -994,6 +994,7 @@ useEffect(() => {
       ))}
 
       {isAuthenticated && authAnimationComplete && showHologram && (
+  <div className="controls-div-encompass">      
   <div className="controls">
     <button className="command-button" onClick={startListening} disabled={isListening}>
       Say Command
@@ -1036,6 +1037,7 @@ useEffect(() => {
     >
       Languages
     </button>
+  </div>
   </div>
 )}
       {/* Audio Elements */}
