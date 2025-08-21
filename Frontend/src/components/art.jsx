@@ -804,8 +804,7 @@ const generateRaindrop = () => {
     fontSize: isMobile ? (isSmallMobile ? 16 : 18) : 20 // Bigger text on mobile
   };
   
-  const maxRaindrops = isMobile ? 25 : 50;
-  setRaindrops(prev => [...prev.slice(-maxRaindrops + 1), newRaindrop]);
+  setRaindrops(prev => [...prev.slice(-49), newRaindrop]); // Keep max 50 raindrops
   
   const timeToFall = (window.innerHeight + 100) / newRaindrop.fallSpeed * 1000 * 2.5; // 150% buffer
   console.log(`Mobile: ${isMobile}, Screen height: ${window.innerHeight}, Fall speed: ${newRaindrop.fallSpeed}, Time to fall: ${timeToFall}ms`);
@@ -842,7 +841,7 @@ useEffect(() => {
   if (showRainshower && selectedLanguages.length > 0) {
     // Slower generation on mobile
     const isMobile = window.innerWidth <= 768;
-    const intervalTime = isMobile ? 500 : 180; // Much slower generation on mobile
+    const intervalTime = isMobile ? 700 : 180; // Much slower generation on mobile
     interval = setInterval(generateRaindrop, intervalTime);
   }
   return () => {
