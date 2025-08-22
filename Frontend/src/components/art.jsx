@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import * as THREE from 'three';
 
-
 // Import all the songs
 import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
@@ -1191,7 +1190,7 @@ useEffect(() => {
 
 
       {/* Audio Elements */}
-      <audio ref={audioRef} src={currentSong} />
+      <audio ref={audioRef} src={currentSong} loop />
       
       {/* Authentication sound effects */}
       <audio ref={accessGrantedAudioRef} src={access_granted_audio} />

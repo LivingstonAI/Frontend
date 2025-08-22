@@ -195,7 +195,8 @@ export default function SnowAILandingPage() {
       "75": { name: "Bomb - 1022 🌃", file: bomb_2022 },
     };
 
-    
+    // Hey! Why isn't the music playing when I make a playlist? It plays first when I don't play it before making a playlist. But when I make one and try to play the music, it just doesn't work anymore. So the playlist feature isn't playing the music for some reason
+
   const [searchTerm, setSearchTerm] = useState("");
   
   const filteredSongs = Object.entries(songs).filter(([key, song]) =>
