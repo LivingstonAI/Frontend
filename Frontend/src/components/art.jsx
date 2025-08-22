@@ -1253,7 +1253,7 @@ useEffect(() => {
 
 
       {/* Audio Elements */}
-      <audio ref={audioRef} src={currentSong} loop />
+      <audio ref={audioRef} src={currentSong} />
       
       {/* Authentication sound effects */}
       <audio ref={accessGrantedAudioRef} src={access_granted_audio} />
