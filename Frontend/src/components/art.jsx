@@ -596,23 +596,43 @@ if (SpeechRecognition) {
     }
   };
 
-  // 3. MODIFY YOUR EXISTING handleSongSelection FUNCTION:
-const handleSongSelection = (songFile, songKey = null, songData = null) => {
+ const handleSongSelection = (songFile, songKey = null, songData = null) => {
   if (isPlaylistMode) {
     // If in playlist mode, exit it and play single song
     exitPlaylistMode();
   }
   
   const audio = audioRef.current;
+  
+  // Clear any existing event listeners
+  audio.oncanplay = null;
+  audio.onloadstart = null;
+  
+  // Set the song and source
   setCurrentSong(songFile);
-  setIsPlaying(true);
   setShowSongModal(false);
+  audio.src = songFile;
 
+  // Set up play when ready
   audio.oncanplay = () => {
-    audio.play();
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch((error) => {
+      console.error("Error playing selected song:", error);
+      setIsPlaying(false);
+    });
   };
+  
+  // Handle errors
+  audio.onerror = () => {
+    console.error("Error loading selected song");
+    setIsPlaying(false);
+  };
+
+  // Load the audio
   audio.load();
 };
+
 
   // NEW: Color theme functions
   const applyColorTheme = (theme) => {
@@ -924,7 +944,6 @@ const removeFromPlaylist = (index) => {
   }
 };
 
-
 const startPlaylistMode = () => {
   if (playlist.length === 0) {
     alert("Playlist is empty! Add some songs first.");
@@ -935,16 +954,34 @@ const startPlaylistMode = () => {
   setCurrentPlaylistIndex(0);
   const firstSong = playlist[0];
   setCurrentSong(firstSong.file);
-  setIsPlaying(true);
   setShowPlaylistModal(false);
   
   const audio = audioRef.current;
+  
+  // Clear any existing event listeners to avoid duplicates
+  audio.oncanplay = null;
+  audio.onloadstart = null;
+  
+  // Set up the audio source first
+  audio.src = firstSong.file;
+  
+  // Set up the event listener for when audio is ready to play
   audio.oncanplay = () => {
-    audio.play();
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch((error) => {
+      console.error("Error playing audio:", error);
+      setIsPlaying(false);
+    });
   };
-  audio.onloadstart = () => {
-    audio.load();
+  
+  // Handle loading errors
+  audio.onerror = () => {
+    console.error("Error loading audio file");
+    setIsPlaying(false);
   };
+  
+  // Load the audio
   audio.load();
 };
 
@@ -971,10 +1008,36 @@ const playNextInPlaylist = () => {
   setCurrentSong(nextSong.file);
   
   const audio = audioRef.current;
+  
+  // Clear existing event listeners
+  audio.oncanplay = null;
+  
+  // Set the source
+  audio.src = nextSong.file;
+  
+  // Set up play when ready
   audio.oncanplay = () => {
-    audio.play();
-    setIsPlaying(true); // Make sure playing state is set
+    audio.play().then(() => {
+      setIsPlaying(true);
+    }).catch((error) => {
+      console.error("Error playing next song:", error);
+      setIsPlaying(false);
+    });
   };
+  
+  // Handle errors
+  audio.onerror = () => {
+    console.error("Error loading next song");
+    // Try to skip to the next song if current one fails
+    if (nextIndex + 1 < playlist.length) {
+      setTimeout(() => playNextInPlaylist(), 1000);
+    } else {
+      setIsPlaying(false);
+      setIsPlaylistMode(false);
+    }
+  };
+  
+  // Load the audio
   audio.load();
 };
 
