@@ -136,7 +136,9 @@ export default function SideNavs() {
     { route: "/economics_gpt", symbol: "𓊴", name: "EconGPT", description: "Economics GPT" },
     { route: "/ai_council", symbol: "𓊵", name: "Council", description: "AI Council" },
     { route: "/ai_council_conversations", symbol: "𓊶", name: "Convos", description: "AI Conversations" },
-    { route: "/firm_compliance", symbol: "𓊷", name: "Compliance", description: "Firm Compliance" }
+    { route: "/firm_compliance", symbol: "𓊷", name: "Compliance", description: "Firm Compliance" },
+    { route: "/esi", symbol: "𓊷", name: "Economic Strength Index", description: "Economic Strength Index" }
+
   ];
 
   // Import song files
@@ -712,7 +714,7 @@ export default function SideNavs() {
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
         <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
-        <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link>
+        {/* <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link> */}
         <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
         <Link to="/paper_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-mortarboard-fill"></i></p></button></Link>
         <Link to="/process_checker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-patch-check-fill"></i></p></button></Link>
@@ -721,6 +723,8 @@ export default function SideNavs() {
         <Link to="/ai_council" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pentagon-fill"></i></p></button></Link>
         <Link to="/ai_council_conversations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chat-fill"></i></p></button></Link>
         <Link to="/firm_compliance" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-list-check"></i></p></button></Link>
+        <Link to="/esi" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link>
+
       </div>
 
       <div className="side-navs-cellphone">
@@ -802,9 +806,9 @@ export default function SideNavs() {
         <Link to="/forex_factory" className="side-nav">
             <i className="bi bi-camera-fill"></i>
         </Link>
-        <Link to="/trading_econ_dashboard" className="side-nav">
+        {/* <Link to="/trading_econ_dashboard" className="side-nav">
             <i className="bi bi-graph-up-arrow"></i>
-        </Link>
+        </Link> */}
         <Link to="/trading_calendar" className="side-nav">
             <i className="bi bi-calendar-date-fill"></i>
         </Link>
@@ -828,6 +832,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/firm_compliance" className="side-nav">
             <i className="bi bi-list-check"></i>
+        </Link>
+        <Link to="/esi" className="side-nav">
+            <i className="bi bi-graph-up-arrow"></i>
         </Link>
       </div>
       <br />
