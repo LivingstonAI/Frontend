@@ -128,35 +128,6 @@ const InteractiveCOTChart = ({ asset, chartData }) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      {/* Stats Summary */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-semibold text-gray-800 mb-2">Statistics Summary</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="bg-white p-2 rounded">
-            <p className="text-gray-600">Commercial Range</p>
-            <p className="font-semibold">
-              {chartData.minCommercial?.toLocaleString()} - {chartData.maxCommercial?.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-white p-2 rounded">
-            <p className="text-gray-600">Commercial Midpoint</p>
-            <p className="font-semibold text-green-600">
-              {chartData.midpointCommercial?.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-white p-2 rounded">
-            <p className="text-gray-600">Data Points</p>
-            <p className="font-semibold">{chartData.dates?.length || 0}</p>
-          </div>
-          <div className="bg-white p-2 rounded">
-            <p className="text-gray-600">Latest OI</p>
-            <p className="font-semibold">
-              {chartData.openInterest?.[chartData.openInterest.length - 1]?.toLocaleString() || 'N/A'}
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
