@@ -124,11 +124,6 @@ function App() {
             {/* Public routes - no authentication required */}
             <Route path='/' element={<SnowAILandingPage />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/esi" element={<EconomicStrengthIndex />} />
-            <Route path="/market_makers" element={<MarketMakers />} />
-
-
-
             
             {/* Protected routes - authentication required */}
             <Route path="/tell_us_more" element={
@@ -221,11 +216,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* <Route path='/market_makers' element={
+            <Route path='/market_makers' element={
               <ProtectedRoute>
                 <MarketMakers/>
               </ProtectedRoute>
-            } /> */}
+            } />
             
             <Route path='/risk_bot' element={
               <ProtectedRoute>
@@ -425,11 +420,11 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* <Route path='/esi' element={
+            <Route path='/esi' element={
               <ProtectedRoute>
                 <EconomicStrengthIndex />
               </ProtectedRoute>
-            } /> */}
+            } />
             
             <Route path='/market_share_infographic' element={
               <ProtectedRoute>
