@@ -125,6 +125,8 @@ function App() {
             <Route path='/' element={<SnowAILandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/esi" element={<EconomicStrengthIndex />} />
+            <Route path="/market_makers" element={<MarketMakers />} />
+
 
 
             
@@ -219,11 +221,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path='/market_makers' element={
+            {/* <Route path='/market_makers' element={
               <ProtectedRoute>
                 <MarketMakers/>
               </ProtectedRoute>
-            } />
+            } /> */}
             
             <Route path='/risk_bot' element={
               <ProtectedRoute>
