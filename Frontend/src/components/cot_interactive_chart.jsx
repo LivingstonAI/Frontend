@@ -51,9 +51,9 @@ const InteractiveCOTChart = ({ asset, chartData }) => {
     <div className="w-full space-y-6">
       {/* Net Positions Chart */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">
+        <h6 className="text-lg font-semibold mb-4 text-gray-800">
           Net Positions - {asset}
-        </h3>
+        </h6>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={formattedData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -100,9 +100,9 @@ const InteractiveCOTChart = ({ asset, chartData }) => {
 
       {/* Open Interest Chart */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">
+        <h6 className="text-lg font-semibold mb-4 text-gray-800">
           Open Interest - {asset}
-        </h3>
+        </h6>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={formattedData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
