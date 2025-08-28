@@ -1,11 +1,90 @@
 import React, { useEffect, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
 export default function EconomicStrengthIndex() {
-    
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    
+    const [selectedCurrencies, setSelectedCurrencies] = useState(['USD']);
+    const [economicData, setEconomicData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [dateRange, setDateRange] = useState('30d');
+    
+    const currencies = [
+        { code: 'USD', name: 'US Dollar', color: '#2563eb' },
+        { code: 'EUR', name: 'Euro', color: '#dc2626' },
+        { code: 'GBP', name: 'British Pound', color: '#16a34a' },
+        { code: 'JPY', name: 'Japanese Yen', color: '#ea580c' },
+        { code: 'AUD', name: 'Australian Dollar', color: '#7c3aed' },
+        { code: 'CAD', name: 'Canadian Dollar', color: '#0891b2' },
+        { code: 'CHF', name: 'Swiss Franc', color: '#be123c' },
+        { code: 'CNY', name: 'Chinese Yuan', color: '#059669' }
+    ];
+
+    const fetchEconomicStrengthData = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${baseUrl}/api/economic-strength-index/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    currencies: selectedCurrencies,
+                    date_range: dateRange
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setEconomicData(data.chart_data);
+            }
+        } catch (error) {
+            console.error('Error fetching economic strength data:', error);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        if (selectedCurrencies.length > 0) {
+            fetchEconomicStrengthData();
+        }
+    }, [selectedCurrencies, dateRange]);
+
+    const handleCurrencyToggle = (currencyCode) => {
+        setSelectedCurrencies(prev => {
+            if (prev.includes(currencyCode)) {
+                return prev.filter(c => c !== currencyCode);
+            } else {
+                return [...prev, currencyCode];
+            }
+        });
+    };
+
+    const formatTooltipValue = (value, name) => {
+        if (typeof value === 'number') {
+            return [value.toFixed(2), name];
+        }
+        return [value, name];
+    };
+
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="esi-tooltip">
+                    <p className="esi-tooltip-label">{`Date: ${label}`}</p>
+                    {payload.map((entry, index) => (
+                        <p key={index} style={{ color: entry.color }} className="esi-tooltip-entry">
+                            {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <div>
@@ -16,11 +95,339 @@ export default function EconomicStrengthIndex() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Economic Strength Index</h5>
-                   
-                    <br />
                     
+                    {/* Controls Section */}
+                    <div className="esi-controls">
+                        <div className="esi-currency-selector">
+                            <h6>Select Currencies:</h6>
+                            <div className="esi-currency-grid">
+                                {currencies.map(currency => (
+                                    <label key={currency.code} className="esi-currency-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCurrencies.includes(currency.code)}
+                                            onChange={() => handleCurrencyToggle(currency.code)}
+                                        />
+                                        <span className="esi-checkmark" style={{borderColor: currency.color}}></span>
+                                        <span className="esi-currency-label">
+                                            {currency.code} - {currency.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="esi-date-range-selector">
+                            <h6>Time Range:</h6>
+                            <select 
+                                value={dateRange} 
+                                onChange={(e) => setDateRange(e.target.value)}
+                                className="esi-select"
+                            >
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                                <option value="90d">Last 90 Days</option>
+                                <option value="180d">Last 6 Months</option>
+                                <option value="365d">Last Year</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Chart Section */}
+                    <div className="esi-chart-container">
+                        {loading ? (
+                            <div className="esi-loading">
+                                <div className="esi-spinner"></div>
+                                <p>Calculating Economic Strength Index...</p>
+                            </div>
+                        ) : economicData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={500}>
+                                <LineChart data={economicData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                    <XAxis 
+                                        dataKey="date" 
+                                        stroke="#374151"
+                                        tick={{ fontSize: 12 }}
+                                    />
+                                    <YAxis 
+                                        stroke="#374151"
+                                        tick={{ fontSize: 12 }}
+                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                    />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Legend />
+                                    {selectedCurrencies.map(currencyCode => {
+                                        const currency = currencies.find(c => c.code === currencyCode);
+                                        return (
+                                            <Line
+                                                key={currencyCode}
+                                                type="monotone"
+                                                dataKey={currencyCode}
+                                                stroke={currency?.color || '#6b7280'}
+                                                strokeWidth={2}
+                                                dot={{ r: 3 }}
+                                                activeDot={{ r: 5 }}
+                                                name={`${currencyCode} ESI`}
+                                            />
+                                        );
+                                    })}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="esi-no-data">
+                                <p>Select currencies to view Economic Strength Index</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Info Section */}
+                    <div className="esi-info">
+                        <h6>About Economic Strength Index</h6>
+                        <p>
+                            The Economic Strength Index (ESI) aggregates all economic events for selected currencies, 
+                            weighted by impact and normalized for comparison. Higher values indicate stronger economic performance 
+                            relative to expectations.
+                        </p>
+                        <div className="esi-methodology">
+                            <strong>Methodology:</strong>
+                            <ul>
+                                <li>High impact events: 3x weight</li>
+                                <li>Medium impact events: 2x weight</li>
+                                <li>Low impact events: 1x weight</li>
+                                <li>Values normalized using percentage deviation from forecast</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <style jsx>{`
+                .esi-controls {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 20px 0;
+                }
+
+                .esi-currency-selector h6,
+                .esi-date-range-selector h6 {
+                    color: #1e293b;
+                    margin-bottom: 12px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                .esi-currency-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 12px;
+                    margin-bottom: 20px;
+                }
+
+                .esi-currency-checkbox {
+                    display: flex;
+                    align-items: center;
+                    cursor: pointer;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    transition: background-color 0.2s;
+                }
+
+                .esi-currency-checkbox:hover {
+                    background-color: #e2e8f0;
+                }
+
+                .esi-currency-checkbox input[type="checkbox"] {
+                    display: none;
+                }
+
+                .esi-checkmark {
+                    width: 18px;
+                    height: 18px;
+                    border: 2px solid #cbd5e1;
+                    border-radius: 3px;
+                    margin-right: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                }
+
+                .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark {
+                    background-color: currentColor;
+                    border-color: currentColor;
+                }
+
+                .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark::after {
+                    content: '✓';
+                    color: white;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+
+                .esi-currency-label {
+                    color: #374151;
+                    font-size: 14px;
+                }
+
+                .esi-select {
+                    padding: 8px 12px;
+                    border: 1px solid #d1d5db;
+                    border-radius: 6px;
+                    background-color: white;
+                    color: #374151;
+                    font-size: 14px;
+                    min-width: 150px;
+                }
+
+                .esi-chart-container {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 20px 0;
+                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                }
+
+                .esi-loading {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 300px;
+                    color: #6b7280;
+                }
+
+                .esi-spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #e5e7eb;
+                    border-top: 4px solid #3b82f6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 16px;
+                }
+
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+
+                .esi-no-data {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 300px;
+                    color: #6b7280;
+                    font-size: 16px;
+                }
+
+                .esi-tooltip {
+                    background: rgba(15, 23, 42, 0.95);
+                    border: 1px solid #334155;
+                    border-radius: 6px;
+                    padding: 12px;
+                    color: white;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+
+                .esi-tooltip-label {
+                    margin: 0 0 8px 0;
+                    font-weight: 600;
+                    color: #e2e8f0;
+                }
+
+                .esi-tooltip-entry {
+                    margin: 4px 0;
+                    font-size: 14px;
+                }
+
+                .esi-info {
+                    background: #f1f5f9;
+                    border-left: 4px solid #3b82f6;
+                    padding: 20px;
+                    margin: 20px 0;
+                    border-radius: 0 8px 8px 0;
+                }
+
+                .esi-info h6 {
+                    color: #1e293b;
+                    margin-bottom: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+
+                .esi-info p {
+                    color: #475569;
+                    margin-bottom: 16px;
+                    line-height: 1.6;
+                }
+
+                .esi-methodology {
+                    color: #374151;
+                }
+
+                .esi-methodology strong {
+                    color: #1e293b;
+                }
+
+                .esi-methodology ul {
+                    margin: 8px 0 0 20px;
+                    color: #475569;
+                }
+
+                .esi-methodology li {
+                    margin: 4px 0;
+                }
+
+                /* Mobile Responsive */
+                @media (max-width: 768px) {
+                    .esi-controls {
+                        padding: 15px;
+                    }
+
+                    .esi-currency-grid {
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+
+                    .esi-chart-container {
+                        padding: 15px;
+                        margin: 15px 0;
+                    }
+
+                    .esi-currency-checkbox {
+                        padding: 10px;
+                    }
+
+                    .esi-select {
+                        width: 100%;
+                        margin-top: 8px;
+                    }
+
+                    .esi-info {
+                        padding: 15px;
+                        margin: 15px 0;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .esi-currency-label {
+                        font-size: 13px;
+                    }
+
+                    .esi-chart-container {
+                        padding: 10px;
+                    }
+
+                    .esi-loading,
+                    .esi-no-data {
+                        height: 250px;
+                        font-size: 14px;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
