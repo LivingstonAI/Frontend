@@ -93,24 +93,24 @@ const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // useEffect(() => {
-  //   const accountName = Cookies.get('account_name');
+  useEffect(() => {
+    const accountName = Cookies.get('account_name');
     
-  //   if (!accountName) {
-  //     console.error('Account name not found');
-  //     navigate('/login', { 
-  //       state: { from: location.pathname } // Remember where they were trying to go
-  //     });
-  //   }
-  // }, [navigate, location]);
+    if (!accountName) {
+      console.error('Account name not found');
+      navigate('/login', { 
+        state: { from: location.pathname } // Remember where they were trying to go
+      });
+    }
+  }, [navigate, location]);
 
-  // const accountName = Cookies.get('account_name');
+  const accountName = Cookies.get('account_name');
   
-  // if (!accountName) {
-  //   return null; // Or a loading spinner while redirecting
-  // }
+  if (!accountName) {
+    return null; // Or a loading spinner while redirecting
+  }
 
-  // return children;
+  return children;
 };
 
 function App() {
@@ -124,6 +124,9 @@ function App() {
             {/* Public routes - no authentication required */}
             <Route path='/' element={<SnowAILandingPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/esi" element={<EconomicStrengthIndex />} />
+
+
             
             {/* Protected routes - authentication required */}
             <Route path="/tell_us_more" element={
@@ -420,11 +423,11 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path='/esi' element={
+            {/* <Route path='/esi' element={
               <ProtectedRoute>
                 <EconomicStrengthIndex />
               </ProtectedRoute>
-            } />
+            } /> */}
             
             <Route path='/market_share_infographic' element={
               <ProtectedRoute>
