@@ -712,13 +712,13 @@ export default function SideNavs() {
         <Link to="/music" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-music-note-beamed"></i></p></button></Link>
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
-        <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link>
+        {/* <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
         {/* <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link> */}
         <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
         <Link to="/paper_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-mortarboard-fill"></i></p></button></Link>
         <Link to="/process_checker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-patch-check-fill"></i></p></button></Link>
-        <Link to="/science_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
+        {/* <Link to="/science_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/economics_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
         <Link to="/ai_council" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pentagon-fill"></i></p></button></Link>
         <Link to="/ai_council_conversations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chat-fill"></i></p></button></Link>
@@ -800,9 +800,9 @@ export default function SideNavs() {
         <Link to="/calendar_data" className="side-nav">
             <i className="bi bi-clipboard-data-fill"></i>
         </Link>
-        <Link to="/econ_explainer" className="side-nav">
+        {/* <Link to="/econ_explainer" className="side-nav">
             <i className="bi bi-cash-stack"></i>
-        </Link>
+        </Link> */}
         <Link to="/forex_factory" className="side-nav">
             <i className="bi bi-camera-fill"></i>
         </Link>
@@ -818,9 +818,9 @@ export default function SideNavs() {
         <Link to="/process_checker" className="side-nav">
             <i className="bi bi-patch-check-fill"></i>
         </Link>
-        <Link to="/science_playground" className="side-nav">
+        {/* <Link to="/science_playground" className="side-nav">
             <i className="bi bi-infinity"></i>
-        </Link>
+        </Link> */}
         <Link to="/economics_gpt" className="side-nav">
             <i className="bi bi-currency-dollar"></i>
         </Link>
