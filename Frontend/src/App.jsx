@@ -217,9 +217,9 @@ function App() {
             } />
             
             <Route path='/market_makers' element={
-              <ProtectedRoute>
+              // <ProtectedRoute>
                 <MarketMakers/>
-              </ProtectedRoute>
+              // </ProtectedRoute>
             } />
             
             <Route path='/risk_bot' element={
@@ -421,9 +421,9 @@ function App() {
             } />
 
             <Route path='/esi' element={
-              <ProtectedRoute>
+              // <ProtectedRoute>
                 <EconomicStrengthIndex />
-              </ProtectedRoute>
+              {/* </ProtectedRoute> */}
             } />
             
             <Route path='/market_share_infographic' element={
