@@ -3,8 +3,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
-import COTModal from "./cot_selection_modal";
-
+import InteractiveCOTChart from "./cot_interactive_chart";
 
 const COTDataSelector = ({ onAssetsSelected }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -468,10 +467,9 @@ export default function MarketMakers() {
               </div>
             ) : Object.keys(cotData).length > 0 ? (
               <>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto mb-8">
                   <table className="cot-data-table w-full">
-
-                  <thead>
+                    <thead>
                       <tr>
                         <th className="px-4 py-2 text-left">Asset</th>
                         <th className="px-4 py-2 text-left">Date</th>
@@ -496,16 +494,17 @@ export default function MarketMakers() {
                   </table>
                 </div>
 
-                <div className="plots-container grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <div className="interactive-charts-container space-y-8">
+                  <h5 className="text-xl font-semibold mb-6 text-gray-800">Interactive COT Charts</h5>
                   {Object.keys(cotData).map(asset => (
-                    <div key={asset} className="plot-item bg-white p-4 rounded-lg shadow">
-                      <h6 className="text-lg font-semibold mb-4">{asset}</h6>
-                      <img 
-                        src={cotData[asset]['Plot URL']} 
-                        alt={`Plot for ${asset}`} 
-                        className="w-full h-auto"
-                      />
-                    </div>
+                    cotData[asset]['Chart Data'] && (
+                      <div key={asset} className="chart-section">
+                        <InteractiveCOTChart 
+                          asset={asset}
+                          chartData={cotData[asset]['Chart Data']}
+                        />
+                      </div>
+                    )
                   ))}
                 </div>
               </>
