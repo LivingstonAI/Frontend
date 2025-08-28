@@ -495,7 +495,7 @@ export default function MarketMakers() {
                 </div>
 
                 <div className="interactive-charts-container space-y-8">
-                  <h5 className="text-xl font-semibold mb-6 text-gray-800">Interactive COT Charts</h5>
+                  <h6 className="text-xl font-semibold mb-6 text-gray-800">Interactive COT Charts</h6>
                   {Object.keys(cotData).map(asset => (
                     cotData[asset]['Chart Data'] && (
                       <div key={asset} className="chart-section">
