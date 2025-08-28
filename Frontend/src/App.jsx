@@ -93,24 +93,24 @@ const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const accountName = Cookies.get('account_name');
+  // useEffect(() => {
+  //   const accountName = Cookies.get('account_name');
     
-    if (!accountName) {
-      console.error('Account name not found');
-      navigate('/login', { 
-        state: { from: location.pathname } // Remember where they were trying to go
-      });
-    }
-  }, [navigate, location]);
+  //   if (!accountName) {
+  //     console.error('Account name not found');
+  //     navigate('/login', { 
+  //       state: { from: location.pathname } // Remember where they were trying to go
+  //     });
+  //   }
+  // }, [navigate, location]);
 
-  const accountName = Cookies.get('account_name');
+  // const accountName = Cookies.get('account_name');
   
-  if (!accountName) {
-    return null; // Or a loading spinner while redirecting
-  }
+  // if (!accountName) {
+  //   return null; // Or a loading spinner while redirecting
+  // }
 
-  return children;
+  // return children;
 };
 
 function App() {
@@ -217,9 +217,9 @@ function App() {
             } />
             
             <Route path='/market_makers' element={
-              // <ProtectedRoute>
+              <ProtectedRoute>
                 <MarketMakers/>
-              // </ProtectedRoute>
+              </ProtectedRoute>
             } />
             
             <Route path='/risk_bot' element={
@@ -421,9 +421,9 @@ function App() {
             } />
 
             <Route path='/esi' element={
-              // <ProtectedRoute>
+              <ProtectedRoute>
                 <EconomicStrengthIndex />
-              {/* </ProtectedRoute> */}
+              </ProtectedRoute>
             } />
             
             <Route path='/market_share_infographic' element={
