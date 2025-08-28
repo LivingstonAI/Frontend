@@ -94,7 +94,7 @@ export default function EconomicStrengthIndex() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Economic Strength Index</h5>
+                    <h5 className="major-upcoming-news-events-header">Economic Strength Index</h5><br />
                     
                     {/* Controls Section */}
                     <div className="esi-controls">
