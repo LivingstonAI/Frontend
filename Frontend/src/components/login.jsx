@@ -66,9 +66,22 @@ export default function Login() {
             const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
             setFingerprintSupported(available);
             
-            // Check if user has already registered fingerprint
+            // Check if user has already registered fingerprint - verify all required data exists
             const registered = localStorage.getItem('fingerprintRegistered') === 'true';
-            setFingerprintRegistered(registered);
+            const credentialId = localStorage.getItem('fingerprintCredentialId');
+            const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
+            
+            // Only consider registered if we have all the required data
+            const fullyRegistered = registered && credentialId && rawIdString;
+            setFingerprintRegistered(fullyRegistered);
+            
+            if (registered && !fullyRegistered) {
+                // Clean up incomplete registration
+                localStorage.removeItem('fingerprintRegistered');
+                localStorage.removeItem('fingerprintCredentialId');
+                localStorage.removeItem('fingerprintCredentialRawId');
+                console.log("Cleaned up incomplete fingerprint registration");
+            }
             
             return available;
         } catch (error) {
@@ -79,14 +92,23 @@ export default function Login() {
 
     // Register fingerprint for the user
     const registerFingerprint = async () => {
-        if (!fingerprintSupported) return;
+        if (!fingerprintSupported) {
+            setError("Fingerprint authentication is not supported on this device");
+            return false;
+        }
 
         try {
             speak("Registering fingerprint. Please follow the device prompts.");
+            console.log("Starting fingerprint registration...");
             
             // Generate a proper challenge
             const challenge = new Uint8Array(32);
             crypto.getRandomValues(challenge);
+            
+            // Clear any existing registration data first
+            localStorage.removeItem('fingerprintRegistered');
+            localStorage.removeItem('fingerprintCredentialId');
+            localStorage.removeItem('fingerprintCredentialRawId');
             
             const credential = await navigator.credentials.create({
                 publicKey: {
@@ -114,21 +136,66 @@ export default function Login() {
                 }
             });
 
-            if (credential) {
+            if (credential && credential.id && credential.rawId) {
+                console.log("Fingerprint credential created successfully", {
+                    id: credential.id,
+                    rawIdLength: credential.rawId.byteLength
+                });
+                
                 // Store credential info properly
                 localStorage.setItem('fingerprintCredentialId', credential.id);
-                localStorage.setItem('fingerprintRegistered', 'true');
                 localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
+                localStorage.setItem('fingerprintRegistered', 'true');
+                
                 setFingerprintRegistered(true);
-                speak("Fingerprint registered successfully.");
+                speak("Fingerprint registered successfully. You can now use fingerprint authentication.");
+                setError(""); // Clear any previous errors
                 return true;
+            } else {
+                throw new Error("Invalid credential response");
             }
         } catch (error) {
             console.error("Fingerprint registration failed:", error);
-            speak(`Fingerprint registration failed: ${error.name}. Please try again.`);
-            setError(`Fingerprint registration failed: ${error.name} - ${error.message}`);
+            
+            // Clean up any partial data
+            localStorage.removeItem('fingerprintRegistered');
+            localStorage.removeItem('fingerprintCredentialId');
+            localStorage.removeItem('fingerprintCredentialRawId');
+            
+            let errorMessage = "Fingerprint registration failed";
+            if (error.name === 'NotSupportedError') {
+                errorMessage = "Fingerprint authentication is not supported on this device";
+            } else if (error.name === 'SecurityError') {
+                errorMessage = "Security error - make sure you're on HTTPS or localhost";
+            } else if (error.name === 'NotAllowedError') {
+                errorMessage = "Fingerprint registration was cancelled or not allowed";
+            } else if (error.name === 'InvalidStateError') {
+                errorMessage = "A fingerprint is already registered. Try authenticating instead.";
+            } else {
+                errorMessage = `Fingerprint registration failed: ${error.name} - ${error.message}`;
+            }
+            
+            speak(errorMessage);
+            setError(errorMessage);
             return false;
         }
+    };
+
+    // Add debug function to check stored data
+    const debugFingerprintData = () => {
+        const registered = localStorage.getItem('fingerprintRegistered');
+        const credentialId = localStorage.getItem('fingerprintCredentialId');
+        const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
+        
+        console.log("Fingerprint Debug Data:", {
+            registered,
+            credentialId,
+            rawIdString: rawIdString ? `${rawIdString.length} chars` : null,
+            fingerprintSupported,
+            fingerprintRegistered
+        });
+        
+        return { registered, credentialId, rawIdString };
     };
 
     // Authenticate with fingerprint
@@ -140,6 +207,10 @@ export default function Login() {
             setFingerprintStep('scanning');
             speak("Please place your finger on the fingerprint sensor.");
 
+            // Debug current state
+            const debugData = debugFingerprintData();
+            console.log("Starting authentication with data:", debugData);
+
             const credentialId = localStorage.getItem('fingerprintCredentialId');
             const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
             
@@ -149,6 +220,7 @@ export default function Login() {
 
             // Convert stored rawId back to Uint8Array
             const rawId = new Uint8Array(rawIdString.split(',').map(x => parseInt(x)));
+            console.log("Using rawId with length:", rawId.length);
             
             // Generate a proper challenge
             const challenge = new Uint8Array(32);
@@ -168,6 +240,7 @@ export default function Login() {
             });
 
             if (credential) {
+                console.log("Authentication successful!");
                 setFingerprintStep('complete');
                 speak("Fingerprint authentication successful. Access granted.");
                 
