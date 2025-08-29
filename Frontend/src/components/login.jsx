@@ -19,9 +19,15 @@ export default function Login() {
     const [failedAttempts, setFailedAttempts] = useState(0);
     const [isLockedOut, setIsLockedOut] = useState(false);
     const [showFacialRecognition, setShowFacialRecognition] = useState(false);
-    const [facialRecognitionStep, setFacialRecognitionStep] = useState('prepare'); // prepare, capturing, analyzing, complete
+    const [facialRecognitionStep, setFacialRecognitionStep] = useState('prepare');
     const [faceVerified, setFaceVerified] = useState(false);
     const [userInteracted, setUserInteracted] = useState(false);
+    
+    // Fingerprint authentication states
+    const [fingerprintSupported, setFingerprintSupported] = useState(false);
+    const [fingerprintRegistered, setFingerprintRegistered] = useState(false);
+    const [showFingerprintAuth, setShowFingerprintAuth] = useState(false);
+    const [fingerprintStep, setFingerprintStep] = useState('prepare'); // prepare, scanning, complete
     
     const uniqueID = uuidv4();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
@@ -49,11 +55,140 @@ export default function Login() {
         }
     };
 
+    // Check if WebAuthn and fingerprint are supported
+    const checkFingerprintSupport = async () => {
+        if (!window.PublicKeyCredential) {
+            console.log("WebAuthn not supported");
+            return false;
+        }
+
+        try {
+            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            setFingerprintSupported(available);
+            
+            // Check if user has already registered fingerprint
+            const registered = localStorage.getItem('fingerprintRegistered') === 'true';
+            setFingerprintRegistered(registered);
+            
+            return available;
+        } catch (error) {
+            console.error("Error checking fingerprint support:", error);
+            return false;
+        }
+    };
+
+    // Register fingerprint for the user
+    const registerFingerprint = async () => {
+        if (!fingerprintSupported) return;
+
+        try {
+            speak("Registering fingerprint. Please follow the device prompts.");
+            
+            const credential = await navigator.credentials.create({
+                publicKey: {
+                    challenge: new Uint8Array(32),
+                    rp: {
+                        name: "Secure Access System",
+                        id: window.location.hostname,
+                    },
+                    user: {
+                        id: new TextEncoder().encode("tlotlo.motingwe"),
+                        name: "tlotlo.motingwe@example.com",
+                        displayName: "Tlotlo Motingwe",
+                    },
+                    pubKeyCredParams: [{
+                        type: "public-key",
+                        alg: -7, // ES256
+                    }],
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform",
+                        userVerification: "required",
+                    },
+                    timeout: 60000,
+                }
+            });
+
+            if (credential) {
+                // Store credential info
+                localStorage.setItem('fingerprintCredentialId', credential.id);
+                localStorage.setItem('fingerprintRegistered', 'true');
+                setFingerprintRegistered(true);
+                speak("Fingerprint registered successfully.");
+                return true;
+            }
+        } catch (error) {
+            console.error("Fingerprint registration failed:", error);
+            speak("Fingerprint registration failed. Please try again.");
+            setError("Fingerprint registration failed: " + error.message);
+            return false;
+        }
+    };
+
+    // Authenticate with fingerprint
+    const authenticateWithFingerprint = async () => {
+        if (!fingerprintSupported || !fingerprintRegistered) return false;
+
+        try {
+            setShowFingerprintAuth(true);
+            setFingerprintStep('scanning');
+            speak("Please place your finger on the fingerprint sensor.");
+
+            const credentialId = localStorage.getItem('fingerprintCredentialId');
+            if (!credentialId) {
+                throw new Error("No fingerprint credential found");
+            }
+
+            const credential = await navigator.credentials.get({
+                publicKey: {
+                    challenge: new Uint8Array(32),
+                    allowCredentials: [{
+                        type: "public-key",
+                        id: new TextEncoder().encode(credentialId),
+                    }],
+                    userVerification: "required",
+                    timeout: 60000,
+                }
+            });
+
+            if (credential) {
+                setFingerprintStep('complete');
+                speak("Fingerprint authentication successful. Access granted.");
+                
+                // Set user as authenticated
+                const userEmail = 'tlotlo.motingwe@example.com';
+                Cookies.set('email', userEmail);
+                Cookies.set('account_name', userEmail);
+                
+                setAccessGranted(true);
+                
+                setTimeout(() => {
+                    setShowFingerprintAuth(false);
+                    navigate('/personal_info');
+                }, 3000);
+                
+                return true;
+            }
+        } catch (error) {
+            console.error("Fingerprint authentication failed:", error);
+            setFingerprintStep('prepare');
+            setShowFingerprintAuth(false);
+            
+            if (error.name === 'NotAllowedError') {
+                speak("Fingerprint authentication was cancelled or failed.");
+                setError("Fingerprint authentication cancelled or failed");
+            } else {
+                speak("Fingerprint authentication error. Please try again.");
+                setError("Fingerprint authentication failed: " + error.message);
+            }
+            return false;
+        }
+    };
+
     // Voice synthesis function
     const speak = (text) => {
-        if (!userInteracted) return; // Don't speak if user hasn't interacted yet
+        if (!userInteracted) return;
         
-        window.speechSynthesis.cancel(); // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
         const voices = window.speechSynthesis.getVoices();
@@ -75,22 +210,27 @@ export default function Login() {
     const handleUserInteraction = () => {
         if (!userInteracted) {
             setUserInteracted(true);
-            speak("Welcome to the secure authentication system. Please enter your credentials.");
+            if (fingerprintSupported && fingerprintRegistered) {
+                speak("Welcome to the secure authentication system. You can use fingerprint authentication or enter your credentials.");
+            } else if (fingerprintSupported && !fingerprintRegistered) {
+                speak("Welcome to the secure authentication system. You can register your fingerprint for quick access or enter your credentials.");
+            } else {
+                speak("Welcome to the secure authentication system. Please enter your credentials.");
+            }
         }
     };
 
-    // Create the audio elements
+    // Create the audio elements and check fingerprint support
     useEffect(() => {
         fetchAPIKey();
+        checkFingerprintSupport();
         
-        // Create references to the imported audio files
         const grantedAudio = new Audio(access_granted_audio);
         const deniedAudio = new Audio(access_denied_audio);
         
         accessGrantedAudioRef.current = grantedAudio;
         accessDeniedAudioRef.current = deniedAudio;
         
-        // Add scan effect
         const intervalId = setInterval(() => {
             if (scanlineRef.current) {
                 scanlineRef.current.style.top = Math.random() * 100 + "%";
@@ -98,7 +238,6 @@ export default function Login() {
             }
         }, 1000);
         
-        // Add click listener to container for user interaction
         const container = containerRef.current;
         if (container) {
             container.addEventListener('click', handleUserInteraction);
@@ -117,14 +256,13 @@ export default function Login() {
                 container.removeEventListener('click', handleUserInteraction);
                 container.removeEventListener('keydown', handleUserInteraction);
             }
-            // Clean up camera stream
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
         };
     }, []);
 
-    // Load voices when they're available
+    // Load voices when available
     useEffect(() => {
         const loadVoices = () => {
             window.speechSynthesis.getVoices();
@@ -147,7 +285,7 @@ export default function Login() {
         }
     };
 
-    // Start facial recognition camera
+    // Start facial recognition camera (existing function)
     const startFacialRecognition = async () => {
         setShowFacialRecognition(true);
         setFacialRecognitionStep('prepare');
@@ -180,102 +318,92 @@ export default function Login() {
         }
     };
 
-    // Capture image and verify with OpenAI
-const captureAndVerifyFace = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    setFacialRecognitionStep('analyzing');
-    speak("Analyzing facial features. Please wait.");
-    
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    const context = canvas.getContext('2d');
-    
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
-    
-    // Convert canvas to base64
-    const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
-    
-    try {
-        // Convert reference image to base64
-        const referenceImageBase64 = await imageToBase64(tlotlo_motingwe);
+    // Capture and verify face (existing function)
+    const captureAndVerifyFace = async () => {
+        if (!videoRef.current || !canvasRef.current) return;
         
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: "Compare these two images and determine if they show the same person. Respond with only 'MATCH' if they are the same person, or 'NO_MATCH' if they are different people. Be strict in your comparison."
-                            },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: referenceImageBase64
-                                }
-                            },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: capturedImage
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens: 10
-            })
-        });
+        setFacialRecognitionStep('analyzing');
+        speak("Analyzing facial features. Please wait.");
         
-        const result = await response.json();
-        const verification = result.choices[0].message.content.trim();
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+        const context = canvas.getContext('2d');
         
-        if (verification === 'MATCH') {
-            setFaceVerified(true);
-            setFacialRecognitionStep('complete');
-            speak("Facial recognition successful. Identity verified.");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+        
+        const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+        
+        try {
+            const referenceImageBase64 = await imageToBase64(tlotlo_motingwe);
             
-            // Stop camera stream
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-            }
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "Compare these two images and determine if they show the same person. Respond with only 'MATCH' if they are the same person, or 'NO_MATCH' if they are different people. Be strict in your comparison."
+                                },
+                                {
+                                    type: "image_url",
+                                    image_url: { url: referenceImageBase64 }
+                                },
+                                {
+                                    type: "image_url",
+                                    image_url: { url: capturedImage }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 10
+                })
+            });
+            
+            const result = await response.json();
+            const verification = result.choices[0].message.content.trim();
+            
+            if (verification === 'MATCH') {
+                setFaceVerified(true);
+                setFacialRecognitionStep('complete');
+                speak("Facial recognition successful. Identity verified.");
+                
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                }
 
-            // ✅ Fixed: Use the email from your login state or set it appropriately
-            // Since this is facial recognition, you might want to set a default email
-            // or get it from your application state
-            const userEmail = email || 'tlotlo.motingwe@example.com'; // Use the email from your login form
-            Cookies.set('email', userEmail);
+                const userEmail = email || 'tlotlo.motingwe@example.com';
+                Cookies.set('email', userEmail);
+                
+                setTimeout(() => {
+                    setShowFacialRecognition(false);
+                    speak("Facial identity confirmed. Welcome back, Mr Motingwe.");
+                    Cookies.set('account_name', userEmail);
+                    navigate(`/personal_info`);
+                }, 5000);
+                
+            } else {
+                speak("Facial recognition failed. Identity could not be verified. Please try again.");
+                setError("FACIAL RECOGNITION FAILED: Identity not verified");
+                setFacialRecognitionStep('prepare');
+            }
             
-            setTimeout(() => {
-                setShowFacialRecognition(false);
-                speak("Facial identity confirmed. Welcome back, Mr Motingwe.");
-                Cookies.set('account_name', userEmail);
-                navigate(`/personal_info`);
-            }, 5000);
-            
-        } else {
-            speak("Facial recognition failed. Identity could not be verified. Please try again.");
-            setError("FACIAL RECOGNITION FAILED: Identity not verified");
+        } catch (error) {
+            console.error("Error in facial recognition:", error);
+            speak(`Facial recognition system error. Please try again.`);
+            setError("SYSTEM ERROR: Facial recognition unavailable");
             setFacialRecognitionStep('prepare');
         }
-        
-    } catch (error) {
-        console.error("Error in facial recognition:", error);
-        speak(`Facial recognition system error. Please try again.`);
-        setError("SYSTEM ERROR: Facial recognition unavailable");
-        setFacialRecognitionStep('prepare');
-    }
-};
+    };
 
     // Helper function to convert image to base64
     const imageToBase64 = (imageUrl) => {
@@ -303,22 +431,22 @@ const captureAndVerifyFace = async () => {
             return;
         }
         
-        // Check if locked out
         if (isLockedOut) {
-            speak("Account is locked due to multiple failed attempts. Please try facial recognition.");
-            if (!faceVerified) {
+            speak("Account is locked due to multiple failed attempts. Please try facial recognition or fingerprint authentication.");
+            if (!faceVerified && fingerprintSupported && fingerprintRegistered) {
+                await authenticateWithFingerprint();
+                return;
+            } else if (!faceVerified) {
                 startFacialRecognition();
             }
             return;
         }
         
-        // Reset error states
         setEmailError("");
         setPasswordError("");
         setError("");
         setLoading(true);
 
-        // Validate inputs
         if (!email) {
             setEmailError("Email is required.");
             speak("Please enter your email address.");
@@ -332,23 +460,16 @@ const captureAndVerifyFace = async () => {
             return;
         }
 
-        // Perform login logic
         setFinalData([email, password]);
-        const loginData = {
-            email: email,
-            password: password
-        };
+        const loginData = { email: email, password: password };
         
         try {
-            // Simulate scanning effect
             speak("Verifying credentials. Please wait.");
             await new Promise(resolve => setTimeout(resolve, 1500));
             
             const response = await fetch(`${baseURL}/login/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(loginData)
             });
     
@@ -356,12 +477,9 @@ const captureAndVerifyFace = async () => {
                 const { email } = await response.json();
                 Cookies.set('email', email);
                 
-                // Show access granted message with animation
                 setAccessGranted(true);
-                // playAccessGranted();
                 speak("Access granted. Welcome back, Mr Motingwe. Initializing secure connection.");
                 
-                // Wait for animation to complete before navigating
                 setTimeout(() => {
                     Cookies.set('account_name', email);
                     navigate(`/personal_info`);
@@ -372,20 +490,17 @@ const captureAndVerifyFace = async () => {
                 
                 if (newFailedAttempts >= 3) {
                     setIsLockedOut(true);
-                    setError("ACCOUNT LOCKED: Too many failed attempts. Facial recognition required.");
-                    speak("Account locked due to multiple failed attempts. Please complete facial recognition to unlock.");
-                    // playAccessDenied();
+                    setError("ACCOUNT LOCKED: Too many failed attempts. Biometric authentication required.");
+                    speak("Account locked due to multiple failed attempts. Please use fingerprint or facial recognition.");
                 } else {
                     const remainingAttempts = 3 - newFailedAttempts;
                     setError(`AUTHENTICATION FAILED: Invalid Credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
                     speak(`Authentication failed. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
-                    // playAccessDenied();
                 }
             }
         } catch (error) {
             setError("CONNECTION ERROR: Unable to reach authentication server");
             speak("Connection error. Please check your network and try again.");
-            // playAccessDenied();
         } finally {
             setLoading(false);
         }
@@ -395,6 +510,46 @@ const captureAndVerifyFace = async () => {
         <div className="hud-container" ref={containerRef}>
             <div className="scanline" ref={scanlineRef}></div>
             
+            {/* Fingerprint Authentication Overlay */}
+            {showFingerprintAuth && (
+                <div className="fingerprint-overlay">
+                    <div className="fingerprint-container">
+                        <div className="fingerprint-header">
+                            <h3>FINGERPRINT AUTHENTICATION</h3>
+                            <div className="status-indicator">
+                                STATUS: {fingerprintStep.toUpperCase()}
+                            </div>
+                        </div>
+                        
+                        <div className="fingerprint-scanner">
+                            <div className={`fingerprint-icon ${fingerprintStep === 'scanning' ? 'scanning' : ''}`}>
+                                <svg viewBox="0 0 100 100" className="fingerprint-svg">
+                                    <path d="M50,10 C30,10 10,30 10,50 C10,70 30,90 50,90 C70,90 90,70 90,50 C90,30 70,10 50,10 Z" 
+                                          fill="none" stroke="currentColor" strokeWidth="2"/>
+                                    <path d="M50,20 C35,20 20,35 20,50 C20,65 35,80 50,80 C65,80 80,65 80,50 C80,35 65,20 50,20 Z" 
+                                          fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                                    <path d="M50,30 C40,30 30,40 30,50 C30,60 40,70 50,70 C60,70 70,60 70,50 C70,40 60,30 50,30 Z" 
+                                          fill="none" stroke="currentColor" strokeWidth="1"/>
+                                </svg>
+                            </div>
+                            
+                            {fingerprintStep === 'scanning' && (
+                                <div className="fingerprint-prompt">
+                                    Place your finger on the sensor
+                                </div>
+                            )}
+                            
+                            {fingerprintStep === 'complete' && (
+                                <div className="fingerprint-success">
+                                    ✓ FINGERPRINT VERIFIED
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Facial Recognition Overlay (existing) */}
             {showFacialRecognition && (
                 <div className="facial-recognition-overlay">
                     <div className="facial-recognition-container">
@@ -449,9 +604,25 @@ const captureAndVerifyFace = async () => {
                     <div className="hud-header">
                         <h3 className="hud-title">SECURE ACCESS</h3>
                         <div className="hud-subtitle">AUTHENTICATION REQUIRED</div>
+                        
+                        {/* Biometric options display */}
+                        {fingerprintSupported && (
+                            <div className="biometric-options">
+                                {fingerprintRegistered ? (
+                                    <div className="biometric-available">
+                                        🔒 Fingerprint authentication available
+                                    </div>
+                                ) : (
+                                    <div className="biometric-setup">
+                                        📱 Fingerprint setup available
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
                         {isLockedOut && (
                             <div className="lockout-warning">
-                                🔒 ACCOUNT LOCKED - FACIAL RECOGNITION REQUIRED
+                                🔒 ACCOUNT LOCKED - BIOMETRIC AUTHENTICATION REQUIRED
                             </div>
                         )}
                     </div>
@@ -465,6 +636,30 @@ const captureAndVerifyFace = async () => {
                     ) : (
                         <form onSubmit={handleSubmit} className="hud-form">
                             {error && <div className="hud-error-message">{error}</div>}
+                            
+                            {/* Quick fingerprint authentication button */}
+                            {fingerprintSupported && fingerprintRegistered && !isLockedOut && (
+                                <button 
+                                    type="button"
+                                    className="hud-button fingerprint-quick-button"
+                                    onClick={authenticateWithFingerprint}
+                                    disabled={loading}
+                                >
+                                    🔓 AUTHENTICATE WITH FINGERPRINT
+                                </button>
+                            )}
+                            
+                            {/* Register fingerprint button */}
+                            {fingerprintSupported && !fingerprintRegistered && !isLockedOut && (
+                                <button 
+                                    type="button"
+                                    className="hud-button fingerprint-register-button"
+                                    onClick={registerFingerprint}
+                                    disabled={loading}
+                                >
+                                    📱 REGISTER FINGERPRINT
+                                </button>
+                            )}
                             
                             <div className="hud-input-group">
                                 <label className="hud-label">
@@ -512,17 +707,29 @@ const captureAndVerifyFace = async () => {
                                         <span className="hud-button-text">VERIFYING</span>
                                         <span className="hud-loading-dots">...</span>
                                     </>
-                                ) : isLockedOut && !faceVerified ? 'LOCKED - FACIAL SCAN REQUIRED' : 'AUTHENTICATE'}
+                                ) : isLockedOut && !faceVerified ? 'LOCKED - BIOMETRIC SCAN REQUIRED' : 'AUTHENTICATE'}
                             </button>
                             
+                            {/* Biometric unlock options when locked out */}
                             {isLockedOut && !faceVerified && (
-                                <button 
-                                    type="button"
-                                    className="hud-button facial-recognition-button"
-                                    onClick={startFacialRecognition}
-                                >
-                                    START FACIAL RECOGNITION
-                                </button>
+                                <div className="biometric-unlock-options">
+                                    {fingerprintSupported && fingerprintRegistered && (
+                                        <button 
+                                            type="button"
+                                            className="hud-button fingerprint-unlock-button"
+                                            onClick={authenticateWithFingerprint}
+                                        >
+                                            🔓 FINGERPRINT UNLOCK
+                                        </button>
+                                    )}
+                                    <button 
+                                        type="button"
+                                        className="hud-button facial-recognition-button"
+                                        onClick={startFacialRecognition}
+                                    >
+                                        👁️ FACIAL RECOGNITION UNLOCK
+                                    </button>
+                                </div>
                             )}
                         </form>
                     )}
@@ -530,7 +737,7 @@ const captureAndVerifyFace = async () => {
             </div>
             
             <style jsx>{`
-                /* Original HUD styles remain the same */
+                /* Previous styles remain the same, adding fingerprint-specific styles */
                 .hud-container {
                     position: relative;
                     width: 100%;
@@ -553,6 +760,169 @@ const captureAndVerifyFace = async () => {
                     box-shadow: 0 0 10px rgba(0, 162, 255, 0.6);
                 }
                 
+                /* Fingerprint Authentication Overlay */
+                .fingerprint-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                    animation: fadeIn 0.3s ease;
+                }
+                
+                .fingerprint-container {
+                    background-color: rgba(11, 25, 48, 0.9);
+                    border: 1px solid rgba(0, 162, 255, 0.5);
+                    border-radius: 8px;
+                    padding: 2rem;
+                    max-width: 400px;
+                    width: 90%;
+                    text-align: center;
+                    box-shadow: 0 0 30px rgba(0, 162, 255, 0.3);
+                }
+                
+                .fingerprint-header h3 {
+                    color: #00a2ff;
+                    font-size: 1.5rem;
+                    letter-spacing: 2px;
+                    margin: 0 0 1rem 0;
+                    text-shadow: 0 0 10px rgba(0, 162, 255, 0.7);
+                }
+                
+                .fingerprint-scanner {
+                    margin: 2rem 0;
+                }
+                
+                .fingerprint-icon {
+                    width: 150px;
+                    height: 150px;
+                    margin: 0 auto 1rem auto;
+                    border: 3px solid rgba(0, 162, 255, 0.5);
+                    border-radius: 50%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    position: relative;
+                    background-color: rgba(0, 26, 56, 0.5);
+                }
+                
+                .fingerprint-icon.scanning {
+                    border-color: #00ff9d;
+                    animation: pulseFingerprintScan 2s infinite;
+                    box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+                }
+                
+                .fingerprint-svg {
+                    width: 80px;
+                    height: 80px;
+                    color: rgba(0, 162, 255, 0.8);
+                }
+                
+                .fingerprint-icon.scanning .fingerprint-svg {
+                    color: #00ff9d;
+                    animation: rotateScan 3s linear infinite;
+                }
+                
+                .fingerprint-prompt {
+                    color: #00a2ff;
+                    font-size: 1.1rem;
+                    letter-spacing: 1px;
+                    animation: pulse 2s infinite;
+                }
+                
+                .fingerprint-success {
+                    color: #00ff9d;
+                    font-size: 1.3rem;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                    text-shadow: 0 0 10px rgba(0, 255, 157, 0.7);
+                    animation: pulseGreen 2s infinite;
+                }
+                
+                @keyframes pulseFingerprintScan {
+                    0% { 
+                        border-color: #00ff9d;
+                        box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+                    }
+                    50% { 
+                        border-color: #00a2ff;
+                        box-shadow: 0 0 30px rgba(0, 162, 255, 0.7);
+                    }
+                    100% { 
+                        border-color: #00ff9d;
+                        box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+                    }
+                }
+                
+                @keyframes rotateScan {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                /* Biometric options styling */
+                .biometric-options {
+                    margin: 1rem 0;
+                    font-size: 0.9rem;
+                }
+                
+                .biometric-available {
+                    color: #00ff9d;
+                    background-color: rgba(0, 255, 157, 0.1);
+                    border: 1px solid rgba(0, 255, 157, 0.3);
+                    padding: 0.5rem;
+                    border-radius: 4px;
+                    letter-spacing: 1px;
+                }
+                
+                .biometric-setup {
+                    color: #ffa500;
+                    background-color: rgba(255, 165, 0, 0.1);
+                    border: 1px solid rgba(255, 165, 0, 0.3);
+                    padding: 0.5rem;
+                    border-radius: 4px;
+                    letter-spacing: 1px;
+                }
+                
+                .biometric-unlock-options {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    margin-top: 1rem;
+                }
+                
+                /* Button variations for biometric functions */
+                .fingerprint-quick-button {
+                    background: linear-gradient(90deg, 
+                                rgba(0, 100, 50, 0.5) 0%, 
+                                rgba(0, 180, 90, 0.6) 50%,
+                                rgba(0, 100, 50, 0.5) 100%);
+                    border-color: rgba(0, 255, 127, 0.5);
+                    margin-bottom: 1rem;
+                }
+                
+                .fingerprint-register-button {
+                    background: linear-gradient(90deg, 
+                                rgba(100, 80, 0, 0.5) 0%, 
+                                rgba(180, 140, 0, 0.6) 50%,
+                                rgba(100, 80, 0, 0.5) 100%);
+                    border-color: rgba(255, 215, 0, 0.5);
+                    margin-bottom: 1rem;
+                }
+                
+                .fingerprint-unlock-button {
+                    background: linear-gradient(90deg, 
+                                rgba(0, 100, 50, 0.5) 0%, 
+                                rgba(0, 180, 90, 0.6) 50%,
+                                rgba(0, 100, 50, 0.5) 100%);
+                    border-color: rgba(0, 255, 127, 0.5);
+                }
+                
+                /* Existing styles for the rest of the component */
                 .hud-login-wrapper {
                     position: relative;
                     width: 90%;
@@ -1041,7 +1411,7 @@ const captureAndVerifyFace = async () => {
                     100% { transform: rotate(360deg); }
                 }
                 
-                /* Add some responsive adjustments */
+                /* Mobile responsive adjustments */
                 @media (max-width: 480px) {
                     .hud-login-inner {
                         padding: 1.5rem;
@@ -1056,12 +1426,27 @@ const captureAndVerifyFace = async () => {
                         font-size: 0.9rem;
                     }
                     
-                    .facial-recognition-container {
+                    .facial-recognition-container,
+                    .fingerprint-container {
                         padding: 1.5rem;
                     }
                     
                     .camera-container {
                         max-width: 300px;
+                    }
+                    
+                    .fingerprint-icon {
+                        width: 120px;
+                        height: 120px;
+                    }
+                    
+                    .fingerprint-svg {
+                        width: 60px;
+                        height: 60px;
+                    }
+                    
+                    .biometric-unlock-options {
+                        gap: 1rem;
                     }
                 }
             `}</style>
