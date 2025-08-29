@@ -16,6 +16,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import * as THREE from 'three';
 
 ChartJS.register(
   CategoryScale,
@@ -63,6 +64,16 @@ export default function BacktestedResults() {
     tradeStats: true,
     distribution: true,
   });
+  
+  // State for 3D visualizations
+  const [show3D, setShow3D] = useState(false);
+  const [threeDTypes, setThreeDTypes] = useState({
+    performanceSurface: true,
+    riskCube: true,
+    tradeOrbs: true,
+    portfolioLandscape: true,
+  });
+  const threeDRefs = useRef({});
 
   useEffect(() => {
     fetchBacktestResults();
@@ -500,6 +511,569 @@ export default function BacktestedResults() {
     }));
   };
 
+  const toggle3DType = (type) => {
+    setThreeDTypes(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
+
+  // 3D Visualization Functions
+  const create3DVisualization = (containerId, type) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Clear existing content
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
+    const width = container.clientWidth;
+    const height = 400;
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+    
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Enhanced lighting setup
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0x00ffff, 1);
+    directionalLight.position.set(15, 20, 10);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    scene.add(directionalLight);
+    
+    const pointLight = new THREE.PointLight(0xff4444, 0.5, 100);
+    pointLight.position.set(-10, 10, -10);
+    scene.add(pointLight);
+
+    // Get all results for visualization
+    const allResults = filteredData.flatMap(model => 
+      model.results.map(result => ({
+        ...result,
+        dataset: model.model_info.dataset,
+        modelId: model.model_info.id
+      }))
+    );
+
+    if (allResults.length === 0) return;
+
+    let controls = {
+      mouseX: 0,
+      mouseY: 0,
+      isMouseDown: false,
+      autoRotate: true
+    };
+
+    switch (type) {
+      case 'performanceSurface':
+        createPerformanceSurface(scene, allResults);
+        camera.position.set(15, 12, 15);
+        break;
+      case 'riskCube':
+        createRiskCube(scene, allResults);
+        camera.position.set(20, 15, 20);
+        break;
+      case 'tradeOrbs':
+        createTradeOrbs(scene, allResults);
+        camera.position.set(25, 20, 25);
+        break;
+      case 'portfolioLandscape':
+        createPortfolioLandscape(scene, allResults);
+        camera.position.set(30, 25, 30);
+        break;
+    }
+
+    camera.lookAt(0, 0, 0);
+
+    // Enhanced mouse controls with momentum
+    const handleMouseMove = (event) => {
+      if (!controls.isMouseDown) return;
+      
+      const rect = container.getBoundingClientRect();
+      const newMouseX = ((event.clientX - rect.left) / width) * 2 - 1;
+      const newMouseY = -((event.clientY - rect.top) / height) * 2 + 1;
+      
+      controls.mouseX = newMouseX;
+      controls.mouseY = newMouseY;
+      controls.autoRotate = false;
+      
+      const radius = 30;
+      camera.position.x = Math.sin(newMouseX * Math.PI) * radius;
+      camera.position.z = Math.cos(newMouseX * Math.PI) * radius;
+      camera.position.y = Math.max(5, newMouseY * 15 + 20);
+      camera.lookAt(0, 0, 0);
+    };
+
+    const handleMouseDown = () => { 
+      controls.isMouseDown = true;
+      controls.autoRotate = false;
+    };
+    
+    const handleMouseUp = () => { 
+      controls.isMouseDown = false;
+      setTimeout(() => { controls.autoRotate = true; }, 3000);
+    };
+    
+    const handleMouseLeave = () => { 
+      controls.isMouseDown = false;
+      controls.autoRotate = true;
+    };
+
+    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mousedown', handleMouseDown);
+    container.addEventListener('mouseup', handleMouseUp);
+    container.addEventListener('mouseleave', handleMouseLeave);
+
+    // Animation loop with enhanced effects
+    const animate = () => {
+      if (!container.contains(renderer.domElement)) return;
+      
+      requestAnimationFrame(animate);
+      
+      const time = Date.now() * 0.001;
+      
+      // Auto rotation when not being controlled
+      if (controls.autoRotate && !controls.isMouseDown) {
+        camera.position.x = Math.sin(time * 0.5) * 25;
+        camera.position.z = Math.cos(time * 0.5) * 25;
+        camera.position.y = 15 + Math.sin(time * 0.3) * 5;
+        camera.lookAt(0, 0, 0);
+      }
+      
+      // Animate scene objects
+      scene.traverse((object) => {
+        if (object.userData.pulseSpeed) {
+          const scale = 1 + Math.sin(time * object.userData.pulseSpeed * 8) * 0.15;
+          object.scale.setScalar(scale);
+        }
+        
+        if (object.userData.floatSpeed) {
+          object.position.y = object.userData.originalY + Math.sin(time * object.userData.floatSpeed * 15) * 0.8;
+        }
+        
+        if (object.userData.rotationSpeed) {
+          object.rotation.x += object.userData.rotationSpeed;
+          object.rotation.y += object.userData.rotationSpeed * 0.7;
+        }
+        
+        if (object.userData.colorShift) {
+          const hue = (time * 0.5 + object.userData.colorShift) % 1;
+          object.material.color.setHSL(hue, 0.8, 0.6);
+        }
+      });
+      
+      renderer.render(scene, camera);
+    };
+    
+    animate();
+
+    // Store cleanup function
+    threeDRefs.current[containerId] = () => {
+      container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('mousedown', handleMouseDown);
+      container.removeEventListener('mouseup', handleMouseUp);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  };
+
+  const createPerformanceSurface = (scene, results) => {
+    const segments = 64;
+    const geometry = new THREE.PlaneGeometry(25, 25, segments, segments);
+    const vertices = geometry.attributes.position.array;
+    
+    // Create complex height map based on multiple metrics
+    for (let i = 0; i < vertices.length; i += 3) {
+      const x = vertices[i];
+      const y = vertices[i + 1];
+      
+      // Base mathematical surface
+      const baseHeight = Math.sin(x * 0.2) * Math.cos(y * 0.2) * 3 +
+                        Math.sin(x * 0.1 + y * 0.1) * 2;
+      
+      // Data-driven modulation
+      if (results.length > 0) {
+        const dataIndex = Math.floor((i / 3) % results.length);
+        const result = results[dataIndex];
+        const returnMod = (result.return_percent / 50) * 4;
+        const sharpeMod = (result.sharpe_ratio || 0) * 1.5;
+        vertices[i + 2] = baseHeight + returnMod + sharpeMod;
+      } else {
+        vertices[i + 2] = baseHeight;
+      }
+    }
+    
+    geometry.attributes.position.needsUpdate = true;
+    geometry.computeVertexNormals();
+    
+    // Gradient material
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 }
+      },
+      vertexShader: `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        void main() {
+          vPosition = position;
+          vNormal = normal;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        void main() {
+          float height = vPosition.z + 5.0;
+          vec3 color1 = vec3(0.0, 1.0, 0.5); // Cyan
+          vec3 color2 = vec3(1.0, 0.2, 0.8); // Magenta
+          vec3 color3 = vec3(1.0, 1.0, 0.0); // Yellow
+          
+          float mixer = (height / 10.0) + sin(time + vPosition.x * 0.1) * 0.3;
+          vec3 finalColor = mix(mix(color1, color2, mixer), color3, max(0.0, mixer - 0.5));
+          
+          gl_FragColor = vec4(finalColor, 0.9);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    
+    const surface = new THREE.Mesh(geometry, material);
+    surface.rotation.x = -Math.PI / 2;
+    surface.receiveShadow = true;
+    surface.userData.timeUniform = material.uniforms.time;
+    scene.add(surface);
+    
+    // Add particle system above surface
+    const particleCount = 100;
+    const particleGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    
+    for (let i = 0; i < particleCount * 3; i += 3) {
+      positions[i] = (Math.random() - 0.5) * 30;
+      positions[i + 1] = Math.random() * 10 + 5;
+      positions[i + 2] = (Math.random() - 0.5) * 30;
+    }
+    
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particleMaterial = new THREE.PointsMaterial({
+      color: 0x00ffff,
+      size: 0.3,
+      transparent: true,
+      opacity: 0.6
+    });
+    
+    const particles = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(particles);
+  };
+
+  const createRiskCube = (scene, results) => {
+    const group = new THREE.Group();
+    
+    results.forEach((result, index) => {
+      const size = Math.abs(result.sharpe_ratio || 1) * 1.5 + 0.8;
+      const geometry = new THREE.BoxGeometry(size, size, size);
+      
+      // Enhanced material with gradients
+      const color = result.return_percent > 0 ? 
+        new THREE.Color().setHSL(0.3, 0.8, 0.6) :  // Green for positive
+        new THREE.Color().setHSL(0.0, 0.8, 0.6);   // Red for negative
+      
+      const material = new THREE.MeshPhongMaterial({ 
+        color: color,
+        transparent: true,
+        opacity: 0.85,
+        shininess: 100
+      });
+      
+      const cube = new THREE.Mesh(geometry, material);
+      
+      // Advanced positioning in 3D spiral
+      const angle = (index / results.length) * Math.PI * 4;
+      const heightOffset = index * 0.5;
+      const radius = 8 + Math.abs(result.volatility_annual || 0) * 0.3;
+      
+      cube.position.x = Math.cos(angle) * radius;
+      cube.position.z = Math.sin(angle) * radius;
+      cube.position.y = (result.return_percent / 8) + heightOffset;
+      
+      cube.rotation.x = angle;
+      cube.rotation.y = angle * 0.5;
+      cube.userData.rotationSpeed = 0.01 + Math.abs(result.sharpe_ratio || 0) * 0.005;
+      
+      cube.castShadow = true;
+      cube.receiveShadow = true;
+      group.add(cube);
+      
+      // Add wireframe outline
+      const wireGeometry = geometry.clone();
+      const wireMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x00ffff, 
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4
+      });
+      const wireframe = new THREE.Mesh(wireGeometry, wireMaterial);
+      wireframe.position.copy(cube.position);
+      wireframe.rotation.copy(cube.rotation);
+      wireframe.scale.multiplyScalar(1.02);
+      group.add(wireframe);
+    });
+    
+    scene.add(group);
+    
+    // Add central glowing core
+    const coreGeometry = new THREE.SphereGeometry(2, 16, 16);
+    const coreMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    core.userData.pulseSpeed = 0.02;
+    scene.add(core);
+  };
+
+  const createTradeOrbs = (scene, results) => {
+    const orbGroup = new THREE.Group();
+    
+    results.forEach((result, index) => {
+      const radius = (result.win_rate / 100) * 2.5 + 0.3;
+      const geometry = new THREE.SphereGeometry(radius, 20, 20);
+      
+      // Enhanced gradient material based on profit factor
+      const profitFactor = Math.max(0, Math.min(3, result.profit_factor || 1));
+      const hue = profitFactor * 0.15; // Green spectrum for better performance
+      const color = new THREE.Color().setHSL(hue, 0.9, 0.7);
+      
+      const material = new THREE.MeshPhongMaterial({ 
+        color: color,
+        transparent: true,
+        opacity: 0.8,
+        shininess: 150,
+        emissive: color.clone().multiplyScalar(0.2)
+      });
+      
+      const orb = new THREE.Mesh(geometry, material);
+      
+      // Complex 3D positioning based on multiple metrics
+      const sharpeNormalized = Math.max(-3, Math.min(3, result.sharpe_ratio || 0));
+      const returnNormalized = Math.max(-50, Math.min(50, result.return_percent || 0));
+      const drawdownNormalized = Math.max(-30, Math.min(0, result.max_drawdown || 0));
+      
+      orb.position.x = sharpeNormalized * 4;
+      orb.position.y = returnNormalized / 3;
+      orb.position.z = drawdownNormalized * 0.8;
+      
+      // Add complex animation data
+      orb.userData = {
+        originalScale: orb.scale.clone(),
+        pulseSpeed: 0.02 + (result.num_trades || 0) * 0.0001,
+        originalY: orb.position.y,
+        floatSpeed: 0.01 + index * 0.002,
+        colorShift: index * 0.1
+      };
+      
+      orb.castShadow = true;
+      orbGroup.add(orb);
+      
+      // Enhanced connecting lines with gradient
+      const lineGeometry = new THREE.BufferGeometry();
+      const linePositions = new Float32Array([
+        0, 0, 0,
+        orb.position.x, orb.position.y, orb.position.z
+      ]);
+      const lineColors = new Float32Array([
+        0, 1, 1,  // Cyan at origin
+        color.r, color.g, color.b  // Orb color at end
+      ]);
+      
+      lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+      lineGeometry.setAttribute('color', new THREE.BufferAttribute(lineColors, 3));
+      
+      const lineMaterial = new THREE.LineBasicMaterial({ 
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.6,
+        linewidth: 2
+      });
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      orbGroup.add(line);
+      
+      // Add orbital rings around high-performing orbs
+      if (result.return_percent > 10) {
+        const ringGeometry = new THREE.RingGeometry(radius + 0.5, radius + 0.8, 16);
+        const ringMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffff00,
+          transparent: true,
+          opacity: 0.5,
+          side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.position.copy(orb.position);
+        ring.lookAt(0, 0, 0);
+        ring.userData.rotationSpeed = 0.02;
+        orbGroup.add(ring);
+      }
+    });
+    
+    scene.add(orbGroup);
+  };
+
+  const createPortfolioLandscape = (scene, results) => {
+    const gridSize = Math.ceil(Math.sqrt(Math.max(results.length, 9)));
+    const spacing = 4;
+    const landscapeGroup = new THREE.Group();
+    
+    results.forEach((result, index) => {
+      const row = Math.floor(index / gridSize);
+      const col = index % gridSize;
+      
+      // Multi-segment tower based on performance
+      const baseHeight = Math.max(1, (result.return_percent / 8) + 3);
+      const segments = Math.min(8, Math.max(2, Math.floor(baseHeight / 2)));
+      
+      for (let seg = 0; seg < segments; seg++) {
+        const segmentHeight = baseHeight / segments;
+        const segmentRadius = 0.8 - (seg * 0.1);
+        const geometry = new THREE.CylinderGeometry(
+          segmentRadius, 
+          segmentRadius + 0.2, 
+          segmentHeight, 
+          12
+        );
+        
+        // Color gradient based on segment and performance
+        const riskAdjusted = result.return_percent / Math.max(result.volatility_annual || 1, 1);
+        const baseHue = Math.max(0, Math.min(0.35, riskAdjusted * 0.05 + 0.1));
+        const segmentHue = baseHue + (seg / segments) * 0.1;
+        const color = new THREE.Color().setHSL(segmentHue, 0.9, 0.7 - seg * 0.05);
+        
+        const material = new THREE.MeshPhongMaterial({ 
+          color: color,
+          shininess: 100,
+          emissive: color.clone().multiplyScalar(0.1)
+        });
+        
+        const tower = new THREE.Mesh(geometry, material);
+        
+        tower.position.x = (col - gridSize / 2) * spacing;
+        tower.position.z = (row - gridSize / 2) * spacing;
+        tower.position.y = (seg + 0.5) * segmentHeight;
+        
+        tower.castShadow = true;
+        tower.receiveShadow = true;
+        landscapeGroup.add(tower);
+      }
+      
+      // Add glowing top indicator
+      const capGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+      const capMaterial = new THREE.MeshBasicMaterial({ 
+        color: result.return_percent > 0 ? 0x00ff00 : 0xff4444,
+        transparent: true,
+        opacity: 0.9
+      });
+      const cap = new THREE.Mesh(capGeometry, capMaterial);
+      cap.position.x = (col - gridSize / 2) * spacing;
+      cap.position.z = (row - gridSize / 2) * spacing;
+      cap.position.y = baseHeight + 0.5;
+      
+      cap.userData = {
+        originalY: cap.position.y,
+        floatSpeed: 0.008 + index * 0.001,
+        pulseSpeed: 0.03
+      };
+      
+      landscapeGroup.add(cap);
+    });
+    
+    scene.add(landscapeGroup);
+    
+    // Enhanced ground with grid pattern
+    const groundSize = gridSize * spacing + 8;
+    const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 32, 32);
+    const groundMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying vec2 vUv;
+        void main() {
+          vec2 grid = fract(vUv * 20.0);
+          float line = smoothstep(0.0, 0.1, min(grid.x, grid.y)) * 
+                      smoothstep(0.9, 1.0, max(grid.x, grid.y));
+          
+          vec3 baseColor = vec3(0.05, 0.05, 0.1);
+          vec3 lineColor = vec3(0.0, 0.5, 1.0) * (0.5 + sin(time * 2.0) * 0.3);
+          
+          gl_FragColor = vec4(mix(baseColor, lineColor, line), 0.8);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.1;
+    ground.receiveShadow = true;
+    ground.userData.timeUniform = groundMaterial.uniforms.time;
+    scene.add(ground);
+  };
+
+  // Effect to create 3D visualizations when section is expanded
+  useEffect(() => {
+    if (show3D && filteredData.length > 0) {
+      setTimeout(() => {
+        if (threeDTypes.performanceSurface) {
+          create3DVisualization('performance-surface-3d', 'performanceSurface');
+        }
+        if (threeDTypes.riskCube) {
+          create3DVisualization('risk-cube-3d', 'riskCube');
+        }
+        if (threeDTypes.tradeOrbs) {
+          create3DVisualization('trade-orbs-3d', 'tradeOrbs');
+        }
+        if (threeDTypes.portfolioLandscape) {
+          create3DVisualization('portfolio-landscape-3d', 'portfolioLandscape');
+        }
+      }, 100);
+    }
+  }, [show3D, threeDTypes, filteredData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(threeDRefs.current).forEach(cleanup => {
+        if (typeof cleanup === 'function') cleanup();
+      });
+    };
+  }, []);
+
   return (
     <div>
       <div className="header">
@@ -656,6 +1230,14 @@ export default function BacktestedResults() {
                 >
                   {showCharts ? 'Hide Charts' : 'Show Analytics Charts'}
                 </button>
+                
+                <button 
+                  className="btn btn-primary charts-toggle-btn"
+                  onClick={() => setShow3D(!show3D)}
+                  style={{ marginLeft: '10px' }}
+                >
+                  {show3D ? 'Hide 3D Views' : 'Show 3D Visualizations'}
+                </button>
               </div>
               
               {showCharts && (
@@ -762,6 +1344,86 @@ export default function BacktestedResults() {
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {show3D && (
+                <div className="threed-container">
+                  <div className="threed-controls">
+                    <h6>3D Visualization Types:</h6>
+                    <div className="threed-toggles">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={threeDTypes.performanceSurface}
+                          onChange={() => toggle3DType('performanceSurface')}
+                        />
+                        Performance Surface
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={threeDTypes.riskCube}
+                          onChange={() => toggle3DType('riskCube')}
+                        />
+                        Risk Cube Matrix
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={threeDTypes.tradeOrbs}
+                          onChange={() => toggle3DType('tradeOrbs')}
+                        />
+                        Trade Orb Galaxy
+                      </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={threeDTypes.portfolioLandscape}
+                          onChange={() => toggle3DType('portfolioLandscape')}
+                        />
+                        Portfolio Landscape
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="threed-grid">
+                    {threeDTypes.performanceSurface && (
+                      <div className="threed-item">
+                        <h6>Performance Surface</h6>
+                        <p className="threed-description">Interactive 3D surface showing return patterns. Height represents performance, colors show profitability.</p>
+                        <div id="performance-surface-3d" className="threed-wrapper"></div>
+                      </div>
+                    )}
+                    
+                    {threeDTypes.riskCube && (
+                      <div className="threed-item">
+                        <h6>Risk Cube Matrix</h6>
+                        <p className="threed-description">Rotating cubes sized by Sharpe ratio, positioned by volatility, colored by returns.</p>
+                        <div id="risk-cube-3d" className="threed-wrapper"></div>
+                      </div>
+                    )}
+                    
+                    {threeDTypes.tradeOrbs && (
+                      <div className="threed-item">
+                        <h6>Trade Orb Galaxy</h6>
+                        <p className="threed-description">Pulsing spheres sized by win rate, positioned by risk metrics, with animated connections.</p>
+                        <div id="trade-orbs-3d" className="threed-wrapper"></div>
+                      </div>
+                    )}
+                    
+                    {threeDTypes.portfolioLandscape && (
+                      <div className="threed-item">
+                        <h6>Portfolio Landscape</h6>
+                        <p className="threed-description">3D city of performance towers. Height shows returns, color indicates risk-adjusted performance.</p>
+                        <div id="portfolio-landscape-3d" className="threed-wrapper"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="threed-instructions">
+                    <p><strong>Controls:</strong> Click and drag to rotate the view. Visualizations auto-rotate when not being controlled.</p>
                   </div>
                 </div>
               )}
