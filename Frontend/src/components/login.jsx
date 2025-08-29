@@ -22,13 +22,12 @@ export default function Login() {
     const [facialRecognitionStep, setFacialRecognitionStep] = useState('prepare');
     const [faceVerified, setFaceVerified] = useState(false);
     const [userInteracted, setUserInteracted] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
     
     // Fingerprint authentication states
     const [fingerprintSupported, setFingerprintSupported] = useState(false);
     const [fingerprintRegistered, setFingerprintRegistered] = useState(false);
     const [showFingerprintAuth, setShowFingerprintAuth] = useState(false);
-    const [fingerprintStep, setFingerprintStep] = useState('prepare');
+    const [fingerprintStep, setFingerprintStep] = useState('prepare'); // prepare, scanning, complete
     
     const uniqueID = uuidv4();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
@@ -40,98 +39,10 @@ export default function Login() {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
+
+    // References for animation
     const scanlineRef = useRef(null);
     const containerRef = useRef(null);
-
-    // Device fingerprint for persistent lockout
-    const getDeviceFingerprint = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillText('Device fingerprint', 2, 2);
-        
-        const fingerprint = [
-            navigator.userAgent,
-            navigator.language,
-            screen.width + 'x' + screen.height,
-            new Date().getTimezoneOffset(),
-            canvas.toDataURL()
-        ].join('|');
-        
-        return btoa(fingerprint).substring(0, 32);
-    };
-
-    // Check if device is mobile
-    const detectMobileDevice = () => {
-        const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const hasSmallScreen = window.innerWidth <= 768;
-        
-        return isMobileUserAgent || (isTouchDevice && hasSmallScreen);
-    };
-
-    // Persistent lockout management
-    const LOCKOUT_KEY = 'auth_lockout_';
-    const MAX_ATTEMPTS = 3;
-    const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
-
-    const getLockoutData = () => {
-        const deviceId = getDeviceFingerprint();
-        const lockoutData = localStorage.getItem(LOCKOUT_KEY + deviceId);
-        
-        if (!lockoutData) return null;
-        
-        try {
-            return JSON.parse(lockoutData);
-        } catch {
-            return null;
-        }
-    };
-
-    const setLockoutData = (attempts, isLocked = false) => {
-        const deviceId = getDeviceFingerprint();
-        const lockoutData = {
-            attempts,
-            isLocked,
-            timestamp: Date.now(),
-            deviceId
-        };
-        
-        localStorage.setItem(LOCKOUT_KEY + deviceId, JSON.stringify(lockoutData));
-    };
-
-    const clearLockoutData = () => {
-        const deviceId = getDeviceFingerprint();
-        localStorage.removeItem(LOCKOUT_KEY + deviceId);
-    };
-
-    const checkLockoutStatus = () => {
-        const lockoutData = getLockoutData();
-        
-        if (!lockoutData) {
-            setFailedAttempts(0);
-            setIsLockedOut(false);
-            return;
-        }
-
-        const timePassed = Date.now() - lockoutData.timestamp;
-        
-        if (lockoutData.isLocked && timePassed < LOCKOUT_DURATION) {
-            setIsLockedOut(true);
-            setFailedAttempts(lockoutData.attempts);
-            const remainingTime = Math.ceil((LOCKOUT_DURATION - timePassed) / (60 * 1000));
-            speak(`Account is locked. ${remainingTime} minutes remaining. Please use biometric authentication.`);
-        } else if (lockoutData.isLocked && timePassed >= LOCKOUT_DURATION) {
-            // Lockout period expired
-            clearLockoutData();
-            setIsLockedOut(false);
-            setFailedAttempts(0);
-        } else {
-            setFailedAttempts(lockoutData.attempts);
-            setIsLockedOut(false);
-        }
-    };
 
     const fetchAPIKey = async () => {
         try {
@@ -155,14 +66,17 @@ export default function Login() {
             const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
             setFingerprintSupported(available);
             
+            // Check if user has already registered fingerprint - verify all required data exists
             const registered = localStorage.getItem('fingerprintRegistered') === 'true';
             const credentialId = localStorage.getItem('fingerprintCredentialId');
             const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
             
+            // Only consider registered if we have all the required data
             const fullyRegistered = registered && credentialId && rawIdString;
             setFingerprintRegistered(fullyRegistered);
             
             if (registered && !fullyRegistered) {
+                // Clean up incomplete registration
                 localStorage.removeItem('fingerprintRegistered');
                 localStorage.removeItem('fingerprintCredentialId');
                 localStorage.removeItem('fingerprintCredentialRawId');
@@ -187,9 +101,11 @@ export default function Login() {
             speak("Registering fingerprint. Please follow the device prompts.");
             console.log("Starting fingerprint registration...");
             
+            // Generate a proper challenge
             const challenge = new Uint8Array(32);
             crypto.getRandomValues(challenge);
             
+            // Clear any existing registration data first
             localStorage.removeItem('fingerprintRegistered');
             localStorage.removeItem('fingerprintCredentialId');
             localStorage.removeItem('fingerprintCredentialRawId');
@@ -207,8 +123,8 @@ export default function Login() {
                         displayName: "Tlotlo Motingwe",
                     },
                     pubKeyCredParams: [
-                        { type: "public-key", alg: -7 },
-                        { type: "public-key", alg: -257 },
+                        { type: "public-key", alg: -7 }, // ES256
+                        { type: "public-key", alg: -257 }, // RS256
                     ],
                     authenticatorSelection: {
                         authenticatorAttachment: "platform",
@@ -221,15 +137,19 @@ export default function Login() {
             });
 
             if (credential && credential.id && credential.rawId) {
-                console.log("Fingerprint credential created successfully");
+                console.log("Fingerprint credential created successfully", {
+                    id: credential.id,
+                    rawIdLength: credential.rawId.byteLength
+                });
                 
+                // Store credential info properly
                 localStorage.setItem('fingerprintCredentialId', credential.id);
                 localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
                 localStorage.setItem('fingerprintRegistered', 'true');
                 
                 setFingerprintRegistered(true);
                 speak("Fingerprint registered successfully. You can now use fingerprint authentication.");
-                setError("");
+                setError(""); // Clear any previous errors
                 return true;
             } else {
                 throw new Error("Invalid credential response");
@@ -237,6 +157,7 @@ export default function Login() {
         } catch (error) {
             console.error("Fingerprint registration failed:", error);
             
+            // Clean up any partial data
             localStorage.removeItem('fingerprintRegistered');
             localStorage.removeItem('fingerprintCredentialId');
             localStorage.removeItem('fingerprintCredentialRawId');
@@ -260,6 +181,23 @@ export default function Login() {
         }
     };
 
+    // Add debug function to check stored data
+    const debugFingerprintData = () => {
+        const registered = localStorage.getItem('fingerprintRegistered');
+        const credentialId = localStorage.getItem('fingerprintCredentialId');
+        const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
+        
+        console.log("Fingerprint Debug Data:", {
+            registered,
+            credentialId,
+            rawIdString: rawIdString ? `${rawIdString.length} chars` : null,
+            fingerprintSupported,
+            fingerprintRegistered
+        });
+        
+        return { registered, credentialId, rawIdString };
+    };
+
     // Authenticate with fingerprint
     const authenticateWithFingerprint = async () => {
         if (!fingerprintSupported || !fingerprintRegistered) return false;
@@ -269,6 +207,10 @@ export default function Login() {
             setFingerprintStep('scanning');
             speak("Please place your finger on the fingerprint sensor.");
 
+            // Debug current state
+            const debugData = debugFingerprintData();
+            console.log("Starting authentication with data:", debugData);
+
             const credentialId = localStorage.getItem('fingerprintCredentialId');
             const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
             
@@ -276,8 +218,11 @@ export default function Login() {
                 throw new Error("No fingerprint credential found. Please re-register.");
             }
 
+            // Convert stored rawId back to Uint8Array
             const rawId = new Uint8Array(rawIdString.split(',').map(x => parseInt(x)));
+            console.log("Using rawId with length:", rawId.length);
             
+            // Generate a proper challenge
             const challenge = new Uint8Array(32);
             crypto.getRandomValues(challenge);
 
@@ -295,19 +240,16 @@ export default function Login() {
             });
 
             if (credential) {
-                console.log("Fingerprint authentication successful!");
+                console.log("Authentication successful!");
                 setFingerprintStep('complete');
                 speak("Fingerprint authentication successful. Access granted.");
                 
+                // Set user as authenticated
                 const userEmail = 'tlotlo.motingwe@example.com';
                 Cookies.set('email', userEmail);
                 Cookies.set('account_name', userEmail);
                 
-                // Clear lockout on successful biometric auth
-                clearLockoutData();
-                
                 setAccessGranted(true);
-                playAccessGranted();
                 
                 setTimeout(() => {
                     setShowFingerprintAuth(false);
@@ -327,6 +269,7 @@ export default function Login() {
             } else if (error.name === 'InvalidStateError') {
                 speak("No fingerprint credentials found. Please register your fingerprint first.");
                 setError("No fingerprint credentials found. Please re-register.");
+                // Reset registration status
                 localStorage.removeItem('fingerprintCredentialId');
                 localStorage.removeItem('fingerprintRegistered');
                 localStorage.removeItem('fingerprintCredentialRawId');
@@ -365,22 +308,69 @@ export default function Login() {
     const handleUserInteraction = () => {
         if (!userInteracted) {
             setUserInteracted(true);
-            
-            if (isMobile) {
-                if (fingerprintSupported && fingerprintRegistered) {
-                    speak("Welcome to the secure authentication system. Please use your fingerprint to authenticate.");
-                } else if (fingerprintSupported && !fingerprintRegistered) {
-                    speak("Welcome. Please register your fingerprint for secure mobile authentication.");
-                } else {
-                    speak("Welcome. Fingerprint authentication not available. Facial recognition will be used.");
-                }
+            if (fingerprintSupported && fingerprintRegistered) {
+                speak("Welcome to the secure authentication system. You can use fingerprint authentication or enter your credentials.");
+            } else if (fingerprintSupported && !fingerprintRegistered) {
+                speak("Welcome to the secure authentication system. You can register your fingerprint for quick access or enter your credentials.");
             } else {
                 speak("Welcome to the secure authentication system. Please enter your credentials.");
             }
         }
     };
 
-    // Play audio functions
+    // Create the audio elements and check fingerprint support
+    useEffect(() => {
+        fetchAPIKey();
+        checkFingerprintSupport();
+        
+        const grantedAudio = new Audio(access_granted_audio);
+        const deniedAudio = new Audio(access_denied_audio);
+        
+        accessGrantedAudioRef.current = grantedAudio;
+        accessDeniedAudioRef.current = deniedAudio;
+        
+        const intervalId = setInterval(() => {
+            if (scanlineRef.current) {
+                scanlineRef.current.style.top = Math.random() * 100 + "%";
+                scanlineRef.current.style.opacity = (Math.random() * 0.4 + 0.2);
+            }
+        }, 1000);
+        
+        const container = containerRef.current;
+        if (container) {
+            container.addEventListener('click', handleUserInteraction);
+            container.addEventListener('keydown', handleUserInteraction);
+        }
+        
+        return () => {
+            clearInterval(intervalId);
+            if (accessGrantedAudioRef.current) {
+                accessGrantedAudioRef.current.pause();
+            }
+            if (accessDeniedAudioRef.current) {
+                accessDeniedAudioRef.current.pause();
+            }
+            if (container) {
+                container.removeEventListener('click', handleUserInteraction);
+                container.removeEventListener('keydown', handleUserInteraction);
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, []);
+
+    // Load voices when available
+    useEffect(() => {
+        const loadVoices = () => {
+            window.speechSynthesis.getVoices();
+        };
+        
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }, []);
+
     const playAccessGranted = () => {
         if (accessGrantedAudioRef.current && userInteracted) {
             accessGrantedAudioRef.current.play().catch(e => console.error("Audio playback failed:", e));
@@ -393,7 +383,7 @@ export default function Login() {
         }
     };
 
-    // Start facial recognition camera
+    // Start facial recognition camera (existing function)
     const startFacialRecognition = async () => {
         setShowFacialRecognition(true);
         setFacialRecognitionStep('prepare');
@@ -426,7 +416,7 @@ export default function Login() {
         }
     };
 
-    // Capture and verify face
+    // Capture and verify face (existing function)
     const captureAndVerifyFace = async () => {
         if (!videoRef.current || !canvasRef.current) return;
         
@@ -492,9 +482,6 @@ export default function Login() {
                 const userEmail = email || 'tlotlo.motingwe@example.com';
                 Cookies.set('email', userEmail);
                 
-                // Clear lockout on successful biometric auth
-                clearLockoutData();
-                
                 setTimeout(() => {
                     setShowFacialRecognition(false);
                     speak("Facial identity confirmed. Welcome back, Mr Motingwe.");
@@ -510,7 +497,7 @@ export default function Login() {
             
         } catch (error) {
             console.error("Error in facial recognition:", error);
-            speak("Facial recognition system error. Please try again.");
+            speak(`Facial recognition system error. Please try again.`);
             setError("SYSTEM ERROR: Facial recognition unavailable");
             setFacialRecognitionStep('prepare');
         }
@@ -534,48 +521,6 @@ export default function Login() {
         });
     };
 
-    // Auto-start authentication based on device type
-    const startDeviceAppropriateAuth = async () => {
-        if (!userInteracted) {
-            handleUserInteraction();
-            return;
-        }
-
-        if (isMobile) {
-            // Mobile: Try fingerprint first, then facial recognition
-            if (fingerprintSupported && fingerprintRegistered) {
-                const success = await authenticateWithFingerprint();
-                if (!success) {
-                    // Fallback to facial recognition
-                    setTimeout(() => {
-                        startFacialRecognition();
-                    }, 1000);
-                }
-            } else if (fingerprintSupported && !fingerprintRegistered) {
-                // Offer to register fingerprint first
-                const shouldRegister = await new Promise((resolve) => {
-                    speak("Would you like to register your fingerprint for secure authentication?");
-                    // Auto-proceed with registration for demo purposes
-                    setTimeout(() => resolve(true), 2000);
-                });
-                
-                if (shouldRegister) {
-                    const registered = await registerFingerprint();
-                    if (registered) {
-                        await authenticateWithFingerprint();
-                    } else {
-                        startFacialRecognition();
-                    }
-                } else {
-                    startFacialRecognition();
-                }
-            } else {
-                // No fingerprint support, use facial recognition
-                startFacialRecognition();
-            }
-        }
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -584,16 +529,12 @@ export default function Login() {
             return;
         }
         
-        // Check if this is a mobile device trying to use traditional login
-        if (isMobile) {
-            speak("Mobile devices use biometric authentication only.");
-            setError("Mobile devices require biometric authentication. Please use fingerprint or facial recognition.");
-            return;
-        }
-        
         if (isLockedOut) {
-            speak("Account is locked due to multiple failed attempts. Please try facial recognition.");
-            if (!faceVerified) {
+            speak("Account is locked due to multiple failed attempts. Please try facial recognition or fingerprint authentication.");
+            if (!faceVerified && fingerprintSupported && fingerprintRegistered) {
+                await authenticateWithFingerprint();
+                return;
+            } else if (!faceVerified) {
                 startFacialRecognition();
             }
             return;
@@ -634,30 +575,23 @@ export default function Login() {
                 const { email } = await response.json();
                 Cookies.set('email', email);
                 
-                // Clear lockout on successful login
-                clearLockoutData();
-                
                 setAccessGranted(true);
                 speak("Access granted. Welcome back, Mr Motingwe. Initializing secure connection.");
-                playAccessGranted();
                 
                 setTimeout(() => {
                     Cookies.set('account_name', email);
                     navigate(`/personal_info`);
                 }, 5000);
             } else {
-                const currentAttempts = failedAttempts + 1;
-                setFailedAttempts(currentAttempts);
-                playAccessDenied();
+                const newFailedAttempts = failedAttempts + 1;
+                setFailedAttempts(newFailedAttempts);
                 
-                if (currentAttempts >= MAX_ATTEMPTS) {
+                if (newFailedAttempts >= 3) {
                     setIsLockedOut(true);
-                    setLockoutData(currentAttempts, true);
-                    setError("ACCOUNT LOCKED: Too many failed attempts. Facial recognition required.");
-                    speak("Account locked due to multiple failed attempts. Please use facial recognition.");
+                    setError("ACCOUNT LOCKED: Too many failed attempts. Biometric authentication required.");
+                    speak("Account locked due to multiple failed attempts. Please use fingerprint or facial recognition.");
                 } else {
-                    const remainingAttempts = MAX_ATTEMPTS - currentAttempts;
-                    setLockoutData(currentAttempts, false);
+                    const remainingAttempts = 3 - newFailedAttempts;
                     setError(`AUTHENTICATION FAILED: Invalid Credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
                     speak(`Authentication failed. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
                 }
@@ -665,80 +599,10 @@ export default function Login() {
         } catch (error) {
             setError("CONNECTION ERROR: Unable to reach authentication server");
             speak("Connection error. Please check your network and try again.");
-            playAccessDenied();
         } finally {
             setLoading(false);
         }
     };
-
-    // Initialize component
-    useEffect(() => {
-        const mobile = detectMobileDevice();
-        setIsMobile(mobile);
-        
-        fetchAPIKey();
-        checkFingerprintSupport();
-        checkLockoutStatus();
-        
-        const grantedAudio = new Audio(access_granted_audio);
-        const deniedAudio = new Audio(access_denied_audio);
-        
-        accessGrantedAudioRef.current = grantedAudio;
-        accessDeniedAudioRef.current = deniedAudio;
-        
-        const intervalId = setInterval(() => {
-            if (scanlineRef.current) {
-                scanlineRef.current.style.top = Math.random() * 100 + "%";
-                scanlineRef.current.style.opacity = (Math.random() * 0.4 + 0.2);
-            }
-        }, 1000);
-        
-        const container = containerRef.current;
-        if (container) {
-            container.addEventListener('click', handleUserInteraction);
-            container.addEventListener('keydown', handleUserInteraction);
-        }
-        
-        return () => {
-            clearInterval(intervalId);
-            if (accessGrantedAudioRef.current) {
-                accessGrantedAudioRef.current.pause();
-            }
-            if (accessDeniedAudioRef.current) {
-                accessDeniedAudioRef.current.pause();
-            }
-            if (container) {
-                container.removeEventListener('click', handleUserInteraction);
-                container.removeEventListener('keydown', handleUserInteraction);
-            }
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
-
-    // Auto-start mobile authentication after user interaction
-    useEffect(() => {
-        if (userInteracted && isMobile && !isLockedOut && !accessGranted) {
-            // Small delay to let user see the interface
-            const timer = setTimeout(() => {
-                startDeviceAppropriateAuth();
-            }, 2000);
-            
-            return () => clearTimeout(timer);
-        }
-    }, [userInteracted, isMobile, isLockedOut, accessGranted]);
-
-    // Load voices when available
-    useEffect(() => {
-        const loadVoices = () => {
-            window.speechSynthesis.getVoices();
-        };
-        
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
-    }, []);
 
     return (
         <div className="hud-container" ref={containerRef}>
@@ -783,7 +647,7 @@ export default function Login() {
                 </div>
             )}
             
-            {/* Facial Recognition Overlay */}
+            {/* Facial Recognition Overlay (existing) */}
             {showFacialRecognition && (
                 <div className="facial-recognition-overlay">
                     <div className="facial-recognition-container">
@@ -837,29 +701,18 @@ export default function Login() {
                 <div className="hud-login-inner">
                     <div className="hud-header">
                         <h3 className="hud-title">SECURE ACCESS</h3>
-                        <div className="hud-subtitle">
-                            {isMobile ? "BIOMETRIC AUTHENTICATION" : "AUTHENTICATION REQUIRED"}
-                        </div>
-                        
-                        {/* Device type indicator */}
-                        <div className="device-indicator">
-                            {isMobile ? "📱 MOBILE DEVICE DETECTED" : "💻 DESKTOP DEVICE DETECTED"}
-                        </div>
+                        <div className="hud-subtitle">AUTHENTICATION REQUIRED</div>
                         
                         {/* Biometric options display */}
-                        {isMobile && (
-                            <div className="mobile-auth-info">
-                                {fingerprintSupported && fingerprintRegistered ? (
+                        {fingerprintSupported && (
+                            <div className="biometric-options">
+                                {fingerprintRegistered ? (
                                     <div className="biometric-available">
-                                        🔒 Fingerprint authentication ready
-                                    </div>
-                                ) : fingerprintSupported ? (
-                                    <div className="biometric-setup">
-                                        📱 Fingerprint setup required
+                                        🔒 Fingerprint authentication available
                                     </div>
                                 ) : (
-                                    <div className="biometric-fallback">
-                                        👁️ Facial recognition available
+                                    <div className="biometric-setup">
+                                        📱 Fingerprint setup available
                                     </div>
                                 )}
                             </div>
@@ -879,140 +732,110 @@ export default function Login() {
                             <div className="access-granted-message">Initializing secure connection...</div>
                         </div>
                     ) : (
-                        <div>
+                        <form onSubmit={handleSubmit} className="hud-form">
                             {error && <div className="hud-error-message">{error}</div>}
                             
-                            {/* Mobile Authentication Interface */}
-                            {isMobile ? (
-                                <div className="mobile-auth-container">
-                                    {!isLockedOut && (
-                                        <div className="mobile-auth-buttons">
-                                            {fingerprintSupported && fingerprintRegistered && (
-                                                <button 
-                                                    type="button"
-                                                    className="hud-button fingerprint-quick-button"
-                                                    onClick={authenticateWithFingerprint}
-                                                    disabled={loading}
-                                                >
-                                                    🔓 AUTHENTICATE WITH FINGERPRINT
-                                                </button>
-                                            )}
-                                            
-                                            {fingerprintSupported && !fingerprintRegistered && (
-                                                <button 
-                                                    type="button"
-                                                    className="hud-button fingerprint-register-button"
-                                                    onClick={registerFingerprint}
-                                                    disabled={loading}
-                                                >
-                                                    📱 REGISTER FINGERPRINT
-                                                </button>
-                                            )}
-                                            
-                                            <button 
-                                                type="button"
-                                                className="hud-button facial-recognition-button"
-                                                onClick={startFacialRecognition}
-                                                disabled={loading}
-                                            >
-                                                👁️ FACIAL RECOGNITION
-                                            </button>
-                                        </div>
-                                    )}
-                                    
-                                    {isLockedOut && (
-                                        <div className="mobile-lockout-options">
-                                            {fingerprintSupported && fingerprintRegistered && (
-                                                <button 
-                                                    type="button"
-                                                    className="hud-button fingerprint-unlock-button"
-                                                    onClick={authenticateWithFingerprint}
-                                                >
-                                                    🔓 FINGERPRINT UNLOCK
-                                                </button>
-                                            )}
-                                            <button 
-                                                type="button"
-                                                className="hud-button facial-recognition-button"
-                                                onClick={startFacialRecognition}
-                                            >
-                                                👁️ FACIAL RECOGNITION UNLOCK
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                /* Desktop Authentication Interface */
-                                <form onSubmit={handleSubmit} className="hud-form">
-                                    <div className="hud-input-group">
-                                        <label className="hud-label">
-                                            <span className="hud-label-text">USER ID</span>
-                                            <div className="hud-input-container">
-                                                <input
-                                                    type="email"
-                                                    className="hud-input"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    placeholder="Enter email"
-                                                    disabled={isLockedOut && !faceVerified}
-                                                />
-                                                <div className="hud-input-border"></div>
-                                            </div>
-                                            {emailError && <div className="hud-field-error">{emailError}</div>}
-                                        </label>
-                                    </div>
-                                    
-                                    <div className="hud-input-group">
-                                        <label className="hud-label">
-                                            <span className="hud-label-text">SECURITY KEY</span>
-                                            <div className="hud-input-container">
-                                                <input
-                                                    type="password"
-                                                    className="hud-input"
-                                                    value={password}
-                                                    onChange={(e) => setPassword(e.target.value)}
-                                                    placeholder="Enter password"
-                                                    disabled={isLockedOut && !faceVerified}
-                                                />
-                                                <div className="hud-input-border"></div>
-                                            </div>
-                                            {passwordError && <div className="hud-field-error">{passwordError}</div>}
-                                        </label>
-                                    </div>
-                                    
-                                    <button 
-                                        type="submit" 
-                                        className={`hud-button ${loading ? 'hud-button-loading' : ''} ${isLockedOut && !faceVerified ? 'hud-button-disabled' : ''}`} 
-                                        disabled={loading || (isLockedOut && !faceVerified)}
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <span className="hud-button-text">VERIFYING</span>
-                                                <span className="hud-loading-dots">...</span>
-                                            </>
-                                        ) : isLockedOut && !faceVerified ? 'LOCKED - BIOMETRIC SCAN REQUIRED' : 'AUTHENTICATE'}
-                                    </button>
-                                    
-                                    {/* Desktop biometric unlock when locked out */}
-                                    {isLockedOut && !faceVerified && (
-                                        <div className="desktop-unlock-options">
-                                            <button 
-                                                type="button"
-                                                className="hud-button facial-recognition-button"
-                                                onClick={startFacialRecognition}
-                                            >
-                                                👁️ FACIAL RECOGNITION UNLOCK
-                                            </button>
-                                        </div>
-                                    )}
-                                </form>
+                            {/* Quick fingerprint authentication button */}
+                            {fingerprintSupported && fingerprintRegistered && !isLockedOut && (
+                                <button 
+                                    type="button"
+                                    className="hud-button fingerprint-quick-button"
+                                    onClick={authenticateWithFingerprint}
+                                    disabled={loading}
+                                >
+                                    🔓 AUTHENTICATE WITH FINGERPRINT
+                                </button>
                             )}
-                        </div>
+                            
+                            {/* Register fingerprint button */}
+                            {fingerprintSupported && !fingerprintRegistered && !isLockedOut && (
+                                <button 
+                                    type="button"
+                                    className="hud-button fingerprint-register-button"
+                                    onClick={registerFingerprint}
+                                    disabled={loading}
+                                >
+                                    📱 REGISTER FINGERPRINT
+                                </button>
+                            )}
+                            
+                            <div className="hud-input-group">
+                                <label className="hud-label">
+                                    <span className="hud-label-text">USER ID</span>
+                                    <div className="hud-input-container">
+                                        <input
+                                            type="email"
+                                            className="hud-input"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="Enter email"
+                                            disabled={isLockedOut && !faceVerified}
+                                        />
+                                        <div className="hud-input-border"></div>
+                                    </div>
+                                    {emailError && <div className="hud-field-error">{emailError}</div>}
+                                </label>
+                            </div>
+                            
+                            <div className="hud-input-group">
+                                <label className="hud-label">
+                                    <span className="hud-label-text">SECURITY KEY</span>
+                                    <div className="hud-input-container">
+                                        <input
+                                            type="password"
+                                            className="hud-input"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Enter password"
+                                            disabled={isLockedOut && !faceVerified}
+                                        />
+                                        <div className="hud-input-border"></div>
+                                    </div>
+                                    {passwordError && <div className="hud-field-error">{passwordError}</div>}
+                                </label>
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                className={`hud-button ${loading ? 'hud-button-loading' : ''} ${isLockedOut && !faceVerified ? 'hud-button-disabled' : ''}`} 
+                                disabled={loading || (isLockedOut && !faceVerified)}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="hud-button-text">VERIFYING</span>
+                                        <span className="hud-loading-dots">...</span>
+                                    </>
+                                ) : isLockedOut && !faceVerified ? 'LOCKED - BIOMETRIC SCAN REQUIRED' : 'AUTHENTICATE'}
+                            </button>
+                            
+                            {/* Biometric unlock options when locked out */}
+                            {isLockedOut && !faceVerified && (
+                                <div className="biometric-unlock-options">
+                                    {fingerprintSupported && fingerprintRegistered && (
+                                        <button 
+                                            type="button"
+                                            className="hud-button fingerprint-unlock-button"
+                                            onClick={authenticateWithFingerprint}
+                                        >
+                                            🔓 FINGERPRINT UNLOCK
+                                        </button>
+                                    )}
+                                    <button 
+                                        type="button"
+                                        className="hud-button facial-recognition-button"
+                                        onClick={startFacialRecognition}
+                                    >
+                                        👁️ FACIAL RECOGNITION UNLOCK
+                                    </button>
+                                </div>
+                            )}
+                        </form>
                     )}
                 </div>
             </div>
             
             <style jsx>{`
+                /* Previous styles remain the same, adding fingerprint-specific styles */
                 .hud-container {
                     position: relative;
                     width: 100%;
@@ -1119,20 +942,28 @@ export default function Login() {
                     animation: pulseGreen 2s infinite;
                 }
                 
-                /* Device indicator */
-                .device-indicator {
-                    color: rgba(0, 162, 255, 0.7);
-                    font-size: 0.8rem;
-                    letter-spacing: 1px;
-                    margin-top: 0.5rem;
-                    padding: 0.3rem 0.8rem;
-                    border: 1px solid rgba(0, 162, 255, 0.3);
-                    border-radius: 15px;
-                    background-color: rgba(0, 162, 255, 0.05);
+                @keyframes pulseFingerprintScan {
+                    0% { 
+                        border-color: #00ff9d;
+                        box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+                    }
+                    50% { 
+                        border-color: #00a2ff;
+                        box-shadow: 0 0 30px rgba(0, 162, 255, 0.7);
+                    }
+                    100% { 
+                        border-color: #00ff9d;
+                        box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+                    }
                 }
                 
-                /* Mobile auth specific styles */
-                .mobile-auth-info {
+                @keyframes rotateScan {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                /* Biometric options styling */
+                .biometric-options {
                     margin: 1rem 0;
                     font-size: 0.9rem;
                 }
@@ -1155,47 +986,21 @@ export default function Login() {
                     letter-spacing: 1px;
                 }
                 
-                .biometric-fallback {
-                    color: #00a2ff;
-                    background-color: rgba(0, 162, 255, 0.1);
-                    border: 1px solid rgba(0, 162, 255, 0.3);
-                    padding: 0.5rem;
-                    border-radius: 4px;
-                    letter-spacing: 1px;
-                }
-                
-                .mobile-auth-container {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-                
-                .mobile-auth-buttons {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-                
-                .mobile-lockout-options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-                
-                .desktop-unlock-options {
+                .biometric-unlock-options {
                     display: flex;
                     flex-direction: column;
                     gap: 0.5rem;
                     margin-top: 1rem;
                 }
                 
-                /* Button variations for different auth methods */
+                /* Button variations for biometric functions */
                 .fingerprint-quick-button {
                     background: linear-gradient(90deg, 
                                 rgba(0, 100, 50, 0.5) 0%, 
                                 rgba(0, 180, 90, 0.6) 50%,
                                 rgba(0, 100, 50, 0.5) 100%);
                     border-color: rgba(0, 255, 127, 0.5);
+                    margin-bottom: 1rem;
                 }
                 
                 .fingerprint-register-button {
@@ -1204,6 +1009,7 @@ export default function Login() {
                                 rgba(180, 140, 0, 0.6) 50%,
                                 rgba(100, 80, 0, 0.5) 100%);
                     border-color: rgba(255, 215, 0, 0.5);
+                    margin-bottom: 1rem;
                 }
                 
                 .fingerprint-unlock-button {
@@ -1214,15 +1020,7 @@ export default function Login() {
                     border-color: rgba(0, 255, 127, 0.5);
                 }
                 
-                .facial-recognition-button {
-                    background: linear-gradient(90deg, 
-                                rgba(0, 100, 50, 0.5) 0%, 
-                                rgba(0, 180, 90, 0.6) 50%,
-                                rgba(0, 100, 50, 0.5) 100%);
-                    border-color: rgba(0, 255, 127, 0.5);
-                }
-                
-                /* HUD Login wrapper and existing styles */
+                /* Existing styles for the rest of the component */
                 .hud-login-wrapper {
                     position: relative;
                     width: 90%;
@@ -1319,6 +1117,12 @@ export default function Login() {
                     margin-top: 1rem;
                     letter-spacing: 1px;
                     animation: pulseRed 2s infinite;
+                }
+                
+                @keyframes pulseRed {
+                    0% { box-shadow: 0 0 5px rgba(255, 69, 0, 0.3); }
+                    50% { box-shadow: 0 0 15px rgba(255, 69, 0, 0.6); }
+                    100% { box-shadow: 0 0 5px rgba(255, 69, 0, 0.3); }
                 }
                 
                 .hud-form {
@@ -1449,6 +1253,15 @@ export default function Login() {
                     cursor: not-allowed;
                 }
                 
+                .facial-recognition-button {
+                    background: linear-gradient(90deg, 
+                                rgba(0, 100, 50, 0.5) 0%, 
+                                rgba(0, 180, 90, 0.6) 50%,
+                                rgba(0, 100, 50, 0.5) 100%);
+                    border-color: rgba(0, 255, 127, 0.5);
+                    margin-top: 0.5rem;
+                }
+                
                 .hud-button::before {
                     content: '';
                     position: absolute;
@@ -1493,11 +1306,24 @@ export default function Login() {
                     animation: pulse 1.5s infinite;
                 }
                 
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 1; }
+                }
+                
                 .hud-loading-dots {
                     display: inline-block;
                     width: 20px;
                     text-align: left;
                     animation: loadingDots 1.5s infinite;
+                }
+                
+                @keyframes loadingDots {
+                    0% { content: "."; }
+                    33% { content: ".."; }
+                    66% { content: "..."; }
+                    100% { content: "."; }
                 }
                 
                 /* Access Granted Animation */
