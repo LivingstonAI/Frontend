@@ -84,42 +84,49 @@ export default function Login() {
         try {
             speak("Registering fingerprint. Please follow the device prompts.");
             
+            // Generate a proper challenge
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+            
             const credential = await navigator.credentials.create({
                 publicKey: {
-                    challenge: new Uint8Array(32),
+                    challenge: challenge,
                     rp: {
                         name: "Secure Access System",
-                        id: window.location.hostname,
+                        id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname,
                     },
                     user: {
                         id: new TextEncoder().encode("tlotlo.motingwe"),
                         name: "tlotlo.motingwe@example.com",
                         displayName: "Tlotlo Motingwe",
                     },
-                    pubKeyCredParams: [{
-                        type: "public-key",
-                        alg: -7, // ES256
-                    }],
+                    pubKeyCredParams: [
+                        { type: "public-key", alg: -7 }, // ES256
+                        { type: "public-key", alg: -257 }, // RS256
+                    ],
                     authenticatorSelection: {
                         authenticatorAttachment: "platform",
                         userVerification: "required",
+                        requireResidentKey: true,
                     },
                     timeout: 60000,
+                    attestation: "direct"
                 }
             });
 
             if (credential) {
-                // Store credential info
+                // Store credential info properly
                 localStorage.setItem('fingerprintCredentialId', credential.id);
                 localStorage.setItem('fingerprintRegistered', 'true');
+                localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
                 setFingerprintRegistered(true);
                 speak("Fingerprint registered successfully.");
                 return true;
             }
         } catch (error) {
             console.error("Fingerprint registration failed:", error);
-            speak("Fingerprint registration failed. Please try again.");
-            setError("Fingerprint registration failed: " + error.message);
+            speak(`Fingerprint registration failed: ${error.name}. Please try again.`);
+            setError(`Fingerprint registration failed: ${error.name} - ${error.message}`);
             return false;
         }
     };
@@ -134,16 +141,26 @@ export default function Login() {
             speak("Please place your finger on the fingerprint sensor.");
 
             const credentialId = localStorage.getItem('fingerprintCredentialId');
-            if (!credentialId) {
-                throw new Error("No fingerprint credential found");
+            const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
+            
+            if (!credentialId || !rawIdString) {
+                throw new Error("No fingerprint credential found. Please re-register.");
             }
+
+            // Convert stored rawId back to Uint8Array
+            const rawId = new Uint8Array(rawIdString.split(',').map(x => parseInt(x)));
+            
+            // Generate a proper challenge
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
 
             const credential = await navigator.credentials.get({
                 publicKey: {
-                    challenge: new Uint8Array(32),
+                    challenge: challenge,
                     allowCredentials: [{
                         type: "public-key",
-                        id: new TextEncoder().encode(credentialId),
+                        id: rawId,
+                        transports: ["internal"]
                     }],
                     userVerification: "required",
                     timeout: 60000,
@@ -176,6 +193,14 @@ export default function Login() {
             if (error.name === 'NotAllowedError') {
                 speak("Fingerprint authentication was cancelled or failed.");
                 setError("Fingerprint authentication cancelled or failed");
+            } else if (error.name === 'InvalidStateError') {
+                speak("No fingerprint credentials found. Please register your fingerprint first.");
+                setError("No fingerprint credentials found. Please re-register.");
+                // Reset registration status
+                localStorage.removeItem('fingerprintCredentialId');
+                localStorage.removeItem('fingerprintRegistered');
+                localStorage.removeItem('fingerprintCredentialRawId');
+                setFingerprintRegistered(false);
             } else {
                 speak("Fingerprint authentication error. Please try again.");
                 setError("Fingerprint authentication failed: " + error.message);
