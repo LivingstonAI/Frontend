@@ -65,12 +65,12 @@ export default function EconomicStrengthIndex() {
             // Check if forex data exists
             if (data.chart_data && data.chart_data.length > 0) {
                 const forexKeys = selectedForexPairs.map(pair => `${pair}_price`);
-                // const hasForexData = forexKeys.some(key => 
-                //     data.chart_data.some(point => point[key] !== undefined && point[key] !== null)
-                // );
-                const hasForexData = selectedForexPairs.length > 0 && economicData.some(point => 
-                    selectedForexPairs.some(pair => point[`${pair}_price`] !== undefined)
+                const hasForexData = forexKeys.some(key => 
+                    data.chart_data.some(point => point[key] !== undefined && point[key] !== null)
                 );
+                // const hasForexData = selectedForexPairs.length > 0 && economicData.some(point => 
+                //     selectedForexPairs.some(pair => point[`${pair}_price`] !== undefined)
+                // );
                 
                 console.log('Has forex data:', hasForexData);
                 
@@ -181,7 +181,10 @@ export default function EconomicStrengthIndex() {
     };
 
     const domains = getYAxisDomains();
-    const hasForexData = selectedForexPairs.length > 0;
+    // const hasForexData = selectedForexPairs.length > 0;
+    const hasForexData = selectedForexPairs.length > 0 && economicData.some(point => 
+    selectedForexPairs.some(pair => point[`${pair}_price`] !== undefined)
+);
 
     return (
         <div>
