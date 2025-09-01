@@ -12,6 +12,7 @@ export default function EconomicStrengthIndex() {
     const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState('30d');
     
+    
     const currencies = [
         { code: 'USD', name: 'US Dollar', color: '#2563eb' },
         { code: 'EUR', name: 'Euro', color: '#dc2626' },
@@ -35,30 +36,61 @@ export default function EconomicStrengthIndex() {
     ];
 
     const fetchEconomicStrengthData = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`${baseUrl}/api/economic-strength-index/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    currencies: selectedCurrencies,
-                    forex_pairs: selectedForexPairs,
-                    date_range: dateRange
-                })
-            });
+    setLoading(true);
+    try {
+        console.log('Requesting data with:', {
+            currencies: selectedCurrencies,
+            forex_pairs: selectedForexPairs,
+            date_range: dateRange
+        });
 
-            if (response.ok) {
-                const data = await response.json();
-                setEconomicData(data.chart_data);
+        const response = await fetch(`${baseUrl}/api/economic-strength-index/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                currencies: selectedCurrencies,
+                forex_pairs: selectedForexPairs,
+                date_range: dateRange
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Received data:', data);
+            console.log('Chart data sample:', data.chart_data?.[0]);
+            console.log('Forex pairs in data:', selectedForexPairs.map(pair => `${pair}_price`));
+            
+            // Check if forex data exists
+            if (data.chart_data && data.chart_data.length > 0) {
+                const forexKeys = selectedForexPairs.map(pair => `${pair}_price`);
+                // const hasForexData = forexKeys.some(key => 
+                //     data.chart_data.some(point => point[key] !== undefined && point[key] !== null)
+                // );
+                const hasForexData = selectedForexPairs.length > 0 && economicData.some(point => 
+                    selectedForexPairs.some(pair => point[`${pair}_price`] !== undefined)
+                );
+                
+                console.log('Has forex data:', hasForexData);
+                
+                // Log first few data points with forex data
+                data.chart_data.slice(0, 3).forEach((point, index) => {
+                    forexKeys.forEach(key => {
+                        if (point[key] !== undefined) {
+                            console.log(`Point ${index} ${key}:`, point[key]);
+                        }
+                    });
+                });
             }
-        } catch (error) {
-            console.error('Error fetching economic strength data:', error);
+            
+            setEconomicData(data.chart_data);
         }
-        setLoading(false);
-    };
-
+    } catch (error) {
+        console.error('Error fetching economic strength data:', error);
+    }
+    setLoading(false);
+};
     useEffect(() => {
         if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0) {
             fetchEconomicStrengthData();
