@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 
 export default function EconomicStrengthIndex() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
     const [selectedCurrencies, setSelectedCurrencies] = useState(['USD']);
+    const [selectedForexPairs, setSelectedForexPairs] = useState([]);
     const [economicData, setEconomicData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState('30d');
@@ -23,6 +23,17 @@ export default function EconomicStrengthIndex() {
         { code: 'CNY', name: 'Chinese Yuan', color: '#059669' }
     ];
 
+    const forexPairs = [
+        { pair: 'EURUSD', name: 'EUR/USD', color: '#f59e0b' },
+        { pair: 'GBPUSD', name: 'GBP/USD', color: '#ef4444' },
+        { pair: 'USDJPY', name: 'USD/JPY', color: '#8b5cf6' },
+        { pair: 'AUDUSD', name: 'AUD/USD', color: '#06b6d4' },
+        { pair: 'USDCAD', name: 'USD/CAD', color: '#84cc16' },
+        { pair: 'USDCHF', name: 'USD/CHF', color: '#f97316' },
+        { pair: 'EURGBP', name: 'EUR/GBP', color: '#ec4899' },
+        { pair: 'EURJPY', name: 'EUR/JPY', color: '#14b8a6' }
+    ];
+
     const fetchEconomicStrengthData = async () => {
         setLoading(true);
         try {
@@ -33,6 +44,7 @@ export default function EconomicStrengthIndex() {
                 },
                 body: JSON.stringify({
                     currencies: selectedCurrencies,
+                    forex_pairs: selectedForexPairs,
                     date_range: dateRange
                 })
             });
@@ -48,10 +60,10 @@ export default function EconomicStrengthIndex() {
     };
 
     useEffect(() => {
-        if (selectedCurrencies.length > 0) {
+        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0) {
             fetchEconomicStrengthData();
         }
-    }, [selectedCurrencies, dateRange]);
+    }, [selectedCurrencies, selectedForexPairs, dateRange]);
 
     const handleCurrencyToggle = (currencyCode) => {
         setSelectedCurrencies(prev => {
@@ -63,8 +75,22 @@ export default function EconomicStrengthIndex() {
         });
     };
 
+    const handleForexToggle = (forexPair) => {
+        setSelectedForexPairs(prev => {
+            if (prev.includes(forexPair)) {
+                return prev.filter(f => f !== forexPair);
+            } else {
+                return [...prev, forexPair];
+            }
+        });
+    };
+
     const formatTooltipValue = (value, name) => {
         if (typeof value === 'number') {
+            // Check if it's a forex price (typically has more decimal places)
+            if (name.includes('/')) {
+                return [value.toFixed(4), name];
+            }
             return [value.toFixed(2), name];
         }
         return [value, name];
@@ -75,16 +101,55 @@ export default function EconomicStrengthIndex() {
             return (
                 <div className="esi-tooltip">
                     <p className="esi-tooltip-label">{`Date: ${label}`}</p>
-                    {payload.map((entry, index) => (
-                        <p key={index} style={{ color: entry.color }} className="esi-tooltip-entry">
-                            {`${entry.dataKey}: ${entry.value?.toFixed(2) || 'N/A'}`}
-                        </p>
-                    ))}
+                    {payload.map((entry, index) => {
+                        const isForex = entry.dataKey.includes('_price');
+                        const displayName = isForex 
+                            ? entry.dataKey.replace('_price', '').replace('USD', '/USD')
+                            : `${entry.dataKey} ESI`;
+                        const formattedValue = isForex 
+                            ? entry.value?.toFixed(4) || 'N/A'
+                            : entry.value?.toFixed(2) || 'N/A';
+                        
+                        return (
+                            <p key={index} style={{ color: entry.color }} className="esi-tooltip-entry">
+                                {`${displayName}: ${formattedValue}`}
+                            </p>
+                        );
+                    })}
                 </div>
             );
         }
         return null;
     };
+
+    // Create separate Y-axes domains for ESI (0-100) and Forex prices
+    const getYAxisDomains = () => {
+        if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1] };
+
+        let minForex = Infinity, maxForex = -Infinity;
+        let hasForexData = false;
+
+        economicData.forEach(point => {
+            selectedForexPairs.forEach(pair => {
+                const priceKey = `${pair}_price`;
+                if (point[priceKey] !== undefined && point[priceKey] !== null) {
+                    minForex = Math.min(minForex, point[priceKey]);
+                    maxForex = Math.max(maxForex, point[priceKey]);
+                    hasForexData = true;
+                }
+            });
+        });
+
+        const forexPadding = hasForexData ? (maxForex - minForex) * 0.05 : 0;
+        
+        return {
+            esi: [0, 100],
+            forex: hasForexData ? [minForex - forexPadding, maxForex + forexPadding] : [0, 1]
+        };
+    };
+
+    const domains = getYAxisDomains();
+    const hasForexData = selectedForexPairs.length > 0;
 
     return (
         <div>
@@ -94,12 +159,12 @@ export default function EconomicStrengthIndex() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Economic Strength Index</h5><br />
+                    <h5 className="major-upcoming-news-events-header">Economic Strength Index with Forex Overlay</h5><br />
                     
                     {/* Controls Section */}
                     <div className="esi-controls">
                         <div className="esi-currency-selector">
-                            <h6>Select Currencies:</h6>
+                            <h6>Select ESI Currencies:</h6>
                             <div className="esi-currency-grid">
                                 {currencies.map(currency => (
                                     <label key={currency.code} className="esi-currency-checkbox">
@@ -111,6 +176,25 @@ export default function EconomicStrengthIndex() {
                                         <span className="esi-checkmark" style={{borderColor: currency.color}}></span>
                                         <span className="esi-currency-label">
                                             {currency.code} - {currency.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="esi-forex-selector">
+                            <h6>Select Forex Pairs to Overlay:</h6>
+                            <div className="esi-currency-grid">
+                                {forexPairs.map(forex => (
+                                    <label key={forex.pair} className="esi-currency-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedForexPairs.includes(forex.pair)}
+                                            onChange={() => handleForexToggle(forex.pair)}
+                                        />
+                                        <span className="esi-checkmark forex-checkmark" style={{borderColor: forex.color}}></span>
+                                        <span className="esi-currency-label">
+                                            {forex.name}
                                         </span>
                                     </label>
                                 ))}
@@ -138,7 +222,7 @@ export default function EconomicStrengthIndex() {
                         {loading ? (
                             <div className="esi-loading">
                                 <div className="esi-spinner"></div>
-                                <p>Calculating Economic Strength Index...</p>
+                                <p>Calculating Economic Strength Index and Forex Data...</p>
                             </div>
                         ) : economicData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={500}>
@@ -149,18 +233,36 @@ export default function EconomicStrengthIndex() {
                                         stroke="#374151"
                                         tick={{ fontSize: 12 }}
                                     />
+                                    {/* Left Y-Axis for ESI */}
                                     <YAxis 
+                                        yAxisId="esi"
                                         stroke="#374151"
                                         tick={{ fontSize: 12 }}
-                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                        domain={domains.esi}
+                                        label={{ value: 'ESI Score', angle: -90, position: 'insideLeft' }}
                                     />
+                                    {/* Right Y-Axis for Forex Prices */}
+                                    {hasForexData && (
+                                        <YAxis 
+                                            yAxisId="forex"
+                                            orientation="right"
+                                            stroke="#6b7280"
+                                            tick={{ fontSize: 12 }}
+                                            domain={domains.forex}
+                                            tickFormatter={(value) => value.toFixed(4)}
+                                            label={{ value: 'Forex Price', angle: 90, position: 'insideRight' }}
+                                        />
+                                    )}
                                     <Tooltip content={<CustomTooltip />} />
                                     <Legend />
+                                    
+                                    {/* ESI Lines */}
                                     {selectedCurrencies.map(currencyCode => {
                                         const currency = currencies.find(c => c.code === currencyCode);
                                         return (
                                             <Line
                                                 key={currencyCode}
+                                                yAxisId="esi"
                                                 type="monotone"
                                                 dataKey={currencyCode}
                                                 stroke={currency?.color || '#6b7280'}
@@ -171,30 +273,64 @@ export default function EconomicStrengthIndex() {
                                             />
                                         );
                                     })}
+                                    
+                                    {/* Forex Lines */}
+                                    {selectedForexPairs.map(forexPair => {
+                                        const forex = forexPairs.find(f => f.pair === forexPair);
+                                        const priceKey = `${forexPair}_price`;
+                                        return (
+                                            <Line
+                                                key={priceKey}
+                                                yAxisId="forex"
+                                                type="monotone"
+                                                dataKey={priceKey}
+                                                stroke={forex?.color || '#6b7280'}
+                                                strokeWidth={2}
+                                                strokeDasharray="5 5"
+                                                dot={{ r: 2 }}
+                                                activeDot={{ r: 4 }}
+                                                name={forex?.name || forexPair}
+                                            />
+                                        );
+                                    })}
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="esi-no-data">
-                                <p>Select currencies to view Economic Strength Index</p>
+                                <p>Select currencies and/or forex pairs to view data</p>
                             </div>
                         )}
                     </div>
 
+                    {/* Legend Info */}
+                    {hasForexData && (
+                        <div className="esi-legend-info">
+                            <div className="legend-item">
+                                <div className="legend-line solid"></div>
+                                <span>ESI Scores (Left Axis, 0-100 scale)</span>
+                            </div>
+                            <div className="legend-item">
+                                <div className="legend-line dashed"></div>
+                                <span>Forex Prices (Right Axis, Price scale)</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Info Section */}
                     <div className="esi-info">
-                        <h6>About Economic Strength Index</h6>
+                        <h6>About Economic Strength Index with Forex Overlay</h6>
                         <p>
                             The Economic Strength Index (ESI) aggregates all economic events for selected currencies, 
-                            weighted by impact and normalized for comparison. Higher values indicate stronger economic performance 
-                            relative to expectations.
+                            weighted by impact and normalized for comparison. Forex price overlays show actual market 
+                            movements for comparison with economic strength indicators.
                         </p>
                         <div className="esi-methodology">
                             <strong>Methodology:</strong>
                             <ul>
-                                <li>High impact events: 3x weight</li>
-                                <li>Medium impact events: 2x weight</li>
-                                <li>Low impact events: 1x weight</li>
-                                <li>Values normalized using percentage deviation from forecast</li>
+                                <li>ESI: High impact events (3x), Medium (2x), Low (1x) weight</li>
+                                <li>ESI: Values normalized using percentage deviation from forecast</li>
+                                <li>Forex: Real-time price data overlayed with dashed lines</li>
+                                <li>Dual Y-axes: Left for ESI (0-100), Right for Forex prices</li>
                             </ul>
                         </div>
                     </div>
@@ -211,11 +347,20 @@ export default function EconomicStrengthIndex() {
                 }
 
                 .esi-currency-selector h6,
+                .esi-forex-selector h6,
                 .esi-date-range-selector h6 {
                     color: #1e293b;
                     margin-bottom: 12px;
                     font-size: 14px;
                     font-weight: 600;
+                }
+
+                .esi-forex-selector {
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #f1f5f9;
+                    border-radius: 6px;
+                    border-left: 3px solid #3b82f6;
                 }
 
                 .esi-currency-grid {
@@ -254,6 +399,10 @@ export default function EconomicStrengthIndex() {
                     transition: all 0.2s;
                 }
 
+                .esi-checkmark.forex-checkmark {
+                    border-radius: 50%;
+                }
+
                 .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark {
                     background-color: currentColor;
                     border-color: currentColor;
@@ -288,6 +437,39 @@ export default function EconomicStrengthIndex() {
                     padding: 20px;
                     margin: 20px 0;
                     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                }
+
+                .esi-legend-info {
+                    display: flex;
+                    justify-content: center;
+                    gap: 30px;
+                    margin: 15px 0;
+                    padding: 10px;
+                    background: #f8fafc;
+                    border-radius: 6px;
+                }
+
+                .legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 14px;
+                    color: #475569;
+                }
+
+                .legend-line {
+                    width: 30px;
+                    height: 2px;
+                    background: #6b7280;
+                }
+
+                .legend-line.solid {
+                    background: #2563eb;
+                }
+
+                .legend-line.dashed {
+                    background: linear-gradient(to right, #f59e0b 50%, transparent 50%);
+                    background-size: 8px 2px;
                 }
 
                 .esi-loading {
@@ -409,6 +591,12 @@ export default function EconomicStrengthIndex() {
                     .esi-info {
                         padding: 15px;
                         margin: 15px 0;
+                    }
+
+                    .esi-legend-info {
+                        flex-direction: column;
+                        gap: 15px;
+                        align-items: center;
                     }
                 }
 
