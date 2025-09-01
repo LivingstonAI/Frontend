@@ -267,6 +267,7 @@ export default function EconomicStrengthIndex() {
                                     <Legend />
                                     
                                     {/* ESI Lines */}
+                                    {/* ESI Lines with better null handling */}
                                     {selectedCurrencies.map(currencyCode => {
                                         const currency = currencies.find(c => c.code === currencyCode);
                                         return (
@@ -277,33 +278,33 @@ export default function EconomicStrengthIndex() {
                                                 dataKey={currencyCode}
                                                 stroke={currency?.color || '#6b7280'}
                                                 strokeWidth={2}
-                                                dot={{ r: 3 }}
-                                                activeDot={{ r: 5 }}
+                                                dot={{ r: 2 }}  // Smaller dots
+                                                activeDot={{ r: 4 }}
+                                                connectNulls={true}  // This connects gaps in data
                                                 name={`${currencyCode} ESI`}
                                             />
                                         );
                                     })}
                                     
-                                    {/* Forex Lines */}
                                     {selectedForexPairs.map(forexPair => {
-                                        const forex = forexPairs.find(f => f.pair === forexPair);
-                                        const priceKey = `${forexPair}_price`;
-                                        return (
-                                            <Line
-                                                key={priceKey}
-                                                yAxisId="forex"
-                                                type="monotone"
-                                                dataKey={priceKey}
-                                                stroke={forex?.color || '#6b7280'}
-                                                strokeWidth={2}
-                                                strokeDasharray="5 5"
-                                                dot={false}
-                                                activeDot={{ r: 4 }}
-                                                connectNulls={true}
-                                                name={forex?.name || forexPair}
-                                            />
-                                        );
-                                    })}
+                                    const forex = forexPairs.find(f => f.pair === forexPair);
+                                    const priceKey = `${forexPair}_price`;
+                                    return (
+                                        <Line
+                                            key={priceKey}
+                                            yAxisId="forex"
+                                            type="monotone"
+                                            dataKey={priceKey}
+                                            stroke={forex?.color || '#6b7280'}
+                                            strokeWidth={2}
+                                            strokeDasharray="5 5"
+                                            dot={{ r: 1 }}  // Very small dots for forex
+                                            activeDot={{ r: 3 }}
+                                            connectNulls={true}  // Also good for forex
+                                            name={forex?.name || forexPair}
+                                        />
+                                    );
+                                })}
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
