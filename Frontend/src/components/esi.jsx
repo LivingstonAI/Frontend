@@ -34,55 +34,9 @@ export default function EconomicStrengthIndex() {
         { pair: 'EURJPY', name: 'EUR/JPY', color: '#14b8a6' }
     ];
 
-    // Data validation and cleaning function
-    const cleanAndValidateData = (data) => {
-        if (!Array.isArray(data) || data.length === 0) {
-            return [];
-        }
-
-        return data.map(point => {
-            const cleanedPoint = { ...point };
-            
-            // Ensure all ESI values are numbers
-            selectedCurrencies.forEach(currency => {
-                if (cleanedPoint[currency] !== undefined) {
-                    const value = parseFloat(cleanedPoint[currency]);
-                    cleanedPoint[currency] = isNaN(value) ? null : value;
-                }
-            });
-
-            // Ensure all forex price values are numbers
-            selectedForexPairs.forEach(pair => {
-                const priceKey = `${pair}_price`;
-                if (cleanedPoint[priceKey] !== undefined) {
-                    const value = parseFloat(cleanedPoint[priceKey]);
-                    cleanedPoint[priceKey] = isNaN(value) ? null : value;
-                }
-            });
-
-            return cleanedPoint;
-        }).filter(point => {
-            // Remove points that have no valid data
-            const hasValidESI = selectedCurrencies.some(currency => 
-                point[currency] !== null && point[currency] !== undefined
-            );
-            const hasValidForex = selectedForexPairs.some(pair => 
-                point[`${pair}_price`] !== null && point[`${pair}_price`] !== undefined
-            );
-            
-            return hasValidESI || hasValidForex || selectedCurrencies.length === 0 && selectedForexPairs.length === 0;
-        });
-    };
-
     const fetchEconomicStrengthData = async () => {
         setLoading(true);
         try {
-            console.log('Requesting data with:', {
-                currencies: selectedCurrencies,
-                forex_pairs: selectedForexPairs,
-                date_range: dateRange
-            });
-
             const response = await fetch(`${baseUrl}/api/economic-strength-index/`, {
                 method: 'POST',
                 headers: {
@@ -97,24 +51,10 @@ export default function EconomicStrengthIndex() {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('Received data:', data);
-                
-                if (data.chart_data && Array.isArray(data.chart_data)) {
-                    // Clean and validate the data before setting it
-                    const cleanedData = cleanAndValidateData(data.chart_data);
-                    console.log('Cleaned data points:', cleanedData.length);
-                    setEconomicData(cleanedData);
-                } else {
-                    console.warn('Invalid chart_data received:', data.chart_data);
-                    setEconomicData([]);
-                }
-            } else {
-                console.error('Response not OK:', response.status);
-                setEconomicData([]);
+                setEconomicData(data.chart_data);
             }
         } catch (error) {
             console.error('Error fetching economic strength data:', error);
-            setEconomicData([]);
         }
         setLoading(false);
     };
@@ -122,8 +62,6 @@ export default function EconomicStrengthIndex() {
     useEffect(() => {
         if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0) {
             fetchEconomicStrengthData();
-        } else {
-            setEconomicData([]);
         }
     }, [selectedCurrencies, selectedForexPairs, dateRange]);
 
@@ -147,87 +85,71 @@ export default function EconomicStrengthIndex() {
         });
     };
 
+    const formatTooltipValue = (value, name) => {
+        if (typeof value === 'number') {
+            // Check if it's a forex price (typically has more decimal places)
+            if (name.includes('/')) {
+                return [value.toFixed(4), name];
+            }
+            return [value.toFixed(2), name];
+        }
+        return [value, name];
+    };
+
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="esi-tooltip">
                     <p className="esi-tooltip-label">{`Date: ${label}`}</p>
                     {payload.map((entry, index) => {
-                        // Only show entries with valid values
-                        if (entry.value === null || entry.value === undefined) {
-                            return null;
-                        }
-
                         const isForex = entry.dataKey.includes('_price');
                         const displayName = isForex 
                             ? entry.dataKey.replace('_price', '').replace('USD', '/USD')
                             : `${entry.dataKey} ESI`;
                         const formattedValue = isForex 
-                            ? entry.value.toFixed(4)
-                            : entry.value.toFixed(2);
+                            ? entry.value?.toFixed(4) || 'N/A'
+                            : entry.value?.toFixed(2) || 'N/A';
                         
                         return (
                             <p key={index} style={{ color: entry.color }} className="esi-tooltip-entry">
                                 {`${displayName}: ${formattedValue}`}
                             </p>
                         );
-                    }).filter(Boolean)}
+                    })}
                 </div>
             );
         }
         return null;
     };
 
-    // Improved Y-axis domain calculation with better error handling
+    // Create separate Y-axes domains for ESI (0-100) and Forex prices
     const getYAxisDomains = () => {
-        if (!economicData || economicData.length === 0) {
-            return { esi: [0, 100], forex: [0, 1] };
-        }
+        if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1] };
 
         let minForex = Infinity, maxForex = -Infinity;
-        let hasValidForexData = false;
+        let hasForexData = false;
 
         economicData.forEach(point => {
             selectedForexPairs.forEach(pair => {
                 const priceKey = `${pair}_price`;
-                const value = point[priceKey];
-                if (value !== undefined && value !== null && !isNaN(value)) {
-                    minForex = Math.min(minForex, value);
-                    maxForex = Math.max(maxForex, value);
-                    hasValidForexData = true;
+                if (point[priceKey] !== undefined && point[priceKey] !== null) {
+                    minForex = Math.min(minForex, point[priceKey]);
+                    maxForex = Math.max(maxForex, point[priceKey]);
+                    hasForexData = true;
                 }
             });
         });
 
-        // Ensure valid domain ranges
-        const forexDomain = hasValidForexData && minForex !== Infinity && maxForex !== -Infinity
-            ? [
-                Math.max(0, minForex - (maxForex - minForex) * 0.05),
-                maxForex + (maxForex - minForex) * 0.05
-              ]
-            : [0, 1];
+        const forexPadding = hasForexData ? (maxForex - minForex) * 0.05 : 0;
         
         return {
             esi: [0, 100],
-            forex: forexDomain
+            forex: hasForexData ? [minForex - forexPadding, maxForex + forexPadding] : [0, 1]
         };
     };
 
     const domains = getYAxisDomains();
-    
-    // Check if we have valid forex data to display
-    const hasForexData = selectedForexPairs.length > 0 && economicData.some(point => 
-        selectedForexPairs.some(pair => {
-            const value = point[`${pair}_price`];
-            return value !== undefined && value !== null && !isNaN(value);
-        })
-    );
-
-    // Function to check if a data point has valid data for rendering
-    const hasValidDataPoint = (point, dataKey) => {
-        const value = point[dataKey];
-        return value !== null && value !== undefined && !isNaN(value);
-    };
+    const hasForexData = selectedForexPairs.length > 0;
 
     return (
         <div>
@@ -304,7 +226,7 @@ export default function EconomicStrengthIndex() {
                             </div>
                         ) : economicData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={500}>
-                                <LineChart data={economicData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <LineChart data={economicData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                     <XAxis 
                                         dataKey="date" 
@@ -327,7 +249,7 @@ export default function EconomicStrengthIndex() {
                                             stroke="#6b7280"
                                             tick={{ fontSize: 12 }}
                                             domain={domains.forex}
-                                            tickFormatter={(value) => typeof value === 'number' ? value.toFixed(4) : value}
+                                            tickFormatter={(value) => value.toFixed(4)}
                                             label={{ value: 'Forex Price', angle: 90, position: 'insideRight' }}
                                         />
                                     )}
@@ -348,7 +270,6 @@ export default function EconomicStrengthIndex() {
                                                 dot={{ r: 3 }}
                                                 activeDot={{ r: 5 }}
                                                 name={`${currencyCode} ESI`}
-                                                connectNulls={false}
                                             />
                                         );
                                     })}
@@ -369,7 +290,6 @@ export default function EconomicStrengthIndex() {
                                                 dot={{ r: 2 }}
                                                 activeDot={{ r: 4 }}
                                                 name={forex?.name || forexPair}
-                                                connectNulls={false}
                                             />
                                         );
                                     })}
