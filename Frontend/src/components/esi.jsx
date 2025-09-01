@@ -297,8 +297,9 @@ export default function EconomicStrengthIndex() {
                                                 stroke={forex?.color || '#6b7280'}
                                                 strokeWidth={2}
                                                 strokeDasharray="5 5"
-                                                dot={{ r: 2 }}
+                                                dot={false}
                                                 activeDot={{ r: 4 }}
+                                                connectNulls={true}
                                                 name={forex?.name || forexPair}
                                             />
                                         );
