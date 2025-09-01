@@ -51,6 +51,16 @@ export default function EconomicStrengthIndex() {
 
             if (response.ok) {
                 const data = await response.json();
+                console.log('API Response:', data);
+                console.log('Chart data sample:', data.chart_data?.slice(0, 3));
+                
+                // Debug: Check for forex price keys
+                if (data.chart_data && data.chart_data.length > 0) {
+                    const samplePoint = data.chart_data[0];
+                    const forexKeys = Object.keys(samplePoint).filter(key => key.includes('_price'));
+                    console.log('Forex price keys found:', forexKeys);
+                }
+                
                 setEconomicData(data.chart_data);
             }
         } catch (error) {
