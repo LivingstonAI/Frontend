@@ -95,6 +95,102 @@ export default function EconomicStrengthIndex() {
         });
     };
 
+    // CSV Download Functions
+    const convertToCSV = (data, headers) => {
+        if (!data || data.length === 0) return '';
+        
+        const csvHeaders = headers.join(',');
+        const csvRows = data.map(row => {
+            return headers.map(header => {
+                const value = row[header];
+                // Handle null/undefined values and escape commas
+                if (value === null || value === undefined) return '';
+                if (typeof value === 'string' && value.includes(',')) {
+                    return `"${value}"`;
+                }
+                return value;
+            }).join(',');
+        });
+        
+        return [csvHeaders, ...csvRows].join('\n');
+    };
+
+    const downloadCSV = (csvContent, filename) => {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
+    const handleDownloadESIData = (currencyCode) => {
+        if (!economicData || economicData.length === 0) {
+            alert('No data available to download');
+            return;
+        }
+
+        // Filter data to only include date and the specific currency ESI
+        const esiData = economicData
+            .filter(row => row[currencyCode] !== undefined && row[currencyCode] !== null)
+            .map(row => ({
+                Date: row.date,
+                ESI_Score: row[currencyCode].toFixed(2)
+            }));
+
+        if (esiData.length === 0) {
+            alert(`No ESI data available for ${currencyCode}`);
+            return;
+        }
+
+        const csv = convertToCSV(esiData, ['Date', 'ESI_Score']);
+        const filename = `${currencyCode}_ESI_${dateRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadCSV(csv, filename);
+    };
+
+    const handleDownloadForexData = (forexPair) => {
+        if (!economicData || economicData.length === 0) {
+            alert('No data available to download');
+            return;
+        }
+
+        const priceKey = `${forexPair}_price`;
+        
+        // Filter data to only include date and the specific forex price
+        const forexData = economicData
+            .filter(row => row[priceKey] !== undefined && row[priceKey] !== null)
+            .map(row => ({
+                Date: row.date,
+                Price: row[priceKey].toFixed(4)
+            }));
+
+        if (forexData.length === 0) {
+            alert(`No forex data available for ${forexPair}`);
+            return;
+        }
+
+        const csv = convertToCSV(forexData, ['Date', 'Price']);
+        const filename = `${forexPair}_Price_${dateRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadCSV(csv, filename);
+    };
+
+    const handleDownloadAllData = () => {
+        // Download all selected ESI currencies
+        selectedCurrencies.forEach(currency => {
+            setTimeout(() => handleDownloadESIData(currency), 100 * selectedCurrencies.indexOf(currency));
+        });
+
+        // Download all selected forex pairs
+        selectedForexPairs.forEach(pair => {
+            setTimeout(() => handleDownloadForexData(pair), 100 * (selectedCurrencies.length + selectedForexPairs.indexOf(pair)));
+        });
+    };
+
     const formatTooltipValue = (value, name) => {
         if (typeof value === 'number') {
             // Check if it's a forex price (typically has more decimal places)
@@ -226,6 +322,60 @@ export default function EconomicStrengthIndex() {
                             </select>
                         </div>
                     </div>
+
+                    {/* Download Section */}
+                    {economicData.length > 0 && (
+                        <div className="esi-download-section">
+                            <h6>Download Data as CSV:</h6>
+                            <div className="esi-download-controls">
+                                <div className="esi-download-group">
+                                    <span className="download-label">ESI Data:</span>
+                                    <div className="download-buttons">
+                                        {selectedCurrencies.map(currency => (
+                                            <button
+                                                key={`esi-${currency}`}
+                                                onClick={() => handleDownloadESIData(currency)}
+                                                className="esi-download-btn esi-btn"
+                                                title={`Download ${currency} ESI data as CSV`}
+                                            >
+                                                {currency} ESI
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                {selectedForexPairs.length > 0 && (
+                                    <div className="esi-download-group">
+                                        <span className="download-label">Forex Data:</span>
+                                        <div className="download-buttons">
+                                            {selectedForexPairs.map(pair => (
+                                                <button
+                                                    key={`forex-${pair}`}
+                                                    onClick={() => handleDownloadForexData(pair)}
+                                                    className="esi-download-btn forex-btn"
+                                                    title={`Download ${pair} price data as CSV`}
+                                                >
+                                                    {pair}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0) && (
+                                    <div className="esi-download-group">
+                                        <button
+                                            onClick={handleDownloadAllData}
+                                            className="esi-download-btn download-all-btn"
+                                            title="Download all selected data as separate CSV files"
+                                        >
+                                            Download All Data
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Chart Section */}
                     <div className="esi-chart-container">
@@ -442,6 +592,98 @@ export default function EconomicStrengthIndex() {
                     min-width: 150px;
                 }
 
+                /* Download Section Styles */
+                .esi-download-section {
+                    background: #f0f9ff;
+                    border: 1px solid #bae6fd;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 20px 0;
+                    border-left: 4px solid #0ea5e9;
+                }
+
+                .esi-download-section h6 {
+                    color: #0c4a6e;
+                    margin-bottom: 15px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                .esi-download-controls {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                }
+
+                .esi-download-group {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                }
+
+                .download-label {
+                    font-weight: 600;
+                    color: #374151;
+                    min-width: 90px;
+                    font-size: 13px;
+                }
+
+                .download-buttons {
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+
+                .esi-download-btn {
+                    padding: 8px 16px;
+                    border: 1px solid transparent;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    min-width: 80px;
+                }
+
+                .esi-download-btn.esi-btn {
+                    background: #3b82f6;
+                    color: white;
+                    border-color: #2563eb;
+                }
+
+                .esi-download-btn.esi-btn:hover {
+                    background: #2563eb;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+                }
+
+                .esi-download-btn.forex-btn {
+                    background: #f59e0b;
+                    color: white;
+                    border-color: #d97706;
+                }
+
+                .esi-download-btn.forex-btn:hover {
+                    background: #d97706;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.2);
+                }
+
+                .esi-download-btn.download-all-btn {
+                    background: #10b981;
+                    color: white;
+                    border-color: #059669;
+                    font-weight: 600;
+                    padding: 10px 20px;
+                }
+
+                .esi-download-btn.download-all-btn:hover {
+                    background: #059669;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+                }
+
                 .esi-chart-container {
                     background: white;
                     border: 1px solid #e2e8f0;
@@ -610,6 +852,29 @@ export default function EconomicStrengthIndex() {
                         gap: 15px;
                         align-items: center;
                     }
+
+                    .esi-download-section {
+                        padding: 15px;
+                    }
+
+                    .esi-download-group {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 8px;
+                    }
+
+                    .download-label {
+                        min-width: auto;
+                    }
+
+                    .download-buttons {
+                        width: 100%;
+                    }
+
+                    .esi-download-btn {
+                        flex: 1;
+                        min-width: auto;
+                    }
                 }
 
                 @media (max-width: 480px) {
@@ -625,6 +890,14 @@ export default function EconomicStrengthIndex() {
                     .esi-no-data {
                         height: 250px;
                         font-size: 14px;
+                    }
+
+                    .download-buttons {
+                        flex-direction: column;
+                    }
+
+                    .esi-download-btn {
+                        width: 100%;
                     }
                 }
             `}</style>
