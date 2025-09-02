@@ -33,6 +33,9 @@ export default function Login() {
     const [fingerprintRegistered, setFingerprintRegistered] = useState(false);
     const [showFingerprintAuth, setShowFingerprintAuth] = useState(false);
     const [fingerprintStep, setFingerprintStep] = useState('prepare');
+
+    const [showFingerprintReRegister, setShowFingerprintReRegister] = useState(false);
+
     
     const uniqueID = uuidv4();
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
@@ -48,6 +51,28 @@ export default function Login() {
     // References for animation
     const scanlineRef = useRef(null);
     const containerRef = useRef(null);
+
+        useEffect(() => {
+        const validateFingerprintDomain = () => {
+            const storedDomain = localStorage.getItem('fingerprintDomain');
+            const currentDomain = window.location.hostname;
+            
+            // If domain has changed, clear fingerprint data
+            if (storedDomain && storedDomain !== currentDomain) {
+                console.log(`Domain changed from ${storedDomain} to ${currentDomain}, clearing fingerprint data`);
+                localStorage.removeItem('fingerprintRegistered');
+                localStorage.removeItem('fingerprintCredentialId');
+                localStorage.removeItem('fingerprintCredentialRawId');
+                localStorage.removeItem('fingerprintDomain');
+                setFingerprintRegistered(false);
+            }
+            
+            // Store current domain
+            localStorage.setItem('fingerprintDomain', currentDomain);
+        };
+        
+        validateFingerprintDomain();
+    }, []);
 
     // Device detection
     const detectDevice = () => {
@@ -142,87 +167,90 @@ export default function Login() {
 
     // Register fingerprint for the user
     const registerFingerprint = async () => {
-        if (!fingerprintSupported) {
-            setError("Fingerprint authentication is not supported on this device");
-            return false;
-        }
+    if (!fingerprintSupported) {
+        setError("Fingerprint authentication is not supported on this device");
+        return false;
+    }
 
-        try {
-            speak("Registering fingerprint. Please follow the device prompts.");
-            console.log("Starting fingerprint registration...");
-            
-            const challenge = new Uint8Array(32);
-            crypto.getRandomValues(challenge);
-            
-            localStorage.removeItem('fingerprintRegistered');
-            localStorage.removeItem('fingerprintCredentialId');
-            localStorage.removeItem('fingerprintCredentialRawId');
-            
-            const credential = await navigator.credentials.create({
-                publicKey: {
-                    challenge: challenge,
-                    rp: {
-                        name: "Secure Access System",
-                        id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname,
-                    },
-                    user: {
-                        id: new TextEncoder().encode("tlotlo.motingwe"),
-                        name: "tlotlo.motingwe@example.com",
-                        displayName: "Tlotlo Motingwe",
-                    },
-                    pubKeyCredParams: [
-                        { type: "public-key", alg: -7 },
-                        { type: "public-key", alg: -257 },
-                    ],
-                    authenticatorSelection: {
-                        authenticatorAttachment: "platform",
-                        userVerification: "required",
-                        requireResidentKey: true,
-                    },
-                    timeout: 60000,
-                    attestation: "direct"
-                }
-            });
+    try {
+        speak("Registering fingerprint. Please follow the device prompts.");
+        console.log("Starting fingerprint registration...");
+        
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+        
+        // Clear any existing data
+        localStorage.removeItem('fingerprintRegistered');
+        localStorage.removeItem('fingerprintCredentialId');
+        localStorage.removeItem('fingerprintCredentialRawId');
+        
+        const credential = await navigator.credentials.create({
+            publicKey: {
+                challenge: challenge,
+                rp: {
+                    name: "Secure Access System",
+                    id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname,
+                },
+                user: {
+                    id: new TextEncoder().encode("tlotlo.motingwe"),
+                    name: "tlotlo.motingwe@example.com",
+                    displayName: "Tlotlo Motingwe",
+                },
+                pubKeyCredParams: [
+                    { type: "public-key", alg: -7 },
+                    { type: "public-key", alg: -257 },
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required",
+                    requireResidentKey: true,
+                },
+                timeout: 60000,
+                attestation: "direct"
+            }
+        });
 
-            if (credential && credential.id && credential.rawId) {
-                console.log("Fingerprint credential created successfully");
-                
-                localStorage.setItem('fingerprintCredentialId', credential.id);
-                localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
-                localStorage.setItem('fingerprintRegistered', 'true');
-                
-                setFingerprintRegistered(true);
-                speak("Fingerprint registered successfully. You can now use fingerprint authentication.");
-                setError("");
-                return true;
-            } else {
-                throw new Error("Invalid credential response");
-            }
-        } catch (error) {
-            console.error("Fingerprint registration failed:", error);
+        if (credential && credential.id && credential.rawId) {
+            console.log("Fingerprint credential created successfully");
             
-            localStorage.removeItem('fingerprintRegistered');
-            localStorage.removeItem('fingerprintCredentialId');
-            localStorage.removeItem('fingerprintCredentialRawId');
+            localStorage.setItem('fingerprintCredentialId', credential.id);
+            localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
+            localStorage.setItem('fingerprintRegistered', 'true');
+            localStorage.setItem('fingerprintDomain', window.location.hostname); // Store domain
             
-            let errorMessage = "Fingerprint registration failed";
-            if (error.name === 'NotSupportedError') {
-                errorMessage = "Fingerprint authentication is not supported on this device";
-            } else if (error.name === 'SecurityError') {
-                errorMessage = "Security error - make sure you're on HTTPS or localhost";
-            } else if (error.name === 'NotAllowedError') {
-                errorMessage = "Fingerprint registration was cancelled or not allowed";
-            } else if (error.name === 'InvalidStateError') {
-                errorMessage = "A fingerprint is already registered. Try authenticating instead.";
-            } else {
-                errorMessage = `Fingerprint registration failed: ${error.name} - ${error.message}`;
-            }
-            
-            speak(errorMessage);
-            setError(errorMessage);
-            return false;
+            setFingerprintRegistered(true);
+            speak("Fingerprint registered successfully. You can now use fingerprint authentication.");
+            setError("");
+            return true;
+        } else {
+            throw new Error("Invalid credential response");
         }
-    };
+    } catch (error) {
+        console.error("Fingerprint registration failed:", error);
+        
+        localStorage.removeItem('fingerprintRegistered');
+        localStorage.removeItem('fingerprintCredentialId');
+        localStorage.removeItem('fingerprintCredentialRawId');
+        localStorage.removeItem('fingerprintDomain');
+        
+        let errorMessage = "Fingerprint registration failed";
+        if (error.name === 'NotSupportedError') {
+            errorMessage = "Fingerprint authentication is not supported on this device";
+        } else if (error.name === 'SecurityError') {
+            errorMessage = "Security error - make sure you're on HTTPS or localhost";
+        } else if (error.name === 'NotAllowedError') {
+            errorMessage = "Fingerprint registration was cancelled or not allowed";
+        } else if (error.name === 'InvalidStateError') {
+            errorMessage = "A fingerprint is already registered. Try authenticating instead.";
+        } else {
+            errorMessage = `Fingerprint registration failed: ${error.name} - ${error.message}`;
+        }
+        
+        speak(errorMessage);
+        setError(errorMessage);
+        return false;
+    }
+};
 
     // Authenticate with fingerprint
     const authenticateWithFingerprint = async () => {
@@ -578,42 +606,43 @@ export default function Login() {
 
     // Handle password verification
     const verifyPassword = async () => {
-        setEmailError("");
-        setPasswordError("");
-        setError("");
-        setLoading(true);
+    setEmailError("");
+    setPasswordError("");
+    setError("");
+    setLoading(true);
 
-        if (!email) {
-            setEmailError("Email is required.");
-            speak("Please enter your email address.");
-            setLoading(false);
-            return false;
-        }
-        if (!password) {
-            setPasswordError("Password is required.");
-            speak("Please enter your password.");
-            setLoading(false);
-            return false;
-        }
+    if (!email) {
+        setEmailError("Email is required.");
+        speak("Please enter your email address.");
+        setLoading(false);
+        return false;
+    }
+    if (!password) {
+        setPasswordError("Password is required.");
+        speak("Please enter your password.");
+        setLoading(false);
+        return false;
+    }
 
-        const loginData = { email: email, password: password };
-        
-        try {
-            speak("Verifying credentials. Please wait.");
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            const response = await fetch(`${baseURL}/login/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(loginData)
-            });
+    const loginData = { email: email, password: password };
     
-            if (response.status === 200) {
-                const { email: responseEmail } = await response.json();
-                setPasswordVerified(true);
-                
-                if (isMobile && fingerprintSupported && fingerprintRegistered) {
-                    // On mobile: password -> fingerprint
+    try {
+        speak("Verifying credentials. Please wait.");
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        const response = await fetch(`${baseURL}/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(loginData)
+        });
+
+        if (response.status === 200) {
+            const { email: responseEmail } = await response.json();
+            setPasswordVerified(true);
+            
+            if (isMobile && fingerprintSupported) {
+                if (fingerprintRegistered) {
+                    // Try existing fingerprint
                     speak("Password verified. Please authenticate with your fingerprint.");
                     setAuthStep('fingerprint');
                     setLoading(false);
@@ -622,44 +651,50 @@ export default function Login() {
                         authenticateWithFingerprint();
                     }, 1000);
                 } else {
-                    // On desktop: password only (unless locked out)
-                    speak("Access granted. Welcome back, Mr Motingwe.");
-                    clearAttempts();
-                    Cookies.set('email', responseEmail);
-                    setAccessGranted(true);
-                    
-                    setTimeout(() => {
-                        Cookies.set('account_name', responseEmail);
-                        navigate(`/personal_info`);
-                    }, 3000);
+                    // Offer to register fingerprint
+                    speak("Password verified. Would you like to set up fingerprint authentication for faster login?");
+                    setShowFingerprintReRegister(true);
+                    setLoading(false);
                 }
-                
-                return true;
             } else {
-                const attempts = storeFailedAttempt();
-                setFailedAttempts(attempts);
+                // Desktop flow - complete login
+                speak("Access granted. Welcome back, Mr Motingwe.");
+                clearAttempts();
+                Cookies.set('email', responseEmail);
+                setAccessGranted(true);
                 
-                if (attempts >= 3) {
-                    setIsLockedOut(true);
-                    setAuthStep('face');
-                    setError("ACCOUNT LOCKED: Too many failed attempts. Facial recognition required.");
-                    speak("Account locked due to multiple failed attempts. Please use facial recognition.");
-                } else {
-                    const remainingAttempts = 3 - attempts;
-                    setError(`AUTHENTICATION FAILED: Invalid Credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
-                    speak(`Authentication failed. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
-                }
-                
-                setLoading(false);
-                return false;
+                setTimeout(() => {
+                    Cookies.set('account_name', responseEmail);
+                    navigate(`/personal_info`);
+                }, 3000);
             }
-        } catch (error) {
-            setError("CONNECTION ERROR: Unable to reach authentication server");
-            speak("Connection error. Please check your network and try again.");
+            
+            return true;
+        } else {
+            const attempts = storeFailedAttempt();
+            setFailedAttempts(attempts);
+            
+            if (attempts >= 3) {
+                setIsLockedOut(true);
+                setAuthStep('face');
+                setError("ACCOUNT LOCKED: Too many failed attempts. Facial recognition required.");
+                speak("Account locked due to multiple failed attempts. Please use facial recognition.");
+            } else {
+                const remainingAttempts = 3 - attempts;
+                setError(`AUTHENTICATION FAILED: Invalid Credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
+                speak(`Authentication failed. You have ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`);
+            }
+            
             setLoading(false);
             return false;
         }
-    };
+    } catch (error) {
+        setError("CONNECTION ERROR: Unable to reach authentication server");
+        speak("Connection error. Please check your network and try again.");
+        setLoading(false);
+        return false;
+    }
+};
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -686,6 +721,41 @@ export default function Login() {
             startFacialRecognition();
         }
     };
+
+    const proceedToLogin = () => {
+    clearAttempts();
+    const userEmail = email || 'tlotlo.motingwe@example.com';
+    Cookies.set('email', userEmail);
+    setAccessGranted(true);
+    
+    setTimeout(() => {
+        speak("Welcome back, Mr Motingwe.");
+        Cookies.set('account_name', userEmail);
+        navigate(`/personal_info`);
+    }, 2000);
+};
+
+    const handleFingerprintReRegister = async (register) => {
+    setShowFingerprintReRegister(false);
+
+
+    
+    if (register) {
+        const success = await registerFingerprint();
+        if (success) {
+            setTimeout(() => {
+                authenticateWithFingerprint();
+            }, 1000);
+        } else {
+            // If registration fails, proceed to login
+            proceedToLogin();
+        }
+    } else {
+        // User declined, proceed to login
+        speak("Fingerprint setup skipped. Logging you in now.");
+        proceedToLogin();
+    }
+};
 
     // Get current step description for UI
     const getCurrentStepDescription = () => {
@@ -908,6 +978,52 @@ export default function Login() {
                                     📱 REGISTER FINGERPRINT
                                 </button>
                             )}
+
+                            {showFingerprintReRegister && (
+                            <div className="fingerprint-overlay">
+                                <div className="fingerprint-container">
+                                    <div className="fingerprint-header">
+                                        <h3>FINGERPRINT SETUP</h3>
+                                        <div className="status-indicator">
+                                            ENHANCED SECURITY AVAILABLE
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="fingerprint-reregister-content">
+                                        <div className="fingerprint-icon">
+                                            <svg viewBox="0 0 100 100" className="fingerprint-svg">
+                                                <path d="M50,10 C30,10 10,30 10,50 C10,70 30,90 50,90 C70,90 90,70 90,50 C90,30 70,10 50,10 Z" 
+                                                    fill="none" stroke="currentColor" strokeWidth="2"/>
+                                                <path d="M50,20 C35,20 20,35 20,50 C20,65 35,80 50,80 C65,80 80,65 80,50 C80,35 65,20 50,20 Z" 
+                                                    fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                                                <path d="M50,30 C40,30 30,40 30,50 C30,60 40,70 50,70 C60,70 70,60 70,50 C70,40 60,30 50,30 Z" 
+                                                    fill="none" stroke="currentColor" strokeWidth="1"/>
+                                            </svg>
+                                        </div>
+                                        
+                                        <div className="reregister-message">
+                                            <p>Set up fingerprint authentication for faster and more secure login on this device?</p>
+                                            <p className="reregister-note">This is recommended for enhanced security.</p>
+                                        </div>
+                                        
+                                        <div className="reregister-buttons">
+                                            <button 
+                                                className="hud-button fingerprint-setup-button"
+                                                onClick={() => handleFingerprintReRegister(true)}
+                                            >
+                                                SET UP FINGERPRINT
+                                            </button>
+                                            <button 
+                                                className="hud-button skip-button"
+                                                onClick={() => handleFingerprintReRegister(false)}
+                                            >
+                                                SKIP FOR NOW
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                             
                             {/* Password fields - show unless we're in face-only mode */}
                             {authStep !== 'face' && (
@@ -1028,6 +1144,53 @@ export default function Login() {
             </div>
             
             <style jsx>{`
+            
+                .fingerprint-reregister-content {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1.5rem;
+                }
+
+                .reregister-message {
+                    text-align: center;
+                    color: rgba(0, 162, 255, 0.9);
+                }
+
+                .reregister-message p {
+                    margin: 0.5rem 0;
+                    font-size: 1rem;
+                    letter-spacing: 1px;
+                }
+
+                .reregister-note {
+                    font-size: 0.9rem !important;
+                    color: rgba(0, 255, 157, 0.8) !important;
+                }
+
+                .reregister-buttons {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                    width: 100%;
+                }
+
+                .fingerprint-setup-button {
+                    background: linear-gradient(90deg, 
+                                rgba(0, 100, 50, 0.5) 0%, 
+                                rgba(0, 180, 90, 0.6) 50%,
+                                rgba(0, 100, 50, 0.5) 100%);
+                    border-color: rgba(0, 255, 127, 0.5);
+                }
+
+                .skip-button {
+                    background: linear-gradient(90deg, 
+                                rgba(100, 80, 0, 0.5) 0%, 
+                                rgba(180, 140, 0, 0.6) 50%,
+                                rgba(100, 80, 0, 0.5) 100%);
+                    border-color: rgba(255, 215, 0, 0.5);
+                    font-size: 0.9rem;
+                }
                 .hud-container {
                     position: relative;
                     width: 100%;
@@ -1888,6 +2051,7 @@ export default function Login() {
                         font-size: 0.8rem;
                         letter-spacing: 1px;
                     }
+
                 }
             `}</style>
         </div>
