@@ -277,8 +277,9 @@ export default function EconomicStrengthIndex() {
                                                 dataKey={currencyCode}
                                                 stroke={currency?.color || '#6b7280'}
                                                 strokeWidth={2}
-                                                dot={{ r: 3 }}
+                                                dot={false}
                                                 activeDot={{ r: 5 }}
+                                                connectNulls={true}
                                                 name={`${currencyCode} ESI`}
                                             />
                                         );
