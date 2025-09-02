@@ -724,6 +724,7 @@ export default function SideNavs() {
         <Link to="/ai_council_conversations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chat-fill"></i></p></button></Link>
         <Link to="/firm_compliance" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-list-check"></i></p></button></Link>
         <Link to="/esi" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link>
+        <Link to="/research_logbook" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-beaker-fill"></i></p></button></Link>
 
       </div>
 
@@ -835,6 +836,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/esi" className="side-nav">
             <i className="bi bi-graph-up-arrow"></i>
+        </Link>
+        <Link to="/research_logbook" className="side-nav">
+            <i className="bi bi-beaker-fill"></i>
         </Link>
       </div>
       <br />

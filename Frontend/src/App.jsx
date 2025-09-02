@@ -64,6 +64,7 @@ import AICouncilConvos from './components/ai_council_convos.jsx';
 import Compliance from './components/compliance.jsx';
 import EconomicStrengthIndex from './components/esi.jsx';
 import HolographicHUD from './components/snowbrain.jsx';
+import ResearchLogbook from './components/research_logbook.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -424,6 +425,12 @@ function App() {
             <Route path='/esi' element={
               <ProtectedRoute>
                 <EconomicStrengthIndex />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/research_logbook' element={
+              <ProtectedRoute>
+                <ResearchLogbook />
               </ProtectedRoute>
             } />
             
