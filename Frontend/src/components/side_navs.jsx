@@ -81,6 +81,7 @@ import free from "../RUMI & JINU 'Free' Lyrics (Color Coded Lyrics).mp3";
 import once_upon_a_time_trend from '../Once Upon A Time - remix slowed (0.8x降调DJ抖音版) HOK & DANCING - 𝐓𝐈𝐊𝐓𝐎𝐊.mp3';
 import little_time_youth from '../[ENGSUBPINYIN] 小时光 (Xiao Shi Guang - Little TimeYouth) - 胡期皓 (Hu Qi Hao) - Hot Douyin.mp3';
 import bomb_2022 from '../Bomb比爾 - 1022-比爾的歌動態歌詞他們說今晚的夜色很好 應該有個人對我來撒嬌.mp3';
+import daisies from '../DAISIES.mp3';
 
 
 export default function SideNavs() {
@@ -218,6 +219,8 @@ export default function SideNavs() {
         { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },   
         { name: "Youth - Hu Qihao 🏄🎧", file: little_time_youth }, 
         { name: "Bomb - 1022 🌃", file: bomb_2022 },
+        { name: "Daisies 🌼", file: daisies },
+
   ];
 
   // Enhanced touch navigation function
