@@ -47,6 +47,8 @@ export default function ResearchLogbook() {
         snowai_tags: [],
         snowai_financial_market_type: '',
         snowai_framework_used: '',
+        snowai_code_used: '',
+        snowai_dataset_name: '',
     });
 
     // Enhanced styles
@@ -711,6 +713,8 @@ export default function ResearchLogbook() {
             snowai_tags: [],
             snowai_financial_market_type: '',
             snowai_framework_used: '',
+            snowai_code_used: '',
+            snowai_dataset_name: '',
         });
     };
     
@@ -1107,6 +1111,29 @@ export default function ResearchLogbook() {
                                         onChange={(e) => setFormData({...formData, snowai_framework_used: e.target.value})}
                                         style={styles.input}
                                         placeholder="e.g., TensorFlow, PyTorch, Scikit-learn"
+                                        // ... your existing focus/blur handlers
+                                    />
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Code File</label>
+                                    <textarea
+                                        value={formData.snowai_code_used || ''}
+                                        onChange={(e) => setFormData({...formData, snowai_code_used: e.target.value})}
+                                        style={styles.textarea}
+                                        placeholder="Paste your model code here..."
+                                        // ... your existing focus/blur handlers
+                                    />
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Dataset Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.snowai_dataset_name || ''}
+                                        onChange={(e) => setFormData({...formData, snowai_dataset_name: e.target.value})}
+                                        style={styles.input}
+                                        placeholder="e.g., SP500_daily_prices.csv"
                                         // ... your existing focus/blur handlers
                                     />
                                 </div>
