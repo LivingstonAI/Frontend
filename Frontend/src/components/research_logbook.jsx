@@ -44,7 +44,9 @@ export default function ResearchLogbook() {
         snowai_r2_score: '',
         snowai_roi_percentage: '',
         snowai_status: 'experimental',
-        snowai_tags: []
+        snowai_tags: [],
+        snowai_financial_market_type: '',
+        snowai_framework_used: '',
     });
 
     // Enhanced styles
@@ -720,10 +722,12 @@ export default function ResearchLogbook() {
             snowai_r2_score: '',
             snowai_roi_percentage: '',
             snowai_status: 'experimental',
-            snowai_tags: []
+            snowai_tags: [],
+            snowai_financial_market_type: '',
+            snowai_framework_used: '',
         });
     };
-
+    
     const getStatusStyle = (status) => {
         const statusStyles = {
             'experimental': styles.statusExperimental,
@@ -1086,6 +1090,39 @@ export default function ResearchLogbook() {
                                         <option value="neural_network">Neural Network</option>
                                         <option value="deep_learning">Deep Learning</option>
                                     </select>
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Financial Market</label>
+                                    <select
+                                        value={formData.snowai_financial_market_type || ''}
+                                        onChange={(e) => setFormData({...formData, snowai_financial_market_type: e.target.value})}
+                                        style={styles.select}
+                                        // ... your existing focus/blur handlers
+                                    >
+                                        <option value="">Select Market Type</option>
+                                        <option value="stocks">Stocks</option>
+                                        <option value="forex">Forex</option>
+                                        <option value="crypto">Cryptocurrency</option>
+                                        <option value="bonds">Bonds</option>
+                                        <option value="commodities">Commodities</option>
+                                        <option value="indices">Market Indices</option>
+                                        <option value="options">Options</option>
+                                        <option value="futures">Futures</option>
+                                        <option value="mixed">Mixed Markets</option>
+                                    </select>
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Framework Used</label>
+                                    <input
+                                        type="text"
+                                        value={formData.snowai_framework_used || ''}
+                                        onChange={(e) => setFormData({...formData, snowai_framework_used: e.target.value})}
+                                        style={styles.input}
+                                        placeholder="e.g., TensorFlow, PyTorch, Scikit-learn"
+                                        // ... your existing focus/blur handlers
+                                    />
                                 </div>
 
                                 <div style={styles.formGroup}>
