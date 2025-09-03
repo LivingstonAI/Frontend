@@ -1355,4 +1355,5 @@ export default function ResearchLogbook() {
             )}
         </div>
     );
+    
 }
