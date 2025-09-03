@@ -562,9 +562,7 @@ export default function ResearchLogbook() {
         },
         // Mobile responsive styles
         '@media (max-width: 768px)': {
-            container: {
-                padding: '1rem'
-            },
+           
             header: {
                 flexDirection: 'column',
                 gap: '1rem',
