@@ -10,27 +10,38 @@ export const AudioProvider = ({ children }) => {
   const [audio, setAudio] = useState(null); // Store the audio object
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSong, setCurrentSong] = useState(null);
+  
 
-  // Play music function
-  const playMusic = (song) => {
-    // If there's already a song playing, pause it
-    if (audio) {
-      audio.pause();
-    }
+  // In the AudioProvider component
+const playMusic = (songUrl) => {
+  console.log("Attempting to play:", songUrl);
+  
+  if (audio) {
+    audio.pause();
+  }
 
-    const newAudio = new Audio(song);
-    newAudio.loop = true; // Set loop to true to repeat the song when it ends
-    newAudio.play();
-
-    // Update state with new audio and song
-    setAudio(newAudio);
-    setIsPlaying(true);
-    setCurrentSong(song);
-
-    // Save the current state to localStorage
-    localStorage.setItem('currentSong', song);
-    localStorage.setItem('isAudioPlaying', 'true');
-  };
+  const newAudio = new Audio(songUrl);
+  newAudio.loop = true;
+  
+  newAudio.addEventListener('error', (e) => {
+    console.error("Audio error:", e);
+    console.error("Audio error code:", newAudio.error?.code);
+    console.error("Audio error message:", newAudio.error?.message);
+  });
+  
+  newAudio.play()
+    .then(() => {
+      console.log("Audio playing successfully");
+      setAudio(newAudio);
+      setIsPlaying(true);
+      setCurrentSong(songUrl);
+      localStorage.setItem('currentSong', songUrl);
+      localStorage.setItem('isAudioPlaying', 'true');
+    })
+    .catch(error => {
+      console.error("Error playing audio:", error);
+    });
+};
 
   // Stop music function
   const stopMusic = () => {

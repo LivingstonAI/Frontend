@@ -4,43 +4,62 @@ import SideNavs from "./side_navs";
 import Cookies from "js-cookie";
 
 export default function AlertBot() {
-    const [assetArray, setAssetArray] = useState(['EURUSD', 'GBPUSD', 'XAUUSD', 'USDX']);
+    const [assetArray, setAssetArray] = useState(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD']);
     const [outcome, setOutcome] = useState("");
     const [colorOutcome, setColorOutcome] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
+    const [existingAlerts, setExistingAlerts] = useState([]);
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
+    const [process, setProcess] = useState('Update Backend');
+
+    useEffect(() => {
+        fetchExistingAlerts();
+    }, []);
 
     const fetchEmailDataFromAPI = async () => {
         return Cookies.get("email");
     };
 
-    // // Fetch user's assets from the backend
-    // const fetchUserAssets = async () => {
-    //     try {
-    //         const email = await fetchEmailDataFromAPI();
-    //         const response = await fetch(`${baseUrl}/get-user-assets?email=${email}`);
-    //         const data = await response.json();
+    const fetchExistingAlerts = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/alert-bot`);
+            const data = await response.json();
+            if (response.ok) {
+                setExistingAlerts(data.alerts);
+            } else {
+                console.error("Failed to fetch alerts:", data.error);
+            }
+        } catch (error) {
+            console.error("Error fetching alerts:", error);
+        }
+    };
 
-    //         if (response.ok) {
-    //             setAssetArray(data.message || []); // Populate assetArray with the response data
-    //         } else {
-    //             console.error(data.error);
-    //             setOutcome("Failed to load assets.");
-    //             setColorOutcome("text-danger");
-    //         }
-    //     } catch (error) {
-    //         console.error("Error fetching user assets:", error);
-    //         setOutcome("Error fetching user assets.");
-    //         setColorOutcome("text-danger");
-    //     }
-    // };
+    const deleteAlert = async (alertId) => {
+        const confirmed = window.confirm("Are you sure you want to delete this alert?");
+        
+        if (!confirmed) return;
 
-    // // Call fetchUserAssets when the component mounts
-    // useEffect(() => {
-    //     fetchUserAssets();
-    // }, []);
+        try {
+            const response = await fetch(`${baseUrl}/alert-bot?id=${alertId}`, {
+                method: "DELETE",
+            });
+            
+            if (response.ok) {
+                setOutcome("Alert deleted successfully!");
+                setColorOutcome("text-success");
+                fetchExistingAlerts();
+            } else {
+                const data = await response.json();
+                setOutcome("Failed to delete alert: " + data.error);
+                setColorOutcome("text-danger");
+            }
+        } catch (error) {
+            console.error("Error deleting alert:", error);
+            setOutcome("Error deleting alert.");
+            setColorOutcome("text-danger");
+        }
+    };
 
-    // Add an asset with its price and condition
     const addAsset = () => {
         const asset = document.getElementById("asset-select").value;
         const price = document.getElementById("price-input").value;
@@ -60,16 +79,16 @@ export default function AlertBot() {
         setColorOutcome("text-success");
     };
 
-    // Remove an asset
     const removeAsset = (index) => {
         setSelectedAssets((prev) => prev.filter((_, i) => i !== index));
     };
 
-    // Send selected assets to the backend
     const updateAssetsInBackend = async () => {
+        setProcess('Updating Assets...');
         if (selectedAssets.length === 0) {
             setOutcome("No assets to update.");
             setColorOutcome("text-danger");
+            setProcess('Update Backend');
             return;
         }
 
@@ -86,16 +105,20 @@ export default function AlertBot() {
             if (response.ok) {
                 setOutcome("Alerts updated successfully!");
                 setColorOutcome("text-success");
-                setSelectedAssets([]); // Clear the list after successful update
+                setSelectedAssets([]);
+                fetchExistingAlerts();
+                setProcess('Update Backend');
             } else {
                 console.error(data.error);
                 setOutcome("Failed to update alerts.");
                 setColorOutcome("text-danger");
+                setProcess('Update Backend');
             }
         } catch (error) {
             console.error("Error updating alerts:", error);
             setOutcome("Error updating alerts.");
             setColorOutcome("text-danger");
+            setProcess('Update Backend');
         }
     };
 
@@ -109,7 +132,44 @@ export default function AlertBot() {
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Alert Bot</h5>
                     <br />
+                    
+                    {/* Existing Alerts Section - Now with scrollable container */}
+                    <div className="existing-alerts-section">
+                        <h6>Existing Alerts:</h6>
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '4px' }}>
+                            <table className="table table-striped mb-0">
+                                <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
+                                    <tr>
+                                        <th>Asset</th>
+                                        <th>Condition</th>
+                                        <th>Price</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {existingAlerts.map((alert) => (
+                                        <tr key={alert.id}>
+                                            <td>{alert.asset}</td>
+                                            <td>{alert.condition}</td>
+                                            <td>{alert.price}</td>
+                                            <td>{alert.checked ? "Triggered" : "Active"}</td>
+                                            <td>
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => deleteAlert(alert.id)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <br />
+
                     <div className="update-news-div">
                         <div>
                             <label htmlFor="asset-select">Select Asset:</label>
@@ -178,12 +238,12 @@ export default function AlertBot() {
                         </ul>
                         <br />
                         <button
-                            className="btn btn-success"
+                            className="btn btn-primary"
                             onClick={updateAssetsInBackend}
                         >
-                            Update Backend
+                            {process}
                         </button>
-                        <br />
+                        <br /><br />
                         <p className={colorOutcome}>{outcome}</p>
                         <br />
                     </div>
