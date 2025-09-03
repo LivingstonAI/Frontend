@@ -51,19 +51,7 @@ export default function ResearchLogbook() {
 
     // Enhanced styles
     const styles = {
-        container: {
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #f8faff 0%, #e8f2ff 100%)',
-            padding: '1.5rem',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-        },
-        header: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '2rem',
-            padding: '1rem 0'
-        },
+        
         headerTitle: {
             display: 'flex',
             alignItems: 'center',
