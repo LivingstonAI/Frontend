@@ -960,6 +960,9 @@ export default function ResearchLogbook() {
                                 <span style={getStatusStyle(entry.snowai_status)}>
                                     {entry.snowai_status}
                                 </span>
+                                {entry.snowai_dataset_name && (
+                                <span style={styles.datasetBadge}>📊 {entry.snowai_dataset_name}</span>
+                            )}
                             </div>
 
                             {entry.snowai_description && (
