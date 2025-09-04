@@ -128,6 +128,10 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/trading_calendar" element={<GoogleCalendar />} />
             <Route path="/research_logbook" element={<ResearchLogbook />} />
+            <Route path="/research_logbook" element={<ModifyPersonalInfo selectedAssets={assets} />} />
+
+                            {/* <ModifyPersonalInfo selectedAssets={assets} /> */}
+
 
             
 
@@ -213,11 +217,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="/personal_info" element={
+            {/* <Route path="/personal_info" element={
               <ProtectedRoute>
                 <ModifyPersonalInfo selectedAssets={assets} />
               </ProtectedRoute>
-            } />
+            } /> */}
             
             <Route path="/models" element={
               <ProtectedRoute>
