@@ -13,7 +13,8 @@ import {
     Save,
     Eye,
     Trash2,
-    Calendar
+    Calendar,
+    Edit
 } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
@@ -35,6 +36,8 @@ export default function ResearchLogbook() {
         status: '',
         market_type: ''
     });
+    const [editMode, setEditMode] = useState(false);
+    const [editFormData, setEditFormData] = useState({});
     
     // Simple form state
     const [formData, setFormData] = useState({
@@ -781,7 +784,66 @@ export default function ResearchLogbook() {
         return `${name}: ${isPercent ? (value * 100).toFixed(1) + '%' : value.toFixed(3)}`;
     };
 
-    return (
+    const updateEntry = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/snowai-research-logbook/api/ml-entries/${selectedEntry.id}/`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...editFormData,
+                    snowai_accuracy_score: editFormData.snowai_accuracy_score ? parseFloat(editFormData.snowai_accuracy_score) : null,
+                    snowai_r2_score: editFormData.snowai_r2_score ? parseFloat(editFormData.snowai_r2_score) : null,
+                    snowai_roi_percentage: editFormData.snowai_roi_percentage ? parseFloat(editFormData.snowai_roi_percentage) : null,
+                })
+            });
+
+            if (response.ok) {
+                setEditMode(false);
+                setEditFormData({});
+                fetchEntries();
+                fetchAnalytics();
+                // Refresh the selected entry
+                viewDetails(selectedEntry.id);
+                alert('Model updated successfully!');
+            }
+        } catch (error) {
+            console.error('Error updating entry:', error);
+            alert('Error updating entry');
+        }
+    };
+
+    const startEdit = () => {
+        setEditFormData({
+            snowai_model_name: selectedEntry.snowai_model_name || '',
+            snowai_model_type: selectedEntry.snowai_model_type || 'classification',
+            snowai_description: selectedEntry.snowai_description || '',
+            snowai_accuracy_score: selectedEntry.snowai_accuracy_score || '',
+            snowai_r2_score: selectedEntry.snowai_r2_score || '',
+            snowai_roi_percentage: selectedEntry.snowai_roi_percentage || '',
+            snowai_status: selectedEntry.snowai_status || 'experimental',
+            snowai_financial_market_type: selectedEntry.snowai_financial_market_type || '',
+            snowai_framework_used: selectedEntry.snowai_framework_used || '',
+            snowai_code_used: selectedEntry.snowai_code_used || '',
+            snowai_dataset_name: selectedEntry.snowai_dataset_name || '',
+            snowai_notes: selectedEntry.snowai_notes || ''
+        });
+        setEditMode(true);
+    };
+
+    const cancelEdit = () => {
+        setEditMode(false);
+        setEditFormData({});
+    };
+
+    const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setShowFullCode(false);
+    setEditMode(false);
+    setEditFormData({});
+    };
+
+
+return (
         <div style={styles.container}>
             <style>{`
                 @keyframes spin {
@@ -1009,8 +1071,8 @@ export default function ResearchLogbook() {
                                     {entry.snowai_status}
                                 </span>
                                 {entry.snowai_dataset_name && (
-                                <span style={styles.datasetBadge}>📊 {entry.snowai_dataset_name}</span>
-                            )}
+                                    <span style={styles.datasetBadge}>📊 {entry.snowai_dataset_name}</span>
+                                )}
                             </div>
 
                             {entry.snowai_description && (
@@ -1139,7 +1201,6 @@ export default function ResearchLogbook() {
                                         value={formData.snowai_financial_market_type || ''}
                                         onChange={(e) => setFormData({...formData, snowai_financial_market_type: e.target.value})}
                                         style={styles.select}
-                                        // ... your existing focus/blur handlers
                                     >
                                         <option value="">Select Market Type</option>
                                         <option value="stocks">Stocks</option>
@@ -1162,7 +1223,6 @@ export default function ResearchLogbook() {
                                         onChange={(e) => setFormData({...formData, snowai_framework_used: e.target.value})}
                                         style={styles.input}
                                         placeholder="e.g., TensorFlow, PyTorch, Scikit-learn"
-                                        // ... your existing focus/blur handlers
                                     />
                                 </div>
 
@@ -1173,7 +1233,6 @@ export default function ResearchLogbook() {
                                         onChange={(e) => setFormData({...formData, snowai_code_used: e.target.value})}
                                         style={styles.textarea}
                                         placeholder="Paste your model code here..."
-                                        // ... your existing focus/blur handlers
                                     />
                                 </div>
 
@@ -1185,7 +1244,6 @@ export default function ResearchLogbook() {
                                         onChange={(e) => setFormData({...formData, snowai_dataset_name: e.target.value})}
                                         style={styles.input}
                                         placeholder="e.g., SP500_daily_prices.csv"
-                                        // ... your existing focus/blur handlers
                                     />
                                 </div>
 
@@ -1346,23 +1404,75 @@ export default function ResearchLogbook() {
                         <div style={styles.modalHeader}>
                             <h2 style={styles.modalTitle}>{selectedEntry.snowai_model_name}</h2>
                             <div style={{display: 'flex', gap: '0.5rem'}}>
-                                <button
-                                    onClick={() => deleteEntry(selectedEntry.id)}
-                                    style={styles.deleteButton}
-                                    onMouseOver={(e) => {
-                                        e.target.style.backgroundColor = '#fee2e2';
-                                    }}
-                                    onMouseOut={(e) => {
-                                        e.target.style.backgroundColor = 'transparent';
-                                    }}
-                                >
-                                    <Trash2 size={20} />
-                                </button>
+                                {!editMode ? (
+                                    <>
+                                        <button
+                                            onClick={startEdit}
+                                            style={{
+                                                ...styles.closeButton,
+                                                backgroundColor: '#1e40af',
+                                                color: 'white'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.target.style.backgroundColor = '#1d4ed8';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.target.style.backgroundColor = '#1e40af';
+                                            }}
+                                        >
+                                            <Edit size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => deleteEntry(selectedEntry.id)}
+                                            style={styles.deleteButton}
+                                            onMouseOver={(e) => {
+                                                e.target.style.backgroundColor = '#fee2e2';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.target.style.backgroundColor = 'transparent';
+                                            }}
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={updateEntry}
+                                            style={{
+                                                ...styles.closeButton,
+                                                backgroundColor: '#059669',
+                                                color: 'white'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.target.style.backgroundColor = '#047857';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.target.style.backgroundColor = '#059669';
+                                            }}
+                                        >
+                                            <Save size={20} />
+                                        </button>
+                                        <button
+                                            onClick={cancelEdit}
+                                            style={{
+                                                ...styles.closeButton,
+                                                backgroundColor: '#dc2626',
+                                                color: 'white'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.target.style.backgroundColor = '#b91c1c';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.target.style.backgroundColor = '#dc2626';
+                                            }}
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    </>
+                                )}
                                 <button 
-                                    onClick={() => {
-                                        setShowDetailModal(false);
-                                        setShowFullCode(false);
-                                    }}
+                                    onClick={closeDetailModal}
                                     style={styles.closeButton}
                                     onMouseOver={(e) => {
                                         e.target.style.backgroundColor = '#f3f4f6';
@@ -1379,110 +1489,269 @@ export default function ResearchLogbook() {
                         </div>
 
                         <div style={styles.form}>
-                            <div style={styles.detailGrid}>
-                                <div style={styles.detailSection}>
-                                    <h3 style={styles.sectionTitle}>Model Information</h3>
-                                    <div>
-                                        <div style={styles.detailItem}><strong>Type:</strong> {selectedEntry.snowai_model_type?.replace('_', ' ')}</div>
-                                        <div style={styles.detailItem}>
-                                            <strong>Status:</strong>
-                                            <span style={{...getStatusStyle(selectedEntry.snowai_status), marginLeft: '0.5rem'}}>
-                                                {selectedEntry.snowai_status}
-                                            </span>
+                            {editMode ? (
+                                // Edit Form
+                                <form onSubmit={(e) => { e.preventDefault(); updateEntry(); }}>
+                                    <div style={styles.formGrid}>
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Model Name *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={editFormData.snowai_model_name}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_model_name: e.target.value})}
+                                                style={styles.input}
+                                            />
                                         </div>
-                                        <div style={styles.detailItem}><strong>Framework:</strong> {selectedEntry.snowai_framework_used || 'Not specified'}</div>
-                                        <div style={styles.detailItem}><strong>Market:</strong> {selectedEntry.snowai_financial_market_type || 'Not specified'}</div>
-                                        <div style={styles.detailItem}><strong>Created:</strong> {new Date(selectedEntry.snowai_created_at).toLocaleDateString()}</div>
-                                    </div>
-                                </div>
 
-                                <div style={styles.detailSection}>
-                                    <h3 style={styles.sectionTitle}>Performance Metrics</h3>
-                                    <div>
-                                        {selectedEntry.snowai_accuracy_score && (
-                                            <div style={{...styles.metricCard, ...styles.metricGreen}}>
-                                                <strong>Accuracy:</strong> {(selectedEntry.snowai_accuracy_score * 100).toFixed(1)}%
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Model Type</label>
+                                            <select
+                                                value={editFormData.snowai_model_type}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_model_type: e.target.value})}
+                                                style={styles.select}
+                                            >
+                                                <option value="classification">Classification</option>
+                                                <option value="regression">Regression</option>
+                                                <option value="neural_network">Neural Network</option>
+                                                <option value="deep_learning">Deep Learning</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Financial Market</label>
+                                            <select
+                                                value={editFormData.snowai_financial_market_type || ''}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_financial_market_type: e.target.value})}
+                                                style={styles.select}
+                                            >
+                                                <option value="">Select Market Type</option>
+                                                <option value="stocks">Stocks</option>
+                                                <option value="forex">Forex</option>
+                                                <option value="crypto">Cryptocurrency</option>
+                                                <option value="bonds">Bonds</option>
+                                                <option value="commodities">Commodities</option>
+                                                <option value="indices">Market Indices</option>
+                                                <option value="options">Options</option>
+                                                <option value="futures">Futures</option>
+                                                <option value="mixed">Mixed Markets</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Framework Used</label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.snowai_framework_used || ''}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_framework_used: e.target.value})}
+                                                style={styles.input}
+                                                placeholder="e.g., TensorFlow, PyTorch, Scikit-learn"
+                                            />
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Dataset Name</label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.snowai_dataset_name || ''}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_dataset_name: e.target.value})}
+                                                style={styles.input}
+                                                placeholder="e.g., SP500_daily_prices.csv"
+                                            />
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Status</label>
+                                            <select
+                                                value={editFormData.snowai_status}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_status: e.target.value})}
+                                                style={styles.select}
+                                            >
+                                                <option value="experimental">Experimental</option>
+                                                <option value="validated">Validated</option>
+                                                <option value="production">Production</option>
+                                                <option value="deprecated">Deprecated</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Accuracy Score</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="1"
+                                                value={editFormData.snowai_accuracy_score}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_accuracy_score: e.target.value})}
+                                                style={styles.input}
+                                                placeholder="0.85"
+                                            />
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>R² Score</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editFormData.snowai_r2_score}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_r2_score: e.target.value})}
+                                                style={styles.input}
+                                                placeholder="0.92"
+                                            />
+                                        </div>
+
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>ROI (%)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editFormData.snowai_roi_percentage}
+                                                onChange={(e) => setEditFormData({...editFormData, snowai_roi_percentage: e.target.value})}
+                                                style={styles.input}
+                                                placeholder="23.7"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Description</label>
+                                        <textarea
+                                            value={editFormData.snowai_description}
+                                            onChange={(e) => setEditFormData({...editFormData, snowai_description: e.target.value})}
+                                            style={styles.textarea}
+                                            placeholder="Describe your model's purpose and approach..."
+                                        />
+                                    </div>
+
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Code File</label>
+                                        <textarea
+                                            value={editFormData.snowai_code_used || ''}
+                                            onChange={(e) => setEditFormData({...editFormData, snowai_code_used: e.target.value})}
+                                            style={styles.textarea}
+                                            placeholder="Paste your model code here..."
+                                        />
+                                    </div>
+
+                                    <div style={styles.formGroup}>
+                                        <label style={styles.label}>Notes</label>
+                                        <textarea
+                                            value={editFormData.snowai_notes || ''}
+                                            onChange={(e) => setEditFormData({...editFormData, snowai_notes: e.target.value})}
+                                            style={styles.textarea}
+                                            placeholder="Additional notes..."
+                                        />
+                                    </div>
+                                </form>
+                            ) : (
+                                // Detail View
+                                <div>
+                                    <div style={styles.detailGrid}>
+                                        <div style={styles.detailSection}>
+                                            <h3 style={styles.sectionTitle}>Model Information</h3>
+                                            <div>
+                                                <div style={styles.detailItem}><strong>Type:</strong> {selectedEntry.snowai_model_type?.replace('_', ' ')}</div>
+                                                <div style={styles.detailItem}>
+                                                    <strong>Status:</strong>
+                                                    <span style={{...getStatusStyle(selectedEntry.snowai_status), marginLeft: '0.5rem'}}>
+                                                        {selectedEntry.snowai_status}
+                                                    </span>
+                                                </div>
+                                                <div style={styles.detailItem}><strong>Framework:</strong> {selectedEntry.snowai_framework_used || 'Not specified'}</div>
+                                                <div style={styles.detailItem}><strong>Market:</strong> {selectedEntry.snowai_financial_market_type || 'Not specified'}</div>
+                                                <div style={styles.detailItem}><strong>Created:</strong> {new Date(selectedEntry.snowai_created_at).toLocaleDateString()}</div>
                                             </div>
-                                        )}
-                                        {selectedEntry.snowai_r2_score && (
-                                            <div style={{...styles.metricCard, ...styles.metricBlue}}>
-                                                <strong>R² Score:</strong> {selectedEntry.snowai_r2_score.toFixed(3)}
+                                        </div>
+
+                                        <div style={styles.detailSection}>
+                                            <h3 style={styles.sectionTitle}>Performance Metrics</h3>
+                                            <div>
+                                                {selectedEntry.snowai_accuracy_score && (
+                                                    <div style={{...styles.metricCard, ...styles.metricGreen}}>
+                                                        <strong>Accuracy:</strong> {(selectedEntry.snowai_accuracy_score * 100).toFixed(1)}%
+                                                    </div>
+                                                )}
+                                                {selectedEntry.snowai_r2_score && (
+                                                    <div style={{...styles.metricCard, ...styles.metricBlue}}>
+                                                        <strong>R² Score:</strong> {selectedEntry.snowai_r2_score.toFixed(3)}
+                                                    </div>
+                                                )}
+                                                {selectedEntry.snowai_roi_percentage && (
+                                                    <div style={{...styles.metricCard, ...styles.metricYellow}}>
+                                                        <strong>ROI:</strong> {selectedEntry.snowai_roi_percentage.toFixed(1)}%
+                                                    </div>
+                                                )}
+                                                {selectedEntry.snowai_sharpe_ratio && (
+                                                    <div style={{...styles.metricCard, ...styles.metricPurple}}>
+                                                        <strong>Sharpe Ratio:</strong> {selectedEntry.snowai_sharpe_ratio.toFixed(2)}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        {selectedEntry.snowai_roi_percentage && (
-                                            <div style={{...styles.metricCard, ...styles.metricYellow}}>
-                                                <strong>ROI:</strong> {selectedEntry.snowai_roi_percentage.toFixed(1)}%
+                                        </div>
+                                    </div>
+
+                                    {selectedEntry.snowai_code_used && (
+                                        <div style={styles.detailSection}>
+                                            <h3 style={styles.sectionTitle}>Model Code</h3>
+                                            <div style={styles.codeContainer}>
+                                                <div style={styles.codeHeader}>
+                                                    <button
+                                                        onClick={() => setShowFullCode(!showFullCode)}
+                                                        style={styles.toggleCodeButton}
+                                                    >
+                                                        {showFullCode ? 'Show Less' : 'Read More'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(selectedEntry.snowai_code_used);
+                                                            alert('Code copied to clipboard!');
+                                                        }}
+                                                        style={styles.copyButton}
+                                                    >
+                                                        Copy Code
+                                                    </button>
+                                                </div>
+                                                <pre style={{
+                                                    ...styles.codeBlock,
+                                                    maxHeight: showFullCode ? 'none' : '200px',
+                                                    overflow: showFullCode ? 'visible' : 'hidden'
+                                                }}>
+                                                    <code>{selectedEntry.snowai_code_used}</code>
+                                                </pre>
                                             </div>
-                                        )}
-                                        {selectedEntry.snowai_sharpe_ratio && (
-                                            <div style={{...styles.metricCard, ...styles.metricPurple}}>
-                                                <strong>Sharpe Ratio:</strong> {selectedEntry.snowai_sharpe_ratio.toFixed(2)}
+                                        </div>
+                                    )}
+
+                                    {selectedEntry.snowai_description && (
+                                        <div style={styles.detailSection}>
+                                            <h3 style={styles.sectionTitle}>Description</h3>
+                                            <div style={styles.descriptionBox}>
+                                                {selectedEntry.snowai_description}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                                        </div>
+                                    )}
 
-                            {selectedEntry.snowai_code_used && (
-                            <div style={styles.detailSection}>
-                                <h3 style={styles.sectionTitle}>Model Code</h3>
-                                <div style={styles.codeContainer}>
-                                    <div style={styles.codeHeader}>
-                                        <button
-                                            onClick={() => setShowFullCode(!showFullCode)}
-                                            style={styles.toggleCodeButton}
-                                        >
-                                            {showFullCode ? 'Show Less' : 'Read More'}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(selectedEntry.snowai_code_used);
-                                                alert('Code copied to clipboard!');
-                                            }}
-                                            style={styles.copyButton}
-                                        >
-                                            Copy Code
-                                        </button>
-                                    </div>
-                                    <pre style={{
-                                        ...styles.codeBlock,
-                                        maxHeight: showFullCode ? 'none' : '200px',
-                                        overflow: showFullCode ? 'visible' : 'hidden'
-                                    }}>
-                                        <code>{selectedEntry.snowai_code_used}</code>
-                                    </pre>
-                                </div>
-                            </div>
-                        )}
+                                    {selectedEntry.snowai_tags && selectedEntry.snowai_tags.length > 0 && (
+                                        <div style={styles.detailSection}>
+                                            <h3 style={styles.sectionTitle}>Tags</h3>
+                                            <div style={{display: 'flex', flexWrap: 'wrap', gap: '0.5rem'}}>
+                                                {selectedEntry.snowai_tags.map((tag, index) => (
+                                                    <span key={index} style={styles.tagsPill}>
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
-                            {selectedEntry.snowai_description && (
-                                <div style={styles.detailSection}>
-                                    <h3 style={styles.sectionTitle}>Description</h3>
-                                    <div style={styles.descriptionBox}>
-                                        {selectedEntry.snowai_description}
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedEntry.snowai_tags && selectedEntry.snowai_tags.length > 0 && (
-                                <div style={styles.detailSection}>
-                                    <h3 style={styles.sectionTitle}>Tags</h3>
-                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '0.5rem'}}>
-                                        {selectedEntry.snowai_tags.map((tag, index) => (
-                                            <span key={index} style={styles.tagsPill}>
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedEntry.snowai_notes && (
-                                <div style={styles.detailSection}>
-                                    <h3 style={styles.sectionTitle}>Notes</h3>
-                                    <div style={styles.descriptionBox}>
-                                        {selectedEntry.snowai_notes}
-                                    </div>
+                                    {selectedEntry.snowai_notes && (
+                                        <div style={styles.detailSection}>
+                                            <h3 style={styles.sectionTitle}>Notes</h3>
+                                            <div style={styles.descriptionBox}>
+                                                {selectedEntry.snowai_notes}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1491,4 +1760,3 @@ export default function ResearchLogbook() {
             )}
         </div>
     );
-}
