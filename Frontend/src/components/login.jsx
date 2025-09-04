@@ -308,7 +308,7 @@ export default function Login() {
                 // Clear failed attempts on successful auth
                 clearAttempts();
                 
-                const userEmail = email || 'tlotlo.motingwe@example.com';
+                const userEmail = email || 'butterrobot83@gmail.com';
                 Cookies.set('email', userEmail);
                 Cookies.set('account_name', userEmail);
                 
@@ -362,7 +362,7 @@ export default function Login() {
     // Check backend fingerprint status
         const checkBackendFingerprintStatus = async () => {
             try {
-                const userEmail = email || 'tlotlo.motingwe@example.com';
+                const userEmail = email || 'butterrobot83@gmail.com';
                 const currentDomain = window.location.hostname;
                 
                 const response = await fetch(`${baseURL}/check_fingerprint_status/?email=${userEmail}&domain=${currentDomain}`);
@@ -623,7 +623,7 @@ export default function Login() {
                     streamRef.current.getTracks().forEach(track => track.stop());
                 }
 
-                const userEmail = email || 'tlotlo.motingwe@example.com';
+                const userEmail = email || 'butterrobot83@gmail.com';
                 Cookies.set('email', userEmail);
                 
                 setTimeout(() => {
@@ -790,7 +790,7 @@ export default function Login() {
 
     const proceedToLogin = () => {
     clearAttempts();
-    const userEmail = email || 'tlotlo.motingwe@example.com';
+    const userEmail = email || 'butterrobot83@gmail.com';
     Cookies.set('email', userEmail);
     setAccessGranted(true);
     
