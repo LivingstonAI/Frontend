@@ -708,7 +708,7 @@ export default function GoogleCalendar() {
 
     const getTradesForDate = (day) => {
         if (!day) return [];
-        
+        // 
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
         const dateString = new Date(year, month, day).toISOString().split('T')[0];
