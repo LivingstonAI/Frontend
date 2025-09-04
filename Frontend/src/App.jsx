@@ -126,10 +126,7 @@ function App() {
             {/* Public routes - no authentication required */}
             <Route path='/' element={<SnowAILandingPage />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/trading_calendar" element={<GoogleCalendar />} />
-            <Route path="/research_logbook" element={<ResearchLogbook />} />
-            <Route path="/personal_info" element={<ModifyPersonalInfo selectedAssets={assets} />} />
-
+            
             
             {/* Protected routes - authentication required */}
             <Route path="/tell_us_more" element={
@@ -210,11 +207,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* <Route path="/personal_info" element={
+            <Route path="/personal_info" element={
               <ProtectedRoute>
                 <ModifyPersonalInfo selectedAssets={assets} />
               </ProtectedRoute>
-            } /> */}
+            } />
             
             <Route path="/models" element={
               <ProtectedRoute>
@@ -378,11 +375,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* <Route path='/trading_calendar' element={
+            <Route path='/trading_calendar' element={
               <ProtectedRoute>
                 <GoogleCalendar />
               </ProtectedRoute>
-            } /> */}
+            } />
             
             <Route path='/paper_gpt' element={
               <ProtectedRoute>
@@ -432,11 +429,11 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* <Route path='/research_logbook' element={
+            <Route path='/research_logbook' element={
               <ProtectedRoute>
                 <ResearchLogbook />
               </ProtectedRoute>
-            } /> */}
+            } />
             
             <Route path='/market_share_infographic' element={
               <ProtectedRoute>
