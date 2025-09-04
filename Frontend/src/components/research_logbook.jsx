@@ -29,6 +29,7 @@ export default function ResearchLogbook() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showFullCode, setShowFullCode] = useState(false);
     const [filters, setFilters] = useState({
         model_type: '',
         status: '',
@@ -605,6 +606,53 @@ export default function ResearchLogbook() {
         '@keyframes spin': {
             '0%': { transform: 'rotate(0deg)' },
             '100%': { transform: 'rotate(360deg)' }
+        },
+        codeContainer: {
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            overflow: 'hidden'
+        },
+        codeHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.75rem 1rem',
+            backgroundColor: '#f1f5f9',
+            borderBottom: '1px solid #e5e7eb'
+        },
+        toggleCodeButton: {
+            backgroundColor: '#1e40af',
+            color: 'white',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.3s ease'
+        },
+        copyButton: {
+            backgroundColor: '#059669',
+            color: 'white',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.3s ease'
+        },
+        codeBlock: {
+            margin: 0,
+            padding: '1rem',
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
+            fontFamily: '"Fira Code", "Monaco", "Cascadia Code", "Roboto Mono", monospace',
+            backgroundColor: '#1e293b',
+            color: '#e2e8f0',
+            position: 'relative',
+            transition: 'max-height 0.3s ease'
         }
     };
 
@@ -1311,7 +1359,10 @@ export default function ResearchLogbook() {
                                     <Trash2 size={20} />
                                 </button>
                                 <button 
-                                    onClick={() => setShowDetailModal(false)}
+                                    onClick={() => {
+                                        setShowDetailModal(false);
+                                        setShowFullCode(false);
+                                    }}
                                     style={styles.closeButton}
                                     onMouseOver={(e) => {
                                         e.target.style.backgroundColor = '#f3f4f6';
@@ -1371,6 +1422,38 @@ export default function ResearchLogbook() {
                                     </div>
                                 </div>
                             </div>
+
+                            {selectedEntry.snowai_code_used && (
+                            <div style={styles.detailSection}>
+                                <h3 style={styles.sectionTitle}>Model Code</h3>
+                                <div style={styles.codeContainer}>
+                                    <div style={styles.codeHeader}>
+                                        <button
+                                            onClick={() => setShowFullCode(!showFullCode)}
+                                            style={styles.toggleCodeButton}
+                                        >
+                                            {showFullCode ? 'Show Less' : 'Read More'}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(selectedEntry.snowai_code_used);
+                                                alert('Code copied to clipboard!');
+                                            }}
+                                            style={styles.copyButton}
+                                        >
+                                            Copy Code
+                                        </button>
+                                    </div>
+                                    <pre style={{
+                                        ...styles.codeBlock,
+                                        maxHeight: showFullCode ? 'none' : '200px',
+                                        overflow: showFullCode ? 'visible' : 'hidden'
+                                    }}>
+                                        <code>{selectedEntry.snowai_code_used}</code>
+                                    </pre>
+                                </div>
+                            </div>
+                        )}
 
                             {selectedEntry.snowai_description && (
                                 <div style={styles.detailSection}>
