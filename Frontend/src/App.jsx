@@ -128,14 +128,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/trading_calendar" element={<GoogleCalendar />} />
             <Route path="/research_logbook" element={<ResearchLogbook />} />
-            <Route path="/research_logbook" element={<ModifyPersonalInfo selectedAssets={assets} />} />
-
-                            {/* <ModifyPersonalInfo selectedAssets={assets} /> */}
-
-
-            
-
-                            
+            <Route path="/personal_info" element={<ModifyPersonalInfo selectedAssets={assets} />} />
 
             
             {/* Protected routes - authentication required */}
