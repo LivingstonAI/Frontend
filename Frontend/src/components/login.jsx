@@ -22,7 +22,8 @@ export default function Login() {
     const [facialRecognitionStep, setFacialRecognitionStep] = useState('prepare');
     const [faceVerified, setFaceVerified] = useState(false);
     const [userInteracted, setUserInteracted] = useState(false);
-    
+    const [backendFingerprintRegistered, setBackendFingerprintRegistered] = useState(false);
+    const [fingerprintStatusLoading, setFingerprintStatusLoading] = useState(true);
     // Authentication flow states
     const [authStep, setAuthStep] = useState('password'); // password, fingerprint, face
     const [isMobile, setIsMobile] = useState(false);
@@ -217,6 +218,19 @@ export default function Login() {
             localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
             localStorage.setItem('fingerprintRegistered', 'true');
             localStorage.setItem('fingerprintDomain', window.location.hostname); // Store domain
+
+            // Register in backend after successful local registration
+            const backendSuccess = await registerFingerprintInBackend();
+            if (backendSuccess) {
+                setFingerprintRegistered(true);
+                speak("Fingerprint registered successfully in both device and backend.");
+                setError("");
+                return true;
+            } else {
+                speak("Fingerprint registered locally but backend registration failed.");
+                setError("Warning: Fingerprint may not work on other sessions");
+                return true;
+            }
             
             setFingerprintRegistered(true);
             speak("Fingerprint registered successfully. You can now use fingerprint authentication.");
@@ -345,6 +359,48 @@ export default function Login() {
         }
     };
 
+    // Check backend fingerprint status
+        const checkBackendFingerprintStatus = async () => {
+            try {
+                const userEmail = email || 'tlotlo.motingwe@example.com';
+                const currentDomain = window.location.hostname;
+                
+                const response = await fetch(`${baseURL}/check_fingerprint_status/?email=${userEmail}&domain=${currentDomain}`);
+                const result = await response.json();
+                
+                setBackendFingerprintRegistered(result.is_registered);
+                return result.is_registered;
+            } catch (error) {
+                console.error("Error checking backend fingerprint status:", error);
+                return false;
+            } finally {
+                setFingerprintStatusLoading(false);
+            }
+        };
+
+        // Register fingerprint in backend
+        const registerFingerprintInBackend = async () => {
+            try {
+                const userEmail = email || 'tlotlo.motingwe@example.com';
+                const currentDomain = window.location.hostname;
+                
+                const response = await fetch(`${baseURL}/register_fingerprint/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail, domain: currentDomain })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    setBackendFingerprintRegistered(true);
+                }
+                return result.success;
+            } catch (error) {
+                console.error("Error registering fingerprint in backend:", error);
+                return false;
+            }
+        };
+
     // Voice synthesis function
     const speak = (text) => {
         if (!userInteracted) return;
@@ -385,8 +441,17 @@ export default function Login() {
 
     // Initialize component
     useEffect(() => {
+        
+        const initializeAuth = async () => {
         fetchAPIKey();
-        checkFingerprintSupport();
+        const localSupported = await checkFingerprintSupport();
+        
+        // Check backend status
+        const backendRegistered = await checkBackendFingerprintStatus();
+        
+        // Only consider fingerprint registered if both local and backend are true
+        const fullyRegistered = fingerprintRegistered && backendRegistered;
+        setFingerprintRegistered(fullyRegistered);
         
         // Initialize device detection and stored attempts
         const mobile = detectDevice();
@@ -432,7 +497,8 @@ export default function Login() {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
-        };
+        };}
+        initializeAuth();
     }, []);
 
     // Load voices when available
@@ -921,17 +987,16 @@ export default function Login() {
                         )}
                         
                         {/* Biometric options display */}
-                        {fingerprintSupported && !isMobile && (
-                            <div className="biometric-options">
-                                {fingerprintRegistered ? (
-                                    <div className="biometric-available">
-                                        🔒 Fingerprint authentication available
-                                    </div>
-                                ) : (
-                                    <div className="biometric-setup">
-                                        📱 Fingerprint setup available
-                                    </div>
-                                )}
+                        // Replace existing biometric options with:
+                        {fingerprintSupported && !isMobile && backendFingerprintRegistered && (
+                            <div className="biometric-available">
+                                🔒 Fingerprint authentication available
+                            </div>
+                        )}
+
+                        {fingerprintSupported && !isMobile && !backendFingerprintRegistered && !fingerprintStatusLoading && (
+                            <div className="biometric-setup">
+                                📱 Fingerprint setup available
                             </div>
                         )}
                         
@@ -956,7 +1021,7 @@ export default function Login() {
                             {error && <div className="hud-error-message">{error}</div>}
                             
                             {/* Desktop fingerprint quick access */}
-                            {!isMobile && fingerprintSupported && fingerprintRegistered && !isLockedOut && authStep === 'password' && (
+                            {!isMobile && fingerprintSupported && fingerprintRegistered  && backendFingerprintRegistered && !isLockedOut && authStep === 'password' && (
                                 <button 
                                     type="button"
                                     className="hud-button fingerprint-quick-button"
@@ -968,7 +1033,7 @@ export default function Login() {
                             )}
                             
                             {/* Desktop fingerprint registration */}
-                            {!isMobile && fingerprintSupported && !fingerprintRegistered && !isLockedOut && authStep === 'password' && (
+                            {!isMobile && fingerprintSupported && !fingerprintRegistered  && !backendFingerprintRegistered && !isLockedOut && authStep === 'password' && (
                                 <button 
                                     type="button"
                                     className="hud-button fingerprint-register-button"
@@ -2057,3 +2122,17 @@ export default function Login() {
         </div>
     );
 }
+
+// views.py
+
+// @csrf_exempt
+
+// def check_fingerprint_status(request):
+
+// class FingerPrintStatus(models.Model):
+
+//  is_registered = # set to true since my fingerprint is already registered
+
+// can you update my code such that it checks whether my fingerprint is registered in my djnago db, and if it is, no need to show the register fingerprint thing? because it would be easy with the current setup for someone to setup their fingerprint on their device, which is not mine. And since I'm the only user, that woule be inconvenient. so it checks the status in the backend, and if not registered, gives me the option too as it does already on mobile, then when I do it sets it in the backend to true.
+
+// no need to provide the full code. just tell me what I need to update, but give me one file with all the updates.
