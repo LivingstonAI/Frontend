@@ -194,7 +194,7 @@ export default function Login() {
                 },
                 user: {
                     id: new TextEncoder().encode("tlotlo.motingwe"),
-                    name: "tlotlo.motingwe@example.com",
+                    name: "butterrobot83@gmail.com",
                     displayName: "Tlotlo Motingwe",
                 },
                 pubKeyCredParams: [
@@ -381,7 +381,7 @@ export default function Login() {
         // Register fingerprint in backend
         const registerFingerprintInBackend = async () => {
             try {
-                const userEmail = email || 'tlotlo.motingwe@example.com';
+                const userEmail = email || 'butterrobot83@gmail.com';
                 const currentDomain = window.location.hostname;
                 
                 const response = await fetch(`${baseURL}/register_fingerprint/`, {
@@ -987,7 +987,6 @@ export default function Login() {
                         )}
                         
                         {/* Biometric options display */}
-                        // Replace existing biometric options with:
                         {fingerprintSupported && !isMobile && backendFingerprintRegistered && (
                             <div className="biometric-available">
                                 🔒 Fingerprint authentication available
