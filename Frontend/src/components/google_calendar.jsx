@@ -37,7 +37,12 @@ export default function GoogleCalendar() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const accountName = Cookies.get('account_name');
+
+    // Add these state variables at the top with your other useState hooks
+    const [selectedChart, setSelectedChart] = useState(null);
+    const [chartMetrics, setChartMetrics] = useState({});
 
     useEffect(() => {
         fetchTrades();
@@ -93,139 +98,330 @@ export default function GoogleCalendar() {
         }
     };
 
-    // Add these state variables at the top with your other useState hooks
-const [selectedChart, setSelectedChart] = useState(null);
-const [chartMetrics, setChartMetrics] = useState({});
+    // PDF Download Function
+    const downloadMonthlyReport = async () => {
+        setDownloadingPDF(true);
+        
+        try {
+            // Dynamic import for better performance
+            const jsPDF = (await import('jspdf')).default;
+            const html2canvas = (await import('html2canvas')).default;
+            
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 20;
+            let yPosition = margin;
+            
+            // Add title
+            pdf.setFontSize(20);
+            pdf.setTextColor(0, 124, 186); // #007cba
+            pdf.text(`Trading Report - ${getMonthName(currentDate)}`, margin, yPosition);
+            yPosition += 15;
+            
+            // Add account info
+            pdf.setFontSize(12);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(`Account: ${accountName}`, margin, yPosition);
+            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 60, yPosition);
+            yPosition += 20;
+            
+            // Add analytics summary
+            const analytics = calculateAnalytics();
+            
+            pdf.setFontSize(14);
+            pdf.setTextColor(0, 124, 186);
+            pdf.text('Performance Summary', margin, yPosition);
+            yPosition += 10;
+            
+            pdf.setFontSize(10);
+            pdf.setTextColor(0, 0, 0);
+            
+            const summaryData = [
+                [`Total Trades`, `${analytics.totalTrades}`],
+                [`Win Rate`, `${analytics.winRate.toFixed(1)}%`],
+                [`Average Win`, `$${analytics.averageWin.toFixed(2)}`],
+                [`Average Loss`, `$${analytics.averageLoss.toFixed(2)}`],
+                [`Profit Factor`, `${analytics.profitFactor === Infinity ? '∞' : analytics.profitFactor.toFixed(2)}`],
+                [`Net P&L`, `$${analytics.netPnL.toFixed(2)}`]
+            ];
+            
+            // Create summary table
+            summaryData.forEach(([label, value]) => {
+                pdf.text(label + ':', margin, yPosition);
+                pdf.text(value, margin + 40, yPosition);
+                yPosition += 6;
+            });
+            
+            yPosition += 10;
+            
+            // Capture and add charts if analytics are shown
+            if (showAnalytics) {
+                const chartElements = [
+                    { selector: '[data-chart="dayOfWeek"]', title: 'Performance by Day of Week' },
+                    { selector: '[data-chart="session"]', title: 'Performance by Trading Session' },
+                    { selector: '[data-chart="strategy"]', title: 'Performance by Strategy' },
+                    { selector: '[data-chart="asset"]', title: 'Performance by Asset' },
+                    { selector: '[data-chart="equity"]', title: 'Equity Curve' }
+                ];
+                
+                for (const { selector, title } of chartElements) {
+                    const chartElement = document.querySelector(selector);
+                    if (chartElement) {
+                        // Check if we need a new page
+                        if (yPosition > pageHeight - 100) {
+                            pdf.addPage();
+                            yPosition = margin;
+                        }
+                        
+                        try {
+                            const canvas = await html2canvas(chartElement, {
+                                scale: 2,
+                                logging: false,
+                                useCORS: true
+                            });
+                            
+                            const imgData = canvas.toDataURL('image/png');
+                            const imgWidth = pageWidth - 2 * margin;
+                            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                            
+                            // Add chart title
+                            pdf.setFontSize(12);
+                            pdf.setTextColor(0, 124, 186);
+                            pdf.text(title, margin, yPosition);
+                            yPosition += 10;
+                            
+                            // Add chart image
+                            pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+                            yPosition += imgHeight + 15;
+                            
+                        } catch (chartError) {
+                            console.warn(`Failed to capture ${title}:`, chartError);
+                            // Continue with next chart
+                        }
+                    }
+                }
+            }
+            
+            // Add trade summary table on new page
+            pdf.addPage();
+            yPosition = margin;
+            
+            pdf.setFontSize(14);
+            pdf.setTextColor(0, 124, 186);
+            pdf.text('Trade Summary', margin, yPosition);
+            yPosition += 15;
+            
+            const monthTrades = getCurrentMonthTrades();
+            
+            if (monthTrades.length > 0) {
+                // Table headers
+                pdf.setFontSize(9);
+                pdf.setTextColor(0, 0, 0);
+                
+                const headers = ['Date', 'Asset', 'Strategy', 'Outcome', 'Amount'];
+                const colWidths = [25, 35, 35, 25, 25];
+                let xPos = margin;
+                
+                // Draw headers
+                headers.forEach((header, i) => {
+                    pdf.text(header, xPos, yPosition);
+                    xPos += colWidths[i];
+                });
+                yPosition += 8;
+                
+                // Draw line under headers
+                pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+                
+                // Add trade rows
+                monthTrades.slice(0, 50).forEach(trade => { // Limit to 50 trades to fit on page
+                    if (yPosition > pageHeight - 20) {
+                        pdf.addPage();
+                        yPosition = margin;
+                        
+                        // Redraw headers on new page
+                        xPos = margin;
+                        headers.forEach((header, i) => {
+                            pdf.text(header, xPos, yPosition);
+                            xPos += colWidths[i];
+                        });
+                        yPosition += 8;
+                        pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+                    }
+                    
+                    xPos = margin;
+                    const tradeDate = new Date(trade.date_entered).toLocaleDateString();
+                    const rowData = [
+                        tradeDate,
+                        trade.asset || 'N/A',
+                        trade.strategy || 'N/A',
+                        trade.outcome || 'N/A',
+                        `$${trade.amount.toFixed(2)}`
+                    ];
+                    
+                    rowData.forEach((data, i) => {
+                        // Truncate long text
+                        const truncatedData = data.length > 15 ? data.substring(0, 12) + '...' : data;
+                        pdf.text(truncatedData, xPos, yPosition);
+                        xPos += colWidths[i];
+                    });
+                    yPosition += 6;
+                });
+                
+                if (monthTrades.length > 50) {
+                    yPosition += 5;
+                    pdf.text(`... and ${monthTrades.length - 50} more trades`, margin, yPosition);
+                }
+            } else {
+                pdf.text('No trades found for this month.', margin, yPosition);
+            }
+            
+            // Save the PDF
+            const fileName = `Trading_Report_${getMonthName(currentDate).replace(' ', '_')}.pdf`;
+            pdf.save(fileName);
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF report. Please try again.');
+        } finally {
+            setDownloadingPDF(false);
+        }
+    };
 
-// Add this function to calculate detailed metrics for each chart
-const getChartMetrics = (chartType) => {
-    const monthTrades = getCurrentMonthTrades();
-    
-    switch(chartType) {
-        case 'dayOfWeek':
-            const dayStats = {};
-            const dayPerformance = {
-                'Monday': [], 'Tuesday': [], 'Wednesday': [], 'Thursday': [], 
-                'Friday': [], 'Saturday': [], 'Sunday': []
-            };
-            
-            monthTrades.forEach(trade => {
-                if (trade.day_of_week_entered && dayPerformance.hasOwnProperty(trade.day_of_week_entered)) {
-                    dayPerformance[trade.day_of_week_entered].push(trade.amount);
-                }
-            });
-            
-            Object.keys(dayPerformance).forEach(day => {
-                const trades = dayPerformance[day];
-                const wins = trades.filter(t => t > 0);
-                const losses = trades.filter(t => t < 0);
-                const total = trades.reduce((sum, t) => sum + t, 0);
-                
-                dayStats[day] = {
-                    total: total,
-                    trades: trades.length,
-                    wins: wins.length,
-                    losses: losses.length,
-                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
-                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+    // Add data attributes to chart containers for PDF capture
+    const getChartDataAttribute = (chartType) => {
+        return { 'data-chart': chartType };
+    };
+
+    // Add this function to calculate detailed metrics for each chart
+    const getChartMetrics = (chartType) => {
+        const monthTrades = getCurrentMonthTrades();
+        
+        switch(chartType) {
+            case 'dayOfWeek':
+                const dayStats = {};
+                const dayPerformance = {
+                    'Monday': [], 'Tuesday': [], 'Wednesday': [], 'Thursday': [], 
+                    'Friday': [], 'Saturday': [], 'Sunday': []
                 };
-            });
-            return dayStats;
-            
-        case 'session':
-            const sessionStats = {};
-            const sessionPerformance = {};
-            
-            monthTrades.forEach(trade => {
-                if (trade.trading_session_entered) {
-                    if (!sessionPerformance[trade.trading_session_entered]) {
-                        sessionPerformance[trade.trading_session_entered] = [];
+                
+                monthTrades.forEach(trade => {
+                    if (trade.day_of_week_entered && dayPerformance.hasOwnProperty(trade.day_of_week_entered)) {
+                        dayPerformance[trade.day_of_week_entered].push(trade.amount);
                     }
-                    sessionPerformance[trade.trading_session_entered].push(trade.amount);
-                }
-            });
-            
-            Object.keys(sessionPerformance).forEach(session => {
-                const trades = sessionPerformance[session];
-                const wins = trades.filter(t => t > 0);
-                const losses = trades.filter(t => t < 0);
-                const total = trades.reduce((sum, t) => sum + t, 0);
+                });
                 
-                sessionStats[session] = {
-                    total: total,
-                    trades: trades.length,
-                    wins: wins.length,
-                    losses: losses.length,
-                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
-                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
-                };
-            });
-            return sessionStats;
-            
-        case 'strategy':
-            const strategyStats = {};
-            const strategyPerformance = {};
-            
-            monthTrades.forEach(trade => {
-                if (trade.strategy) {
-                    if (!strategyPerformance[trade.strategy]) {
-                        strategyPerformance[trade.strategy] = [];
+                Object.keys(dayPerformance).forEach(day => {
+                    const trades = dayPerformance[day];
+                    const wins = trades.filter(t => t > 0);
+                    const losses = trades.filter(t => t < 0);
+                    const total = trades.reduce((sum, t) => sum + t, 0);
+                    
+                    dayStats[day] = {
+                        total: total,
+                        trades: trades.length,
+                        wins: wins.length,
+                        losses: losses.length,
+                        winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                        avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                    };
+                });
+                return dayStats;
+                
+            case 'session':
+                const sessionStats = {};
+                const sessionPerformance = {};
+                
+                monthTrades.forEach(trade => {
+                    if (trade.trading_session_entered) {
+                        if (!sessionPerformance[trade.trading_session_entered]) {
+                            sessionPerformance[trade.trading_session_entered] = [];
+                        }
+                        sessionPerformance[trade.trading_session_entered].push(trade.amount);
                     }
-                    strategyPerformance[trade.strategy].push(trade.amount);
-                }
-            });
-            
-            Object.keys(strategyPerformance).forEach(strategy => {
-                const trades = strategyPerformance[strategy];
-                const wins = trades.filter(t => t > 0);
-                const losses = trades.filter(t => t < 0);
-                const total = trades.reduce((sum, t) => sum + t, 0);
+                });
                 
-                strategyStats[strategy] = {
-                    total: total,
-                    trades: trades.length,
-                    wins: wins.length,
-                    losses: losses.length,
-                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
-                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
-                };
-            });
-            return strategyStats;
-            
-        case 'asset':
-            const assetStats = {};
-            const assetPerformance = {};
-            
-            monthTrades.forEach(trade => {
-                if (trade.asset) {
-                    if (!assetPerformance[trade.asset]) {
-                        assetPerformance[trade.asset] = [];
+                Object.keys(sessionPerformance).forEach(session => {
+                    const trades = sessionPerformance[session];
+                    const wins = trades.filter(t => t > 0);
+                    const losses = trades.filter(t => t < 0);
+                    const total = trades.reduce((sum, t) => sum + t, 0);
+                    
+                    sessionStats[session] = {
+                        total: total,
+                        trades: trades.length,
+                        wins: wins.length,
+                        losses: losses.length,
+                        winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                        avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                    };
+                });
+                return sessionStats;
+                
+            case 'strategy':
+                const strategyStats = {};
+                const strategyPerformance = {};
+                
+                monthTrades.forEach(trade => {
+                    if (trade.strategy) {
+                        if (!strategyPerformance[trade.strategy]) {
+                            strategyPerformance[trade.strategy] = [];
+                        }
+                        strategyPerformance[trade.strategy].push(trade.amount);
                     }
-                    assetPerformance[trade.asset].push(trade.amount);
-                }
-            });
-            
-            Object.keys(assetPerformance).forEach(asset => {
-                const trades = assetPerformance[asset];
-                const wins = trades.filter(t => t > 0);
-                const losses = trades.filter(t => t < 0);
-                const total = trades.reduce((sum, t) => sum + t, 0);
+                });
                 
-                assetStats[asset] = {
-                    total: total,
-                    trades: trades.length,
-                    wins: wins.length,
-                    losses: losses.length,
-                    winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
-                    avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
-                };
-            });
-            return assetStats;
-            
-        default:
-            return {};
-    }
-};
+                Object.keys(strategyPerformance).forEach(strategy => {
+                    const trades = strategyPerformance[strategy];
+                    const wins = trades.filter(t => t > 0);
+                    const losses = trades.filter(t => t < 0);
+                    const total = trades.reduce((sum, t) => sum + t, 0);
+                    
+                    strategyStats[strategy] = {
+                        total: total,
+                        trades: trades.length,
+                        wins: wins.length,
+                        losses: losses.length,
+                        winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                        avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                    };
+                });
+                return strategyStats;
+                
+            case 'asset':
+                const assetStats = {};
+                const assetPerformance = {};
+                
+                monthTrades.forEach(trade => {
+                    if (trade.asset) {
+                        if (!assetPerformance[trade.asset]) {
+                            assetPerformance[trade.asset] = [];
+                        }
+                        assetPerformance[trade.asset].push(trade.amount);
+                    }
+                });
+                
+                Object.keys(assetPerformance).forEach(asset => {
+                    const trades = assetPerformance[asset];
+                    const wins = trades.filter(t => t > 0);
+                    const losses = trades.filter(t => t < 0);
+                    const total = trades.reduce((sum, t) => sum + t, 0);
+                    
+                    assetStats[asset] = {
+                        total: total,
+                        trades: trades.length,
+                        wins: wins.length,
+                        losses: losses.length,
+                        winRate: trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0,
+                        avgTrade: trades.length > 0 ? (total / trades.length).toFixed(2) : 0
+                    };
+                });
+                return assetStats;
+                
+            default:
+                return {};
+        }
+    };
 
     // Get trades for current month
     const getCurrentMonthTrades = () => {
@@ -430,62 +626,62 @@ const getChartMetrics = (chartType) => {
     };
 
     // Updated chart options with click handler
-const getChartOptions = (chartType) => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    onClick: () => handleChartClick(chartType),
-    plugins: {
-        legend: {
-            position: 'top',
+    const getChartOptions = (chartType) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        onClick: () => handleChartClick(chartType),
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                    }
+                }
+            }
         },
-        tooltip: {
-            callbacks: {
-                label: function(context) {
-                    return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value;
+                    }
                 }
             }
         }
-    },
-    scales: {
-        y: {
-            beginAtZero: true,
-            ticks: {
-                callback: function(value) {
-                    return '$' + value;
-                }
-            }
-        }
-    }
-});
+    });
 
-// Special options for equity curve to fix stretching
-const getEquityChartOptions = () => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    aspectRatio: window.innerWidth < 768 ? 1.5 : 2.5, // Better aspect ratio for desktop
-    plugins: {
-        legend: {
-            position: 'top',
+    // Special options for equity curve to fix stretching
+    const getEquityChartOptions = () => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        aspectRatio: window.innerWidth < 768 ? 1.5 : 2.5, // Better aspect ratio for desktop
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                    }
+                }
+            }
         },
-        tooltip: {
-            callbacks: {
-                label: function(context) {
-                    return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value;
+                    }
                 }
             }
         }
-    },
-    scales: {
-        y: {
-            beginAtZero: true,
-            ticks: {
-                callback: function(value) {
-                    return '$' + value;
-                }
-            }
-        }
-    }
-});
+    });
 
     const getDaysInMonth = (date) => {
         const year = date.getFullYear();
@@ -544,15 +740,15 @@ const getEquityChartOptions = () => ({
     };
 
     // Handle chart click
-const handleChartClick = (chartType) => {
-    if (selectedChart === chartType) {
-        setSelectedChart(null);
-        setChartMetrics({});
-    } else {
-        setSelectedChart(chartType);
-        setChartMetrics(getChartMetrics(chartType));
-    }
-};
+    const handleChartClick = (chartType) => {
+        if (selectedChart === chartType) {
+            setSelectedChart(null);
+            setChartMetrics({});
+        } else {
+            setSelectedChart(chartType);
+            setChartMetrics(getChartMetrics(chartType));
+        }
+    };
 
     const navigateMonth = (direction) => {
         const newDate = new Date(currentDate);
@@ -683,8 +879,8 @@ const handleChartClick = (chartType) => {
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Trading Calendar</h5><br />
                     
-                    {/* Analytics Toggle Button */}
-                    <div style={{ marginBottom: '20px' }}>
+                    {/* Control Buttons */}
+                    <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         <button 
                             onClick={() => setShowAnalytics(!showAnalytics)}
                             style={{
@@ -693,11 +889,26 @@ const handleChartClick = (chartType) => {
                                 border: 'none',
                                 padding: '10px 20px',
                                 borderRadius: '5px',
-                                cursor: 'pointer',
-                                marginRight: '10px'
+                                cursor: 'pointer'
                             }}
                         >
                             {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+                        </button>
+                        
+                        <button 
+                            onClick={downloadMonthlyReport}
+                            disabled={downloadingPDF}
+                            style={{
+                                background: downloadingPDF ? '#9ca3af' : '#22c55e',
+                                color: 'white',
+                                border: 'none',
+                                padding: '10px 20px',
+                                borderRadius: '5px',
+                                cursor: downloadingPDF ? 'not-allowed' : 'pointer',
+                                opacity: downloadingPDF ? 0.7 : 1
+                            }}
+                        >
+                            {downloadingPDF ? 'Generating PDF...' : 'Download Monthly Report'}
                         </button>
                     </div>
 
@@ -780,7 +991,6 @@ const handleChartClick = (chartType) => {
                             </div>
 
                             {/* Charts */}
-                            {/* Charts */}
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -788,6 +998,7 @@ const handleChartClick = (chartType) => {
                                 marginBottom: '20px'
                             }}>
                                 <div 
+                                    {...getChartDataAttribute('dayOfWeek')}
                                     style={{ 
                                         background: '#f8f9fa', 
                                         padding: '15px', 
@@ -805,6 +1016,7 @@ const handleChartClick = (chartType) => {
                                 </div>
                                 
                                 <div 
+                                    {...getChartDataAttribute('session')}
                                     style={{ 
                                         background: '#f8f9fa', 
                                         padding: '15px', 
@@ -822,6 +1034,7 @@ const handleChartClick = (chartType) => {
                                 </div>
                                 
                                 <div 
+                                    {...getChartDataAttribute('strategy')}
                                     style={{ 
                                         background: '#f8f9fa', 
                                         padding: '15px', 
@@ -839,6 +1052,7 @@ const handleChartClick = (chartType) => {
                                 </div>
                                 
                                 <div 
+                                    {...getChartDataAttribute('asset')}
                                     style={{ 
                                         background: '#f8f9fa', 
                                         padding: '15px', 
@@ -915,18 +1129,21 @@ const handleChartClick = (chartType) => {
                             )}
 
                             {/* Equity Curve - Fixed stretching issue */}
-                            <div style={{ 
-                                background: '#f8f9fa', 
-                                padding: '20px', 
-                                borderRadius: '8px', 
-                                marginBottom: '20px' 
-                            }}>
+                            <div 
+                                {...getChartDataAttribute('equity')}
+                                style={{ 
+                                    background: '#f8f9fa', 
+                                    padding: '20px', 
+                                    borderRadius: '8px', 
+                                    marginBottom: '20px' 
+                                }}
+                            >
                                 <h6 style={{ marginBottom: '15px' }}>Equity Curve</h6>
                                 <div style={{ height: window.innerWidth < 768 ? '300px' : '400px' }}>
                                     <Line data={getEquityCurve()} options={getEquityChartOptions()} />
                                 </div>
                             </div>
-                                </div>
+                        </div>
                     )}
                     
                     <div className="calendar-container">
