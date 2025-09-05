@@ -7,6 +7,7 @@ import access_denied_audio from '../Access Denied - Sound Effect (HD).mp3';
 import tlotlo_motingwe from '../Tlotlo.jpg';
 
 export default function Login() {
+    const FIXED_USER_EMAIL = 'butterrobot83@gmail.com';
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -58,8 +59,12 @@ export default function Login() {
             const storedDomain = localStorage.getItem('fingerprintDomain');
             const currentDomain = window.location.hostname;
             
-            // If domain has changed, clear fingerprint data
-            if (storedDomain && storedDomain !== currentDomain) {
+            // Only clear if domains are significantly different (not just localhost vs 127.0.0.1)
+            const domainsMatch = storedDomain === currentDomain || 
+                                (storedDomain === 'localhost' && currentDomain === '127.0.0.1') ||
+                                (storedDomain === '127.0.0.1' && currentDomain === 'localhost');
+            
+            if (storedDomain && !domainsMatch) {
                 console.log(`Domain changed from ${storedDomain} to ${currentDomain}, clearing fingerprint data`);
                 localStorage.removeItem('fingerprintRegistered');
                 localStorage.removeItem('fingerprintCredentialId');
@@ -134,37 +139,7 @@ export default function Login() {
         }
     };
 
-    // Check if WebAuthn and fingerprint are supported
-    const checkFingerprintSupport = async () => {
-        if (!window.PublicKeyCredential) {
-            console.log("WebAuthn not supported");
-            return false;
-        }
-
-        try {
-            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-            setFingerprintSupported(available);
-            
-            const registered = localStorage.getItem('fingerprintRegistered') === 'true';
-            const credentialId = localStorage.getItem('fingerprintCredentialId');
-            const rawIdString = localStorage.getItem('fingerprintCredentialRawId');
-            
-            const fullyRegistered = registered && credentialId && rawIdString;
-            setFingerprintRegistered(fullyRegistered);
-            
-            if (registered && !fullyRegistered) {
-                localStorage.removeItem('fingerprintRegistered');
-                localStorage.removeItem('fingerprintCredentialId');
-                localStorage.removeItem('fingerprintCredentialRawId');
-                console.log("Cleaned up incomplete fingerprint registration");
-            }
-            
-            return available;
-        } catch (error) {
-            console.error("Error checking fingerprint support:", error);
-            return false;
-        }
-    };
+    
 
     // Register fingerprint for the user
     const registerFingerprint = async () => {
@@ -359,30 +334,38 @@ export default function Login() {
         }
     };
 
-    // Check backend fingerprint status
-        const checkBackendFingerprintStatus = async () => {
-            try {
-                const userEmail = email || 'butterrobot83@gmail.com';
-                const currentDomain = window.location.hostname;
-                
-                const response = await fetch(`${baseURL}/check_fingerprint_status/?email=${userEmail}&domain=${currentDomain}`);
-                const result = await response.json();
-                
-                setBackendFingerprintRegistered(result.is_registered);
-                return result.is_registered;
-            } catch (error) {
-                console.error("Error checking backend fingerprint status:", error);
-                return false;
-            } finally {
-                setFingerprintStatusLoading(false);
-            }
-        };
+    const checkBackendFingerprintStatus = async () => {
+    try {
+        // Always use the fixed email for consistency
+        const userEmail = FIXED_USER_EMAIL;
+        const currentDomain = window.location.hostname;
+        
+        console.log(`Checking backend status for: ${userEmail} on domain: ${currentDomain}`);
+        
+        const response = await fetch(`${baseURL}/check_fingerprint_status/?email=${userEmail}&domain=${currentDomain}`);
+        const result = await response.json();
+        
+        console.log('Backend fingerprint status result:', result);
+        
+        setBackendFingerprintRegistered(result.is_registered);
+        return result.is_registered;
+    } catch (error) {
+        console.error("Error checking backend fingerprint status:", error);
+        return false;
+    } finally {
+        setFingerprintStatusLoading(false);
+    }
+};
 
         // Register fingerprint in backend
+        
         const registerFingerprintInBackend = async () => {
             try {
-                const userEmail = email || 'butterrobot83@gmail.com';
+                // Always use the fixed email for consistency
+                const userEmail = FIXED_USER_EMAIL;
                 const currentDomain = window.location.hostname;
+                
+                console.log(`Registering fingerprint in backend for: ${userEmail} on domain: ${currentDomain}`);
                 
                 const response = await fetch(`${baseURL}/register_fingerprint/`, {
                     method: 'POST',
@@ -391,6 +374,8 @@ export default function Login() {
                 });
                 
                 const result = await response.json();
+                console.log('Backend registration result:', result);
+                
                 if (result.success) {
                     setBackendFingerprintRegistered(true);
                 }
@@ -400,7 +385,6 @@ export default function Login() {
                 return false;
             }
         };
-
     // Voice synthesis function
     const speak = (text) => {
         if (!userInteracted) return;
@@ -440,66 +424,102 @@ export default function Login() {
     };
 
     // Initialize component
-    useEffect(() => {
-        
-        const initializeAuth = async () => {
-        fetchAPIKey();
-        const localSupported = await checkFingerprintSupport();
-        
-        // Check backend status
-        const backendRegistered = await checkBackendFingerprintStatus();
-        
-        // Only consider fingerprint registered if both local and backend are true
-        const fullyRegistered = fingerprintRegistered && backendRegistered;
-        setFingerprintRegistered(fullyRegistered);
-        
-        // Initialize device detection and stored attempts
-        const mobile = detectDevice();
-        const storedAttempts = getStoredAttempts();
-        const locked = isAccountLocked();
-        
-        setFailedAttempts(storedAttempts);
-        setIsLockedOut(locked);
-        
-        console.log(`Device: ${mobile ? 'Mobile' : 'Desktop'}, Stored attempts: ${storedAttempts}, Locked: ${locked}`);
-        
-        const grantedAudio = new Audio(access_granted_audio);
-        const deniedAudio = new Audio(access_denied_audio);
-        
-        accessGrantedAudioRef.current = grantedAudio;
-        accessDeniedAudioRef.current = deniedAudio;
-        
-        const intervalId = setInterval(() => {
-            if (scanlineRef.current) {
-                scanlineRef.current.style.top = Math.random() * 100 + "%";
-                scanlineRef.current.style.opacity = (Math.random() * 0.4 + 0.2);
-            }
-        }, 1000);
-        
-        const container = containerRef.current;
-        if (container) {
-            container.addEventListener('click', handleUserInteraction);
-            container.addEventListener('keydown', handleUserInteraction);
-        }
-        
-        return () => {
-            clearInterval(intervalId);
-            if (accessGrantedAudioRef.current) {
-                accessGrantedAudioRef.current.pause();
-            }
-            if (accessDeniedAudioRef.current) {
-                accessDeniedAudioRef.current.pause();
-            }
-            if (container) {
-                container.removeEventListener('click', handleUserInteraction);
-                container.removeEventListener('keydown', handleUserInteraction);
-            }
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-            }
-        };}
-        initializeAuth();
-    }, []);
+    // Complete initialization useEffect
+        useEffect(() => {
+            const initializeAuth = async () => {
+                // Fetch API key first
+                fetchAPIKey();
+                
+                // Check local fingerprint support first
+                const localSupported = await checkFingerprintSupport();
+                console.log('Local fingerprint supported:', localSupported);
+                
+                // Check backend status
+                const backendRegistered = await checkBackendFingerprintStatus();
+                console.log('Backend fingerprint registered:', backendRegistered);
+                
+                // Check local registration status
+                const localRegistered = localStorage.getItem('fingerprintRegistered') === 'true';
+                const hasCredentials = localStorage.getItem('fingerprintCredentialId') && 
+                                    localStorage.getItem('fingerprintCredentialRawId');
+                
+                console.log('Local fingerprint registered:', localRegistered);
+                console.log('Has credentials:', hasCredentials);
+                
+                // Only consider fingerprint fully registered if:
+                // 1. Local storage says it's registered
+                // 2. We have the credential data
+                // 3. Backend says it's registered
+                const fullyRegistered = localRegistered && hasCredentials && backendRegistered;
+                
+                console.log('Fully registered:', fullyRegistered);
+                setFingerprintRegistered(fullyRegistered);
+                
+                // If local says registered but backend doesn't, try to register in backend
+                if (localRegistered && hasCredentials && !backendRegistered) {
+                    console.log('Local registered but not in backend, attempting backend registration...');
+                    const backendSuccess = await registerFingerprintInBackend();
+                    if (backendSuccess) {
+                        setFingerprintRegistered(true);
+                        console.log('Successfully registered in backend');
+                    } else {
+                        console.log('Failed to register in backend');
+                    }
+                }
+                
+                // Initialize device detection and stored attempts
+                const mobile = detectDevice();
+                const storedAttempts = getStoredAttempts();
+                const locked = isAccountLocked();
+                
+                setFailedAttempts(storedAttempts);
+                setIsLockedOut(locked);
+                
+                console.log(`Device: ${mobile ? 'Mobile' : 'Desktop'}, Stored attempts: ${storedAttempts}, Locked: ${locked}`);
+                
+                // Initialize audio elements
+                const grantedAudio = new Audio(access_granted_audio);
+                const deniedAudio = new Audio(access_denied_audio);
+                
+                accessGrantedAudioRef.current = grantedAudio;
+                accessDeniedAudioRef.current = deniedAudio;
+                
+                // Start scanline animation
+                const intervalId = setInterval(() => {
+                    if (scanlineRef.current) {
+                        scanlineRef.current.style.top = Math.random() * 100 + "%";
+                        scanlineRef.current.style.opacity = (Math.random() * 0.4 + 0.2);
+                    }
+                }, 1000);
+                
+                // Add event listeners for user interaction
+                const container = containerRef.current;
+                if (container) {
+                    container.addEventListener('click', handleUserInteraction);
+                    container.addEventListener('keydown', handleUserInteraction);
+                }
+                
+                // Cleanup function
+                return () => {
+                    clearInterval(intervalId);
+                    if (accessGrantedAudioRef.current) {
+                        accessGrantedAudioRef.current.pause();
+                    }
+                    if (accessDeniedAudioRef.current) {
+                        accessDeniedAudioRef.current.pause();
+                    }
+                    if (container) {
+                        container.removeEventListener('click', handleUserInteraction);
+                        container.removeEventListener('keydown', handleUserInteraction);
+                    }
+                    if (streamRef.current) {
+                        streamRef.current.getTracks().forEach(track => track.stop());
+                    }
+                };
+            };
+            
+            initializeAuth();
+        }, []);
 
     // Load voices when available
     useEffect(() => {
@@ -863,6 +883,9 @@ export default function Login() {
                 return 'AUTHENTICATE';
         }
     };
+    
+
+
 
     return (
         <div className="hud-container" ref={containerRef}>
@@ -1206,6 +1229,8 @@ export default function Login() {
                     )}
                 </div>
             </div>
+
+        
             
             <style jsx>{`
             
