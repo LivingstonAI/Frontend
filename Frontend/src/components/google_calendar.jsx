@@ -248,11 +248,11 @@ export default function GoogleCalendar() {
             const subtitleWidth = pdf.getTextWidth(subtitle);
             
             // Center the title - positioned lower to overlap with contact info as requested
-            pdf.text(title, (pageWidth - titleWidth) / 2, personalInfoY + 50);
+            pdf.text(title, (pageWidth - titleWidth) / 2, personalInfoY + 65);
             
             // Center the subtitle
             pdf.setFontSize(16);
-            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, personalInfoY + 65);
+            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, personalInfoY + 80);
             
             // Add account info and generation date at bottom - overlapping as requested
             pdf.setFontSize(10);
