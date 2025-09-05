@@ -27,6 +27,7 @@ ChartJS.register(
     Legend
 );
 import snowai_logo from '../snowai.jpg';
+import tlotlo_motingwe from '../IMG_20250905_152436.jpg';
 
 
 export default function GoogleCalendar() {
@@ -102,8 +103,7 @@ export default function GoogleCalendar() {
 
     // PDF Download Function
     // Enhanced PDF Download Function with more visualizations and details
-    // Enhanced PDF Download Function with SnowAI logo and trader name
-const downloadMonthlyReport = async () => {
+   const downloadMonthlyReport = async () => {
     setDownloadingPDF(true);
     
     try {
@@ -136,9 +136,9 @@ const downloadMonthlyReport = async () => {
             yPosition += size === 14 ? 12 : 8;
         };
         
-        // ADD SNOWAI LOGO AND TRADER NAME TO FRONT PAGE
+        // CREATE COVER PAGE WITH LARGE SNOWAI LOGO AND PERSONAL INFO
         try {
-            // Convert logo to base64 if it's available
+            // Load and add SnowAI logo - taking almost full page
             const logoCanvas = document.createElement('canvas');
             const logoCtx = logoCanvas.getContext('2d');
             const logoImg = new Image();
@@ -152,51 +152,126 @@ const downloadMonthlyReport = async () => {
                     resolve(logoCanvas.toDataURL('image/png'));
                 };
                 logoImg.onerror = () => {
-                    console.warn('Logo could not be loaded');
+                    console.warn('SnowAI logo could not be loaded');
                     resolve(null);
                 };
-                logoImg.src = snowai_logo; // Use the imported logo
+                logoImg.src = snowai_logo;
             });
             
-            const logoDataUrl = await logoPromise;
+            // Load personal photo
+            const personalPhotoCanvas = document.createElement('canvas');
+            const personalPhotoCtx = personalPhotoCanvas.getContext('2d');
+            const personalPhotoImg = new Image();
             
+            const personalPhotoPromise = new Promise((resolve) => {
+                personalPhotoImg.onload = () => {
+                    personalPhotoCanvas.width = personalPhotoImg.width;
+                    personalPhotoCanvas.height = personalPhotoImg.height;
+                    personalPhotoCtx.drawImage(personalPhotoImg, 0, 0);
+                    resolve(personalPhotoCanvas.toDataURL('image/png'));
+                };
+                personalPhotoImg.onerror = () => {
+                    console.warn('Personal photo could not be loaded');
+                    resolve(null);
+                };
+                personalPhotoImg.src = tlotlo_motingwe;
+            });
+            
+            const [logoDataUrl, personalPhotoDataUrl] = await Promise.all([logoPromise, personalPhotoPromise]);
+            
+            // Add large SnowAI logo - almost full page
             if (logoDataUrl) {
-                // Add logo to top-left of the page
-                const logoWidth = 40; // Adjust size as needed
-                const logoHeight = 20; // Adjust size as needed
-                pdf.addImage(logoDataUrl, 'PNG', margin, yPosition, logoWidth, logoHeight);
+                const logoWidth = pageWidth - (margin * 2); // Full width minus margins
+                const logoHeight = (pageHeight * 0.6); // 60% of page height
+                const logoX = margin;
+                const logoY = yPosition + 20; // Small offset from top
+                
+                pdf.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                yPosition = logoY + logoHeight + 30; // Move position after logo
+            } else {
+                // If logo fails to load, add text placeholder
+                pdf.setFontSize(48);
+                pdf.setTextColor(0, 124, 186);
+                const logoText = 'SnowAI';
+                const logoTextWidth = pdf.getTextWidth(logoText);
+                pdf.text(logoText, (pageWidth - logoTextWidth) / 2, pageHeight / 2);
+                yPosition = pageHeight * 0.7;
             }
             
-            // Add trader name to top-right
-            pdf.setFontSize(12);
-            pdf.setTextColor(0, 124, 186);
-            const traderName = 'Tlotlo Kutlwano Motingwe';
-            const traderNameWidth = pdf.getTextWidth(traderName);
-            pdf.text(traderName, pageWidth - margin - traderNameWidth, yPosition + 10);
+            // Add personal photo and name in bottom section
+            const personalInfoY = yPosition;
             
-            yPosition += 35; // Move down after logo and name
+            if (personalPhotoDataUrl) {
+                // Add small circular personal photo on the left
+                const photoSize = 25; // Small size for personal photo
+                const photoX = margin;
+                const photoY = personalInfoY;
+                
+                // Create circular mask effect by adding the image
+                pdf.addImage(personalPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
+                
+                // Add name next to the photo
+                pdf.setFontSize(16);
+                pdf.setTextColor(0, 124, 186);
+                const traderName = 'Tlotlo Kutlwano Motingwe';
+                pdf.text(traderName, photoX + photoSize + 10, photoY + (photoSize / 2) + 3);
+                
+                // Add title/role below name
+                pdf.setFontSize(12);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('Professional Trader', photoX + photoSize + 10, photoY + (photoSize / 2) + 10);
+                
+            } else {
+                // If personal photo fails, just add name
+                pdf.setFontSize(16);
+                pdf.setTextColor(0, 124, 186);
+                const traderName = 'Tlotlo Kutlwano Motingwe';
+                pdf.text(traderName, margin, personalInfoY);
+                
+                pdf.setFontSize(12);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('Professional Trader', margin, personalInfoY + 10);
+            }
+            
+            // Add report title at the bottom
+            pdf.setFontSize(20);
+            pdf.setTextColor(0, 124, 186);
+            const title = `Comprehensive Trading Report`;
+            const subtitle = `${getMonthName(currentDate)}`;
+            
+            const titleWidth = pdf.getTextWidth(title);
+            const subtitleWidth = pdf.getTextWidth(subtitle);
+            
+            // Center the title
+            pdf.text(title, (pageWidth - titleWidth) / 2, personalInfoY + 40);
+            
+            // Center the subtitle
+            pdf.setFontSize(16);
+            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, personalInfoY + 50);
+            
+            // Add account info and generation date at bottom
+            pdf.setFontSize(10);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(`Account: ${accountName}`, margin, pageHeight - 30);
+            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight - 20);
+            
+            // Add page number
+            pdf.text('Page 1', pageWidth - margin - 20, pageHeight - 10);
             
         } catch (logoError) {
-            console.warn('Error adding logo to PDF:', logoError);
-            // Continue without logo
-            yPosition += 10;
+            console.warn('Error adding cover page elements:', logoError);
+            // Continue with basic cover page
+            pdf.setFontSize(32);
+            pdf.setTextColor(0, 124, 186);
+            const title = `Trading Report`;
+            const titleWidth = pdf.getTextWidth(title);
+            pdf.text(title, (pageWidth - titleWidth) / 2, pageHeight / 2);
+            yPosition = pageHeight * 0.6;
         }
         
-        // Add title
-        pdf.setFontSize(20);
-        pdf.setTextColor(0, 124, 186);
-        const title = `Comprehensive Trading Report - ${getMonthName(currentDate)}`;
-        const titleWidth = pdf.getTextWidth(title);
-        const titleX = (pageWidth - titleWidth) / 2; // Center the title
-        pdf.text(title, titleX, yPosition);
-        yPosition += 15;
-        
-        // Add account info and generation date
-        pdf.setFontSize(12);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Account: ${accountName}`, margin, yPosition);
-        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - 60, yPosition);
-        yPosition += 20;
+        // Start new page for content
+        pdf.addPage();
+        yPosition = margin;
         
         // EXECUTIVE SUMMARY
         addSectionHeader('Executive Summary');
@@ -552,6 +627,7 @@ const downloadMonthlyReport = async () => {
         setDownloadingPDF(false);
     }
 };
+
     // Add data attributes to chart containers for PDF capture
     const getChartDataAttribute = (chartType) => {
         return { 'data-chart': chartType };
