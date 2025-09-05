@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
@@ -19,6 +8,7 @@ import tlotlo_motingwe from '../Tlotlo.jpg';
 
 export default function Login() {
     const FIXED_USER_EMAIL = 'butterrobot83@gmail.com';
+    const isMountedRef = useRef(true);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -64,6 +54,20 @@ export default function Login() {
     // References for animation
     const scanlineRef = useRef(null);
     const containerRef = useRef(null);
+
+    const safeSetState = (setter, value, fallback = null) => {
+    try {
+        if (isMountedRef.current) {
+            setter(value);
+        }
+    } catch (error) {
+        console.error("State update error:", error);
+        if (fallback && isMountedRef.current) {
+            setter(fallback);
+        }
+    }
+};
+
 
     const checkFingerprintSupport = async () => {
     try {
@@ -372,6 +376,9 @@ export default function Login() {
 
     // Initialize component
     useEffect(() => {
+    // Set mounted to true when component mounts
+    isMountedRef.current = true;
+    
     const initializeAuth = async () => {
         try {
             // Try to fetch API key but don't fail if it doesn't work
@@ -381,7 +388,7 @@ export default function Login() {
                 console.warn("API key fetch failed, continuing without it:", error);
             }
             
-            // Check local fingerprint support first - CRITICAL FIX
+            // Check local fingerprint support first
             let localSupported = false;
             try {
                 localSupported = await checkFingerprintSupport();
@@ -391,14 +398,17 @@ export default function Login() {
                 localSupported = false;
             }
             
+            // Only update state if component is still mounted
+            if (!isMountedRef.current) return;
+            
             // Only proceed with fingerprint logic if supported
             if (localSupported) {
                 try {
-                    // Check backend status only if fingerprint is supported
                     const backendRegistered = await checkBackendFingerprintStatus();
                     console.log('Backend fingerprint registered:', backendRegistered);
                     
-                    // Check local registration status
+                    if (!isMountedRef.current) return;
+                    
                     const localRegistered = localStorage.getItem('fingerprintRegistered') === 'true';
                     const hasCredentials = localStorage.getItem('fingerprintCredentialId') && 
                                         localStorage.getItem('fingerprintCredentialRawId');
@@ -406,56 +416,62 @@ export default function Login() {
                     console.log('Local fingerprint registered:', localRegistered);
                     console.log('Has credentials:', hasCredentials);
                     
-                    // Only consider fingerprint fully registered if all conditions met
                     const fullyRegistered = localRegistered && hasCredentials && backendRegistered;
                     
                     console.log('Fully registered:', fullyRegistered);
+                    
+                    if (!isMountedRef.current) return;
                     setFingerprintRegistered(fullyRegistered);
                     
-                    // If local says registered but backend doesn't, try to register in backend
                     if (localRegistered && hasCredentials && !backendRegistered) {
                         console.log('Local registered but not in backend, attempting backend registration...');
                         try {
                             const backendSuccess = await registerFingerprintInBackend();
+                            if (!isMountedRef.current) return;
+                            
                             if (backendSuccess) {
                                 setFingerprintRegistered(true);
                                 setBackendFingerprintRegistered(true);
                                 console.log('Successfully registered in backend');
                             } else {
                                 console.log('Failed to register in backend');
-                                // Keep local registration but note backend failure
                                 setFingerprintRegistered(localRegistered);
                             }
                         } catch (error) {
                             console.error("Backend registration failed:", error);
-                            setFingerprintRegistered(localRegistered);
+                            if (isMountedRef.current) {
+                                setFingerprintRegistered(localRegistered);
+                            }
                         }
                     }
                 } catch (error) {
                     console.error("Error in fingerprint backend operations:", error);
-                    // Still allow local fingerprint if it exists
-                    const localRegistered = localStorage.getItem('fingerprintRegistered') === 'true';
-                    setFingerprintRegistered(localRegistered);
-                    setBackendFingerprintRegistered(false);
+                    if (isMountedRef.current) {
+                        const localRegistered = localStorage.getItem('fingerprintRegistered') === 'true';
+                        setFingerprintRegistered(localRegistered);
+                        setBackendFingerprintRegistered(false);
+                    }
                 }
             } else {
-                // Fingerprint not supported - set all related states to false
                 console.log('Fingerprint not supported, skipping all fingerprint setup');
-                setFingerprintSupported(false);
-                setFingerprintRegistered(false);
-                setBackendFingerprintRegistered(false);
+                if (isMountedRef.current) {
+                    setFingerprintSupported(false);
+                    setFingerprintRegistered(false);
+                    setBackendFingerprintRegistered(false);
+                }
             }
             
-            // Always complete fingerprint status loading regardless of support
+            if (!isMountedRef.current) return;
             setFingerprintStatusLoading(false);
             
-            // Initialize device detection and stored attempts
             const mobile = detectDevice();
             const storedAttempts = getStoredAttempts();
             const locked = isAccountLocked();
             
-            setFailedAttempts(storedAttempts);
-            setIsLockedOut(locked);
+            if (isMountedRef.current) {
+                setFailedAttempts(storedAttempts);
+                setIsLockedOut(locked);
+            }
             
             console.log(`Device: ${mobile ? 'Mobile' : 'Desktop'}, Stored attempts: ${storedAttempts}, Locked: ${locked}`);
             console.log(`Fingerprint - Supported: ${localSupported}, Registered: ${fingerprintRegistered}, Backend: ${backendFingerprintRegistered}`);
@@ -468,7 +484,6 @@ export default function Login() {
                 accessGrantedAudioRef.current = grantedAudio;
                 accessDeniedAudioRef.current = deniedAudio;
                 
-                // Preload audio files
                 grantedAudio.load();
                 deniedAudio.load();
             } catch (error) {
@@ -477,7 +492,7 @@ export default function Login() {
             
             // Start scanline animation
             const intervalId = setInterval(() => {
-                if (scanlineRef.current) {
+                if (scanlineRef.current && isMountedRef.current) {
                     scanlineRef.current.style.top = Math.random() * 100 + "%";
                     scanlineRef.current.style.opacity = (Math.random() * 0.4 + 0.2);
                 }
@@ -491,8 +506,9 @@ export default function Login() {
                 container.addEventListener('touchstart', handleUserInteraction);
             }
             
-            // Store cleanup function
+            // Return cleanup function
             return () => {
+                // Clear the interval
                 clearInterval(intervalId);
                 
                 // Clean up audio
@@ -527,35 +543,35 @@ export default function Login() {
         } catch (error) {
             console.error('Critical error during initialization:', error);
             
-            // Set safe defaults on error but don't show error message
-            setFingerprintSupported(false);
-            setFingerprintRegistered(false);
-            setBackendFingerprintRegistered(false);
-            setFingerprintStatusLoading(false);
+            // Only update state if component is still mounted
+            if (isMountedRef.current) {
+                setFingerprintSupported(false);
+                setFingerprintRegistered(false);
+                setBackendFingerprintRegistered(false);
+                setFingerprintStatusLoading(false);
+                
+                const mobile = detectDevice();
+                const storedAttempts = getStoredAttempts();
+                const locked = isAccountLocked();
+                
+                setFailedAttempts(storedAttempts);
+                setIsLockedOut(locked);
+            }
             
-            // Still initialize device detection and attempts
-            const mobile = detectDevice();
-            const storedAttempts = getStoredAttempts();
-            const locked = isAccountLocked();
-            
-            setFailedAttempts(storedAttempts);
-            setIsLockedOut(locked);
-            
-            // Don't show error to user - just log it
             console.log("Initialization completed with errors, basic authentication available");
         }
     };
     
-    // Call initialization and store cleanup function
-    initializeAuth().then(cleanup => {
-        // Store cleanup function if needed
-    }).catch(error => {
-        console.error("Failed to initialize authentication:", error);
-    });
+    // Call initialization
+    initializeAuth();
     
-    // Return cleanup function for useEffect
+    // Cleanup function for useEffect
     return () => {
-        // Cleanup will be handled by the promise above
+        // Mark component as unmounted
+        isMountedRef.current = false;
+        
+        // Additional cleanup will be handled by the initializeAuth cleanup function
+        console.log("Component unmounting, cleaning up...");
     };
 }, []); // Empty dependency array - only run once on mount
 
@@ -727,6 +743,147 @@ export default function Login() {
             img.src = imageUrl;
         });
     };
+
+const registerFingerprint = async () => {
+    if (!fingerprintSupported) {
+        if (isMountedRef.current) {
+            setError("Fingerprint authentication is not supported on this device");
+        }
+        return false;
+    }
+
+    try {
+        // Add loading state immediately but safely
+        safeSetState(setLoading, true);
+        
+        speak("Registering fingerprint. Please follow the device prompts.");
+        console.log("Starting fingerprint registration...");
+        
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+        
+        // Clear any existing data
+        localStorage.removeItem('fingerprintRegistered');
+        localStorage.removeItem('fingerprintCredentialId');
+        localStorage.removeItem('fingerprintCredentialRawId');
+        
+        // Add a small delay to prevent rapid state changes
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check if still mounted before proceeding
+        if (!isMountedRef.current) {
+            console.log("Component unmounted during registration delay");
+            return false;
+        }
+        
+        const credential = await navigator.credentials.create({
+            publicKey: {
+                challenge: challenge,
+                rp: {
+                    name: "Secure Access System",
+                    id: window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname,
+                },
+                user: {
+                    id: new TextEncoder().encode("tlotlo.motingwe"),
+                    name: FIXED_USER_EMAIL,
+                    displayName: "Tlotlo Motingwe",
+                },
+                pubKeyCredParams: [
+                    { type: "public-key", alg: -7 },
+                    { type: "public-key", alg: -257 },
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required",
+                    requireResidentKey: false,
+                },
+                timeout: 60000,
+                attestation: "none"
+            }
+        });
+
+        // Critical check - make sure component is still mounted
+        if (!isMountedRef.current) {
+            console.log("Component unmounted during fingerprint registration");
+            return false;
+        }
+
+        if (credential && credential.id && credential.rawId) {
+            console.log("Fingerprint credential created successfully");
+            
+            // Update localStorage first
+            localStorage.setItem('fingerprintCredentialId', credential.id);
+            localStorage.setItem('fingerprintCredentialRawId', Array.from(new Uint8Array(credential.rawId)).join(','));
+            localStorage.setItem('fingerprintRegistered', 'true');
+            localStorage.setItem('fingerprintDomain', window.location.hostname);
+
+            // Update local state with delay and mounting check
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            if (!isMountedRef.current) return false;
+            
+            // Register in backend after successful local registration
+            try {
+                const backendSuccess = await registerFingerprintInBackend();
+                
+                if (!isMountedRef.current) return false;
+                
+                if (backendSuccess) {
+                    safeSetState(setFingerprintRegistered, true);
+                    safeSetState(setBackendFingerprintRegistered, true);
+                    speak("Fingerprint registered successfully in both device and backend.");
+                    safeSetState(setError, "");
+                } else {
+                    safeSetState(setFingerprintRegistered, true);
+                    speak("Fingerprint registered locally but backend registration failed.");
+                    safeSetState(setError, "Warning: Fingerprint may not work on other sessions");
+                }
+            } catch (backendError) {
+                console.error("Backend registration error:", backendError);
+                if (isMountedRef.current) {
+                    safeSetState(setFingerprintRegistered, true);
+                    speak("Fingerprint registered locally but backend registration failed.");
+                    safeSetState(setError, "Warning: Fingerprint may not work on other sessions");
+                }
+            }
+            
+            safeSetState(setLoading, false);
+            return true;
+        } else {
+            throw new Error("Invalid credential response");
+        }
+    } catch (error) {
+        console.error("Fingerprint registration failed:", error);
+        
+        // Only update state if component is still mounted
+        if (!isMountedRef.current) return false;
+        
+        // Clean up localStorage on error
+        localStorage.removeItem('fingerprintRegistered');
+        localStorage.removeItem('fingerprintCredentialId');
+        localStorage.removeItem('fingerprintCredentialRawId');
+        localStorage.removeItem('fingerprintDomain');
+        
+        let errorMessage = "Fingerprint registration failed";
+        if (error.name === 'NotSupportedError') {
+            errorMessage = "Fingerprint authentication is not supported on this device";
+        } else if (error.name === 'SecurityError') {
+            errorMessage = "Security error - make sure you're on HTTPS or localhost";
+        } else if (error.name === 'NotAllowedError') {
+            errorMessage = "Fingerprint registration was cancelled or not allowed";
+        } else if (error.name === 'InvalidStateError') {
+            errorMessage = "A fingerprint is already registered. Try authenticating instead.";
+        } else {
+            errorMessage = `Fingerprint registration failed: ${error.message}`;
+        }
+        
+        speak(errorMessage);
+        safeSetState(setError, errorMessage);
+        safeSetState(setLoading, false);
+        return false;
+    }
+};
+
 
     
 // Fix the mobile authentication flow in verifyPassword
