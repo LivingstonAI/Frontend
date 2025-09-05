@@ -26,6 +26,8 @@ ChartJS.register(
     Tooltip,
     Legend
 );
+import snowai_logo from '../snowai.jpg';
+
 
 export default function GoogleCalendar() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -100,6 +102,7 @@ export default function GoogleCalendar() {
 
     // PDF Download Function
     // Enhanced PDF Download Function with more visualizations and details
+    // Enhanced PDF Download Function with SnowAI logo and trader name
 const downloadMonthlyReport = async () => {
     setDownloadingPDF(true);
     
@@ -133,10 +136,59 @@ const downloadMonthlyReport = async () => {
             yPosition += size === 14 ? 12 : 8;
         };
         
+        // ADD SNOWAI LOGO AND TRADER NAME TO FRONT PAGE
+        try {
+            // Convert logo to base64 if it's available
+            const logoCanvas = document.createElement('canvas');
+            const logoCtx = logoCanvas.getContext('2d');
+            const logoImg = new Image();
+            
+            // Set up promise to handle logo loading
+            const logoPromise = new Promise((resolve) => {
+                logoImg.onload = () => {
+                    logoCanvas.width = logoImg.width;
+                    logoCanvas.height = logoImg.height;
+                    logoCtx.drawImage(logoImg, 0, 0);
+                    resolve(logoCanvas.toDataURL('image/png'));
+                };
+                logoImg.onerror = () => {
+                    console.warn('Logo could not be loaded');
+                    resolve(null);
+                };
+                logoImg.src = snowai_logo; // Use the imported logo
+            });
+            
+            const logoDataUrl = await logoPromise;
+            
+            if (logoDataUrl) {
+                // Add logo to top-left of the page
+                const logoWidth = 40; // Adjust size as needed
+                const logoHeight = 20; // Adjust size as needed
+                pdf.addImage(logoDataUrl, 'PNG', margin, yPosition, logoWidth, logoHeight);
+            }
+            
+            // Add trader name to top-right
+            pdf.setFontSize(12);
+            pdf.setTextColor(0, 124, 186);
+            const traderName = 'Tlotlo Kutlwano Motingwe';
+            const traderNameWidth = pdf.getTextWidth(traderName);
+            pdf.text(traderName, pageWidth - margin - traderNameWidth, yPosition + 10);
+            
+            yPosition += 35; // Move down after logo and name
+            
+        } catch (logoError) {
+            console.warn('Error adding logo to PDF:', logoError);
+            // Continue without logo
+            yPosition += 10;
+        }
+        
         // Add title
         pdf.setFontSize(20);
         pdf.setTextColor(0, 124, 186);
-        pdf.text(`Comprehensive Trading Report - ${getMonthName(currentDate)}`, margin, yPosition);
+        const title = `Comprehensive Trading Report - ${getMonthName(currentDate)}`;
+        const titleWidth = pdf.getTextWidth(title);
+        const titleX = (pageWidth - titleWidth) / 2; // Center the title
+        pdf.text(title, titleX, yPosition);
         yPosition += 15;
         
         // Add account info and generation date
