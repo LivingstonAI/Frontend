@@ -102,8 +102,7 @@ export default function GoogleCalendar() {
     };
 
     // PDF Download Function
-    // Enhanced PDF Download Function with more visualizations and details
-   const downloadMonthlyReport = async () => {
+    const downloadMonthlyReport = async () => {
     setDownloadingPDF(true);
     
     try {
@@ -228,9 +227,15 @@ export default function GoogleCalendar() {
                 const traderName = 'Tlotlo Kutlwano Motingwe';
                 pdf.text(traderName, margin, personalInfoY);
                 
-                pdf.setFontSize(12);
+                pdf.setFontSize(10);
                 pdf.setTextColor(100, 100, 100);
-                pdf.text('Professional Trader', margin, personalInfoY + 10);
+                pdf.text('Professional Quantitative Researcher/Trader/Investor', margin, personalInfoY + 10);
+                
+                // Add contact info
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+                pdf.text('+27 84 731 6417', margin, personalInfoY + 16);
+                pdf.text('butterrobot83@gmail.com', margin, personalInfoY + 22);
             }
             
             // Add report title at the bottom
@@ -242,18 +247,18 @@ export default function GoogleCalendar() {
             const titleWidth = pdf.getTextWidth(title);
             const subtitleWidth = pdf.getTextWidth(subtitle);
             
-            // Center the title
-            pdf.text(title, (pageWidth - titleWidth) / 2, personalInfoY + 40);
+            // Center the title - positioned lower to overlap with contact info as requested
+            pdf.text(title, (pageWidth - titleWidth) / 2, personalInfoY + 50);
             
             // Center the subtitle
             pdf.setFontSize(16);
-            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, personalInfoY + 50);
+            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, personalInfoY + 65);
             
-            // Add account info and generation date at bottom
+            // Add account info and generation date at bottom - overlapping as requested
             pdf.setFontSize(10);
             pdf.setTextColor(0, 0, 0);
-            pdf.text(`Account: ${accountName}`, margin, pageHeight - 30);
-            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight - 20);
+            pdf.text(`Account: ${accountName}`, margin, personalInfoY + 80);
+            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, personalInfoY + 88);
             
             // Add page number
             pdf.text('Page 1', pageWidth - margin - 20, pageHeight - 10);
