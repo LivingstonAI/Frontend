@@ -280,32 +280,7 @@ const downloadMonthlyReport = async () => {
                 yPosition = personalInfoY + 50;
             }
             
-            // Add more space before report title to avoid overlap
-            yPosition += 20;
-            
-            // Add report title 
-            pdf.setFontSize(22);
-            pdf.setTextColor(0, 124, 186);
-            const title = `Comprehensive Trading Report`;
-            const subtitle = `${getMonthName(currentDate)}`;
-            
-            const titleWidth = pdf.getTextWidth(title);
-            pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
-            
-            // Add subtitle (month/year)
-            pdf.setFontSize(16);
-            pdf.setTextColor(0, 124, 186);
-            const subtitleWidth = pdf.getTextWidth(subtitle);
-            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, yPosition + 12);
-            
-            // Add more space before account info
-            yPosition += 35;
-            
-            // Add account info and generation date at bottom
-            pdf.setFontSize(11);
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(`Account: ${accountName || 'N/A'}`, margin, yPosition);
-            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, yPosition + 10);
+            // Add more space before report title to avoid overlap            
             
             // Add page number
             pdf.setFontSize(9);
@@ -338,10 +313,6 @@ const downloadMonthlyReport = async () => {
         
         const titleWidth = pdf.getTextWidth(title);
         pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
-
-        
-        pdf.text(`Account: ${accountName || 'N/A'}`, margin, pageHeight / 2 + 40);
-        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight / 2 + 52);
 
         
         // Add subtitle (month/year)
