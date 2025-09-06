@@ -321,14 +321,9 @@ const downloadMonthlyReport = async () => {
             pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, 40);
             
             pdf.setFontSize(22);
-            const title = `Comprehensive Trading Report - ${getMonthName(currentDate)}`;
-            const titleWidth = pdf.getTextWidth(title);
-            pdf.text(title, (pageWidth - titleWidth) / 2, pageHeight / 2);
             
-            pdf.setFontSize(11);
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(`Account: ${accountName || 'N/A'}`, margin, pageHeight / 2 + 40);
-            pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight / 2 + 52);
+            // pdf.text(`Account: ${accountName || 'N/A'}`, margin, pageHeight / 2 + 40);
+            // pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight / 2 + 52);
         }
         
         // Start new page for content
@@ -343,6 +338,11 @@ const downloadMonthlyReport = async () => {
         
         const titleWidth = pdf.getTextWidth(title);
         pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
+
+        
+        pdf.text(`Account: ${accountName || 'N/A'}`, margin, pageHeight / 2 + 40);
+        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight / 2 + 52);
+
         
         // Add subtitle (month/year)
         pdf.setFontSize(16);
