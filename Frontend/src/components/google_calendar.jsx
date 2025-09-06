@@ -278,6 +278,8 @@ const downloadMonthlyReport = async () => {
                 
                 yPosition = personalInfoY + 50;
             }
+            // Start new page for content
+            pdf.addPage();
             
             // Add more space before report title to avoid overlap
             yPosition += 20;
@@ -330,8 +332,8 @@ const downloadMonthlyReport = async () => {
             pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight / 2 + 52);
         }
         
-        // Start new page for content
-        pdf.addPage();
+        // // Start new page for content
+        // pdf.addPage();
         yPosition = margin;
         
         // EXECUTIVE SUMMARY
