@@ -100,7 +100,8 @@ export default function GoogleCalendar() {
             setLoading(false);
         }
     };
-   // Add this function to load external scripts
+
+    // Add this function to load external scripts
 const loadScript = (src) => {
     return new Promise((resolve, reject) => {
         if (document.querySelector(`script[src="${src}"]`)) {
@@ -278,8 +279,6 @@ const downloadMonthlyReport = async () => {
                 
                 yPosition = personalInfoY + 50;
             }
-            // Start new page for content
-            pdf.addPage();
             
             // Add more space before report title to avoid overlap
             yPosition += 20;
@@ -332,9 +331,26 @@ const downloadMonthlyReport = async () => {
             pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin, pageHeight / 2 + 52);
         }
         
-        // // Start new page for content
-        // pdf.addPage();
+        // Start new page for content
+        pdf.addPage();
         yPosition = margin;
+        
+        // Add report title at the top of page 2
+        pdf.setFontSize(22);
+        pdf.setTextColor(0, 124, 186);
+        const title = `Comprehensive Trading Report`;
+        const subtitle = `${getMonthName(currentDate)}`;
+        
+        const titleWidth = pdf.getTextWidth(title);
+        pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
+        
+        // Add subtitle (month/year)
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 124, 186);
+        const subtitleWidth = pdf.getTextWidth(subtitle);
+        pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, yPosition + 12);
+        
+        yPosition += 30;
         
         // EXECUTIVE SUMMARY
         addSectionHeader('Executive Summary');
