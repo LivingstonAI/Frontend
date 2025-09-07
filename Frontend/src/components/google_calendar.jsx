@@ -430,10 +430,10 @@ export default function GoogleCalendar() {
             yPosition += 10;
             pdf.setTextColor(0, 0, 0);
 
-            pdf.addPage();
+            
             
             // ADDITIONAL INSIGHTS
-            addSectionHeader('Trading Insights');
+            addSectionHeader('Trading Insights:');
             
             const monthTrades = getCurrentMonthTrades();
             
