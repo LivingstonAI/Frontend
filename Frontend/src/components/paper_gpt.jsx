@@ -35,6 +35,10 @@ export default function PaperGPT() {
     const [selectedCategory, setSelectedCategory] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
 
+    const [showPDFViewer, setShowPDFViewer] = useState(false);
+    const [currentPDFUrl, setCurrentPDFUrl] = useState(null);
+
+
     const searchInputFix = `
         .search-input {
             width: 100%;
@@ -148,6 +152,61 @@ export default function PaperGPT() {
             console.error("Error fetching API key:", error);
         }
     };
+
+    const viewPDF = (paper) => {
+    try {
+        if (!paper.fileData) {
+            alert('PDF data is not available for this paper.');
+            return;
+        }
+
+        // Check if fileData is properly formatted
+        if (!paper.fileData.includes('data:application/pdf;base64,')) {
+            alert('Invalid PDF data format.');
+            return;
+        }
+
+        // Set the PDF URL and show viewer
+        setCurrentPDFUrl(paper.fileData);
+        setShowPDFViewer(true);
+    } catch (error) {
+        console.error('Error viewing PDF:', error);
+        alert('Error viewing PDF: ' + error.message);
+    }
+};
+
+const ViewPDFButton = ({ paper }) => (
+    <button
+        onClick={() => viewPDF(paper)}
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '0.5rem 0.75rem',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px 0 rgba(139, 92, 246, 0.3)'
+        }}
+        onMouseOver={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+            e.target.style.transform = 'translateY(-1px)';
+        }}
+        onMouseOut={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+            e.target.style.transform = 'translateY(0)';
+        }}
+    >
+        <Eye size={16} />
+        View PDF
+    </button>
+);
+
 
     // 3. Voice reader button component:
 const VoiceButton = ({ text, type, label }) => (
@@ -1299,7 +1358,9 @@ useEffect(() => {
                                                         {formatDate(selectedPaper.uploadDate)}
                                                     </span>
                                                     <span>{formatFileSize(selectedPaper.fileSize)}</span>
-                                                    <span className="meta-item">
+                                                    <span className="meta-item" style={{ display: 'flex', gap: '0.5rem' }}>
+                                                            <ViewPDFButton paper={selectedPaper} />
+
                                                     <button
                                                         onClick={() => downloadPDF(selectedPaper)}
                                                         style={{
@@ -1659,6 +1720,93 @@ useEffect(() => {
                                         )}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {showPDFViewer && currentPDFUrl && (
+                    <div style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 60,
+                        backdropFilter: 'blur(4px)'
+                    }}>
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            width: '90vw',
+                            height: '90vh',
+                            margin: '1rem',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        }}>
+                            {/* PDF Viewer Header */}
+                            <div style={{
+                                padding: '1rem 1.5rem',
+                                borderBottom: '1px solid #e2e8f0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                background: '#f8fafc'
+                            }}>
+                                <h3 style={{
+                                    fontSize: '1.25rem',
+                                    fontWeight: '600',
+                                    color: '#1e293b',
+                                    margin: 0
+                                }}>
+                                    {selectedPaper?.title}
+                                </h3>
+                                <button
+                                    onClick={() => {
+                                        setShowPDFViewer(false);
+                                        setCurrentPDFUrl(null);
+                                    }}
+                                    style={{
+                                        background: '#ef4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: '0.5rem 1rem',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.target.style.background = '#dc2626';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.target.style.background = '#ef4444';
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            
+                            {/* PDF Viewer Content */}
+                            <div style={{
+                                flex: 1,
+                                padding: '1rem',
+                                background: '#f1f5f9'
+                            }}>
+                                <iframe
+                                    src={currentPDFUrl}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        background: 'white'
+                                    }}
+                                    title="PDF Viewer"
+                                />
                             </div>
                         </div>
                     </div>
