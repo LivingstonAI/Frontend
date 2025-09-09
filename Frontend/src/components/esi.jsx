@@ -8,6 +8,7 @@ export default function EconomicStrengthIndex() {
     
     const [selectedCurrencies, setSelectedCurrencies] = useState(['USD']);
     const [selectedForexPairs, setSelectedForexPairs] = useState([]);
+    const [selectedStockIndices, setSelectedStockIndices] = useState([]);
     const [economicData, setEconomicData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState('30d');
@@ -34,6 +35,19 @@ export default function EconomicStrengthIndex() {
         { pair: 'EURJPY', name: 'EUR/JPY', color: '#14b8a6' }
     ];
 
+    const stockIndices = [
+        { symbol: '^GSPC', name: 'S&P 500', displayName: 'S&P 500', color: '#dc2626' },
+        { symbol: '^DJI', name: 'Dow Jones', displayName: 'Dow Jones', color: '#2563eb' },
+        { symbol: '^IXIC', name: 'NASDAQ', displayName: 'NASDAQ', color: '#16a34a' },
+        { symbol: '^RUT', name: 'Russell 2000', displayName: 'Russell 2000', color: '#ea580c' },
+        { symbol: '^FTSE', name: 'FTSE 100', displayName: 'FTSE 100', color: '#7c3aed' },
+        { symbol: '^GDAXI', name: 'DAX', displayName: 'DAX', color: '#0891b2' },
+        { symbol: '^FCHI', name: 'CAC 40', displayName: 'CAC 40', color: '#be123c' },
+        { symbol: '^N225', name: 'Nikkei 225', displayName: 'Nikkei 225', color: '#059669' },
+        { symbol: '^HSI', name: 'Hang Seng', displayName: 'Hang Seng', color: '#f59e0b' },
+        { symbol: '^AXJO', name: 'ASX 200', displayName: 'ASX 200', color: '#8b5cf6' }
+    ];
+
     const fetchEconomicStrengthData = async () => {
         setLoading(true);
         try {
@@ -45,6 +59,7 @@ export default function EconomicStrengthIndex() {
                 body: JSON.stringify({
                     currencies: selectedCurrencies,
                     forex_pairs: selectedForexPairs,
+                    stock_indices: selectedStockIndices,
                     date_range: dateRange
                 })
             });
@@ -54,11 +69,13 @@ export default function EconomicStrengthIndex() {
                 console.log('API Response:', data);
                 console.log('Chart data sample:', data.chart_data?.slice(0, 3));
                 
-                // Debug: Check for forex price keys
+                // Debug: Check for forex and stock indices keys
                 if (data.chart_data && data.chart_data.length > 0) {
                     const samplePoint = data.chart_data[0];
                     const forexKeys = Object.keys(samplePoint).filter(key => key.includes('_price'));
+                    const stockKeys = Object.keys(samplePoint).filter(key => key.includes('_index'));
                     console.log('Forex price keys found:', forexKeys);
+                    console.log('Stock indices keys found:', stockKeys);
                 }
                 
                 setEconomicData(data.chart_data);
@@ -70,10 +87,10 @@ export default function EconomicStrengthIndex() {
     };
 
     useEffect(() => {
-        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0) {
+        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0) {
             fetchEconomicStrengthData();
         }
-    }, [selectedCurrencies, selectedForexPairs, dateRange]);
+    }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, dateRange]);
 
     const handleCurrencyToggle = (currencyCode) => {
         setSelectedCurrencies(prev => {
@@ -91,6 +108,16 @@ export default function EconomicStrengthIndex() {
                 return prev.filter(f => f !== forexPair);
             } else {
                 return [...prev, forexPair];
+            }
+        });
+    };
+
+    const handleStockIndexToggle = (stockSymbol) => {
+        setSelectedStockIndices(prev => {
+            if (prev.includes(stockSymbol)) {
+                return prev.filter(s => s !== stockSymbol);
+            } else {
+                return [...prev, stockSymbol];
             }
         });
     };
@@ -179,6 +206,34 @@ export default function EconomicStrengthIndex() {
         downloadCSV(csv, filename);
     };
 
+    const handleDownloadStockIndexData = (stockSymbol) => {
+        if (!economicData || economicData.length === 0) {
+            alert('No data available to download');
+            return;
+        }
+
+        const indexKey = `${stockSymbol}_index`;
+        
+        // Filter data to only include date and the specific stock index price
+        const stockData = economicData
+            .filter(row => row[indexKey] !== undefined && row[indexKey] !== null)
+            .map(row => ({
+                Date: row.date,
+                Index_Value: row[indexKey].toFixed(2)
+            }));
+
+        if (stockData.length === 0) {
+            alert(`No stock index data available for ${stockSymbol}`);
+            return;
+        }
+
+        const csv = convertToCSV(stockData, ['Date', 'Index_Value']);
+        const stockInfo = stockIndices.find(s => s.symbol === stockSymbol);
+        const displayName = stockInfo ? stockInfo.displayName.replace(/\s+/g, '_') : stockSymbol;
+        const filename = `${displayName}_Index_${dateRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadCSV(csv, filename);
+    };
+
     const handleDownloadAllData = () => {
         // Download all selected ESI currencies
         selectedCurrencies.forEach(currency => {
@@ -189,6 +244,11 @@ export default function EconomicStrengthIndex() {
         selectedForexPairs.forEach(pair => {
             setTimeout(() => handleDownloadForexData(pair), 100 * (selectedCurrencies.length + selectedForexPairs.indexOf(pair)));
         });
+
+        // Download all selected stock indices
+        selectedStockIndices.forEach(symbol => {
+            setTimeout(() => handleDownloadStockIndexData(symbol), 100 * (selectedCurrencies.length + selectedForexPairs.length + selectedStockIndices.indexOf(symbol)));
+        });
     };
 
     const formatTooltipValue = (value, name) => {
@@ -196,6 +256,10 @@ export default function EconomicStrengthIndex() {
             // Check if it's a forex price (typically has more decimal places)
             if (name.includes('/')) {
                 return [value.toFixed(4), name];
+            }
+            // Check if it's a stock index
+            if (name.includes('Index') || name.includes('S&P') || name.includes('Dow') || name.includes('NASDAQ')) {
+                return [value.toFixed(2), name];
             }
             return [value.toFixed(2), name];
         }
@@ -209,12 +273,22 @@ export default function EconomicStrengthIndex() {
                     <p className="esi-tooltip-label">{`Date: ${label}`}</p>
                     {payload.map((entry, index) => {
                         const isForex = entry.dataKey.includes('_price');
-                        const displayName = isForex 
-                            ? entry.dataKey.replace('_price', '').replace('USD', '/USD')
-                            : `${entry.dataKey} ESI`;
-                        const formattedValue = isForex 
-                            ? entry.value?.toFixed(4) || 'N/A'
-                            : entry.value?.toFixed(2) || 'N/A';
+                        const isStockIndex = entry.dataKey.includes('_index');
+                        
+                        let displayName, formattedValue;
+                        
+                        if (isForex) {
+                            displayName = entry.dataKey.replace('_price', '').replace('USD', '/USD');
+                            formattedValue = entry.value?.toFixed(4) || 'N/A';
+                        } else if (isStockIndex) {
+                            const symbol = entry.dataKey.replace('_index', '');
+                            const stockInfo = stockIndices.find(s => s.symbol === symbol);
+                            displayName = stockInfo ? stockInfo.displayName : symbol;
+                            formattedValue = entry.value?.toFixed(2) || 'N/A';
+                        } else {
+                            displayName = `${entry.dataKey} ESI`;
+                            formattedValue = entry.value?.toFixed(2) || 'N/A';
+                        }
                         
                         return (
                             <p key={index} style={{ color: entry.color }} className="esi-tooltip-entry">
@@ -228,12 +302,13 @@ export default function EconomicStrengthIndex() {
         return null;
     };
 
-    // Create separate Y-axes domains for ESI (0-100) and Forex prices
+    // Create separate Y-axes domains for ESI (0-100), Forex prices, and Stock indices
     const getYAxisDomains = () => {
-        if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1] };
+        if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1], stock: [0, 1000] };
 
         let minForex = Infinity, maxForex = -Infinity;
-        let hasForexData = false;
+        let minStock = Infinity, maxStock = -Infinity;
+        let hasForexData = false, hasStockData = false;
 
         economicData.forEach(point => {
             selectedForexPairs.forEach(pair => {
@@ -244,18 +319,30 @@ export default function EconomicStrengthIndex() {
                     hasForexData = true;
                 }
             });
+
+            selectedStockIndices.forEach(symbol => {
+                const indexKey = `${symbol}_index`;
+                if (point[indexKey] !== undefined && point[indexKey] !== null) {
+                    minStock = Math.min(minStock, point[indexKey]);
+                    maxStock = Math.max(maxStock, point[indexKey]);
+                    hasStockData = true;
+                }
+            });
         });
 
         const forexPadding = hasForexData ? (maxForex - minForex) * 0.05 : 0;
+        const stockPadding = hasStockData ? (maxStock - minStock) * 0.05 : 0;
         
         return {
             esi: [0, 100],
-            forex: hasForexData ? [minForex - forexPadding, maxForex + forexPadding] : [0, 1]
+            forex: hasForexData ? [minForex - forexPadding, maxForex + forexPadding] : [0, 1],
+            stock: hasStockData ? [minStock - stockPadding, maxStock + stockPadding] : [0, 1000]
         };
     };
 
     const domains = getYAxisDomains();
     const hasForexData = selectedForexPairs.length > 0;
+    const hasStockData = selectedStockIndices.length > 0;
 
     return (
         <div>
@@ -265,7 +352,7 @@ export default function EconomicStrengthIndex() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Economic Strength Index with Forex Overlay</h5><br />
+                    <h5 className="major-upcoming-news-events-header">Economic Strength Index with Multi-Asset Overlay</h5><br />
                     
                     {/* Controls Section */}
                     <div className="esi-controls">
@@ -301,6 +388,25 @@ export default function EconomicStrengthIndex() {
                                         <span className="esi-checkmark forex-checkmark" style={{borderColor: forex.color}}></span>
                                         <span className="esi-currency-label">
                                             {forex.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="esi-stock-selector">
+                            <h6>Select Stock Indices to Overlay:</h6>
+                            <div className="esi-currency-grid">
+                                {stockIndices.map(stock => (
+                                    <label key={stock.symbol} className="esi-currency-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedStockIndices.includes(stock.symbol)}
+                                            onChange={() => handleStockIndexToggle(stock.symbol)}
+                                        />
+                                        <span className="esi-checkmark stock-checkmark" style={{borderColor: stock.color}}></span>
+                                        <span className="esi-currency-label">
+                                            {stock.displayName}
                                         </span>
                                     </label>
                                 ))}
@@ -361,8 +467,29 @@ export default function EconomicStrengthIndex() {
                                         </div>
                                     </div>
                                 )}
+
+                                {selectedStockIndices.length > 0 && (
+                                    <div className="esi-download-group">
+                                        <span className="download-label">Stock Indices:</span>
+                                        <div className="download-buttons">
+                                            {selectedStockIndices.map(symbol => {
+                                                const stockInfo = stockIndices.find(s => s.symbol === symbol);
+                                                return (
+                                                    <button
+                                                        key={`stock-${symbol}`}
+                                                        onClick={() => handleDownloadStockIndexData(symbol)}
+                                                        className="esi-download-btn stock-btn"
+                                                        title={`Download ${stockInfo?.displayName || symbol} data as CSV`}
+                                                    >
+                                                        {stockInfo?.displayName || symbol}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                                 
-                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0) && (
+                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0) && (
                                     <div className="esi-download-group">
                                         <button
                                             onClick={handleDownloadAllData}
@@ -382,7 +509,7 @@ export default function EconomicStrengthIndex() {
                         {loading ? (
                             <div className="esi-loading">
                                 <div className="esi-spinner"></div>
-                                <p>Calculating Economic Strength Index and Forex Data...</p>
+                                <p>Calculating Economic Strength Index and Multi-Asset Data...</p>
                             </div>
                         ) : economicData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={500}>
@@ -411,6 +538,23 @@ export default function EconomicStrengthIndex() {
                                             domain={domains.forex}
                                             tickFormatter={(value) => value.toFixed(4)}
                                             label={{ value: 'Forex Price', angle: 90, position: 'insideRight' }}
+                                        />
+                                    )}
+                                    {/* Additional Right Y-Axis for Stock Indices (offset if forex exists) */}
+                                    {hasStockData && (
+                                        <YAxis 
+                                            yAxisId="stock"
+                                            orientation="right"
+                                            stroke="#8b5cf6"
+                                            tick={{ fontSize: 12 }}
+                                            domain={domains.stock}
+                                            tickFormatter={(value) => value.toFixed(0)}
+                                            label={{ 
+                                                value: 'Stock Index', 
+                                                angle: 90, 
+                                                position: hasForexData ? 'outside' : 'insideRight',
+                                                offset: hasForexData ? 40 : 0
+                                            }}
                                         />
                                     )}
                                     <Tooltip content={<CustomTooltip />} />
@@ -455,36 +599,65 @@ export default function EconomicStrengthIndex() {
                                             />
                                         );
                                     })}
+
+                                    {/* Stock Index Lines */}
+                                    {selectedStockIndices.map(stockSymbol => {
+                                        const stock = stockIndices.find(s => s.symbol === stockSymbol);
+                                        const indexKey = `${stockSymbol}_index`;
+                                        return (
+                                            <Line
+                                                key={indexKey}
+                                                yAxisId="stock"
+                                                type="monotone"
+                                                dataKey={indexKey}
+                                                stroke={stock?.color || '#8b5cf6'}
+                                                strokeWidth={2}
+                                                strokeDasharray="10 5"
+                                                dot={false}
+                                                activeDot={{ r: 4 }}
+                                                connectNulls={true}
+                                                name={stock?.displayName || stockSymbol}
+                                            />
+                                        );
+                                    })}
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="esi-no-data">
-                                <p>Select currencies and/or forex pairs to view data</p>
+                                <p>Select currencies, forex pairs, and/or stock indices to view data</p>
                             </div>
                         )}
                     </div>
 
                     {/* Legend Info */}
-                    {hasForexData && (
+                    {(hasForexData || hasStockData) && (
                         <div className="esi-legend-info">
                             <div className="legend-item">
                                 <div className="legend-line solid"></div>
                                 <span>ESI Scores (Left Axis, 0-100 scale)</span>
                             </div>
-                            <div className="legend-item">
-                                <div className="legend-line dashed"></div>
-                                <span>Forex Prices (Right Axis, Price scale)</span>
-                            </div>
+                            {hasForexData && (
+                                <div className="legend-item">
+                                    <div className="legend-line dashed"></div>
+                                    <span>Forex Prices (Right Axis, Price scale)</span>
+                                </div>
+                            )}
+                            {hasStockData && (
+                                <div className="legend-item">
+                                    <div className="legend-line dotted"></div>
+                                    <span>Stock Indices (Right Axis, Index scale)</span>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* Info Section */}
                     <div className="esi-info">
-                        <h6>About Economic Strength Index with Forex Overlay</h6>
+                        <h6>About Economic Strength Index with Multi-Asset Overlay</h6>
                         <p>
                             The Economic Strength Index (ESI) aggregates all economic events for selected currencies, 
-                            weighted by impact and normalized for comparison. Forex price overlays show actual market 
-                            movements for comparison with economic strength indicators.
+                            weighted by impact and normalized for comparison. Forex price and stock index overlays show 
+                            actual market movements for comparison with economic strength indicators.
                         </p>
                         <div className="esi-methodology">
                             <strong>Methodology:</strong>
@@ -492,7 +665,8 @@ export default function EconomicStrengthIndex() {
                                 <li>ESI: High impact events (3x), Medium (2x), Low (1x) weight</li>
                                 <li>ESI: Values normalized using percentage deviation from forecast</li>
                                 <li>Forex: Real-time price data overlayed with dashed lines</li>
-                                <li>Dual Y-axes: Left for ESI (0-100), Right for Forex prices</li>
+                                <li>Stock Indices: Real-time index data overlayed with dotted lines</li>
+                                <li>Multi-axis: Left for ESI (0-100), Right for Forex/Stock prices</li>
                             </ul>
                         </div>
                     </div>
@@ -510,6 +684,7 @@ export default function EconomicStrengthIndex() {
 
                 .esi-currency-selector h6,
                 .esi-forex-selector h6,
+                .esi-stock-selector h6,
                 .esi-date-range-selector h6 {
                     color: #1e293b;
                     margin-bottom: 12px;
@@ -523,6 +698,14 @@ export default function EconomicStrengthIndex() {
                     background: #f1f5f9;
                     border-radius: 6px;
                     border-left: 3px solid #3b82f6;
+                }
+
+                .esi-stock-selector {
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #faf5ff;
+                    border-radius: 6px;
+                    border-left: 3px solid #8b5cf6;
                 }
 
                 .esi-currency-grid {
@@ -565,6 +748,11 @@ export default function EconomicStrengthIndex() {
                     border-radius: 50%;
                 }
 
+                .esi-checkmark.stock-checkmark {
+                    border-radius: 2px;
+                    transform: rotate(45deg);
+                }
+
                 .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark {
                     background-color: currentColor;
                     border-color: currentColor;
@@ -575,6 +763,10 @@ export default function EconomicStrengthIndex() {
                     color: white;
                     font-size: 12px;
                     font-weight: bold;
+                }
+
+                .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark.stock-checkmark::after {
+                    transform: rotate(-45deg);
                 }
 
                 .esi-currency-label {
@@ -625,7 +817,7 @@ export default function EconomicStrengthIndex() {
                 .download-label {
                     font-weight: 600;
                     color: #374151;
-                    min-width: 90px;
+                    min-width: 110px;
                     font-size: 13px;
                 }
 
@@ -670,6 +862,18 @@ export default function EconomicStrengthIndex() {
                     box-shadow: 0 2px 4px rgba(217, 119, 6, 0.2);
                 }
 
+                .esi-download-btn.stock-btn {
+                    background: #8b5cf6;
+                    color: white;
+                    border-color: #7c3aed;
+                }
+
+                .esi-download-btn.stock-btn:hover {
+                    background: #7c3aed;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+                }
+
                 .esi-download-btn.download-all-btn {
                     background: #10b981;
                     color: white;
@@ -701,6 +905,7 @@ export default function EconomicStrengthIndex() {
                     padding: 10px;
                     background: #f8fafc;
                     border-radius: 6px;
+                    flex-wrap: wrap;
                 }
 
                 .legend-item {
@@ -724,6 +929,11 @@ export default function EconomicStrengthIndex() {
                 .legend-line.dashed {
                     background: linear-gradient(to right, #f59e0b 50%, transparent 50%);
                     background-size: 8px 2px;
+                }
+
+                .legend-line.dotted {
+                    background: linear-gradient(to right, #8b5cf6 30%, transparent 30%);
+                    background-size: 6px 2px;
                 }
 
                 .esi-loading {
@@ -766,6 +976,7 @@ export default function EconomicStrengthIndex() {
                     padding: 12px;
                     color: white;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                    max-width: 250px;
                 }
 
                 .esi-tooltip-label {
@@ -898,6 +1109,14 @@ export default function EconomicStrengthIndex() {
 
                     .esi-download-btn {
                         width: 100%;
+                    }
+
+                    .esi-legend-info {
+                        gap: 10px;
+                    }
+
+                    .legend-item {
+                        font-size: 12px;
                     }
                 }
             `}</style>
