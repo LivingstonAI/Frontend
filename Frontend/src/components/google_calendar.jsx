@@ -427,7 +427,7 @@ const downloadMonthlyReport = async () => {
                 if (flagDataUrl) {
                     const flagSize = 20;
                     const flagX = pageWidth - margin - flagSize;
-                    const flagY = margin;
+                    const flagY = margin - 5; // Move flag up slightly to avoid title conflict
                     
                     pdf.addImage(flagDataUrl, 'PNG', flagX, flagY, flagSize, flagSize * 0.6);
                 }
@@ -897,7 +897,6 @@ const downloadMonthlyReport = async () => {
         setDownloadingPDF(false);
     }
 };
-
 
     // Add data attributes to chart containers for PDF capture
     const getChartDataAttribute = (chartType) => {
