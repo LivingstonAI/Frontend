@@ -547,7 +547,16 @@ const downloadMonthlyReport = async () => {
         
         // Add report title at the top of page 2
         const title = t.comprehensiveReport;
-        await addUnicodeText(title, (pageWidth - pdf.getTextWidth(title)) / 2, yPosition, { fontSize: 22, color: 'blue' });
+        // Calculate proper width for centering
+        let reportTitleWidth;
+        if (selectedLanguage === 'chinese' || selectedLanguage === 'korean') {
+            // Estimate width for CJK text (approximate)
+            reportTitleWidth = title.length * 11; // Rough estimate for 22px font
+        } else {
+            pdf.setFontSize(22); // Set font size first
+            reportTitleWidth = pdf.getTextWidth(title);
+        }
+        await addUnicodeText(title, (pageWidth - reportTitleWidth) / 2, yPosition, { fontSize: 22, color: 'blue' });
         yPosition += 15;
         
         // Add subtitle (month/year)
@@ -888,6 +897,7 @@ const downloadMonthlyReport = async () => {
         setDownloadingPDF(false);
     }
 };
+
 
     // Add data attributes to chart containers for PDF capture
     const getChartDataAttribute = (chartType) => {
