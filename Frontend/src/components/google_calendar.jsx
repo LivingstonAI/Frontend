@@ -99,95 +99,94 @@ export default function GoogleCalendar() {
         page: 'Page'
     },
     chinese: {
-        comprehensiveReport: '综合交易报告',
-        executiveSummary: '执行摘要',
-        totalTrades: '总交易数',
-        winningTrades: '盈利交易',
-        losingTrades: '亏损交易',
-        averageWin: '平均盈利',
-        averageLoss: '平均亏损',
-        riskRewardRatio: '风险/收益比',
-        profitFactor: '盈利因子',
-        netPL: '净盈亏',
-        largestWin: '最大盈利',
-        largestLoss: '最大亏损',
-        performanceAnalysis: '绩效分析',
-        byDayOfWeek: '按星期几',
-        byTradingSession: '按交易时段',
-        byStrategy: '按策略',
-        byAsset: '按资产',
-        tradingInsights: '交易洞察:',
-        bestTradingDay: '最佳交易日',
-        worstTradingDay: '最差交易日',
-        longestWinningStreak: '最长连胜',
-        longestLosingStreak: '最长连败',
-        trades: '交易',
-        visualAnalysis: '可视化分析',
-        performanceByDayOfWeek: '按星期几的表现',
-        performanceByTradingSession: '按交易时段的表现',
-        performanceByStrategy: '按策略的表现',
-        performanceByAsset: '按资产的表现',
-        equityCurve: '资产曲线',
-        detailedTradeLog: '详细交易记录',
-        weekOf: '周期',
-        total: '总计',
-        date: '日期',
-        asset: '资产',
-        strategy: '策略',
-        session: '时段',
-        outcome: '结果',
-        amount: '金额',
-        tradeReflections: '交易反思与教训',
-        trade: '交易',
-        winRate: '胜率',
-        page: '页'
+        comprehensiveReport: '\u7EFC\u5408\u4EA4\u6613\u62A5\u544A',
+        executiveSummary: '\u6267\u884C\u6458\u8981',
+        totalTrades: '\u603B\u4EA4\u6613\u6570',
+        winningTrades: '\u76C8\u5229\u4EA4\u6613',
+        losingTrades: '\u4E8F\u635F\u4EA4\u6613',
+        averageWin: '\u5E73\u5747\u76C8\u5229',
+        averageLoss: '\u5E73\u5747\u4E8F\u635F',
+        riskRewardRatio: '\u98CE\u9669/\u6536\u76CA\u6BD4',
+        profitFactor: '\u76C8\u5229\u56E0\u5B50',
+        netPL: '\u51C0\u76C8\u4E8F',
+        largestWin: '\u6700\u5927\u76C8\u5229',
+        largestLoss: '\u6700\u5927\u4E8F\u635F',
+        performanceAnalysis: '\u7EE9\u6548\u5206\u6790',
+        byDayOfWeek: '\u6309\u661F\u671F\u51E0',
+        byTradingSession: '\u6309\u4EA4\u6613\u65F6\u6BB5',
+        byStrategy: '\u6309\u7B56\u7565',
+        byAsset: '\u6309\u8D44\u4EA7',
+        tradingInsights: '\u4EA4\u6613\u6D1E\u5BDF:',
+        bestTradingDay: '\u6700\u4F73\u4EA4\u6613\u65E5',
+        worstTradingDay: '\u6700\u5DEE\u4EA4\u6613\u65E5',
+        longestWinningStreak: '\u6700\u957F\u8FDE\u80DC',
+        longestLosingStreak: '\u6700\u957F\u8FDE\u8D25',
+        trades: '\u4EA4\u6613',
+        visualAnalysis: '\u53EF\u89C6\u5316\u5206\u6790',
+        performanceByDayOfWeek: '\u6309\u661F\u671F\u51E0\u7684\u8868\u73B0',
+        performanceByTradingSession: '\u6309\u4EA4\u6613\u65F6\u6BB5\u7684\u8868\u73B0',
+        performanceByStrategy: '\u6309\u7B56\u7565\u7684\u8868\u73B0',
+        performanceByAsset: '\u6309\u8D44\u4EA7\u7684\u8868\u73B0',
+        equityCurve: '\u8D44\u4EA7\u66F2\u7EBF',
+        detailedTradeLog: '\u8BE6\u7EC6\u4EA4\u6613\u8BB0\u5F55',
+        weekOf: '\u5468\u671F',
+        total: '\u603B\u8BA1',
+        date: '\u65E5\u671F',
+        asset: '\u8D44\u4EA7',
+        strategy: '\u7B56\u7565',
+        session: '\u65F6\u6BB5',
+        outcome: '\u7ED3\u679C',
+        amount: '\u91D1\u989D',
+        tradeReflections: '\u4EA4\u6613\u53CD\u601D\u4E0E\u6559\u8BAD',
+        trade: '\u4EA4\u6613',
+        winRate: '\u80DC\u7387',
+        page: '\u9875'
     },
     korean: {
-        comprehensiveReport: '종합 거래 보고서',
-        executiveSummary: '요약',
-        totalTrades: '총 거래수',
-        winningTrades: '수익 거래',
-        losingTrades: '손실 거래',
-        averageWin: '평균 수익',
-        averageLoss: '평균 손실',
-        riskRewardRatio: '위험/수익 비율',
-        profitFactor: '수익 팩터',
-        netPL: '순 손익',
-        largestWin: '최대 수익',
-        largestLoss: '최대 손실',
-        performanceAnalysis: '성과 분석',
-        byDayOfWeek: '요일별',
-        byTradingSession: '거래 세션별',
-        byStrategy: '전략별',
-        byAsset: '자산별',
-        tradingInsights: '거래 인사이트:',
-        bestTradingDay: '최고 거래일',
-        worstTradingDay: '최악 거래일',
-        longestWinningStreak: '최장 연승',
-        longestLosingStreak: '최장 연패',
-        trades: '거래',
-        visualAnalysis: '시각적 분석',
-        performanceByDayOfWeek: '요일별 성과',
-        performanceByTradingSession: '거래 세션별 성과',
-        performanceByStrategy: '전략별 성과',
-        performanceByAsset: '자산별 성과',
-        equityCurve: '자산 곡선',
-        detailedTradeLog: '상세 거래 로그',
-        weekOf: '주간',
-        total: '총계',
-        date: '날짜',
-        asset: '자산',
-        strategy: '전략',
-        session: '세션',
-        outcome: '결과',
-        amount: '금액',
-        tradeReflections: '거래 성찰과 교훈',
-        trade: '거래',
-        winRate: '승률',
-        page: '페이지'
+        comprehensiveReport: '\uC885\uD569 \uAC70\uB798 \uBCF4\uACE0\uC11C',
+        executiveSummary: '\uC694\uC57D',
+        totalTrades: '\uCD1D \uAC70\uB798\uC218',
+        winningTrades: '\uC218\uC775 \uAC70\uB798',
+        losingTrades: '\uC190\uC2E4 \uAC70\uB798',
+        averageWin: '\uD3C9\uADE0 \uC218\uC775',
+        averageLoss: '\uD3C9\uADE0 \uC190\uC2E4',
+        riskRewardRatio: '\uC704\uD5D8/\uC218\uC775 \uBE44\uC728',
+        profitFactor: '\uC218\uC775 \uD329\uD130',
+        netPL: '\uC21C \uC190\uC775',
+        largestWin: '\uCD5C\uB300 \uC218\uC775',
+        largestLoss: '\uCD5C\uB300 \uC190\uC2E4',
+        performanceAnalysis: '\uC131\uACFC \uBD84\uC11D',
+        byDayOfWeek: '\uC694\uC77C\uBCC4',
+        byTradingSession: '\uAC70\uB798 \uC138\uC158\uBCC4',
+        byStrategy: '\uC804\uB7B5\uBCC4',
+        byAsset: '\uC790\uC0B0\uBCC4',
+        tradingInsights: '\uAC70\uB798 \uC778\uC0AC\uC774\uD2B8:',
+        bestTradingDay: '\uCD5C\uACE0 \uAC70\uB798\uC77C',
+        worstTradingDay: '\uCD5C\uC545 \uAC70\uB798\uC77C',
+        longestWinningStreak: '\uCD5C\uC7A5 \uC5F0\uC2B9',
+        longestLosingStreak: '\uCD5C\uC7A5 \uC5F0\uD328',
+        trades: '\uAC70\uB798',
+        visualAnalysis: '\uC2DC\uAC01\uC801 \uBD84\uC11D',
+        performanceByDayOfWeek: '\uC694\uC77C\uBCC4 \uC131\uACFC',
+        performanceByTradingSession: '\uAC70\uB798 \uC138\uC158\uBCC4 \uC131\uACFC',
+        performanceByStrategy: '\uC804\uB7B5\uBCC4 \uC131\uACFC',
+        performanceByAsset: '\uC790\uC0B0\uBCC4 \uC131\uACFC',
+        equityCurve: '\uC790\uC0B0 \uACE1\uC120',
+        detailedTradeLog: '\uC0C1\uC138 \uAC70\uB798 \uB85C\uADF8',
+        weekOf: '\uC8FC\uAC04',
+        total: '\uCD1D\uACC4',
+        date: '\uB0A0\uC9DC',
+        asset: '\uC790\uC0B0',
+        strategy: '\uC804\uB7B5',
+        session: '\uC138\uC158',
+        outcome: '\uACB0\uACFC',
+        amount: '\uAE08\uC561',
+        tradeReflections: '\uAC70\uB798 \uC131\uCC30\uACFC \uAD50\uD6C8',
+        trade: '\uAC70\uB798',
+        winRate: '\uC2B9\uB960',
+        page: '\uD398\uC774\uC9C0'
     }
 };
-
     useEffect(() => {
         fetchTrades();
     }, []);
@@ -1282,6 +1281,18 @@ const downloadMonthlyReport = async () => {
         return days;
     };
 
+    
+    useEffect(() => {
+    const handleClickOutside = (event) => {
+        if (showLanguageSelector && !event.target.closest('.language-selector')) {
+            setShowLanguageSelector(false);
+        }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+}, [showLanguageSelector]);
+
     const getTradesForDate = (day) => {
         if (!day) return [];
         // 
@@ -1376,16 +1387,16 @@ const downloadMonthlyReport = async () => {
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const analytics = calculateAnalytics();
 
-    useEffect(() => {
-    const handleClickOutside = (event) => {
-        if (showLanguageSelector && !event.target.closest('.language-selector')) {
-            setShowLanguageSelector(false);
-        }
-    };
+//     useEffect(() => {
+//     const handleClickOutside = (event) => {
+//         if (showLanguageSelector && !event.target.closest('.language-selector')) {
+//             setShowLanguageSelector(false);
+//         }
+//     };
     
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-}, [showLanguageSelector]);
+//     document.addEventListener('mousedown', handleClickOutside);
+//     return () => document.removeEventListener('mousedown', handleClickOutside);
+// }, [showLanguageSelector]);
 
     // Error state
     if (error && !loading) {
