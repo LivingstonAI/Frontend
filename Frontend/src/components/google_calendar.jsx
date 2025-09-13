@@ -257,7 +257,7 @@ export default function GoogleCalendar() {
         });
     };
 
-  // Updated PDF Download Function with Unicode Support
+// Updated PDF Download Function with Unicode Support
 const downloadMonthlyReport = async () => {
     setDownloadingPDF(true);
     
@@ -782,8 +782,8 @@ const downloadMonthlyReport = async () => {
                 }
                 yPosition += 6;
                 
-                // Draw line under headers
-                pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+                // Draw line under headers (move up slightly to not cover first trade)
+                pdf.line(margin, yPosition - 4, pageWidth - margin, yPosition - 4);
                 yPosition += 2;
                 
                 // Add trade rows for this week
