@@ -550,8 +550,8 @@ const downloadMonthlyReport = async () => {
         // Calculate proper width for centering
         let reportTitleWidth;
         if (selectedLanguage === 'chinese' || selectedLanguage === 'korean') {
-            // Estimate width for CJK text (approximate)
-            reportTitleWidth = title.length * 11; // Rough estimate for 22px font
+            // Better estimate for CJK text - adjust multiplier
+            reportTitleWidth = title.length * 7.5; // Reduced multiplier for 22px font
         } else {
             pdf.setFontSize(22); // Set font size first
             reportTitleWidth = pdf.getTextWidth(title);
