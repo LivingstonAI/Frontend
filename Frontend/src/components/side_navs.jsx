@@ -83,6 +83,7 @@ import little_time_youth from '../[ENGSUBPINYIN] 小时光 (Xiao Shi Guang - Lit
 import bomb_2022 from '../Bomb比爾 - 1022-比爾的歌動態歌詞他們說今晚的夜色很好 應該有個人對我來撒嬌.mp3';
 import daisies from '../DAISIES.mp3';
 import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music Video).mp3';
+import judas from '../Lady Gaga - Judas (Lyrics).mp3';
 
 
 export default function SideNavs() {
@@ -222,6 +223,7 @@ export default function SideNavs() {
         { name: "Bomb - 1022 🌃", file: bomb_2022 },
         { name: "Daisies 🌼", file: daisies },
         { name: "Timeless ⌛", file: timeless },
+        { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
 
   ];
 
