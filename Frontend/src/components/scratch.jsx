@@ -35,7 +35,7 @@ export default function ScratchInterFace () {
 
     const [xml, setXml] = useState('');
 
-    const [compile, setCompile] = useState('Compile Model');
+    const [compile, setCompile] = useState('Save Data');
     
     const [generatedCode, setGeneratedCode] = useState('');
     const [jsCode, setJsCode] = useState('');
@@ -649,13 +649,107 @@ return [`is_bearish_weekly_profile(asset=asset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['tradergpt_buy'] = function(block, generator) {
+
+
+  return [`tradergpt_buy(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['tradergpt_buy'] = function(block, generator) {
+
+return [`tradergpt_buy(asset=asset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['tradergpt_sell'] = function(block, generator) {
+
+
+  return [`tradergpt_sell(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['tradergpt_sell'] = function(block, generator) {
+
+return [`tradergpt_sell(asset=asset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['new_york_session'] = function(block, generator) {
+
+
+  return [`new_york_session()`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['new_york_session'] = function(block, generator) {
+
+return [`new_york_session()`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['london_session'] = function(block, generator) {
+
+
+  return [`london_session()`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['london_session'] = function(block, generator) {
+
+return [`london_session()`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['asian_session'] = function(block, generator) {
+
+
+  return [`asian_session()`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['asian_session'] = function(block, generator) {
+
+return [`asian_session()`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['bullish_market_sentiment'] = function(block, generator) {
+
+
+  return [`bullish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['bullish_market_sentiment'] = function(block, generator) {
+
+return [`bullish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['bearish_market_sentiment'] = function(block, generator) {
+
+
+  return [`bearish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['bearish_market_sentiment'] = function(block, generator) {
+
+return [`bearish_market_sentiment(asset=asset)`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
       this.appendValueInput('NUM')
           .setCheck('Number')
-          .appendField('Moving Average')
-          .appendField('Type');
+          .appendField('moving average')
+          .appendField('type');
       this.appendDummyInput()
           .appendField(new Blockly.FieldDropdown([
             ['SMA', 'SMA'],
@@ -673,7 +767,7 @@ return [`is_bearish_weekly_profile(asset=asset)`, Order.NONE];
 Blockly.Blocks['buy_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Buy')
+        .appendField('buy')
         .setAlign(Blockly.ALIGN_CENTRE); // Set alignment to center
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -687,7 +781,7 @@ Blockly.Blocks['buy_block'] = {
 Blockly.Blocks['sell_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Sell')
+        .appendField('sell')
         .setAlign(Blockly.ALIGN_CENTRE); // Set alignment to center
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -705,7 +799,7 @@ Blockly.Blocks['engulfing_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Engulfing');
+        .appendField('engulfing');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents an engulfing candlestick pattern');
@@ -722,7 +816,7 @@ Blockly.Blocks['morning_star_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Morning Star');
+        .appendField('morning star');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a morning star candlestick pattern');
@@ -739,7 +833,7 @@ Blockly.Blocks['three_soldiers_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Three Soldiers/Black Crows');
+        .appendField('three soldiers/black crows');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents the three white soldiers/three black crows candlestick pattern');
@@ -755,7 +849,7 @@ Blockly.Blocks['doji_star_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Doji Star');
+        .appendField('doji star');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a doji star candlestick pattern');
@@ -771,7 +865,7 @@ Blockly.Blocks['rising_methods_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Rising/Falling Methods');
+        .appendField('rising/falling methods');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents rising methods/falling methods candlestick pattern');
@@ -787,7 +881,7 @@ Blockly.Blocks['rising_methods_block'] = {
             ['Bullish', 'bullish'],
             ['Bearish', 'bearish']
           ]), 'TYPE')
-          .appendField('Hammer');
+          .appendField('hammer');
       this.setOutput(true, 'Boolean');
       this.setColour(330); // Orange color
       this.setTooltip('This block represents a hammer / hanging man candlestick pattern');
@@ -803,7 +897,7 @@ Blockly.Blocks['shooting_star_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Shooting Star');
+        .appendField('shooting star');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a shooting star / inverted hammer candlestick pattern');
@@ -819,7 +913,7 @@ Blockly.Blocks['kicker_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Kicker');
+        .appendField('kicker');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a kicker candlestick pattern');
@@ -835,7 +929,7 @@ Blockly.Blocks['harami_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Harami');
+        .appendField('harami');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a harami candlestick pattern');
@@ -852,7 +946,7 @@ Blockly.Blocks['three_line_strike_block'] = {
           ['Bullish', 'bullish'],
           ['Bearish', 'bearish']
         ]), 'TYPE')
-        .appendField('Three Line Strike');
+        .appendField('three line strike');
     this.setOutput(true, 'Boolean');
     this.setColour(330); // Orange color
     this.setTooltip('This block represents a Three Line Strike candlestick pattern');
@@ -864,7 +958,7 @@ Blockly.Blocks['three_line_strike_block'] = {
 Blockly.Blocks['bbands_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Bollinger Bands');
+        .appendField('bollinger bands');
     this.appendValueInput('PRICE')
         .setCheck('Number')
         .appendField('Price');
@@ -893,7 +987,7 @@ Blockly.Blocks['bbands_block'] = {
 Blockly.Blocks['momentum_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('Momentum');
+        .appendField('momentum');
     this.appendDummyInput()
         .appendField(new Blockly.FieldDropdown([
           ['>', 'ABOVE'],
@@ -914,7 +1008,7 @@ Blockly.Blocks['momentum_block'] = {
 Blockly.Blocks['rsi_block'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField('RSI');
+        .appendField('rsi');
     this.appendDummyInput()
         .appendField(new Blockly.FieldDropdown([
           ['>', 'ABOVE'],
@@ -935,7 +1029,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['close_position'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Close Position");
+          .appendField("close position");
       this.setPreviousStatement(true, null);  // Allow this block to be connected to the previous block
       this.setNextStatement(true, null);  // Allow next blocks to be connected to this block
       this.setColour(160);
@@ -948,7 +1042,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['check_position'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Position");
+          .appendField("position");
       this.setOutput(true, 'Boolean');
       this.setColour(210);
       this.setTooltip("Check if a position exists");
@@ -960,7 +1054,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['take_profit'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Set Take Profit");
+          .appendField("set take profit");
       this.appendDummyInput()
           .appendField(new Blockly.FieldNumber(0), "VALUE")
           .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENTAGE"], ["Number", "NUMBER"]]), "TYPE");
@@ -977,7 +1071,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['stop_loss'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Stop Loss");
+          .appendField("stop loss");
       this.appendDummyInput()
           .appendField(new Blockly.FieldNumber(0), "VALUE")
           .appendField(new Blockly.FieldDropdown([["Percentage", "PERCENTAGE"], ["Number", "NUMBER"]]), "TYPE");
@@ -992,7 +1086,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['support'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Support")
+          .appendField("support")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1004,7 +1098,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['resistance'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Resistance")
+          .appendField("resistance")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1016,7 +1110,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['uptrend'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Uptrend")
+          .appendField("uptrend")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1028,7 +1122,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['downtrend'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Downtrend")
+          .appendField("downtrend")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1040,7 +1134,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['ranging_market'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Ranging Market")
+          .appendField("ranging market")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1052,7 +1146,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['asian_range_buy'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Asian Range Buy")
+          .appendField("asian range buy")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1064,7 +1158,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['asian_range_sell'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Asian Range Sell")
+          .appendField("asian range sell")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1076,7 +1170,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['fibonacci_level'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Fibonacci Level")
+          .appendField("fibonacci level")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.appendDummyInput()
           .appendField("Trend")
@@ -1104,7 +1198,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['ote_buy'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Optimal Trade Entry Buy")
+          .appendField("optimal trade entry buy")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1116,7 +1210,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['ote_sell'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Optimal Trade Entry Sell")
+          .appendField("optimal trade entry sell")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1129,7 +1223,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['bullish_orderblock'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bullish Orderblock")
+          .appendField("bullish orderblock")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1142,7 +1236,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['bearish_orderblock'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bearish Orderblock")
+          .appendField("bearish orderblock")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1154,7 +1248,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['is_bullish_weekly_profile'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bullish Weekly Profile")
+          .appendField("bullish weekly profile")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1166,7 +1260,7 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['is_bearish_weekly_profile'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("Bearish Weekly Profile")
+          .appendField("bearish weekly profile")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(330);
@@ -1175,6 +1269,93 @@ Blockly.Blocks['rsi_block'] = {
     }
   };
 
+
+  Blockly.Blocks['tradergpt_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("tradergpt buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if TraderGPT recommends a buy");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['tradergpt_sell'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("tradergpt sell")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if TraderGPT recommends a sell");
+      this.setHelpUrl("");
+    }
+  };
+
+  
+  Blockly.Blocks['new_york_session'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("new york session")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is New York Session");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['london_session'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("london session")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is London Session");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['asian_session'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("asian session")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is Asian Session");
+      this.setHelpUrl("");
+    }
+  };
+
+
+  Blockly.Blocks['bullish_market_sentiment'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bullish market sentiment")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is a Bullish Market Sentiment");
+      this.setHelpUrl("");
+    }
+  };
+
+  
+  Blockly.Blocks['bearish_market_sentiment'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bearish market sentiment")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if it is a Bearish Market Sentiment");
+      this.setHelpUrl("");
+    }
+  };
   
   
 
@@ -1459,13 +1640,101 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "is_bearish_weekly_profile"
-            }
+            },
+            {
+              "kind": "block",
+              "type": "tradergpt_buy"
+            },
+            {
+              "kind": "block",
+              "type": "tradergpt_sell"
+            },
+            {
+              "kind": "block",
+              "type": "bullish_market_sentiment"
+            },
+            {
+              "kind": "block",
+              "type": "bearish_market_sentiment"
+            },
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "Trading Sessions",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "new_york_session"
+            },
+            
+            {
+              "kind": "block",
+              "type": "london_session" // Add the "Bollinger Bands" block here
+            },
+            {
+              "kind": "block",
+              "type": "asian_session" // Add the "Momentum" block here
+            },      
           ]
         },
       ]
     }
+
+    const saveBacktestModelData = async () => {
+      // const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+      setCompile('Saving Data...');
+  
+      // Input validation
+      if (!chosenDataSet || !generatedCode || !startYear || !endYear || !initCapital) {
+          alert('Please fill in all fields before saving.');
+          setCompile('Save Data');
+          return;
+      }
+  
+      try {
+          const response = await fetch(`${baseUrl}/save-backtest-model-data`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  chosen_dataset: chosenDataSet,
+                  generated_code: generatedCode,
+                  model_backtested: false, // Or false, depending on your logic
+                  dataset_start: startYear,
+                  dataset_end: endYear,
+                  initial_capital: parseFloat(initCapital),
+              }),
+          });
+  
+          const data = await response.json();
+          if (response.ok) {
+              console.log('Success:', data);
+              alert('Data saved successfully!');
+              setCompile('Save Data');
+          } else {
+              console.error('Error:', data);
+              alert('Error occurred! Please try again later.');
+              setCompile('Save Data');
+          }
+      } catch (error) {
+          console.error('Error:', error);
+          alert('Error occurred! Please try again later.');
+          setCompile('Save Data');
+      }
+  };
+  
+  
       
     const compileModelFunction = async () => {
+
+      console.log('Chosen Dataset: ', chosenDataSet);
+      console.log('Generated Code: ', generatedCode);
+      console.log('Dataset Start: ', startYear);
+      console.log('Dataset End: ', endYear);
+      console.log('Initial Capital: ', initCapital);
+      
       try {
         setCompile('Backtesting model...');
         
@@ -1483,9 +1752,9 @@ Blockly.Blocks['rsi_block'] = {
         }
         
         const data1 = await response1.json();
-        console.log(data1); // Do something with the response data from the first request
+        // console.log(data1); // Do something with the response data from the first request
         
-        console.log(generatedCode);
+        // console.log(generatedCode);
         
         // Second fetch request
         const response2 = await fetch(`${baseUrl}/genesys`, {
@@ -1502,7 +1771,7 @@ Blockly.Blocks['rsi_block'] = {
         
         const data2 = await response2.json();
 
-        console.log(data2);
+        // console.log(data2);
         
         let imageData = '';
         const jsonData = data2.message[1]
@@ -1546,23 +1815,24 @@ Blockly.Blocks['rsi_block'] = {
 
     const closeModal = async () => {  
       // Handle success
-      // window.location.reload();
-      // First fetch request
-      const response = await fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // body: JSON.stringify({ dataset }),
-      });
+      console.log(chosenDataSet);
+      // // window.location.reload();
+      // // First fetch request
+      // const response = await fetch(`${baseUrl}/save-dataset/${chosenDataSet}`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   // body: JSON.stringify({ dataset }),
+      // });
       
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
+      // if (!response.ok) {
+      //   throw new Error('Network response was not ok');
+      // }
 
       
-      const data = await response.json();
-      console.log(data); // Do something with the response data from the first request
+      // const data = await response.json();
+      // console.log(data); // Do something with the response data from the first request
       toggleModal();
     };
 
@@ -1576,15 +1846,15 @@ Blockly.Blocks['rsi_block'] = {
 
     const closeSplitModal = async () => {
 
-      try {
-        const response = await axios.post(`${baseUrl}/split-dataset`, {
-          start_year: startYear,
-          end_year: endYear
-        });
-        console.log(response.data); // Handle success response
-      } catch (error) {
-        console.error('Error:', error); // Handle error
-      }
+      // try {
+      //   const response = await axios.post(`${baseUrl}/split-dataset`, {
+      //     start_year: startYear,
+      //     end_year: endYear
+      //   });
+      //   console.log(response.data); // Handle success response
+      // } catch (error) {
+      //   console.error('Error:', error); // Handle error
+      // }
       toggleSplitModal();
     };
 
@@ -1717,11 +1987,11 @@ Blockly.Blocks['rsi_block'] = {
                 <SideNavs />
                 <div className="main-body-info">  <br />
                 <h5>Genesys Interface</h5><br />
-                <h2>Generated Code:</h2>
+                <h5>Generated Code:</h5>
                 <div className="generated-code-example">
                 
                   <div>
-                    <h3>Python</h3><br />
+                    <h6>Python</h6><br />
                     <pre>{generatedCode}</pre>
                   </div>
                   
@@ -1737,14 +2007,14 @@ Blockly.Blocks['rsi_block'] = {
                   </div>  */}
                 </div>
                 <div className="choose-dataset">
-                    <button className="btn btn-light" onClick={toggleModal}>Choose Dataset</button><br />
+                    <button className="btn btn-primary" onClick={toggleModal}>Choose Dataset</button><br />
                     <p>Chosen dataset: {chosenDataSet}</p>
                     {isDataSetModalOpen && (
                 <div className="modal-overlay">
                     <div className="select-category-modal">
                         <br />
-                        <button className="btn btn-light close-cot-modal" onClick={closeModal}>Close</button><br /><br />
-                        <h4 className="select-category-title">Choose Dataset</h4><br />
+                        <button className="btn btn-primary close-cot-modal" onClick={closeModal}>Close</button><br /><br />
+                        <h5 className="select-category-title">Choose Dataset</h5><br />
                         {isDataSetModalOpen && (
                             <p>Chosen dataset: {chosenDataSet}</p>
                         )}
@@ -1798,7 +2068,7 @@ Blockly.Blocks['rsi_block'] = {
                 </div>
                 
             )}
-            <br /><button className="btn btn-light" onClick={toggleSplitModal}>Split Dataset (Optional)</button><br />
+            <br /><button className="btn btn-primary" onClick={toggleSplitModal}>Split Dataset</button><br />
             <label>Start Year: {startYear}</label><br />
             <label>End Year: {endYear}</label>
             <br /><br />
@@ -1810,7 +2080,7 @@ Blockly.Blocks['rsi_block'] = {
               ></input><br />
               <label>Initial Capital: {initCapital}</label>
             </div><br />
-            <button className="btn btn-primary" onClick={saveInitialCapital}>{initialCapitalProcess}</button>
+            {/* <button className="btn btn-primary" onClick={saveInitialCapital}>{initialCapitalProcess}</button> */}
             <br />
 
 
@@ -1818,7 +2088,7 @@ Blockly.Blocks['rsi_block'] = {
               <div className="modal-overlay">
               <div className="select-category-modal">
                   <br />
-                  <button className="btn btn-light close-cot-modal" onClick={closeSplitModal}>Close</button><br /><br />
+                  <button className="btn btn-primary close-cot-modal" onClick={closeSplitModal}>Close</button><br /><br />
                   <h4 className="select-category-title">Split Dataset</h4><br /><br />
                   <div className="split-dataset-div">
                     <h5>Start Year</h5>
@@ -1859,12 +2129,12 @@ Blockly.Blocks['rsi_block'] = {
                 initialXml={xml}
                 onXmlChange={handleXmlChange}
               /><br /> 
-              <button className="btn btn-primary backtest-button" onClick={compileModelFunction}>{compile}</button>
+              <button className="btn btn-primary backtest-button" onClick={saveBacktestModelData}>{compile}</button>
               <br /><br />
             </div>
             </div><br /><br />
             <div className="model-performance">
-            <button className="btn btn-success download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
+            <button className="btn btn-primary download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
             <p>Model ID: {modelID}</p>
             </div>
             {modelPerformance && (
