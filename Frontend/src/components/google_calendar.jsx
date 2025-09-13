@@ -265,6 +265,29 @@ const downloadMonthlyReport = async () => {
         // Get translations for selected language
         const t = translations[selectedLanguage];
         
+        // Add company report title translations
+        const companyTitleTranslations = {
+            english: 'SnowAI Company Report',
+            chinese: 'SnowAI 公司报告',
+            korean: 'SnowAI 회사 보고서'
+        };
+        
+        // Add professional credentials translations
+        const credentialsTranslations = {
+            english: {
+                trader: 'Professional Trader',
+                researcher: 'Quantitative Researcher/Investor'
+            },
+            chinese: {
+                trader: '专业交易员',
+                researcher: '量化研究员/投资者'
+            },
+            korean: {
+                trader: '전문 트레이더',
+                researcher: '퀀트 연구원/투자자'
+            }
+        };
+        
         // Get flag image based on language
         const getFlagImage = () => {
             switch(selectedLanguage) {
@@ -374,8 +397,8 @@ const downloadMonthlyReport = async () => {
         
         // CREATE COVER PAGE WITH LARGE SNOWAI LOGO AND PERSONAL INFO
         try {
-            // Add SnowAI Company Report title at the top
-            const companyTitle = 'SnowAI Company Report';
+            // Add SnowAI Company Report title at the top - now translated
+            const companyTitle = companyTitleTranslations[selectedLanguage];
             await addUnicodeText(companyTitle, (pageWidth - pdf.getTextWidth(companyTitle)) / 2, yPosition + 15, { fontSize: 24, color: 'blue' });
             yPosition += 30;
             
@@ -481,9 +504,10 @@ const downloadMonthlyReport = async () => {
                 const traderName = 'Tlotlo Kutlwano Motingwe';
                 await addUnicodeText(traderName, photoX + photoSize + 10, photoY + 8, { fontSize: 16, color: 'blue' });
                 
-                // Add multiple title/role lines below name
-                await addUnicodeText('Professional Trader', photoX + photoSize + 10, photoY + 16, { fontSize: 12, color: 'gray' });
-                await addUnicodeText('Quantitative Researcher/Investor', photoX + photoSize + 10, photoY + 24, { fontSize: 12, color: 'gray' });
+                // Add multiple title/role lines below name - now translated
+                const credentials = credentialsTranslations[selectedLanguage];
+                await addUnicodeText(credentials.trader, photoX + photoSize + 10, photoY + 16, { fontSize: 12, color: 'gray' });
+                await addUnicodeText(credentials.researcher, photoX + photoSize + 10, photoY + 24, { fontSize: 12, color: 'gray' });
                 
                 // Add contact info below roles
                 await addUnicodeText('+27 84 731 6417', photoX + photoSize + 10, photoY + 32, { fontSize: 9, color: 'gray' });
@@ -496,8 +520,10 @@ const downloadMonthlyReport = async () => {
                 const traderName = 'Tlotlo Kutlwano Motingwe';
                 await addUnicodeText(traderName, margin, personalInfoY, { fontSize: 16, color: 'blue' });
                 
-                await addUnicodeText('Professional Trader', margin, personalInfoY + 10, { fontSize: 12, color: 'gray' });
-                await addUnicodeText('Quantitative Researcher/Investor', margin, personalInfoY + 18, { fontSize: 12, color: 'gray' });
+                // Add translated credentials
+                const credentials = credentialsTranslations[selectedLanguage];
+                await addUnicodeText(credentials.trader, margin, personalInfoY + 10, { fontSize: 12, color: 'gray' });
+                await addUnicodeText(credentials.researcher, margin, personalInfoY + 18, { fontSize: 12, color: 'gray' });
                 
                 await addUnicodeText('+27 84 731 6417', margin, personalInfoY + 28, { fontSize: 9, color: 'gray' });
                 await addUnicodeText('butterrobot83@gmail.com', margin, personalInfoY + 36, { fontSize: 9, color: 'gray' });
@@ -511,7 +537,7 @@ const downloadMonthlyReport = async () => {
         } catch (logoError) {
             console.warn('Error adding cover page elements:', logoError);
             // Continue with basic cover page if there's an error
-            const companyTitle = 'SnowAI Company Report';
+            const companyTitle = companyTitleTranslations[selectedLanguage];
             await addUnicodeText(companyTitle, (pageWidth - pdf.getTextWidth(companyTitle)) / 2, 40, { fontSize: 24, color: 'blue' });
         }
         
