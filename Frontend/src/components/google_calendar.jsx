@@ -28,6 +28,9 @@ ChartJS.register(
 );
 import snowai_logo from '../snowai.jpg';
 import tlotlo_motingwe from '../IMG_20250905_152436.jpg';
+import chinese_flag from '../chinese_flag.jpg';
+import korean_flag from '../korean_flag.jpg';
+import us_flag from '../us_flag.jpg';
 
 
 export default function GoogleCalendar() {
@@ -46,6 +49,144 @@ export default function GoogleCalendar() {
     // Add these state variables at the top with your other useState hooks
     const [selectedChart, setSelectedChart] = useState(null);
     const [chartMetrics, setChartMetrics] = useState({});
+
+    const [selectedLanguage, setSelectedLanguage] = useState('english');
+    const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+
+    const translations = {
+    english: {
+        comprehensiveReport: 'Comprehensive Trading Report',
+        executiveSummary: 'Executive Summary',
+        totalTrades: 'Total Trades',
+        winningTrades: 'Winning Trades',
+        losingTrades: 'Losing Trades',
+        averageWin: 'Average Win',
+        averageLoss: 'Average Loss',
+        riskRewardRatio: 'Risk/Reward Ratio',
+        profitFactor: 'Profit Factor',
+        netPL: 'Net P&L',
+        largestWin: 'Largest Win',
+        largestLoss: 'Largest Loss',
+        performanceAnalysis: 'Performance Analysis',
+        byDayOfWeek: 'By Day of Week',
+        byTradingSession: 'By Trading Session',
+        byStrategy: 'By Strategy',
+        byAsset: 'By Asset',
+        tradingInsights: 'Trading Insights:',
+        bestTradingDay: 'Best Trading Day',
+        worstTradingDay: 'Worst Trading Day',
+        longestWinningStreak: 'Longest Winning Streak',
+        longestLosingStreak: 'Longest Losing Streak',
+        trades: 'trades',
+        visualAnalysis: 'Visual Analysis',
+        performanceByDayOfWeek: 'Performance by Day of Week',
+        performanceByTradingSession: 'Performance by Trading Session',
+        performanceByStrategy: 'Performance by Strategy',
+        performanceByAsset: 'Performance by Asset',
+        equityCurve: 'Equity Curve',
+        detailedTradeLog: 'Detailed Trade Log',
+        weekOf: 'Week of',
+        total: 'Total',
+        date: 'Date',
+        asset: 'Asset',
+        strategy: 'Strategy',
+        session: 'Session',
+        outcome: 'Outcome',
+        amount: 'Amount',
+        tradeReflections: 'Trade Reflections & Lessons',
+        trade: 'Trade',
+        winRate: 'win rate',
+        page: 'Page'
+    },
+    chinese: {
+        comprehensiveReport: '综合交易报告',
+        executiveSummary: '执行摘要',
+        totalTrades: '总交易数',
+        winningTrades: '盈利交易',
+        losingTrades: '亏损交易',
+        averageWin: '平均盈利',
+        averageLoss: '平均亏损',
+        riskRewardRatio: '风险/收益比',
+        profitFactor: '盈利因子',
+        netPL: '净盈亏',
+        largestWin: '最大盈利',
+        largestLoss: '最大亏损',
+        performanceAnalysis: '绩效分析',
+        byDayOfWeek: '按星期几',
+        byTradingSession: '按交易时段',
+        byStrategy: '按策略',
+        byAsset: '按资产',
+        tradingInsights: '交易洞察:',
+        bestTradingDay: '最佳交易日',
+        worstTradingDay: '最差交易日',
+        longestWinningStreak: '最长连胜',
+        longestLosingStreak: '最长连败',
+        trades: '交易',
+        visualAnalysis: '可视化分析',
+        performanceByDayOfWeek: '按星期几的表现',
+        performanceByTradingSession: '按交易时段的表现',
+        performanceByStrategy: '按策略的表现',
+        performanceByAsset: '按资产的表现',
+        equityCurve: '资产曲线',
+        detailedTradeLog: '详细交易记录',
+        weekOf: '周期',
+        total: '总计',
+        date: '日期',
+        asset: '资产',
+        strategy: '策略',
+        session: '时段',
+        outcome: '结果',
+        amount: '金额',
+        tradeReflections: '交易反思与教训',
+        trade: '交易',
+        winRate: '胜率',
+        page: '页'
+    },
+    korean: {
+        comprehensiveReport: '종합 거래 보고서',
+        executiveSummary: '요약',
+        totalTrades: '총 거래수',
+        winningTrades: '수익 거래',
+        losingTrades: '손실 거래',
+        averageWin: '평균 수익',
+        averageLoss: '평균 손실',
+        riskRewardRatio: '위험/수익 비율',
+        profitFactor: '수익 팩터',
+        netPL: '순 손익',
+        largestWin: '최대 수익',
+        largestLoss: '최대 손실',
+        performanceAnalysis: '성과 분석',
+        byDayOfWeek: '요일별',
+        byTradingSession: '거래 세션별',
+        byStrategy: '전략별',
+        byAsset: '자산별',
+        tradingInsights: '거래 인사이트:',
+        bestTradingDay: '최고 거래일',
+        worstTradingDay: '최악 거래일',
+        longestWinningStreak: '최장 연승',
+        longestLosingStreak: '최장 연패',
+        trades: '거래',
+        visualAnalysis: '시각적 분석',
+        performanceByDayOfWeek: '요일별 성과',
+        performanceByTradingSession: '거래 세션별 성과',
+        performanceByStrategy: '전략별 성과',
+        performanceByAsset: '자산별 성과',
+        equityCurve: '자산 곡선',
+        detailedTradeLog: '상세 거래 로그',
+        weekOf: '주간',
+        total: '총계',
+        date: '날짜',
+        asset: '자산',
+        strategy: '전략',
+        session: '세션',
+        outcome: '결과',
+        amount: '금액',
+        tradeReflections: '거래 성찰과 교훈',
+        trade: '거래',
+        winRate: '승률',
+        page: '페이지'
+    }
+};
 
     useEffect(() => {
         fetchTrades();
@@ -117,571 +258,611 @@ export default function GoogleCalendar() {
         });
     };
 
-    // Updated PDF Download Function with CDN loading
-    const downloadMonthlyReport = async () => {
-        setDownloadingPDF(true);
+    // Updated PDF Download Function with Language Support
+const downloadMonthlyReport = async () => {
+    setDownloadingPDF(true);
+    
+    try {
+        // Get translations for selected language
+        const t = translations[selectedLanguage];
         
-        try {
-            // Load required libraries from CDN
-            await Promise.all([
-                loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-                loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
-            ]);
-            
-            // Access libraries from window object
-            const { jsPDF } = window.jspdf;
-            const html2canvas = window.html2canvas;
-            
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 20;
-            let yPosition = margin;
-            
-            // Helper function to check if new page is needed
-            const checkNewPage = (requiredSpace = 30) => {
-                if (yPosition + requiredSpace > pageHeight - margin) {
-                    pdf.addPage();
-                    yPosition = margin;
-                    return true;
-                }
-                return false;
-            };
-            
-            // Helper function to add section header
-            const addSectionHeader = (title, size = 14) => {
-                checkNewPage(20);
-                pdf.setFontSize(size);
-                pdf.setTextColor(0, 124, 186);
-                pdf.text(title, margin, yPosition);
-                yPosition += size === 14 ? 12 : 8;
-            };
-            
-            // CREATE COVER PAGE WITH LARGE SNOWAI LOGO AND PERSONAL INFO
-            try {
-                // Add SnowAI Company Report title at the top
-                pdf.setFontSize(24);
-                pdf.setTextColor(0, 124, 186);
-                const companyTitle = 'SnowAI Company Report';
-                const companyTitleWidth = pdf.getTextWidth(companyTitle);
-                pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, yPosition + 15);
-                yPosition += 30;
-                
-                // Load and add SnowAI logo - taking most of remaining page
-                const logoCanvas = document.createElement('canvas');
-                const logoCtx = logoCanvas.getContext('2d');
-                const logoImg = new Image();
-                
-                // Set up promise to handle logo loading
-                const logoPromise = new Promise((resolve) => {
-                    logoImg.onload = () => {
-                        logoCanvas.width = logoImg.width;
-                        logoCanvas.height = logoImg.height;
-                        logoCtx.drawImage(logoImg, 0, 0);
-                        resolve(logoCanvas.toDataURL('image/png'));
-                    };
-                    logoImg.onerror = () => {
-                        console.warn('SnowAI logo could not be loaded');
-                        resolve(null);
-                    };
-                    logoImg.src = snowai_logo;
-                });
-                
-                // Load personal photo
-                const personalPhotoCanvas = document.createElement('canvas');
-                const personalPhotoCtx = personalPhotoCanvas.getContext('2d');
-                const personalPhotoImg = new Image();
-                
-                const personalPhotoPromise = new Promise((resolve) => {
-                    personalPhotoImg.onload = () => {
-                        personalPhotoCanvas.width = personalPhotoImg.width;
-                        personalPhotoCanvas.height = personalPhotoImg.height;
-                        personalPhotoCtx.drawImage(personalPhotoImg, 0, 0);
-                        resolve(personalPhotoCanvas.toDataURL('image/png'));
-                    };
-                    personalPhotoImg.onerror = () => {
-                        console.warn('Personal photo could not be loaded');
-                        resolve(null);
-                    };
-                    personalPhotoImg.src = tlotlo_motingwe;
-                });
-                
-                const [logoDataUrl, personalPhotoDataUrl] = await Promise.all([logoPromise, personalPhotoPromise]);
-                
-                // Add large SnowAI logo - most of page
-                if (logoDataUrl) {
-                    const logoWidth = pageWidth - (margin * 2); // Full width minus margins
-                    const logoHeight = (pageHeight * 0.45); // 45% of page height
-                    const logoX = margin;
-                    const logoY = yPosition + 10;
-                    
-                    pdf.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight);
-                    yPosition = logoY + logoHeight + 20; // Move position after logo
-                } else {
-                    // If logo fails to load, add text placeholder
-                    pdf.setFontSize(48);
-                    pdf.setTextColor(0, 124, 186);
-                    const logoText = 'SnowAI';
-                    const logoTextWidth = pdf.getTextWidth(logoText);
-                    pdf.text(logoText, (pageWidth - logoTextWidth) / 2, yPosition + 80);
-                    yPosition += 120;
-                }
-                
-                // Add personal photo and info section
-                const personalInfoY = yPosition;
-                
-                if (personalPhotoDataUrl) {
-                    // Add small personal photo on the left
-                    const photoSize = 25;
-                    const photoX = margin;
-                    const photoY = personalInfoY;
-                    
-                    pdf.addImage(personalPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
-                    
-                    // Add name next to the photo
-                    pdf.setFontSize(16);
-                    pdf.setTextColor(0, 124, 186);
-                    const traderName = 'Tlotlo Kutlwano Motingwe';
-                    pdf.text(traderName, photoX + photoSize + 10, photoY + 8);
-                    
-                    // Add multiple title/role lines below name
-                    pdf.setFontSize(12);
-                    pdf.setTextColor(100, 100, 100);
-                    pdf.text('Professional Trader', photoX + photoSize + 10, photoY + 16);
-                    pdf.text('Quantitative Researcher/Investor', photoX + photoSize + 10, photoY + 24);
-                    
-                    // Add contact info below roles
-                    pdf.setFontSize(9);
-                    pdf.setTextColor(80, 80, 80);
-                    pdf.text('+27 84 731 6417', photoX + photoSize + 10, photoY + 32);
-                    pdf.text('butterrobot83@gmail.com', photoX + photoSize + 10, photoY + 38);
-                    
-                    yPosition = photoY + 50;
-                    
-                } else {
-                    // If personal photo fails, just add name and info
-                    pdf.setFontSize(16);
-                    pdf.setTextColor(0, 124, 186);
-                    const traderName = 'Tlotlo Kutlwano Motingwe';
-                    pdf.text(traderName, margin, personalInfoY);
-                    
-                    // Add multiple description lines
-                    pdf.setFontSize(12);
-                    pdf.setTextColor(100, 100, 100);
-                    pdf.text('Professional Trader', margin, personalInfoY + 10);
-                    pdf.text('Quantitative Researcher/Investor', margin, personalInfoY + 18);
-                    
-                    // Add contact info
-                    pdf.setFontSize(9);
-                    pdf.setTextColor(80, 80, 80);
-                    pdf.text('+27 84 731 6417', margin, personalInfoY + 28);
-                    pdf.text('butterrobot83@gmail.com', margin, personalInfoY + 36);
-                    
-                    yPosition = personalInfoY + 50;
-                }
-                
-                // Add page number
-                pdf.setFontSize(9);
-                pdf.text('Page 1', pageWidth - margin - 20, pageHeight - 10);
-                
-            } catch (logoError) {
-                console.warn('Error adding cover page elements:', logoError);
-                // Continue with basic cover page if there's an error
-                pdf.setFontSize(24);
-                pdf.setTextColor(0, 124, 186);
-                const companyTitle = 'SnowAI Company Report';
-                const companyTitleWidth = pdf.getTextWidth(companyTitle);
-                pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, 40);
+        // Get flag image based on language
+        const getFlagImage = () => {
+            switch(selectedLanguage) {
+                case 'chinese': return chinese_flag;
+                case 'korean': return korean_flag;
+                case 'english': 
+                default: return us_flag;
             }
-            
-            // Start new page for content
-            pdf.addPage();
-            yPosition = margin;
-            
-            // Add report title at the top of page 2
-            pdf.setFontSize(22);
-            pdf.setTextColor(0, 124, 186);
-            const title = `Comprehensive Trading Report`;
-            const titleWidth = pdf.getTextWidth(title);
-            pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
-            yPosition += 15;
-            
-            // Add subtitle (month/year)
-            pdf.setFontSize(16);
-            pdf.setTextColor(0, 124, 186);
-            const subtitle = `${getMonthName(currentDate)}`;
-            const subtitleWidth = pdf.getTextWidth(subtitle);
-            pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, yPosition);
-            yPosition += 15;
-            
-            // Add account name below the date - NEW ADDITION
-            pdf.setFontSize(14);
-            pdf.setTextColor(0, 0, 0); // Black text
-            const accountText = `Account: ${accountName || 'N/A'}`;
-            const accountTextWidth = pdf.getTextWidth(accountText);
-            pdf.text(accountText, (pageWidth - accountTextWidth) / 2, yPosition);
-            yPosition += 20;
-            
-            // EXECUTIVE SUMMARY
-            addSectionHeader('Executive Summary');
-            const analytics = calculateAnalytics();
-            
-            pdf.setFontSize(10);
-            pdf.setTextColor(0, 0, 0);
-            
-            const summaryData = [
-                [`Total Trades`, `${analytics.totalTrades}`],
-                [`Winning Trades`, `${analytics.totalWins} (${analytics.winRate.toFixed(1)}%)`],
-                [`Losing Trades`, `${analytics.totalLosses} (${(100 - analytics.winRate).toFixed(1)}%)`],
-                [`Average Win`, `$${analytics.averageWin.toFixed(2)}`],
-                [`Average Loss`, `$${analytics.averageLoss.toFixed(2)}`],
-                [`Risk/Reward Ratio`, `1:${analytics.averageWin > 0 ? (analytics.averageWin / analytics.averageLoss).toFixed(2) : '0'}`],
-                [`Profit Factor`, `${analytics.profitFactor === Infinity ? '∞' : analytics.profitFactor.toFixed(2)}`],
-                [`Net P&L`, `$${analytics.netPnL.toFixed(2)}`],
-                [`Largest Win`, `$${Math.max(...getCurrentMonthTrades().map(t => t.amount)).toFixed(2)}`],
-                [`Largest Loss`, `$${Math.min(...getCurrentMonthTrades().map(t => t.amount)).toFixed(2)}`]
-            ];
-            
-            // Create two-column summary
-            const midPoint = Math.ceil(summaryData.length / 2);
-            const leftColumn = summaryData.slice(0, midPoint);
-            const rightColumn = summaryData.slice(midPoint);
-            
-            leftColumn.forEach(([label, value], index) => {
-                pdf.text(label + ':', margin, yPosition);
-                pdf.text(value, margin + 50, yPosition);
-                
-                // Add right column data if available
-                if (rightColumn[index]) {
-                    const [rightLabel, rightValue] = rightColumn[index];
-                    pdf.text(rightLabel + ':', margin + 100, yPosition);
-                    pdf.text(rightValue, margin + 150, yPosition);
-                }
-                yPosition += 6;
-            });
-            
-            yPosition += 10;
-            
-            // PERFORMANCE ANALYSIS BY GROUPS
-            addSectionHeader('Performance Analysis');
-            
-            // Day of Week Analysis
-            addSectionHeader('By Day of Week', 12);
-            const dayMetrics = getChartMetrics('dayOfWeek');
-            
-            pdf.setFontSize(9);
-            Object.entries(dayMetrics).forEach(([day, metrics]) => {
-                checkNewPage(8);
-                // Updated colors - darker green and red for better visibility
-                const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28]; // Darker green and red
-                pdf.setTextColor(...color);
-                pdf.text(`${day}: $${metrics.total.toFixed(2)} (${metrics.trades} trades, ${metrics.winRate}% win rate)`, margin, yPosition);
-                yPosition += 5;
-            });
-            
-            yPosition += 5;
-            pdf.setTextColor(0, 0, 0);
-            
-            // Trading Session Analysis
-            addSectionHeader('By Trading Session', 12);
-            const sessionMetrics = getChartMetrics('session');
-            
-            Object.entries(sessionMetrics).forEach(([session, metrics]) => {
-                checkNewPage(8);
-                // Updated colors - darker green and red for better visibility
-                const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28]; // Darker green and red
-                pdf.setTextColor(...color);
-                pdf.text(`${session}: $${metrics.total.toFixed(2)} (${metrics.trades} trades, ${metrics.winRate}% win rate)`, margin, yPosition);
-                yPosition += 5;
-            });
-            
-            yPosition += 5;
-            pdf.setTextColor(0, 0, 0);
-            
-            // Strategy Analysis
-            addSectionHeader('By Strategy', 12);
-            const strategyMetrics = getChartMetrics('strategy');
-            
-            Object.entries(strategyMetrics).forEach(([strategy, metrics]) => {
-                checkNewPage(8);
-                // Updated colors - darker green and red for better visibility
-                const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28]; // Darker green and red
-                pdf.setTextColor(...color);
-                pdf.text(`${strategy}: $${metrics.total.toFixed(2)} (${metrics.trades} trades, ${metrics.winRate}% win rate)`, margin, yPosition);
-                yPosition += 5;
-            });
-            
-            yPosition += 5;
-            pdf.setTextColor(0, 0, 0);
-            
-            // Asset Analysis
-            addSectionHeader('By Asset', 12);
-            const assetMetrics = getChartMetrics('asset');
-            
-            Object.entries(assetMetrics).forEach(([asset, metrics]) => {
-                checkNewPage(8);
-                // Updated colors - darker green and red for better visibility
-                const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28]; // Darker green and red
-                pdf.setTextColor(...color);
-                pdf.text(`${asset}: $${metrics.total.toFixed(2)} (${metrics.trades} trades, ${metrics.winRate}% win rate)`, margin, yPosition);
-                yPosition += 5;
-            });
-            
-            yPosition += 10;
-            pdf.setTextColor(0, 0, 0);
-
-            
-            
-            // ADDITIONAL INSIGHTS
-            addSectionHeader('Trading Insights:');
-            
-            const monthTrades = getCurrentMonthTrades();
-            
-            // Best and worst performing days
-            const dayTotals = {};
-            monthTrades.forEach(trade => {
-                const day = new Date(trade.date_entered).toISOString().split('T')[0];
-                dayTotals[day] = (dayTotals[day] || 0) + trade.amount;
-            });
-            
-            const sortedDays = Object.entries(dayTotals).sort((a, b) => b[1] - a[1]);
-            
-            if (sortedDays.length > 0) {
-                checkNewPage(15);
-                pdf.text(`Best Trading Day: ${new Date(sortedDays[0][0]).toLocaleDateString()} ($${sortedDays[0][1].toFixed(2)})`, margin, yPosition);
-                yPosition += 6;
-                
-                if (sortedDays.length > 1) {
-                    const worstDay = sortedDays[sortedDays.length - 1];
-                    pdf.text(`Worst Trading Day: ${new Date(worstDay[0]).toLocaleDateString()} ($${worstDay[1].toFixed(2)})`, margin, yPosition);
-                    yPosition += 6;
-                }
-            }
-            
-            // Consecutive wins/losses analysis
-            let currentStreak = 0;
-            let maxWinStreak = 0;
-            let maxLossStreak = 0;
-            let streakType = null;
-            
-            monthTrades.sort((a, b) => new Date(a.date_entered) - new Date(b.date_entered)).forEach(trade => {
-                if (trade.amount > 0) {
-                    if (streakType === 'win') {
-                        currentStreak++;
-                    } else {
-                        currentStreak = 1;
-                        streakType = 'win';
-                    }
-                    maxWinStreak = Math.max(maxWinStreak, currentStreak);
-                } else if (trade.amount < 0) {
-                    if (streakType === 'loss') {
-                        currentStreak++;
-                    } else {
-                        currentStreak = 1;
-                        streakType = 'loss';
-                    }
-                    maxLossStreak = Math.max(maxLossStreak, currentStreak);
-                }
-            });
-            
-            checkNewPage(12);
-            pdf.text(`Longest Winning Streak: ${maxWinStreak} trades`, margin, yPosition);
-            yPosition += 6;
-            pdf.text(`Longest Losing Streak: ${maxLossStreak} trades`, margin, yPosition);
-            yPosition += 10;
-            
-            // Capture and add charts if analytics are shown
-            if (showAnalytics) {
-                addSectionHeader('Visual Analysis');
-                
-                const chartElements = [
-                    { selector: '[data-chart="dayOfWeek"]', title: 'Performance by Day of Week' },
-                    { selector: '[data-chart="session"]', title: 'Performance by Trading Session' },
-                    { selector: '[data-chart="strategy"]', title: 'Performance by Strategy' },
-                    { selector: '[data-chart="asset"]', title: 'Performance by Asset' },
-                    { selector: '[data-chart="equity"]', title: 'Equity Curve' }
-                ];
-                
-                for (const { selector, title } of chartElements) {
-                    const chartElement = document.querySelector(selector);
-                    if (chartElement) {
-                        checkNewPage(100);
-                        
-                        try {
-                            const canvas = await html2canvas(chartElement, {
-                                scale: 2,
-                                logging: false,
-                                useCORS: true
-                            });
-                            
-                            const imgData = canvas.toDataURL('image/png');
-                            const imgWidth = pageWidth - 2 * margin;
-                            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                            
-                            // Add chart title
-                            pdf.setFontSize(12);
-                            pdf.setTextColor(0, 124, 186);
-                            pdf.text(title, margin, yPosition);
-                            yPosition += 10;
-                            
-                            // Add chart image
-                            pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
-                            yPosition += imgHeight + 15;
-                            
-                        } catch (chartError) {
-                            console.warn(`Failed to capture ${title}:`, chartError);
-                        }
-                    }
-                }
-            }
-            
-            // DETAILED TRADE LOG
-            pdf.addPage();
-            yPosition = margin;
-            
-            addSectionHeader('Detailed Trade Log');
-            
-            if (monthTrades.length > 0) {
-                // Group trades by week
-                const weeklyTrades = {};
-                monthTrades.forEach(trade => {
-                    const tradeDate = new Date(trade.date_entered);
-                    const weekStart = new Date(tradeDate);
-                    weekStart.setDate(tradeDate.getDate() - tradeDate.getDay());
-                    const weekKey = weekStart.toISOString().split('T')[0];
-                    
-                    if (!weeklyTrades[weekKey]) {
-                        weeklyTrades[weekKey] = [];
-                    }
-                    weeklyTrades[weekKey].push(trade);
-                });
-                
-                // Sort weeks chronologically
-                const sortedWeeks = Object.keys(weeklyTrades).sort();
-                
-                sortedWeeks.forEach(weekStart => {
-                    const weekTrades = weeklyTrades[weekStart];
-                    const weekTotal = weekTrades.reduce((sum, trade) => sum + trade.amount, 0);
-                    
-                    checkNewPage(20);
-                    
-                    // Week header
-                    pdf.setFontSize(11);
-                    pdf.setTextColor(0, 124, 186);
-                    const weekStartDate = new Date(weekStart);
-                    const weekEndDate = new Date(weekStart);
-                    weekEndDate.setDate(weekStartDate.getDate() + 6);
-                    
-                    pdf.text(
-                        `Week of ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()} | ` +
-                        `Total: $${weekTotal.toFixed(2)} | Trades: ${weekTrades.length}`,
-                        margin, yPosition
-                    );
-                    yPosition += 8;
-                    
-                    // Table headers
-                    pdf.setFontSize(8);
-                    pdf.setTextColor(0, 0, 0);
-                    
-                    const headers = ['Date', 'Asset', 'Strategy', 'Session', 'Outcome', 'Amount'];
-                    const colWidths = [20, 25, 30, 25, 20, 20];
-                    let xPos = margin;
-                    
-                    // Draw headers
-                    headers.forEach((header, i) => {
-                        pdf.text(header, xPos, yPosition);
-                        xPos += colWidths[i];
-                    });
-                    yPosition += 6;
-                    
-                    // Draw line under headers
-                    pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-                    yPosition += 2;
-                    
-                    // Add trade rows for this week
-                    weekTrades.forEach(trade => {
-                        checkNewPage(8);
-                        
-                        xPos = margin;
-                        const tradeDate = new Date(trade.date_entered).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric' 
-                        });
-                        
-                        const rowData = [
-                            tradeDate,
-                            trade.asset || 'N/A',
-                            trade.strategy || 'N/A',
-                            trade.trading_session_entered || 'N/A',
-                            trade.outcome || 'N/A',
-                            `$${trade.amount.toFixed(2)}`
-                        ];
-                        
-                        // Set color based on profit/loss - Updated colors for better visibility
-                        if (trade.amount > 0) {
-                            pdf.setTextColor(21, 128, 61); // Darker green
-                        } else if (trade.amount < 0) {
-                            pdf.setTextColor(185, 28, 28); // Darker red
-                        } else {
-                            pdf.setTextColor(0, 0, 0);
-                        }
-                        
-                        rowData.forEach((data, i) => {
-                            const truncatedData = data.length > 12 ? data.substring(0, 10) + '..' : data;
-                            pdf.text(truncatedData, xPos, yPosition);
-                            xPos += colWidths[i];
-                        });
-                        yPosition += 5;
-                    });
-                    
-                    yPosition += 5; // Space between weeks
-                    pdf.setTextColor(0, 0, 0); // Reset color
-                });
-            } else {
-                pdf.text('No trades found for this month.', margin, yPosition);
-            }
-            
-            // REFLECTION SECTION (if reflections exist)
-            const tradesWithReflections = monthTrades.filter(trade => trade.reflection && trade.reflection.trim());
-            if (tradesWithReflections.length > 0) {
+        };
+        
+        // Load required libraries from CDN
+        await Promise.all([
+            loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+            loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+        ]);
+        
+        // Access libraries from window object
+        const { jsPDF } = window.jspdf;
+        const html2canvas = window.html2canvas;
+        
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 20;
+        let yPosition = margin;
+        
+        // Helper function to check if new page is needed
+        const checkNewPage = (requiredSpace = 30) => {
+            if (yPosition + requiredSpace > pageHeight - margin) {
                 pdf.addPage();
                 yPosition = margin;
+                return true;
+            }
+            return false;
+        };
+        
+        // Helper function to add section header
+        const addSectionHeader = (title, size = 14) => {
+            checkNewPage(20);
+            pdf.setFontSize(size);
+            pdf.setTextColor(0, 124, 186);
+            pdf.text(title, margin, yPosition);
+            yPosition += size === 14 ? 12 : 8;
+        };
+        
+        // CREATE COVER PAGE WITH LARGE SNOWAI LOGO AND PERSONAL INFO
+        try {
+            // Add SnowAI Company Report title at the top
+            pdf.setFontSize(24);
+            pdf.setTextColor(0, 124, 186);
+            const companyTitle = 'SnowAI Company Report';
+            const companyTitleWidth = pdf.getTextWidth(companyTitle);
+            pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, yPosition + 15);
+            yPosition += 30;
+            
+            // Add flag to top right corner
+            try {
+                const flagCanvas = document.createElement('canvas');
+                const flagCtx = flagCanvas.getContext('2d');
+                const flagImg = new Image();
                 
-                addSectionHeader('Trade Reflections & Lessons');
-                
-                pdf.setFontSize(9);
-                tradesWithReflections.forEach((trade, index) => {
-                    checkNewPage(25);
-                    
-                    pdf.setTextColor(0, 124, 186);
-                    pdf.text(`Trade ${index + 1}: ${trade.asset} - ${new Date(trade.date_entered).toLocaleDateString()}`, margin, yPosition);
-                    yPosition += 6;
-                    
-                    pdf.setTextColor(0, 0, 0);
-                    const reflection = trade.reflection;
-                    const lines = pdf.splitTextToSize(reflection, pageWidth - 2 * margin);
-                    
-                    lines.forEach(line => {
-                        checkNewPage(6);
-                        pdf.text(line, margin, yPosition);
-                        yPosition += 5;
-                    });
-                    
-                    yPosition += 3;
+                const flagPromise = new Promise((resolve) => {
+                    flagImg.onload = () => {
+                        flagCanvas.width = flagImg.width;
+                        flagCanvas.height = flagImg.height;
+                        flagCtx.drawImage(flagImg, 0, 0);
+                        resolve(flagCanvas.toDataURL('image/png'));
+                    };
+                    flagImg.onerror = () => {
+                        console.warn('Flag image could not be loaded');
+                        resolve(null);
+                    };
+                    flagImg.src = getFlagImage();
                 });
+                
+                const flagDataUrl = await flagPromise;
+                
+                if (flagDataUrl) {
+                    const flagSize = 20; // Small flag size
+                    const flagX = pageWidth - margin - flagSize; // Top right position
+                    const flagY = margin; // Top margin
+                    
+                    pdf.addImage(flagDataUrl, 'PNG', flagX, flagY, flagSize, flagSize * 0.6); // Maintain aspect ratio
+                }
+            } catch (flagError) {
+                console.warn('Error adding flag:', flagError);
             }
             
-            // Save the PDF
-            const fileName = `Comprehensive_Trading_Report_${getMonthName(currentDate).replace(' ', '_')}.pdf`;
-            pdf.save(fileName);
+            // Load and add SnowAI logo - taking most of remaining page
+            const logoCanvas = document.createElement('canvas');
+            const logoCtx = logoCanvas.getContext('2d');
+            const logoImg = new Image();
             
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Failed to generate PDF report. Please try again.');
-        } finally {
-            setDownloadingPDF(false);
+            // Set up promise to handle logo loading
+            const logoPromise = new Promise((resolve) => {
+                logoImg.onload = () => {
+                    logoCanvas.width = logoImg.width;
+                    logoCanvas.height = logoImg.height;
+                    logoCtx.drawImage(logoImg, 0, 0);
+                    resolve(logoCanvas.toDataURL('image/png'));
+                };
+                logoImg.onerror = () => {
+                    console.warn('SnowAI logo could not be loaded');
+                    resolve(null);
+                };
+                logoImg.src = snowai_logo;
+            });
+            
+            // Load personal photo
+            const personalPhotoCanvas = document.createElement('canvas');
+            const personalPhotoCtx = personalPhotoCanvas.getContext('2d');
+            const personalPhotoImg = new Image();
+            
+            const personalPhotoPromise = new Promise((resolve) => {
+                personalPhotoImg.onload = () => {
+                    personalPhotoCanvas.width = personalPhotoImg.width;
+                    personalPhotoCanvas.height = personalPhotoImg.height;
+                    personalPhotoCtx.drawImage(personalPhotoImg, 0, 0);
+                    resolve(personalPhotoCanvas.toDataURL('image/png'));
+                };
+                personalPhotoImg.onerror = () => {
+                    console.warn('Personal photo could not be loaded');
+                    resolve(null);
+                };
+                personalPhotoImg.src = tlotlo_motingwe;
+            });
+            
+            const [logoDataUrl, personalPhotoDataUrl] = await Promise.all([logoPromise, personalPhotoPromise]);
+            
+            // Add large SnowAI logo - most of page
+            if (logoDataUrl) {
+                const logoWidth = pageWidth - (margin * 2); // Full width minus margins
+                const logoHeight = (pageHeight * 0.45); // 45% of page height
+                const logoX = margin;
+                const logoY = yPosition + 10;
+                
+                pdf.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                yPosition = logoY + logoHeight + 20; // Move position after logo
+            } else {
+                // If logo fails to load, add text placeholder
+                pdf.setFontSize(48);
+                pdf.setTextColor(0, 124, 186);
+                const logoText = 'SnowAI';
+                const logoTextWidth = pdf.getTextWidth(logoText);
+                pdf.text(logoText, (pageWidth - logoTextWidth) / 2, yPosition + 80);
+                yPosition += 120;
+            }
+            
+            // Add personal photo and info section
+            const personalInfoY = yPosition;
+            
+            if (personalPhotoDataUrl) {
+                // Add small personal photo on the left
+                const photoSize = 25;
+                const photoX = margin;
+                const photoY = personalInfoY;
+                
+                pdf.addImage(personalPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
+                
+                // Add name next to the photo
+                pdf.setFontSize(16);
+                pdf.setTextColor(0, 124, 186);
+                const traderName = 'Tlotlo Kutlwano Motingwe';
+                pdf.text(traderName, photoX + photoSize + 10, photoY + 8);
+                
+                // Add multiple title/role lines below name
+                pdf.setFontSize(12);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('Professional Trader', photoX + photoSize + 10, photoY + 16);
+                pdf.text('Quantitative Researcher/Investor', photoX + photoSize + 10, photoY + 24);
+                
+                // Add contact info below roles
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+                pdf.text('+27 84 731 6417', photoX + photoSize + 10, photoY + 32);
+                pdf.text('butterrobot83@gmail.com', photoX + photoSize + 10, photoY + 38);
+                
+                yPosition = photoY + 50;
+                
+            } else {
+                // If personal photo fails, just add name and info
+                pdf.setFontSize(16);
+                pdf.setTextColor(0, 124, 186);
+                const traderName = 'Tlotlo Kutlwano Motingwe';
+                pdf.text(traderName, margin, personalInfoY);
+                
+                // Add multiple description lines
+                pdf.setFontSize(12);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('Professional Trader', margin, personalInfoY + 10);
+                pdf.text('Quantitative Researcher/Investor', margin, personalInfoY + 18);
+                
+                // Add contact info
+                pdf.setFontSize(9);
+                pdf.setTextColor(80, 80, 80);
+                pdf.text('+27 84 731 6417', margin, personalInfoY + 28);
+                pdf.text('butterrobot83@gmail.com', margin, personalInfoY + 36);
+                
+                yPosition = personalInfoY + 50;
+            }
+            
+            // Add page number
+            pdf.setFontSize(9);
+            pdf.text(`${t.page} 1`, pageWidth - margin - 20, pageHeight - 10);
+            
+        } catch (logoError) {
+            console.warn('Error adding cover page elements:', logoError);
+            // Continue with basic cover page if there's an error
+            pdf.setFontSize(24);
+            pdf.setTextColor(0, 124, 186);
+            const companyTitle = 'SnowAI Company Report';
+            const companyTitleWidth = pdf.getTextWidth(companyTitle);
+            pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, 40);
         }
-    };
+        
+        // Start new page for content
+        pdf.addPage();
+        yPosition = margin;
+        
+        // Add report title at the top of page 2
+        pdf.setFontSize(22);
+        pdf.setTextColor(0, 124, 186);
+        const title = t.comprehensiveReport;
+        const titleWidth = pdf.getTextWidth(title);
+        pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
+        yPosition += 15;
+        
+        // Add subtitle (month/year)
+        pdf.setFontSize(16);
+        pdf.setTextColor(0, 124, 186);
+        const subtitle = `${getMonthName(currentDate)}`;
+        const subtitleWidth = pdf.getTextWidth(subtitle);
+        pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, yPosition);
+        yPosition += 15;
+        
+        // Add account name below the date
+        pdf.setFontSize(14);
+        pdf.setTextColor(0, 0, 0); // Black text
+        const accountText = `Account: ${accountName || 'N/A'}`;
+        const accountTextWidth = pdf.getTextWidth(accountText);
+        pdf.text(accountText, (pageWidth - accountTextWidth) / 2, yPosition);
+        yPosition += 20;
+        
+        // EXECUTIVE SUMMARY
+        addSectionHeader(t.executiveSummary);
+        const analytics = calculateAnalytics();
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+        
+        const summaryData = [
+            [t.totalTrades, `${analytics.totalTrades}`],
+            [t.winningTrades, `${analytics.totalWins} (${analytics.winRate.toFixed(1)}%)`],
+            [t.losingTrades, `${analytics.totalLosses} (${(100 - analytics.winRate).toFixed(1)}%)`],
+            [t.averageWin, `$${analytics.averageWin.toFixed(2)}`],
+            [t.averageLoss, `$${analytics.averageLoss.toFixed(2)}`],
+            [t.riskRewardRatio, `1:${analytics.averageWin > 0 ? (analytics.averageWin / analytics.averageLoss).toFixed(2) : '0'}`],
+            [t.profitFactor, `${analytics.profitFactor === Infinity ? '∞' : analytics.profitFactor.toFixed(2)}`],
+            [t.netPL, `$${analytics.netPnL.toFixed(2)}`],
+            [t.largestWin, `$${Math.max(...getCurrentMonthTrades().map(tr => tr.amount)).toFixed(2)}`],
+            [t.largestLoss, `$${Math.min(...getCurrentMonthTrades().map(tr => tr.amount)).toFixed(2)}`]
+        ];
+        
+        // Create two-column summary
+        const midPoint = Math.ceil(summaryData.length / 2);
+        const leftColumn = summaryData.slice(0, midPoint);
+        const rightColumn = summaryData.slice(midPoint);
+        
+        leftColumn.forEach(([label, value], index) => {
+            pdf.text(label + ':', margin, yPosition);
+            pdf.text(value, margin + 50, yPosition);
+            
+            // Add right column data if available
+            if (rightColumn[index]) {
+                const [rightLabel, rightValue] = rightColumn[index];
+                pdf.text(rightLabel + ':', margin + 100, yPosition);
+                pdf.text(rightValue, margin + 150, yPosition);
+            }
+            yPosition += 6;
+        });
+        
+        yPosition += 10;
+        
+        // PERFORMANCE ANALYSIS BY GROUPS
+        addSectionHeader(t.performanceAnalysis);
+        
+        // Day of Week Analysis
+        addSectionHeader(t.byDayOfWeek, 12);
+        const dayMetrics = getChartMetrics('dayOfWeek');
+        
+        pdf.setFontSize(9);
+        Object.entries(dayMetrics).forEach(([day, metrics]) => {
+            checkNewPage(8);
+            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
+            pdf.setTextColor(...color);
+            pdf.text(`${day}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            yPosition += 5;
+        });
+        
+        yPosition += 5;
+        pdf.setTextColor(0, 0, 0);
+        
+        // Trading Session Analysis
+        addSectionHeader(t.byTradingSession, 12);
+        const sessionMetrics = getChartMetrics('session');
+        
+        Object.entries(sessionMetrics).forEach(([session, metrics]) => {
+            checkNewPage(8);
+            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
+            pdf.setTextColor(...color);
+            pdf.text(`${session}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            yPosition += 5;
+        });
+        
+        yPosition += 5;
+        pdf.setTextColor(0, 0, 0);
+        
+        // Strategy Analysis
+        addSectionHeader(t.byStrategy, 12);
+        const strategyMetrics = getChartMetrics('strategy');
+        
+        Object.entries(strategyMetrics).forEach(([strategy, metrics]) => {
+            checkNewPage(8);
+            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
+            pdf.setTextColor(...color);
+            pdf.text(`${strategy}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            yPosition += 5;
+        });
+        
+        yPosition += 5;
+        pdf.setTextColor(0, 0, 0);
+        
+        // Asset Analysis
+        addSectionHeader(t.byAsset, 12);
+        const assetMetrics = getChartMetrics('asset');
+        
+        Object.entries(assetMetrics).forEach(([asset, metrics]) => {
+            checkNewPage(8);
+            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
+            pdf.setTextColor(...color);
+            pdf.text(`${asset}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            yPosition += 5;
+        });
+        
+        yPosition += 10;
+        pdf.setTextColor(0, 0, 0);
+        
+        // ADDITIONAL INSIGHTS
+        addSectionHeader(t.tradingInsights);
+        
+        const monthTrades = getCurrentMonthTrades();
+        
+        // Best and worst performing days
+        const dayTotals = {};
+        monthTrades.forEach(trade => {
+            const day = new Date(trade.date_entered).toISOString().split('T')[0];
+            dayTotals[day] = (dayTotals[day] || 0) + trade.amount;
+        });
+        
+        const sortedDays = Object.entries(dayTotals).sort((a, b) => b[1] - a[1]);
+        
+        if (sortedDays.length > 0) {
+            checkNewPage(15);
+            pdf.text(`${t.bestTradingDay}: ${new Date(sortedDays[0][0]).toLocaleDateString()} ($${sortedDays[0][1].toFixed(2)})`, margin, yPosition);
+            yPosition += 6;
+            
+            if (sortedDays.length > 1) {
+                const worstDay = sortedDays[sortedDays.length - 1];
+                pdf.text(`${t.worstTradingDay}: ${new Date(worstDay[0]).toLocaleDateString()} ($${worstDay[1].toFixed(2)})`, margin, yPosition);
+                yPosition += 6;
+            }
+        }
+        
+        // Consecutive wins/losses analysis
+        let currentStreak = 0;
+        let maxWinStreak = 0;
+        let maxLossStreak = 0;
+        let streakType = null;
+        
+        monthTrades.sort((a, b) => new Date(a.date_entered) - new Date(b.date_entered)).forEach(trade => {
+            if (trade.amount > 0) {
+                if (streakType === 'win') {
+                    currentStreak++;
+                } else {
+                    currentStreak = 1;
+                    streakType = 'win';
+                }
+                maxWinStreak = Math.max(maxWinStreak, currentStreak);
+            } else if (trade.amount < 0) {
+                if (streakType === 'loss') {
+                    currentStreak++;
+                } else {
+                    currentStreak = 1;
+                    streakType = 'loss';
+                }
+                maxLossStreak = Math.max(maxLossStreak, currentStreak);
+            }
+        });
+        
+        checkNewPage(12);
+        pdf.text(`${t.longestWinningStreak}: ${maxWinStreak} ${t.trades}`, margin, yPosition);
+        yPosition += 6;
+        pdf.text(`${t.longestLosingStreak}: ${maxLossStreak} ${t.trades}`, margin, yPosition);
+        yPosition += 10;
+        
+        // Capture and add charts if analytics are shown
+        if (showAnalytics) {
+            addSectionHeader(t.visualAnalysis);
+            
+            const chartElements = [
+                { selector: '[data-chart="dayOfWeek"]', title: t.performanceByDayOfWeek },
+                { selector: '[data-chart="session"]', title: t.performanceByTradingSession },
+                { selector: '[data-chart="strategy"]', title: t.performanceByStrategy },
+                { selector: '[data-chart="asset"]', title: t.performanceByAsset },
+                { selector: '[data-chart="equity"]', title: t.equityCurve }
+            ];
+            
+            for (const { selector, title } of chartElements) {
+                const chartElement = document.querySelector(selector);
+                if (chartElement) {
+                    checkNewPage(100);
+                    
+                    try {
+                        const canvas = await html2canvas(chartElement, {
+                            scale: 2,
+                            logging: false,
+                            useCORS: true
+                        });
+                        
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = pageWidth - 2 * margin;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        
+                        // Add chart title
+                        pdf.setFontSize(12);
+                        pdf.setTextColor(0, 124, 186);
+                        pdf.text(title, margin, yPosition);
+                        yPosition += 10;
+                        
+                        // Add chart image
+                        pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+                        yPosition += imgHeight + 15;
+                        
+                    } catch (chartError) {
+                        console.warn(`Failed to capture ${title}:`, chartError);
+                    }
+                }
+            }
+        }
+        
+        // DETAILED TRADE LOG
+        pdf.addPage();
+        yPosition = margin;
+        
+        addSectionHeader(t.detailedTradeLog);
+        
+        if (monthTrades.length > 0) {
+            // Group trades by week
+            const weeklyTrades = {};
+            monthTrades.forEach(trade => {
+                const tradeDate = new Date(trade.date_entered);
+                const weekStart = new Date(tradeDate);
+                weekStart.setDate(tradeDate.getDate() - tradeDate.getDay());
+                const weekKey = weekStart.toISOString().split('T')[0];
+                
+                if (!weeklyTrades[weekKey]) {
+                    weeklyTrades[weekKey] = [];
+                }
+                weeklyTrades[weekKey].push(trade);
+            });
+            
+            // Sort weeks chronologically
+            const sortedWeeks = Object.keys(weeklyTrades).sort();
+            
+            sortedWeeks.forEach(weekStart => {
+                const weekTrades = weeklyTrades[weekStart];
+                const weekTotal = weekTrades.reduce((sum, trade) => sum + trade.amount, 0);
+                
+                checkNewPage(20);
+                
+                // Week header
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 124, 186);
+                const weekStartDate = new Date(weekStart);
+                const weekEndDate = new Date(weekStart);
+                weekEndDate.setDate(weekStartDate.getDate() + 6);
+                
+                pdf.text(
+                    `${t.weekOf} ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()} | ` +
+                    `${t.total}: $${weekTotal.toFixed(2)} | ${t.trades}: ${weekTrades.length}`,
+                    margin, yPosition
+                );
+                yPosition += 8;
+                
+                // Table headers
+                pdf.setFontSize(8);
+                pdf.setTextColor(0, 0, 0);
+                
+                const headers = [t.date, t.asset, t.strategy, t.session, t.outcome, t.amount];
+                const colWidths = [20, 25, 30, 25, 20, 20];
+                let xPos = margin;
+                
+                // Draw headers
+                headers.forEach((header, i) => {
+                    pdf.text(header, xPos, yPosition);
+                    xPos += colWidths[i];
+                });
+                yPosition += 6;
+                
+                // Draw line under headers
+                pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+                yPosition += 2;
+                
+                // Add trade rows for this week
+                weekTrades.forEach(trade => {
+                    checkNewPage(8);
+                    
+                    xPos = margin;
+                    const tradeDate = new Date(trade.date_entered).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    
+                    const rowData = [
+                        tradeDate,
+                        trade.asset || 'N/A',
+                        trade.strategy || 'N/A',
+                        trade.trading_session_entered || 'N/A',
+                        trade.outcome || 'N/A',
+                        `$${trade.amount.toFixed(2)}`
+                    ];
+                    
+                    // Set color based on profit/loss
+                    if (trade.amount > 0) {
+                        pdf.setTextColor(21, 128, 61); // Darker green
+                    } else if (trade.amount < 0) {
+                        pdf.setTextColor(185, 28, 28); // Darker red
+                    } else {
+                        pdf.setTextColor(0, 0, 0);
+                    }
+                    
+                    rowData.forEach((data, i) => {
+                        const truncatedData = data.length > 12 ? data.substring(0, 10) + '..' : data;
+                        pdf.text(truncatedData, xPos, yPosition);
+                        xPos += colWidths[i];
+                    });
+                    yPosition += 5;
+                });
+                
+                yPosition += 5; // Space between weeks
+                pdf.setTextColor(0, 0, 0); // Reset color
+            });
+        } else {
+            pdf.text('No trades found for this month.', margin, yPosition);
+        }
+        
+        // REFLECTION SECTION (if reflections exist)
+        const tradesWithReflections = monthTrades.filter(trade => trade.reflection && trade.reflection.trim());
+        if (tradesWithReflections.length > 0) {
+            pdf.addPage();
+            yPosition = margin;
+            
+            addSectionHeader(t.tradeReflections);
+            
+            pdf.setFontSize(9);
+            tradesWithReflections.forEach((trade, index) => {
+                checkNewPage(25);
+                
+                pdf.setTextColor(0, 124, 186);
+                pdf.text(`${t.trade} ${index + 1}: ${trade.asset} - ${new Date(trade.date_entered).toLocaleDateString()}`, margin, yPosition);
+                yPosition += 6;
+                
+                pdf.setTextColor(0, 0, 0);
+                const reflection = trade.reflection;
+                const lines = pdf.splitTextToSize(reflection, pageWidth - 2 * margin);
+                
+                lines.forEach(line => {
+                    checkNewPage(6);
+                    pdf.text(line, margin, yPosition);
+                    yPosition += 5;
+                });
+                
+                yPosition += 3;
+            });
+        }
+        
+        // Save the PDF
+        const fileName = `${t.comprehensiveReport.replace(/\s+/g, '_')}_${getMonthName(currentDate).replace(' ', '_')}.pdf`;
+        pdf.save(fileName);
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Failed to generate PDF report. Please try again.');
+    } finally {
+        setDownloadingPDF(false);
+    }
+};
 
     // Add data attributes to chart containers for PDF capture
     const getChartDataAttribute = (chartType) => {
@@ -1195,6 +1376,17 @@ export default function GoogleCalendar() {
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const analytics = calculateAnalytics();
 
+    useEffect(() => {
+    const handleClickOutside = (event) => {
+        if (showLanguageSelector && !event.target.closest('.language-selector')) {
+            setShowLanguageSelector(false);
+        }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+}, [showLanguageSelector]);
+
     // Error state
     if (error && !loading) {
         return (
@@ -1305,6 +1497,56 @@ export default function GoogleCalendar() {
                         >
                             {downloadingPDF ? 'Generating PDF...' : 'Download Monthly Report'}
                         </button>
+                    </div>
+
+                    {/* Add this new button after your existing buttons */}
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <button 
+                            onClick={() => setShowLanguageSelector(!showLanguageSelector)}
+                            style={{
+                                background: '#6366f1',
+                                color: 'white',
+                                border: 'none',
+                                padding: '10px 20px',
+                                borderRadius: '5px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Language: {selectedLanguage.charAt(0).toUpperCase() + selectedLanguage.slice(1)}
+                        </button>
+                        
+                        {showLanguageSelector && (
+                            <div className="language-selector" style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: '0',
+                                background: 'white',
+                                border: '1px solid #ccc',
+                                borderRadius: '5px',
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                                zIndex: 1000,
+                                minWidth: '120px'
+                            }}>
+                                {['english', 'chinese', 'korean'].map(lang => (
+                                    <div
+                                        key={lang}
+                                        onClick={() => {
+                                            setSelectedLanguage(lang);
+                                            setShowLanguageSelector(false);
+                                        }}
+                                        style={{
+                                            padding: '10px 15px',
+                                            cursor: 'pointer',
+                                            borderBottom: lang !== 'korean' ? '1px solid #eee' : 'none'
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
+                                        onMouseLeave={(e) => e.target.style.background = 'white'}
+                                    >
+                                        {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Analytics Section */}
