@@ -257,7 +257,7 @@ export default function GoogleCalendar() {
         });
     };
 
-    // Updated PDF Download Function with Language Support
+  // Updated PDF Download Function with Unicode Support
 const downloadMonthlyReport = async () => {
     setDownloadingPDF(true);
     
@@ -291,6 +291,70 @@ const downloadMonthlyReport = async () => {
         const margin = 20;
         let yPosition = margin;
         
+        // Unicode text helper function
+        const addUnicodeText = async (text, x, y, options = {}) => {
+            if (selectedLanguage === 'chinese' || selectedLanguage === 'korean') {
+                try {
+                    // Create canvas for rendering CJK text
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const fontSize = options.fontSize || 12;
+                    const color = options.color || 'black';
+                    
+                    // Set up font with fallbacks
+                    const fontFamily = selectedLanguage === 'chinese' 
+                        ? `${fontSize}px "Noto Sans SC", "Microsoft YaHei", "SimSun", Arial, sans-serif`
+                        : `${fontSize}px "Noto Sans KR", "Malgun Gothic", "Dotum", Arial, sans-serif`;
+                    
+                    ctx.font = fontFamily;
+                    ctx.fillStyle = color;
+                    ctx.textBaseline = 'top';
+                    
+                    const metrics = ctx.measureText(text);
+                    const textWidth = Math.max(metrics.width + 4, 10);
+                    const textHeight = fontSize * 1.2 + 4;
+                    
+                    canvas.width = textWidth;
+                    canvas.height = textHeight;
+                    
+                    // Re-apply styles after canvas resize
+                    ctx.font = fontFamily;
+                    ctx.fillStyle = color;
+                    ctx.textBaseline = 'top';
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillText(text, 2, 2);
+                    
+                    const imgData = canvas.toDataURL('image/png');
+                    const scale = 0.35; // Scale down the image
+                    pdf.addImage(imgData, 'PNG', x, y - fontSize * 0.8, textWidth * scale, textHeight * scale);
+                    
+                    return textWidth * scale; // Return width for positioning
+                } catch (error) {
+                    console.warn('Unicode rendering failed, using fallback:', error);
+                    // Fallback to regular text
+                    pdf.text(text, x, y);
+                    return pdf.getTextWidth(text);
+                }
+            } else {
+                // Use normal PDF text for English
+                if (options.fontSize) pdf.setFontSize(options.fontSize);
+                if (options.color) {
+                    const colorMap = {
+                        'blue': [0, 124, 186],
+                        'green': [21, 128, 61],
+                        'red': [185, 28, 28],
+                        'black': [0, 0, 0],
+                        'gray': [100, 100, 100]
+                    };
+                    if (colorMap[options.color]) {
+                        pdf.setTextColor(...colorMap[options.color]);
+                    }
+                }
+                pdf.text(text, x, y);
+                return pdf.getTextWidth(text);
+            }
+        };
+        
         // Helper function to check if new page is needed
         const checkNewPage = (requiredSpace = 30) => {
             if (yPosition + requiredSpace > pageHeight - margin) {
@@ -302,22 +366,17 @@ const downloadMonthlyReport = async () => {
         };
         
         // Helper function to add section header
-        const addSectionHeader = (title, size = 14) => {
+        const addSectionHeader = async (title, size = 14) => {
             checkNewPage(20);
-            pdf.setFontSize(size);
-            pdf.setTextColor(0, 124, 186);
-            pdf.text(title, margin, yPosition);
+            await addUnicodeText(title, margin, yPosition, { fontSize: size, color: 'blue' });
             yPosition += size === 14 ? 12 : 8;
         };
         
         // CREATE COVER PAGE WITH LARGE SNOWAI LOGO AND PERSONAL INFO
         try {
             // Add SnowAI Company Report title at the top
-            pdf.setFontSize(24);
-            pdf.setTextColor(0, 124, 186);
             const companyTitle = 'SnowAI Company Report';
-            const companyTitleWidth = pdf.getTextWidth(companyTitle);
-            pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, yPosition + 15);
+            await addUnicodeText(companyTitle, (pageWidth - pdf.getTextWidth(companyTitle)) / 2, yPosition + 15, { fontSize: 24, color: 'blue' });
             yPosition += 30;
             
             // Add flag to top right corner
@@ -343,22 +402,21 @@ const downloadMonthlyReport = async () => {
                 const flagDataUrl = await flagPromise;
                 
                 if (flagDataUrl) {
-                    const flagSize = 20; // Small flag size
-                    const flagX = pageWidth - margin - flagSize; // Top right position
-                    const flagY = margin; // Top margin
+                    const flagSize = 20;
+                    const flagX = pageWidth - margin - flagSize;
+                    const flagY = margin;
                     
-                    pdf.addImage(flagDataUrl, 'PNG', flagX, flagY, flagSize, flagSize * 0.6); // Maintain aspect ratio
+                    pdf.addImage(flagDataUrl, 'PNG', flagX, flagY, flagSize, flagSize * 0.6);
                 }
             } catch (flagError) {
                 console.warn('Error adding flag:', flagError);
             }
             
-            // Load and add SnowAI logo - taking most of remaining page
+            // Load and add SnowAI logo
             const logoCanvas = document.createElement('canvas');
             const logoCtx = logoCanvas.getContext('2d');
             const logoImg = new Image();
             
-            // Set up promise to handle logo loading
             const logoPromise = new Promise((resolve) => {
                 logoImg.onload = () => {
                     logoCanvas.width = logoImg.width;
@@ -394,22 +452,18 @@ const downloadMonthlyReport = async () => {
             
             const [logoDataUrl, personalPhotoDataUrl] = await Promise.all([logoPromise, personalPhotoPromise]);
             
-            // Add large SnowAI logo - most of page
+            // Add large SnowAI logo
             if (logoDataUrl) {
-                const logoWidth = pageWidth - (margin * 2); // Full width minus margins
-                const logoHeight = (pageHeight * 0.45); // 45% of page height
+                const logoWidth = pageWidth - (margin * 2);
+                const logoHeight = (pageHeight * 0.45);
                 const logoX = margin;
                 const logoY = yPosition + 10;
                 
                 pdf.addImage(logoDataUrl, 'PNG', logoX, logoY, logoWidth, logoHeight);
-                yPosition = logoY + logoHeight + 20; // Move position after logo
+                yPosition = logoY + logoHeight + 20;
             } else {
                 // If logo fails to load, add text placeholder
-                pdf.setFontSize(48);
-                pdf.setTextColor(0, 124, 186);
-                const logoText = 'SnowAI';
-                const logoTextWidth = pdf.getTextWidth(logoText);
-                pdf.text(logoText, (pageWidth - logoTextWidth) / 2, yPosition + 80);
+                await addUnicodeText('SnowAI', (pageWidth - pdf.getTextWidth('SnowAI')) / 2, yPosition + 80, { fontSize: 48, color: 'blue' });
                 yPosition += 120;
             }
             
@@ -417,7 +471,6 @@ const downloadMonthlyReport = async () => {
             const personalInfoY = yPosition;
             
             if (personalPhotoDataUrl) {
-                // Add small personal photo on the left
                 const photoSize = 25;
                 const photoX = margin;
                 const photoY = personalInfoY;
@@ -425,59 +478,41 @@ const downloadMonthlyReport = async () => {
                 pdf.addImage(personalPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize);
                 
                 // Add name next to the photo
-                pdf.setFontSize(16);
-                pdf.setTextColor(0, 124, 186);
                 const traderName = 'Tlotlo Kutlwano Motingwe';
-                pdf.text(traderName, photoX + photoSize + 10, photoY + 8);
+                await addUnicodeText(traderName, photoX + photoSize + 10, photoY + 8, { fontSize: 16, color: 'blue' });
                 
                 // Add multiple title/role lines below name
-                pdf.setFontSize(12);
-                pdf.setTextColor(100, 100, 100);
-                pdf.text('Professional Trader', photoX + photoSize + 10, photoY + 16);
-                pdf.text('Quantitative Researcher/Investor', photoX + photoSize + 10, photoY + 24);
+                await addUnicodeText('Professional Trader', photoX + photoSize + 10, photoY + 16, { fontSize: 12, color: 'gray' });
+                await addUnicodeText('Quantitative Researcher/Investor', photoX + photoSize + 10, photoY + 24, { fontSize: 12, color: 'gray' });
                 
                 // Add contact info below roles
-                pdf.setFontSize(9);
-                pdf.setTextColor(80, 80, 80);
-                pdf.text('+27 84 731 6417', photoX + photoSize + 10, photoY + 32);
-                pdf.text('butterrobot83@gmail.com', photoX + photoSize + 10, photoY + 38);
+                await addUnicodeText('+27 84 731 6417', photoX + photoSize + 10, photoY + 32, { fontSize: 9, color: 'gray' });
+                await addUnicodeText('butterrobot83@gmail.com', photoX + photoSize + 10, photoY + 38, { fontSize: 9, color: 'gray' });
                 
                 yPosition = photoY + 50;
                 
             } else {
                 // If personal photo fails, just add name and info
-                pdf.setFontSize(16);
-                pdf.setTextColor(0, 124, 186);
                 const traderName = 'Tlotlo Kutlwano Motingwe';
-                pdf.text(traderName, margin, personalInfoY);
+                await addUnicodeText(traderName, margin, personalInfoY, { fontSize: 16, color: 'blue' });
                 
-                // Add multiple description lines
-                pdf.setFontSize(12);
-                pdf.setTextColor(100, 100, 100);
-                pdf.text('Professional Trader', margin, personalInfoY + 10);
-                pdf.text('Quantitative Researcher/Investor', margin, personalInfoY + 18);
+                await addUnicodeText('Professional Trader', margin, personalInfoY + 10, { fontSize: 12, color: 'gray' });
+                await addUnicodeText('Quantitative Researcher/Investor', margin, personalInfoY + 18, { fontSize: 12, color: 'gray' });
                 
-                // Add contact info
-                pdf.setFontSize(9);
-                pdf.setTextColor(80, 80, 80);
-                pdf.text('+27 84 731 6417', margin, personalInfoY + 28);
-                pdf.text('butterrobot83@gmail.com', margin, personalInfoY + 36);
+                await addUnicodeText('+27 84 731 6417', margin, personalInfoY + 28, { fontSize: 9, color: 'gray' });
+                await addUnicodeText('butterrobot83@gmail.com', margin, personalInfoY + 36, { fontSize: 9, color: 'gray' });
                 
                 yPosition = personalInfoY + 50;
             }
             
             // Add page number
-            pdf.setFontSize(9);
-            pdf.text(`${t.page} 1`, pageWidth - margin - 20, pageHeight - 10);
+            await addUnicodeText(`${t.page} 1`, pageWidth - margin - 20, pageHeight - 10, { fontSize: 9 });
             
         } catch (logoError) {
             console.warn('Error adding cover page elements:', logoError);
             // Continue with basic cover page if there's an error
-            pdf.setFontSize(24);
-            pdf.setTextColor(0, 124, 186);
             const companyTitle = 'SnowAI Company Report';
-            const companyTitleWidth = pdf.getTextWidth(companyTitle);
-            pdf.text(companyTitle, (pageWidth - companyTitleWidth) / 2, 40);
+            await addUnicodeText(companyTitle, (pageWidth - pdf.getTextWidth(companyTitle)) / 2, 40, { fontSize: 24, color: 'blue' });
         }
         
         // Start new page for content
@@ -485,35 +520,23 @@ const downloadMonthlyReport = async () => {
         yPosition = margin;
         
         // Add report title at the top of page 2
-        pdf.setFontSize(22);
-        pdf.setTextColor(0, 124, 186);
         const title = t.comprehensiveReport;
-        const titleWidth = pdf.getTextWidth(title);
-        pdf.text(title, (pageWidth - titleWidth) / 2, yPosition);
+        await addUnicodeText(title, (pageWidth - pdf.getTextWidth(title)) / 2, yPosition, { fontSize: 22, color: 'blue' });
         yPosition += 15;
         
         // Add subtitle (month/year)
-        pdf.setFontSize(16);
-        pdf.setTextColor(0, 124, 186);
         const subtitle = `${getMonthName(currentDate)}`;
-        const subtitleWidth = pdf.getTextWidth(subtitle);
-        pdf.text(subtitle, (pageWidth - subtitleWidth) / 2, yPosition);
+        await addUnicodeText(subtitle, (pageWidth - pdf.getTextWidth(subtitle)) / 2, yPosition, { fontSize: 16, color: 'blue' });
         yPosition += 15;
         
         // Add account name below the date
-        pdf.setFontSize(14);
-        pdf.setTextColor(0, 0, 0); // Black text
         const accountText = `Account: ${accountName || 'N/A'}`;
-        const accountTextWidth = pdf.getTextWidth(accountText);
-        pdf.text(accountText, (pageWidth - accountTextWidth) / 2, yPosition);
+        await addUnicodeText(accountText, (pageWidth - pdf.getTextWidth(accountText)) / 2, yPosition, { fontSize: 14 });
         yPosition += 20;
         
         // EXECUTIVE SUMMARY
-        addSectionHeader(t.executiveSummary);
+        await addSectionHeader(t.executiveSummary);
         const analytics = calculateAnalytics();
-        
-        pdf.setFontSize(10);
-        pdf.setTextColor(0, 0, 0);
         
         const summaryData = [
             [t.totalTrades, `${analytics.totalTrades}`],
@@ -533,87 +556,79 @@ const downloadMonthlyReport = async () => {
         const leftColumn = summaryData.slice(0, midPoint);
         const rightColumn = summaryData.slice(midPoint);
         
-        leftColumn.forEach(([label, value], index) => {
-            pdf.text(label + ':', margin, yPosition);
-            pdf.text(value, margin + 50, yPosition);
+        for (let index = 0; index < leftColumn.length; index++) {
+            const [label, value] = leftColumn[index];
+            await addUnicodeText(label + ':', margin, yPosition, { fontSize: 10 });
+            await addUnicodeText(value, margin + 50, yPosition, { fontSize: 10 });
             
             // Add right column data if available
             if (rightColumn[index]) {
                 const [rightLabel, rightValue] = rightColumn[index];
-                pdf.text(rightLabel + ':', margin + 100, yPosition);
-                pdf.text(rightValue, margin + 150, yPosition);
+                await addUnicodeText(rightLabel + ':', margin + 100, yPosition, { fontSize: 10 });
+                await addUnicodeText(rightValue, margin + 150, yPosition, { fontSize: 10 });
             }
             yPosition += 6;
-        });
+        }
         
         yPosition += 10;
         
         // PERFORMANCE ANALYSIS BY GROUPS
-        addSectionHeader(t.performanceAnalysis);
+        await addSectionHeader(t.performanceAnalysis);
         
         // Day of Week Analysis
-        addSectionHeader(t.byDayOfWeek, 12);
+        await addSectionHeader(t.byDayOfWeek, 12);
         const dayMetrics = getChartMetrics('dayOfWeek');
         
-        pdf.setFontSize(9);
-        Object.entries(dayMetrics).forEach(([day, metrics]) => {
+        for (const [day, metrics] of Object.entries(dayMetrics)) {
             checkNewPage(8);
-            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
-            pdf.setTextColor(...color);
-            pdf.text(`${day}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            const color = metrics.total >= 0 ? 'green' : 'red';
+            await addUnicodeText(`${day}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition, { fontSize: 9, color });
             yPosition += 5;
-        });
+        }
         
         yPosition += 5;
-        pdf.setTextColor(0, 0, 0);
         
         // Trading Session Analysis
-        addSectionHeader(t.byTradingSession, 12);
+        await addSectionHeader(t.byTradingSession, 12);
         const sessionMetrics = getChartMetrics('session');
         
-        Object.entries(sessionMetrics).forEach(([session, metrics]) => {
+        for (const [session, metrics] of Object.entries(sessionMetrics)) {
             checkNewPage(8);
-            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
-            pdf.setTextColor(...color);
-            pdf.text(`${session}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            const color = metrics.total >= 0 ? 'green' : 'red';
+            await addUnicodeText(`${session}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition, { fontSize: 9, color });
             yPosition += 5;
-        });
+        }
         
         yPosition += 5;
-        pdf.setTextColor(0, 0, 0);
         
         // Strategy Analysis
-        addSectionHeader(t.byStrategy, 12);
+        await addSectionHeader(t.byStrategy, 12);
         const strategyMetrics = getChartMetrics('strategy');
         
-        Object.entries(strategyMetrics).forEach(([strategy, metrics]) => {
+        for (const [strategy, metrics] of Object.entries(strategyMetrics)) {
             checkNewPage(8);
-            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
-            pdf.setTextColor(...color);
-            pdf.text(`${strategy}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            const color = metrics.total >= 0 ? 'green' : 'red';
+            await addUnicodeText(`${strategy}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition, { fontSize: 9, color });
             yPosition += 5;
-        });
+        }
         
         yPosition += 5;
-        pdf.setTextColor(0, 0, 0);
         
         // Asset Analysis
-        addSectionHeader(t.byAsset, 12);
+        await addSectionHeader(t.byAsset, 12);
         const assetMetrics = getChartMetrics('asset');
         
-        Object.entries(assetMetrics).forEach(([asset, metrics]) => {
+        for (const [asset, metrics] of Object.entries(assetMetrics)) {
             checkNewPage(8);
-            const color = metrics.total >= 0 ? [21, 128, 61] : [185, 28, 28];
-            pdf.setTextColor(...color);
-            pdf.text(`${asset}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition);
+            const color = metrics.total >= 0 ? 'green' : 'red';
+            await addUnicodeText(`${asset}: $${metrics.total.toFixed(2)} (${metrics.trades} ${t.trades}, ${metrics.winRate}% ${t.winRate})`, margin, yPosition, { fontSize: 9, color });
             yPosition += 5;
-        });
+        }
         
         yPosition += 10;
-        pdf.setTextColor(0, 0, 0);
         
         // ADDITIONAL INSIGHTS
-        addSectionHeader(t.tradingInsights);
+        await addSectionHeader(t.tradingInsights);
         
         const monthTrades = getCurrentMonthTrades();
         
@@ -628,12 +643,12 @@ const downloadMonthlyReport = async () => {
         
         if (sortedDays.length > 0) {
             checkNewPage(15);
-            pdf.text(`${t.bestTradingDay}: ${new Date(sortedDays[0][0]).toLocaleDateString()} ($${sortedDays[0][1].toFixed(2)})`, margin, yPosition);
+            await addUnicodeText(`${t.bestTradingDay}: ${new Date(sortedDays[0][0]).toLocaleDateString()} ($${sortedDays[0][1].toFixed(2)})`, margin, yPosition, { fontSize: 10 });
             yPosition += 6;
             
             if (sortedDays.length > 1) {
                 const worstDay = sortedDays[sortedDays.length - 1];
-                pdf.text(`${t.worstTradingDay}: ${new Date(worstDay[0]).toLocaleDateString()} ($${worstDay[1].toFixed(2)})`, margin, yPosition);
+                await addUnicodeText(`${t.worstTradingDay}: ${new Date(worstDay[0]).toLocaleDateString()} ($${worstDay[1].toFixed(2)})`, margin, yPosition, { fontSize: 10 });
                 yPosition += 6;
             }
         }
@@ -665,14 +680,14 @@ const downloadMonthlyReport = async () => {
         });
         
         checkNewPage(12);
-        pdf.text(`${t.longestWinningStreak}: ${maxWinStreak} ${t.trades}`, margin, yPosition);
+        await addUnicodeText(`${t.longestWinningStreak}: ${maxWinStreak} ${t.trades}`, margin, yPosition, { fontSize: 10 });
         yPosition += 6;
-        pdf.text(`${t.longestLosingStreak}: ${maxLossStreak} ${t.trades}`, margin, yPosition);
+        await addUnicodeText(`${t.longestLosingStreak}: ${maxLossStreak} ${t.trades}`, margin, yPosition, { fontSize: 10 });
         yPosition += 10;
         
         // Capture and add charts if analytics are shown
         if (showAnalytics) {
-            addSectionHeader(t.visualAnalysis);
+            await addSectionHeader(t.visualAnalysis);
             
             const chartElements = [
                 { selector: '[data-chart="dayOfWeek"]', title: t.performanceByDayOfWeek },
@@ -699,9 +714,7 @@ const downloadMonthlyReport = async () => {
                         const imgHeight = (canvas.height * imgWidth) / canvas.width;
                         
                         // Add chart title
-                        pdf.setFontSize(12);
-                        pdf.setTextColor(0, 124, 186);
-                        pdf.text(title, margin, yPosition);
+                        await addUnicodeText(title, margin, yPosition, { fontSize: 12, color: 'blue' });
                         yPosition += 10;
                         
                         // Add chart image
@@ -719,7 +732,7 @@ const downloadMonthlyReport = async () => {
         pdf.addPage();
         yPosition = margin;
         
-        addSectionHeader(t.detailedTradeLog);
+        await addSectionHeader(t.detailedTradeLog);
         
         if (monthTrades.length > 0) {
             // Group trades by week
@@ -739,39 +752,34 @@ const downloadMonthlyReport = async () => {
             // Sort weeks chronologically
             const sortedWeeks = Object.keys(weeklyTrades).sort();
             
-            sortedWeeks.forEach(weekStart => {
+            for (const weekStart of sortedWeeks) {
                 const weekTrades = weeklyTrades[weekStart];
                 const weekTotal = weekTrades.reduce((sum, trade) => sum + trade.amount, 0);
                 
                 checkNewPage(20);
                 
                 // Week header
-                pdf.setFontSize(11);
-                pdf.setTextColor(0, 124, 186);
                 const weekStartDate = new Date(weekStart);
                 const weekEndDate = new Date(weekStart);
                 weekEndDate.setDate(weekStartDate.getDate() + 6);
                 
-                pdf.text(
+                await addUnicodeText(
                     `${t.weekOf} ${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()} | ` +
                     `${t.total}: $${weekTotal.toFixed(2)} | ${t.trades}: ${weekTrades.length}`,
-                    margin, yPosition
+                    margin, yPosition, { fontSize: 11, color: 'blue' }
                 );
                 yPosition += 8;
                 
                 // Table headers
-                pdf.setFontSize(8);
-                pdf.setTextColor(0, 0, 0);
-                
                 const headers = [t.date, t.asset, t.strategy, t.session, t.outcome, t.amount];
                 const colWidths = [20, 25, 30, 25, 20, 20];
                 let xPos = margin;
                 
                 // Draw headers
-                headers.forEach((header, i) => {
-                    pdf.text(header, xPos, yPosition);
+                for (let i = 0; i < headers.length; i++) {
+                    await addUnicodeText(headers[i], xPos, yPosition, { fontSize: 8 });
                     xPos += colWidths[i];
-                });
+                }
                 yPosition += 6;
                 
                 // Draw line under headers
@@ -779,7 +787,7 @@ const downloadMonthlyReport = async () => {
                 yPosition += 2;
                 
                 // Add trade rows for this week
-                weekTrades.forEach(trade => {
+                for (const trade of weekTrades) {
                     checkNewPage(8);
                     
                     xPos = margin;
@@ -798,27 +806,21 @@ const downloadMonthlyReport = async () => {
                     ];
                     
                     // Set color based on profit/loss
-                    if (trade.amount > 0) {
-                        pdf.setTextColor(21, 128, 61); // Darker green
-                    } else if (trade.amount < 0) {
-                        pdf.setTextColor(185, 28, 28); // Darker red
-                    } else {
-                        pdf.setTextColor(0, 0, 0);
-                    }
+                    const color = trade.amount > 0 ? 'green' : trade.amount < 0 ? 'red' : 'black';
                     
-                    rowData.forEach((data, i) => {
+                    for (let i = 0; i < rowData.length; i++) {
+                        const data = rowData[i];
                         const truncatedData = data.length > 12 ? data.substring(0, 10) + '..' : data;
-                        pdf.text(truncatedData, xPos, yPosition);
+                        await addUnicodeText(truncatedData, xPos, yPosition, { fontSize: 8, color });
                         xPos += colWidths[i];
-                    });
+                    }
                     yPosition += 5;
-                });
+                }
                 
                 yPosition += 5; // Space between weeks
-                pdf.setTextColor(0, 0, 0); // Reset color
-            });
+            }
         } else {
-            pdf.text('No trades found for this month.', margin, yPosition);
+            await addUnicodeText('No trades found for this month.', margin, yPosition, { fontSize: 10 });
         }
         
         // REFLECTION SECTION (if reflections exist)
@@ -827,28 +829,26 @@ const downloadMonthlyReport = async () => {
             pdf.addPage();
             yPosition = margin;
             
-            addSectionHeader(t.tradeReflections);
+            await addSectionHeader(t.tradeReflections);
             
-            pdf.setFontSize(9);
-            tradesWithReflections.forEach((trade, index) => {
+            for (let index = 0; index < tradesWithReflections.length; index++) {
+                const trade = tradesWithReflections[index];
                 checkNewPage(25);
                 
-                pdf.setTextColor(0, 124, 186);
-                pdf.text(`${t.trade} ${index + 1}: ${trade.asset} - ${new Date(trade.date_entered).toLocaleDateString()}`, margin, yPosition);
+                await addUnicodeText(`${t.trade} ${index + 1}: ${trade.asset} - ${new Date(trade.date_entered).toLocaleDateString()}`, margin, yPosition, { fontSize: 9, color: 'blue' });
                 yPosition += 6;
                 
-                pdf.setTextColor(0, 0, 0);
                 const reflection = trade.reflection;
                 const lines = pdf.splitTextToSize(reflection, pageWidth - 2 * margin);
                 
-                lines.forEach(line => {
+                for (const line of lines) {
                     checkNewPage(6);
-                    pdf.text(line, margin, yPosition);
+                    await addUnicodeText(line, margin, yPosition, { fontSize: 9 });
                     yPosition += 5;
-                });
+                }
                 
                 yPosition += 3;
-            });
+            }
         }
         
         // Save the PDF
