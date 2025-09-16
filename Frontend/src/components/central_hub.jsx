@@ -11,51 +11,254 @@ export default function SnowAICentralHub() {
     const [chatMessages, setChatMessages] = useState({});
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'chat'
 
     const gptSystems = {
         'TraderHistoryGPT': {
             name: 'TraderHistoryGPT',
-            color: 'rgba(59, 130, 246, 0.1)', // Blue
+            color: '#3b82f6', // Blue
+            bgColor: 'rgba(59, 130, 246, 0.1)',
             borderColor: 'rgba(59, 130, 246, 0.3)',
             endpoint: 'trader_history_gpt_summary',
             chatEndpoint: 'trader_history_gpt_chat'
         },
         'MacroGPT': {
             name: 'MacroGPT',
-            color: 'rgba(34, 197, 94, 0.1)', // Green
+            color: '#22c55e', // Green
+            bgColor: 'rgba(34, 197, 94, 0.1)',
             borderColor: 'rgba(34, 197, 94, 0.3)',
             endpoint: 'macro_gpt_summary',
             chatEndpoint: 'macro_gpt_chat'
         },
         'IdeaGPT': {
             name: 'IdeaGPT',
-            color: 'rgba(168, 85, 247, 0.1)', // Purple
+            color: '#a855f7', // Purple
+            bgColor: 'rgba(168, 85, 247, 0.1)',
             borderColor: 'rgba(168, 85, 247, 0.3)',
             endpoint: 'idea_gpt_summary',
             chatEndpoint: 'idea_gpt_chat'
         },
         'BacktestingGPT': {
             name: 'BacktestingGPT',
-            color: 'rgba(249, 115, 22, 0.1)', // Orange
+            color: '#f97316', // Orange
+            bgColor: 'rgba(249, 115, 22, 0.1)',
             borderColor: 'rgba(249, 115, 22, 0.3)',
             endpoint: 'backtesting_gpt_summary',
             chatEndpoint: 'backtesting_gpt_chat'
         },
         'PaperGPT': {
             name: 'PaperGPT',
-            color: 'rgba(239, 68, 68, 0.1)', // Red
+            color: '#ef4444', // Red
+            bgColor: 'rgba(239, 68, 68, 0.1)',
             borderColor: 'rgba(239, 68, 68, 0.3)',
             endpoint: 'paper_gpt_summary',
             chatEndpoint: 'paper_gpt_chat'
         },
         'ResearchGPT': {
             name: 'ResearchGPT',
-            color: 'rgba(236, 72, 153, 0.1)', // Pink
+            color: '#ec4899', // Pink
+            bgColor: 'rgba(236, 72, 153, 0.1)',
             borderColor: 'rgba(236, 72, 153, 0.3)',
             endpoint: 'research_gpt_summary',
             chatEndpoint: 'research_gpt_chat'
         }
     };
+
+    const styles = {
+        container: {
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        },
+        header: {
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#1f2937',
+            marginBottom: '30px',
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+        },
+        tabsContainer: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px',
+            marginBottom: '30px',
+        },
+        tabButton: {
+            position: 'relative',
+            padding: '20px 15px 15px',
+            border: 'none',
+            borderRadius: '16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: 'white',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '10px',
+            overflow: 'hidden',
+        },
+        tabButtonActive: {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        },
+        orbContainer: {
+            position: 'relative',
+            width: '60px',
+            height: '60px',
+            marginBottom: '5px',
+        },
+        orb: {
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 50%)',
+            filter: 'blur(1px)',
+            opacity: '0.9',
+        },
+        orbGlow: {
+            position: 'absolute',
+            top: '-10px',
+            left: '-10px',
+            right: '-10px',
+            bottom: '-10px',
+            borderRadius: '50%',
+            opacity: '0.3',
+            filter: 'blur(15px)',
+        },
+        contentCard: {
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            padding: '30px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid rgba(229, 231, 235, 0.8)',
+            minHeight: '60vh',
+        },
+        modeToggle: {
+            display: 'flex',
+            marginBottom: '25px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '12px',
+            padding: '4px',
+        },
+        modeButton: {
+            flex: 1,
+            padding: '12px 20px',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.2s ease',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+        },
+        modeButtonActive: {
+            backgroundColor: 'white',
+            color: '#1f2937',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+        },
+        summaryContent: {
+            lineHeight: '1.7',
+            color: '#374151',
+        },
+        chatContainer: {
+            height: '50vh',
+            display: 'flex',
+            flexDirection: 'column',
+        },
+        messagesContainer: {
+            flex: 1,
+            overflowY: 'auto',
+            padding: '0 5px',
+            marginBottom: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px',
+        },
+        message: {
+            padding: '12px 16px',
+            borderRadius: '18px',
+            maxWidth: '80%',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            wordWrap: 'break-word',
+        },
+        userMessage: {
+            alignSelf: 'flex-end',
+            color: 'white',
+            fontWeight: '500',
+        },
+        assistantMessage: {
+            alignSelf: 'flex-start',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #e5e7eb',
+        },
+        inputContainer: {
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'flex-end',
+        },
+        textarea: {
+            flex: 1,
+            padding: '12px 16px',
+            border: '2px solid #e5e7eb',
+            borderRadius: '16px',
+            resize: 'none',
+            fontSize: '14px',
+            fontFamily: 'inherit',
+            minHeight: '50px',
+            maxHeight: '120px',
+            transition: 'border-color 0.2s ease',
+            outline: 'none',
+        },
+        sendButton: {
+            padding: '12px 24px',
+            border: 'none',
+            borderRadius: '16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: 'white',
+            transition: 'all 0.2s ease',
+            minWidth: '80px',
+        },
+        loadingMessage: {
+            alignSelf: 'flex-start',
+            backgroundColor: '#f9fafb',
+            color: '#6b7280',
+            fontStyle: 'italic',
+            border: '1px solid #e5e7eb',
+        }
+    };
+
+    // Animation keyframes (inject into head)
+    useEffect(() => {
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float {
+                0%, 100% { transform: translateY(0px) scale(1); }
+                50% { transform: translateY(-10px) scale(1.05); }
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 0.8; }
+                50% { opacity: 1; }
+            }
+            .floating-orb {
+                animation: float 4s ease-in-out infinite;
+            }
+            .pulsing-glow {
+                animation: pulse 2s ease-in-out infinite;
+            }
+        `;
+        document.head.appendChild(style);
+        return () => document.head.removeChild(style);
+    }, []);
 
     const fetchAPIKey = async () => {
         try {
@@ -89,7 +292,6 @@ export default function SnowAICentralHub() {
         const userMessage = currentMessage;
         setCurrentMessage('');
 
-        // Add user message to chat
         setChatMessages(prev => ({
             ...prev,
             [activeGPT]: [
@@ -110,7 +312,6 @@ export default function SnowAICentralHub() {
             if (!response.ok) throw new Error("Network response was not ok");
             const data = await response.json();
 
-            // Add AI response to chat
             setChatMessages(prev => ({
                 ...prev,
                 [activeGPT]: [
@@ -134,7 +335,6 @@ export default function SnowAICentralHub() {
 
     useEffect(() => {
         fetchAPIKey();
-        // Fetch initial summaries for all GPT systems
         Object.keys(gptSystems).forEach(gptType => {
             fetchGPTSummary(gptType);
         });
@@ -147,210 +347,218 @@ export default function SnowAICentralHub() {
         }
     };
 
+    const renderOrb = (gptType) => {
+        const system = gptSystems[gptType];
+        return (
+            <div style={styles.orbContainer}>
+                <div 
+                    className="pulsing-glow"
+                    style={{
+                        ...styles.orbGlow,
+                        backgroundColor: system.color,
+                    }}
+                />
+                <div 
+                    className="floating-orb"
+                    style={{
+                        ...styles.orb,
+                        backgroundColor: system.color,
+                    }}
+                />
+            </div>
+        );
+    };
+
     return (
-        <div>
+        <div style={styles.container}>
             <div className="header">
                 <Header />
             </div>
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Central Hub</h5>
-                    
-                    {/* GPT System Tabs */}
-                    <div style={{ 
-                        display: 'flex', 
-                        gap: '10px', 
-                        marginBottom: '20px', 
-                        flexWrap: 'wrap',
-                        borderBottom: '2px solid #e5e7eb',
-                        paddingBottom: '10px'
-                    }}>
-                        {Object.keys(gptSystems).map(gptType => (
-                            <button
-                                key={gptType}
-                                onClick={() => setActiveGPT(gptType)}
-                                style={{
-                                    padding: '10px 15px',
-                                    border: `2px solid ${gptSystems[gptType].borderColor}`,
-                                    backgroundColor: activeGPT === gptType ? gptSystems[gptType].color : 'white',
-                                    color: activeGPT === gptType ? '#1f2937' : '#6b7280',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: activeGPT === gptType ? 'bold' : 'normal',
-                                    transition: 'all 0.3s ease'
-                                }}
-                            >
-                                {gptSystems[gptType].name}
-                            </button>
-                        ))}
-                    </div>
+                    <div style={styles.mainContent}>
+                        <h1 style={styles.header}>SnowAI Central Hub</h1>
+                        
+                        {/* GPT System Tabs */}
+                        <div style={styles.tabsContainer}>
+                            {Object.keys(gptSystems).map(gptType => (
+                                <button
+                                    key={gptType}
+                                    onClick={() => {
+                                        setActiveGPT(gptType);
+                                        setViewMode('summary');
+                                    }}
+                                    style={{
+                                        ...styles.tabButton,
+                                        ...(activeGPT === gptType ? styles.tabButtonActive : {}),
+                                        borderLeft: `4px solid ${gptSystems[gptType].color}`,
+                                        color: activeGPT === gptType ? gptSystems[gptType].color : '#6b7280',
+                                    }}
+                                >
+                                    {renderOrb(gptType)}
+                                    {gptSystems[gptType].name}
+                                </button>
+                            ))}
+                        </div>
 
-                    {/* Active GPT Content */}
-                    <div style={{ display: 'flex', gap: '20px', height: '70vh' }}>
-                        {/* Summary Panel */}
+                        {/* Content Card */}
                         <div style={{
-                            flex: '1',
-                            backgroundColor: gptSystems[activeGPT].color,
-                            border: `2px solid ${gptSystems[activeGPT].borderColor}`,
-                            borderRadius: '12px',
-                            padding: '20px',
-                            overflow: 'auto'
+                            ...styles.contentCard,
+                            borderLeft: `4px solid ${gptSystems[activeGPT].color}`,
                         }}>
-                            <h6 style={{ 
-                                marginBottom: '15px', 
-                                color: '#1f2937',
-                                fontSize: '18px',
-                                fontWeight: 'bold'
-                            }}>
-                                {gptSystems[activeGPT].name} Summary
-                            </h6>
-                            
-                            {gptSummaries[activeGPT] ? (
-                                <div style={{ color: '#374151', lineHeight: '1.6' }}>
-                                    {gptSummaries[activeGPT].summary ? (
-                                        <div dangerouslySetInnerHTML={{ __html: gptSummaries[activeGPT].summary.replace(/\n/g, '<br>') }} />
-                                    ) : (
-                                        <div>
-                                            <p><strong>Status:</strong> {gptSummaries[activeGPT].status || 'Processing...'}</p>
-                                            {gptSummaries[activeGPT].metrics && (
-                                                <div style={{ marginTop: '15px' }}>
-                                                    <h7 style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>Key Metrics:</h7>
-                                                    <pre style={{ 
-                                                        backgroundColor: 'rgba(255,255,255,0.5)', 
-                                                        padding: '10px', 
-                                                        borderRadius: '6px',
-                                                        fontSize: '12px',
-                                                        whiteSpace: 'pre-wrap'
-                                                    }}>
-                                                        {JSON.stringify(gptSummaries[activeGPT].metrics, null, 2)}
-                                                    </pre>
+                            {/* Mode Toggle */}
+                            <div style={styles.modeToggle}>
+                                <button
+                                    onClick={() => setViewMode('summary')}
+                                    style={{
+                                        ...styles.modeButton,
+                                        ...(viewMode === 'summary' ? {
+                                            ...styles.modeButtonActive,
+                                            color: gptSystems[activeGPT].color
+                                        } : {})
+                                    }}
+                                >
+                                    📊 Summary
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('chat')}
+                                    style={{
+                                        ...styles.modeButton,
+                                        ...(viewMode === 'chat' ? {
+                                            ...styles.modeButtonActive,
+                                            color: gptSystems[activeGPT].color
+                                        } : {})
+                                    }}
+                                >
+                                    💬 Chat
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            {viewMode === 'summary' ? (
+                                <div>
+                                    <h2 style={{ 
+                                        color: gptSystems[activeGPT].color, 
+                                        marginBottom: '20px',
+                                        fontSize: '24px',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {gptSystems[activeGPT].name} Summary
+                                    </h2>
+                                    
+                                    {gptSummaries[activeGPT] ? (
+                                        <div style={styles.summaryContent}>
+                                            {gptSummaries[activeGPT].summary ? (
+                                                <div dangerouslySetInnerHTML={{ 
+                                                    __html: gptSummaries[activeGPT].summary.replace(/\n/g, '<br>') 
+                                                }} />
+                                            ) : (
+                                                <div>
+                                                    <p><strong>Status:</strong> {gptSummaries[activeGPT].status || 'Processing...'}</p>
+                                                    {gptSummaries[activeGPT].metrics && (
+                                                        <div style={{ marginTop: '20px' }}>
+                                                            <h3 style={{ fontWeight: 'bold', marginBottom: '15px' }}>Key Metrics:</h3>
+                                                            <pre style={{ 
+                                                                backgroundColor: gptSystems[activeGPT].bgColor,
+                                                                padding: '20px', 
+                                                                borderRadius: '12px',
+                                                                fontSize: '13px',
+                                                                whiteSpace: 'pre-wrap',
+                                                                border: `1px solid ${gptSystems[activeGPT].borderColor}`,
+                                                                overflow: 'auto'
+                                                            }}>
+                                                                {JSON.stringify(gptSummaries[activeGPT].metrics, null, 2)}
+                                                            </pre>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
+                                        </div>
+                                    ) : (
+                                        <div style={{ 
+                                            color: '#6b7280', 
+                                            textAlign: 'center', 
+                                            padding: '40px',
+                                            fontSize: '16px'
+                                        }}>
+                                            Loading summary...
                                         </div>
                                     )}
                                 </div>
                             ) : (
-                                <div style={{ color: '#6b7280' }}>Loading summary...</div>
-                            )}
-                        </div>
-
-                        {/* Chat Panel */}
-                        <div style={{
-                            flex: '1',
-                            backgroundColor: 'white',
-                            border: `2px solid ${gptSystems[activeGPT].borderColor}`,
-                            borderRadius: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{
-                                padding: '15px',
-                                backgroundColor: gptSystems[activeGPT].color,
-                                borderBottom: `1px solid ${gptSystems[activeGPT].borderColor}`,
-                                fontWeight: 'bold',
-                                color: '#1f2937'
-                            }}>
-                                Chat with {gptSystems[activeGPT].name}
-                            </div>
-
-                            {/* Messages */}
-                            <div style={{
-                                flex: '1',
-                                padding: '15px',
-                                overflow: 'auto',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '10px'
-                            }}>
-                                {(chatMessages[activeGPT] || []).map((message, index) => (
-                                    <div
-                                        key={index}
-                                        style={{
-                                            padding: '10px 15px',
-                                            borderRadius: '12px',
-                                            backgroundColor: message.role === 'user' 
-                                                ? gptSystems[activeGPT].color 
-                                                : '#f3f4f6',
-                                            alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-                                            maxWidth: '80%',
-                                            border: `1px solid ${message.role === 'user' 
-                                                ? gptSystems[activeGPT].borderColor 
-                                                : '#d1d5db'}`
-                                        }}
-                                    >
-                                        <div style={{ fontSize: '14px', color: '#374151' }}>
-                                            {message.content}
-                                        </div>
-                                        <div style={{ 
-                                            fontSize: '11px', 
-                                            color: '#9ca3af', 
-                                            marginTop: '5px',
-                                            textAlign: 'right'
-                                        }}>
-                                            {message.timestamp}
-                                        </div>
-                                    </div>
-                                ))}
-                                {isLoading && (
-                                    <div style={{
-                                        padding: '10px 15px',
-                                        borderRadius: '12px',
-                                        backgroundColor: '#f3f4f6',
-                                        alignSelf: 'flex-start',
-                                        maxWidth: '80%',
-                                        border: '1px solid #d1d5db',
-                                        color: '#6b7280',
-                                        fontStyle: 'italic'
+                                <div>
+                                    <h2 style={{ 
+                                        color: gptSystems[activeGPT].color, 
+                                        marginBottom: '20px',
+                                        fontSize: '24px',
+                                        fontWeight: 'bold'
                                     }}>
-                                        {gptSystems[activeGPT].name} is thinking...
-                                    </div>
-                                )}
-                            </div>
+                                        Chat with {gptSystems[activeGPT].name}
+                                    </h2>
+                                    
+                                    <div style={styles.chatContainer}>
+                                        <div style={styles.messagesContainer}>
+                                            {(chatMessages[activeGPT] || []).map((message, index) => (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        ...styles.message,
+                                                        ...(message.role === 'user' ? {
+                                                            ...styles.userMessage,
+                                                            backgroundColor: gptSystems[activeGPT].color,
+                                                        } : styles.assistantMessage)
+                                                    }}
+                                                >
+                                                    <div>{message.content}</div>
+                                                    <div style={{ 
+                                                        fontSize: '11px', 
+                                                        opacity: 0.7, 
+                                                        marginTop: '5px',
+                                                        textAlign: 'right'
+                                                    }}>
+                                                        {message.timestamp}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {isLoading && (
+                                                <div style={{
+                                                    ...styles.message,
+                                                    ...styles.loadingMessage
+                                                }}>
+                                                    {gptSystems[activeGPT].name} is thinking...
+                                                </div>
+                                            )}
+                                        </div>
 
-                            {/* Input */}
-                            <div style={{
-                                padding: '15px',
-                                borderTop: `1px solid ${gptSystems[activeGPT].borderColor}`,
-                                display: 'flex',
-                                gap: '10px'
-                            }}>
-                                <textarea
-                                    value={currentMessage}
-                                    onChange={(e) => setCurrentMessage(e.target.value)}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder={`Ask ${gptSystems[activeGPT].name} anything...`}
-                                    style={{
-                                        flex: '1',
-                                        padding: '10px',
-                                        border: `1px solid ${gptSystems[activeGPT].borderColor}`,
-                                        borderRadius: '8px',
-                                        resize: 'none',
-                                        height: '60px',
-                                        fontSize: '14px'
-                                    }}
-                                    disabled={isLoading}
-                                />
-                                <button
-                                    onClick={sendChatMessage}
-                                    disabled={isLoading || !currentMessage.trim()}
-                                    style={{
-                                        padding: '10px 20px',
-                                        backgroundColor: gptSystems[activeGPT].borderColor,
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        cursor: isLoading || !currentMessage.trim() ? 'not-allowed' : 'pointer',
-                                        fontSize: '14px',
-                                        fontWeight: 'bold',
-                                        opacity: isLoading || !currentMessage.trim() ? 0.5 : 1
-                                    }}
-                                >
-                                    Send
-                                </button>
-                            </div>
+                                        <div style={styles.inputContainer}>
+                                            <textarea
+                                                value={currentMessage}
+                                                onChange={(e) => setCurrentMessage(e.target.value)}
+                                                onKeyPress={handleKeyPress}
+                                                placeholder={`Ask ${gptSystems[activeGPT].name} anything...`}
+                                                style={{
+                                                    ...styles.textarea,
+                                                    borderColor: currentMessage.trim() ? gptSystems[activeGPT].color : '#e5e7eb'
+                                                }}
+                                                disabled={isLoading}
+                                            />
+                                            <button
+                                                onClick={sendChatMessage}
+                                                disabled={isLoading || !currentMessage.trim()}
+                                                style={{
+                                                    ...styles.sendButton,
+                                                    backgroundColor: gptSystems[activeGPT].color,
+                                                    opacity: isLoading || !currentMessage.trim() ? 0.5 : 1,
+                                                    cursor: isLoading || !currentMessage.trim() ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                {isLoading ? '...' : 'Send'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
