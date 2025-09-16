@@ -12,6 +12,7 @@ export default function SnowAICentralHub() {
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'chat'
+    const [summariesLoading, setSummariesLoading] = useState(true);
 
     const gptSystems = {
         'TraderHistoryGPT': {
@@ -234,6 +235,27 @@ export default function SnowAICentralHub() {
             color: '#6b7280',
             fontStyle: 'italic',
             border: '1px solid #e5e7eb',
+        },
+        noSummaryMessage: {
+            textAlign: 'center',
+            padding: '40px',
+            color: '#6b7280',
+            fontSize: '16px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '12px',
+            border: '2px dashed #d1d5db',
+        },
+        refreshButton: {
+            marginTop: '20px',
+            padding: '10px 20px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.2s ease',
         }
     };
 
@@ -271,7 +293,43 @@ export default function SnowAICentralHub() {
         }
     };
 
-    const fetchGPTSummary = async (gptType) => {
+    // Modified function to only fetch existing summaries, not generate new ones
+    const fetchExistingSummaries = async () => {
+        setSummariesLoading(true);
+        const summaries = {};
+        
+        for (const gptType of Object.keys(gptSystems)) {
+            try {
+                const response = await fetch(`${baseUrl}/get_existing_summary/${gptType}/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    summaries[gptType] = data;
+                } else {
+                    // If no summary exists, set a placeholder
+                    summaries[gptType] = {
+                        status: 'No summary available',
+                        summary: null,
+                        metrics: {},
+                        last_updated: null
+                    };
+                }
+            } catch (error) {
+                console.error(`Error fetching existing summary for ${gptType}:`, error);
+                summaries[gptType] = {
+                    status: 'Error loading summary',
+                    summary: null,
+                    metrics: {},
+                    last_updated: null
+                };
+            }
+        }
+        
+        setGptSummaries(summaries);
+        setSummariesLoading(false);
+    };
+
+    // Function to manually trigger summary generation (optional)
+    const generateSummary = async (gptType) => {
         try {
             const response = await fetch(`${baseUrl}/${gptSystems[gptType].endpoint}/`);
             if (!response.ok) throw new Error("Network response was not ok");
@@ -281,7 +339,7 @@ export default function SnowAICentralHub() {
                 [gptType]: data
             }));
         } catch (error) {
-            console.error(`Error fetching ${gptType} summary:`, error);
+            console.error(`Error generating ${gptType} summary:`, error);
         }
     };
 
@@ -335,9 +393,7 @@ export default function SnowAICentralHub() {
 
     useEffect(() => {
         fetchAPIKey();
-        Object.keys(gptSystems).forEach(gptType => {
-            fetchGPTSummary(gptType);
-        });
+        fetchExistingSummaries(); // Only fetch existing summaries, don't generate new ones
     }, []);
 
     const handleKeyPress = (e) => {
@@ -365,6 +421,83 @@ export default function SnowAICentralHub() {
                         backgroundColor: system.color,
                     }}
                 />
+            </div>
+        );
+    };
+
+    const renderSummaryContent = () => {
+        if (summariesLoading) {
+            return (
+                <div style={{ 
+                    color: '#6b7280', 
+                    textAlign: 'center', 
+                    padding: '40px',
+                    fontSize: '16px'
+                }}>
+                    Loading summaries...
+                </div>
+            );
+        }
+
+        const summaryData = gptSummaries[activeGPT];
+        
+        if (!summaryData || !summaryData.summary) {
+            return (
+                <div style={styles.noSummaryMessage}>
+                    <div style={{ marginBottom: '15px' }}>
+                        No summary available for {gptSystems[activeGPT].name}
+                    </div>
+                    <div style={{ fontSize: '14px', marginBottom: '20px' }}>
+                        Summaries are generated automatically every 24 hours. 
+                        {summaryData?.last_updated && (
+                            <div>Last updated: {new Date(summaryData.last_updated).toLocaleString()}</div>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => generateSummary(activeGPT)}
+                        style={styles.refreshButton}
+                    >
+                        Generate Summary Now
+                    </button>
+                </div>
+            );
+        }
+
+        return (
+            <div style={styles.summaryContent}>
+                {summaryData.summary && (
+                    <div dangerouslySetInnerHTML={{ 
+                        __html: summaryData.summary.replace(/\n/g, '<br>') 
+                    }} />
+                )}
+                
+                {summaryData.metrics && Object.keys(summaryData.metrics).length > 0 && (
+                    <div style={{ marginTop: '20px' }}>
+                        <h3 style={{ fontWeight: 'bold', marginBottom: '15px' }}>Key Metrics:</h3>
+                        <pre style={{ 
+                            backgroundColor: gptSystems[activeGPT].bgColor,
+                            padding: '20px', 
+                            borderRadius: '12px',
+                            fontSize: '13px',
+                            whiteSpace: 'pre-wrap',
+                            border: `1px solid ${gptSystems[activeGPT].borderColor}`,
+                            overflow: 'auto'
+                        }}>
+                            {JSON.stringify(summaryData.metrics, null, 2)}
+                        </pre>
+                    </div>
+                )}
+                
+                {summaryData.last_updated && (
+                    <div style={{ 
+                        marginTop: '20px', 
+                        fontSize: '12px', 
+                        color: '#6b7280',
+                        textAlign: 'right'
+                    }}>
+                        Last updated: {new Date(summaryData.last_updated).toLocaleString()}
+                    </div>
+                )}
             </div>
         );
     };
@@ -447,44 +580,7 @@ export default function SnowAICentralHub() {
                                         {gptSystems[activeGPT].name} Summary
                                     </h2>
                                     
-                                    {gptSummaries[activeGPT] ? (
-                                        <div style={styles.summaryContent}>
-                                            {gptSummaries[activeGPT].summary ? (
-                                                <div dangerouslySetInnerHTML={{ 
-                                                    __html: gptSummaries[activeGPT].summary.replace(/\n/g, '<br>') 
-                                                }} />
-                                            ) : (
-                                                <div>
-                                                    <p><strong>Status:</strong> {gptSummaries[activeGPT].status || 'Processing...'}</p>
-                                                    {gptSummaries[activeGPT].metrics && (
-                                                        <div style={{ marginTop: '20px' }}>
-                                                            <h3 style={{ fontWeight: 'bold', marginBottom: '15px' }}>Key Metrics:</h3>
-                                                            <pre style={{ 
-                                                                backgroundColor: gptSystems[activeGPT].bgColor,
-                                                                padding: '20px', 
-                                                                borderRadius: '12px',
-                                                                fontSize: '13px',
-                                                                whiteSpace: 'pre-wrap',
-                                                                border: `1px solid ${gptSystems[activeGPT].borderColor}`,
-                                                                overflow: 'auto'
-                                                            }}>
-                                                                {JSON.stringify(gptSummaries[activeGPT].metrics, null, 2)}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div style={{ 
-                                            color: '#6b7280', 
-                                            textAlign: 'center', 
-                                            padding: '40px',
-                                            fontSize: '16px'
-                                        }}>
-                                            Loading summary...
-                                        </div>
-                                    )}
+                                    {renderSummaryContent()}
                                 </div>
                             ) : (
                                 <div>
