@@ -65,6 +65,7 @@ import Compliance from './components/compliance.jsx';
 import EconomicStrengthIndex from './components/esi.jsx';
 import HolographicHUD from './components/snowbrain.jsx';
 import ResearchLogbook from './components/research_logbook.jsx';
+import SnowAICentralHub from './components/central_hub.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -432,6 +433,12 @@ function App() {
             <Route path='/research_logbook' element={
               <ProtectedRoute>
                 <ResearchLogbook />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/snowai_central_hub' element={
+              <ProtectedRoute>
+                <SnowAICentralHub />
               </ProtectedRoute>
             } />
             
