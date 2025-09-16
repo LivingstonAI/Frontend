@@ -13,6 +13,7 @@ export default function SnowAICentralHub() {
     const [isLoading, setIsLoading] = useState(false);
     const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'chat'
     const [summariesLoading, setSummariesLoading] = useState(true);
+    const [conversationHistoryLoading, setConversationHistoryLoading] = useState({});
 
     const gptSystems = {
         'TraderHistoryGPT': {
@@ -21,7 +22,8 @@ export default function SnowAICentralHub() {
             bgColor: 'rgba(59, 130, 246, 0.1)',
             borderColor: 'rgba(59, 130, 246, 0.3)',
             endpoint: 'trader_history_gpt_summary',
-            chatEndpoint: 'trader_history_gpt_chat'
+            chatEndpoint: 'trader_history_gpt_chat',
+            historyEndpoint: 'get_conversation_history/TraderHistoryGPT'
         },
         'MacroGPT': {
             name: 'MacroGPT',
@@ -29,7 +31,8 @@ export default function SnowAICentralHub() {
             bgColor: 'rgba(34, 197, 94, 0.1)',
             borderColor: 'rgba(34, 197, 94, 0.3)',
             endpoint: 'macro_gpt_summary',
-            chatEndpoint: 'macro_gpt_chat'
+            chatEndpoint: 'macro_gpt_chat',
+            historyEndpoint: 'get_conversation_history/MacroGPT'
         },
         'IdeaGPT': {
             name: 'IdeaGPT',
@@ -37,7 +40,8 @@ export default function SnowAICentralHub() {
             bgColor: 'rgba(168, 85, 247, 0.1)',
             borderColor: 'rgba(168, 85, 247, 0.3)',
             endpoint: 'idea_gpt_summary',
-            chatEndpoint: 'idea_gpt_chat'
+            chatEndpoint: 'idea_gpt_chat',
+            historyEndpoint: 'get_conversation_history/IdeaGPT'
         },
         'BacktestingGPT': {
             name: 'BacktestingGPT',
@@ -45,7 +49,8 @@ export default function SnowAICentralHub() {
             bgColor: 'rgba(249, 115, 22, 0.1)',
             borderColor: 'rgba(249, 115, 22, 0.3)',
             endpoint: 'backtesting_gpt_summary',
-            chatEndpoint: 'backtesting_gpt_chat'
+            chatEndpoint: 'backtesting_gpt_chat',
+            historyEndpoint: 'get_conversation_history/BacktestingGPT'
         },
         'PaperGPT': {
             name: 'PaperGPT',
@@ -53,7 +58,8 @@ export default function SnowAICentralHub() {
             bgColor: 'rgba(239, 68, 68, 0.1)',
             borderColor: 'rgba(239, 68, 68, 0.3)',
             endpoint: 'paper_gpt_summary',
-            chatEndpoint: 'paper_gpt_chat'
+            chatEndpoint: 'paper_gpt_chat',
+            historyEndpoint: 'get_conversation_history/PaperGPT'
         },
         'ResearchGPT': {
             name: 'ResearchGPT',
@@ -61,7 +67,8 @@ export default function SnowAICentralHub() {
             bgColor: 'rgba(236, 72, 153, 0.1)',
             borderColor: 'rgba(236, 72, 153, 0.3)',
             endpoint: 'research_gpt_summary',
-            chatEndpoint: 'research_gpt_chat'
+            chatEndpoint: 'research_gpt_chat',
+            historyEndpoint: 'get_conversation_history/ResearchGPT'
         }
     };
 
@@ -267,6 +274,18 @@ export default function SnowAICentralHub() {
             transition: 'all 0.2s ease',
             minWidth: '80px',
         },
+        clearButton: {
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '600',
+            backgroundColor: '#ef4444',
+            color: 'white',
+            transition: 'all 0.2s ease',
+            marginLeft: '8px',
+        },
         loadingMessage: {
             alignSelf: 'flex-start',
             backgroundColor: '#f9fafb',
@@ -294,6 +313,18 @@ export default function SnowAICentralHub() {
             fontSize: '14px',
             fontWeight: '600',
             transition: 'all 0.2s ease',
+        },
+        conversationControls: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '15px',
+            padding: '10px 0',
+            borderBottom: '1px solid #e5e7eb',
+        },
+        conversationInfo: {
+            fontSize: '12px',
+            color: '#6b7280',
         }
     };
 
@@ -328,6 +359,71 @@ export default function SnowAICentralHub() {
             setOPENAI_API_KEY(OPENAI_API_KEY);
         } catch (error) {
             console.error("Error fetching API key:", error);
+        }
+    };
+
+    // Load conversation history for a specific GPT
+    const loadConversationHistory = async (gptType) => {
+        if (conversationHistoryLoading[gptType] || chatMessages[gptType]) {
+            return; // Already loading or loaded
+        }
+
+        setConversationHistoryLoading(prev => ({ ...prev, [gptType]: true }));
+        
+        try {
+            const response = await fetch(`${baseUrl}/${gptSystems[gptType].historyEndpoint}/`);
+            if (response.ok) {
+                const data = await response.json();
+                const formattedMessages = data.conversation_history.map(item => [
+                    {
+                        role: 'user',
+                        content: item.user_message,
+                        timestamp: new Date(item.timestamp).toLocaleTimeString()
+                    },
+                    {
+                        role: 'assistant',
+                        content: item.ai_response,
+                        timestamp: new Date(item.timestamp).toLocaleTimeString()
+                    }
+                ]).flat();
+
+                setChatMessages(prev => ({
+                    ...prev,
+                    [gptType]: formattedMessages
+                }));
+            } else {
+                // No conversation history exists yet
+                setChatMessages(prev => ({
+                    ...prev,
+                    [gptType]: []
+                }));
+            }
+        } catch (error) {
+            console.error(`Error loading conversation history for ${gptType}:`, error);
+            setChatMessages(prev => ({
+                ...prev,
+                [gptType]: []
+            }));
+        } finally {
+            setConversationHistoryLoading(prev => ({ ...prev, [gptType]: false }));
+        }
+    };
+
+    // Clear conversation history for a specific GPT
+    const clearConversationHistory = async (gptType) => {
+        try {
+            const response = await fetch(`${baseUrl}/clear_conversation_history/${gptType}/`, {
+                method: 'POST',
+            });
+            
+            if (response.ok) {
+                setChatMessages(prev => ({
+                    ...prev,
+                    [gptType]: []
+                }));
+            }
+        } catch (error) {
+            console.error(`Error clearing conversation history for ${gptType}:`, error);
         }
     };
 
@@ -433,6 +529,13 @@ export default function SnowAICentralHub() {
         fetchAPIKey();
         fetchExistingSummaries(); // Only fetch existing summaries, don't generate new ones
     }, []);
+
+    // Load conversation history when switching to chat mode
+    useEffect(() => {
+        if (viewMode === 'chat') {
+            loadConversationHistory(activeGPT);
+        }
+    }, [viewMode, activeGPT]);
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -630,33 +733,56 @@ export default function SnowAICentralHub() {
                                     }}>
                                         Chat with {gptSystems[activeGPT].name}
                                     </h2>
+
+                                    {/* Conversation Controls */}
+                                    <div style={styles.conversationControls}>
+                                        <div style={styles.conversationInfo}>
+                                            Messages: {(chatMessages[activeGPT] || []).length} | 
+                                            Persistent conversation memory enabled
+                                        </div>
+                                        <button
+                                            onClick={() => clearConversationHistory(activeGPT)}
+                                            style={styles.clearButton}
+                                        >
+                                            Clear History
+                                        </button>
+                                    </div>
                                     
                                     <div style={styles.chatContainer}>
                                         <div style={styles.messagesContainer}>
-                                            {(chatMessages[activeGPT] || []).map((message, index) => (
-                                                <div
-                                                    key={index}
-                                                    style={{
-                                                        ...styles.message,
-                                                        ...(message.role === 'user' ? {
-                                                            ...styles.userMessage,
-                                                            backgroundColor: gptSystems[activeGPT].color,
-                                                        } : styles.assistantMessage)
-                                                    }}
-                                                >
-                                                    <div dangerouslySetInnerHTML={{ 
-                                                        __html: message.role === 'assistant' ? renderMarkdown(message.content) : message.content 
-                                                    }} />
-                                                    <div style={{ 
-                                                        fontSize: '11px', 
-                                                        opacity: 0.7, 
-                                                        marginTop: '5px',
-                                                        textAlign: 'right'
-                                                    }}>
-                                                        {message.timestamp}
-                                                    </div>
+                                            {conversationHistoryLoading[activeGPT] ? (
+                                                <div style={{
+                                                    ...styles.message,
+                                                    ...styles.loadingMessage
+                                                }}>
+                                                    Loading conversation history...
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                (chatMessages[activeGPT] || []).map((message, index) => (
+                                                    <div
+                                                        key={index}
+                                                        style={{
+                                                            ...styles.message,
+                                                            ...(message.role === 'user' ? {
+                                                                ...styles.userMessage,
+                                                                backgroundColor: gptSystems[activeGPT].color,
+                                                            } : styles.assistantMessage)
+                                                        }}
+                                                    >
+                                                        <div dangerouslySetInnerHTML={{ 
+                                                            __html: message.role === 'assistant' ? renderMarkdown(message.content) : message.content 
+                                                        }} />
+                                                        <div style={{ 
+                                                            fontSize: '11px', 
+                                                            opacity: 0.7, 
+                                                            marginTop: '5px',
+                                                            textAlign: 'right'
+                                                        }}>
+                                                            {message.timestamp}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
                                             {isLoading && (
                                                 <div style={{
                                                     ...styles.message,
