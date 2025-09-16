@@ -65,6 +65,44 @@ export default function SnowAICentralHub() {
         }
     };
 
+    // Markdown rendering function
+    const renderMarkdown = (text) => {
+        if (!text) return '';
+        
+        // Convert markdown to HTML
+        let html = text
+            // Headers
+            .replace(/^### (.*$)/gim, '<h3 style="font-size: 18px; font-weight: bold; margin: 20px 0 10px 0; color: #1f2937;">$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2 style="font-size: 20px; font-weight: bold; margin: 25px 0 15px 0; color: #1f2937;">$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1 style="font-size: 24px; font-weight: bold; margin: 30px 0 20px 0; color: #1f2937;">$1</h1>')
+            
+            // Bold and italic
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em style="font-weight: bold; font-style: italic;">$1</em></strong>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em style="font-style: italic;">$1</em>')
+            
+            // Code blocks
+            .replace(/```([\s\S]*?)```/g, '<pre style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 15px 0; overflow-x: auto; border: 1px solid #e5e7eb;"><code style="font-family: Monaco, Consolas, monospace; font-size: 13px;">$1</code></pre>')
+            .replace(/`([^`]+)`/g, '<code style="background-color: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: Monaco, Consolas, monospace; font-size: 13px;">$1</code>')
+            
+            // Lists
+            .replace(/^\* (.*$)/gim, '<li style="margin: 5px 0; margin-left: 20px;">$1</li>')
+            .replace(/^- (.*$)/gim, '<li style="margin: 5px 0; margin-left: 20px;">$1</li>')
+            .replace(/^(\d+)\. (.*$)/gim, '<li style="margin: 5px 0; margin-left: 20px; list-style-type: decimal;">$2</li>')
+            
+            // Line breaks
+            .replace(/\n\n/g, '<br><br>')
+            .replace(/\n/g, '<br>')
+            
+            // Links
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #3b82f6; text-decoration: underline;">$1</a>');
+            
+        // Wrap consecutive list items in ul tags
+        html = html.replace(/(<li[^>]*>.*?<\/li>\s*)+/gs, '<ul style="margin: 10px 0; padding-left: 0;">$&</ul>');
+        
+        return html;
+    };
+
     const styles = {
         container: {
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -467,7 +505,7 @@ export default function SnowAICentralHub() {
             <div style={styles.summaryContent}>
                 {summaryData.summary && (
                     <div dangerouslySetInnerHTML={{ 
-                        __html: summaryData.summary.replace(/\n/g, '<br>') 
+                        __html: renderMarkdown(summaryData.summary)
                     }} />
                 )}
                 
@@ -606,7 +644,9 @@ export default function SnowAICentralHub() {
                                                         } : styles.assistantMessage)
                                                     }}
                                                 >
-                                                    <div>{message.content}</div>
+                                                    <div dangerouslySetInnerHTML={{ 
+                                                        __html: message.role === 'assistant' ? renderMarkdown(message.content) : message.content 
+                                                    }} />
                                                     <div style={{ 
                                                         fontSize: '11px', 
                                                         opacity: 0.7, 
