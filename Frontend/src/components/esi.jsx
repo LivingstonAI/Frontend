@@ -9,6 +9,7 @@ export default function EconomicStrengthIndex() {
     const [selectedCurrencies, setSelectedCurrencies] = useState(['USD']);
     const [selectedForexPairs, setSelectedForexPairs] = useState([]);
     const [selectedStockIndices, setSelectedStockIndices] = useState([]);
+    const [selectedVolumeAssets, setSelectedVolumeAssets] = useState([]);
     const [economicData, setEconomicData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState('30d');
@@ -48,6 +49,12 @@ export default function EconomicStrengthIndex() {
         { symbol: '^AXJO', name: 'ASX 200', displayName: 'ASX 200', color: '#8b5cf6' }
     ];
 
+    // All available assets for volume tracking
+    const volumeAssets = [
+        ...forexPairs.map(fp => ({ ...fp, type: 'forex', id: fp.pair })),
+        ...stockIndices.map(si => ({ ...si, type: 'stock', id: si.symbol, name: si.displayName }))
+    ];
+
     const fetchEconomicStrengthData = async () => {
         setLoading(true);
         try {
@@ -60,6 +67,7 @@ export default function EconomicStrengthIndex() {
                     currencies: selectedCurrencies,
                     forex_pairs: selectedForexPairs,
                     stock_indices: selectedStockIndices,
+                    volume_assets: selectedVolumeAssets,
                     date_range: dateRange
                 })
             });
@@ -69,13 +77,15 @@ export default function EconomicStrengthIndex() {
                 console.log('API Response:', data);
                 console.log('Chart data sample:', data.chart_data?.slice(0, 3));
                 
-                // Debug: Check for forex and stock indices keys
+                // Debug: Check for forex, stock indices, and volume keys
                 if (data.chart_data && data.chart_data.length > 0) {
                     const samplePoint = data.chart_data[0];
                     const forexKeys = Object.keys(samplePoint).filter(key => key.includes('_price'));
                     const stockKeys = Object.keys(samplePoint).filter(key => key.includes('_index'));
+                    const volumeKeys = Object.keys(samplePoint).filter(key => key.includes('_volume_ratio'));
                     console.log('Forex price keys found:', forexKeys);
                     console.log('Stock indices keys found:', stockKeys);
+                    console.log('Volume ratio keys found:', volumeKeys);
                 }
                 
                 setEconomicData(data.chart_data);
@@ -87,10 +97,10 @@ export default function EconomicStrengthIndex() {
     };
 
     useEffect(() => {
-        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0) {
+        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0 || selectedVolumeAssets.length > 0) {
             fetchEconomicStrengthData();
         }
-    }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, dateRange]);
+    }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, dateRange]);
 
     const handleCurrencyToggle = (currencyCode) => {
         setSelectedCurrencies(prev => {
@@ -118,6 +128,16 @@ export default function EconomicStrengthIndex() {
                 return prev.filter(s => s !== stockSymbol);
             } else {
                 return [...prev, stockSymbol];
+            }
+        });
+    };
+
+    const handleVolumeAssetToggle = (assetId) => {
+        setSelectedVolumeAssets(prev => {
+            if (prev.includes(assetId)) {
+                return prev.filter(a => a !== assetId);
+            } else {
+                return [...prev, assetId];
             }
         });
     };
@@ -234,6 +254,34 @@ export default function EconomicStrengthIndex() {
         downloadCSV(csv, filename);
     };
 
+    const handleDownloadVolumeData = (assetId) => {
+        if (!economicData || economicData.length === 0) {
+            alert('No data available to download');
+            return;
+        }
+
+        const volumeKey = `${assetId}_volume_ratio`;
+        
+        // Filter data to only include date and the specific volume ratio
+        const volumeData = economicData
+            .filter(row => row[volumeKey] !== undefined && row[volumeKey] !== null)
+            .map(row => ({
+                Date: row.date,
+                Relative_Volume: row[volumeKey].toFixed(2)
+            }));
+
+        if (volumeData.length === 0) {
+            alert(`No volume data available for ${assetId}`);
+            return;
+        }
+
+        const csv = convertToCSV(volumeData, ['Date', 'Relative_Volume']);
+        const assetInfo = volumeAssets.find(a => a.id === assetId);
+        const displayName = assetInfo ? assetInfo.name.replace(/\s+/g, '_') : assetId;
+        const filename = `${displayName}_RelativeVolume_${dateRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadCSV(csv, filename);
+    };
+
     const handleDownloadAllData = () => {
         // Download all selected ESI currencies
         selectedCurrencies.forEach(currency => {
@@ -249,10 +297,19 @@ export default function EconomicStrengthIndex() {
         selectedStockIndices.forEach(symbol => {
             setTimeout(() => handleDownloadStockIndexData(symbol), 100 * (selectedCurrencies.length + selectedForexPairs.length + selectedStockIndices.indexOf(symbol)));
         });
+
+        // Download all selected volume assets
+        selectedVolumeAssets.forEach(assetId => {
+            setTimeout(() => handleDownloadVolumeData(assetId), 100 * (selectedCurrencies.length + selectedForexPairs.length + selectedStockIndices.length + selectedVolumeAssets.indexOf(assetId)));
+        });
     };
 
     const formatTooltipValue = (value, name) => {
         if (typeof value === 'number') {
+            // Check if it's a volume ratio
+            if (name.includes('Volume') || name.includes('volume_ratio')) {
+                return [value.toFixed(2) + 'x', name];
+            }
             // Check if it's a forex price (typically has more decimal places)
             if (name.includes('/')) {
                 return [value.toFixed(4), name];
@@ -274,10 +331,16 @@ export default function EconomicStrengthIndex() {
                     {payload.map((entry, index) => {
                         const isForex = entry.dataKey.includes('_price');
                         const isStockIndex = entry.dataKey.includes('_index');
+                        const isVolume = entry.dataKey.includes('_volume_ratio');
                         
                         let displayName, formattedValue;
                         
-                        if (isForex) {
+                        if (isVolume) {
+                            const assetId = entry.dataKey.replace('_volume_ratio', '');
+                            const assetInfo = volumeAssets.find(a => a.id === assetId);
+                            displayName = assetInfo ? `${assetInfo.name} Volume` : `${assetId} Volume`;
+                            formattedValue = entry.value ? `${entry.value.toFixed(2)}x` : 'N/A';
+                        } else if (isForex) {
                             displayName = entry.dataKey.replace('_price', '').replace('USD', '/USD');
                             formattedValue = entry.value?.toFixed(4) || 'N/A';
                         } else if (isStockIndex) {
@@ -302,13 +365,14 @@ export default function EconomicStrengthIndex() {
         return null;
     };
 
-    // Create separate Y-axes domains for ESI (0-100), Forex prices, and Stock indices
+    // Create separate Y-axes domains for ESI (0-100), Forex prices, Stock indices, and Volume ratios
     const getYAxisDomains = () => {
-        if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1], stock: [0, 1000] };
+        if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1], stock: [0, 1000], volume: [0, 5] };
 
         let minForex = Infinity, maxForex = -Infinity;
         let minStock = Infinity, maxStock = -Infinity;
-        let hasForexData = false, hasStockData = false;
+        let minVolume = Infinity, maxVolume = -Infinity;
+        let hasForexData = false, hasStockData = false, hasVolumeData = false;
 
         economicData.forEach(point => {
             selectedForexPairs.forEach(pair => {
@@ -328,21 +392,33 @@ export default function EconomicStrengthIndex() {
                     hasStockData = true;
                 }
             });
+
+            selectedVolumeAssets.forEach(assetId => {
+                const volumeKey = `${assetId}_volume_ratio`;
+                if (point[volumeKey] !== undefined && point[volumeKey] !== null) {
+                    minVolume = Math.min(minVolume, point[volumeKey]);
+                    maxVolume = Math.max(maxVolume, point[volumeKey]);
+                    hasVolumeData = true;
+                }
+            });
         });
 
         const forexPadding = hasForexData ? (maxForex - minForex) * 0.05 : 0;
         const stockPadding = hasStockData ? (maxStock - minStock) * 0.05 : 0;
+        const volumePadding = hasVolumeData ? (maxVolume - minVolume) * 0.05 : 0;
         
         return {
             esi: [0, 100],
             forex: hasForexData ? [minForex - forexPadding, maxForex + forexPadding] : [0, 1],
-            stock: hasStockData ? [minStock - stockPadding, maxStock + stockPadding] : [0, 1000]
+            stock: hasStockData ? [minStock - stockPadding, maxStock + stockPadding] : [0, 1000],
+            volume: hasVolumeData ? [Math.max(0, minVolume - volumePadding), maxVolume + volumePadding] : [0, 5]
         };
     };
 
     const domains = getYAxisDomains();
     const hasForexData = selectedForexPairs.length > 0;
     const hasStockData = selectedStockIndices.length > 0;
+    const hasVolumeData = selectedVolumeAssets.length > 0;
 
     return (
         <div>
@@ -352,7 +428,7 @@ export default function EconomicStrengthIndex() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Economic Strength Index with Multi-Asset Overlay</h5><br />
+                    <h5 className="major-upcoming-news-events-header">Economic Strength Index with Multi-Asset and Volume Overlay</h5><br />
                     
                     {/* Controls Section */}
                     <div className="esi-controls">
@@ -407,6 +483,25 @@ export default function EconomicStrengthIndex() {
                                         <span className="esi-checkmark stock-checkmark" style={{borderColor: stock.color}}></span>
                                         <span className="esi-currency-label">
                                             {stock.displayName}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="esi-volume-selector">
+                            <h6>Select Assets for Relative Volume Overlay:</h6>
+                            <div className="esi-currency-grid">
+                                {volumeAssets.map(asset => (
+                                    <label key={asset.id} className="esi-currency-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedVolumeAssets.includes(asset.id)}
+                                            onChange={() => handleVolumeAssetToggle(asset.id)}
+                                        />
+                                        <span className="esi-checkmark volume-checkmark" style={{borderColor: asset.color}}></span>
+                                        <span className="esi-currency-label">
+                                            {asset.name} Volume
                                         </span>
                                     </label>
                                 ))}
@@ -488,8 +583,29 @@ export default function EconomicStrengthIndex() {
                                         </div>
                                     </div>
                                 )}
+
+                                {selectedVolumeAssets.length > 0 && (
+                                    <div className="esi-download-group">
+                                        <span className="download-label">Volume Data:</span>
+                                        <div className="download-buttons">
+                                            {selectedVolumeAssets.map(assetId => {
+                                                const assetInfo = volumeAssets.find(a => a.id === assetId);
+                                                return (
+                                                    <button
+                                                        key={`volume-${assetId}`}
+                                                        onClick={() => handleDownloadVolumeData(assetId)}
+                                                        className="esi-download-btn volume-btn"
+                                                        title={`Download ${assetInfo?.name || assetId} relative volume data as CSV`}
+                                                    >
+                                                        {assetInfo?.name || assetId} Vol
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                                 
-                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0) && (
+                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0 || selectedVolumeAssets.length > 0) && (
                                     <div className="esi-download-group">
                                         <button
                                             onClick={handleDownloadAllData}
@@ -509,7 +625,7 @@ export default function EconomicStrengthIndex() {
                         {loading ? (
                             <div className="esi-loading">
                                 <div className="esi-spinner"></div>
-                                <p>Calculating Economic Strength Index and Multi-Asset Data...</p>
+                                <p>Calculating Economic Strength Index, Multi-Asset Data, and Relative Volume...</p>
                             </div>
                         ) : economicData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={500}>
@@ -528,7 +644,7 @@ export default function EconomicStrengthIndex() {
                                         domain={domains.esi}
                                         label={{ value: 'ESI Score', angle: -90, position: 'insideLeft' }}
                                     />
-                                    {/* Right Y-Axis for Forex Prices */}
+                                    {/* First Right Y-Axis for Forex Prices */}
                                     {hasForexData && (
                                         <YAxis 
                                             yAxisId="forex"
@@ -540,7 +656,7 @@ export default function EconomicStrengthIndex() {
                                             label={{ value: 'Forex Price', angle: 90, position: 'insideRight' }}
                                         />
                                     )}
-                                    {/* Additional Right Y-Axis for Stock Indices (offset if forex exists) */}
+                                    {/* Second Right Y-Axis for Stock Indices */}
                                     {hasStockData && (
                                         <YAxis 
                                             yAxisId="stock"
@@ -554,6 +670,23 @@ export default function EconomicStrengthIndex() {
                                                 angle: 90, 
                                                 position: hasForexData ? 'outside' : 'insideRight',
                                                 offset: hasForexData ? 40 : 0
+                                            }}
+                                        />
+                                    )}
+                                    {/* Third Right Y-Axis for Volume Ratios */}
+                                    {hasVolumeData && (
+                                        <YAxis 
+                                            yAxisId="volume"
+                                            orientation="right"
+                                            stroke="#f97316"
+                                            tick={{ fontSize: 12 }}
+                                            domain={domains.volume}
+                                            tickFormatter={(value) => value.toFixed(1) + 'x'}
+                                            label={{ 
+                                                value: 'Relative Volume', 
+                                                angle: 90, 
+                                                position: 'outside',
+                                                offset: (hasForexData && hasStockData) ? 80 : (hasForexData || hasStockData) ? 40 : 0
                                             }}
                                         />
                                     )}
@@ -620,17 +753,38 @@ export default function EconomicStrengthIndex() {
                                             />
                                         );
                                     })}
+
+                                    {/* Volume Lines */}
+                                    {selectedVolumeAssets.map(assetId => {
+                                        const asset = volumeAssets.find(a => a.id === assetId);
+                                        const volumeKey = `${assetId}_volume_ratio`;
+                                        return (
+                                            <Line
+                                                key={volumeKey}
+                                                yAxisId="volume"
+                                                type="monotone"
+                                                dataKey={volumeKey}
+                                                stroke={asset?.color || '#f97316'}
+                                                strokeWidth={2}
+                                                strokeDasharray="2 2"
+                                                dot={false}
+                                                activeDot={{ r: 3 }}
+                                                connectNulls={true}
+                                                name={`${asset?.name || assetId} Volume`}
+                                            />
+                                        );
+                                    })}
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="esi-no-data">
-                                <p>Select currencies, forex pairs, and/or stock indices to view data</p>
+                                <p>Select currencies, forex pairs, stock indices, and/or volume assets to view data</p>
                             </div>
                         )}
                     </div>
 
                     {/* Legend Info */}
-                    {(hasForexData || hasStockData) && (
+                    {(hasForexData || hasStockData || hasVolumeData) && (
                         <div className="esi-legend-info">
                             <div className="legend-item">
                                 <div className="legend-line solid"></div>
@@ -648,16 +802,22 @@ export default function EconomicStrengthIndex() {
                                     <span>Stock Indices (Right Axis, Index scale)</span>
                                 </div>
                             )}
+                            {hasVolumeData && (
+                                <div className="legend-item">
+                                    <div className="legend-line volume-line"></div>
+                                    <span>Relative Volume (Right Axis, Volume ratio)</span>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* Info Section */}
                     <div className="esi-info">
-                        <h6>About Economic Strength Index with Multi-Asset Overlay</h6>
+                        <h6>About Economic Strength Index with Multi-Asset and Volume Overlay</h6>
                         <p>
                             The Economic Strength Index (ESI) aggregates all economic events for selected currencies, 
                             weighted by impact and normalized for comparison. Forex price and stock index overlays show 
-                            actual market movements for comparison with economic strength indicators.
+                            actual market movements, while relative volume indicators show trading activity compared to historical averages.
                         </p>
                         <div className="esi-methodology">
                             <strong>Methodology:</strong>
@@ -666,7 +826,8 @@ export default function EconomicStrengthIndex() {
                                 <li>ESI: Values normalized using percentage deviation from forecast</li>
                                 <li>Forex: Real-time price data overlayed with dashed lines</li>
                                 <li>Stock Indices: Real-time index data overlayed with dotted lines</li>
-                                <li>Multi-axis: Left for ESI (0-100), Right for Forex/Stock prices</li>
+                                <li>Relative Volume: Current volume / 20-day average volume (dotted lines)</li>
+                                <li>Multi-axis: Left for ESI (0-100), Multiple Right axes for prices/volume</li>
                             </ul>
                         </div>
                     </div>
@@ -685,6 +846,7 @@ export default function EconomicStrengthIndex() {
                 .esi-currency-selector h6,
                 .esi-forex-selector h6,
                 .esi-stock-selector h6,
+                .esi-volume-selector h6,
                 .esi-date-range-selector h6 {
                     color: #1e293b;
                     margin-bottom: 12px;
@@ -706,6 +868,14 @@ export default function EconomicStrengthIndex() {
                     background: #faf5ff;
                     border-radius: 6px;
                     border-left: 3px solid #8b5cf6;
+                }
+
+                .esi-volume-selector {
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #fef7ed;
+                    border-radius: 6px;
+                    border-left: 3px solid #f97316;
                 }
 
                 .esi-currency-grid {
@@ -753,6 +923,11 @@ export default function EconomicStrengthIndex() {
                     transform: rotate(45deg);
                 }
 
+                .esi-checkmark.volume-checkmark {
+                    border-radius: 3px;
+                    background: linear-gradient(45deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+                }
+
                 .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark {
                     background-color: currentColor;
                     border-color: currentColor;
@@ -767,6 +942,11 @@ export default function EconomicStrengthIndex() {
 
                 .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark.stock-checkmark::after {
                     transform: rotate(-45deg);
+                }
+
+                .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark.volume-checkmark::after {
+                    content: '~';
+                    font-size: 14px;
                 }
 
                 .esi-currency-label {
@@ -874,6 +1054,18 @@ export default function EconomicStrengthIndex() {
                     box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
                 }
 
+                .esi-download-btn.volume-btn {
+                    background: #f97316;
+                    color: white;
+                    border-color: #ea580c;
+                }
+
+                .esi-download-btn.volume-btn:hover {
+                    background: #ea580c;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+                }
+
                 .esi-download-btn.download-all-btn {
                     background: #10b981;
                     color: white;
@@ -934,6 +1126,11 @@ export default function EconomicStrengthIndex() {
                 .legend-line.dotted {
                     background: linear-gradient(to right, #8b5cf6 30%, transparent 30%);
                     background-size: 6px 2px;
+                }
+
+                .legend-line.volume-line {
+                    background: linear-gradient(to right, #f97316 20%, transparent 20%);
+                    background-size: 4px 2px;
                 }
 
                 .esi-loading {
