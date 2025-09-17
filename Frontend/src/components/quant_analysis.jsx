@@ -426,9 +426,15 @@ export default function MarketMakers() {
   // Chart options for better visualization
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          font: {
+            size: 12
+          }
+        }
       },
       title: {
         display: true,
@@ -444,14 +450,40 @@ export default function MarketMakers() {
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Interest Rate (%)'
+          text: 'Interest Rate (%)',
+          font: {
+            size: 12
+          }
+        },
+        ticks: {
+          font: {
+            size: 11
+          }
         }
       },
       x: {
         title: {
           display: true,
-          text: 'Central Banks'
+          text: 'Central Banks',
+          font: {
+            size: 12
+          }
+        },
+        ticks: {
+          font: {
+            size: 10
+          },
+          maxRotation: 45,
+          minRotation: 45
         }
+      }
+    },
+    layout: {
+      padding: {
+        top: 10,
+        bottom: 10,
+        left: 10,
+        right: 10
       }
     }
   };
@@ -478,9 +510,51 @@ export default function MarketMakers() {
                   {error}
                 </Alert>
               ) : (
-                <Bar data={chartData} options={chartOptions} />
+                <div className="chart-wrapper">
+                  <Bar data={chartData} options={chartOptions} />
+                </div>
               )}
             </div>
+
+            <style>{`
+              .interest-rates-bar-chart-container {
+                width: 100%;
+                margin: 20px 0;
+                padding: 0 10px;
+              }
+
+              .chart-wrapper {
+                position: relative;
+                width: 100%;
+                max-width: 800px;
+                height: 400px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+                box-sizing: border-box;
+              }
+
+              @media (max-width: 768px) {
+                .chart-wrapper {
+                  height: 300px;
+                  padding: 15px;
+                  max-width: 100%;
+                }
+                
+                .interest-rates-bar-chart-container {
+                  padding: 0 5px;
+                }
+              }
+
+              @media (max-width: 480px) {
+                .chart-wrapper {
+                  height: 250px;
+                  padding: 10px;
+                }
+              }
+            `}</style>
 
             <div className="interest-rate-differentials mt-8">
               <h6 className="text-xl font-semibold mb-4">Calculate Interest Rate Differentials</h6>
