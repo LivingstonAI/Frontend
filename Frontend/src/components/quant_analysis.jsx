@@ -261,13 +261,14 @@ export default function MarketMakers() {
   const [apiResponse, setApiResponse] = useState('');
   const [centralBanksArray, setCentralBanksArray] = useState([]);
   const [ratesArray, setRatesArray] = useState([]);
-  const [bankOne, setBankOne] = useState('Australian Central Bank');
-  const [bankTwo, setBankTwo] = useState('Australian Central Bank');
+  const [bankOne, setBankOne] = useState('Federal Reserve (USA)');
+  const [bankTwo, setBankTwo] = useState('Federal Reserve (USA)');
   const [submitButton, setSubmitButton] = useState('Submit');
   const [calculatedRate, setCalculatedRate] = useState('');
   const [firstRate, setFirstRate] = useState();
   const [secondRate, setSecondRate] = useState();
 
+  // UPDATED: Change to use your Django backend URL
   const baseUrl = "https://backend-production-c0ab.up.railway.app";
   
   const [chartData, setChartData] = useState({
@@ -346,8 +347,19 @@ export default function MarketMakers() {
   useEffect(() => {
     const fetchInterestRatesData = async () => {
       try {
-        const response = await fetch(`${baseUrl}/interest-rates-data`);
+        // UPDATED: Use your custom Django endpoint instead of external API
+        const response = await fetch(`${baseUrl}/api/v2024/custom-global-interest-rates-database/`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+
+        // Check if there's an error in the response
+        if (data.error) {
+          throw new Error(data.message || 'Failed to fetch interest rates data');
+        }
 
         setApiResponse(data['Interest Rates']);
 
@@ -358,28 +370,90 @@ export default function MarketMakers() {
         const interestRates = centralBankRates.map((rate) => rate.rate_pct);
         setRatesArray(interestRates);
 
+        // Enhanced chart styling for better visualization
+        const backgroundColors = centralBankRates.map((_, index) => {
+          const colors = [
+            'rgba(59, 130, 246, 0.8)',  // Blue
+            'rgba(16, 185, 129, 0.8)',  // Green
+            'rgba(245, 101, 101, 0.8)', // Red
+            'rgba(251, 191, 36, 0.8)',  // Yellow
+            'rgba(139, 92, 246, 0.8)',  // Purple
+            'rgba(236, 72, 153, 0.8)',  // Pink
+            'rgba(34, 197, 94, 0.8)',   // Emerald
+            'rgba(249, 115, 22, 0.8)',  // Orange
+          ];
+          return colors[index % colors.length];
+        });
+
+        const borderColors = backgroundColors.map(color => color.replace('0.8', '1'));
+
         setChartData({
           labels: labels,
           datasets: [
             {
               label: "Global Interest Rates (%)",
               data: interestRates,
-              borderColor: ["rgba(75, 192, 192, 1)"],
-              borderWidth: 1,
+              backgroundColor: backgroundColors,
+              borderColor: borderColors,
+              borderWidth: 2,
+              borderRadius: 4,
+              borderSkipped: false,
             },
           ],
         });
+
+        // Set default values for the first two banks
+        if (labels.length >= 2) {
+          setBankOne(labels[0]);
+          setBankTwo(labels[1]);
+          setFirstRate(interestRates[0]);
+          setSecondRate(interestRates[1]);
+        }
+
       } catch (error) {
         console.error("Error fetching interest rates data:", error);
-        setError('Error fetching interest rates data. Please try again later.');
+        setError(`Error fetching interest rates data: ${error.message}. Please try again later.`);
       }
     };
 
     fetchInterestRatesData();
-  }, []);
+  }, [baseUrl]);
 
   const handleShowModal = () => {
     setShowModal(!showModal);
+  };
+
+  // Chart options for better visualization
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Current Global Interest Rates',
+        font: {
+          size: 16,
+          weight: 'bold'
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Interest Rate (%)'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Central Banks'
+        }
+      }
+    }
   };
 
   return (
@@ -399,7 +473,13 @@ export default function MarketMakers() {
             </div>
             
             <div className="interest-rates-bar-chart-container">
-              <Bar data={chartData} />
+              {error ? (
+                <Alert className="mb-4">
+                  {error}
+                </Alert>
+              ) : (
+                <Bar data={chartData} options={chartOptions} />
+              )}
             </div>
 
             <div className="interest-rate-differentials mt-8">
@@ -408,7 +488,8 @@ export default function MarketMakers() {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <p className="font-bold mb-2">Central Bank 1</p>
-                  <select className='form-control w-full' onChange={changeBankOne}>
+                  <select className='form-control w-full' value={bankOne} onChange={changeBankOne}>
+                    <option value="">Select Central Bank</option>
                     {centralBanksArray.map((bank, index) => (
                       <option key={index} value={bank}>{bank}</option>
                     ))}
@@ -416,7 +497,8 @@ export default function MarketMakers() {
                 </div>
                 <div>
                   <p className="font-bold mb-2">Central Bank 2</p>
-                  <select className='form-control w-full' onChange={changeBankTwo}>
+                  <select className='form-control w-full' value={bankTwo} onChange={changeBankTwo}>
+                    <option value="">Select Central Bank</option>
                     {centralBanksArray.map((bank, index) => (
                       <option key={index} value={bank}>{bank}</option>
                     ))}
@@ -427,14 +509,15 @@ export default function MarketMakers() {
               <div className="selected-central-banks mt-6">
                 <p className="font-bold mb-2">Selected Central Banks</p>
                 <ul className="list-disc pl-5">
-                  <li>{bankOne}: {firstRate}%</li>
-                  <li>{bankTwo}: {secondRate}%</li>
+                  <li>{bankOne}: {firstRate !== undefined ? `${firstRate}%` : 'N/A'}</li>
+                  <li>{bankTwo}: {secondRate !== undefined ? `${secondRate}%` : 'N/A'}</li>
                 </ul>
               </div>
 
               <button 
                 className="btn btn-primary submit-interest-rate-calculation mt-4" 
                 onClick={submitCalculation}
+                disabled={!firstRate || !secondRate}
               >
                 {submitButton}
               </button>
