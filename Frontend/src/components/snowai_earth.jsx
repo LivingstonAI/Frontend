@@ -103,7 +103,7 @@ export default function SnowAIEarth() {
     const fetchEconomicData = async (countryName) => {
         setLoadingAnalysis(true);
         try {
-            const response = await fetch(`${baseUrl}/api/economic-data/`, {
+            const response = await fetch(`${baseUrl}/api/economic-data-map/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
