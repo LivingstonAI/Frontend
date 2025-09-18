@@ -4,6 +4,7 @@ import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 import { format, parseISO } from 'date-fns';
 import { Chart, registerables } from "chart.js/auto"; // Import from "chart.js/auto" for correct import
+import { Clipboard } from "lucide-react"; // Import Clipboard icon
 Chart.register(...registerables);
 
 export default function ModelPerformance() {
@@ -16,6 +17,7 @@ export default function ModelPerformance() {
     const [overallReturn, setOverallReturn] = useState(0);
     const [winRate, setWinRate] = useState(0);
     const [lossRate, setLossRate] = useState(0);
+    const [copiedId, setCopiedId] = useState(null);
     const chartContainer = useRef(null); // useRef hook for Canvas element
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [showModelSummary, setShowModelSummary] = useState(false);
@@ -82,7 +84,6 @@ export default function ModelPerformance() {
         setShowModelIndex(prevIndex => prevIndex === index ? null : index);
     };
 
-    
     const handleFilterChange = (event) => {
         const { value } = event.target;
         setFilterValue(value);
@@ -121,12 +122,22 @@ export default function ModelPerformance() {
         });
     
         let totalTrades = numWins + numLosses;
-        let winPercentage = (numWins / totalTrades) * 100;
-        let lossPercentage = (numLosses / totalTrades) * 100;
+        let winPercentage = totalTrades > 0 ? (numWins / totalTrades) * 100 : 0;
+        let lossPercentage = totalTrades > 0 ? (numLosses / totalTrades) * 100 : 0;
         setWinRate(winPercentage);
         setLossRate(lossPercentage);
     };
     
+    // Function to copy model ID to clipboard
+    const copyModelId = (id) => {
+        navigator.clipboard.writeText(id.toString())
+            .then(() => {
+                setCopiedId(id);
+                // Reset the copied state after 2 seconds
+                setTimeout(() => setCopiedId(null), 2000);
+            })
+            .catch(err => console.error('Failed to copy: ', err));
+    };
 
     const handleCalculateTotalProfitLoss = () => {
         const total = filteredModels.reduce((acc, model) => acc + parseFloat(model.profit), 0);
@@ -138,7 +149,6 @@ export default function ModelPerformance() {
         // Filter models by modelId and extract profits
         const filteredProfits = filteredModels
             .filter(model => model.model_id.toString() === modelId)
-
             .map(model => parseFloat(model.profit))
             .filter(profit => profit !== -1);
     
@@ -222,9 +232,9 @@ export default function ModelPerformance() {
                             <br />
                             <br />
                             <p>Model ID: {filterValue}</p>
-                            <p>Win Rate: {winRate}%</p>
-                            <p>Loss Rate: {lossRate}%</p>
-                            <p>Overall Return: ${overallReturn}</p>
+                            <p>Win Rate: {winRate.toFixed(2)}%</p>
+                            <p>Loss Rate: {lossRate.toFixed(2)}%</p>
+                            <p>Overall Return: ${overallReturn.toFixed(2)}</p>
                         </div>
                     </div>
                 )}
@@ -235,7 +245,36 @@ export default function ModelPerformance() {
                             <hr />
                             {groupedModels[date].map((model, modelIndex) => (
                                 <div key={model.model_id} className="genesys-model-performance">
-                                    <p>Model ID: {model.model_id}</p>
+                                    <div className="model-id-container" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <p>Model ID: {model.model_id}</p>
+                                        <button 
+                                            onClick={() => copyModelId(model.model_id)} 
+                                            className="copy-button btn btn-primary"
+                                            style={{
+                                                border: 'none',
+                                                // background: 'transparent',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                padding: '5px',
+                                                borderRadius: '4px',
+                                                transition: 'background-color 0.2s'
+                                            }}
+                                            title="Copy Model ID"
+                                        >
+                                            <i className="bi bi-clipboard-fill" style={{ fontSize: '18px' }}></i>
+                                            {copiedId === model.model_id && (
+                                                <span style={{ 
+                                                    marginLeft: '5px', 
+                                                    fontSize: '0.8rem', 
+                                                    color: 'white' 
+                                                }}>
+                                                    Copied!
+                                                </span>
+                                            )}
+                                        </button>
+                                    </div>
+
                                     <p>Initial Equity: {model.initial_equity}</p>
                                     <p>Order Ticket: {model.order_ticket}</p>
                                     <p>Asset: {model.asset}</p>
