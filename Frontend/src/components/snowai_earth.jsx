@@ -9,6 +9,7 @@ const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master
 export default function SnowAIEarth() {
     const [view3D, setView3D] = useState(true); // Start with 3D view
     const [selectedCountry, setSelectedCountry] = useState('');
+    const [hoveredCountry, setHoveredCountry] = useState('');
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
     const [globeTheme, setGlobeTheme] = useState('blue-marble');
@@ -36,12 +37,6 @@ export default function SnowAIEarth() {
             globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
-        },
-        'dark': {
-            name: 'Dark Theme',
-            globeImage: null,
-            bumpImage: null,
-            background: null
         }
     };
     
@@ -134,11 +129,14 @@ export default function SnowAIEarth() {
             .attr("stroke-width", 0.5)
             .style("cursor", "pointer")
             .on("mouseover", function(event, d) {
+                const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
+                setHoveredCountry(countryName);
                 d3.select(this)
                     .attr("fill", "#74b9ff")
                     .attr("stroke-width", 1);
             })
             .on("mouseout", function(event, d) {
+                setHoveredCountry('');
                 const countryName = d.properties?.NAME || d.properties?.name;
                 d3.select(this)
                     .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
@@ -366,9 +364,9 @@ export default function SnowAIEarth() {
                         )}
                     </div>
 
-                    {selectedCountry && (
+                    {(selectedCountry || hoveredCountry) && (
                         <div style={styles.countryLabel}>
-                            {selectedCountry}
+                            {selectedCountry || hoveredCountry}
                         </div>
                     )}
 
