@@ -290,6 +290,7 @@ export default function SnowAIEarth() {
                 <div style={styles.mainBodyInfo}>
                     <h5 style={styles.majorUpcomingNewsEventsHeader}>SnowAI Earth</h5>
                     
+                    
                     <div style={styles.controlsContainer}>
                         <div style={styles.toggleContainer}>
                             <button
