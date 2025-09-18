@@ -4,16 +4,16 @@ import * as d3 from 'd3';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-atlas-110m/world-110m.json";
+const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
 export default function SnowAIEarth() {
-    const [view3D, setView3D] = useState(false);
+    const [view3D, setView3D] = useState(true); // Start with 3D view
     const [selectedCountry, setSelectedCountry] = useState('');
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
     const [globeTheme, setGlobeTheme] = useState('blue-marble');
     const [isMobile, setIsMobile] = useState(false);
-    const [topoData, setTopoData] = useState(null);
+    const [geoJsonData, setGeoJsonData] = useState(null);
     const svgRef = useRef();
     const globeRef = useRef();
 
@@ -75,22 +75,19 @@ export default function SnowAIEarth() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
         
-        // Load world topology data for both globe and D3 map
+        // Load GeoJSON data for both globe and D3 map
         fetch(geoUrl)
             .then(res => res.json())
             .then(data => {
-                setTopoData(data);
-                // Convert topojson to geojson for globe
-                const countries = data.objects.countries;
-                if (countries) {
-                    setWorldData({ 
-                        features: countries.geometries || []
-                    });
-                }
+                console.log('Loaded GeoJSON data:', data);
+                setGeoJsonData(data);
+                setWorldData(data);
             })
             .catch(err => {
-                console.log('Error loading world data:', err);
+                console.error('Error loading world data:', err);
+                // Fallback to empty data
                 setWorldData({ features: [] });
+                setGeoJsonData({ features: [] });
             });
             
         return () => window.removeEventListener('resize', checkMobile);
@@ -98,13 +95,13 @@ export default function SnowAIEarth() {
 
     // D3 Map Effect
     useEffect(() => {
-        if (!view3D && topoData && svgRef.current) {
+        if (!view3D && geoJsonData && svgRef.current) {
             drawD3Map();
         }
-    }, [view3D, topoData, isMobile, selectedCountry]);
+    }, [view3D, geoJsonData, isMobile, selectedCountry]);
 
     const drawD3Map = () => {
-        if (!topoData) return;
+        if (!geoJsonData || !geoJsonData.features) return;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll("*").remove(); // Clear previous content
@@ -123,52 +120,34 @@ export default function SnowAIEarth() {
         const path = d3.geoPath().projection(projection);
 
         // Add countries
-        if (topoData.objects && topoData.objects.countries) {
-            const countries = topoData.objects.countries;
-            const countryFeatures = countries.geometries || countries.features || [];
-
-            svg.append("g")
-                .selectAll("path")
-                .data(countryFeatures)
-                .enter()
-                .append("path")
-                .attr("d", d => {
-                    // Handle both topojson and geojson formats
-                    if (d.type === "Feature") {
-                        return path(d);
-                    } else {
-                        // Convert topojson geometry to geojson feature
-                        const feature = {
-                            type: "Feature",
-                            geometry: d,
-                            properties: d.properties || {}
-                        };
-                        return path(feature);
-                    }
-                })
-                .attr("fill", d => {
-                    const countryName = d.properties?.NAME || d.properties?.name;
-                    return selectedCountry === countryName ? "#ff6b6b" : "#f1faee";
-                })
-                .attr("stroke", "#457b9d")
-                .attr("stroke-width", 0.5)
-                .style("cursor", "pointer")
-                .on("mouseover", function(event, d) {
-                    d3.select(this)
-                        .attr("fill", "#74b9ff")
-                        .attr("stroke-width", 1);
-                })
-                .on("mouseout", function(event, d) {
-                    const countryName = d.properties?.NAME || d.properties?.name;
-                    d3.select(this)
-                        .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
-                        .attr("stroke-width", 0.5);
-                })
-                .on("click", function(event, d) {
-                    const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
-                    handleCountryClick({ name: countryName });
-                });
-        }
+        svg.append("g")
+            .selectAll("path")
+            .data(geoJsonData.features)
+            .enter()
+            .append("path")
+            .attr("d", path)
+            .attr("fill", d => {
+                const countryName = d.properties?.NAME || d.properties?.name;
+                return selectedCountry === countryName ? "#ff6b6b" : "#f1faee";
+            })
+            .attr("stroke", "#457b9d")
+            .attr("stroke-width", 0.5)
+            .style("cursor", "pointer")
+            .on("mouseover", function(event, d) {
+                d3.select(this)
+                    .attr("fill", "#74b9ff")
+                    .attr("stroke-width", 1);
+            })
+            .on("mouseout", function(event, d) {
+                const countryName = d.properties?.NAME || d.properties?.name;
+                d3.select(this)
+                    .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
+                    .attr("stroke-width", 0.5);
+            })
+            .on("click", function(event, d) {
+                const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
+                handleCountryClick({ name: countryName });
+            });
 
         // Add markers for sample countries
         svg.append("g")
@@ -197,53 +176,26 @@ export default function SnowAIEarth() {
     };
 
     const handleCountryClick = (country) => {
-        setSelectedCountry(country.name);
-        setTimeout(() => setSelectedCountry(''), 5000); // Show for 5 seconds
+        const countryName = typeof country === 'string' ? country : country.name;
+        setSelectedCountry(countryName);
+        console.log('Selected country:', countryName);
+        setTimeout(() => setSelectedCountry(''), 3000);
     };
 
     const handlePolygonClick = (polygon) => {
-        const countryName = polygon.properties?.NAME || 
-                          polygon.properties?.name || 
-                          polygon.properties?.NAME_EN ||
-                          polygon.properties?.ADMIN ||
-                          'Unknown Country';
-        handleCountryClick({ name: countryName });
+        const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
+        console.log('Polygon clicked:', countryName, polygon.properties);
+        handleCountryClick(countryName);
     };
 
-    // Function to get country fill color based on selection and theme
-    const getCountryFillColor = (country) => {
-        const countryName = country.properties?.NAME || 
-                          country.properties?.name || 
-                          country.properties?.NAME_EN ||
-                          country.properties?.ADMIN;
-        
-        if (selectedCountry && countryName === selectedCountry) {
-            return 'rgba(255, 107, 107, 0.8)'; // Highlighted color
-        }
-        
-        // Different colors based on theme
-        switch(globeTheme) {
-            case 'blue-marble':
-                return 'rgba(70, 130, 180, 0.3)';
-            case 'night-lights':
-                return 'rgba(255, 215, 0, 0.2)';
-            case 'natural-earth':
-                return 'rgba(34, 139, 34, 0.3)';
-            case 'dark':
-                return 'rgba(100, 100, 100, 0.4)';
-            default:
-                return 'rgba(70, 130, 180, 0.3)';
+    const handlePolygonHover = (polygon) => {
+        if (polygon && polygon.properties) {
+            const countryName = polygon.properties.NAME || polygon.properties.name || 'Unknown Country';
+            // You could set a hover state here if needed
         }
     };
 
     const styles = {
-        mainBodyInfo: {
-            flex: 1,
-            padding: isMobile ? '10px' : '20px',
-            backgroundColor: '#f8f9fa',
-            position: 'relative',
-            overflow: 'hidden'
-        },
         majorUpcomingNewsEventsHeader: {
             fontSize: isMobile ? '1.8rem' : '2.5rem',
             fontWeight: 'bold',
@@ -267,7 +219,8 @@ export default function SnowAIEarth() {
         themeContainer: {
             display: 'flex',
             gap: '5px',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexWrap: 'wrap'
         },
         toggleButton: {
             padding: isMobile ? '10px 16px' : '12px 24px',
@@ -281,14 +234,15 @@ export default function SnowAIEarth() {
             whiteSpace: 'nowrap'
         },
         themeButton: {
-            padding: '8px 12px',
+            padding: '6px 12px',
             border: 'none',
             borderRadius: '20px',
             fontSize: '12px',
             fontWeight: '500',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            margin: '2px'
         },
         activeButton: {
             backgroundColor: '#3498db',
@@ -303,31 +257,29 @@ export default function SnowAIEarth() {
         },
         viewContainer: {
             width: '100%',
-            height: `calc(100vh - ${isMobile ? '280px' : '200px'})`,
+            height: `calc(100vh - ${isMobile ? '300px' : '220px'})`,
             position: 'relative',
             borderRadius: '15px',
             overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center'
+            alignItems: 'center',
+            backgroundColor: view3D ? '#000' : '#e8f4fd'
         },
         countryLabel: {
             position: 'absolute',
             top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0,0,0,0.9)',
+            backgroundColor: 'rgba(0,0,0,0.8)',
             color: 'white',
-            padding: '12px 24px',
+            padding: '10px 20px',
             borderRadius: '25px',
-            fontSize: isMobile ? '16px' : '20px',
+            fontSize: isMobile ? '14px' : '18px',
             fontWeight: 'bold',
             zIndex: 1000,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)',
-            animation: 'fadeIn 0.3s ease-in'
+            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
         },
         mapContainer: {
             width: '100%',
@@ -342,17 +294,13 @@ export default function SnowAIEarth() {
     };
 
     const getGlobeSize = () => {
-        if (isMobile) {
-            return {
-                width: Math.min(window.innerWidth - 40, 400),
-                height: Math.min(window.innerHeight * 0.5, 400)
-            };
-        }
-        const containerWidth = window.innerWidth * 0.6; // Account for sidebar
-        const containerHeight = window.innerHeight * 0.6;
+        const baseSize = isMobile ? 
+            Math.min(window.innerWidth - 40, 400) : 
+            Math.min(window.innerWidth * 0.4, window.innerHeight * 0.5, 600);
+        
         return {
-            width: Math.min(containerWidth, containerHeight),
-            height: Math.min(containerWidth, containerHeight)
+            width: baseSize,
+            height: baseSize
         };
     };
 
@@ -420,7 +368,7 @@ export default function SnowAIEarth() {
 
                     {selectedCountry && (
                         <div style={styles.countryLabel}>
-                            📍 {selectedCountry}
+                            {selectedCountry}
                         </div>
                     )}
 
@@ -432,57 +380,50 @@ export default function SnowAIEarth() {
                                 bumpImageUrl={currentTheme.bumpImage}
                                 backgroundImageUrl={currentTheme.background}
                                 
-                                // Polygons (countries) with enhanced borders
-                                polygonsData={worldData.features}
-                                polygonAltitude={0.008}
-                                polygonCapColor={getCountryFillColor}
-                                polygonSideColor={() => 'rgba(0, 0, 0, 0.1)'}
+                                // Countries/Polygons with borders
+                                polygonsData={worldData.features || []}
+                                polygonAltitude={0.006}
+                                polygonCapColor={() => 'rgba(50, 50, 50, 0.1)'}
+                                polygonSideColor={() => 'rgba(50, 50, 50, 0.05)'}
                                 polygonStrokeColor={() => '#ffffff'}
-                                polygonStrokeWidth={0.8}
-                                polygonLabel={({ properties }) => {
-                                    const countryName = properties?.NAME || 
-                                                      properties?.name || 
-                                                      properties?.NAME_EN ||
-                                                      properties?.ADMIN ||
-                                                      'Unknown Country';
-                                    return `<div style="
+                                polygonLabel={({ properties }) => `
+                                    <div style="
                                         background: rgba(0,0,0,0.8);
                                         color: white;
                                         padding: 8px 12px;
-                                        border-radius: 8px;
-                                        font-weight: bold;
+                                        border-radius: 6px;
                                         font-size: 14px;
-                                        border: 1px solid rgba(255,255,255,0.3);
+                                        font-weight: bold;
+                                        max-width: 200px;
                                     ">
-                                        📍 ${countryName}
-                                    </div>`;
-                                }}
+                                        ${properties?.NAME || properties?.name || 'Unknown Country'}
+                                    </div>
+                                `}
                                 onPolygonClick={handlePolygonClick}
-                                onPolygonHover={(polygon, prevPolygon) => {
-                                    // Optional: Add hover effects
-                                }}
+                                onPolygonHover={handlePolygonHover}
                                 
-                                // Points (markers for countries)
+                                // Points (markers for sample countries)
                                 pointsData={countries}
-                                pointAltitude={0.02}
+                                pointAltitude={0.01}
                                 pointColor={d => d.color}
-                                pointRadius={isMobile ? 0.3 : 0.4}
-                                pointLabel={d => `<div style="
-                                    background: rgba(0,0,0,0.8);
-                                    color: white;
-                                    padding: 8px 12px;
-                                    border-radius: 8px;
-                                    font-weight: bold;
-                                    font-size: 14px;
-                                    border: 1px solid rgba(255,255,255,0.3);
-                                ">
-                                    🏙️ ${d.name}
-                                </div>`}
+                                pointRadius={isMobile ? 0.15 : 0.25}
+                                pointLabel={d => `
+                                    <div style="
+                                        background: rgba(0,0,0,0.8);
+                                        color: white;
+                                        padding: 8px 12px;
+                                        border-radius: 6px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                    ">
+                                        ${d.name}
+                                    </div>
+                                `}
                                 onPointClick={handleCountryClick}
                                 
                                 // Globe properties
                                 showAtmosphere={true}
-                                atmosphereColor="lightskyblue"
+                                atmosphereColor="lightblue"
                                 atmosphereAltitude={0.15}
                                 
                                 // Controls
@@ -491,6 +432,7 @@ export default function SnowAIEarth() {
                                 // Animation
                                 animateIn={true}
                                 
+                                // Size
                                 width={globeSize.width}
                                 height={globeSize.height}
                             />
@@ -500,19 +442,6 @@ export default function SnowAIEarth() {
                     </div>
                 </div>
             </div>
-            
-            <style jsx>{`
-                @keyframes fadeIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-50%) translateY(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(0);
-                    }
-                }
-            `}</style>
         </div>
     );
 }
