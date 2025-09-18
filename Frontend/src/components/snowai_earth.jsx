@@ -292,6 +292,7 @@ export default function SnowAIEarth() {
                     
                     
                     <div style={styles.controlsContainer}>
+                        
                         <div style={styles.toggleContainer}>
                             <button
                                 style={{
