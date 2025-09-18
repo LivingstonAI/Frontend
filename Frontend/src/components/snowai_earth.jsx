@@ -286,13 +286,11 @@ export default function SnowAIEarth() {
                 <Header />
             </div>
             <div style={styles.mainPageBody}>
-                <SideNavs />
+                {!isMobile && <SideNavs />}
                 <div style={styles.mainBodyInfo}>
                     <h5 style={styles.majorUpcomingNewsEventsHeader}>SnowAI Earth</h5>
                     
-                    
                     <div style={styles.controlsContainer}>
-                        
                         <div style={styles.toggleContainer}>
                             <button
                                 style={{
@@ -301,6 +299,7 @@ export default function SnowAIEarth() {
                                 }}
                                 onClick={() => setView3D(false)}
                             >
+                                
                                 2D Map
                             </button>
                             <button
