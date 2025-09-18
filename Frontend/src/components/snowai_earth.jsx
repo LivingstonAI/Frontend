@@ -207,20 +207,6 @@ export default function SnowAIEarth() {
     };
 
     const styles = {
-        container: {
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100vh',
-            backgroundColor: '#f8f9fa'
-        },
-        header: {
-            zIndex: 1000
-        },
-        mainPageBody: {
-            display: 'flex',
-            flex: 1,
-            overflow: 'hidden'
-        },
         mainBodyInfo: {
             flex: 1,
             padding: isMobile ? '10px' : '20px',
