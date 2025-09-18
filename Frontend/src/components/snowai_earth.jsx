@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
 import Header from "./header";
@@ -21,6 +21,7 @@ export default function SnowAIEarth() {
     const [clickedCountry, setClickedCountry] = useState('');
     const svgRef = useRef();
     const globeRef = useRef();
+    const mapContainerRef = useRef(); // Add ref for map container
 
     // Globe theme configurations
     const globeThemes = {
@@ -94,82 +95,24 @@ export default function SnowAIEarth() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    useEffect(() => {
-        if (!view3D && geoJsonData && svgRef.current) {
-            drawD3Map();
+    // Memoize the drawD3Map function to prevent unnecessary re-renders
+    const drawD3Map = useCallback(() => {
+        if (!geoJsonData || !geoJsonData.features || !svgRef.current || !mapContainerRef.current) {
+            return;
         }
-    }, [view3D, geoJsonData, isMobile, selectedCountry]);
-
-    const fetchEconomicData = async (countryName) => {
-        setLoadingAnalysis(true);
-        try {
-            const response = await fetch(`${baseUrl}/api/economic-data-map/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    country_name: countryName
-                })
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                const analysisData = {
-                    ...data,
-                    aiAnalysis: JSON.parse(data.ai_analysis)
-                };
-                
-                setEconomicAnalysis(prev => ({
-                    ...prev,
-                    [countryName]: analysisData
-                }));
-                
-                return analysisData;
-            } else {
-                console.error('Failed to fetch economic data:', data.error);
-                return null;
-            }
-        } catch (error) {
-            console.error('Error fetching economic data:', error);
-            return null;
-        } finally {
-            setLoadingAnalysis(false);
-        }
-    };
-
-    const handleCountryClick = (country) => {
-        const countryName = typeof country === 'string' ? country : country.name;
-        setClickedCountry(countryName);
-        setSelectedCountry(countryName);
-        setShowConfirmationModal(true);
-    };
-
-    const handleConfirmAnalysis = async () => {
-        setShowConfirmationModal(false);
-        
-        // Check if we already have analysis for this country
-        if (!economicAnalysis[clickedCountry]) {
-            await fetchEconomicData(clickedCountry);
-        }
-    };
-
-    const handleDeclineAnalysis = () => {
-        setShowConfirmationModal(false);
-        setSelectedCountry('');
-        setClickedCountry('');
-    };
-
-    const drawD3Map = () => {
-        if (!geoJsonData || !geoJsonData.features) return;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll("*").remove();
 
-        const container = svg.node().parentElement;
+        // Use the container ref instead of parentElement to avoid layout issues
+        const container = mapContainerRef.current;
         const width = container.clientWidth;
         const height = container.clientHeight;
+
+        // Add minimum dimensions check
+        if (width <= 0 || height <= 0) {
+            return;
+        }
 
         svg.attr("width", width).attr("height", height);
 
@@ -231,6 +174,102 @@ export default function SnowAIEarth() {
             })
             .append("title")
             .text(d => d.name);
+    }, [geoJsonData, isMobile, selectedCountry, countries]);
+
+    // Separate useEffect for drawing the map with debouncing
+    useEffect(() => {
+        if (!view3D && geoJsonData) {
+            // Add a small delay to ensure container is properly sized
+            const timer = setTimeout(() => {
+                drawD3Map();
+            }, 100);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [view3D, geoJsonData, drawD3Map]);
+
+    // Add resize handler for the map
+    useEffect(() => {
+        const handleResize = () => {
+            if (!view3D) {
+                // Debounce resize events
+                const timer = setTimeout(() => {
+                    drawD3Map();
+                }, 200);
+                return () => clearTimeout(timer);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [view3D, drawD3Map]);
+
+    const fetchEconomicData = async (countryName) => {
+        setLoadingAnalysis(true);
+        try {
+            const response = await fetch(`${baseUrl}/api/economic-data-map/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    country_name: countryName
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const analysisData = {
+                    ...data,
+                    aiAnalysis: JSON.parse(data.ai_analysis)
+                };
+                
+                setEconomicAnalysis(prev => ({
+                    ...prev,
+                    [countryName]: analysisData
+                }));
+                
+                return analysisData;
+            } else {
+                console.error('Failed to fetch economic data:', data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching economic data:', error);
+            return null;
+        } finally {
+            setLoadingAnalysis(false);
+        }
+    };
+
+    const handleCountryClick = (country) => {
+        const countryName = typeof country === 'string' ? country : country.name;
+        setClickedCountry(countryName);
+        setSelectedCountry(countryName);
+        setShowConfirmationModal(true);
+    };
+
+    const handleConfirmAnalysis = async () => {
+        setShowConfirmationModal(false);
+        
+        // Check if we already have analysis for this country
+        if (!economicAnalysis[clickedCountry]) {
+            await fetchEconomicData(clickedCountry);
+        }
+        
+        // Force redraw the map after analysis is loaded
+        if (!view3D) {
+            setTimeout(() => {
+                drawD3Map();
+            }, 100);
+        }
+    };
+
+    const handleDeclineAnalysis = () => {
+        setShowConfirmationModal(false);
+        setSelectedCountry('');
+        setClickedCountry('');
     };
 
     const handlePolygonClick = (polygon) => {
@@ -252,7 +291,15 @@ export default function SnowAIEarth() {
                     </h3>
                     <button 
                         style={styles.closeButton}
-                        onClick={() => setSelectedCountry('')}
+                        onClick={() => {
+                            setSelectedCountry('');
+                            // Redraw map after closing panel
+                            if (!view3D) {
+                                setTimeout(() => {
+                                    drawD3Map();
+                                }, 100);
+                            }
+                        }}
                     >
                         ×
                     </button>
@@ -441,7 +488,8 @@ export default function SnowAIEarth() {
         },
         svgMap: {
             width: '100%',
-            height: '100%'
+            height: '100%',
+            display: 'block' // Add this to prevent inline spacing issues
         },
         modal: {
             position: 'fixed',
@@ -732,7 +780,7 @@ export default function SnowAIEarth() {
 
     const D3Map = () => {
         return (
-            <div style={styles.mapContainer}>
+            <div ref={mapContainerRef} style={styles.mapContainer}>
                 <svg ref={svgRef} style={styles.svgMap}></svg>
             </div>
         );
