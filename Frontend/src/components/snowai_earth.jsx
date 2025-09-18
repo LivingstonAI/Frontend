@@ -7,13 +7,18 @@ import SideNavs from "./side_navs";
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
 export default function SnowAIEarth() {
-    const [view3D, setView3D] = useState(true); // Start with 3D view
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
     const [globeTheme, setGlobeTheme] = useState('blue-marble');
     const [isMobile, setIsMobile] = useState(false);
     const [geoJsonData, setGeoJsonData] = useState(null);
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+    const [economicAnalysis, setEconomicAnalysis] = useState({});
+    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+    const [clickedCountry, setClickedCountry] = useState('');
     const svgRef = useRef();
     const globeRef = useRef();
 
@@ -67,7 +72,6 @@ export default function SnowAIEarth() {
     useEffect(() => {
         setCountries(countryData);
         
-        // Check if mobile
         const checkMobile = () => {
             setIsMobile(window.innerWidth <= 768);
         };
@@ -75,17 +79,14 @@ export default function SnowAIEarth() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
         
-        // Load GeoJSON data for both globe and D3 map
         fetch(geoUrl)
             .then(res => res.json())
             .then(data => {
-                console.log('Loaded GeoJSON data:', data);
                 setGeoJsonData(data);
                 setWorldData(data);
             })
             .catch(err => {
                 console.error('Error loading world data:', err);
-                // Fallback to empty data
                 setWorldData({ features: [] });
                 setGeoJsonData({ features: [] });
             });
@@ -93,18 +94,78 @@ export default function SnowAIEarth() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // D3 Map Effect
     useEffect(() => {
         if (!view3D && geoJsonData && svgRef.current) {
             drawD3Map();
         }
     }, [view3D, geoJsonData, isMobile, selectedCountry]);
 
+    const fetchEconomicData = async (countryName) => {
+        setLoadingAnalysis(true);
+        try {
+            const response = await fetch(`${baseUrl}/api/economic-data/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    country_name: countryName
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const analysisData = {
+                    ...data,
+                    aiAnalysis: JSON.parse(data.ai_analysis)
+                };
+                
+                setEconomicAnalysis(prev => ({
+                    ...prev,
+                    [countryName]: analysisData
+                }));
+                
+                return analysisData;
+            } else {
+                console.error('Failed to fetch economic data:', data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching economic data:', error);
+            return null;
+        } finally {
+            setLoadingAnalysis(false);
+        }
+    };
+
+    const handleCountryClick = (country) => {
+        const countryName = typeof country === 'string' ? country : country.name;
+        setClickedCountry(countryName);
+        setSelectedCountry(countryName);
+        setShowConfirmationModal(true);
+    };
+
+    const handleConfirmAnalysis = async () => {
+        setShowConfirmationModal(false);
+        
+        // Check if we already have analysis for this country
+        if (!economicAnalysis[clickedCountry]) {
+            await fetchEconomicData(clickedCountry);
+        }
+    };
+
+    const handleDeclineAnalysis = () => {
+        setShowConfirmationModal(false);
+        setSelectedCountry('');
+        setClickedCountry('');
+    };
+
     const drawD3Map = () => {
         if (!geoJsonData || !geoJsonData.features) return;
 
         const svg = d3.select(svgRef.current);
-        svg.selectAll("*").remove(); // Clear previous content
+        svg.selectAll("*").remove();
 
         const container = svg.node().parentElement;
         const width = container.clientWidth;
@@ -112,14 +173,12 @@ export default function SnowAIEarth() {
 
         svg.attr("width", width).attr("height", height);
 
-        // Create projection
         const projection = d3.geoNaturalEarth1()
             .scale(isMobile ? width / 7 : width / 6.5)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
 
-        // Add countries
         svg.append("g")
             .selectAll("path")
             .data(geoJsonData.features)
@@ -149,7 +208,6 @@ export default function SnowAIEarth() {
                 handleCountryClick({ name: countryName });
             });
 
-        // Add markers for sample countries
         svg.append("g")
             .selectAll("circle")
             .data(countries)
@@ -175,24 +233,118 @@ export default function SnowAIEarth() {
             .text(d => d.name);
     };
 
-    const handleCountryClick = (country) => {
-        const countryName = typeof country === 'string' ? country : country.name;
-        setSelectedCountry(countryName);
-        console.log('Selected country:', countryName);
-        setTimeout(() => setSelectedCountry(''), 3000);
-    };
-
     const handlePolygonClick = (polygon) => {
         const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
-        console.log('Polygon clicked:', countryName, polygon.properties);
         handleCountryClick(countryName);
     };
 
-    const handlePolygonHover = (polygon) => {
-        if (polygon && polygon.properties) {
-            const countryName = polygon.properties.NAME || polygon.properties.name || 'Unknown Country';
-            // You could set a hover state here if needed
-        }
+    const renderAnalysisPanel = () => {
+        const analysis = economicAnalysis[selectedCountry];
+        if (!analysis) return null;
+
+        const aiData = analysis.aiAnalysis;
+
+        return (
+            <div style={styles.analysisPanel}>
+                <div style={styles.analysisPanelHeader}>
+                    <h3 style={styles.analysisPanelTitle}>
+                        Economic Analysis: {analysis.country}
+                    </h3>
+                    <button 
+                        style={styles.closeButton}
+                        onClick={() => setSelectedCountry('')}
+                    >
+                        ×
+                    </button>
+                </div>
+                
+                <div style={styles.analysisPanelContent}>
+                    {analysis.has_data ? (
+                        <div>
+                            <div style={styles.analysisSection}>
+                                <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
+                                    {aiData.overall_sentiment.toUpperCase()} SENTIMENT
+                                </div>
+                            </div>
+                            
+                            <div style={styles.analysisSection}>
+                                <h4 style={styles.sectionTitle}>Summary</h4>
+                                <p style={styles.summaryText}>{aiData.summary}</p>
+                            </div>
+                            
+                            <div style={styles.analysisSection}>
+                                <h4 style={styles.sectionTitle}>Key Highlights</h4>
+                                <ul style={styles.highlightsList}>
+                                    {aiData.key_highlights.map((highlight, index) => (
+                                        <li key={index} style={styles.highlightItem}>{highlight}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                            
+                            {aiData.major_events.length > 0 && (
+                                <div style={styles.analysisSection}>
+                                    <h4 style={styles.sectionTitle}>Major Events</h4>
+                                    {aiData.major_events.map((event, index) => (
+                                        <div key={index} style={styles.eventItem}>
+                                            <div style={styles.eventHeader}>
+                                                <span style={styles.eventName}>{event.event_name}</span>
+                                                <span style={styles.impactBadge(event.impact_level)}>
+                                                    {event.impact_level.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <p style={styles.eventSummary}>{event.summary}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            
+                            <div style={styles.analysisGrid}>
+                                {aiData.risk_factors.length > 0 && (
+                                    <div style={styles.riskFactorsSection}>
+                                        <h4 style={styles.sectionTitle}>Risk Factors</h4>
+                                        <ul style={styles.factorsList}>
+                                            {aiData.risk_factors.map((risk, index) => (
+                                                <li key={index} style={styles.riskItem}>{risk}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {aiData.opportunities.length > 0 && (
+                                    <div style={styles.opportunitiesSection}>
+                                        <h4 style={styles.sectionTitle}>Opportunities</h4>
+                                        <ul style={styles.factorsList}>
+                                            {aiData.opportunities.map((opportunity, index) => (
+                                                <li key={index} style={styles.opportunityItem}>{opportunity}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div style={styles.metaInfo}>
+                                <small style={styles.metaText}>
+                                    Analysis Period: {aiData.analysis_period} | Currency: {analysis.currency}
+                                </small>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={styles.noDataContainer}>
+                            <div style={styles.noDataIcon}>📊</div>
+                            <h4 style={styles.noDataTitle}>No Economic Data Available</h4>
+                            <p style={styles.noDataMessage}>
+                                {analysis.message}
+                            </p>
+                            {aiData.summary && (
+                                <p style={styles.noDataSummary}>
+                                    {aiData.summary}
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     const styles = {
@@ -290,6 +442,280 @@ export default function SnowAIEarth() {
         svgMap: {
             width: '100%',
             height: '100%'
+        },
+        modal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000
+        },
+        modalContent: {
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '20px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            maxWidth: '500px',
+            width: '90%',
+            textAlign: 'center',
+            animation: 'fadeIn 0.3s ease'
+        },
+        modalTitle: {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: '#2c3e50',
+            marginBottom: '15px'
+        },
+        modalMessage: {
+            fontSize: '1rem',
+            color: '#7f8c8d',
+            marginBottom: '25px',
+            lineHeight: '1.5'
+        },
+        modalButtons: {
+            display: 'flex',
+            gap: '15px',
+            justifyContent: 'center'
+        },
+        modalButton: {
+            padding: '12px 24px',
+            border: 'none',
+            borderRadius: '25px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            minWidth: '100px'
+        },
+        confirmButton: {
+            backgroundColor: '#3498db',
+            color: 'white',
+            boxShadow: '0 4px 15px rgba(52, 152, 219, 0.3)'
+        },
+        declineButton: {
+            backgroundColor: '#ecf0f1',
+            color: '#7f8c8d'
+        },
+        loadingOverlay: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+            borderRadius: '15px'
+        },
+        loadingContent: {
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '15px',
+            textAlign: 'center',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+        },
+        loadingSpinner: {
+            width: '40px',
+            height: '40px',
+            border: '4px solid #ecf0f1',
+            borderTop: '4px solid #3498db',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 15px'
+        },
+        loadingText: {
+            fontSize: '16px',
+            color: '#2c3e50',
+            fontWeight: '500'
+        },
+        analysisPanel: {
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            width: isMobile ? 'calc(100% - 40px)' : '400px',
+            maxHeight: 'calc(100vh - 280px)',
+            backgroundColor: 'white',
+            borderRadius: '15px',
+            boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
+            zIndex: 1001,
+            overflow: 'hidden'
+        },
+        analysisPanelHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '20px',
+            backgroundColor: '#3498db',
+            color: 'white'
+        },
+        analysisPanelTitle: {
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            margin: 0
+        },
+        closeButton: {
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '0',
+            width: '30px',
+            height: '30px',
+            borderRadius: '50%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            transition: 'background-color 0.3s ease'
+        },
+        analysisPanelContent: {
+            padding: '20px',
+            maxHeight: 'calc(100vh - 360px)',
+            overflowY: 'auto'
+        },
+        analysisSection: {
+            marginBottom: '20px'
+        },
+        sentimentBadge: (sentiment) => ({
+            display: 'inline-block',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            backgroundColor: sentiment === 'positive' ? '#27ae60' : sentiment === 'negative' ? '#e74c3c' : '#95a5a6',
+            color: 'white'
+        }),
+        sectionTitle: {
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            color: '#2c3e50',
+            marginBottom: '10px',
+            margin: '0 0 10px 0'
+        },
+        summaryText: {
+            fontSize: '14px',
+            color: '#7f8c8d',
+            lineHeight: '1.6',
+            margin: 0
+        },
+        highlightsList: {
+            margin: 0,
+            paddingLeft: '20px'
+        },
+        highlightItem: {
+            fontSize: '14px',
+            color: '#2c3e50',
+            marginBottom: '5px',
+            lineHeight: '1.4'
+        },
+        eventItem: {
+            backgroundColor: '#f8f9fa',
+            padding: '15px',
+            borderRadius: '10px',
+            marginBottom: '10px'
+        },
+        eventHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+        },
+        eventName: {
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#2c3e50'
+        },
+        impactBadge: (impact) => ({
+            padding: '3px 8px',
+            borderRadius: '12px',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            backgroundColor: impact === 'high' ? '#e74c3c' : impact === 'medium' ? '#f39c12' : '#95a5a6',
+            color: 'white'
+        }),
+        eventSummary: {
+            fontSize: '13px',
+            color: '#7f8c8d',
+            margin: 0,
+            lineHeight: '1.4'
+        },
+        analysisGrid: {
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '15px',
+            marginBottom: '20px'
+        },
+        riskFactorsSection: {
+            backgroundColor: '#fdf2f2',
+            padding: '15px',
+            borderRadius: '10px',
+            borderLeft: '4px solid #e74c3c'
+        },
+        opportunitiesSection: {
+            backgroundColor: '#f0f9f4',
+            padding: '15px',
+            borderRadius: '10px',
+            borderLeft: '4px solid #27ae60'
+        },
+        factorsList: {
+            margin: 0,
+            paddingLeft: '20px'
+        },
+        riskItem: {
+            fontSize: '13px',
+            color: '#c0392b',
+            marginBottom: '5px',
+            lineHeight: '1.4'
+        },
+        opportunityItem: {
+            fontSize: '13px',
+            color: '#27ae60',
+            marginBottom: '5px',
+            lineHeight: '1.4'
+        },
+        metaInfo: {
+            borderTop: '1px solid #ecf0f1',
+            paddingTop: '15px'
+        },
+        metaText: {
+            fontSize: '12px',
+            color: '#bdc3c7'
+        },
+        noDataContainer: {
+            textAlign: 'center',
+            padding: '20px'
+        },
+        noDataIcon: {
+            fontSize: '48px',
+            marginBottom: '15px'
+        },
+        noDataTitle: {
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            color: '#7f8c8d',
+            marginBottom: '10px',
+            margin: '0 0 10px 0'
+        },
+        noDataMessage: {
+            fontSize: '14px',
+            color: '#95a5a6',
+            marginBottom: '15px',
+            lineHeight: '1.5',
+            margin: '0 0 15px 0'
+        },
+        noDataSummary: {
+            fontSize: '13px',
+            color: '#bdc3c7',
+            lineHeight: '1.4',
+            fontStyle: 'italic',
+            margin: 0
         }
     };
 
@@ -311,6 +737,42 @@ export default function SnowAIEarth() {
             </div>
         );
     };
+
+    const ConfirmationModal = () => (
+        <div style={styles.modal}>
+            <div style={styles.modalContent}>
+                <h3 style={styles.modalTitle}>Economic Analysis</h3>
+                <p style={styles.modalMessage}>
+                    Would you like to see an AI-powered economic summary for <strong>{clickedCountry}</strong>?
+                </p>
+                <div style={styles.modalButtons}>
+                    <button
+                        style={{...styles.modalButton, ...styles.declineButton}}
+                        onClick={handleDeclineAnalysis}
+                    >
+                        No, Thanks
+                    </button>
+                    <button
+                        style={{...styles.modalButton, ...styles.confirmButton}}
+                        onClick={handleConfirmAnalysis}
+                    >
+                        Yes, Show Me
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const LoadingOverlay = () => (
+        <div style={styles.loadingOverlay}>
+            <div style={styles.loadingContent}>
+                <div style={styles.loadingSpinner}></div>
+                <div style={styles.loadingText}>
+                    Analyzing economic data for {clickedCountry}...
+                </div>
+            </div>
+        </div>
+    );
 
     const currentTheme = globeThemes[globeTheme];
     const globeSize = getGlobeSize();
@@ -380,7 +842,6 @@ export default function SnowAIEarth() {
                                 bumpImageUrl={currentTheme.bumpImage}
                                 backgroundImageUrl={currentTheme.background}
                                 
-                                // Countries/Polygons with borders
                                 polygonsData={worldData.features || []}
                                 polygonAltitude={0.006}
                                 polygonCapColor={() => 'rgba(50, 50, 50, 0.1)'}
@@ -400,9 +861,7 @@ export default function SnowAIEarth() {
                                     </div>
                                 `}
                                 onPolygonClick={handlePolygonClick}
-                                onPolygonHover={handlePolygonHover}
                                 
-                                // Points (markers for sample countries)
                                 pointsData={countries}
                                 pointAltitude={0.01}
                                 pointColor={d => d.color}
@@ -421,27 +880,67 @@ export default function SnowAIEarth() {
                                 `}
                                 onPointClick={handleCountryClick}
                                 
-                                // Globe properties
                                 showAtmosphere={true}
                                 atmosphereColor="lightblue"
                                 atmosphereAltitude={0.15}
                                 
-                                // Controls
                                 enablePointerInteraction={true}
-                                
-                                // Animation
                                 animateIn={true}
                                 
-                                // Size
                                 width={globeSize.width}
                                 height={globeSize.height}
                             />
                         ) : (
                             <D3Map />
                         )}
+
+                        {loadingAnalysis && <LoadingOverlay />}
                     </div>
+
+                    {selectedCountry && economicAnalysis[selectedCountry] && renderAnalysisPanel()}
                 </div>
             </div>
+
+            {showConfirmationModal && <ConfirmationModal />}
+
+            <style jsx>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                .closeButton:hover {
+                    background-color: rgba(255, 255, 255, 0.2) !important;
+                }
+                
+                .modalButton:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+                }
+                
+                .analysisPanelContent::-webkit-scrollbar {
+                    width: 6px;
+                }
+                
+                .analysisPanelContent::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 3px;
+                }
+                
+                .analysisPanelContent::-webkit-scrollbar-thumb {
+                    background: #c1c1c1;
+                    border-radius: 3px;
+                }
+                
+                .analysisPanelContent::-webkit-scrollbar-thumb:hover {
+                    background: #a8a8a8;
+                }
+            `}</style>
         </div>
     );
 }
