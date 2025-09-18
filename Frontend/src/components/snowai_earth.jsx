@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import Globe from 'react-globe.gl';
-import * as d3 from 'd3';
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -13,11 +13,8 @@ export default function SnowAIEarth() {
     const [worldData, setWorldData] = useState({ features: [] });
     const [globeTheme, setGlobeTheme] = useState('blue-marble');
     const [isMobile, setIsMobile] = useState(false);
-    const [topoData, setTopoData] = useState(null);
-    const svgRef = useRef();
 
     // Globe theme configurations
-    
     const globeThemes = {
         'blue-marble': {
             name: 'Blue Marble',
@@ -75,18 +72,11 @@ export default function SnowAIEarth() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
         
-        // Load world topology data for both globe and D3 map
-        fetch(geoUrl)
+        // Load world topology data for the globe
+        fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
             .then(res => res.json())
             .then(data => {
-                setTopoData(data);
-                // Convert topojson to geojson for globe
-                const countries = data.objects.countries;
-                if (countries) {
-                    setWorldData({ 
-                        features: countries.geometries || []
-                    });
-                }
+                setWorldData(data);
             })
             .catch(err => {
                 console.log('Error loading world data:', err);
@@ -95,106 +85,6 @@ export default function SnowAIEarth() {
             
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
-
-    // D3 Map Effect
-    useEffect(() => {
-        if (!view3D && topoData && svgRef.current) {
-            drawD3Map();
-        }
-    }, [view3D, topoData, isMobile, selectedCountry]);
-
-    const drawD3Map = () => {
-        if (!topoData) return;
-
-        const svg = d3.select(svgRef.current);
-        svg.selectAll("*").remove(); // Clear previous content
-
-        const container = svg.node().parentElement;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-
-        svg.attr("width", width).attr("height", height);
-
-        // Create projection
-        const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 7 : width / 6.5)
-            .translate([width / 2, height / 2]);
-
-        const path = d3.geoPath().projection(projection);
-
-        // Add countries
-        if (topoData.objects && topoData.objects.countries) {
-            const countries = topoData.objects.countries;
-            const countryFeatures = countries.geometries || countries.features || [];
-
-            svg.append("g")
-                .selectAll("path")
-                .data(countryFeatures)
-                .enter()
-                .append("path")
-                .attr("d", d => {
-                    // Handle both topojson and geojson formats
-                    if (d.type === "Feature") {
-                        return path(d);
-                    } else {
-                        // Convert topojson geometry to geojson feature
-                        const feature = {
-                            type: "Feature",
-                            geometry: d,
-                            properties: d.properties || {}
-                        };
-                        return path(feature);
-                    }
-                })
-                .attr("fill", d => {
-                    const countryName = d.properties?.NAME || d.properties?.name;
-                    return selectedCountry === countryName ? "#ff6b6b" : "#f1faee";
-                })
-                .attr("stroke", "#457b9d")
-                .attr("stroke-width", 0.5)
-                .style("cursor", "pointer")
-                .on("mouseover", function(event, d) {
-                    d3.select(this)
-                        .attr("fill", "#74b9ff")
-                        .attr("stroke-width", 1);
-                })
-                .on("mouseout", function(event, d) {
-                    const countryName = d.properties?.NAME || d.properties?.name;
-                    d3.select(this)
-                        .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
-                        .attr("stroke-width", 0.5);
-                })
-                .on("click", function(event, d) {
-                    const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
-                    handleCountryClick({ name: countryName });
-                });
-        }
-
-        // Add markers for sample countries
-        svg.append("g")
-            .selectAll("circle")
-            .data(countries)
-            .enter()
-            .append("circle")
-            .attr("cx", d => {
-                const coords = projection([d.lng, d.lat]);
-                return coords ? coords[0] : 0;
-            })
-            .attr("cy", d => {
-                const coords = projection([d.lng, d.lat]);
-                return coords ? coords[1] : 0;
-            })
-            .attr("r", isMobile ? 3 : 4)
-            .attr("fill", d => d.color)
-            .attr("stroke", "#fff")
-            .attr("stroke-width", 2)
-            .style("cursor", "pointer")
-            .on("click", function(event, d) {
-                handleCountryClick(d);
-            })
-            .append("title")
-            .text(d => d.name);
-    };
 
     const handleCountryClick = (country) => {
         setSelectedCountry(country.name);
@@ -207,21 +97,14 @@ export default function SnowAIEarth() {
         setTimeout(() => setSelectedCountry(''), 3000);
     };
 
+    const handleGeographyClick = (geo) => {
+        const countryName = geo.properties.NAME || geo.properties.name || 'Unknown Country';
+        setSelectedCountry(countryName);
+        setTimeout(() => setSelectedCountry(''), 3000);
+    };
+
     const styles = {
-        container: {
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100vh',
-            backgroundColor: '#f8f9fa'
-        },
-        header: {
-            zIndex: 1000
-        },
-        mainPageBody: {
-            display: 'flex',
-            flex: 1,
-            overflow: 'hidden'
-        },
+        
         mainBodyInfo: {
             flex: 1,
             padding: isMobile ? '10px' : '20px',
@@ -314,12 +197,7 @@ export default function SnowAIEarth() {
         mapContainer: {
             width: '100%',
             height: '100%',
-            backgroundColor: '#e8f4fd',
-            position: 'relative'
-        },
-        svgMap: {
-            width: '100%',
-            height: '100%'
+            backgroundColor: '#e8f4fd'
         }
     };
 
@@ -338,10 +216,63 @@ export default function SnowAIEarth() {
         };
     };
 
-    const D3Map = () => {
+    const ReactSimpleMap = () => {
         return (
             <div style={styles.mapContainer}>
-                <svg ref={svgRef} style={styles.svgMap}></svg>
+                <ComposableMap
+                    projection="geoMercator"
+                    style={{ width: '100%', height: '100%' }}
+                >
+                    <Geographies geography={geoUrl}>
+                        {({ geographies }) =>
+                            geographies.map((geo) => (
+                                <Geography
+                                    key={geo.rsmKey}
+                                    geography={geo}
+                                    onClick={() => handleGeographyClick(geo)}
+                                    style={{
+                                        default: {
+                                            fill: selectedCountry === (geo.properties.NAME || geo.properties.name) 
+                                                ? "#ff6b6b" 
+                                                : "#f1faee",
+                                            stroke: "#457b9d",
+                                            strokeWidth: 0.5,
+                                            outline: "none",
+                                        },
+                                        hover: {
+                                            fill: "#74b9ff",
+                                            stroke: "#457b9d",
+                                            strokeWidth: 1,
+                                            outline: "none",
+                                        },
+                                        pressed: {
+                                            fill: "#ff6b6b",
+                                            stroke: "#457b9d",
+                                            strokeWidth: 1,
+                                            outline: "none",
+                                        }
+                                    }}
+                                />
+                            ))
+                        }
+                    </Geographies>
+                    
+                    {countries.map((country, index) => (
+                        <Marker
+                            key={index}
+                            coordinates={[country.lng, country.lat]}
+                            onClick={() => handleCountryClick(country)}
+                        >
+                            <circle
+                                r={isMobile ? 3 : 4}
+                                fill={country.color}
+                                stroke="#fff"
+                                strokeWidth={2}
+                                style={{ cursor: 'pointer' }}
+                            />
+                        </Marker>
+                    ))}
+                </ComposableMap>
             </div>
         );
     };
@@ -368,6 +299,10 @@ export default function SnowAIEarth() {
                                 }}
                                 onClick={() => setView3D(false)}
                             >
+<<<<<<< HEAD
+=======
+
+>>>>>>> d6fc763834ba142dda592e13149794cba7752993
                                 2D Map
                             </button>
                             <button
@@ -381,7 +316,10 @@ export default function SnowAIEarth() {
                             </button>
                         </div>
                         
+<<<<<<< HEAD
                         
+=======
+>>>>>>> d6fc763834ba142dda592e13149794cba7752993
                         {view3D && (
                             <div style={styles.themeContainer}>
                                 <span style={{ fontSize: '14px', color: '#7f8c8d', marginRight: '5px' }}>Theme:</span>
@@ -448,7 +386,11 @@ export default function SnowAIEarth() {
                                 height={globeSize.height}
                             />
                         ) : (
+<<<<<<< HEAD
                             <D3Map />
+=======
+                            <ReactSimpleMap />
+>>>>>>> d6fc763834ba142dda592e13149794cba7752993
                         )}
                     </div>
                 </div>
