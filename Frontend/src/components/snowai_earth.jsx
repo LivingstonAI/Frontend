@@ -19,13 +19,9 @@ export default function SnowAIEarth() {
     const [economicAnalysis, setEconomicAnalysis] = useState({});
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
     const [clickedCountry, setClickedCountry] = useState('');
-    const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const svgRef = useRef();
     const globeRef = useRef();
     const mapContainerRef = useRef(); // Add ref for map container
-    const analysisPanelRef = useRef(); // Add ref for analysis panel
 
     // Globe theme configurations
     const globeThemes = {
@@ -281,70 +277,6 @@ export default function SnowAIEarth() {
         handleCountryClick(countryName);
     };
 
-    // Drag functionality for analysis panel
-    const handleMouseDown = (e) => {
-        if (e.target.closest('.drag-handle')) {
-            setIsDragging(true);
-            setDragStart({
-                x: e.clientX - dragPosition.x,
-                y: e.clientY - dragPosition.y
-            });
-        }
-    };
-
-    const handleMouseMove = (e) => {
-        if (isDragging) {
-            const newX = e.clientX - dragStart.x;
-            const newY = e.clientY - dragStart.y;
-            
-            // Get viewport dimensions
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const panelWidth = analysisPanelRef.current ? analysisPanelRef.current.offsetWidth : 400;
-            const panelHeight = analysisPanelRef.current ? analysisPanelRef.current.offsetHeight : 600;
-            
-            // Constrain to viewport bounds
-            const constrainedX = Math.max(0, Math.min(newX, viewportWidth - panelWidth));
-            const constrainedY = Math.max(0, Math.min(newY, viewportHeight - panelHeight));
-            
-            setDragPosition({
-                x: constrainedX,
-                y: constrainedY
-            });
-        }
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    // Add event listeners for drag functionality
-    useEffect(() => {
-        if (isDragging) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            
-            return () => {
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
-            };
-        }
-    }, [isDragging, dragStart, dragPosition]);
-
-    // Reset drag position when analysis panel opens
-    useEffect(() => {
-        if (selectedCountry && economicAnalysis[selectedCountry] && mapContainerRef.current) {
-            const mapContainer = mapContainerRef.current.getBoundingClientRect();
-            const panelWidth = isMobile ? Math.min(350, window.innerWidth - 40) : 400;
-            
-            // Position panel to the right of the map container
-            setDragPosition({
-                x: mapContainer.right + 20, // 20px gap from map container
-                y: mapContainer.top + 20    // 20px from top of map container
-            });
-        }
-    }, [selectedCountry, economicAnalysis, isMobile]);
-
     const renderAnalysisPanel = () => {
         const analysis = economicAnalysis[selectedCountry];
         if (!analysis) return null;
@@ -352,40 +284,25 @@ export default function SnowAIEarth() {
         const aiData = analysis.aiAnalysis;
 
         return (
-            <div 
-                ref={analysisPanelRef}
-                style={{
-                    ...styles.analysisPanel,
-                    left: dragPosition.x,
-                    top: dragPosition.y,
-                    right: 'auto', // Override the right positioning
-                    cursor: isDragging ? 'grabbing' : 'default'
-                }}
-                onMouseDown={handleMouseDown}
-            >
-                <div style={styles.analysisPanelHeader} className="drag-handle">
+            <div style={styles.analysisPanel}>
+                <div style={styles.analysisPanelHeader}>
                     <h3 style={styles.analysisPanelTitle}>
                         Economic Analysis: {analysis.country}
                     </h3>
-                    <div style={styles.headerControls}>
-                        <div style={styles.dragIcon} className="drag-handle">
-                            <span style={styles.dragDots}>⋮⋮</span>
-                        </div>
-                        <button 
-                            style={styles.closeButton}
-                            onClick={() => {
-                                setSelectedCountry('');
-                                // Redraw map after closing panel
-                                if (!view3D) {
-                                    setTimeout(() => {
-                                        drawD3Map();
-                                    }, 100);
-                                }
-                            }}
-                        >
-                            ×
-                        </button>
-                    </div>
+                    <button 
+                        style={styles.closeButton}
+                        onClick={() => {
+                            setSelectedCountry('');
+                            // Redraw map after closing panel
+                            if (!view3D) {
+                                setTimeout(() => {
+                                    drawD3Map();
+                                }, 100);
+                            }
+                        }}
+                    >
+                        ×
+                    </button>
                 </div>
                 
                 <div style={styles.analysisPanelContent}>
@@ -542,7 +459,7 @@ export default function SnowAIEarth() {
             height: `calc(100vh - ${isMobile ? '300px' : '220px'})`,
             position: 'relative',
             borderRadius: '15px',
-            overflow: 'visible', // Changed from 'hidden' to allow panel to extend outside
+            overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
             display: 'flex',
             justifyContent: 'center',
@@ -667,46 +584,24 @@ export default function SnowAIEarth() {
             fontWeight: '500'
         },
         analysisPanel: {
-            position: 'fixed', // Changed from absolute to fixed for better dragging
+            position: 'absolute',
             top: '20px',
             right: '20px',
             width: isMobile ? 'calc(100% - 40px)' : '400px',
-            maxWidth: isMobile ? '350px' : '450px',
-            maxHeight: 'calc(100vh - 100px)', // More flexible height
+            maxHeight: 'calc(100vh - 280px)',
             backgroundColor: 'white',
             borderRadius: '15px',
-            boxShadow: '0 15px 35px rgba(0,0,0,0.3)',
+            boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
             zIndex: 1001,
-            overflow: 'hidden',
-            userSelect: 'none', // Prevent text selection during drag
-            transition: isDragging ? 'none' : 'all 0.2s ease' // Smooth positioning when not dragging
+            overflow: 'hidden'
         },
         analysisPanelHeader: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '15px 20px',
+            padding: '20px',
             backgroundColor: '#3498db',
-            color: 'white',
-            cursor: 'grab'
-        },
-        headerControls: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-        },
-        dragIcon: {
-            cursor: 'grab',
-            padding: '5px',
-            borderRadius: '4px',
-            transition: 'background-color 0.2s ease',
-            userSelect: 'none'
-        },
-        dragDots: {
-            fontSize: '16px',
-            fontWeight: 'bold',
-            opacity: 0.7,
-            lineHeight: 1
+            color: 'white'
         },
         analysisPanelTitle: {
             fontSize: '1.2rem',
@@ -730,7 +625,7 @@ export default function SnowAIEarth() {
         },
         analysisPanelContent: {
             padding: '20px',
-            maxHeight: 'calc(100vh - 200px)', // Adjusted for new header height
+            maxHeight: 'calc(100vh - 360px)',
             overflowY: 'auto'
         },
         analysisSection: {
@@ -1074,18 +969,6 @@ export default function SnowAIEarth() {
                 .modalButton:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-                }
-                
-                .drag-handle {
-                    cursor: grab !important;
-                }
-                
-                .drag-handle:active {
-                    cursor: grabbing !important;
-                }
-                
-                .drag-handle:hover .dragDots {
-                    opacity: 1 !important;
                 }
                 
                 .analysisPanelContent::-webkit-scrollbar {
