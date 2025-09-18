@@ -15,6 +15,7 @@ export default function SnowAIEarth() {
     const [isMobile, setIsMobile] = useState(false);
     const [topoData, setTopoData] = useState(null);
     const svgRef = useRef();
+    const globeRef = useRef();
 
     // Globe theme configurations
     const globeThemes = {
@@ -197,13 +198,42 @@ export default function SnowAIEarth() {
 
     const handleCountryClick = (country) => {
         setSelectedCountry(country.name);
-        setTimeout(() => setSelectedCountry(''), 3000);
+        setTimeout(() => setSelectedCountry(''), 5000); // Show for 5 seconds
     };
 
     const handlePolygonClick = (polygon) => {
-        const countryName = polygon.properties.NAME || polygon.properties.name || 'Unknown Country';
-        setSelectedCountry(countryName);
-        setTimeout(() => setSelectedCountry(''), 3000);
+        const countryName = polygon.properties?.NAME || 
+                          polygon.properties?.name || 
+                          polygon.properties?.NAME_EN ||
+                          polygon.properties?.ADMIN ||
+                          'Unknown Country';
+        handleCountryClick({ name: countryName });
+    };
+
+    // Function to get country fill color based on selection and theme
+    const getCountryFillColor = (country) => {
+        const countryName = country.properties?.NAME || 
+                          country.properties?.name || 
+                          country.properties?.NAME_EN ||
+                          country.properties?.ADMIN;
+        
+        if (selectedCountry && countryName === selectedCountry) {
+            return 'rgba(255, 107, 107, 0.8)'; // Highlighted color
+        }
+        
+        // Different colors based on theme
+        switch(globeTheme) {
+            case 'blue-marble':
+                return 'rgba(70, 130, 180, 0.3)';
+            case 'night-lights':
+                return 'rgba(255, 215, 0, 0.2)';
+            case 'natural-earth':
+                return 'rgba(34, 139, 34, 0.3)';
+            case 'dark':
+                return 'rgba(100, 100, 100, 0.4)';
+            default:
+                return 'rgba(70, 130, 180, 0.3)';
+        }
     };
 
     const styles = {
@@ -287,14 +317,17 @@ export default function SnowAIEarth() {
             top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0,0,0,0.8)',
+            backgroundColor: 'rgba(0,0,0,0.9)',
             color: 'white',
-            padding: '10px 20px',
+            padding: '12px 24px',
             borderRadius: '25px',
-            fontSize: isMobile ? '14px' : '18px',
+            fontSize: isMobile ? '16px' : '20px',
             fontWeight: 'bold',
             zIndex: 1000,
-            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+            boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+            border: '2px solid rgba(255,255,255,0.2)',
+            backdropFilter: 'blur(10px)',
+            animation: 'fadeIn 0.3s ease-in'
         },
         mapContainer: {
             width: '100%',
@@ -387,40 +420,70 @@ export default function SnowAIEarth() {
 
                     {selectedCountry && (
                         <div style={styles.countryLabel}>
-                            {selectedCountry}
+                            📍 {selectedCountry}
                         </div>
                     )}
 
                     <div style={styles.viewContainer}>
                         {view3D ? (
                             <Globe
+                                ref={globeRef}
                                 globeImageUrl={currentTheme.globeImage}
                                 bumpImageUrl={currentTheme.bumpImage}
                                 backgroundImageUrl={currentTheme.background}
                                 
-                                // Polygons (countries)
+                                // Polygons (countries) with enhanced borders
                                 polygonsData={worldData.features}
-                                polygonAltitude={0.01}
-                                polygonCapColor={() => 'rgba(200, 0, 0, 0.6)'}
-                                polygonSideColor={() => 'rgba(0, 100, 0, 0.05)'}
-                                polygonStrokeColor={() => '#111'}
-                                polygonLabel={({ properties }) => `
-                                    <b>${properties.NAME || properties.name || 'Unknown'}</b>
-                                `}
+                                polygonAltitude={0.008}
+                                polygonCapColor={getCountryFillColor}
+                                polygonSideColor={() => 'rgba(0, 0, 0, 0.1)'}
+                                polygonStrokeColor={() => '#ffffff'}
+                                polygonStrokeWidth={0.8}
+                                polygonLabel={({ properties }) => {
+                                    const countryName = properties?.NAME || 
+                                                      properties?.name || 
+                                                      properties?.NAME_EN ||
+                                                      properties?.ADMIN ||
+                                                      'Unknown Country';
+                                    return `<div style="
+                                        background: rgba(0,0,0,0.8);
+                                        color: white;
+                                        padding: 8px 12px;
+                                        border-radius: 8px;
+                                        font-weight: bold;
+                                        font-size: 14px;
+                                        border: 1px solid rgba(255,255,255,0.3);
+                                    ">
+                                        📍 ${countryName}
+                                    </div>`;
+                                }}
                                 onPolygonClick={handlePolygonClick}
+                                onPolygonHover={(polygon, prevPolygon) => {
+                                    // Optional: Add hover effects
+                                }}
                                 
                                 // Points (markers for countries)
                                 pointsData={countries}
                                 pointAltitude={0.02}
                                 pointColor={d => d.color}
-                                pointRadius={isMobile ? 0.2 : 0.3}
-                                pointLabel={d => `<b>${d.name}</b>`}
+                                pointRadius={isMobile ? 0.3 : 0.4}
+                                pointLabel={d => `<div style="
+                                    background: rgba(0,0,0,0.8);
+                                    color: white;
+                                    padding: 8px 12px;
+                                    border-radius: 8px;
+                                    font-weight: bold;
+                                    font-size: 14px;
+                                    border: 1px solid rgba(255,255,255,0.3);
+                                ">
+                                    🏙️ ${d.name}
+                                </div>`}
                                 onPointClick={handleCountryClick}
                                 
                                 // Globe properties
                                 showAtmosphere={true}
                                 atmosphereColor="lightskyblue"
-                                atmosphereAltitude={0.1}
+                                atmosphereAltitude={0.15}
                                 
                                 // Controls
                                 enablePointerInteraction={true}
@@ -437,6 +500,19 @@ export default function SnowAIEarth() {
                     </div>
                 </div>
             </div>
+            
+            <style jsx>{`
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                }
+            `}</style>
         </div>
     );
 }
