@@ -11,6 +11,7 @@ export default function SnowAIEarth() {
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
 
+    
     // Sample country data with coordinates
     const countryData = [
         { 
