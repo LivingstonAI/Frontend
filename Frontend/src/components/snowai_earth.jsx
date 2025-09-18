@@ -10,8 +10,6 @@ export default function SnowAIEarth() {
     const [view3D, setView3D] = useState(true); // Start with 3D view
     const [selectedCountry, setSelectedCountry] = useState('');
     const [hoveredCountry, setHoveredCountry] = useState('');
-    const [selectedCountry2D, setSelectedCountry2D] = useState('');
-    const [selectedCountryPos, setSelectedCountryPos] = useState(null);
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
     const [globeTheme, setGlobeTheme] = useState('blue-marble');
@@ -125,7 +123,7 @@ export default function SnowAIEarth() {
             .attr("d", path)
             .attr("fill", d => {
                 const countryName = d.properties?.NAME || d.properties?.name;
-                return selectedCountry2D === countryName ? "#ff6b6b" : "#f1faee";
+                return selectedCountry === countryName ? "#ff6b6b" : "#f1faee";
             })
             .attr("stroke", "#457b9d")
             .attr("stroke-width", 0.5)
@@ -141,22 +139,12 @@ export default function SnowAIEarth() {
                 setHoveredCountry('');
                 const countryName = d.properties?.NAME || d.properties?.name;
                 d3.select(this)
-                    .attr("fill", selectedCountry2D === countryName ? "#ff6b6b" : "#f1faee")
+                    .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
                     .attr("stroke-width", 0.5);
             })
             .on("click", function(event, d) {
                 const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
-                
-                // Get the centroid of the country for label positioning
-                const centroid = path.centroid(d);
-                setSelectedCountryPos({ x: centroid[0], y: centroid[1] });
-                setSelectedCountry2D(countryName);
-                
-                // Clear after 3 seconds
-                setTimeout(() => {
-                    setSelectedCountry2D('');
-                    setSelectedCountryPos(null);
-                }, 3000);
+                handleCountryClick({ name: countryName });
             });
 
         // Add markers for sample countries
@@ -318,27 +306,6 @@ export default function SnowAIEarth() {
         return (
             <div style={styles.mapContainer}>
                 <svg ref={svgRef} style={styles.svgMap}></svg>
-                {/* Country label on the map itself */}
-                {selectedCountry2D && selectedCountryPos && (
-                    <div style={{
-                        position: 'absolute',
-                        left: `${selectedCountryPos.x}px`,
-                        top: `${selectedCountryPos.y}px`,
-                        transform: 'translate(-50%, -50%)',
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        color: 'white',
-                        padding: '8px 15px',
-                        borderRadius: '20px',
-                        fontSize: isMobile ? '12px' : '14px',
-                        fontWeight: 'bold',
-                        zIndex: 1000,
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap'
-                    }}>
-                        {selectedCountry2D}
-                    </div>
-                )}
             </div>
         );
     };
@@ -397,10 +364,9 @@ export default function SnowAIEarth() {
                         )}
                     </div>
 
-                    {/* Show country name at top only for 3D globe or 2D hover */}
-                    {((view3D && selectedCountry) || (!view3D && hoveredCountry)) && (
+                    {(selectedCountry || hoveredCountry) && (
                         <div style={styles.countryLabel}>
-                            {view3D ? selectedCountry : hoveredCountry}
+                            {selectedCountry || hoveredCountry}
                         </div>
                     )}
 
