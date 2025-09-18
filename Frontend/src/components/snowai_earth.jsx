@@ -104,21 +104,7 @@ export default function SnowAIEarth() {
     };
 
     const styles = {
-        container: {
-            width: '100%',
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column'
-        },
-        header: {
-            zIndex: 1000
-        },
-        mainPageBody: {
-            flex: 1,
-            display: 'flex',
-            height: 'calc(100vh - 60px)',
-            flexDirection: isMobile ? 'column' : 'row'
-        },
+        
         mainBodyInfo: {
             flex: 1,
             padding: isMobile ? '10px' : '20px',
