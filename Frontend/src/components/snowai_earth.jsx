@@ -90,29 +90,37 @@ export default function SnowAIEarth() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // D3 Map Effect - Only redraw when view changes or data loads, not on country selection
+    // D3 Map Effect - Only redraw when view changes, data loads, or mobile state changes
     useEffect(() => {
         if (!view3D && geoJsonData && svgRef.current) {
-            drawD3Map();
+            // Add a small delay to ensure the container has proper dimensions
+            const timer = setTimeout(() => {
+                drawD3Map();
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, [view3D, geoJsonData, isMobile]);
 
     // Separate effect for updating country colors without full redraw
     useEffect(() => {
-        if (!view3D && svgRef.current && selectedCountry) {
+        if (!view3D && svgRef.current && geoJsonData) {
             updateCountryColors();
         }
     }, [selectedCountry, view3D]);
 
     const drawD3Map = () => {
-        if (!geoJsonData || !geoJsonData.features) return;
+        if (!geoJsonData || !geoJsonData.features || !svgRef.current) return;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll("*").remove(); // Clear previous content
 
         const container = svg.node().parentElement;
+        if (!container) return;
+        
         const width = container.clientWidth;
         const height = container.clientHeight;
+
+        if (width === 0 || height === 0) return; // Don't draw if container has no size
 
         svg.attr("width", width).attr("height", height);
 
@@ -175,7 +183,7 @@ export default function SnowAIEarth() {
         const markers = g.append("g")
             .attr("class", "markers")
             .selectAll("circle")
-            .data(countries)
+            .data(countryData)
             .enter()
             .append("circle")
             .attr("cx", d => {
@@ -199,9 +207,14 @@ export default function SnowAIEarth() {
     };
 
     const updateCountryColors = () => {
-        const svg = d3.select(svgRef.current);
+        if (!svgRef.current) return;
         
-        svg.select(".countries")
+        const svg = d3.select(svgRef.current);
+        const countriesGroup = svg.select(".countries");
+        
+        if (countriesGroup.empty()) return;
+        
+        countriesGroup
             .selectAll("path")
             .attr("fill", function(d) {
                 const countryName = d.properties?.NAME || d.properties?.name;
