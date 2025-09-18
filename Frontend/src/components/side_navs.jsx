@@ -733,7 +733,7 @@ export default function SideNavs() {
         <Link to="/esi" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link>
         <Link to="/research_logbook" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
         <Link to="/snowai_central_hub" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-browser-edge"></i></p></button></Link>
-        <Link to="/snowai_earth" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-globe-americas-fill"></i></p></button></Link>
+        <Link to="/snowai_earth" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-globe"></i></p></button></Link>
 
       </div>
 
@@ -853,7 +853,7 @@ export default function SideNavs() {
             <i className="bi bi-browser-edge"></i>
         </Link>
         <Link to="/snowai_earth" className="side-nav">
-            <i className="bi bi-globe-americas-fill"></i>
+            <i className="bi bi-globe"></i>
         </Link>
       </div>
       <br />
