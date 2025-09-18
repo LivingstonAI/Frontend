@@ -9,16 +9,13 @@ const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master
 export default function SnowAIEarth() {
     const [view3D, setView3D] = useState(true); // Start with 3D view
     const [selectedCountry, setSelectedCountry] = useState('');
-    const [hoveredCountry, setHoveredCountry] = useState('');
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
     const [globeTheme, setGlobeTheme] = useState('blue-marble');
     const [isMobile, setIsMobile] = useState(false);
     const [geoJsonData, setGeoJsonData] = useState(null);
-    const [zoomTransform, setZoomTransform] = useState(d3.zoomIdentity);
     const svgRef = useRef();
     const globeRef = useRef();
-    const zoomRef = useRef();
 
     // Globe theme configurations
     const globeThemes = {
@@ -39,6 +36,12 @@ export default function SnowAIEarth() {
             globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
+        },
+        'dark': {
+            name: 'Dark Theme',
+            globeImage: null,
+            bumpImage: null,
+            background: null
         }
     };
     
@@ -90,53 +93,24 @@ export default function SnowAIEarth() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // D3 Map Effect - Only redraw when view changes, data loads, or mobile state changes
+    // D3 Map Effect
     useEffect(() => {
         if (!view3D && geoJsonData && svgRef.current) {
-            // Add a small delay to ensure the container has proper dimensions
-            const timer = setTimeout(() => {
-                drawD3Map();
-            }, 100);
-            return () => clearTimeout(timer);
+            drawD3Map();
         }
-    }, [view3D, geoJsonData, isMobile]);
-
-    // Separate effect for updating country colors without full redraw
-    useEffect(() => {
-        if (!view3D && svgRef.current && geoJsonData) {
-            updateCountryColors();
-        }
-    }, [selectedCountry, view3D]);
+    }, [view3D, geoJsonData, isMobile, selectedCountry]);
 
     const drawD3Map = () => {
-        if (!geoJsonData || !geoJsonData.features || !svgRef.current) return;
+        if (!geoJsonData || !geoJsonData.features) return;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll("*").remove(); // Clear previous content
 
         const container = svg.node().parentElement;
-        if (!container) return;
-        
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        if (width === 0 || height === 0) return; // Don't draw if container has no size
-
         svg.attr("width", width).attr("height", height);
-
-        // Create zoom behavior
-        const zoom = d3.zoom()
-            .scaleExtent([0.5, 8])
-            .on("zoom", (event) => {
-                setZoomTransform(event.transform);
-                g.attr("transform", event.transform);
-            });
-
-        zoomRef.current = zoom;
-        svg.call(zoom);
-
-        // Create main group for all elements
-        const g = svg.append("g");
 
         // Create projection
         const projection = d3.geoNaturalEarth1()
@@ -146,8 +120,7 @@ export default function SnowAIEarth() {
         const path = d3.geoPath().projection(projection);
 
         // Add countries
-        const countries = g.append("g")
-            .attr("class", "countries")
+        svg.append("g")
             .selectAll("path")
             .data(geoJsonData.features)
             .enter()
@@ -161,14 +134,11 @@ export default function SnowAIEarth() {
             .attr("stroke-width", 0.5)
             .style("cursor", "pointer")
             .on("mouseover", function(event, d) {
-                const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
-                setHoveredCountry(countryName);
                 d3.select(this)
                     .attr("fill", "#74b9ff")
                     .attr("stroke-width", 1);
             })
             .on("mouseout", function(event, d) {
-                setHoveredCountry('');
                 const countryName = d.properties?.NAME || d.properties?.name;
                 d3.select(this)
                     .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
@@ -180,10 +150,9 @@ export default function SnowAIEarth() {
             });
 
         // Add markers for sample countries
-        const markers = g.append("g")
-            .attr("class", "markers")
+        svg.append("g")
             .selectAll("circle")
-            .data(countryData)
+            .data(countries)
             .enter()
             .append("circle")
             .attr("cx", d => {
@@ -206,30 +175,11 @@ export default function SnowAIEarth() {
             .text(d => d.name);
     };
 
-    const updateCountryColors = () => {
-        if (!svgRef.current) return;
-        
-        const svg = d3.select(svgRef.current);
-        const countriesGroup = svg.select(".countries");
-        
-        if (countriesGroup.empty()) return;
-        
-        countriesGroup
-            .selectAll("path")
-            .attr("fill", function(d) {
-                const countryName = d.properties?.NAME || d.properties?.name;
-                return selectedCountry === countryName ? "#ff6b6b" : "#f1faee";
-            });
-    };
-
     const handleCountryClick = (country) => {
         const countryName = typeof country === 'string' ? country : country.name;
-        setSelectedCountry(prevSelected => {
-            // Toggle selection - if clicking same country, deselect it
-            return prevSelected === countryName ? '' : countryName;
-        });
+        setSelectedCountry(countryName);
         console.log('Selected country:', countryName);
-        // Remove the automatic timeout clearing
+        setTimeout(() => setSelectedCountry(''), 3000);
     };
 
     const handlePolygonClick = (polygon) => {
@@ -243,19 +193,6 @@ export default function SnowAIEarth() {
             const countryName = polygon.properties.NAME || polygon.properties.name || 'Unknown Country';
             // You could set a hover state here if needed
         }
-    };
-
-    const resetZoom = () => {
-        if (zoomRef.current && svgRef.current) {
-            d3.select(svgRef.current)
-                .transition()
-                .duration(750)
-                .call(zoomRef.current.transform, d3.zoomIdentity);
-        }
-    };
-
-    const clearSelection = () => {
-        setSelectedCountry('');
     };
 
     const styles = {
@@ -285,11 +222,6 @@ export default function SnowAIEarth() {
             alignItems: 'center',
             flexWrap: 'wrap'
         },
-        mapControlsContainer: {
-            display: 'flex',
-            gap: '10px',
-            alignItems: 'center'
-        },
         toggleButton: {
             padding: isMobile ? '10px 16px' : '12px 24px',
             border: 'none',
@@ -311,18 +243,6 @@ export default function SnowAIEarth() {
             transition: 'all 0.3s ease',
             whiteSpace: 'nowrap',
             margin: '2px'
-        },
-        controlButton: {
-            padding: '8px 16px',
-            border: 'none',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            backgroundColor: '#f8f9fa',
-            color: '#495057',
-            border: '1px solid #dee2e6'
         },
         activeButton: {
             backgroundColor: '#3498db',
@@ -369,33 +289,7 @@ export default function SnowAIEarth() {
         },
         svgMap: {
             width: '100%',
-            height: '100%',
-            cursor: 'grab'
-        },
-        zoomControls: {
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '5px',
-            zIndex: 1000
-        },
-        zoomButton: {
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            border: 'none',
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            color: '#333',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease'
+            height: '100%'
         }
     };
 
@@ -413,58 +307,7 @@ export default function SnowAIEarth() {
     const D3Map = () => {
         return (
             <div style={styles.mapContainer}>
-                <svg 
-                    ref={svgRef} 
-                    style={styles.svgMap}
-                    onMouseDown={() => {
-                        if (svgRef.current) {
-                            svgRef.current.style.cursor = 'grabbing';
-                        }
-                    }}
-                    onMouseUp={() => {
-                        if (svgRef.current) {
-                            svgRef.current.style.cursor = 'grab';
-                        }
-                    }}
-                ></svg>
-                <div style={styles.zoomControls}>
-                    <button
-                        style={styles.zoomButton}
-                        onClick={() => {
-                            if (zoomRef.current && svgRef.current) {
-                                d3.select(svgRef.current).transition().call(
-                                    zoomRef.current.scaleBy, 1.5
-                                );
-                            }
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'white'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.9)'}
-                    >
-                        +
-                    </button>
-                    <button
-                        style={styles.zoomButton}
-                        onClick={() => {
-                            if (zoomRef.current && svgRef.current) {
-                                d3.select(svgRef.current).transition().call(
-                                    zoomRef.current.scaleBy, 1 / 1.5
-                                );
-                            }
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'white'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.9)'}
-                    >
-                        −
-                    </button>
-                    <button
-                        style={{...styles.zoomButton, fontSize: '12px', width: '50px'}}
-                        onClick={resetZoom}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'white'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.9)'}
-                    >
-                        Reset
-                    </button>
-                </div>
+                <svg ref={svgRef} style={styles.svgMap}></svg>
             </div>
         );
     };
@@ -504,7 +347,7 @@ export default function SnowAIEarth() {
                             </button>
                         </div>
                         
-                        {view3D ? (
+                        {view3D && (
                             <div style={styles.themeContainer}>
                                 <span style={{ fontSize: '14px', color: '#7f8c8d', marginRight: '5px' }}>Theme:</span>
                                 {Object.entries(globeThemes).map(([key, theme]) => (
@@ -520,30 +363,12 @@ export default function SnowAIEarth() {
                                     </button>
                                 ))}
                             </div>
-                        ) : (
-                            <div style={styles.mapControlsContainer}>
-                                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>Map Controls:</span>
-                                <button
-                                    style={styles.controlButton}
-                                    onClick={resetZoom}
-                                >
-                                    Reset Zoom
-                                </button>
-                                {selectedCountry && (
-                                    <button
-                                        style={styles.controlButton}
-                                        onClick={clearSelection}
-                                    >
-                                        Clear Selection
-                                    </button>
-                                )}
-                            </div>
                         )}
                     </div>
 
-                    {(selectedCountry || hoveredCountry) && (
+                    {selectedCountry && (
                         <div style={styles.countryLabel}>
-                            {selectedCountry || hoveredCountry}
+                            {selectedCountry}
                         </div>
                     )}
 
