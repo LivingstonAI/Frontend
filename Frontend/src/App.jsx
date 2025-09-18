@@ -66,6 +66,7 @@ import EconomicStrengthIndex from './components/esi.jsx';
 import HolographicHUD from './components/snowbrain.jsx';
 import ResearchLogbook from './components/research_logbook.jsx';
 import SnowAICentralHub from './components/central_hub.jsx';
+import SnowAIEarth from './components/snowai_earth.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -439,6 +440,13 @@ function App() {
             <Route path='/snowai_central_hub' element={
               <ProtectedRoute>
                 <SnowAICentralHub />
+              </ProtectedRoute>
+            } />
+
+            
+            <Route path='/snowai_earth' element={
+              <ProtectedRoute>
+                <SnowAIEarth />
               </ProtectedRoute>
             } />
             
