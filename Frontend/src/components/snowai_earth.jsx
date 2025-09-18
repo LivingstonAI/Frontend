@@ -152,14 +152,12 @@ export default function SnowAIEarth() {
         container: {
             width: '100%',
             height: '100vh',
-            display: 'flex',
             flexDirection: 'column'
         },
         header: {
             zIndex: 1000
         },
         mainPageBody: {
-            display: 'flex',
             flex: 1,
             height: 'calc(100vh - 80px)'
         },
