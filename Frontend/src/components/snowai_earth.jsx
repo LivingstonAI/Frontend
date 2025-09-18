@@ -17,6 +17,7 @@ export default function SnowAIEarth() {
     const svgRef = useRef();
 
     // Globe theme configurations
+    
     const globeThemes = {
         'blue-marble': {
             name: 'Blue Marble',
