@@ -380,6 +380,7 @@ export default function SnowAIEarth() {
                             </button>
                         </div>
                         
+                        
                         {view3D && (
                             <div style={styles.themeContainer}>
                                 <span style={{ fontSize: '14px', color: '#7f8c8d', marginRight: '5px' }}>Theme:</span>
