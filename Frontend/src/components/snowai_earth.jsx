@@ -21,9 +21,10 @@ export default function SnowAIEarth() {
     const [clickedCountry, setClickedCountry] = useState('');
     const svgRef = useRef();
     const globeRef = useRef();
-    const mapContainerRef = useRef(); // Add ref for map container
+    const mapContainerRef = useRef();
+    const zoomRef = useRef();
 
-    // Globe theme configurations
+    // Globe theme configurations (removed dark theme)
     const globeThemes = {
         'blue-marble': {
             name: 'Blue Marble',
@@ -42,12 +43,6 @@ export default function SnowAIEarth() {
             globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
-        },
-        'dark': {
-            name: 'Dark Theme',
-            globeImage: null,
-            bumpImage: null,
-            background: null
         }
     };
     
@@ -95,7 +90,7 @@ export default function SnowAIEarth() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Memoize the drawD3Map function to prevent unnecessary re-renders
+    // Memoize the drawD3Map function with zoom functionality
     const drawD3Map = useCallback(() => {
         if (!geoJsonData || !geoJsonData.features || !svgRef.current || !mapContainerRef.current) {
             return;
@@ -104,12 +99,10 @@ export default function SnowAIEarth() {
         const svg = d3.select(svgRef.current);
         svg.selectAll("*").remove();
 
-        // Use the container ref instead of parentElement to avoid layout issues
         const container = mapContainerRef.current;
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        // Add minimum dimensions check
         if (width <= 0 || height <= 0) {
             return;
         }
@@ -122,7 +115,24 @@ export default function SnowAIEarth() {
 
         const path = d3.geoPath().projection(projection);
 
-        svg.append("g")
+        // Create zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 8])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        // Store zoom behavior in ref for external access
+        zoomRef.current = zoom;
+
+        // Apply zoom to svg
+        svg.call(zoom);
+
+        // Create main group for all map elements
+        const g = svg.append("g");
+
+        // Add countries
+        g.append("g")
             .selectAll("path")
             .data(geoJsonData.features)
             .enter()
@@ -151,7 +161,8 @@ export default function SnowAIEarth() {
                 handleCountryClick({ name: countryName });
             });
 
-        svg.append("g")
+        // Add country markers
+        g.append("g")
             .selectAll("circle")
             .data(countries)
             .enter()
@@ -174,12 +185,22 @@ export default function SnowAIEarth() {
             })
             .append("title")
             .text(d => d.name);
+
     }, [geoJsonData, isMobile, selectedCountry, countries]);
+
+    // Reset zoom function
+    const resetZoom = () => {
+        if (zoomRef.current && svgRef.current) {
+            d3.select(svgRef.current)
+                .transition()
+                .duration(750)
+                .call(zoomRef.current.transform, d3.zoomIdentity);
+        }
+    };
 
     // Separate useEffect for drawing the map with debouncing
     useEffect(() => {
         if (!view3D && geoJsonData) {
-            // Add a small delay to ensure container is properly sized
             const timer = setTimeout(() => {
                 drawD3Map();
             }, 100);
@@ -192,7 +213,6 @@ export default function SnowAIEarth() {
     useEffect(() => {
         const handleResize = () => {
             if (!view3D) {
-                // Debounce resize events
                 const timer = setTimeout(() => {
                     drawD3Map();
                 }, 200);
@@ -253,12 +273,10 @@ export default function SnowAIEarth() {
     const handleConfirmAnalysis = async () => {
         setShowConfirmationModal(false);
         
-        // Check if we already have analysis for this country
         if (!economicAnalysis[clickedCountry]) {
             await fetchEconomicData(clickedCountry);
         }
         
-        // Force redraw the map after analysis is loaded
         if (!view3D) {
             setTimeout(() => {
                 drawD3Map();
@@ -293,7 +311,6 @@ export default function SnowAIEarth() {
                         style={styles.closeButton}
                         onClick={() => {
                             setSelectedCountry('');
-                            // Redraw map after closing panel
                             if (!view3D) {
                                 setTimeout(() => {
                                     drawD3Map();
@@ -421,6 +438,11 @@ export default function SnowAIEarth() {
             alignItems: 'center',
             flexWrap: 'wrap'
         },
+        zoomControls: {
+            display: 'flex',
+            gap: '5px',
+            alignItems: 'center'
+        },
         toggleButton: {
             padding: isMobile ? '10px 16px' : '12px 24px',
             border: 'none',
@@ -442,6 +464,17 @@ export default function SnowAIEarth() {
             transition: 'all 0.3s ease',
             whiteSpace: 'nowrap',
             margin: '2px'
+        },
+        zoomButton: {
+            padding: '8px 12px',
+            border: 'none',
+            borderRadius: '15px',
+            fontSize: '12px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            backgroundColor: '#ecf0f1',
+            color: '#7f8c8d'
         },
         activeButton: {
             backgroundColor: '#3498db',
@@ -489,7 +522,7 @@ export default function SnowAIEarth() {
         svgMap: {
             width: '100%',
             height: '100%',
-            display: 'block' // Add this to prevent inline spacing issues
+            display: 'block'
         },
         modal: {
             position: 'fixed',
@@ -583,15 +616,18 @@ export default function SnowAIEarth() {
             color: '#2c3e50',
             fontWeight: '500'
         },
+        // Updated analysis panel styles - centered over map container
         analysisPanel: {
             position: 'absolute',
-            top: '20px',
-            right: '20px',
-            width: isMobile ? 'calc(100% - 40px)' : '400px',
-            maxHeight: 'calc(100vh - 280px)',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: isMobile ? '90%' : '500px',
+            maxWidth: '90vw',
+            maxHeight: '80vh',
             backgroundColor: 'white',
             borderRadius: '15px',
-            boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
             zIndex: 1001,
             overflow: 'hidden'
         },
@@ -625,7 +661,7 @@ export default function SnowAIEarth() {
         },
         analysisPanelContent: {
             padding: '20px',
-            maxHeight: 'calc(100vh - 360px)',
+            maxHeight: '60vh',
             overflowY: 'auto'
         },
         analysisSection: {
@@ -874,6 +910,18 @@ export default function SnowAIEarth() {
                                 ))}
                             </div>
                         )}
+                        
+                        {!view3D && (
+                            <div style={styles.zoomControls}>
+                                <span style={{ fontSize: '14px', color: '#7f8c8d', marginRight: '5px' }}>Zoom:</span>
+                                <button
+                                    style={styles.zoomButton}
+                                    onClick={resetZoom}
+                                >
+                                    Reset Zoom
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {selectedCountry && (
@@ -943,9 +991,8 @@ export default function SnowAIEarth() {
                         )}
 
                         {loadingAnalysis && <LoadingOverlay />}
+                        {selectedCountry && economicAnalysis[selectedCountry] && renderAnalysisPanel()}
                     </div>
-
-                    {selectedCountry && economicAnalysis[selectedCountry] && renderAnalysisPanel()}
                 </div>
             </div>
 
@@ -969,6 +1016,11 @@ export default function SnowAIEarth() {
                 .modalButton:hover {
                     transform: translateY(-2px);
                     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+                }
+                
+                .zoomButton:hover {
+                    background-color: #bdc3c7 !important;
+                    color: #2c3e50 !important;
                 }
                 
                 .analysisPanelContent::-webkit-scrollbar {
