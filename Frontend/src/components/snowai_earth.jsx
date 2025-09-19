@@ -18,6 +18,7 @@ export default function SnowAIEarth() {
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [economicAnalysis, setEconomicAnalysis] = useState({});
     const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
     const [clickedCountry, setClickedCountry] = useState('');
     const svgRef = useRef();
     const globeRef = useRef();
@@ -277,6 +278,9 @@ export default function SnowAIEarth() {
             await fetchEconomicData(clickedCountry);
         }
         
+        // Show the analysis modal after confirmation
+        setShowAnalysisModal(true);
+        
         if (!view3D) {
             setTimeout(() => {
                 drawD3Map();
@@ -288,6 +292,16 @@ export default function SnowAIEarth() {
         setShowConfirmationModal(false);
         setSelectedCountry('');
         setClickedCountry('');
+    };
+
+    const handleCloseAnalysisModal = () => {
+        setShowAnalysisModal(false);
+        setSelectedCountry('');
+        if (!view3D) {
+            setTimeout(() => {
+                drawD3Map();
+            }, 100);
+        }
     };
 
     const handlePolygonClick = (polygon) => {
@@ -310,14 +324,7 @@ export default function SnowAIEarth() {
                         </h3>
                         <button 
                             style={styles.analysisCloseButton}
-                            onClick={() => {
-                                setSelectedCountry('');
-                                if (!view3D) {
-                                    setTimeout(() => {
-                                        drawD3Map();
-                                    }, 100);
-                                }
-                            }}
+                            onClick={handleCloseAnalysisModal}
                         >
                             ×
                         </button>
@@ -1004,7 +1011,7 @@ export default function SnowAIEarth() {
                         {loadingAnalysis && <LoadingOverlay />}
                     </div>
 
-                    {selectedCountry && economicAnalysis[selectedCountry] && renderAnalysisModal()}
+                    {selectedCountry && economicAnalysis[selectedCountry] && showAnalysisModal && renderAnalysisModal()}
                 </div>
             </div>
 
