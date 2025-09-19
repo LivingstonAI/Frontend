@@ -295,117 +295,119 @@ export default function SnowAIEarth() {
         handleCountryClick(countryName);
     };
 
-    const renderAnalysisPanel = () => {
+    const renderAnalysisModal = () => {
         const analysis = economicAnalysis[selectedCountry];
         if (!analysis) return null;
 
         const aiData = analysis.aiAnalysis;
 
         return (
-            <div style={styles.analysisPanel}>
-                <div style={styles.analysisPanelHeader}>
-                    <h3 style={styles.analysisPanelTitle}>
-                        Economic Analysis: {analysis.country}
-                    </h3>
-                    <button 
-                        style={styles.closeButton}
-                        onClick={() => {
-                            setSelectedCountry('');
-                            if (!view3D) {
-                                setTimeout(() => {
-                                    drawD3Map();
-                                }, 100);
-                            }
-                        }}
-                    >
-                        ×
-                    </button>
-                </div>
-                
-                <div style={styles.analysisPanelContent}>
-                    {analysis.has_data ? (
-                        <div>
-                            <div style={styles.analysisSection}>
-                                <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
-                                    {aiData.overall_sentiment.toUpperCase()} SENTIMENT
-                                </div>
-                            </div>
-                            
-                            <div style={styles.analysisSection}>
-                                <h4 style={styles.sectionTitle}>Summary</h4>
-                                <p style={styles.summaryText}>{aiData.summary}</p>
-                            </div>
-                            
-                            <div style={styles.analysisSection}>
-                                <h4 style={styles.sectionTitle}>Key Highlights</h4>
-                                <ul style={styles.highlightsList}>
-                                    {aiData.key_highlights.map((highlight, index) => (
-                                        <li key={index} style={styles.highlightItem}>{highlight}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                            
-                            {aiData.major_events.length > 0 && (
+            <div style={styles.analysisModal}>
+                <div style={styles.analysisModalContent}>
+                    <div style={styles.analysisModalHeader}>
+                        <h3 style={styles.analysisModalTitle}>
+                            Economic Analysis: {analysis.country}
+                        </h3>
+                        <button 
+                            style={styles.analysisCloseButton}
+                            onClick={() => {
+                                setSelectedCountry('');
+                                if (!view3D) {
+                                    setTimeout(() => {
+                                        drawD3Map();
+                                    }, 100);
+                                }
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.analysisModalBody}>
+                        {analysis.has_data ? (
+                            <div>
                                 <div style={styles.analysisSection}>
-                                    <h4 style={styles.sectionTitle}>Major Events</h4>
-                                    {aiData.major_events.map((event, index) => (
-                                        <div key={index} style={styles.eventItem}>
-                                            <div style={styles.eventHeader}>
-                                                <span style={styles.eventName}>{event.event_name}</span>
-                                                <span style={styles.impactBadge(event.impact_level)}>
-                                                    {event.impact_level.toUpperCase()}
-                                                </span>
-                                            </div>
-                                            <p style={styles.eventSummary}>{event.summary}</p>
-                                        </div>
-                                    ))}
+                                    <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
+                                        {aiData.overall_sentiment.toUpperCase()} SENTIMENT
+                                    </div>
                                 </div>
-                            )}
-                            
-                            <div style={styles.analysisGrid}>
-                                {aiData.risk_factors.length > 0 && (
-                                    <div style={styles.riskFactorsSection}>
-                                        <h4 style={styles.sectionTitle}>Risk Factors</h4>
-                                        <ul style={styles.factorsList}>
-                                            {aiData.risk_factors.map((risk, index) => (
-                                                <li key={index} style={styles.riskItem}>{risk}</li>
-                                            ))}
-                                        </ul>
+                                
+                                <div style={styles.analysisSection}>
+                                    <h4 style={styles.sectionTitle}>Summary</h4>
+                                    <p style={styles.summaryText}>{aiData.summary}</p>
+                                </div>
+                                
+                                <div style={styles.analysisSection}>
+                                    <h4 style={styles.sectionTitle}>Key Highlights</h4>
+                                    <ul style={styles.highlightsList}>
+                                        {aiData.key_highlights.map((highlight, index) => (
+                                            <li key={index} style={styles.highlightItem}>{highlight}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                
+                                {aiData.major_events.length > 0 && (
+                                    <div style={styles.analysisSection}>
+                                        <h4 style={styles.sectionTitle}>Major Events</h4>
+                                        {aiData.major_events.map((event, index) => (
+                                            <div key={index} style={styles.eventItem}>
+                                                <div style={styles.eventHeader}>
+                                                    <span style={styles.eventName}>{event.event_name}</span>
+                                                    <span style={styles.impactBadge(event.impact_level)}>
+                                                        {event.impact_level.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <p style={styles.eventSummary}>{event.summary}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                                 
-                                {aiData.opportunities.length > 0 && (
-                                    <div style={styles.opportunitiesSection}>
-                                        <h4 style={styles.sectionTitle}>Opportunities</h4>
-                                        <ul style={styles.factorsList}>
-                                            {aiData.opportunities.map((opportunity, index) => (
-                                                <li key={index} style={styles.opportunityItem}>{opportunity}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                <div style={styles.analysisGrid}>
+                                    {aiData.risk_factors.length > 0 && (
+                                        <div style={styles.riskFactorsSection}>
+                                            <h4 style={styles.sectionTitle}>Risk Factors</h4>
+                                            <ul style={styles.factorsList}>
+                                                {aiData.risk_factors.map((risk, index) => (
+                                                    <li key={index} style={styles.riskItem}>{risk}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    
+                                    {aiData.opportunities.length > 0 && (
+                                        <div style={styles.opportunitiesSection}>
+                                            <h4 style={styles.sectionTitle}>Opportunities</h4>
+                                            <ul style={styles.factorsList}>
+                                                {aiData.opportunities.map((opportunity, index) => (
+                                                    <li key={index} style={styles.opportunityItem}>{opportunity}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div style={styles.metaInfo}>
+                                    <small style={styles.metaText}>
+                                        Analysis Period: {aiData.analysis_period} | Currency: {analysis.currency}
+                                    </small>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={styles.noDataContainer}>
+                                <div style={styles.noDataIcon}>📊</div>
+                                <h4 style={styles.noDataTitle}>No Economic Data Available</h4>
+                                <p style={styles.noDataMessage}>
+                                    {analysis.message}
+                                </p>
+                                {aiData.summary && (
+                                    <p style={styles.noDataSummary}>
+                                        {aiData.summary}
+                                    </p>
                                 )}
                             </div>
-                            
-                            <div style={styles.metaInfo}>
-                                <small style={styles.metaText}>
-                                    Analysis Period: {aiData.analysis_period} | Currency: {analysis.currency}
-                                </small>
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={styles.noDataContainer}>
-                            <div style={styles.noDataIcon}>📊</div>
-                            <h4 style={styles.noDataTitle}>No Economic Data Available</h4>
-                            <p style={styles.noDataMessage}>
-                                {analysis.message}
-                            </p>
-                            {aiData.summary && (
-                                <p style={styles.noDataSummary}>
-                                    {aiData.summary}
-                                </p>
-                            )}
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -616,52 +618,61 @@ export default function SnowAIEarth() {
             color: '#2c3e50',
             fontWeight: '500'
         },
-        // Updated analysis panel styles - centered over map container
-        analysisPanel: {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: isMobile ? '90%' : '500px',
-            maxWidth: '90vw',
-            maxHeight: '80vh',
-            backgroundColor: 'white',
-            borderRadius: '15px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            zIndex: 1001,
-            overflow: 'hidden'
+        // Updated analysis modal styles - centered modal instead of overlay panel
+        analysisModal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10001,
+            animation: 'fadeIn 0.3s ease'
         },
-        analysisPanelHeader: {
+        analysisModalContent: {
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+            width: isMobile ? '95%' : '700px',
+            maxWidth: '95vw',
+            maxHeight: '85vh',
+            overflow: 'hidden',
+            animation: 'fadeIn 0.3s ease'
+        },
+        analysisModalHeader: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '20px',
+            padding: '25px 30px',
             backgroundColor: '#3498db',
             color: 'white'
         },
-        analysisPanelTitle: {
-            fontSize: '1.2rem',
+        analysisModalTitle: {
+            fontSize: isMobile ? '1.3rem' : '1.5rem',
             fontWeight: 'bold',
             margin: 0
         },
-        closeButton: {
+        analysisCloseButton: {
             background: 'none',
             border: 'none',
             color: 'white',
-            fontSize: '24px',
+            fontSize: '28px',
             cursor: 'pointer',
-            padding: '0',
-            width: '30px',
-            height: '30px',
+            padding: '5px',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             transition: 'background-color 0.3s ease'
         },
-        analysisPanelContent: {
-            padding: '20px',
-            maxHeight: '60vh',
+        analysisModalBody: {
+            padding: '30px',
+            maxHeight: '70vh',
             overflowY: 'auto'
         },
         analysisSection: {
@@ -991,8 +1002,9 @@ export default function SnowAIEarth() {
                         )}
 
                         {loadingAnalysis && <LoadingOverlay />}
-                        {selectedCountry && economicAnalysis[selectedCountry] && renderAnalysisPanel()}
                     </div>
+
+                    {selectedCountry && economicAnalysis[selectedCountry] && renderAnalysisModal()}
                 </div>
             </div>
 
@@ -1009,7 +1021,8 @@ export default function SnowAIEarth() {
                     100% { transform: rotate(360deg); }
                 }
                 
-                .closeButton:hover {
+                .closeButton:hover,
+                .analysisCloseButton:hover {
                     background-color: rgba(255, 255, 255, 0.2) !important;
                 }
                 
@@ -1023,21 +1036,25 @@ export default function SnowAIEarth() {
                     color: #2c3e50 !important;
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar {
-                    width: 6px;
+                .analysisPanelContent::-webkit-scrollbar,
+                .analysisModalBody::-webkit-scrollbar {
+                    width: 8px;
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar-track {
+                .analysisPanelContent::-webkit-scrollbar-track,
+                .analysisModalBody::-webkit-scrollbar-track {
                     background: #f1f1f1;
-                    border-radius: 3px;
+                    border-radius: 4px;
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar-thumb {
+                .analysisPanelContent::-webkit-scrollbar-thumb,
+                .analysisModalBody::-webkit-scrollbar-thumb {
                     background: #c1c1c1;
-                    border-radius: 3px;
+                    border-radius: 4px;
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar-thumb:hover {
+                .analysisPanelContent::-webkit-scrollbar-thumb:hover,
+                .analysisModalBody::-webkit-scrollbar-thumb:hover {
                     background: #a8a8a8;
                 }
             `}</style>
