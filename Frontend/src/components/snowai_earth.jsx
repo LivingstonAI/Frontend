@@ -983,6 +983,13 @@ export default function SnowAIEarth() {
     const currentTheme = globeThemes[globeTheme];
     const globeSize = getGlobeSize();
 
+    useEffect(() => {
+    if (globeRef.current && globeRef.current.controls) {
+        globeRef.current.controls().autoRotate = autoRotate;
+        globeRef.current.controls().autoRotateSpeed = 0.5;
+    }
+}, [autoRotate]);
+
     return (
         <div style={styles.container}>
             <div style={styles.header}>
@@ -1132,20 +1139,23 @@ export default function SnowAIEarth() {
                                     </div>
                                 `}
                                 onPointClick={handleCountryClick}
-
-                                
                                 
                                 showAtmosphere={true}
                                 atmosphereColor="lightblue"
                                 atmosphereAltitude={0.15}
                                 
                                 enablePointerInteraction={true}
-                                controls={{ autoRotate: autoRotate, autoRotateSpeed: 0.5 }}
+                                
+                                // Fixed auto-rotation properties
+                                controlsAutoRotate={autoRotate}
+                                controlsAutoRotateSpeed={0.5}
+                                controlsEnableZoom={true}
+                                controlsEnablePan={true}
+                                
                                 animateIn={true}
                                 
                                 width={globeSize.width}
                                 height={globeSize.height}
-
                             />
                         ) : (
                             <D3Map />
