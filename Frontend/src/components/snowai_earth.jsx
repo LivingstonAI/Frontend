@@ -24,6 +24,8 @@ export default function SnowAIEarth() {
     const globeRef = useRef();
     const mapContainerRef = useRef();
     const zoomRef = useRef();
+    const [searchCountry, setSearchCountry] = useState('');
+    const [autoRotate, setAutoRotate] = useState(true);
 
     // Globe theme configurations (removed dark theme)
     const globeThemes = {
@@ -90,6 +92,76 @@ export default function SnowAIEarth() {
             
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    const handleCountrySearch = () => {
+    if (!searchCountry.trim() || !globeRef.current) return;
+    
+    // First try to find in your countryData array
+    let targetCountry = countryData.find(country => 
+        country.name.toLowerCase().includes(searchCountry.toLowerCase())
+    );
+    
+    if (targetCountry) {
+        // Animate to the country location
+        globeRef.current.pointOfView({
+            lat: targetCountry.lat,
+            lng: targetCountry.lng,
+            altitude: 2.5 // Good zoom level - not too close, not too far
+        }, 2000); // 2 second animation
+        
+        setSelectedCountry(targetCountry.name);
+        setSearchCountry(''); // Clear search after successful navigation
+        return;
+    }
+    
+    // If not found in countryData, search in worldData (geoJson)
+    const foundFeature = worldData.features?.find(feature => {
+        const countryName = feature.properties?.NAME || feature.properties?.name || '';
+        return countryName.toLowerCase().includes(searchCountry.toLowerCase());
+    });
+    
+    if (foundFeature && foundFeature.properties) {
+        // Calculate centroid for countries not in your main dataset
+        const coords = foundFeature.geometry.coordinates;
+        let lat = 0, lng = 0;
+        
+        // Simple centroid calculation (works for most countries)
+        if (foundFeature.geometry.type === 'Polygon') {
+            const coordArray = coords[0];
+            coordArray.forEach(coord => {
+                lng += coord[0];
+                lat += coord[1];
+            });
+            lng /= coordArray.length;
+            lat /= coordArray.length;
+        } else if (foundFeature.geometry.type === 'MultiPolygon') {
+            let totalPoints = 0;
+            coords.forEach(polygon => {
+                polygon[0].forEach(coord => {
+                    lng += coord[0];
+                    lat += coord[1];
+                    totalPoints++;
+                });
+            });
+            lng /= totalPoints;
+            lat /= totalPoints;
+        }
+        
+        globeRef.current.pointOfView({
+            lat: lat,
+            lng: lng,
+            altitude: 2.5
+        }, 2000);
+        
+        const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
+        setSelectedCountry(countryName);
+        setSearchCountry('');
+    } else {
+        // Show error or suggestion
+        alert(`Country "${searchCountry}" not found. Please check the spelling.`);
+    }
+};
+
 
     // Memoize the drawD3Map function with zoom functionality
     const drawD3Map = useCallback(() => {
@@ -818,6 +890,38 @@ export default function SnowAIEarth() {
             lineHeight: '1.4',
             fontStyle: 'italic',
             margin: 0
+        },
+        searchContainer: {
+            display: 'flex',
+            gap: '5px',
+            alignItems: 'center',
+            flexWrap: 'wrap'
+        },
+        rotationContainer: {
+            display: 'flex',
+            gap: '5px',
+            alignItems: 'center'
+        },
+        searchInput: {
+            padding: '8px 12px',
+            border: '2px solid #ecf0f1',
+            borderRadius: '20px',
+            fontSize: '14px',
+            outline: 'none',
+            width: isMobile ? '150px' : '200px',
+            transition: 'border-color 0.3s ease'
+        },
+        searchButton: {
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            backgroundColor: '#3498db',
+            color: 'white',
+            transition: 'all 0.3s ease',
+            whiteSpace: 'nowrap'
         }
     };
 
@@ -942,6 +1046,41 @@ export default function SnowAIEarth() {
                         )}
                     </div>
 
+                    {view3D && (
+                        <div style={styles.searchContainer}>
+                            <input
+                                type="text"
+                                placeholder="Enter country name..."
+                                value={searchCountry}
+                                onChange={(e) => setSearchCountry(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCountrySearch()}
+                                style={styles.searchInput}
+                            />
+                            <button
+                                onClick={handleCountrySearch}
+                                style={styles.searchButton}
+                            >
+                                Locate Country
+                            </button>
+                        </div>
+                    )}
+
+                    {view3D && (
+                        <div style={styles.rotationContainer}>
+                            <button
+                                style={{
+                                    ...styles.toggleButton,
+                                    ...(autoRotate ? styles.activeButton : styles.inactiveButton)
+                                }}
+                                onClick={() => setAutoRotate(!autoRotate)}
+                            >
+                                {autoRotate ? 'Disable Rotation' : 'Enable Rotation'}
+                            </button>
+                        </div>
+                    )}
+
+
+
                     {selectedCountry && (
                         <div style={styles.countryLabel}>
                             {selectedCountry}
@@ -993,16 +1132,20 @@ export default function SnowAIEarth() {
                                     </div>
                                 `}
                                 onPointClick={handleCountryClick}
+
+                                
                                 
                                 showAtmosphere={true}
                                 atmosphereColor="lightblue"
                                 atmosphereAltitude={0.15}
                                 
                                 enablePointerInteraction={true}
+                                controls={{ autoRotate: autoRotate, autoRotateSpeed: 0.5 }}
                                 animateIn={true}
                                 
                                 width={globeSize.width}
                                 height={globeSize.height}
+
                             />
                         ) : (
                             <D3Map />
