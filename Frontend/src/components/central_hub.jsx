@@ -84,9 +84,9 @@ export default function SnowAICentralHub() {
         },
         'GPTDiscussion': {
             name: 'GPT Discussion',
-            color: '#6b7280', // Gray
-            bgColor: 'rgba(107, 114, 128, 0.1)',
-            borderColor: 'rgba(107, 114, 128, 0.3)',
+            color: '#d1d5db', // Light Gray
+            bgColor: 'rgba(209, 213, 219, 0.1)',
+            borderColor: 'rgba(209, 213, 219, 0.3)',
         }
 
     };
