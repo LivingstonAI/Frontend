@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
@@ -19,6 +19,13 @@ export default function SnowAICentralHub() {
     const [discussionMessages, setDiscussionMessages] = useState([]);
     const [discussionLoading, setDiscussionLoading] = useState(false);
     const [triggeringDiscussion, setTriggeringDiscussion] = useState(false);
+
+    // Voice reading states
+    const [isReading, setIsReading] = useState(false);
+    const [readingMessageId, setReadingMessageId] = useState(null);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const speechSynthRef = useRef(null);
 
     const gptSystems = {
         'TraderHistoryGPT': {
@@ -93,6 +100,194 @@ export default function SnowAICentralHub() {
             borderColor: 'rgba(99, 102, 241, 0.3)',
         }
     };
+
+    // Voice reading functionality
+    useEffect(() => {
+        if ('speechSynthesis' in window) {
+            const synth = window.speechSynthesis;
+            speechSynthRef.current = synth;
+
+            const loadVoices = () => {
+                const availableVoices = synth.getVoices();
+                setVoices(availableVoices);
+                
+                // Select a natural-sounding voice (prefer neural/natural voices)
+                const preferredVoice = availableVoices.find(voice => 
+                    voice.name.includes('Neural') || 
+                    voice.name.includes('Natural') ||
+                    voice.name.includes('Enhanced') ||
+                    (voice.lang.includes('en') && voice.localService)
+                ) || availableVoices.find(voice => voice.lang.includes('en')) || availableVoices[0];
+                
+                setSelectedVoice(preferredVoice);
+            };
+
+            loadVoices();
+            synth.addEventListener('voiceschanged', loadVoices);
+
+            return () => {
+                synth.removeEventListener('voiceschanged', loadVoices);
+                synth.cancel();
+            };
+        }
+    }, []);
+
+    // Clean text for speech synthesis (remove markdown and HTML)
+    const cleanTextForSpeech = (text) => {
+        if (!text) return '';
+        
+        return text
+            // Remove HTML tags
+            .replace(/<[^>]*>/g, ' ')
+            // Remove markdown formatting
+            .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/`([^`]+)`/g, '$1')
+            .replace(/```[\s\S]*?```/g, 'code block')
+            .replace(/#{1,6}\s/g, '')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .replace(/^\* /gm, '')
+            .replace(/^- /gm, '')
+            .replace(/^\d+\. /gm, '')
+            // Clean up whitespace
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
+    const speakText = (text, messageId = null) => {
+        if (!speechSynthRef.current || !selectedVoice) return;
+
+        // Stop any current speech
+        speechSynthRef.current.cancel();
+
+        const cleanText = cleanTextForSpeech(text);
+        if (!cleanText) return;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.voice = selectedVoice;
+        utterance.rate = 0.9; // Slightly slower for better comprehension
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        utterance.onstart = () => {
+            setIsReading(true);
+            setReadingMessageId(messageId);
+        };
+
+        utterance.onend = () => {
+            setIsReading(false);
+            setReadingMessageId(null);
+        };
+
+        utterance.onerror = () => {
+            setIsReading(false);
+            setReadingMessageId(null);
+            console.error('Speech synthesis error');
+        };
+
+        speechSynthRef.current.speak(utterance);
+    };
+
+    const stopReading = () => {
+        if (speechSynthRef.current) {
+            speechSynthRef.current.cancel();
+            setIsReading(false);
+            setReadingMessageId(null);
+        }
+    };
+
+    const VoiceButton = ({ text, messageId, size = 'small', color = '#6b7280' }) => {
+        const isCurrentlyReading = isReading && readingMessageId === messageId;
+        const buttonSize = size === 'large' ? '24px' : '16px';
+        
+        return (
+            <button
+                onClick={() => isCurrentlyReading ? stopReading() : speakText(text, messageId)}
+                style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    color: isCurrentlyReading ? color : '#6b7280',
+                    backgroundColor: isCurrentlyReading ? `${color}20` : 'transparent',
+                }}
+                title={isCurrentlyReading ? 'Stop reading' : 'Read aloud'}
+                onMouseOver={(e) => e.target.style.backgroundColor = `${color}20`}
+                onMouseOut={(e) => e.target.style.backgroundColor = isCurrentlyReading ? `${color}20` : 'transparent'}
+            >
+                {isCurrentlyReading ? (
+                    <svg width={buttonSize} height={buttonSize} viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16" />
+                        <rect x="14" y="4" width="4" height="16" />
+                    </svg>
+                ) : (
+                    <svg width={buttonSize} height={buttonSize} viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 19,12 5,21" />
+                    </svg>
+                )}
+            </button>
+        );
+    };
+
+    // Voice controls component
+    const VoiceControls = () => (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '8px 12px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px',
+            fontSize: '12px',
+            border: '1px solid #e5e7eb',
+            marginBottom: '15px'
+        }}>
+            <span style={{ color: '#374151', fontWeight: '500' }}>Voice:</span>
+            <select
+                value={selectedVoice?.name || ''}
+                onChange={(e) => {
+                    const voice = voices.find(v => v.name === e.target.value);
+                    setSelectedVoice(voice);
+                }}
+                style={{
+                    fontSize: '11px',
+                    padding: '2px 6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    color: '#374151'
+                }}
+            >
+                {voices.filter(voice => voice.lang.includes('en')).map(voice => (
+                    <option key={voice.name} value={voice.name}>
+                        {voice.name} ({voice.lang})
+                    </option>
+                ))}
+            </select>
+            {isReading && (
+                <button
+                    onClick={stopReading}
+                    style={{
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Stop All
+                </button>
+            )}
+        </div>
+    );
 
     // Markdown rendering function
     const renderMarkdown = (text) => {
@@ -255,6 +450,7 @@ export default function SnowAICentralHub() {
             fontSize: '14px',
             lineHeight: '1.5',
             wordWrap: 'break-word',
+            position: 'relative',
         },
         userMessage: {
             alignSelf: 'flex-end',
@@ -347,6 +543,18 @@ export default function SnowAICentralHub() {
         conversationInfo: {
             fontSize: '12px',
             color: '#6b7280',
+        },
+        messageHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px',
+        },
+        summaryHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
         }
     };
 
@@ -637,6 +845,7 @@ export default function SnowAICentralHub() {
     const renderDiscussionMessage = (message, index) => {
         const system = discussionSystems[message.gpt_system];
         const isTopicMessage = message.gpt_system === 'CentralGPT' && message.turn_number === 0;
+        const messageId = `discussion-${index}`;
         
         return (
             <div 
@@ -652,36 +861,42 @@ export default function SnowAICentralHub() {
                     position: 'relative'
                 }}
             >
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px'
-                }}>
+                <div style={styles.messageHeader}>
                     <div style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: system?.color || '#6b7280'
-                    }} />
-                    <span style={{
-                        fontWeight: 'bold',
-                        color: system?.color || '#6b7280',
-                        fontSize: '13px'
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
                     }}>
-                        {message.gpt_system}
-                    </span>
-                    {message.turn_number > 0 && (
+                        <div style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: system?.color || '#6b7280'
+                        }} />
                         <span style={{
-                            fontSize: '11px',
-                            color: '#6b7280',
-                            backgroundColor: '#f3f4f6',
-                            padding: '2px 6px',
-                            borderRadius: '10px'
+                            fontWeight: 'bold',
+                            color: system?.color || '#6b7280',
+                            fontSize: '13px'
                         }}>
-                            Round {message.turn_number}
+                            {message.gpt_system}
                         </span>
-                    )}
+                        {message.turn_number > 0 && (
+                            <span style={{
+                                fontSize: '11px',
+                                color: '#6b7280',
+                                backgroundColor: '#f3f4f6',
+                                padding: '2px 6px',
+                                borderRadius: '10px'
+                            }}>
+                                Round {message.turn_number}
+                            </span>
+                        )}
+                    </div>
+                    <VoiceButton 
+                        text={message.message} 
+                        messageId={messageId}
+                        color={system?.color || '#6b7280'}
+                    />
                 </div>
                 
                 <div style={{
@@ -748,6 +963,9 @@ export default function SnowAICentralHub() {
 
         return (
             <div style={styles.summaryContent}>
+                {/* Voice Controls */}
+                <VoiceControls />
+                
                 {/* Discussion Header */}
                 <div style={{
                     backgroundColor: '#f8fafc',
@@ -819,17 +1037,25 @@ export default function SnowAICentralHub() {
                         borderLeft: '4px solid #3b82f6',
                         marginBottom: '25px'
                     }}>
-                        <h3 style={{ 
-                            fontSize: '16px', 
-                            fontWeight: 'bold', 
-                            marginBottom: '15px',
-                            color: '#1e40af',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}>
-                            CentralGPT Analysis
-                        </h3>
+                        <div style={styles.summaryHeader}>
+                            <h3 style={{ 
+                                fontSize: '16px', 
+                                fontWeight: 'bold', 
+                                margin: 0,
+                                color: '#1e40af',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                CentralGPT Analysis
+                            </h3>
+                            <VoiceButton 
+                                text={gptDiscussion.central_gpt_summary} 
+                                messageId="central-gpt-summary"
+                                size="large"
+                                color="#3b82f6"
+                            />
+                        </div>
                         <div dangerouslySetInnerHTML={{ 
                             __html: renderMarkdown(gptDiscussion.central_gpt_summary)
                         }} />
@@ -966,6 +1192,22 @@ export default function SnowAICentralHub() {
 
         return (
             <div style={styles.summaryContent}>
+                {/* Voice Controls */}
+                <VoiceControls />
+                
+                {/* Summary Header with Voice Button */}
+                <div style={styles.summaryHeader}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                        Summary Content
+                    </h3>
+                    <VoiceButton 
+                        text={summaryData.summary} 
+                        messageId={`summary-${activeGPT}`}
+                        size="large"
+                        color={gptSystems[activeGPT].color}
+                    />
+                </div>
+
                 {summaryData.summary && (
                     <div dangerouslySetInnerHTML={{ 
                         __html: renderMarkdown(summaryData.summary)
@@ -1110,6 +1352,9 @@ export default function SnowAICentralHub() {
                                         Chat with {gptSystems[activeGPT].name}
                                     </h2>
 
+                                    {/* Voice Controls in Chat */}
+                                    <VoiceControls />
+
                                     {/* Conversation Controls */}
                                     <div style={styles.conversationControls}>
                                         <div style={styles.conversationInfo}>
@@ -1134,30 +1379,56 @@ export default function SnowAICentralHub() {
                                                     Loading conversation history...
                                                 </div>
                                             ) : (
-                                                (chatMessages[activeGPT] || []).map((message, index) => (
-                                                    <div
-                                                        key={index}
-                                                        style={{
-                                                            ...styles.message,
-                                                            ...(message.role === 'user' ? {
-                                                                ...styles.userMessage,
-                                                                backgroundColor: gptSystems[activeGPT].color,
-                                                            } : styles.assistantMessage)
-                                                        }}
-                                                    >
-                                                        <div dangerouslySetInnerHTML={{ 
-                                                            __html: message.role === 'assistant' ? renderMarkdown(message.content) : message.content 
-                                                        }} />
-                                                        <div style={{ 
-                                                            fontSize: '11px', 
-                                                            opacity: 0.7, 
-                                                            marginTop: '5px',
-                                                            textAlign: 'right'
-                                                        }}>
-                                                            {message.timestamp}
+                                                (chatMessages[activeGPT] || []).map((message, index) => {
+                                                    const messageId = `chat-${activeGPT}-${index}`;
+                                                    return (
+                                                        <div
+                                                            key={index}
+                                                            style={{
+                                                                ...styles.message,
+                                                                ...(message.role === 'user' ? {
+                                                                    ...styles.userMessage,
+                                                                    backgroundColor: gptSystems[activeGPT].color,
+                                                                } : styles.assistantMessage)
+                                                            }}
+                                                        >
+                                                            {message.role === 'assistant' && (
+                                                                <div style={{ 
+                                                                    display: 'flex', 
+                                                                    justifyContent: 'space-between', 
+                                                                    alignItems: 'flex-start',
+                                                                    marginBottom: '8px'
+                                                                }}>
+                                                                    <span style={{ 
+                                                                        fontSize: '12px', 
+                                                                        color: '#6b7280',
+                                                                        fontWeight: '600'
+                                                                    }}>
+                                                                        {gptSystems[activeGPT].name}
+                                                                    </span>
+                                                                    <VoiceButton 
+                                                                        text={message.content} 
+                                                                        messageId={messageId}
+                                                                        color={gptSystems[activeGPT].color}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            
+                                                            <div dangerouslySetInnerHTML={{ 
+                                                                __html: message.role === 'assistant' ? renderMarkdown(message.content) : message.content 
+                                                            }} />
+                                                            
+                                                            <div style={{ 
+                                                                fontSize: '11px', 
+                                                                opacity: 0.7, 
+                                                                marginTop: '5px',
+                                                                textAlign: 'right'
+                                                            }}>
+                                                                {message.timestamp}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))
+                                                    );
+                                                })
                                             )}
                                             {isLoading && (
                                                 <div style={{
