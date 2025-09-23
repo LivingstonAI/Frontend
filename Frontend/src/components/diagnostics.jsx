@@ -99,7 +99,6 @@ const styles = {
             fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
             backgroundColor: '#F8FAFC',
             minHeight: '100vh',
-            padding: '20px'
         },
         header: {
             marginBottom: '30px',
