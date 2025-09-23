@@ -81,6 +81,8 @@ import bomb_2022 from '../Bomb比爾 - 1022-比爾的歌動態歌詞他們說今
 import daisies from '../DAISIES.mp3';
 import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music Video).mp3';
 import judas from '../Lady Gaga - Judas (Lyrics).mp3';
+import xonada from '../MONTAGEM XONADA.mp3';
+
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -307,7 +309,7 @@ export default function Art() {
     "76": { name: "Daisies 🌼", file: daisies },
     "77": { name: "Timeless ⌛", file: timeless },
     "78": { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
-
+    "79": { name: "Xonada 🟣", file: xonada },
   };
 
   const characterSets = {

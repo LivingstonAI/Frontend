@@ -84,6 +84,7 @@ import bomb_2022 from '../Bomb比爾 - 1022-比爾的歌動態歌詞他們說今
 import daisies from '../DAISIES.mp3';
 import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music Video).mp3';
 import judas from '../Lady Gaga - Judas (Lyrics).mp3';
+import xonada from '../MONTAGEM XONADA.mp3';
 
 
 export default function SideNavs() {
@@ -224,7 +225,7 @@ export default function SideNavs() {
         { name: "Daisies 🌼", file: daisies },
         { name: "Timeless ⌛", file: timeless },
         { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
-
+        { name: "Xonada 🟣", file: xonada },
   ];
 
   // Enhanced touch navigation function
