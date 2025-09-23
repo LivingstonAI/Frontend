@@ -67,6 +67,8 @@ import HolographicHUD from './components/snowbrain.jsx';
 import ResearchLogbook from './components/research_logbook.jsx';
 import SnowAICentralHub from './components/central_hub.jsx';
 import SnowAIEarth from './components/snowai_earth.jsx';
+import Diagnostics from './components/diagnostics.jsx';
+
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -449,7 +451,26 @@ function App() {
                 <SnowAIEarth />
               </ProtectedRoute>
             } />
+
+            <Route path='/diagnostics' element={
+              <ProtectedRoute>
+                <Diagnostics />
+              </ProtectedRoute>
+            } />
             
+
+
+
+
+
+
+
+
+
+
+
+
+
             <Route path='/market_share_infographic' element={
               <ProtectedRoute>
                 <MarketShareInfographic />
