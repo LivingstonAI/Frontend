@@ -21,12 +21,6 @@ export default function SnowAICentralHub() {
     const [triggeringDiscussion, setTriggeringDiscussion] = useState(false);
 
     const gptSystems = {
-        'CentralGPT': {
-            name: 'CentralGPT',
-            color: '#6366f1', // Indigo
-            bgColor: 'rgba(99, 102, 241, 0.1)',
-            borderColor: 'rgba(99, 102, 241, 0.3)',
-        },
         'TraderHistoryGPT': {
             name: 'TraderHistoryGPT',
             color: '#3b82f6', // Blue
@@ -89,8 +83,16 @@ export default function SnowAICentralHub() {
         }
     };
 
-    // Create extended systems object that includes CentralGPT for discussion messages
-    const gptSystemsWithCentral = { ...gptSystems };
+    // Systems that are used in discussion messages (includes CentralGPT)
+    const discussionSystems = {
+        ...gptSystems,
+        'CentralGPT': {
+            name: 'CentralGPT',
+            color: '#6366f1', // Indigo
+            bgColor: 'rgba(99, 102, 241, 0.1)',
+            borderColor: 'rgba(99, 102, 241, 0.3)',
+        }
+    };
 
     // Markdown rendering function
     const renderMarkdown = (text) => {
@@ -633,7 +635,7 @@ export default function SnowAICentralHub() {
     };
 
     const renderDiscussionMessage = (message, index) => {
-        const system = gptSystemsWithCentral[message.gpt_system];
+        const system = discussionSystems[message.gpt_system];
         const isTopicMessage = message.gpt_system === 'CentralGPT' && message.turn_number === 0;
         
         return (
@@ -690,7 +692,7 @@ export default function SnowAICentralHub() {
                 }}>
                     {isTopicMessage ? (
                         <span style={{ color: '#1f2937' }}>
-                            🎯 {message.message.replace('Discussion Topic: ', '')}
+                            {message.message.replace('Discussion Topic: ', '')}
                         </span>
                     ) : (
                         message.message
@@ -722,7 +724,7 @@ export default function SnowAICentralHub() {
             return (
                 <div style={styles.noSummaryMessage}>
                     <div style={{ marginBottom: '15px', fontSize: '18px' }}>
-                        🤖 No GPT Discussion Available
+                        No GPT Discussion Available
                     </div>
                     <div style={{ fontSize: '14px', marginBottom: '20px', color: '#6b7280' }}>
                         GPT discussions happen automatically every 5 days, or you can trigger one manually.
@@ -738,7 +740,7 @@ export default function SnowAICentralHub() {
                             cursor: triggeringDiscussion ? 'not-allowed' : 'pointer'
                         }}
                     >
-                        {triggeringDiscussion ? 'Starting Discussion...' : '🚀 Start GPT Discussion'}
+                        {triggeringDiscussion ? 'Starting Discussion...' : 'Start GPT Discussion'}
                     </button>
                 </div>
             );
@@ -766,7 +768,7 @@ export default function SnowAICentralHub() {
                             borderRadius: '12px',
                             fontWeight: '600'
                         }}>
-                            {gptDiscussion.is_active ? '🟢 Active' : '✅ Completed'}
+                            {gptDiscussion.is_active ? 'Active' : 'Completed'}
                         </span>
                     </div>
                     
@@ -778,7 +780,7 @@ export default function SnowAICentralHub() {
                             <strong>Total Messages:</strong> {gptDiscussion.total_messages}
                         </div>
                         <div>
-                            <strong>Trigger:</strong> {gptDiscussion.trigger_type === 'manual' ? '👤 Manual' : '⏰ Scheduled'}
+                            <strong>Trigger:</strong> {gptDiscussion.trigger_type === 'manual' ? 'Manual' : 'Scheduled'}
                         </div>
                         {gptDiscussion.completed_at && (
                             <div>
@@ -793,7 +795,7 @@ export default function SnowAICentralHub() {
                     marginBottom: '30px'
                 }}>
                     <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#1f2937' }}>
-                        💬 Discussion Messages
+                        Discussion Messages
                     </h3>
                     <div style={{
                         maxHeight: '500px',
@@ -826,7 +828,7 @@ export default function SnowAICentralHub() {
                             alignItems: 'center',
                             gap: '8px'
                         }}>
-                            🧠 CentralGPT Analysis
+                            CentralGPT Analysis
                         </h3>
                         <div dangerouslySetInnerHTML={{ 
                             __html: renderMarkdown(gptDiscussion.central_gpt_summary)
@@ -843,7 +845,7 @@ export default function SnowAICentralHub() {
                         border: '1px solid #e5e7eb'
                     }}>
                         <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#1f2937' }}>
-                            📊 Discussion Metrics
+                            Discussion Metrics
                         </h3>
                         
                         {/* Key Metrics Grid */}
@@ -890,7 +892,7 @@ export default function SnowAICentralHub() {
                                             borderRadius: '6px',
                                             fontSize: '13px'
                                         }}>
-                                            <span style={{ color: gptSystemsWithCentral[gpt]?.color || '#6b7280', fontWeight: '500' }}>
+                                            <span style={{ color: discussionSystems[gpt]?.color || '#6b7280', fontWeight: '500' }}>
                                                 {gpt}:
                                             </span>
                                             <span style={{ color: '#1f2937', fontWeight: '600' }}>{words}</span>
@@ -914,7 +916,7 @@ export default function SnowAICentralHub() {
                             cursor: (triggeringDiscussion || gptDiscussion.is_active) ? 'not-allowed' : 'pointer'
                         }}
                     >
-                        {triggeringDiscussion ? 'Starting New Discussion...' : '🔄 Start New Discussion'}
+                        {triggeringDiscussion ? 'Starting New Discussion...' : 'Start New Discussion'}
                     </button>
                     <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
                         Starting a new discussion will replace the current one
@@ -1055,7 +1057,7 @@ export default function SnowAICentralHub() {
                                             } : {})
                                         }}
                                     >
-                                        📊 Summary
+                                        Summary
                                     </button>
                                     <button
                                         onClick={() => setViewMode('chat')}
@@ -1067,7 +1069,7 @@ export default function SnowAICentralHub() {
                                             } : {})
                                         }}
                                     >
-                                        💬 Chat
+                                        Chat
                                     </button>
                                 </div>
                             )}
