@@ -15,7 +15,20 @@ export default function SnowAICentralHub() {
     const [summariesLoading, setSummariesLoading] = useState(true);
     const [conversationHistoryLoading, setConversationHistoryLoading] = useState({});
 
+    const [gptDiscussion, setGptDiscussion] = useState(null);
+    const [discussionMessages, setDiscussionMessages] = useState([]);
+    const [discussionLoading, setDiscussionLoading] = useState(false);
+    const [triggeringDiscussion, setTriggeringDiscussion] = useState(false);
+
+
+
     const gptSystems = {
+        'CentralGPT': {
+            name: 'CentralGPT',
+            color: '#6366f1', // Indigo
+            bgColor: 'rgba(99, 102, 241, 0.1)',
+            borderColor: 'rgba(99, 102, 241, 0.3)',
+            },
         'TraderHistoryGPT': {
             name: 'TraderHistoryGPT',
             color: '#3b82f6', // Blue
@@ -362,6 +375,45 @@ export default function SnowAICentralHub() {
         }
     };
 
+    const fetchCurrentDiscussion = async () => {
+        setDiscussionLoading(true);
+        try {
+            const response = await fetch(`${baseUrl}/get_current_gpt_discussion/`);
+            if (response.ok) {
+                const data = await response.json();
+                setGptDiscussion(data.discussion);
+                setDiscussionMessages(data.messages || []);
+            }
+        } catch (error) {
+            console.error('Error fetching GPT discussion:', error);
+        } finally {
+            setDiscussionLoading(false);
+        }
+    };
+
+    const triggerManualDiscussion = async () => {
+        setTriggeringDiscussion(true);
+        try {
+            const response = await fetch(`${baseUrl}/trigger_manual_gpt_discussion/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            if (response.ok) {
+                // Wait a moment for the discussion to complete
+                setTimeout(() => {
+                    fetchCurrentDiscussion();
+                }, 2000);
+            }
+        } catch (error) {
+            console.error('Error triggering GPT discussion:', error);
+        } finally {
+            setTriggeringDiscussion(false);
+        }
+    };
+
     // Load conversation history for a specific GPT
     const loadConversationHistory = async (gptType) => {
         if (conversationHistoryLoading[gptType] || chatMessages[gptType]) {
@@ -528,6 +580,7 @@ export default function SnowAICentralHub() {
     useEffect(() => {
         fetchAPIKey();
         fetchExistingSummaries(); // Only fetch existing summaries, don't generate new ones
+        fetchCurrentDiscussion();
     }, []);
 
     // Load conversation history when switching to chat mode
@@ -544,8 +597,30 @@ export default function SnowAICentralHub() {
         }
     };
 
-    const renderOrb = (gptType) => {
+    const renderOrb = (gptType) => {if (gptType === 'GPTDiscussion') {
+        return (
+            <div style={styles.orbContainer}>
+                <div 
+                    className="pulsing-glow"
+                    style={{
+                        ...styles.orbGlow,
+                        backgroundColor: '#6366f1',
+                    }}
+                />
+                <div 
+                    className="floating-orb"
+                    style={{
+                        ...styles.orb,
+                        backgroundColor: '#6366f1',
+                    }}
+                />
+            </div>
+        );
+    }
+    
+
         const system = gptSystems[gptType];
+        
         return (
             <div style={styles.orbContainer}>
                 <div 
@@ -565,6 +640,299 @@ export default function SnowAICentralHub() {
             </div>
         );
     };
+
+    const renderDiscussionMessage = (message, index) => {
+    const system = gptSystemsWithCentral[message.gpt_system];
+    const isTopicMessage = message.gpt_system === 'CentralGPT' && message.turn_number === 0;
+    
+    return (
+        <div 
+            key={index}
+            style={{
+                ...styles.message,
+                backgroundColor: isTopicMessage ? '#f0f9ff' : system?.bgColor || '#f9fafb',
+                border: `1px solid ${system?.borderColor || '#e5e7eb'}`,
+                borderLeft: `4px solid ${system?.color || '#6b7280'}`,
+                alignSelf: 'flex-start',
+                maxWidth: '100%',
+                margin: '10px 0',
+                position: 'relative'
+            }}
+        >
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '8px'
+            }}>
+                <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: system?.color || '#6b7280'
+                }} />
+                <span style={{
+                    fontWeight: 'bold',
+                    color: system?.color || '#6b7280',
+                    fontSize: '13px'
+                }}>
+                    {message.gpt_system}
+                </span>
+                {message.turn_number > 0 && (
+                    <span style={{
+                        fontSize: '11px',
+                        color: '#6b7280',
+                        backgroundColor: '#f3f4f6',
+                        padding: '2px 6px',
+                        borderRadius: '10px'
+                    }}>
+                        Round {message.turn_number}
+                    </span>
+                )}
+            </div>
+            
+            <div style={{
+                fontSize: isTopicMessage ? '16px' : '14px',
+                fontWeight: isTopicMessage ? 'bold' : 'normal',
+                color: '#374151',
+                lineHeight: '1.5'
+            }}>
+                {isTopicMessage ? (
+                    <span style={{ color: '#1f2937' }}>
+                        🎯 {message.message.replace('Discussion Topic: ', '')}
+                    </span>
+                ) : (
+                    message.message
+                )}
+            </div>
+            
+            <div style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                marginTop: '8px',
+                textAlign: 'right'
+            }}>
+                {new Date(message.timestamp).toLocaleTimeString()}
+            </div>
+        </div>
+    );
+};
+
+const renderDiscussionContent = () => {
+    if (discussionLoading) {
+        return (
+            <div style={styles.noSummaryMessage}>
+                <div style={{ marginBottom: '15px' }}>Loading GPT Discussion...</div>
+            </div>
+        );
+    }
+
+    if (!gptDiscussion) {
+        return (
+            <div style={styles.noSummaryMessage}>
+                <div style={{ marginBottom: '15px', fontSize: '18px' }}>
+                    🤖 No GPT Discussion Available
+                </div>
+                <div style={{ fontSize: '14px', marginBottom: '20px', color: '#6b7280' }}>
+                    GPT discussions happen automatically every 5 days, or you can trigger one manually.
+                    The specialized AI systems will discuss SnowAI insights and share their perspectives.
+                </div>
+                <button
+                    onClick={triggerManualDiscussion}
+                    disabled={triggeringDiscussion}
+                    style={{
+                        ...styles.refreshButton,
+                        backgroundColor: '#6366f1',
+                        opacity: triggeringDiscussion ? 0.5 : 1,
+                        cursor: triggeringDiscussion ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    {triggeringDiscussion ? 'Starting Discussion...' : '🚀 Start GPT Discussion'}
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div style={styles.summaryContent}>
+            {/* Discussion Header */}
+            <div style={{
+                backgroundColor: '#f8fafc',
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                marginBottom: '25px'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                        Discussion Overview
+                    </h3>
+                    <span style={{
+                        fontSize: '12px',
+                        color: gptDiscussion.is_active ? '#059669' : '#6b7280',
+                        backgroundColor: gptDiscussion.is_active ? '#d1fae5' : '#f3f4f6',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontWeight: '600'
+                    }}>
+                        {gptDiscussion.is_active ? '🟢 Active' : '✅ Completed'}
+                    </span>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', fontSize: '13px' }}>
+                    <div>
+                        <strong>Started:</strong> {new Date(gptDiscussion.started_at).toLocaleString()}
+                    </div>
+                    <div>
+                        <strong>Total Messages:</strong> {gptDiscussion.total_messages}
+                    </div>
+                    <div>
+                        <strong>Trigger:</strong> {gptDiscussion.trigger_type === 'manual' ? '👤 Manual' : '⏰ Scheduled'}
+                    </div>
+                    {gptDiscussion.completed_at && (
+                        <div>
+                            <strong>Completed:</strong> {new Date(gptDiscussion.completed_at).toLocaleString()}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Discussion Messages */}
+            <div style={{
+                marginBottom: '30px'
+            }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#1f2937' }}>
+                    💬 Discussion Messages
+                </h3>
+                <div style={{
+                    maxHeight: '500px',
+                    overflowY: 'auto',
+                    padding: '10px',
+                    backgroundColor: '#fafbfc',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb'
+                }}>
+                    {discussionMessages.map((message, index) => renderDiscussionMessage(message, index))}
+                </div>
+            </div>
+
+            {/* CentralGPT Summary */}
+            {gptDiscussion.central_gpt_summary && (
+                <div style={{
+                    backgroundColor: '#f0f9ff',
+                    padding: '25px',
+                    borderRadius: '12px',
+                    border: '1px solid #bfdbfe',
+                    borderLeft: '4px solid #3b82f6',
+                    marginBottom: '25px'
+                }}>
+                    <h3 style={{ 
+                        fontSize: '16px', 
+                        fontWeight: 'bold', 
+                        marginBottom: '15px',
+                        color: '#1e40af',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        🧠 CentralGPT Analysis
+                    </h3>
+                    <div dangerouslySetInnerHTML={{ 
+                        __html: renderMarkdown(gptDiscussion.central_gpt_summary)
+                    }} />
+                </div>
+            )}
+
+            {/* Discussion Metrics */}
+            {gptDiscussion.discussion_metrics && Object.keys(gptDiscussion.discussion_metrics).length > 0 && (
+                <div style={{
+                    backgroundColor: '#f9fafb',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb'
+                }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px', color: '#1f2937' }}>
+                        📊 Discussion Metrics
+                    </h3>
+                    
+                    {/* Key Metrics Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                        <div style={{ textAlign: 'center', padding: '10px', backgroundColor: 'white', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>
+                                {gptDiscussion.discussion_metrics.rounds_completed || 0}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>Rounds</div>
+                        </div>
+                        <div style={{ textAlign: 'center', padding: '10px', backgroundColor: 'white', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                                {gptDiscussion.discussion_metrics.total_words || 0}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>Total Words</div>
+                        </div>
+                        <div style={{ textAlign: 'center', padding: '10px', backgroundColor: 'white', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f59e0b' }}>
+                                {gptDiscussion.discussion_metrics.participating_systems || 0}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>AI Systems</div>
+                        </div>
+                        <div style={{ textAlign: 'center', padding: '10px', backgroundColor: 'white', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
+                                {gptDiscussion.discussion_metrics.discussion_duration_minutes || 0}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>Minutes</div>
+                        </div>
+                    </div>
+
+                    {/* Word Counts by GPT */}
+                    {gptDiscussion.discussion_metrics.word_counts && (
+                        <div style={{ marginTop: '15px' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '10px', color: '#374151' }}>
+                                Word Contributions by AI System:
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
+                                {Object.entries(gptDiscussion.discussion_metrics.word_counts).map(([gpt, words]) => (
+                                    <div key={gpt} style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        padding: '8px 12px',
+                                        backgroundColor: 'white',
+                                        borderRadius: '6px',
+                                        fontSize: '13px'
+                                    }}>
+                                        <span style={{ color: gptSystemsWithCentral[gpt]?.color || '#6b7280', fontWeight: '500' }}>
+                                            {gpt}:
+                                        </span>
+                                        <span style={{ color: '#1f2937', fontWeight: '600' }}>{words}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Manual Trigger Button */}
+            <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                <button
+                    onClick={triggerManualDiscussion}
+                    disabled={triggeringDiscussion || gptDiscussion.is_active}
+                    style={{
+                        ...styles.refreshButton,
+                        backgroundColor: '#6366f1',
+                        opacity: (triggeringDiscussion || gptDiscussion.is_active) ? 0.5 : 1,
+                        cursor: (triggeringDiscussion || gptDiscussion.is_active) ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    {triggeringDiscussion ? 'Starting New Discussion...' : '🔄 Start New Discussion'}
+                </button>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                    Starting a new discussion will replace the current one
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
     const renderSummaryContent = () => {
         if (summariesLoading) {
@@ -675,6 +1043,9 @@ export default function SnowAICentralHub() {
                                 </button>
                             ))}
                         </div>
+                        
+
+
 
                         {/* Content Card */}
                         <div style={{
@@ -709,19 +1080,54 @@ export default function SnowAICentralHub() {
                                 </button>
                             </div>
 
+                            <button
+                                key="GPTDiscussion"
+                                onClick={() => {
+                                    setActiveGPT('GPTDiscussion');
+                                    setViewMode('summary');
+                                    fetchCurrentDiscussion();
+                                }}
+                                style={{
+                                    ...styles.tabButton,
+                                    ...(activeGPT === 'GPTDiscussion' ? styles.tabButtonActive : {}),
+                                    borderLeft: `4px solid #6366f1`,
+                                    color: activeGPT === 'GPTDiscussion' ? '#6366f1' : '#6b7280',
+                                }}
+                            >
+                                {renderOrb('GPTDiscussion')}
+                                GPT Discussion
+                            </button>
+
+
+
                             {/* Content */}
                             {viewMode === 'summary' ? (
                                 <div>
-                                    <h2 style={{ 
-                                        color: gptSystems[activeGPT].color, 
-                                        marginBottom: '20px',
-                                        fontSize: '24px',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        {gptSystems[activeGPT].name} Summary
-                                    </h2>
-                                    
-                                    {renderSummaryContent()}
+                                    {activeGPT === 'GPTDiscussion' ? (
+                                        <>
+                                            <h2 style={{ 
+                                                color: '#6366f1', 
+                                                marginBottom: '20px',
+                                                fontSize: '24px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                GPT Discussion Hub
+                                            </h2>
+                                            {renderDiscussionContent()}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <h2 style={{ 
+                                                color: gptSystems[activeGPT].color, 
+                                                marginBottom: '20px',
+                                                fontSize: '24px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                {gptSystems[activeGPT].name} Summary
+                                            </h2>
+                                            {renderSummaryContent()}
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <div>
