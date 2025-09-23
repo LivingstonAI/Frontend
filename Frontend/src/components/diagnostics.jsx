@@ -93,9 +93,13 @@ export default function DeepAccountDiagnostics() {
         return '#EF4444';
     };
 
-    const styles = {
+
+const styles = {
         container: {
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            backgroundColor: '#F8FAFC',
+            minHeight: '100vh',
+            padding: '20px'
         },
         header: {
             marginBottom: '30px',
@@ -104,13 +108,13 @@ export default function DeepAccountDiagnostics() {
         title: {
             fontSize: '28px',
             fontWeight: '700',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             marginBottom: '10px'
         },
         subtitle: {
-            color: '#9CA3AF',
+            color: '#64748B',
             fontSize: '16px'
         },
         accountGrid: {
@@ -120,35 +124,37 @@ export default function DeepAccountDiagnostics() {
             marginBottom: '30px'
         },
         accountCard: {
-            background: 'linear-gradient(145deg, #1a1a2e, #16213e)',
-            border: '1px solid #2D3748',
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
             borderRadius: '12px',
             padding: '20px',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         },
         accountCardHover: {
             transform: 'translateY(-5px)',
-            boxShadow: '0 10px 25px rgba(102, 126, 234, 0.3)',
-            borderColor: '#667eea'
+            boxShadow: '0 10px 25px rgba(59, 130, 246, 0.15)',
+            borderColor: '#3B82F6'
         },
         accountName: {
             fontSize: '18px',
             fontWeight: '600',
             marginBottom: '8px',
-            color: '#FFFFFF'
+            color: '#1E293B'
         },
         accountDetails: {
             fontSize: '14px',
-            color: '#9CA3AF',
+            color: '#64748B',
             marginBottom: '4px'
         },
         tabContainer: {
             display: 'flex',
             marginBottom: '30px',
-            borderBottom: '2px solid #2D3748',
-            overflowX: 'auto'
+            borderBottom: '2px solid #E2E8F0',
+            overflowX: 'auto',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '8px 8px 0 0'
         },
         tab: {
             padding: '12px 24px',
@@ -156,11 +162,12 @@ export default function DeepAccountDiagnostics() {
             borderBottom: '2px solid transparent',
             transition: 'all 0.3s ease',
             whiteSpace: 'nowrap',
-            color: '#9CA3AF'
+            color: '#64748B',
+            fontWeight: '500'
         },
         activeTab: {
-            borderBottomColor: '#667eea',
-            color: '#667eea',
+            borderBottomColor: '#3B82F6',
+            color: '#3B82F6',
             fontWeight: '600'
         },
         metricsGrid: {
@@ -170,11 +177,12 @@ export default function DeepAccountDiagnostics() {
             marginBottom: '30px'
         },
         metricCard: {
-            background: 'linear-gradient(145deg, #1F2937, #111827)',
+            background: '#FFFFFF',
             borderRadius: '12px',
             padding: '20px',
-            border: '1px solid #374151',
-            textAlign: 'center'
+            border: '1px solid #E2E8F0',
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         },
         metricValue: {
             fontSize: '24px',
@@ -183,30 +191,32 @@ export default function DeepAccountDiagnostics() {
         },
         metricLabel: {
             fontSize: '14px',
-            color: '#9CA3AF',
+            color: '#64748B',
             textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            letterSpacing: '0.5px',
+            fontWeight: '500'
         },
         chartContainer: {
-            background: 'linear-gradient(145deg, #1F2937, #111827)',
+            background: '#FFFFFF',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '20px',
-            border: '1px solid #374151'
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         },
         chartTitle: {
             fontSize: '18px',
             fontWeight: '600',
             marginBottom: '15px',
-            color: '#FFFFFF'
+            color: '#1E293B'
         },
         probabilityCard: {
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
             borderRadius: '16px',
             padding: '25px',
             textAlign: 'center',
             marginBottom: '20px',
-            boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+            boxShadow: '0 4px 20px rgba(59, 130, 246, 0.25)'
         },
         probabilityValue: {
             fontSize: '36px',
@@ -235,13 +245,28 @@ export default function DeepAccountDiagnostics() {
             margin: '20px auto',
             boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
         },
+        aiToggleButton: {
+            background: aiInsights ? '#22C55E' : '#8B5CF6',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginTop: '10px'
+        },
         aiInsightsContainer: {
-            background: 'linear-gradient(145deg, #1F2937, #111827)',
+            background: '#FFFFFF',
             borderRadius: '12px',
             padding: '25px',
             marginTop: '20px',
             border: '1px solid #8B5CF6',
-            boxShadow: '0 4px 20px rgba(139, 92, 246, 0.2)'
+            boxShadow: '0 4px 20px rgba(139, 92, 246, 0.1)'
         },
         aiInsightsTitle: {
             fontSize: '20px',
@@ -254,33 +279,35 @@ export default function DeepAccountDiagnostics() {
         },
         aiInsightsContent: {
             lineHeight: '1.6',
-            color: '#E5E7EB',
+            color: '#374151',
             whiteSpace: 'pre-line'
         },
         tableContainer: {
-            background: 'linear-gradient(145deg, #1F2937, #111827)',
+            background: '#FFFFFF',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '20px',
-            border: '1px solid #374151',
-            overflowX: 'auto'
+            border: '1px solid #E2E8F0',
+            overflowX: 'auto',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         },
         table: {
             width: '100%',
             borderCollapse: 'collapse'
         },
         tableHeader: {
-            backgroundColor: '#374151',
-            color: '#FFFFFF',
+            backgroundColor: '#F8FAFC',
+            color: '#1E293B',
             fontWeight: '600',
             padding: '12px',
             textAlign: 'left',
-            borderRadius: '8px 8px 0 0'
+            borderRadius: '8px 8px 0 0',
+            borderBottom: '2px solid #E2E8F0'
         },
         tableCell: {
             padding: '12px',
-            borderBottom: '1px solid #374151',
-            color: '#E5E7EB'
+            borderBottom: '1px solid #E2E8F0',
+            color: '#374151'
         },
         loadingSpinner: {
             display: 'flex',
@@ -288,7 +315,10 @@ export default function DeepAccountDiagnostics() {
             alignItems: 'center',
             height: '200px',
             fontSize: '18px',
-            color: '#9CA3AF'
+            color: '#64748B',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            border: '1px solid #E2E8F0'
         },
         streakContainer: {
             display: 'grid',
@@ -297,61 +327,64 @@ export default function DeepAccountDiagnostics() {
             marginBottom: '20px'
         },
         streakCard: {
-            background: 'linear-gradient(145deg, #1F2937, #111827)',
+            background: '#FFFFFF',
             borderRadius: '12px',
             padding: '20px',
             textAlign: 'center',
-            border: '1px solid #374151'
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         },
         riskMetricCard: {
-            background: 'linear-gradient(145deg, #1F2937, #111827)',
+            background: '#FFFFFF',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '15px',
-            border: '1px solid #374151'
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
         },
         riskMetricTitle: {
             fontSize: '16px',
             fontWeight: '600',
             marginBottom: '10px',
-            color: '#FFFFFF'
+            color: '#1E293B'
         },
         riskMetricValue: {
             fontSize: '20px',
             fontWeight: '700',
-            color: '#667eea'
+            color: '#3B82F6'
         },
         emotionalPattern: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '10px 0',
-            borderBottom: '1px solid #374151'
+            borderBottom: '1px solid #E2E8F0'
         },
-        // Mobile responsiveness
-        '@media (max-width: 768px)': {
-            container: {
-                padding: '15px'
-            },
-            title: {
-                fontSize: '24px'
-            },
-            accountGrid: {
-                gridTemplateColumns: '1fr',
-                gap: '15px'
-            },
-            metricsGrid: {
-                gridTemplateColumns: '1fr',
-                gap: '15px'
-            },
-            tabContainer: {
-                flexWrap: 'wrap'
-            },
-            tab: {
-                padding: '10px 16px'
-            }
+        backButton: {
+            background: '#6B7280',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            transition: 'all 0.3s ease'
         }
     };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
 
