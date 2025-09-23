@@ -373,19 +373,6 @@ const styles = {
     };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     const COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
 
     const renderOverviewTab = () => (
@@ -636,7 +623,7 @@ const styles = {
 
             {!selectedAccount ? (
                 <div>
-                    <h2 style={{marginBottom: '20px', color: '#FFFFFF'}}>Select an Account to Analyze</h2>
+                    <h2 style={{marginBottom: '20px'}}>Select an Account to Analyze</h2>
                     <div style={styles.accountGrid}>
                         {accounts.map((account) => (
                             <div
@@ -679,7 +666,7 @@ const styles = {
                         >
                             ← Back to Accounts
                         </button>
-                        <h2 style={{margin: 0, color: '#FFFFFF'}}>
+                        <h2 style={{margin: 0}}>
                             {selectedAccount.account_name} - Deep Analysis
                         </h2>
                     </div>
