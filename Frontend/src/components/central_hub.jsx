@@ -908,12 +908,12 @@ export default function SnowAICentralHub() {
                 <div style={{ textAlign: 'center', marginTop: '30px' }}>
                     <button
                         onClick={triggerManualDiscussion}
-                        disabled={triggeringDiscussion || gptDiscussion.is_active}
+                        disabled={triggeringDiscussion}
                         style={{
                             ...styles.refreshButton,
                             backgroundColor: '#6366f1',
-                            opacity: (triggeringDiscussion || gptDiscussion.is_active) ? 0.5 : 1,
-                            cursor: (triggeringDiscussion || gptDiscussion.is_active) ? 'not-allowed' : 'pointer'
+                            opacity: triggeringDiscussion ? 0.5 : 1,
+                            cursor: triggeringDiscussion ? 'not-allowed' : 'pointer'
                         }}
                     >
                         {triggeringDiscussion ? 'Starting New Discussion...' : 'Start New Discussion'}
