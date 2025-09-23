@@ -84,10 +84,11 @@ export default function SnowAICentralHub() {
         },
         'GPTDiscussion': {
             name: 'GPT Discussion',
-            color: '#8b5cf6', // Violet
-            bgColor: 'rgba(139, 92, 246, 0.1)',
-            borderColor: 'rgba(139, 92, 246, 0.3)',
+            color: '#6b7280', // Gray
+            bgColor: 'rgba(107, 114, 128, 0.1)',
+            borderColor: 'rgba(107, 114, 128, 0.3)',
         }
+
     };
 
     // Systems that are used in discussion messages (includes CentralGPT)
