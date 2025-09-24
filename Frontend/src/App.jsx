@@ -68,7 +68,7 @@ import ResearchLogbook from './components/research_logbook.jsx';
 import SnowAICentralHub from './components/central_hub.jsx';
 import SnowAIEarth from './components/snowai_earth.jsx';
 import Diagnostics from './components/diagnostics.jsx';
-import VideoTranscription from '../components/video_transcription.jsx';
+import VideoTranscription from './components/video_transcription.jsx';
 
 
 import Zhenya from './components/zhenya';
