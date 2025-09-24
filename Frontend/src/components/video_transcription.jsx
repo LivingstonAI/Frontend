@@ -620,7 +620,7 @@ export default function VideoTranscription() {
     };
 
     return (
-        <div style={styles.container}>
+        <div>
                     <div className="header">
                         <Header />
                     </div>
