@@ -143,6 +143,17 @@ const snowaiTranscriptionStyles = {
     fontSize: '12px',
     fontWeight: '500'
   },
+  buttonSmall: {
+    padding: '6px 12px',
+    backgroundColor: '#f59e0b',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '500',
+    marginLeft: '8px'
+  },
   alertSuccess: {
     padding: '12px 16px',
     backgroundColor: '#dcfce7',
@@ -158,6 +169,41 @@ const snowaiTranscriptionStyles = {
     borderRadius: '6px',
     color: '#dc2626',
     marginBottom: '15px'
+  },
+  alertWarning: {
+    padding: '12px 16px',
+    backgroundColor: '#fef3c7',
+    border: '1px solid #fde68a',
+    borderRadius: '6px',
+    color: '#92400e',
+    marginBottom: '15px'
+  },
+  cookieSection: {
+    backgroundColor: '#fef7f0',
+    border: '1px solid #fed7aa',
+    borderRadius: '8px',
+    padding: '20px',
+    marginBottom: '20px'
+  },
+  collapsibleHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    cursor: 'pointer',
+    padding: '10px',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '6px',
+    marginBottom: '15px'
+  },
+  loadingSpinner: {
+    display: 'inline-block',
+    width: '20px',
+    height: '20px',
+    border: '3px solid rgba(255,255,255,.3)',
+    borderRadius: '50%',
+    borderTopColor: '#fff',
+    animation: 'spin 1s ease-in-out infinite',
+    marginRight: '8px'
   },
   transcriptCard: {
     backgroundColor: 'white',
@@ -219,16 +265,6 @@ const snowaiTranscriptionStyles = {
   filterSelect: {
     flex: '1',
     minWidth: '120px'
-  },
-  loadingSpinner: {
-    display: 'inline-block',
-    width: '20px',
-    height: '20px',
-    border: '3px solid rgba(255,255,255,.3)',
-    borderRadius: '50%',
-    borderTopColor: '#fff',
-    animation: 'spin 1s ease-in-out infinite',
-    marginRight: '8px'
   },
   pagination: {
     display: 'flex',
@@ -331,6 +367,7 @@ export default function VideoTranscription() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [showCookieSection, setShowCookieSection] = useState(false);
     
     // Extract transcript form state
     const [extractForm, setExtractForm] = useState({
@@ -338,7 +375,8 @@ export default function VideoTranscription() {
         speaker_name: '',
         country_code: '',
         country_name: '',
-        category: 'central_bank'
+        category: 'central_bank',
+        cookies: ''
     });
     
     // Saved transcripts state
@@ -413,12 +451,42 @@ export default function VideoTranscription() {
         setMessage('');
         
         try {
+            const payload = { ...extractForm };
+            
+            // Parse cookies if provided
+            if (extractForm.cookies.trim()) {
+                try {
+                    // Try to parse as JSON first
+                    const cookiesObject = JSON.parse(extractForm.cookies);
+                    payload.cookies = cookiesObject;
+                } catch (jsonError) {
+                    // If not JSON, try to parse as cookie string format
+                    const cookiesObject = {};
+                    const cookiePairs = extractForm.cookies.split(';');
+                    
+                    for (const pair of cookiePairs) {
+                        const [name, value] = pair.split('=').map(s => s.trim());
+                        if (name && value) {
+                            cookiesObject[name] = value;
+                        }
+                    }
+                    
+                    if (Object.keys(cookiesObject).length > 0) {
+                        payload.cookies = cookiesObject;
+                    } else {
+                        setError('Invalid cookie format. Use JSON format or name=value; pairs');
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+            
             const response = await fetch(`${baseUrl}/snowai_extract_youtube_transcript_from_url`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(extractForm)
+                body: JSON.stringify(payload)
             });
             
             const data = await response.json();
@@ -434,11 +502,17 @@ export default function VideoTranscription() {
                         speaker_name: '',
                         country_code: '',
                         country_name: '',
-                        category: 'central_bank'
+                        category: 'central_bank',
+                        cookies: ''
                     });
                 }
             } else {
-                setError(data.error || 'Failed to extract transcript');
+                if (data.needs_cookies) {
+                    setError(data.error);
+                    setShowCookieSection(true);
+                } else {
+                    setError(data.error || 'Failed to extract transcript');
+                }
             }
         } catch (err) {
             setError('Network error extracting transcript');
@@ -530,8 +604,23 @@ export default function VideoTranscription() {
         });
     };
 
+    const handleCookieHelp = () => {
+        setShowCookieSection(!showCookieSection);
+    };
+
+    const sampleCookieData = () => {
+        setExtractForm(prev => ({
+            ...prev,
+            cookies: JSON.stringify({
+                "session_token": "your_session_token_here",
+                "VISITOR_INFO1_LIVE": "your_visitor_info_here",
+                "__Secure-3PSID": "your_secure_psid_here"
+            }, null, 2)
+        }));
+    };
+
     return (
-        <div>
+        <div style={styles.container}>
                     <div className="header">
                         <Header />
                     </div>
@@ -539,11 +628,7 @@ export default function VideoTranscription() {
                         <SideNavs />
                         <div className="main-body-info">
         <div style={snowaiTranscriptionStyles.mainContainer}>
-            <div className="header">
-                {/* Your existing Header component */}
-            </div>
             <div style={snowaiTranscriptionStyles.mainPageBody}>
-                {/* Your existing SideNavs component */}
                 <div style={snowaiTranscriptionStyles.mainBodyInfo}>
                     <h5 style={snowaiTranscriptionStyles.headerTitle}>
                         SnowAI Video Transcription System
@@ -585,116 +670,176 @@ export default function VideoTranscription() {
 
                     {/* Extract Transcript Tab */}
                     {activeTab === 'extract' && (
-                        <div style={snowaiTranscriptionStyles.sectionCard}>
-                            <h3 style={snowaiTranscriptionStyles.sectionTitle}>
-                                🎯 Extract YouTube Video Transcript
-                            </h3>
-                            <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
-                                Submit a YouTube URL to automatically extract and save the video transcript. 
-                                Perfect for capturing central bank speeches, government addresses, and corporate announcements.
-                            </p>
+                        <>
+                            <div style={snowaiTranscriptionStyles.sectionCard}>
+                                <h3 style={snowaiTranscriptionStyles.sectionTitle}>
+                                    🎯 Extract YouTube Video Transcript
+                                </h3>
+                                <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
+                                    Submit a YouTube URL to automatically extract and save the video transcript. 
+                                    Perfect for capturing central bank speeches, government addresses, and corporate announcements.
+                                </p>
 
-                            <form onSubmit={handleSnowAIExtractTranscriptSubmission}>
-                                <div style={snowaiTranscriptionStyles.inputGroup}>
-                                    <label style={snowaiTranscriptionStyles.label}>
-                                        YouTube URL *
-                                    </label>
-                                    <input
-                                        type="url"
-                                        style={snowaiTranscriptionStyles.input}
-                                        value={extractForm.youtube_url}
-                                        onChange={(e) => setExtractForm(prev => ({
-                                            ...prev,
-                                            youtube_url: e.target.value
-                                        }))}
-                                        placeholder="https://www.youtube.com/watch?v=..."
-                                        required
-                                    />
-                                </div>
-
-                                <div style={snowaiTranscriptionStyles.responsiveGrid}>
+                                <form onSubmit={handleSnowAIExtractTranscriptSubmission}>
                                     <div style={snowaiTranscriptionStyles.inputGroup}>
                                         <label style={snowaiTranscriptionStyles.label}>
-                                            Speaker Name
+                                            YouTube URL *
                                         </label>
                                         <input
-                                            type="text"
+                                            type="url"
                                             style={snowaiTranscriptionStyles.input}
-                                            value={extractForm.speaker_name}
+                                            value={extractForm.youtube_url}
                                             onChange={(e) => setExtractForm(prev => ({
                                                 ...prev,
-                                                speaker_name: e.target.value
+                                                youtube_url: e.target.value
                                             }))}
-                                            placeholder="e.g., Jerome Powell"
+                                            placeholder="https://www.youtube.com/watch?v=..."
+                                            required
                                         />
                                     </div>
 
-                                    <div style={snowaiTranscriptionStyles.inputGroup}>
-                                        <label style={snowaiTranscriptionStyles.label}>
-                                            Country Code
-                                        </label>
-                                        <input
-                                            type="text"
-                                            style={snowaiTranscriptionStyles.input}
-                                            value={extractForm.country_code}
-                                            onChange={(e) => setExtractForm(prev => ({
-                                                ...prev,
-                                                country_code: e.target.value
-                                            }))}
-                                            placeholder="e.g., US, GB, EU"
-                                            maxLength="10"
-                                        />
-                                    </div>
-                                </div>
+                                    <div style={snowaiTranscriptionStyles.responsiveGrid}>
+                                        <div style={snowaiTranscriptionStyles.inputGroup}>
+                                            <label style={snowaiTranscriptionStyles.label}>
+                                                Speaker Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                style={snowaiTranscriptionStyles.input}
+                                                value={extractForm.speaker_name}
+                                                onChange={(e) => setExtractForm(prev => ({
+                                                    ...prev,
+                                                    speaker_name: e.target.value
+                                                }))}
+                                                placeholder="e.g., Jerome Powell"
+                                            />
+                                        </div>
 
-                                <div style={snowaiTranscriptionStyles.responsiveGrid}>
-                                    <div style={snowaiTranscriptionStyles.inputGroup}>
-                                        <label style={snowaiTranscriptionStyles.label}>
-                                            Country Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            style={snowaiTranscriptionStyles.input}
-                                            value={extractForm.country_name}
-                                            onChange={(e) => setExtractForm(prev => ({
-                                                ...prev,
-                                                country_name: e.target.value
-                                            }))}
-                                            placeholder="e.g., United States"
-                                        />
+                                        <div style={snowaiTranscriptionStyles.inputGroup}>
+                                            <label style={snowaiTranscriptionStyles.label}>
+                                                Country Code
+                                            </label>
+                                            <input
+                                                type="text"
+                                                style={snowaiTranscriptionStyles.input}
+                                                value={extractForm.country_code}
+                                                onChange={(e) => setExtractForm(prev => ({
+                                                    ...prev,
+                                                    country_code: e.target.value
+                                                }))}
+                                                placeholder="e.g., US, GB, EU"
+                                                maxLength="10"
+                                            />
+                                        </div>
                                     </div>
 
-                                    <div style={snowaiTranscriptionStyles.inputGroup}>
-                                        <label style={snowaiTranscriptionStyles.label}>
-                                            Content Category
-                                        </label>
-                                        <select
-                                            style={snowaiTranscriptionStyles.select}
-                                            value={extractForm.category}
-                                            onChange={(e) => setExtractForm(prev => ({
-                                                ...prev,
-                                                category: e.target.value
-                                            }))}
-                                        >
-                                            <option value="central_bank">Central Bank</option>
-                                            <option value="government">Government</option>
-                                            <option value="corporate">Corporate</option>
-                                            <option value="academic">Academic</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                    <div style={snowaiTranscriptionStyles.responsiveGrid}>
+                                        <div style={snowaiTranscriptionStyles.inputGroup}>
+                                            <label style={snowaiTranscriptionStyles.label}>
+                                                Country Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                style={snowaiTranscriptionStyles.input}
+                                                value={extractForm.country_name}
+                                                onChange={(e) => setExtractForm(prev => ({
+                                                    ...prev,
+                                                    country_name: e.target.value
+                                                }))}
+                                                placeholder="e.g., United States"
+                                            />
+                                        </div>
 
-                                <button
-                                    type="submit"
-                                    style={snowaiTranscriptionStyles.button}
-                                    disabled={loading}
+                                        <div style={snowaiTranscriptionStyles.inputGroup}>
+                                            <label style={snowaiTranscriptionStyles.label}>
+                                                Content Category
+                                            </label>
+                                            <select
+                                                style={snowaiTranscriptionStyles.select}
+                                                value={extractForm.category}
+                                                onChange={(e) => setExtractForm(prev => ({
+                                                    ...prev,
+                                                    category: e.target.value
+                                                }))}
+                                            >
+                                                <option value="central_bank">Central Bank</option>
+                                                <option value="government">Government</option>
+                                                <option value="corporate">Corporate</option>
+                                                <option value="academic">Academic</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        style={snowaiTranscriptionStyles.button}
+                                        disabled={loading}
+                                    >
+                                        {loading && <span style={snowaiTranscriptionStyles.loadingSpinner}></span>}
+                                        {loading ? 'Extracting Transcript...' : '🚀 Extract & Save Transcript'}
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Cookie Section */}
+                            <div style={snowaiTranscriptionStyles.cookieSection}>
+                                <div 
+                                    style={snowaiTranscriptionStyles.collapsibleHeader}
+                                    onClick={handleCookieHelp}
                                 >
-                                    {loading && <span style={snowaiTranscriptionStyles.loadingSpinner}></span>}
-                                    {loading ? 'Extracting Transcript...' : '🚀 Extract & Save Transcript'}
-                                </button>
-                            </form>
-                        </div>
+                                    <h4 style={{ margin: 0, color: '#92400e' }}>
+                                        🍪 YouTube Authentication (Optional)
+                                    </h4>
+                                    <span>{showCookieSection ? '▼' : '▶'}</span>
+                                </div>
+
+                                {showCookieSection && (
+                                    <>
+                                        <div style={snowaiTranscriptionStyles.alertWarning}>
+                                            <strong>When do you need cookies?</strong><br/>
+                                            If you see "Sign in to confirm you're not a bot" errors, YouTube requires authentication cookies to bypass bot detection.
+                                        </div>
+
+                                        <div style={snowaiTranscriptionStyles.inputGroup}>
+                                            <label style={snowaiTranscriptionStyles.label}>
+                                                YouTube Cookies (JSON format or name=value pairs)
+                                                <button
+                                                    type="button"
+                                                    style={snowaiTranscriptionStyles.buttonSmall}
+                                                    onClick={sampleCookieData}
+                                                >
+                                                    Sample Format
+                                                </button>
+                                            </label>
+                                            <textarea
+                                                style={{
+                                                    ...snowaiTranscriptionStyles.textarea,
+                                                    minHeight: '100px',
+                                                    fontSize: '12px',
+                                                    fontFamily: 'monospace'
+                                                }}
+                                                value={extractForm.cookies}
+                                                onChange={(e) => setExtractForm(prev => ({
+                                                    ...prev,
+                                                    cookies: e.target.value
+                                                }))}
+                                                placeholder='{"session_token": "value", "VISITOR_INFO1_LIVE": "value"} or session_token=value; VISITOR_INFO1_LIVE=value'
+                                            />
+                                        </div>
+
+                                        <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.5' }}>
+                                            <strong>How to get YouTube cookies:</strong><br/>
+                                            1. Open YouTube in your browser and sign in<br/>
+                                            2. Open Developer Tools (F12) → Network tab<br/>
+                                            3. Refresh the page and find any YouTube request<br/>
+                                            4. Copy cookie values like session_token, VISITOR_INFO1_LIVE, __Secure-3PSID<br/>
+                                            5. Paste them above in JSON format or as name=value pairs
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </>
                     )}
 
                     {/* Saved Transcripts Tab */}
