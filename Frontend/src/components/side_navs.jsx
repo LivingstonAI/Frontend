@@ -736,7 +736,7 @@ export default function SideNavs() {
         <Link to="/snowai_central_hub" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-browser-edge"></i></p></button></Link>
         <Link to="/snowai_earth" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-globe"></i></p></button></Link>
         <Link to="/diagnostics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-steps"></i></p></button></Link>
-
+        <Link to="/video_transcription" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-play-circle"></i></p></button></Link>
 
       </div>
 
@@ -860,6 +860,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/diagnostics" className="side-nav">
             <i className="bi bi-bar-chart-steps"></i>
+        </Link>
+        <Link to="/video_transcription" className="side-nav">
+            <i className="bi bi-play-circle"></i>
         </Link>
       </div>
       <br />
