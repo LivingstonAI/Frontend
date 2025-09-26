@@ -120,7 +120,7 @@ export default function BoardofGovernors() {
                 <SideNavs />
                 <div className="main-body-info">
                     <div style={styles.container}>
-                        <h2 style={styles.title}>AI Transcript Analysis Dashboard</h2>
+                        <h2 style={styles.title}>SnowAI Board of Governors</h2>
                         
                         {loading ? (
                             <div style={styles.loading}>
