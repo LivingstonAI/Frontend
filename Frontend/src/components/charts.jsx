@@ -5,11 +5,6 @@ import Cookies from 'js-cookie';
 
 // Component styles
 const styles = {
-  container: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    minHeight: '100vh',
-    fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-  },
   controlsContainer: {
     background: 'rgba(248, 250, 252, 0.9)',
     padding: '25px',
@@ -235,6 +230,61 @@ export default function Charts() {
         '1W': { label: '1 Week', minutes: 10080, dataPoints: 52 }
     };
 
+    // Fallback chart using HTML5 Canvas
+    const createFallbackChart = (container) => {
+        container.innerHTML = '';
+        const canvas = document.createElement('canvas');
+        canvas.width = container.clientWidth || 800;
+        canvas.height = container.clientHeight || 500;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        container.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        const assetInfo = getCurrentAssetInfo();
+        const data = generateMarketData(assetInfo.basePrice, timeframe);
+        
+        // Simple fallback chart rendering
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = '#667eea';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const padding = 50;
+        const chartWidth = canvas.width - 2 * padding;
+        const chartHeight = canvas.height - 2 * padding;
+        
+        const minPrice = Math.min(...data.map(d => d.low));
+        const maxPrice = Math.max(...data.map(d => d.high));
+        const priceRange = maxPrice - minPrice;
+        
+        data.forEach((point, i) => {
+            const x = padding + (i / (data.length - 1)) * chartWidth;
+            const y = padding + (1 - (point.close - minPrice) / priceRange) * chartHeight;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        
+        ctx.stroke();
+        
+        // Add title
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '16px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${assetInfo.name} (Fallback Chart)`, canvas.width / 2, 30);
+        
+        // Add note
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('SciChart loading... This is a temporary fallback chart', canvas.width / 2, canvas.height - 20);
+    }
+
     // Asset classes configuration with more realistic base prices
     const assetClasses = {
         'Crypto': [
@@ -269,16 +319,31 @@ export default function Charts() {
             if (sciChartLoadedRef.current) return;
 
             try {
-                // Load SciChart from CDN
+                // Load SciChart from a more stable CDN
                 const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/scichart@4.0.873/index.min.js';
+                script.src = 'https://unpkg.com/scichart@3.4.615/index.js';
+                script.type = 'module';
                 script.onload = () => {
                     console.log('SciChart loaded from CDN');
-                    setSciChartLoaded(true);
-                    sciChartLoadedRef.current = true;
+                    // Give it a moment to initialize
+                    setTimeout(() => {
+                        setSciChartLoaded(true);
+                        sciChartLoadedRef.current = true;
+                    }, 500);
                 };
                 script.onerror = () => {
                     console.error('Failed to load SciChart from CDN');
+                    // Try alternative CDN
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = 'https://cdn.skypack.dev/scichart@3.4.615';
+                    fallbackScript.onload = () => {
+                        console.log('SciChart loaded from fallback CDN');
+                        setTimeout(() => {
+                            setSciChartLoaded(true);
+                            sciChartLoadedRef.current = true;
+                        }, 500);
+                    };
+                    document.head.appendChild(fallbackScript);
                 };
                 document.head.appendChild(script);
             } catch (error) {
@@ -390,7 +455,10 @@ export default function Charts() {
                 
             if (!chartContainer) return;
 
-            // Use the CDN loaded SciChart
+            // Clear any existing content
+            chartContainer.innerHTML = '';
+
+            // Use the CDN loaded SciChart with proper imports
             const {
                 SciChartSurface,
                 NumericAxis,
@@ -405,9 +473,11 @@ export default function Charts() {
                 MouseWheelZoomModifier,
                 RubberBandXyZoomModifier,
                 EllipsePointMarker,
-                SciChartJsNavyTheme,
-                parseColorToUIntArgb
+                SciChartJsNavyTheme
             } = window.SciChart;
+
+            // Initialize SciChart License (you may need a license key for production)
+            window.SciChart.SciChartSurface.setRuntimeLicenseKey("");
 
             // Create the SciChartSurface
             const { sciChartSurface, wasmContext } = await SciChartSurface.create(chartContainer, {
@@ -458,13 +528,13 @@ export default function Charts() {
                     );
                 });
 
-                // Create candlestick renderable series
+                // Create candlestick renderable series with proper color handling
                 const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
                     dataSeries: ohlcDataSeries,
-                    strokeUp: parseColorToUIntArgb("#10b981"),
-                    strokeDown: parseColorToUIntArgb("#ef4444"),
-                    fillUp: parseColorToUIntArgb("#10b981"),
-                    fillDown: parseColorToUIntArgb("#ef4444"),
+                    strokeUp: "#10b981",
+                    strokeDown: "#ef4444",
+                    fillUp: "#10b981",
+                    fillDown: "#ef4444",
                     strokeThickness: 1,
                     dataPointWidth: 0.7
                 });
@@ -481,16 +551,16 @@ export default function Charts() {
                     lineDataSeries.append(dataPoint.date, dataPoint.close);
                 });
 
-                // Create line renderable series
+                // Create line renderable series with proper color handling
                 const lineSeries = new FastLineRenderableSeries(wasmContext, {
                     dataSeries: lineDataSeries,
-                    stroke: parseColorToUIntArgb("#667eea"),
+                    stroke: "#667eea",
                     strokeThickness: 3,
                     pointMarker: new EllipsePointMarker(wasmContext, {
                         width: 6,
                         height: 6,
-                        fill: parseColorToUIntArgb("#667eea"),
-                        stroke: parseColorToUIntArgb("#ffffff"),
+                        fill: "#667eea",
+                        stroke: "#ffffff",
                         strokeThickness: 2
                     })
                 });
@@ -508,16 +578,11 @@ export default function Charts() {
             
         } catch (error) {
             console.error("Error initializing SciChart:", error);
-            // Fallback message
+            // Create a fallback chart using HTML5 Canvas
             const chartContainer = chartType === 'candlestick' ? 
                 candlestickChartRef.current : lineChartRef.current;
             if (chartContainer) {
-                chartContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 1.2rem; text-align: center;">
-                        📈 Chart loading failed. SciChart CDN loading in progress...<br><br>
-                        Please wait a moment and try switching chart types.
-                    </div>
-                `;
+                createFallbackChart(chartContainer);
             }
         } finally {
             setIsLoading(false);
@@ -732,4 +797,4 @@ export default function Charts() {
             </div>
         </div>
     );
-}
+}>
