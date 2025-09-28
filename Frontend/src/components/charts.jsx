@@ -321,11 +321,6 @@ export default function Charts() {
         setIsLoading(true);
         
         try {
-            // Initialize SciChart with fallback
-            await import('scichart/wasm').catch(() => {
-                console.warn('SciChart WASM module not found, using fallback');
-            });
-            
             const chartContainer = chartType === 'candlestick' ? 
                 candlestickChartRef.current : lineChartRef.current;
                 
