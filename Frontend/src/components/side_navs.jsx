@@ -738,6 +738,7 @@ export default function SideNavs() {
         <Link to="/diagnostics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-steps"></i></p></button></Link>
         <Link to="/video_transcription" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-play-circle"></i></p></button></Link>
         <Link to="/board_of_governors" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bank2"></i></p></button></Link>
+        <Link to="/charts" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-diagram-3"></i></p></button></Link>
 
       </div>
 
@@ -867,6 +868,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/board_of_governors" className="side-nav">
             <i className="bi bi-bank2"></i>
+        </Link>
+        <Link to="/charts" className="side-nav">
+            <i className="bi bi-diagram-3"></i>
         </Link>
       </div>
       <br />
