@@ -5,6 +5,15 @@ import Cookies from 'js-cookie';
 
 // Component styles
 const styles = {
+  container: {
+    width: '100%',
+    minHeight: '100vh'
+  },
+  mainBodyInfo: {
+    width: '100%',
+    maxWidth: 'none', // Remove max width restriction
+    boxSizing: 'border-box'
+  },
   header: {
     background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
     color: 'white',
@@ -23,7 +32,9 @@ const styles = {
     borderRadius: '15px',
     marginBottom: '25px',
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-    border: '1px solid rgba(226, 232, 240, 0.8)'
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    width: '100%',
+    boxSizing: 'border-box'
   },
   assetSection: {
     marginBottom: '20px'
@@ -142,7 +153,9 @@ const styles = {
     borderRadius: '15px',
     padding: '20px',
     boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
-    border: '1px solid rgba(226, 232, 240, 0.8)'
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    width: '100%',
+    boxSizing: 'border-box'
   },
   chartTitle: {
     fontSize: '1.5rem',
@@ -228,6 +241,9 @@ export default function Charts() {
     const [currentPrice, setCurrentPrice] = useState(0);
     const [priceChange, setPriceChange] = useState(0);
     const [realTimeData, setRealTimeData] = useState([]);
+    
+    // Store base data to maintain consistency
+    const [baseDataCache, setBaseDataCache] = useState({});
 
     // Timeframe configurations
     const timeframes = {
@@ -240,31 +256,31 @@ export default function Charts() {
         '1W': { label: '1 Week', minutes: 10080, dataPoints: 52 }
     };
 
-    // Asset classes configuration with more realistic base prices
+    // Asset classes configuration with realistic base prices
     const assetClasses = {
         'Crypto': [
-            { symbol: 'BTCUSD', name: 'Bitcoin', basePrice: 45000 },
-            { symbol: 'ETHUSD', name: 'Ethereum', basePrice: 3200 },
-            { symbol: 'ADAUSD', name: 'Cardano', basePrice: 0.85 },
-            { symbol: 'SOLUSD', name: 'Solana', basePrice: 95 }
+            { symbol: 'BTCUSD', name: 'Bitcoin', basePrice: 67420.50 },
+            { symbol: 'ETHUSD', name: 'Ethereum', basePrice: 3245.80 },
+            { symbol: 'ADAUSD', name: 'Cardano', basePrice: 0.3642 },
+            { symbol: 'SOLUSD', name: 'Solana', basePrice: 158.94 }
         ],
         'Forex': [
-            { symbol: 'EURUSD', name: 'Euro/USD', basePrice: 1.0850 },
-            { symbol: 'GBPUSD', name: 'GBP/USD', basePrice: 1.2650 },
-            { symbol: 'USDJPY', name: 'USD/JPY', basePrice: 149.50 },
-            { symbol: 'AUDUSD', name: 'AUD/USD', basePrice: 0.6750 }
+            { symbol: 'EURUSD', name: 'Euro/USD', basePrice: 1.0923 },
+            { symbol: 'GBPUSD', name: 'GBP/USD', basePrice: 1.2645 },
+            { symbol: 'USDJPY', name: 'USD/JPY', basePrice: 149.82 },
+            { symbol: 'AUDUSD', name: 'AUD/USD', basePrice: 0.6698 }
         ],
         'Stocks': [
-            { symbol: 'AAPL', name: 'Apple Inc.', basePrice: 185 },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.', basePrice: 140 },
-            { symbol: 'TSLA', name: 'Tesla Inc.', basePrice: 250 },
-            { symbol: 'MSFT', name: 'Microsoft', basePrice: 375 }
+            { symbol: 'AAPL', name: 'Apple Inc.', basePrice: 227.52 },
+            { symbol: 'GOOGL', name: 'Alphabet Inc.', basePrice: 166.89 },
+            { symbol: 'TSLA', name: 'Tesla Inc.', basePrice: 248.98 },
+            { symbol: 'MSFT', name: 'Microsoft', basePrice: 418.34 }
         ],
         'Commodities': [
-            { symbol: 'XAUUSD', name: 'Gold', basePrice: 2050 },
-            { symbol: 'XAGUSD', name: 'Silver', basePrice: 24.50 },
-            { symbol: 'USOIL', name: 'US Oil', basePrice: 78.50 },
-            { symbol: 'UKOIL', name: 'UK Oil', basePrice: 82.30 }
+            { symbol: 'XAUUSD', name: 'Gold', basePrice: 2654.80 },
+            { symbol: 'XAGUSD', name: 'Silver', basePrice: 31.24 },
+            { symbol: 'USOIL', name: 'US Oil', basePrice: 68.72 },
+            { symbol: 'UKOIL', name: 'UK Oil', basePrice: 72.15 }
         ]
     };
 
@@ -342,82 +358,154 @@ export default function Charts() {
         return { symbol: selectedAsset, name: selectedAsset, basePrice: 100 };
     };
 
-    // Generate realistic market data with trends based on timeframe
-    const generateMarketData = (basePrice, timeframeKey, volatility = 0.02) => {
+    // Generate base market data (consistent seed-based data)
+    const generateBaseMarketData = (symbol, basePrice) => {
+        // Use symbol as seed for consistent data
+        const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        
+        // Simple seeded random function
+        const seededRandom = (index) => {
+            const x = Math.sin(seed + index) * 10000;
+            return x - Math.floor(x);
+        };
+
         const data = [];
-        const timeframeConfig = timeframes[timeframeKey];
-        const intervalMs = timeframeConfig.minutes * 60 * 1000;
-        const dataPoints = timeframeConfig.dataPoints;
+        let currentPrice = basePrice;
+        const now = Date.now();
         
-        let currentBasePrice = basePrice;
-        const now = new Date();
-        
-        // Generate historical data
-        for (let i = 0; i < dataPoints; i++) {
-            const date = new Date(now.getTime() - (dataPoints - i) * intervalMs);
+        // Generate 500 points of base data (enough for all timeframes)
+        for (let i = 0; i < 500; i++) {
+            // Create more realistic price movement
+            const trendFactor = Math.sin(i / 20) * 0.02; // Long-term trend
+            const volatility = (seededRandom(i) - 0.5) * 0.025; // Random volatility
+            const momentum = (seededRandom(i + 100) - 0.5) * 0.01; // Momentum
             
-            // Add some trend and volatility based on timeframe
-            const trendFactor = Math.sin(i / 10) * 0.01; // Cyclical trend
-            const timeframeVolatility = volatility * (timeframeConfig.minutes / 60); // More volatility for longer timeframes
-            const randomFactor = (Math.random() - 0.5) * timeframeVolatility;
+            currentPrice *= (1 + trendFactor + volatility + momentum);
             
-            currentBasePrice *= (1 + trendFactor + randomFactor);
-            
-            const open = currentBasePrice * (1 + (Math.random() - 0.5) * 0.005);
-            const close = open * (1 + (Math.random() - 0.5) * 0.01);
-            const high = Math.max(open, close) * (1 + Math.random() * 0.008);
-            const low = Math.min(open, close) * (1 - Math.random() * 0.008);
+            const open = currentPrice * (1 + (seededRandom(i + 200) - 0.5) * 0.005);
+            const close = open * (1 + (seededRandom(i + 300) - 0.5) * 0.015);
+            const high = Math.max(open, close) * (1 + seededRandom(i + 400) * 0.012);
+            const low = Math.min(open, close) * (1 - seededRandom(i + 500) * 0.012);
             
             data.push({
-                time: Math.floor(date.getTime() / 1000), // TradingView uses Unix timestamp in seconds
-                open: Math.max(0, open),
-                high: Math.max(0, high),
-                low: Math.max(0, low),
-                close: Math.max(0, close),
-                value: Math.max(0, close) // For line chart
+                time: Math.floor((now - (500 - i) * 60000) / 1000), // 1 minute intervals
+                open: Math.max(0.01, parseFloat(open.toFixed(6))),
+                high: Math.max(0.01, parseFloat(high.toFixed(6))),
+                low: Math.max(0.01, parseFloat(low.toFixed(6))),
+                close: Math.max(0.01, parseFloat(close.toFixed(6))),
+                value: Math.max(0.01, parseFloat(close.toFixed(6)))
             });
         }
         
         return data;
     };
 
+    // Get cached base data or generate new
+    const getBaseData = (symbol) => {
+        if (!baseDataCache[symbol]) {
+            const assetInfo = getCurrentAssetInfo();
+            const baseData = generateBaseMarketData(symbol, assetInfo.basePrice);
+            setBaseDataCache(prev => ({
+                ...prev,
+                [symbol]: baseData
+            }));
+            return baseData;
+        }
+        return baseDataCache[symbol];
+    };
+
+    // Aggregate data based on timeframe
+    const aggregateDataForTimeframe = (baseData, timeframeKey) => {
+        const timeframeConfig = timeframes[timeframeKey];
+        const intervalMs = timeframeConfig.minutes * 60 * 1000;
+        const intervalSeconds = timeframeConfig.minutes * 60;
+        
+        const aggregated = [];
+        const dataPoints = timeframeConfig.dataPoints;
+        
+        // Group base data by timeframe intervals
+        for (let i = 0; i < dataPoints; i++) {
+            const startTime = Math.floor((Date.now() - (dataPoints - i) * intervalMs) / 1000);
+            const endTime = startTime + intervalSeconds;
+            
+            // Find all base data points in this interval
+            const intervalData = baseData.filter(point => 
+                point.time >= startTime && point.time < endTime
+            );
+            
+            if (intervalData.length > 0) {
+                // Aggregate OHLC data
+                const open = intervalData[0].open;
+                const close = intervalData[intervalData.length - 1].close;
+                const high = Math.max(...intervalData.map(d => d.high));
+                const low = Math.min(...intervalData.map(d => d.low));
+                
+                aggregated.push({
+                    time: startTime,
+                    open: parseFloat(open.toFixed(6)),
+                    high: parseFloat(high.toFixed(6)),
+                    low: parseFloat(low.toFixed(6)),
+                    close: parseFloat(close.toFixed(6)),
+                    value: parseFloat(close.toFixed(6))
+                });
+            } else {
+                // If no data in interval, use previous close or base price
+                const prevClose = aggregated.length > 0 ? 
+                    aggregated[aggregated.length - 1].close : 
+                    getCurrentAssetInfo().basePrice;
+                
+                aggregated.push({
+                    time: startTime,
+                    open: parseFloat(prevClose.toFixed(6)),
+                    high: parseFloat(prevClose.toFixed(6)),
+                    low: parseFloat(prevClose.toFixed(6)),
+                    close: parseFloat(prevClose.toFixed(6)),
+                    value: parseFloat(prevClose.toFixed(6))
+                });
+            }
+        }
+        
+        return aggregated;
+    };
+
     // Real-time data simulation
     useEffect(() => {
-        const updateInterval = Math.max(2000, timeframes[timeframe].minutes * 60 * 1000 / 30); // Update every 2+ seconds
+        const updateInterval = Math.max(3000, timeframes[timeframe].minutes * 1000); // Slower updates
         
         const interval = setInterval(() => {
-            const assetInfo = getCurrentAssetInfo();
-            const lastPrice = realTimeData.length > 0 ? 
-                realTimeData[realTimeData.length - 1].close : assetInfo.basePrice;
+            const baseData = getBaseData(selectedAsset);
+            if (baseData.length === 0) return;
             
-            // Simulate real-time price movement
-            const change = (Math.random() - 0.5) * 0.002; // 0.2% max change
+            const assetInfo = getCurrentAssetInfo();
+            const lastPrice = baseData[baseData.length - 1]?.close || assetInfo.basePrice;
+            
+            // More realistic price movement
+            const volatilityFactor = assetInfo.symbol.includes('USD') ? 0.001 : 0.002;
+            const change = (Math.random() - 0.5) * volatilityFactor;
             const newPrice = lastPrice * (1 + change);
             const changePercent = ((newPrice - assetInfo.basePrice) / assetInfo.basePrice) * 100;
             
             setCurrentPrice(newPrice);
             setPriceChange(changePercent);
             
-            // Add new data point
-            const newDataPoint = {
-                time: Math.floor(Date.now() / 1000),
-                open: lastPrice,
-                high: Math.max(lastPrice, newPrice) * (1 + Math.random() * 0.001),
-                low: Math.min(lastPrice, newPrice) * (1 - Math.random() * 0.001),
-                close: newPrice,
-                value: newPrice
-            };
-            
-            setRealTimeData(prev => {
-                const updated = [...prev, newDataPoint];
-                // Keep only last 200 data points for performance
-                return updated.slice(-200);
-            });
+            // Update real-time data less frequently
+            if (realTimeData.length < 5) {
+                const newDataPoint = {
+                    time: Math.floor(Date.now() / 1000),
+                    open: lastPrice,
+                    high: Math.max(lastPrice, newPrice) * (1 + Math.random() * 0.001),
+                    low: Math.min(lastPrice, newPrice) * (1 - Math.random() * 0.001),
+                    close: newPrice,
+                    value: newPrice
+                };
+                
+                setRealTimeData(prev => [...prev, newDataPoint]);
+            }
             
         }, updateInterval);
         
         return () => clearInterval(interval);
-    }, [selectedAsset, timeframe, realTimeData]);
+    }, [selectedAsset, timeframe, baseDataCache]);
 
     // Initialize TradingView Chart
     const initTradingViewChart = () => {
@@ -435,7 +523,7 @@ export default function Charts() {
             // Create chart with proper API
             const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
                 width: chartContainerRef.current.clientWidth,
-                height: 500,
+                height: window.innerWidth <= 768 ? 450 : 600, // Increased mobile height
                 layout: {
                     background: { type: 'solid', color: 'white' },
                     textColor: '#333',
@@ -457,12 +545,13 @@ export default function Charts() {
                 },
             });
 
-            const assetInfo = getCurrentAssetInfo();
-            const marketData = generateMarketData(assetInfo.basePrice, timeframe);
+            // Get consistent data
+            const baseData = getBaseData(selectedAsset);
+            const marketData = aggregateDataForTimeframe(baseData, timeframe);
             
-            // Combine historical and real-time data
-            const combinedData = [...marketData, ...realTimeData];
-            setCurrentPrice(combinedData[combinedData.length - 1]?.close || assetInfo.basePrice);
+            // Set current price from latest data
+            const latestPrice = marketData[marketData.length - 1]?.close || getCurrentAssetInfo().basePrice;
+            setCurrentPrice(latestPrice);
 
             let series;
             
@@ -477,12 +566,12 @@ export default function Charts() {
                 });
 
                 // Convert data format for candlestick
-                const candlestickData = combinedData.map(d => ({
+                const candlestickData = marketData.map(d => ({
                     time: d.time,
-                    open: parseFloat(d.open.toFixed(4)),
-                    high: parseFloat(d.high.toFixed(4)),
-                    low: parseFloat(d.low.toFixed(4)),
-                    close: parseFloat(d.close.toFixed(4))
+                    open: parseFloat(d.open.toFixed(6)),
+                    high: parseFloat(d.high.toFixed(6)),
+                    low: parseFloat(d.low.toFixed(6)),
+                    close: parseFloat(d.close.toFixed(6))
                 }));
 
                 series.setData(candlestickData);
@@ -494,9 +583,9 @@ export default function Charts() {
                 });
 
                 // Convert data format for line chart
-                const lineData = combinedData.map(d => ({
+                const lineData = marketData.map(d => ({
                     time: d.time,
-                    value: parseFloat(d.value.toFixed(4))
+                    value: parseFloat(d.value.toFixed(6))
                 }));
 
                 series.setData(lineData);
@@ -506,7 +595,8 @@ export default function Charts() {
             const handleResize = () => {
                 if (chartContainerRef.current) {
                     chart.applyOptions({ 
-                        width: chartContainerRef.current.clientWidth 
+                        width: chartContainerRef.current.clientWidth,
+                        height: window.innerWidth <= 768 ? 450 : 600
                     });
                 }
             };
@@ -545,14 +635,14 @@ export default function Charts() {
         chartContainerRef.current.innerHTML = '';
         const canvas = document.createElement('canvas');
         canvas.width = chartContainerRef.current.clientWidth || 800;
-        canvas.height = 500;
+        canvas.height = window.innerWidth <= 768 ? 450 : 600;
         canvas.style.width = '100%';
-        canvas.style.height = '500px';
+        canvas.style.height = (window.innerWidth <= 768 ? 450 : 600) + 'px';
         chartContainerRef.current.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
-        const assetInfo = getCurrentAssetInfo();
-        const data = generateMarketData(assetInfo.basePrice, timeframe);
+        const baseData = getBaseData(selectedAsset);
+        const data = aggregateDataForTimeframe(baseData, timeframe);
         
         // Simple fallback chart rendering
         ctx.fillStyle = '#f8fafc';
@@ -587,7 +677,7 @@ export default function Charts() {
         ctx.fillStyle = '#1e293b';
         ctx.font = '16px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${assetInfo.name} (Fallback Chart)`, canvas.width / 2, 30);
+        ctx.fillText(`${getCurrentAssetInfo().name} (Fallback Chart)`, canvas.width / 2, 30);
         
         // Add note
         ctx.font = '12px Inter, sans-serif';
@@ -622,15 +712,15 @@ export default function Charts() {
             if (chartType === 'candlestick') {
                 chartRef.current.series.update({
                     time: lastDataPoint.time,
-                    open: lastDataPoint.open,
-                    high: lastDataPoint.high,
-                    low: lastDataPoint.low,
-                    close: lastDataPoint.close
+                    open: parseFloat(lastDataPoint.open.toFixed(6)),
+                    high: parseFloat(lastDataPoint.high.toFixed(6)),
+                    low: parseFloat(lastDataPoint.low.toFixed(6)),
+                    close: parseFloat(lastDataPoint.close.toFixed(6))
                 });
             } else {
                 chartRef.current.series.update({
                     time: lastDataPoint.time,
-                    value: lastDataPoint.value
+                    value: parseFloat(lastDataPoint.value.toFixed(6))
                 });
             }
         }
@@ -653,8 +743,26 @@ export default function Charts() {
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
                     }
                     
+                    /* Full width layout styles */
+                    .main-page-body {
+                        display: flex !important;
+                        width: 100% !important;
+                        max-width: none !important;
+                    }
+                    
+                    .main-body-info {
+                        flex: 1 !important;
+                        width: 100% !important;
+                        max-width: none !important;
+                        margin-left: 0 !important;
+                    }
+                    
                     /* Mobile responsiveness */
                     @media (max-width: 768px) {
+                        .main-body-info {
+                            padding: 0 10px !important;
+                        }
+                        
                         .controls-container {
                             padding: 15px !important;
                         }
@@ -703,9 +811,25 @@ export default function Charts() {
                             font-size: 1.2rem !important;
                             margin-bottom: 10px !important;
                         }
+                        
+                        .price-display {
+                            flex-direction: column !important;
+                            gap: 15px !important;
+                            text-align: center !important;
+                        }
+                        
+                        .real-time-indicator {
+                            justify-content: center !important;
+                        }
+                    }
+                    
+                    @media (min-width: 769px) {
+                        .main-body-info {
+                            padding: 0 30px !important;
+                        }
                     }
                 `}
-            </style>
+            </div>
             <div className="header">
                 <Header />
             </div>
@@ -812,19 +936,19 @@ export default function Charts() {
 
                     {/* Price Display */}
                     {!isLoading && tvLoaded && (
-                        <div style={styles.priceDisplay}>
+                        <div style={styles.priceDisplay} className="price-display">
                             <div>
                                 <div style={styles.currentPrice} className="current-price">
                                     ${currentPrice.toLocaleString(undefined, { 
-                                        minimumFractionDigits: 2, 
-                                        maximumFractionDigits: getCurrentAssetInfo().basePrice < 10 ? 4 : 2 
+                                        minimumFractionDigits: getCurrentAssetInfo().basePrice < 1 ? 4 : 2, 
+                                        maximumFractionDigits: getCurrentAssetInfo().basePrice < 1 ? 6 : 2 
                                     })}
                                 </div>
                                 <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
                                     {getCurrentAssetInfo().name} • {timeframes[timeframe].label}
                                 </div>
                             </div>
-                            <div style={styles.realTimeIndicator}>
+                            <div style={styles.realTimeIndicator} className="real-time-indicator">
                                 <div style={styles.liveIndicator}></div>
                                 <span style={{ color: '#10b981', fontWeight: '600', marginRight: '15px' }}>LIVE</span>
                                 <div style={{
@@ -848,7 +972,7 @@ export default function Charts() {
                                 ref={chartContainerRef}
                                 style={{ 
                                     width: '100%', 
-                                    height: '500px', 
+                                    height: window.innerWidth <= 768 ? '450px' : '600px', 
                                     borderRadius: '10px',
                                     overflow: 'hidden'
                                 }}
@@ -863,11 +987,11 @@ export default function Charts() {
                             <li style={styles.instructionItem}>🔍 <strong>Zoom:</strong> Mouse wheel or pinch to zoom in/out</li>
                             <li style={styles.instructionItem}>👆 <strong>Pan:</strong> Click and drag to move around the chart</li>
                             <li style={styles.instructionItem}>📊 <strong>Crosshair:</strong> Hover over the chart to see price and time details</li>
-                            <li style={styles.instructionItem}>📈 <strong>Real-time Data:</strong> Live price updates with smooth animations</li>
+                            <li style={styles.instructionItem}>📈 <strong>Consistent Data:</strong> Realistic market data that stays consistent across timeframes</li>
                             <li style={styles.instructionItem}>💹 <strong>Asset Switching:</strong> Click any asset button to analyze different instruments</li>
                             <li style={styles.instructionItem}>🕯️ <strong>Chart Types:</strong> Switch between professional candlestick and line views</li>
                             <li style={styles.instructionItem}>⏰ <strong>Timeframes:</strong> Select from 1M to 1W intervals for different perspectives</li>
-                            <li style={styles.instructionItem}>⚡ <strong>Lightweight:</strong> Fast, responsive charts powered by TradingView</li>
+                            <li style={styles.instructionItem}>⚡ <strong>Full Width:</strong> Charts now utilize the full screen width on laptops</li>
                         </ul>
                     </div>
                 </div>
