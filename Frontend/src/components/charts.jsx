@@ -66,7 +66,8 @@ const styles = {
     gap: '15px',
     marginTop: '20px',
     paddingTop: '20px',
-    borderTop: '1px solid #e2e8f0'
+    borderTop: '1px solid #e2e8f0',
+    flexWrap: 'wrap'
   },
   timeframeContainer: {
     display: 'flex',
@@ -74,7 +75,8 @@ const styles = {
     gap: '10px',
     marginTop: '15px',
     paddingTop: '15px',
-    borderTop: '1px solid #e2e8f0'
+    borderTop: '1px solid #e2e8f0',
+    flexWrap: 'wrap'
   },
   chartTypeButton: {
     padding: '12px 24px',
@@ -275,18 +277,53 @@ export default function Charts() {
             }
 
             try {
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js';
-                script.crossOrigin = 'anonymous';
-                script.onload = () => {
-                    console.log('TradingView Lightweight Charts loaded successfully');
-                    setTvLoaded(true);
-                };
-                script.onerror = () => {
-                    console.error('Failed to load TradingView Lightweight Charts');
+                // Try multiple CDN sources for better reliability
+                const cdnSources = [
+                    'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js',
+                    'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js'
+                ];
+
+                let loaded = false;
+                
+                for (const src of cdnSources) {
+                    if (loaded) break;
+                    
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = src;
+                            script.crossOrigin = 'anonymous';
+                            script.onload = () => {
+                                console.log(`TradingView Lightweight Charts loaded from: ${src}`);
+                                // Wait a bit for the library to initialize
+                                setTimeout(() => {
+                                    if (window.LightweightCharts && window.LightweightCharts.createChart) {
+                                        loaded = true;
+                                        setTvLoaded(true);
+                                        resolve();
+                                    } else {
+                                        console.warn('Library loaded but createChart not available');
+                                        reject();
+                                    }
+                                }, 500);
+                            };
+                            script.onerror = () => {
+                                console.warn(`Failed to load from: ${src}`);
+                                reject();
+                            };
+                            document.head.appendChild(script);
+                        });
+                    } catch (e) {
+                        console.warn(`CDN ${src} failed, trying next...`);
+                        continue;
+                    }
+                }
+
+                if (!loaded) {
+                    console.error('All CDN sources failed');
                     setTvLoaded(false);
-                };
-                document.head.appendChild(script);
+                }
+                
             } catch (error) {
                 console.error('Error loading TradingView Lightweight Charts:', error);
                 setTvLoaded(false);
@@ -391,11 +428,11 @@ export default function Charts() {
         try {
             // Clear previous chart
             if (chartRef.current) {
-                chartRef.current.remove();
+                chartRef.current.destroy();
             }
             chartContainerRef.current.innerHTML = '';
 
-            // Create chart
+            // Create chart with proper API
             const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
                 width: chartContainerRef.current.clientWidth,
                 height: 500,
@@ -430,7 +467,7 @@ export default function Charts() {
             let series;
             
             if (chartType === 'candlestick') {
-                // Create candlestick series
+                // Create candlestick series using proper API
                 series = chart.addCandlestickSeries({
                     upColor: '#26a69a',
                     downColor: '#ef5350',
@@ -442,15 +479,15 @@ export default function Charts() {
                 // Convert data format for candlestick
                 const candlestickData = combinedData.map(d => ({
                     time: d.time,
-                    open: d.open,
-                    high: d.high,
-                    low: d.low,
-                    close: d.close
+                    open: parseFloat(d.open.toFixed(4)),
+                    high: parseFloat(d.high.toFixed(4)),
+                    low: parseFloat(d.low.toFixed(4)),
+                    close: parseFloat(d.close.toFixed(4))
                 }));
 
                 series.setData(candlestickData);
             } else {
-                // Create line series
+                // Create line series using proper API
                 series = chart.addLineSeries({
                     color: '#667eea',
                     lineWidth: 3,
@@ -459,7 +496,7 @@ export default function Charts() {
                 // Convert data format for line chart
                 const lineData = combinedData.map(d => ({
                     time: d.time,
-                    value: d.value
+                    value: parseFloat(d.value.toFixed(4))
                 }));
 
                 series.setData(lineData);
@@ -467,9 +504,11 @@ export default function Charts() {
 
             // Handle resize
             const handleResize = () => {
-                chart.applyOptions({ 
-                    width: chartContainerRef.current.clientWidth 
-                });
+                if (chartContainerRef.current) {
+                    chart.applyOptions({ 
+                        width: chartContainerRef.current.clientWidth 
+                    });
+                }
             };
 
             window.addEventListener('resize', handleResize);
@@ -479,8 +518,12 @@ export default function Charts() {
                 chart,
                 series,
                 destroy: () => {
-                    window.removeEventListener('resize', handleResize);
-                    chart.remove();
+                    try {
+                        window.removeEventListener('resize', handleResize);
+                        chart.remove();
+                    } catch (e) {
+                        console.warn('Error destroying chart:', e);
+                    }
                 }
             };
 
@@ -488,9 +531,68 @@ export default function Charts() {
             
         } catch (error) {
             console.error('Error initializing TradingView chart:', error);
+            // Fallback: create a simple canvas chart
+            createFallbackChart();
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Fallback chart using HTML5 Canvas
+    const createFallbackChart = () => {
+        if (!chartContainerRef.current) return;
+        
+        chartContainerRef.current.innerHTML = '';
+        const canvas = document.createElement('canvas');
+        canvas.width = chartContainerRef.current.clientWidth || 800;
+        canvas.height = 500;
+        canvas.style.width = '100%';
+        canvas.style.height = '500px';
+        chartContainerRef.current.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        const assetInfo = getCurrentAssetInfo();
+        const data = generateMarketData(assetInfo.basePrice, timeframe);
+        
+        // Simple fallback chart rendering
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = '#667eea';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const padding = 50;
+        const chartWidth = canvas.width - 2 * padding;
+        const chartHeight = canvas.height - 2 * padding;
+        
+        const minPrice = Math.min(...data.map(d => d.low));
+        const maxPrice = Math.max(...data.map(d => d.high));
+        const priceRange = maxPrice - minPrice;
+        
+        data.forEach((point, i) => {
+            const x = padding + (i / (data.length - 1)) * chartWidth;
+            const y = padding + (1 - (point.close - minPrice) / priceRange) * chartHeight;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        
+        ctx.stroke();
+        
+        // Add title
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '16px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${assetInfo.name} (Fallback Chart)`, canvas.width / 2, 30);
+        
+        // Add note
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('Chart library loading... This is a temporary fallback', canvas.width / 2, canvas.height - 20);
     };
 
     // Update chart when dependencies change
@@ -550,6 +652,58 @@ export default function Charts() {
                         transform: translateY(-1px) !important;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
                     }
+                    
+                    /* Mobile responsiveness */
+                    @media (max-width: 768px) {
+                        .controls-container {
+                            padding: 15px !important;
+                        }
+                        
+                        .asset-section {
+                            margin-bottom: 15px !important;
+                        }
+                        
+                        .asset-button {
+                            margin: 3px 4px !important;
+                            padding: 8px 12px !important;
+                            font-size: 0.8rem !important;
+                        }
+                        
+                        .chart-type-button {
+                            padding: 10px 16px !important;
+                            font-size: 0.9rem !important;
+                            margin: 4px !important;
+                        }
+                        
+                        .timeframe-button {
+                            padding: 6px 12px !important;
+                            font-size: 0.8rem !important;
+                            margin: 3px !important;
+                        }
+                        
+                        .category-label {
+                            font-size: 1rem !important;
+                            margin-bottom: 8px !important;
+                        }
+                        
+                        .header-title {
+                            font-size: 1.5rem !important;
+                            padding: 15px !important;
+                        }
+                        
+                        .current-price {
+                            font-size: 1.4rem !important;
+                        }
+                        
+                        .chart-container {
+                            padding: 15px !important;
+                        }
+                        
+                        .chart-title {
+                            font-size: 1.2rem !important;
+                            margin-bottom: 10px !important;
+                        }
+                    }
                 `}
             </style>
             <div className="header">
@@ -558,7 +712,7 @@ export default function Charts() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info" style={styles.mainBodyInfo}>
-                    <div style={styles.header}>
+                    <div style={styles.header} className="header-title">
                         ⚡ SnowAI Trading Charts
                     </div>
                     
@@ -572,11 +726,11 @@ export default function Charts() {
                     )}
                     
                     {/* Controls */}
-                    <div style={styles.controlsContainer}>
+                    <div style={styles.controlsContainer} className="controls-container">
                         {/* Asset Class Selector */}
                         {Object.entries(assetClasses).map(([category, assets]) => (
-                            <div key={category} style={styles.assetSection}>
-                                <div style={styles.categoryLabel}>
+                            <div key={category} style={styles.assetSection} className="asset-section">
+                                <div style={styles.categoryLabel} className="category-label">
                                     {category === 'Crypto' ? '₿' : category === 'Forex' ? '💱' : 
                                      category === 'Stocks' ? '📊' : '🥇'} {category}
                                 </div>
@@ -601,8 +755,9 @@ export default function Charts() {
                         
                         {/* Chart Type Selector */}
                         <div style={styles.chartTypeContainer}>
-                            <span style={styles.categoryLabel}>📈 Chart Type:</span>
+                            <span style={styles.categoryLabel} className="category-label">📈 Chart Type:</span>
                             <button
+                                className="chart-type-button"
                                 onClick={() => setChartType('candlestick')}
                                 style={{
                                     ...styles.chartTypeButton,
@@ -613,6 +768,7 @@ export default function Charts() {
                                 🕯️ Candlestick
                             </button>
                             <button
+                                className="chart-type-button"
                                 onClick={() => setChartType('line')}
                                 style={{
                                     ...styles.chartTypeButton,
@@ -626,10 +782,11 @@ export default function Charts() {
 
                         {/* Timeframe Selector */}
                         <div style={styles.timeframeContainer}>
-                            <span style={styles.categoryLabel}>⏰ Timeframe:</span>
+                            <span style={styles.categoryLabel} className="category-label">⏰ Timeframe:</span>
                             {Object.entries(timeframes).map(([key, config]) => (
                                 <button
                                     key={key}
+                                    className="timeframe-button"
                                     onClick={() => setTimeframe(key)}
                                     style={{
                                         ...styles.timeframeButton,
@@ -657,7 +814,7 @@ export default function Charts() {
                     {!isLoading && tvLoaded && (
                         <div style={styles.priceDisplay}>
                             <div>
-                                <div style={styles.currentPrice}>
+                                <div style={styles.currentPrice} className="current-price">
                                     ${currentPrice.toLocaleString(undefined, { 
                                         minimumFractionDigits: 2, 
                                         maximumFractionDigits: getCurrentAssetInfo().basePrice < 10 ? 4 : 2 
@@ -682,8 +839,8 @@ export default function Charts() {
 
                     {/* Chart Container */}
                     {!isLoading && tvLoaded && (
-                        <div style={styles.chartContainer}>
-                            <div style={styles.chartTitle}>
+                        <div style={styles.chartContainer} className="chart-container">
+                            <div style={styles.chartTitle} className="chart-title">
                                 {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].label}
                             </div>
                             
