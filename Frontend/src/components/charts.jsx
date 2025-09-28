@@ -331,35 +331,54 @@ export default function Charts() {
             if (sciChartLoadedRef.current) return;
 
             try {
-                // Load SciChart from a more stable CDN
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/scichart@3.4.615/index.js';
-                script.type = 'module';
-                script.onload = () => {
-                    console.log('SciChart loaded from CDN');
-                    // Give it a moment to initialize
+                // Try multiple CDN sources for better reliability
+                const cdnSources = [
+                    'https://cdnjs.cloudflare.com/ajax/libs/scichart/3.4.615/scichart.min.js',
+                    'https://unpkg.com/scichart@3.4.615/index.umd.js',
+                    'https://cdn.jsdelivr.net/npm/scichart@3.4.615/index.umd.js'
+                ];
+
+                let loaded = false;
+                
+                for (const src of cdnSources) {
+                    if (loaded) break;
+                    
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = src;
+                            script.crossOrigin = 'anonymous';
+                            script.onload = () => {
+                                console.log(`SciChart loaded from: ${src}`);
+                                loaded = true;
+                                resolve();
+                            };
+                            script.onerror = () => {
+                                console.warn(`Failed to load from: ${src}`);
+                                reject();
+                            };
+                            document.head.appendChild(script);
+                        });
+                    } catch (e) {
+                        console.warn(`CDN ${src} failed, trying next...`);
+                        continue;
+                    }
+                }
+
+                if (loaded) {
+                    // Give SciChart time to initialize
                     setTimeout(() => {
                         setSciChartLoaded(true);
                         sciChartLoadedRef.current = true;
-                    }, 500);
-                };
-                script.onerror = () => {
-                    console.error('Failed to load SciChart from CDN');
-                    // Try alternative CDN
-                    const fallbackScript = document.createElement('script');
-                    fallbackScript.src = 'https://cdn.skypack.dev/scichart@3.4.615';
-                    fallbackScript.onload = () => {
-                        console.log('SciChart loaded from fallback CDN');
-                        setTimeout(() => {
-                            setSciChartLoaded(true);
-                            sciChartLoadedRef.current = true;
-                        }, 500);
-                    };
-                    document.head.appendChild(fallbackScript);
-                };
-                document.head.appendChild(script);
+                    }, 1000);
+                } else {
+                    console.warn('All CDN sources failed, using fallback charts');
+                    setSciChartLoaded(false);
+                }
+                
             } catch (error) {
                 console.error('Error loading SciChart:', error);
+                setSciChartLoaded(false);
             }
         };
 
@@ -454,11 +473,7 @@ export default function Charts() {
 
     // Initialize SciChart with CDN loaded version
     const initSciChart = async () => {
-        if (!sciChartLoaded || !window.SciChart) {
-            console.log('SciChart not yet loaded from CDN');
-            return;
-        }
-
+        // Always try to create a chart, fallback if SciChart unavailable
         setIsLoading(true);
         
         try {
@@ -470,127 +485,139 @@ export default function Charts() {
             // Clear any existing content
             chartContainer.innerHTML = '';
 
-            // Use the CDN loaded SciChart with proper imports
-            const {
-                SciChartSurface,
-                NumericAxis,
-                FastCandlestickRenderableSeries,
-                FastLineRenderableSeries,
-                XyDataSeries,
-                OhlcDataSeries,
-                EAxisAlignment,
-                EAutoRange,
-                ZoomPanModifier,
-                ZoomExtentsModifier,
-                MouseWheelZoomModifier,
-                RubberBandXyZoomModifier,
-                EllipsePointMarker,
-                SciChartJsNavyTheme
-            } = window.SciChart;
+            // Check if SciChart is available from CDN
+            if (sciChartLoaded && window.SciChart) {
+                console.log('Initializing SciChart from CDN...');
+                
+                const {
+                    SciChartSurface,
+                    NumericAxis,
+                    FastCandlestickRenderableSeries,
+                    FastLineRenderableSeries,
+                    XyDataSeries,
+                    OhlcDataSeries,
+                    EAxisAlignment,
+                    EAutoRange,
+                    ZoomPanModifier,
+                    ZoomExtentsModifier,
+                    MouseWheelZoomModifier,
+                    RubberBandXyZoomModifier,
+                    EllipsePointMarker,
+                    SciChartJsNavyTheme
+                } = window.SciChart;
 
-            // Initialize SciChart License (you may need a license key for production)
-            window.SciChart.SciChartSurface.setRuntimeLicenseKey("");
+                // Initialize SciChart License (you may need a license key for production)
+                if (window.SciChart.SciChartSurface.setRuntimeLicenseKey) {
+                    window.SciChart.SciChartSurface.setRuntimeLicenseKey("");
+                }
 
-            // Create the SciChartSurface
-            const { sciChartSurface, wasmContext } = await SciChartSurface.create(chartContainer, {
-                theme: new SciChartJsNavyTheme(),
-                disableAspect: false
-            });
-
-            // Create X and Y axes
-            const xAxis = new NumericAxis(wasmContext, {
-                axisAlignment: EAxisAlignment.Bottom,
-                autoRange: EAutoRange.Always,
-                axisTitle: `Time (${timeframes[timeframe].label})`,
-                labelStyle: { color: "#64748b", fontSize: 12 }
-            });
-
-            const yAxis = new NumericAxis(wasmContext, {
-                axisAlignment: EAxisAlignment.Left,
-                autoRange: EAutoRange.Always,
-                axisTitle: "Price",
-                labelStyle: { color: "#64748b", fontSize: 12 }
-            });
-
-            sciChartSurface.xAxes.add(xAxis);
-            sciChartSurface.yAxes.add(yAxis);
-
-            // Get asset info and generate data
-            const assetInfo = getCurrentAssetInfo();
-            const marketData = generateMarketData(assetInfo.basePrice, timeframe);
-            
-            // Combine historical and real-time data
-            const combinedData = [...marketData, ...realTimeData];
-            setCurrentPrice(combinedData[combinedData.length - 1]?.close || assetInfo.basePrice);
-
-            if (chartType === 'candlestick') {
-                // Create OHLC DataSeries
-                const ohlcDataSeries = new OhlcDataSeries(wasmContext, {
-                    dataSeriesName: `${assetInfo.name} (${selectedAsset})`
+                // Create the SciChartSurface
+                const { sciChartSurface, wasmContext } = await SciChartSurface.create(chartContainer, {
+                    theme: new SciChartJsNavyTheme(),
+                    disableAspect: false
                 });
 
-                // Add data to the series
-                combinedData.forEach(dataPoint => {
-                    ohlcDataSeries.append(
-                        dataPoint.date,
-                        dataPoint.open,
-                        dataPoint.high,
-                        dataPoint.low,
-                        dataPoint.close
-                    );
+                // Create X and Y axes
+                const xAxis = new NumericAxis(wasmContext, {
+                    axisAlignment: EAxisAlignment.Bottom,
+                    autoRange: EAutoRange.Always,
+                    axisTitle: `Time (${timeframes[timeframe].label})`,
+                    labelStyle: { color: "#64748b", fontSize: 12 }
                 });
 
-                // Create candlestick renderable series with proper color handling
-                const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
-                    dataSeries: ohlcDataSeries,
-                    strokeUp: "#10b981",
-                    strokeDown: "#ef4444",
-                    fillUp: "#10b981",
-                    fillDown: "#ef4444",
-                    strokeThickness: 1,
-                    dataPointWidth: 0.7
+                const yAxis = new NumericAxis(wasmContext, {
+                    axisAlignment: EAxisAlignment.Left,
+                    autoRange: EAutoRange.Always,
+                    axisTitle: "Price",
+                    labelStyle: { color: "#64748b", fontSize: 12 }
                 });
 
-                sciChartSurface.renderableSeries.add(candlestickSeries);
+                sciChartSurface.xAxes.add(xAxis);
+                sciChartSurface.yAxes.add(yAxis);
+
+                // Get asset info and generate data
+                const assetInfo = getCurrentAssetInfo();
+                const marketData = generateMarketData(assetInfo.basePrice, timeframe);
+                
+                // Combine historical and real-time data
+                const combinedData = [...marketData, ...realTimeData];
+                setCurrentPrice(combinedData[combinedData.length - 1]?.close || assetInfo.basePrice);
+
+                if (chartType === 'candlestick') {
+                    // Create OHLC DataSeries
+                    const ohlcDataSeries = new OhlcDataSeries(wasmContext, {
+                        dataSeriesName: `${assetInfo.name} (${selectedAsset})`
+                    });
+
+                    // Add data to the series
+                    combinedData.forEach(dataPoint => {
+                        ohlcDataSeries.append(
+                            dataPoint.date,
+                            dataPoint.open,
+                            dataPoint.high,
+                            dataPoint.low,
+                            dataPoint.close
+                        );
+                    });
+
+                    // Create candlestick renderable series with proper color handling
+                    const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
+                        dataSeries: ohlcDataSeries,
+                        strokeUp: "#10b981",
+                        strokeDown: "#ef4444",
+                        fillUp: "#10b981",
+                        fillDown: "#ef4444",
+                        strokeThickness: 1,
+                        dataPointWidth: 0.7
+                    });
+
+                    sciChartSurface.renderableSeries.add(candlestickSeries);
+                } else {
+                    // Create XY DataSeries for line chart
+                    const lineDataSeries = new XyDataSeries(wasmContext, {
+                        dataSeriesName: `${assetInfo.name} (${selectedAsset})`
+                    });
+
+                    // Add close prices to line chart
+                    combinedData.forEach(dataPoint => {
+                        lineDataSeries.append(dataPoint.date, dataPoint.close);
+                    });
+
+                    // Create line renderable series with proper color handling
+                    const lineSeries = new FastLineRenderableSeries(wasmContext, {
+                        dataSeries: lineDataSeries,
+                        stroke: "#667eea",
+                        strokeThickness: 3,
+                        pointMarker: new EllipsePointMarker(wasmContext, {
+                            width: 6,
+                            height: 6,
+                            fill: "#667eea",
+                            stroke: "#ffffff",
+                            strokeThickness: 2
+                        })
+                    });
+
+                    sciChartSurface.renderableSeries.add(lineSeries);
+                }
+
+                // Add interactivity modifiers
+                sciChartSurface.chartModifiers.add(new ZoomPanModifier());
+                sciChartSurface.chartModifiers.add(new ZoomExtentsModifier());
+                sciChartSurface.chartModifiers.add(new MouseWheelZoomModifier());
+                sciChartSurface.chartModifiers.add(new RubberBandXyZoomModifier());
+
+                setSciChartSurface(sciChartSurface);
+                console.log('SciChart initialized successfully!');
+                
             } else {
-                // Create XY DataSeries for line chart
-                const lineDataSeries = new XyDataSeries(wasmContext, {
-                    dataSeriesName: `${assetInfo.name} (${selectedAsset})`
-                });
-
-                // Add close prices to line chart
-                combinedData.forEach(dataPoint => {
-                    lineDataSeries.append(dataPoint.date, dataPoint.close);
-                });
-
-                // Create line renderable series with proper color handling
-                const lineSeries = new FastLineRenderableSeries(wasmContext, {
-                    dataSeries: lineDataSeries,
-                    stroke: "#667eea",
-                    strokeThickness: 3,
-                    pointMarker: new EllipsePointMarker(wasmContext, {
-                        width: 6,
-                        height: 6,
-                        fill: "#667eea",
-                        stroke: "#ffffff",
-                        strokeThickness: 2
-                    })
-                });
-
-                sciChartSurface.renderableSeries.add(lineSeries);
+                // Fallback to HTML5 Canvas chart
+                console.log('SciChart not available, using fallback chart');
+                createFallbackChart(chartContainer);
             }
-
-            // Add interactivity modifiers
-            sciChartSurface.chartModifiers.add(new ZoomPanModifier());
-            sciChartSurface.chartModifiers.add(new ZoomExtentsModifier());
-            sciChartSurface.chartModifiers.add(new MouseWheelZoomModifier());
-            sciChartSurface.chartModifiers.add(new RubberBandXyZoomModifier());
-
-            setSciChartSurface(sciChartSurface);
             
         } catch (error) {
             console.error("Error initializing SciChart:", error);
-            // Create a fallback chart using HTML5 Canvas
+            // Always fallback to canvas chart on error
             const chartContainer = chartType === 'candlestick' ? 
                 candlestickChartRef.current : lineChartRef.current;
             if (chartContainer) {
@@ -609,16 +636,23 @@ export default function Charts() {
         // Reset real-time data when switching assets or timeframes
         setRealTimeData([]);
         
-        if (sciChartLoaded) {
-            initSciChart();
-        }
+        // Always try to initialize chart (will use fallback if SciChart unavailable)
+        initSciChart();
         
         return () => {
             if (sciChartSurface) {
                 sciChartSurface.delete();
             }
         };
-    }, [selectedAsset, chartType, timeframe, sciChartLoaded]);
+    }, [selectedAsset, chartType, timeframe]);
+
+    // Additional effect to retry SciChart initialization when it becomes available
+    useEffect(() => {
+        if (sciChartLoaded && !sciChartSurface) {
+            console.log('SciChart became available, reinitializing...');
+            initSciChart();
+        }
+    }, [sciChartLoaded]);
 
     return (
         <div style={styles.container}>
@@ -809,4 +843,4 @@ export default function Charts() {
             </div>
         </div>
     );
-}
+}>
