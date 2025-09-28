@@ -409,20 +409,22 @@ export default function Charts() {
         try {
             // Try Binance first for crypto assets
             if (assetInfo.binanceSymbol) {
-                return await fetchBinanceData(assetInfo.binanceSymbol, timeframeConfig);
+                try {
+                    return await fetchBinanceData(assetInfo.binanceSymbol, timeframeConfig);
+                } catch (binanceError) {
+                    console.log(`Binance failed for ${assetInfo.symbol}, using simulation:`, binanceError.message);
+                    setDataSource(`Enhanced Simulation (Binance unavailable)`);
+                    return generateEnhancedSimulatedData(assetInfo, timeframeConfig);
+                }
             }
             
-            // Try Alpha Vantage for stocks and forex
-            if (['AAPL', 'GOOGL', 'TSLA', 'MSFT', 'EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD'].includes(assetInfo.apiSymbol)) {
-                return await fetchAlphaVantageData(assetInfo.apiSymbol, timeframeConfig);
-            }
-            
-            // Try Yahoo Finance as backup
-            return await fetchYahooFinanceData(assetInfo.symbol, timeframeConfig);
+            // Use enhanced simulation for all other assets
+            setDataSource(`Enhanced Simulation - ${timeframeConfig.description} lookback`);
+            return generateEnhancedSimulatedData(assetInfo, timeframeConfig);
             
         } catch (error) {
-            console.error('Error fetching real data:', error);
-            setError(`Unable to fetch real data for ${assetInfo.name}. Using simulated data.`);
+            console.log('Fallback to simulation:', error.message);
+            setDataSource(`Enhanced Simulation (API unavailable)`);
             return generateEnhancedSimulatedData(assetInfo, timeframeConfig);
         }
     };
@@ -454,18 +456,16 @@ export default function Charts() {
         }).sort((a, b) => a.time - b.time);
     };
 
-    // Fetch data from Alpha Vantage (requires API key - using demo data)
+    // Fetch data from Alpha Vantage (using fallback simulation)
     const fetchAlphaVantageData = async (symbol, timeframeConfig) => {
-        // Note: In a real implementation, you'd need an Alpha Vantage API key
-        // For now, we'll simulate this with enhanced realistic data
-        throw new Error('Alpha Vantage requires API key');
+        console.log(`Alpha Vantage API key required for ${symbol}, using enhanced simulation`);
+        return generateEnhancedSimulatedData(getCurrentAssetInfo(), timeframeConfig);
     };
 
-    // Fetch data from Yahoo Finance (CORS proxy needed)
+    // Fetch data from Yahoo Finance (using fallback simulation)
     const fetchYahooFinanceData = async (symbol, timeframeConfig) => {
-        // Yahoo Finance requires CORS proxy for browser requests
-        // For now, we'll simulate this with enhanced realistic data
-        throw new Error('Yahoo Finance requires CORS proxy');
+        console.log(`Yahoo Finance CORS proxy required for ${symbol}, using enhanced simulation`);
+        return generateEnhancedSimulatedData(getCurrentAssetInfo(), timeframeConfig);
     };
 
     // Generate enhanced simulated data with realistic patterns
@@ -753,16 +753,19 @@ export default function Charts() {
                 chart.timeScale().fitContent();
             }, 100);
 
-            // Store chart reference
+            // Store chart reference with improved error handling
             chartRef.current = {
                 chart,
                 series,
                 destroy: () => {
                     try {
                         window.removeEventListener('resize', handleResize);
-                        chart.remove();
+                        if (chart && typeof chart.remove === 'function') {
+                            chart.remove();
+                        }
                     } catch (e) {
-                        console.warn('Error destroying chart:', e);
+                        // Silently handle disposal errors - they're expected when switching quickly
+                        console.debug('Chart disposal (normal):', e.message);
                     }
                 }
             };
