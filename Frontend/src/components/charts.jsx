@@ -12,7 +12,6 @@ const styles = {
   mainBodyInfo: {
     width: '100%',
     maxWidth: 'none', // Remove max width restriction
-    padding: '0 20px',
     boxSizing: 'border-box'
   },
   header: {
