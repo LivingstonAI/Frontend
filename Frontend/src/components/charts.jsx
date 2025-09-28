@@ -213,24 +213,19 @@ const styles = {
 };
 
 export default function Charts() {
-    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
-    
     // Refs for chart containers
-    const candlestickChartRef = useRef(null);
-    const lineChartRef = useRef(null);
-    const sciChartLoadedRef = useRef(false);
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
     
     // State management
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
     const [timeframe, setTimeframe] = useState('1H');
-    const [sciChartSurface, setSciChartSurface] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [sciChartLoaded, setSciChartLoaded] = useState(false);
+    const [tvLoaded, setTvLoaded] = useState(false);
     const [currentPrice, setCurrentPrice] = useState(0);
     const [priceChange, setPriceChange] = useState(0);
     const [realTimeData, setRealTimeData] = useState([]);
-    const [chartError, setChartError] = useState(null);
 
     // Timeframe configurations
     const timeframes = {
@@ -242,61 +237,6 @@ export default function Charts() {
         '1D': { label: '1 Day', minutes: 1440, dataPoints: 100 },
         '1W': { label: '1 Week', minutes: 10080, dataPoints: 52 }
     };
-
-    // Fallback chart using HTML5 Canvas
-    const createFallbackChart = (container) => {
-        container.innerHTML = '';
-        const canvas = document.createElement('canvas');
-        canvas.width = container.clientWidth || 800;
-        canvas.height = container.clientHeight || 500;
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        container.appendChild(canvas);
-
-        const ctx = canvas.getContext('2d');
-        const assetInfo = getCurrentAssetInfo();
-        const data = generateMarketData(assetInfo.basePrice, timeframe);
-        
-        // Simple fallback chart rendering
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.strokeStyle = '#667eea';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        
-        const padding = 50;
-        const chartWidth = canvas.width - 2 * padding;
-        const chartHeight = canvas.height - 2 * padding;
-        
-        const minPrice = Math.min(...data.map(d => d.low));
-        const maxPrice = Math.max(...data.map(d => d.high));
-        const priceRange = maxPrice - minPrice;
-        
-        data.forEach((point, i) => {
-            const x = padding + (i / (data.length - 1)) * chartWidth;
-            const y = padding + (1 - (point.close - minPrice) / priceRange) * chartHeight;
-            
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        
-        ctx.stroke();
-        
-        // Add title
-        ctx.fillStyle = '#1e293b';
-        ctx.font = '16px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${assetInfo.name} (Fallback Chart)`, canvas.width / 2, 30);
-        
-        // Add note
-        ctx.font = '12px Inter, sans-serif';
-        ctx.fillStyle = '#64748b';
-        ctx.fillText('SciChart loading... This is a temporary fallback chart', canvas.width / 2, canvas.height - 20);
-    }
 
     // Asset classes configuration with more realistic base prices
     const assetClasses = {
@@ -326,93 +266,34 @@ export default function Charts() {
         ]
     };
 
-    // Load SciChart.js React from CDN
+    // Load TradingView Lightweight Charts from CDN
     useEffect(() => {
-        const loadSciChartJS = async () => {
-            if (sciChartLoadedRef.current) return;
+        const loadTradingViewCharts = async () => {
+            if (window.LightweightCharts) {
+                setTvLoaded(true);
+                return;
+            }
 
             try {
-                setChartError(null);
-                console.log('Loading SciChart.js React from CDN...');
-                
-                // Load SciChart.js React (Community Edition - Free)
-                const cdnSources = [
-                    'https://cdn.jsdelivr.net/npm/scichart@latest/index.umd.js',
-                    'https://unpkg.com/scichart@latest/index.umd.js'
-                ];
-
-                let loaded = false;
-                
-                for (const src of cdnSources) {
-                    if (loaded) break;
-                    
-                    try {
-                        await new Promise((resolve, reject) => {
-                            // Check if already loaded
-                            if (window.SciChart) {
-                                loaded = true;
-                                resolve();
-                                return;
-                            }
-                            
-                            const script = document.createElement('script');
-                            script.src = src;
-                            script.crossOrigin = 'anonymous';
-                            script.onload = () => {
-                                console.log(`SciChart.js loaded from: ${src}`);
-                                loaded = true;
-                                resolve();
-                            };
-                            script.onerror = (error) => {
-                                console.warn(`Failed to load from: ${src}`, error);
-                                reject(error);
-                            };
-                            document.head.appendChild(script);
-                        });
-                    } catch (e) {
-                        console.warn(`CDN ${src} failed, trying next...`);
-                        continue;
-                    }
-                }
-
-                if (loaded && window.SciChart) {
-                    console.log('SciChart.js loaded successfully');
-                    
-                    // Set the license for SciChart.js Community Edition (free)
-                    try {
-                        await window.SciChart.SciChartSurface.setRuntimeLicenseKey("");
-                        console.log('SciChart.js license set for community edition');
-                    } catch (licenseError) {
-                        console.warn('License setting failed, continuing anyway:', licenseError);
-                    }
-                    
-                    // Give SciChart time to initialize
-                    setTimeout(() => {
-                        setSciChartLoaded(true);
-                        sciChartLoadedRef.current = true;
-                        console.log('SciChart.js ready for use');
-                    }, 500);
-                } else {
-                    throw new Error('All CDN sources failed');
-                }
-                
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js';
+                script.crossOrigin = 'anonymous';
+                script.onload = () => {
+                    console.log('TradingView Lightweight Charts loaded successfully');
+                    setTvLoaded(true);
+                };
+                script.onerror = () => {
+                    console.error('Failed to load TradingView Lightweight Charts');
+                    setTvLoaded(false);
+                };
+                document.head.appendChild(script);
             } catch (error) {
-                console.error('Error loading SciChart.js:', error);
-                setChartError('Failed to load SciChart.js from CDN');
-                setSciChartLoaded(false);
-                
-                // Use fallback immediately
-                setTimeout(() => {
-                    const container = chartType === 'candlestick' ? 
-                        candlestickChartRef.current : lineChartRef.current;
-                    if (container) {
-                        createFallbackChart(container);
-                    }
-                }, 100);
+                console.error('Error loading TradingView Lightweight Charts:', error);
+                setTvLoaded(false);
             }
         };
 
-        loadSciChartJS();
+        loadTradingViewCharts();
     }, []);
 
     // Get current asset info
@@ -451,12 +332,12 @@ export default function Charts() {
             const low = Math.min(open, close) * (1 - Math.random() * 0.008);
             
             data.push({
-                date: date.getTime(),
+                time: Math.floor(date.getTime() / 1000), // TradingView uses Unix timestamp in seconds
                 open: Math.max(0, open),
                 high: Math.max(0, high),
                 low: Math.max(0, low),
                 close: Math.max(0, close),
-                volume: Math.random() * 1000000 + 100000
+                value: Math.max(0, close) // For line chart
             });
         }
         
@@ -465,7 +346,7 @@ export default function Charts() {
 
     // Real-time data simulation
     useEffect(() => {
-        const updateInterval = timeframes[timeframe].minutes * 60 * 1000 / 30; // Update 30 times per timeframe period
+        const updateInterval = Math.max(2000, timeframes[timeframe].minutes * 60 * 1000 / 30); // Update every 2+ seconds
         
         const interval = setInterval(() => {
             const assetInfo = getCurrentAssetInfo();
@@ -482,12 +363,12 @@ export default function Charts() {
             
             // Add new data point
             const newDataPoint = {
-                date: Date.now(),
+                time: Math.floor(Date.now() / 1000),
                 open: lastPrice,
                 high: Math.max(lastPrice, newPrice) * (1 + Math.random() * 0.001),
                 low: Math.min(lastPrice, newPrice) * (1 - Math.random() * 0.001),
                 close: newPrice,
-                volume: Math.random() * 500000 + 50000
+                value: newPrice
             };
             
             setRealTimeData(prev => {
@@ -496,163 +377,117 @@ export default function Charts() {
                 return updated.slice(-200);
             });
             
-        }, Math.max(1000, updateInterval)); // Minimum 1 second updates
+        }, updateInterval);
         
         return () => clearInterval(interval);
     }, [selectedAsset, timeframe, realTimeData]);
 
-    // Initialize SciChart.js
-    const initSciChartJS = async () => {
+    // Initialize TradingView Chart
+    const initTradingViewChart = () => {
+        if (!tvLoaded || !window.LightweightCharts || !chartContainerRef.current) return;
+
         setIsLoading(true);
-        setChartError(null);
-        
+
         try {
-            const chartContainer = chartType === 'candlestick' ? 
-                candlestickChartRef.current : lineChartRef.current;
-                
-            if (!chartContainer) {
-                setIsLoading(false);
-                return;
+            // Clear previous chart
+            if (chartRef.current) {
+                chartRef.current.remove();
             }
+            chartContainerRef.current.innerHTML = '';
 
-            // Clear any existing content
-            chartContainer.innerHTML = '';
+            // Create chart
+            const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
+                width: chartContainerRef.current.clientWidth,
+                height: 500,
+                layout: {
+                    background: { type: 'solid', color: 'white' },
+                    textColor: '#333',
+                },
+                grid: {
+                    vertLines: { color: '#f0f3fa' },
+                    horzLines: { color: '#f0f3fa' },
+                },
+                crosshair: {
+                    mode: window.LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#cccccc',
+                },
+                timeScale: {
+                    borderColor: '#cccccc',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
 
-            // Check if SciChart.js is available
-            if (sciChartLoaded && window.SciChart) {
-                console.log('Initializing SciChart.js chart...');
-                
-                const {
-                    SciChartSurface,
-                    NumericAxis,
-                    FastCandlestickRenderableSeries,
-                    FastLineRenderableSeries,
-                    XyDataSeries,
-                    OhlcDataSeries,
-                    EAxisAlignment,
-                    EAutoRange,
-                    ZoomPanModifier,
-                    ZoomExtentsModifier,
-                    MouseWheelZoomModifier,
-                    RubberBandXyZoomModifier,
-                    EllipsePointMarker,
-                    SciChartJsNavyTheme
-                } = window.SciChart;
+            const assetInfo = getCurrentAssetInfo();
+            const marketData = generateMarketData(assetInfo.basePrice, timeframe);
+            
+            // Combine historical and real-time data
+            const combinedData = [...marketData, ...realTimeData];
+            setCurrentPrice(combinedData[combinedData.length - 1]?.close || assetInfo.basePrice);
 
-                // Create the SciChartSurface with proper configuration
-                const { sciChartSurface, wasmContext } = await SciChartSurface.create(chartContainer, {
-                    theme: new SciChartJsNavyTheme(),
-                    disableAspect: false
+            let series;
+            
+            if (chartType === 'candlestick') {
+                // Create candlestick series
+                series = chart.addCandlestickSeries({
+                    upColor: '#26a69a',
+                    downColor: '#ef5350',
+                    borderVisible: false,
+                    wickUpColor: '#26a69a',
+                    wickDownColor: '#ef5350',
                 });
 
-                // Create X and Y axes
-                const xAxis = new NumericAxis(wasmContext, {
-                    axisAlignment: EAxisAlignment.Bottom,
-                    autoRange: EAutoRange.Always,
-                    axisTitle: `Time (${timeframes[timeframe].label})`,
-                    labelStyle: { color: "#64748b", fontSize: 12 }
-                });
+                // Convert data format for candlestick
+                const candlestickData = combinedData.map(d => ({
+                    time: d.time,
+                    open: d.open,
+                    high: d.high,
+                    low: d.low,
+                    close: d.close
+                }));
 
-                const yAxis = new NumericAxis(wasmContext, {
-                    axisAlignment: EAxisAlignment.Left,
-                    autoRange: EAutoRange.Always,
-                    axisTitle: "Price",
-                    labelStyle: { color: "#64748b", fontSize: 12 }
-                });
-
-                sciChartSurface.xAxes.add(xAxis);
-                sciChartSurface.yAxes.add(yAxis);
-
-                // Get asset info and generate data
-                const assetInfo = getCurrentAssetInfo();
-                const marketData = generateMarketData(assetInfo.basePrice, timeframe);
-                
-                // Combine historical and real-time data
-                const combinedData = [...marketData, ...realTimeData];
-                setCurrentPrice(combinedData[combinedData.length - 1]?.close || assetInfo.basePrice);
-
-                if (chartType === 'candlestick') {
-                    // Create OHLC DataSeries
-                    const ohlcDataSeries = new OhlcDataSeries(wasmContext, {
-                        dataSeriesName: `${assetInfo.name} (${selectedAsset})`
-                    });
-
-                    // Add data to the series
-                    combinedData.forEach(dataPoint => {
-                        ohlcDataSeries.append(
-                            dataPoint.date,
-                            dataPoint.open,
-                            dataPoint.high,
-                            dataPoint.low,
-                            dataPoint.close
-                        );
-                    });
-
-                    // Create candlestick renderable series
-                    const candlestickSeries = new FastCandlestickRenderableSeries(wasmContext, {
-                        dataSeries: ohlcDataSeries,
-                        strokeUp: "#10b981",
-                        strokeDown: "#ef4444",
-                        fillUp: "#10b981",
-                        fillDown: "#ef4444",
-                        strokeThickness: 1,
-                        dataPointWidth: 0.7
-                    });
-
-                    sciChartSurface.renderableSeries.add(candlestickSeries);
-                } else {
-                    // Create XY DataSeries for line chart
-                    const lineDataSeries = new XyDataSeries(wasmContext, {
-                        dataSeriesName: `${assetInfo.name} (${selectedAsset})`
-                    });
-
-                    // Add close prices to line chart
-                    combinedData.forEach(dataPoint => {
-                        lineDataSeries.append(dataPoint.date, dataPoint.close);
-                    });
-
-                    // Create line renderable series
-                    const lineSeries = new FastLineRenderableSeries(wasmContext, {
-                        dataSeries: lineDataSeries,
-                        stroke: "#667eea",
-                        strokeThickness: 3,
-                        pointMarker: new EllipsePointMarker(wasmContext, {
-                            width: 6,
-                            height: 6,
-                            fill: "#667eea",
-                            stroke: "#ffffff",
-                            strokeThickness: 2
-                        })
-                    });
-
-                    sciChartSurface.renderableSeries.add(lineSeries);
-                }
-
-                // Add interactivity modifiers
-                sciChartSurface.chartModifiers.add(new ZoomPanModifier());
-                sciChartSurface.chartModifiers.add(new ZoomExtentsModifier());
-                sciChartSurface.chartModifiers.add(new MouseWheelZoomModifier());
-                sciChartSurface.chartModifiers.add(new RubberBandXyZoomModifier());
-
-                setSciChartSurface(sciChartSurface);
-                console.log('SciChart.js chart initialized successfully!');
-                
+                series.setData(candlestickData);
             } else {
-                // Fallback to HTML5 Canvas chart
-                console.log('SciChart.js not available, using fallback chart');
-                createFallbackChart(chartContainer);
+                // Create line series
+                series = chart.addLineSeries({
+                    color: '#667eea',
+                    lineWidth: 3,
+                });
+
+                // Convert data format for line chart
+                const lineData = combinedData.map(d => ({
+                    time: d.time,
+                    value: d.value
+                }));
+
+                series.setData(lineData);
             }
+
+            // Handle resize
+            const handleResize = () => {
+                chart.applyOptions({ 
+                    width: chartContainerRef.current.clientWidth 
+                });
+            };
+
+            window.addEventListener('resize', handleResize);
+            
+            // Store chart reference
+            chartRef.current = {
+                chart,
+                series,
+                destroy: () => {
+                    window.removeEventListener('resize', handleResize);
+                    chart.remove();
+                }
+            };
+
+            console.log('TradingView chart initialized successfully!');
             
         } catch (error) {
-            console.error("Error initializing SciChart.js:", error);
-            setChartError(`Chart initialization failed: ${error.message}`);
-            
-            // Always fallback to canvas chart on error
-            const chartContainer = chartType === 'candlestick' ? 
-                candlestickChartRef.current : lineChartRef.current;
-            if (chartContainer) {
-                createFallbackChart(chartContainer);
-            }
+            console.error('Error initializing TradingView chart:', error);
         } finally {
             setIsLoading(false);
         }
@@ -660,24 +495,44 @@ export default function Charts() {
 
     // Update chart when dependencies change
     useEffect(() => {
-        if (sciChartSurface) {
-            sciChartSurface.delete();
-            setSciChartSurface(null);
+        if (chartRef.current) {
+            chartRef.current.destroy();
         }
         // Reset real-time data when switching assets or timeframes
         setRealTimeData([]);
         
-        // Initialize chart (will use fallback if SciChart.js unavailable)
-        if (sciChartLoaded || chartError) {
-            initSciChartJS();
+        if (tvLoaded) {
+            initTradingViewChart();
         }
         
         return () => {
-            if (sciChartSurface) {
-                sciChartSurface.delete();
+            if (chartRef.current) {
+                chartRef.current.destroy();
             }
         };
-    }, [selectedAsset, chartType, timeframe, sciChartLoaded]);
+    }, [selectedAsset, chartType, timeframe, tvLoaded]);
+
+    // Update real-time data on existing chart
+    useEffect(() => {
+        if (chartRef.current && realTimeData.length > 0) {
+            const lastDataPoint = realTimeData[realTimeData.length - 1];
+            
+            if (chartType === 'candlestick') {
+                chartRef.current.series.update({
+                    time: lastDataPoint.time,
+                    open: lastDataPoint.open,
+                    high: lastDataPoint.high,
+                    low: lastDataPoint.low,
+                    close: lastDataPoint.close
+                });
+            } else {
+                chartRef.current.series.update({
+                    time: lastDataPoint.time,
+                    value: lastDataPoint.value
+                });
+            }
+        }
+    }, [realTimeData]);
 
     return (
         <div style={styles.container}>
@@ -704,28 +559,14 @@ export default function Charts() {
                 <SideNavs />
                 <div className="main-body-info" style={styles.mainBodyInfo}>
                     <div style={styles.header}>
-                        ⚡ SnowAI Trading Charts - SciChart.js React
+                        ⚡ SnowAI Trading Charts
                     </div>
                     
-                    {/* Loading SciChart.js */}
-                    {!sciChartLoaded && !chartError && (
+                    {!tvLoaded && (
                         <div style={styles.loadingContainer}>
                             <div style={styles.loadingSpinner}></div>
                             <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
-                                Loading SciChart.js React (Community Edition) from CDN...
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Chart Error */}
-                    {chartError && (
-                        <div style={{
-                            ...styles.loadingContainer,
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#dc2626'
-                        }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: '500' }}>
-                                ⚠️ {chartError} - Using fallback chart
+                                Loading TradingView Lightweight Charts...
                             </span>
                         </div>
                     )}
@@ -803,7 +644,7 @@ export default function Charts() {
                     </div>
 
                     {/* Loading indicator */}
-                    {isLoading && sciChartLoaded && (
+                    {isLoading && tvLoaded && (
                         <div style={styles.loadingContainer}>
                             <div style={styles.loadingSpinner}></div>
                             <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
@@ -813,7 +654,7 @@ export default function Charts() {
                     )}
 
                     {/* Price Display */}
-                    {!isLoading && (sciChartLoaded || chartError) && (
+                    {!isLoading && tvLoaded && (
                         <div style={styles.priceDisplay}>
                             <div>
                                 <div style={styles.currentPrice}>
@@ -840,28 +681,21 @@ export default function Charts() {
                     )}
 
                     {/* Chart Container */}
-                    {!isLoading && (sciChartLoaded || chartError) && (
+                    {!isLoading && tvLoaded && (
                         <div style={styles.chartContainer}>
                             <div style={styles.chartTitle}>
                                 {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].label}
-                                {chartError && <span style={{ color: '#ef4444', fontSize: '0.9rem' }}> (Fallback Mode)</span>}
                             </div>
                             
-                            <div style={{ position: 'relative', width: '100%', height: '500px' }}>
-                                {chartType === 'candlestick' && (
-                                    <div 
-                                        ref={candlestickChartRef} 
-                                        style={{ width: '100%', height: '100%', borderRadius: '10px' }}
-                                    />
-                                )}
-                                
-                                {chartType === 'line' && (
-                                    <div 
-                                        ref={lineChartRef} 
-                                        style={{ width: '100%', height: '100%', borderRadius: '10px' }}
-                                    />
-                                )}
-                            </div>
+                            <div 
+                                ref={chartContainerRef}
+                                style={{ 
+                                    width: '100%', 
+                                    height: '500px', 
+                                    borderRadius: '10px',
+                                    overflow: 'hidden'
+                                }}
+                            />
                         </div>
                     )}
 
@@ -869,49 +703,14 @@ export default function Charts() {
                     <div style={styles.instructionsCard}>
                         <div style={styles.instructionsTitle}>🎮 Chart Controls & Features</div>
                         <ul style={styles.instructionsList}>
-                            <li style={styles.instructionItem}>🔍 <strong>Zoom:</strong> Mouse wheel or drag to select area for rubber band zoom</li>
+                            <li style={styles.instructionItem}>🔍 <strong>Zoom:</strong> Mouse wheel or pinch to zoom in/out</li>
                             <li style={styles.instructionItem}>👆 <strong>Pan:</strong> Click and drag to move around the chart</li>
-                            <li style={styles.instructionItem}>🔄 <strong>Reset Zoom:</strong> Double-click to zoom to full extents</li>
-                            <li style={styles.instructionItem}>📊 <strong>Real-time Data:</strong> Live price updates based on selected timeframe</li>
+                            <li style={styles.instructionItem}>📊 <strong>Crosshair:</strong> Hover over the chart to see price and time details</li>
+                            <li style={styles.instructionItem}>📈 <strong>Real-time Data:</strong> Live price updates with smooth animations</li>
                             <li style={styles.instructionItem}>💹 <strong>Asset Switching:</strong> Click any asset button to analyze different instruments</li>
-                            <li style={styles.instructionItem}>📈 <strong>Chart Types:</strong> Switch between candlestick and line views</li>
+                            <li style={styles.instructionItem}>🕯️ <strong>Chart Types:</strong> Switch between professional candlestick and line views</li>
                             <li style={styles.instructionItem}>⏰ <strong>Timeframes:</strong> Select from 1M to 1W intervals for different perspectives</li>
-                            <li style={styles.instructionItem}>🆓 <strong>SciChart.js React:</strong> Community Edition loaded from CDN (100% Free)</li>
-                            <li style={styles.instructionItem}>🛡️ <strong>Fallback Support:</strong> Automatic HTML5 Canvas fallback if CDN fails</li>
-                            <li style={styles.instructionItem}>⚡ <strong>Performance:</strong> WebAssembly-powered rendering for smooth interactions</li>
-                        </ul>
-                    </div>
-
-                    {/* Technical Information */}
-                    <div style={{
-                        ...styles.instructionsCard,
-                        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                        border: '1px solid #bfdbfe',
-                        marginTop: '20px'
-                    }}>
-                        <div style={styles.instructionsTitle}>ℹ️ Technical Information</div>
-                        <ul style={styles.instructionsList}>
-                            <li style={styles.instructionItem}>
-                                <strong>Library:</strong> SciChart.js React Community Edition (Free for commercial use)
-                            </li>
-                            <li style={styles.instructionItem}>
-                                <strong>CDN Sources:</strong> JSDelivr and unpkg with automatic fallback
-                            </li>
-                            <li style={styles.instructionItem}>
-                                <strong>Licensing:</strong> No license key required for community features
-                            </li>
-                            <li style={styles.instructionItem}>
-                                <strong>Performance:</strong> WebAssembly-based rendering for 60+ FPS
-                            </li>
-                            <li style={styles.instructionItem}>
-                                <strong>Fallback:</strong> HTML5 Canvas charts if SciChart.js fails to load
-                            </li>
-                            <li style={styles.instructionItem}>
-                                <strong>Data:</strong> Simulated real-time market data with realistic volatility
-                            </li>
-                            <li style={styles.instructionItem}>
-                                <strong>Status:</strong> {sciChartLoaded ? '✅ SciChart.js Loaded' : chartError ? '⚠️ Using Fallback' : '🔄 Loading...'}
-                            </li>
+                            <li style={styles.instructionItem}>⚡ <strong>Lightweight:</strong> Fast, responsive charts powered by TradingView</li>
                         </ul>
                     </div>
                 </div>
