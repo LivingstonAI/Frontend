@@ -474,6 +474,12 @@ function App() {
                 <BoardofGovernors />
               </ProtectedRoute>
             } />
+
+            <Route path='/charts' element={
+              <ProtectedRoute>
+                <Charts />
+              </ProtectedRoute>
+            } />
             
 
 
