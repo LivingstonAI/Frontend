@@ -5,6 +5,18 @@ import Cookies from 'js-cookie';
 
 // Component styles
 const styles = {
+  header: {
+    background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
+    color: 'white',
+    padding: '20px',
+    borderRadius: '15px',
+    marginBottom: '30px',
+    textAlign: 'center',
+    fontSize: '2rem',
+    fontWeight: '700',
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+    boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)'
+  },
   controlsContainer: {
     background: 'rgba(248, 250, 252, 0.9)',
     padding: '25px',
