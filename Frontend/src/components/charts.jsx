@@ -745,13 +745,11 @@ export default function Charts() {
                     
                     /* Full width layout styles */
                     .main-page-body {
-                        display: flex !important;
                         width: 100% !important;
                         max-width: none !important;
                     }
                     
                     .main-body-info {
-                        flex: 1 !important;
                         width: 100% !important;
                         max-width: none !important;
                         margin-left: 0 !important;
