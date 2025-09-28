@@ -3,29 +3,13 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
-// SciChart imports
-import {
-  SciChartSurface,
-  NumericAxis,
-  FastCandlestickRenderableSeries,
-  FastLineRenderableSeries,
-  XyDataSeries,
-  OhlcDataSeries,
-  EAxisAlignment,
-  EAutoRange,
-  NumberRange,
-  ZoomPanModifier,
-  ZoomExtentsModifier,
-  MouseWheelZoomModifier,
-  RubberBandXyZoomModifier,
-  EllipsePointMarker,
-  SciChartJsNavyTheme,
-  ESeriesType,
-  parseColorToUIntArgb
-} from "scichart";
-
 // Component styles
 const styles = {
+  container: {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    minHeight: '100vh',
+    fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+  },
   controlsContainer: {
     background: 'rgba(248, 250, 252, 0.9)',
     padding: '25px',
@@ -77,6 +61,14 @@ const styles = {
     paddingTop: '20px',
     borderTop: '1px solid #e2e8f0'
   },
+  timeframeContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginTop: '15px',
+    paddingTop: '15px',
+    borderTop: '1px solid #e2e8f0'
+  },
   chartTypeButton: {
     padding: '12px 24px',
     border: 'none',
@@ -97,6 +89,26 @@ const styles = {
     background: '#f1f5f9',
     color: '#475569',
     border: '2px solid #cbd5e1'
+  },
+  timeframeButton: {
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+    fontWeight: '500',
+    transition: 'all 0.3s ease'
+  },
+  timeframeButtonActive: {
+    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    color: 'white',
+    transform: 'scale(1.05)',
+    boxShadow: '0 4px 8px rgba(245, 158, 11, 0.3)'
+  },
+  timeframeButtonInactive: {
+    background: '#f8fafc',
+    color: '#64748b',
+    border: '1px solid #e2e8f0'
   },
   loadingContainer: {
     display: 'flex',
@@ -199,15 +211,29 @@ export default function Charts() {
     // Refs for chart containers
     const candlestickChartRef = useRef(null);
     const lineChartRef = useRef(null);
+    const sciChartLoadedRef = useRef(false);
     
     // State management
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
+    const [timeframe, setTimeframe] = useState('1H');
     const [sciChartSurface, setSciChartSurface] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [sciChartLoaded, setSciChartLoaded] = useState(false);
     const [currentPrice, setCurrentPrice] = useState(0);
     const [priceChange, setPriceChange] = useState(0);
     const [realTimeData, setRealTimeData] = useState([]);
+
+    // Timeframe configurations
+    const timeframes = {
+        '1M': { label: '1 Minute', minutes: 1, dataPoints: 100 },
+        '5M': { label: '5 Minutes', minutes: 5, dataPoints: 100 },
+        '15M': { label: '15 Minutes', minutes: 15, dataPoints: 100 },
+        '1H': { label: '1 Hour', minutes: 60, dataPoints: 100 },
+        '4H': { label: '4 Hours', minutes: 240, dataPoints: 100 },
+        '1D': { label: '1 Day', minutes: 1440, dataPoints: 100 },
+        '1W': { label: '1 Week', minutes: 10080, dataPoints: 52 }
+    };
 
     // Asset classes configuration with more realistic base prices
     const assetClasses = {
@@ -237,6 +263,32 @@ export default function Charts() {
         ]
     };
 
+    // Load SciChart from CDN
+    useEffect(() => {
+        const loadSciChart = async () => {
+            if (sciChartLoadedRef.current) return;
+
+            try {
+                // Load SciChart from CDN
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/scichart@4.0.873/index.min.js';
+                script.onload = () => {
+                    console.log('SciChart loaded from CDN');
+                    setSciChartLoaded(true);
+                    sciChartLoadedRef.current = true;
+                };
+                script.onerror = () => {
+                    console.error('Failed to load SciChart from CDN');
+                };
+                document.head.appendChild(script);
+            } catch (error) {
+                console.error('Error loading SciChart:', error);
+            }
+        };
+
+        loadSciChart();
+    }, []);
+
     // Get current asset info
     const getCurrentAssetInfo = () => {
         for (const category of Object.values(assetClasses)) {
@@ -246,19 +298,24 @@ export default function Charts() {
         return { symbol: selectedAsset, name: selectedAsset, basePrice: 100 };
     };
 
-    // Generate realistic market data with trends
-    const generateMarketData = (basePrice, volatility = 0.02) => {
+    // Generate realistic market data with trends based on timeframe
+    const generateMarketData = (basePrice, timeframeKey, volatility = 0.02) => {
         const data = [];
+        const timeframeConfig = timeframes[timeframeKey];
+        const intervalMs = timeframeConfig.minutes * 60 * 1000;
+        const dataPoints = timeframeConfig.dataPoints;
+        
         let currentBasePrice = basePrice;
         const now = new Date();
         
-        // Generate historical data (100 data points)
-        for (let i = 0; i < 100; i++) {
-            const date = new Date(now.getTime() - (100 - i) * 24 * 60 * 60 * 1000);
+        // Generate historical data
+        for (let i = 0; i < dataPoints; i++) {
+            const date = new Date(now.getTime() - (dataPoints - i) * intervalMs);
             
-            // Add some trend and volatility
+            // Add some trend and volatility based on timeframe
             const trendFactor = Math.sin(i / 10) * 0.01; // Cyclical trend
-            const randomFactor = (Math.random() - 0.5) * volatility;
+            const timeframeVolatility = volatility * (timeframeConfig.minutes / 60); // More volatility for longer timeframes
+            const randomFactor = (Math.random() - 0.5) * timeframeVolatility;
             
             currentBasePrice *= (1 + trendFactor + randomFactor);
             
@@ -282,6 +339,8 @@ export default function Charts() {
 
     // Real-time data simulation
     useEffect(() => {
+        const updateInterval = timeframes[timeframe].minutes * 60 * 1000 / 30; // Update 30 times per timeframe period
+        
         const interval = setInterval(() => {
             const assetInfo = getCurrentAssetInfo();
             const lastPrice = realTimeData.length > 0 ? 
@@ -295,7 +354,7 @@ export default function Charts() {
             setCurrentPrice(newPrice);
             setPriceChange(changePercent);
             
-            // Add new data point every 5 seconds
+            // Add new data point
             const newDataPoint = {
                 date: Date.now(),
                 open: lastPrice,
@@ -311,13 +370,18 @@ export default function Charts() {
                 return updated.slice(-200);
             });
             
-        }, 2000); // Update every 2 seconds
+        }, Math.max(1000, updateInterval)); // Minimum 1 second updates
         
         return () => clearInterval(interval);
-    }, [selectedAsset, realTimeData]);
+    }, [selectedAsset, timeframe, realTimeData]);
 
-    // Initialize SciChart with better error handling
+    // Initialize SciChart with CDN loaded version
     const initSciChart = async () => {
+        if (!sciChartLoaded || !window.SciChart) {
+            console.log('SciChart not yet loaded from CDN');
+            return;
+        }
+
         setIsLoading(true);
         
         try {
@@ -326,7 +390,26 @@ export default function Charts() {
                 
             if (!chartContainer) return;
 
-            // Create the SciChartSurface with error handling
+            // Use the CDN loaded SciChart
+            const {
+                SciChartSurface,
+                NumericAxis,
+                FastCandlestickRenderableSeries,
+                FastLineRenderableSeries,
+                XyDataSeries,
+                OhlcDataSeries,
+                EAxisAlignment,
+                EAutoRange,
+                ZoomPanModifier,
+                ZoomExtentsModifier,
+                MouseWheelZoomModifier,
+                RubberBandXyZoomModifier,
+                EllipsePointMarker,
+                SciChartJsNavyTheme,
+                parseColorToUIntArgb
+            } = window.SciChart;
+
+            // Create the SciChartSurface
             const { sciChartSurface, wasmContext } = await SciChartSurface.create(chartContainer, {
                 theme: new SciChartJsNavyTheme(),
                 disableAspect: false
@@ -336,7 +419,7 @@ export default function Charts() {
             const xAxis = new NumericAxis(wasmContext, {
                 axisAlignment: EAxisAlignment.Bottom,
                 autoRange: EAutoRange.Always,
-                axisTitle: "Time",
+                axisTitle: `Time (${timeframes[timeframe].label})`,
                 labelStyle: { color: "#64748b", fontSize: 12 }
             });
 
@@ -352,7 +435,7 @@ export default function Charts() {
 
             // Get asset info and generate data
             const assetInfo = getCurrentAssetInfo();
-            const marketData = generateMarketData(assetInfo.basePrice);
+            const marketData = generateMarketData(assetInfo.basePrice, timeframe);
             
             // Combine historical and real-time data
             const combinedData = [...marketData, ...realTimeData];
@@ -425,15 +508,14 @@ export default function Charts() {
             
         } catch (error) {
             console.error("Error initializing SciChart:", error);
-            // Fallback to a simple message
+            // Fallback message
             const chartContainer = chartType === 'candlestick' ? 
                 candlestickChartRef.current : lineChartRef.current;
             if (chartContainer) {
                 chartContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 1.2rem;">
-                        📈 Chart loading failed. Please check SciChart installation.
-                        <br><br>
-                        Run: npm install scichart
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 1.2rem; text-align: center;">
+                        📈 Chart loading failed. SciChart CDN loading in progress...<br><br>
+                        Please wait a moment and try switching chart types.
                     </div>
                 `;
             }
@@ -447,16 +529,19 @@ export default function Charts() {
         if (sciChartSurface) {
             sciChartSurface.delete();
         }
-        // Reset real-time data when switching assets
+        // Reset real-time data when switching assets or timeframes
         setRealTimeData([]);
-        initSciChart();
+        
+        if (sciChartLoaded) {
+            initSciChart();
+        }
         
         return () => {
             if (sciChartSurface) {
                 sciChartSurface.delete();
             }
         };
-    }, [selectedAsset, chartType]);
+    }, [selectedAsset, chartType, timeframe, sciChartLoaded]);
 
     return (
         <div style={styles.container}>
@@ -485,6 +570,15 @@ export default function Charts() {
                     <div style={styles.header}>
                         ⚡ SnowAI Trading Charts
                     </div>
+                    
+                    {!sciChartLoaded && (
+                        <div style={styles.loadingContainer}>
+                            <div style={styles.loadingSpinner}></div>
+                            <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
+                                Loading SciChart from CDN...
+                            </span>
+                        </div>
+                    )}
                     
                     {/* Controls */}
                     <div style={styles.controlsContainer}>
@@ -538,20 +632,38 @@ export default function Charts() {
                                 📈 Line Chart
                             </button>
                         </div>
+
+                        {/* Timeframe Selector */}
+                        <div style={styles.timeframeContainer}>
+                            <span style={styles.categoryLabel}>⏰ Timeframe:</span>
+                            {Object.entries(timeframes).map(([key, config]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setTimeframe(key)}
+                                    style={{
+                                        ...styles.timeframeButton,
+                                        ...(timeframe === key ? 
+                                            styles.timeframeButtonActive : styles.timeframeButtonInactive)
+                                    }}
+                                >
+                                    {key}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Loading indicator */}
-                    {isLoading && (
+                    {isLoading && sciChartLoaded && (
                         <div style={styles.loadingContainer}>
                             <div style={styles.loadingSpinner}></div>
                             <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
-                                Loading {getCurrentAssetInfo().name} chart...
+                                Loading {getCurrentAssetInfo().name} chart ({timeframes[timeframe].label})...
                             </span>
                         </div>
                     )}
 
                     {/* Price Display */}
-                    {!isLoading && (
+                    {!isLoading && sciChartLoaded && (
                         <div style={styles.priceDisplay}>
                             <div>
                                 <div style={styles.currentPrice}>
@@ -561,7 +673,7 @@ export default function Charts() {
                                     })}
                                 </div>
                                 <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                                    {getCurrentAssetInfo().name}
+                                    {getCurrentAssetInfo().name} • {timeframes[timeframe].label}
                                 </div>
                             </div>
                             <div style={styles.realTimeIndicator}>
@@ -578,10 +690,10 @@ export default function Charts() {
                     )}
 
                     {/* Chart Container */}
-                    {!isLoading && (
+                    {!isLoading && sciChartLoaded && (
                         <div style={styles.chartContainer}>
                             <div style={styles.chartTitle}>
-                                {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart
+                                {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].label}
                             </div>
                             
                             <div style={{ position: 'relative', width: '100%', height: '500px' }}>
@@ -609,9 +721,11 @@ export default function Charts() {
                             <li style={styles.instructionItem}>🔍 <strong>Zoom:</strong> Mouse wheel or drag to select area for rubber band zoom</li>
                             <li style={styles.instructionItem}>👆 <strong>Pan:</strong> Click and drag to move around the chart</li>
                             <li style={styles.instructionItem}>🔄 <strong>Reset Zoom:</strong> Double-click to zoom to full extents</li>
-                            <li style={styles.instructionItem}>📊 <strong>Real-time Data:</strong> Live price updates every 2 seconds</li>
+                            <li style={styles.instructionItem}>📊 <strong>Real-time Data:</strong> Live price updates based on selected timeframe</li>
                             <li style={styles.instructionItem}>💹 <strong>Asset Switching:</strong> Click any asset button to analyze different instruments</li>
                             <li style={styles.instructionItem}>📈 <strong>Chart Types:</strong> Switch between candlestick and line views</li>
+                            <li style={styles.instructionItem}>⏰ <strong>Timeframes:</strong> Select from 1M to 1W intervals for different perspectives</li>
+                            <li style={styles.instructionItem}>🌐 <strong>CDN Integration:</strong> SciChart loaded directly from JSDelivr CDN</li>
                         </ul>
                     </div>
                 </div>
