@@ -139,7 +139,7 @@ const styles = {
   chartContainer: {
     background: 'white',
     borderRadius: '15px',
-    padding: '20px',
+    padding: '15px',
     boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
     border: '1px solid rgba(226, 232, 240, 0.8)'
   },
@@ -240,7 +240,7 @@ export default function Charts() {
     // State management
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
-    const [timeframe, setTimeframe] = useState('1H');
+    const [timeframe, setTimeframe] = useState('1D');
     const [isLoading, setIsLoading] = useState(false);
     const [tvLoaded, setTvLoaded] = useState(false);
     const [currentPrice, setCurrentPrice] = useState(0);
@@ -291,8 +291,8 @@ export default function Charts() {
             label: '1 Day', 
             interval: '1d', 
             binanceInterval: '1d',
-            yfinancePeriod: '2y',
-            description: '2 years'
+            yfinancePeriod: '6mo',
+            description: '6 months'
         },
         '1W': { 
             label: '1 Week', 
@@ -558,7 +558,7 @@ export default function Charts() {
             // Create chart
             const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
                 width: chartContainerRef.current.clientWidth,
-                height: 600,
+                height: 700,
                 layout: {
                     background: { type: 'solid', color: 'white' },
                     textColor: '#333',
@@ -573,14 +573,17 @@ export default function Charts() {
                 rightPriceScale: {
                     borderColor: '#cccccc',
                     scaleMargins: {
-                        top: 0.1,
-                        bottom: 0.1,
+                        top: 0.05,
+                        bottom: 0.05,
                     },
                 },
                 timeScale: {
                     borderColor: '#cccccc',
                     timeVisible: true,
                     secondsVisible: false,
+                    rightOffset: 5,
+                    barSpacing: 8,
+                    minBarSpacing: 0.5,
                 },
                 handleScroll: {
                     mouseWheel: true,
@@ -640,9 +643,10 @@ export default function Charts() {
 
             window.addEventListener('resize', handleResize);
             
-            // Auto-fit content on load
+            // Auto-fit content and scroll to show most recent data
             setTimeout(() => {
                 chart.timeScale().fitContent();
+                chart.timeScale().scrollToRealTime();
             }, 100);
 
             // Store chart reference
@@ -979,7 +983,7 @@ export default function Charts() {
                         ref={chartContainerRef}
                         style={{ 
                             width: '100%', 
-                            height: '600px', 
+                            height: '700px', 
                             borderRadius: '10px',
                             overflow: 'hidden'
                         }}
@@ -1006,5 +1010,6 @@ export default function Charts() {
         </div>
         </div>
         </div>
+
     );
 }
