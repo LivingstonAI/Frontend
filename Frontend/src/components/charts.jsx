@@ -139,9 +139,10 @@ const styles = {
   chartContainer: {
     background: 'white',
     borderRadius: '15px',
-    padding: '15px',
+    padding: '20px 20px 20px 20px',
     boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
-    border: '1px solid rgba(226, 232, 240, 0.8)'
+    border: '1px solid rgba(226, 232, 240, 0.8)',
+    marginBottom: '25px'
   },
   chartTitle: {
     fontSize: '1.5rem',
@@ -231,7 +232,7 @@ const styles = {
 
 export default function Charts() {
     // IMPORTANT: Replace this with your actual Railway backend URL
-    const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app/api/snowai-market-ohlc/';
+    const BACKEND_API_URL = 'https://your-railway-app.up.railway.app/api/snowai-market-ohlc/';
     
     // Refs for chart containers
     const chartContainerRef = useRef(null);
@@ -240,7 +241,7 @@ export default function Charts() {
     // State management
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
-    const [timeframe, setTimeframe] = useState('1D');
+    const [timeframe, setTimeframe] = useState('1H');
     const [isLoading, setIsLoading] = useState(false);
     const [tvLoaded, setTvLoaded] = useState(false);
     const [currentPrice, setCurrentPrice] = useState(0);
@@ -291,8 +292,8 @@ export default function Charts() {
             label: '1 Day', 
             interval: '1d', 
             binanceInterval: '1d',
-            yfinancePeriod: '6mo',
-            description: '6 months'
+            yfinancePeriod: '2y',
+            description: '2 years'
         },
         '1W': { 
             label: '1 Week', 
@@ -576,14 +577,15 @@ export default function Charts() {
                         top: 0.05,
                         bottom: 0.05,
                     },
+                    autoScale: true,
                 },
                 timeScale: {
                     borderColor: '#cccccc',
                     timeVisible: true,
                     secondsVisible: false,
                     rightOffset: 5,
-                    barSpacing: 8,
-                    minBarSpacing: 0.5,
+                    barSpacing: 10,
+                    minBarSpacing: 3,
                 },
                 handleScroll: {
                     mouseWheel: true,
@@ -643,10 +645,15 @@ export default function Charts() {
 
             window.addEventListener('resize', handleResize);
             
-            // Auto-fit content and scroll to show most recent data
+            // Auto-fit content on load with better visibility
             setTimeout(() => {
                 chart.timeScale().fitContent();
-                chart.timeScale().scrollToRealTime();
+                // Set visible range to show most recent data with good spacing
+                const visibleLogicalRange = {
+                    from: Math.max(0, marketData.length - 100),
+                    to: marketData.length - 1
+                };
+                chart.timeScale().setVisibleLogicalRange(visibleLogicalRange);
             }, 100);
 
             // Store chart reference
@@ -820,6 +827,10 @@ export default function Charts() {
                             font-size: 1.2rem !important;
                             margin-bottom: 10px !important;
                         }
+                        
+                        div[ref] {
+                            height: 500px !important;
+                        }
                     }
                 `}
             </style>
@@ -985,7 +996,8 @@ export default function Charts() {
                             width: '100%', 
                             height: '700px', 
                             borderRadius: '10px',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            position: 'relative'
                         }}
                     />
                 </div>
@@ -1005,11 +1017,10 @@ export default function Charts() {
                     <li style={styles.instructionItem}><strong>Auto-fit:</strong> Charts automatically scale to show all data</li>
                     <li style={styles.instructionItem}><strong>Performance:</strong> Lightweight charts with smooth 60fps rendering</li>
                 </ul>
-                
+               
             </div>
         </div>
         </div>
         </div>
-
     );
 }
