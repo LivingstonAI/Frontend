@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 
 // Component styles
 const styles = {
@@ -231,6 +230,9 @@ const styles = {
 };
 
 export default function Charts() {
+    // IMPORTANT: Replace this with your actual Railway backend URL
+    const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app/api/snowai-market-ohlc/';
+    
     // Refs for chart containers
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
@@ -248,89 +250,89 @@ export default function Charts() {
     const [error, setError] = useState('');
     const [dataStats, setDataStats] = useState(null);
 
-    // Enhanced timeframe configurations with longer lookback periods
+    // Enhanced timeframe configurations
     const timeframes = {
         '1M': { 
             label: '1 Minute', 
             interval: '1m', 
-            limit: 1440, // 24 hours of 1-minute data
             binanceInterval: '1m',
-            description: '24 hours'
+            yfinancePeriod: '1d',
+            description: '1 day'
         },
         '5M': { 
             label: '5 Minutes', 
             interval: '5m', 
-            limit: 2016, // 7 days of 5-minute data
             binanceInterval: '5m',
-            description: '7 days'
+            yfinancePeriod: '5d',
+            description: '5 days'
         },
         '15M': { 
             label: '15 Minutes', 
             interval: '15m', 
-            limit: 1344, // 2 weeks of 15-minute data
             binanceInterval: '15m',
-            description: '2 weeks'
+            yfinancePeriod: '1mo',
+            description: '1 month'
         },
         '1H': { 
             label: '1 Hour', 
             interval: '1h', 
-            limit: 2000, // ~83 days of hourly data
             binanceInterval: '1h',
-            description: '83 days'
+            yfinancePeriod: '3mo',
+            description: '3 months'
         },
         '4H': { 
             label: '4 Hours', 
             interval: '4h', 
-            limit: 1500, // ~250 days of 4-hour data
             binanceInterval: '4h',
-            description: '250 days'
+            yfinancePeriod: '6mo',
+            description: '6 months'
         },
         '1D': { 
             label: '1 Day', 
             interval: '1d', 
-            limit: 1000, // ~2.7 years of daily data
             binanceInterval: '1d',
-            description: '2.7 years'
+            yfinancePeriod: '2y',
+            description: '2 years'
         },
         '1W': { 
             label: '1 Week', 
             interval: '1w', 
-            limit: 520, // 10 years of weekly data
             binanceInterval: '1w',
+            yfinancePeriod: '10y',
             description: '10 years'
         }
     };
 
-    // Expanded asset classes with the requested additions
+    // Asset classes with yfinance symbols
     const assetClasses = {
         'Crypto': [
-            { symbol: 'BTCUSD', name: 'Bitcoin', binanceSymbol: 'BTCUSDT', apiSymbol: 'BTCUSD' },
-            { symbol: 'ETHUSD', name: 'Ethereum', binanceSymbol: 'ETHUSDT', apiSymbol: 'ETHUSD' },
-            { symbol: 'ADAUSD', name: 'Cardano', binanceSymbol: 'ADAUSDT', apiSymbol: 'ADAUSD' },
-            { symbol: 'SOLUSD', name: 'Solana', binanceSymbol: 'SOLUSDT', apiSymbol: 'SOLUSD' }
+            { symbol: 'BTCUSD', name: 'Bitcoin', binanceSymbol: 'BTCUSDT', yfinanceSymbol: 'BTC-USD' },
+            { symbol: 'ETHUSD', name: 'Ethereum', binanceSymbol: 'ETHUSDT', yfinanceSymbol: 'ETH-USD' },
+            { symbol: 'ADAUSD', name: 'Cardano', binanceSymbol: 'ADAUSDT', yfinanceSymbol: 'ADA-USD' },
+            { symbol: 'SOLUSD', name: 'Solana', binanceSymbol: 'SOLUSDT', yfinanceSymbol: 'SOL-USD' }
         ],
         'Forex': [
-            { symbol: 'EURUSD', name: 'Euro/USD', binanceSymbol: null, apiSymbol: 'EUR_USD' },
-            { symbol: 'GBPUSD', name: 'GBP/USD', binanceSymbol: null, apiSymbol: 'GBP_USD' },
-            { symbol: 'USDJPY', name: 'USD/JPY', binanceSymbol: null, apiSymbol: 'USD_JPY' },
-            { symbol: 'AUDUSD', name: 'AUD/USD', binanceSymbol: null, apiSymbol: 'AUD_USD' }
+            { symbol: 'EURUSD', name: 'Euro/USD', binanceSymbol: null, yfinanceSymbol: 'EURUSD=X' },
+            { symbol: 'GBPUSD', name: 'GBP/USD', binanceSymbol: null, yfinanceSymbol: 'GBPUSD=X' },
+            { symbol: 'USDJPY', name: 'USD/JPY', binanceSymbol: null, yfinanceSymbol: 'JPY=X' },
+            { symbol: 'AUDUSD', name: 'AUD/USD', binanceSymbol: null, yfinanceSymbol: 'AUDUSD=X' }
         ],
         'Stocks': [
-            { symbol: 'AAPL', name: 'Apple Inc.', binanceSymbol: null, apiSymbol: 'AAPL' },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.', binanceSymbol: null, apiSymbol: 'GOOGL' },
-            { symbol: 'TSLA', name: 'Tesla Inc.', binanceSymbol: null, apiSymbol: 'TSLA' },
-            { symbol: 'MSFT', name: 'Microsoft', binanceSymbol: null, apiSymbol: 'MSFT' }
+            { symbol: 'AAPL', name: 'Apple Inc.', binanceSymbol: null, yfinanceSymbol: 'AAPL' },
+            { symbol: 'GOOGL', name: 'Alphabet Inc.', binanceSymbol: null, yfinanceSymbol: 'GOOGL' },
+            { symbol: 'TSLA', name: 'Tesla Inc.', binanceSymbol: null, yfinanceSymbol: 'TSLA' },
+            { symbol: 'MSFT', name: 'Microsoft', binanceSymbol: null, yfinanceSymbol: 'MSFT' }
         ],
         'Commodities': [
-            { symbol: 'XAUUSD', name: 'Gold', binanceSymbol: null, apiSymbol: 'XAU_USD' },
-            { symbol: 'XAGUSD', name: 'Silver', binanceSymbol: null, apiSymbol: 'XAG_USD' },
-            { symbol: 'USOIL', name: 'US Oil (WTI)', binanceSymbol: null, apiSymbol: 'USOIL' },
-            { symbol: 'UKOIL', name: 'UK Oil (Brent)', binanceSymbol: null, apiSymbol: 'UKOIL' }
+            { symbol: 'XAUUSD', name: 'Gold', binanceSymbol: null, yfinanceSymbol: 'GC=F' },
+            { symbol: 'XAGUSD', name: 'Silver', binanceSymbol: null, yfinanceSymbol: 'SI=F' },
+            { symbol: 'USOIL', name: 'US Oil (WTI)', binanceSymbol: null, yfinanceSymbol: 'CL=F' },
+            { symbol: 'UKOIL', name: 'UK Oil (Brent)', binanceSymbol: null, yfinanceSymbol: 'BZ=F' }
         ],
         'Bonds/Futures': [
-            { symbol: 'ZB1!', name: '30-Year T-Bond Future', binanceSymbol: null, apiSymbol: 'ZB1!' },
-            { symbol: 'US010Y', name: '10-Year Treasury Yield', binanceSymbol: null, apiSymbol: 'US010Y' },
-            { symbol: 'US05Y', name: '5-Year Treasury Yield', binanceSymbol: null, apiSymbol: 'US05Y' }
+            { symbol: 'ZB1!', name: '30-Year T-Bond Future', binanceSymbol: null, yfinanceSymbol: 'ZB=F' },
+            { symbol: 'US010Y', name: '10-Year Treasury Yield', binanceSymbol: null, yfinanceSymbol: '^TNX' },
+            { symbol: 'US05Y', name: '5-Year Treasury Yield', binanceSymbol: null, yfinanceSymbol: '^FVX' }
         ]
     };
 
@@ -398,7 +400,7 @@ export default function Charts() {
             const asset = category.find(a => a.symbol === selectedAsset);
             if (asset) return asset;
         }
-        return { symbol: selectedAsset, name: selectedAsset, binanceSymbol: null, apiSymbol: selectedAsset };
+        return { symbol: selectedAsset, name: selectedAsset, binanceSymbol: null, yfinanceSymbol: selectedAsset };
     };
 
     // Fetch real market data from multiple sources
@@ -410,29 +412,34 @@ export default function Charts() {
             // Try Binance first for crypto assets
             if (assetInfo.binanceSymbol) {
                 try {
-                    return await fetchBinanceData(assetInfo.binanceSymbol, timeframeConfig);
+                    const data = await fetchBinanceData(assetInfo.binanceSymbol, timeframeConfig);
+                    return data;
                 } catch (binanceError) {
-                    console.log(`Binance failed for ${assetInfo.symbol}, using simulation:`, binanceError.message);
-                    setDataSource(`Enhanced Simulation (Binance unavailable)`);
-                    return generateEnhancedSimulatedData(assetInfo, timeframeConfig);
+                    console.log(`Binance failed for ${assetInfo.symbol}, trying yfinance:`, binanceError.message);
+                    // Fallback to yfinance for crypto if Binance fails
+                    if (assetInfo.yfinanceSymbol) {
+                        return await fetchYFinanceData(assetInfo.yfinanceSymbol, timeframeConfig);
+                    }
                 }
             }
             
-            // Use enhanced simulation for all other assets
-            setDataSource(`Enhanced Simulation - ${timeframeConfig.description} lookback`);
-            return generateEnhancedSimulatedData(assetInfo, timeframeConfig);
+            // Use yfinance for all other assets
+            if (assetInfo.yfinanceSymbol) {
+                return await fetchYFinanceData(assetInfo.yfinanceSymbol, timeframeConfig);
+            }
+            
+            throw new Error('No data source available for this asset');
             
         } catch (error) {
-            console.log('Fallback to simulation:', error.message);
-            setDataSource(`Enhanced Simulation (API unavailable)`);
-            return generateEnhancedSimulatedData(assetInfo, timeframeConfig);
+            console.error('Error fetching market data:', error);
+            throw error;
         }
     };
 
     // Fetch data from Binance API
     const fetchBinanceData = async (symbol, timeframeConfig) => {
         const response = await fetch(
-            `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${timeframeConfig.binanceInterval}&limit=${timeframeConfig.limit}`
+            `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${timeframeConfig.binanceInterval}&limit=1000`
         );
         
         if (!response.ok) {
@@ -456,157 +463,42 @@ export default function Charts() {
         }).sort((a, b) => a.time - b.time);
     };
 
-    // Fetch data from Alpha Vantage (using fallback simulation)
-    const fetchAlphaVantageData = async (symbol, timeframeConfig) => {
-        console.log(`Alpha Vantage API key required for ${symbol}, using enhanced simulation`);
-        return generateEnhancedSimulatedData(getCurrentAssetInfo(), timeframeConfig);
-    };
-
-    // Fetch data from Yahoo Finance (using fallback simulation)
-    const fetchYahooFinanceData = async (symbol, timeframeConfig) => {
-        console.log(`Yahoo Finance CORS proxy required for ${symbol}, using enhanced simulation`);
-        return generateEnhancedSimulatedData(getCurrentAssetInfo(), timeframeConfig);
-    };
-
-    // Generate enhanced simulated data with realistic patterns
-    const generateEnhancedSimulatedData = (assetInfo, timeframeConfig) => {
-        const data = [];
-        const intervalMs = getIntervalMilliseconds(timeframeConfig.interval);
-        const dataPoints = timeframeConfig.limit;
+    // Fetch data from Django backend using yfinance
+    const fetchYFinanceData = async (symbol, timeframeConfig) => {
+        const response = await fetch(BACKEND_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                interval: timeframeConfig.interval,
+                period: timeframeConfig.yfinancePeriod
+            })
+        });
         
-        // Base prices for different assets
-        const basePrices = {
-            'BTCUSD': 43000,
-            'ETHUSD': 2600,
-            'ADAUSD': 0.48,
-            'SOLUSD': 98,
-            'EURUSD': 1.0856,
-            'GBPUSD': 1.2741,
-            'USDJPY': 148.75,
-            'AUDUSD': 0.6689,
-            'AAPL': 189.43,
-            'GOOGL': 142.56,
-            'TSLA': 248.50,
-            'MSFT': 384.30,
-            'XAUUSD': 2045.50,
-            'XAGUSD': 24.12,
-            'USOIL': 76.85,
-            'UKOIL': 81.42,
-            'ZB1!': 118.25,
-            'US010Y': 4.35,
-            'US05Y': 4.15
-        };
-        
-        let currentPrice = basePrices[assetInfo.symbol] || 100;
-        const now = new Date();
-        
-        // Create realistic market patterns
-        for (let i = 0; i < dataPoints; i++) {
-            const date = new Date(now.getTime() - (dataPoints - i) * intervalMs);
-            
-            // Add market hour effects (more volatility during trading hours)
-            const hour = date.getHours();
-            const isMarketHours = hour >= 9 && hour <= 16;
-            const volatilityMultiplier = isMarketHours ? 1.5 : 0.7;
-            
-            // Add weekly patterns (less volatility on weekends for traditional markets)
-            const dayOfWeek = date.getDay();
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-            const weekendMultiplier = (assetInfo.symbol.includes('USD') && !assetInfo.symbol.startsWith('BTC') && !assetInfo.symbol.startsWith('ETH')) && isWeekend ? 0.3 : 1.0;
-            
-            // Create trends and cycles
-            const longTermTrend = Math.sin(i / 100) * 0.001;
-            const mediumTermTrend = Math.cos(i / 50) * 0.002;
-            const shortTermNoise = (Math.random() - 0.5) * 0.005;
-            
-            // Asset-specific volatility
-            const baseVolatility = getAssetVolatility(assetInfo.symbol);
-            const timeframeVolatility = baseVolatility * getTimeframeMultiplier(timeframeConfig.interval);
-            
-            const totalChange = (longTermTrend + mediumTermTrend + shortTermNoise) * 
-                               timeframeVolatility * volatilityMultiplier * weekendMultiplier;
-            
-            currentPrice *= (1 + totalChange);
-            
-            // Generate OHLC data
-            const open = currentPrice * (1 + (Math.random() - 0.5) * 0.002);
-            const close = open * (1 + (Math.random() - 0.5) * 0.004);
-            const high = Math.max(open, close) * (1 + Math.random() * 0.003);
-            const low = Math.min(open, close) * (1 - Math.random() * 0.003);
-            
-            // Ensure positive prices
-            const safeOpen = Math.max(0.0001, open);
-            const safeHigh = Math.max(0.0001, high);
-            const safeLow = Math.max(0.0001, low);
-            const safeClose = Math.max(0.0001, close);
-            
-            data.push({
-                time: Math.floor(date.getTime() / 1000),
-                open: safeOpen,
-                high: safeHigh,
-                low: safeLow,
-                close: safeClose,
-                value: safeClose,
-                volume: Math.random() * 1000000
-            });
-            
-            currentPrice = safeClose;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Backend API error: ${response.status}`);
         }
         
-        setDataSource(`Simulated Data - ${data.length} candles over ${timeframeConfig.description}`);
-        return data.sort((a, b) => a.time - b.time);
-    };
-
-    // Helper functions
-    const getIntervalMilliseconds = (interval) => {
-        const multipliers = {
-            '1m': 60 * 1000,
-            '5m': 5 * 60 * 1000,
-            '15m': 15 * 60 * 1000,
-            '1h': 60 * 60 * 1000,
-            '4h': 4 * 60 * 60 * 1000,
-            '1d': 24 * 60 * 60 * 1000,
-            '1w': 7 * 24 * 60 * 60 * 1000
-        };
-        return multipliers[interval] || 60 * 60 * 1000;
-    };
-
-    const getAssetVolatility = (symbol) => {
-        const volatilities = {
-            'BTCUSD': 0.03,
-            'ETHUSD': 0.035,
-            'ADAUSD': 0.04,
-            'SOLUSD': 0.045,
-            'EURUSD': 0.005,
-            'GBPUSD': 0.007,
-            'USDJPY': 0.006,
-            'AUDUSD': 0.008,
-            'AAPL': 0.015,
-            'GOOGL': 0.018,
-            'TSLA': 0.025,
-            'MSFT': 0.012,
-            'XAUUSD': 0.01,
-            'XAGUSD': 0.015,
-            'USOIL': 0.02,
-            'UKOIL': 0.018,
-            'ZB1!': 0.008,
-            'US010Y': 0.02,
-            'US05Y': 0.018
-        };
-        return volatilities[symbol] || 0.015;
-    };
-
-    const getTimeframeMultiplier = (interval) => {
-        const multipliers = {
-            '1m': 0.3,
-            '5m': 0.5,
-            '15m': 0.7,
-            '1h': 1.0,
-            '4h': 1.5,
-            '1d': 2.0,
-            '1w': 3.0
-        };
-        return multipliers[interval] || 1.0;
+        const result = await response.json();
+        
+        if (!result.success || !result.data || result.data.length === 0) {
+            throw new Error(result.error || 'No data returned from API');
+        }
+        
+        setDataSource(`YFinance API - ${result.data_points} candles over ${timeframeConfig.description}`);
+        
+        return result.data.map(candle => ({
+            time: candle.time,
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            value: candle.close,
+            volume: candle.volume || 0
+        })).sort((a, b) => a.time - b.time);
     };
 
     // Fetch and update market data when asset or timeframe changes
@@ -753,7 +645,7 @@ export default function Charts() {
                 chart.timeScale().fitContent();
             }, 100);
 
-            // Store chart reference with improved error handling
+            // Store chart reference
             chartRef.current = {
                 chart,
                 series,
@@ -764,7 +656,6 @@ export default function Charts() {
                             chart.remove();
                         }
                     } catch (e) {
-                        // Silently handle disposal errors - they're expected when switching quickly
                         console.debug('Chart disposal (normal):', e.message);
                     }
                 }
@@ -843,6 +734,20 @@ export default function Charts() {
         
         return () => clearInterval(interval);
     }, [marketData, timeframe, chartType]);
+
+    // Helper functions
+    const getIntervalMilliseconds = (interval) => {
+        const multipliers = {
+            '1m': 60 * 1000,
+            '5m': 5 * 60 * 1000,
+            '15m': 15 * 60 * 1000,
+            '1h': 60 * 60 * 1000,
+            '4h': 4 * 60 * 60 * 1000,
+            '1d': 24 * 60 * 60 * 1000,
+            '1w': 7 * 24 * 60 * 60 * 1000
+        };
+        return multipliers[interval] || 60 * 60 * 1000;
+    };
 
     return (
         <div style={styles.container}>
@@ -923,192 +828,183 @@ export default function Charts() {
                     <div style={styles.header} className="header-title">
                         ⚡ SnowAI Trading Charts - Real Market Data
                     </div>
-                    
-                    {error && (
-                        <div style={styles.errorMessage}>
-                            ⚠️ {error}
+            
+            {error && (
+                <div style={styles.errorMessage}>
+                    {error}
+                </div>
+            )}
+            
+            {!tvLoaded && (
+                <div style={styles.loadingContainer}>
+                    <div style={styles.loadingSpinner}></div>
+                    <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
+                        Loading TradingView Lightweight Charts...
+                    </span>
+                </div>
+            )}
+            
+            {/* Controls */}
+            <div style={styles.controlsContainer} className="controls-container">
+                {/* Asset Class Selector */}
+                {Object.entries(assetClasses).map(([category, assets]) => (
+                    <div key={category} style={styles.assetSection} className="asset-section">
+                        <div style={styles.categoryLabel} className="category-label">
+                            {category}
                         </div>
-                    )}
-                    
-                    {!tvLoaded && (
-                        <div style={styles.loadingContainer}>
-                            <div style={styles.loadingSpinner}></div>
-                            <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
-                                Loading TradingView Lightweight Charts...
-                            </span>
-                        </div>
-                    )}
-                    
-                    {/* Controls */}
-                    <div style={styles.controlsContainer} className="controls-container">
-                        {/* Asset Class Selector */}
-                        {Object.entries(assetClasses).map(([category, assets]) => (
-                            <div key={category} style={styles.assetSection} className="asset-section">
-                                <div style={styles.categoryLabel} className="category-label">
-                                    {category === 'Crypto' ? '₿' : 
-                                     category === 'Forex' ? '💱' : 
-                                     category === 'Stocks' ? '📊' : 
-                                     category === 'Commodities' ? '🥇' : '📈'} {category}
-                                </div>
-                                <div>
-                                    {assets.map(asset => (
-                                        <button
-                                            key={asset.symbol}
-                                            className="asset-button"
-                                            onClick={() => setSelectedAsset(asset.symbol)}
-                                            style={{
-                                                ...styles.assetButton,
-                                                ...(selectedAsset === asset.symbol ? 
-                                                    styles.assetButtonActive : styles.assetButtonInactive)
-                                            }}
-                                        >
-                                            {asset.symbol}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                        
-                        {/* Chart Type Selector */}
-                        <div style={styles.chartTypeContainer}>
-                            <span style={styles.categoryLabel} className="category-label">📈 Chart Type:</span>
-                            <button
-                                className="chart-type-button"
-                                onClick={() => setChartType('candlestick')}
-                                style={{
-                                    ...styles.chartTypeButton,
-                                    ...(chartType === 'candlestick' ? 
-                                        styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
-                                }}
-                            >
-                                🕯️ Candlestick
-                            </button>
-                            <button
-                                className="chart-type-button"
-                                onClick={() => setChartType('line')}
-                                style={{
-                                    ...styles.chartTypeButton,
-                                    ...(chartType === 'line' ? 
-                                        styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
-                                }}
-                            >
-                                📈 Line Chart
-                            </button>
-                        </div>
-
-                        {/* Timeframe Selector */}
-                        <div style={styles.timeframeContainer}>
-                            <span style={styles.categoryLabel} className="category-label">⏰ Timeframe:</span>
-                            {Object.entries(timeframes).map(([key, config]) => (
+                        <div>
+                            {assets.map(asset => (
                                 <button
-                                    key={key}
-                                    className="timeframe-button"
-                                    onClick={() => setTimeframe(key)}
+                                    key={asset.symbol}
+                                    className="asset-button"
+                                    onClick={() => setSelectedAsset(asset.symbol)}
                                     style={{
-                                        ...styles.timeframeButton,
-                                        ...(timeframe === key ? 
-                                            styles.timeframeButtonActive : styles.timeframeButtonInactive)
+                                        ...styles.assetButton,
+                                        ...(selectedAsset === asset.symbol ? 
+                                            styles.assetButtonActive : styles.assetButtonInactive)
                                     }}
-                                    title={`${config.description} of data (${config.limit} candles)`}
                                 >
-                                    {key}
+                                    {asset.symbol}
                                 </button>
                             ))}
                         </div>
-                        
-                        {/* Data Statistics */}
-                        {dataStats && (
-                            <div style={styles.dataStats}>
-                                📊 <strong>Data:</strong> {dataStats.candles} candles over {dataStats.period} 
-                                | <strong>Period:</strong> {dataStats.firstDate} to {dataStats.lastDate}
-                                | <strong>Range:</strong> ${dataStats.lowestPrice.toFixed(4)} - ${dataStats.highestPrice.toFixed(4)}
-                                | <strong>Source:</strong> {dataSource}
-                            </div>
-                        )}
                     </div>
+                ))}
+                
+                {/* Chart Type Selector */}
+                <div style={styles.chartTypeContainer}>
+                    <span style={styles.categoryLabel} className="category-label">Chart Type:</span>
+                    <button
+                        className="chart-type-button"
+                        onClick={() => setChartType('candlestick')}
+                        style={{
+                            ...styles.chartTypeButton,
+                            ...(chartType === 'candlestick' ? 
+                                styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
+                        }}
+                    >
+                        Candlestick
+                    </button>
+                    <button
+                        className="chart-type-button"
+                        onClick={() => setChartType('line')}
+                        style={{
+                            ...styles.chartTypeButton,
+                            ...(chartType === 'line' ? 
+                                styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
+                        }}
+                    >
+                        Line Chart
+                    </button>
+                </div>
 
-                    {/* Loading indicator */}
-                    {isLoading && tvLoaded && (
-                        <div style={styles.loadingContainer}>
-                            <div style={styles.loadingSpinner}></div>
-                            <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
-                                Fetching {getCurrentAssetInfo().name} data ({timeframes[timeframe].description} lookback)...
-                            </span>
+                {/* Timeframe Selector */}
+                <div style={styles.timeframeContainer}>
+                    <span style={styles.categoryLabel} className="category-label">Timeframe:</span>
+                    {Object.entries(timeframes).map(([key, config]) => (
+                        <button
+                            key={key}
+                            className="timeframe-button"
+                            onClick={() => setTimeframe(key)}
+                            style={{
+                                ...styles.timeframeButton,
+                                ...(timeframe === key ? 
+                                    styles.timeframeButtonActive : styles.timeframeButtonInactive)
+                            }}
+                            title={`${config.description} of data`}
+                        >
+                            {key}
+                        </button>
+                    ))}
+                </div>
+                
+                {/* Data Statistics */}
+                {dataStats && (
+                    <div style={styles.dataStats}>
+                        <strong>Data:</strong> {dataStats.candles} candles over {dataStats.period} 
+                        | <strong>Period:</strong> {dataStats.firstDate} to {dataStats.lastDate}
+                        | <strong>Range:</strong> ${dataStats.lowestPrice.toFixed(4)} - ${dataStats.highestPrice.toFixed(4)}
+                        | <strong>Source:</strong> {dataSource}
+                    </div>
+                )}
+            </div>
+
+            {/* Loading indicator */}
+            {isLoading && tvLoaded && (
+                <div style={styles.loadingContainer}>
+                    <div style={styles.loadingSpinner}></div>
+                    <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
+                        Fetching {getCurrentAssetInfo().name} data ({timeframes[timeframe].description} lookback)...
+                    </span>
+                </div>
+            )}
+
+            {/* Price Display */}
+            {!isLoading && tvLoaded && marketData.length > 0 && (
+                <div style={styles.priceDisplay}>
+                    <div>
+                        <div style={styles.currentPrice} className="current-price">
+                            ${currentPrice.toLocaleString(undefined, { 
+                                minimumFractionDigits: 2, 
+                                maximumFractionDigits: getCurrentAssetInfo().symbol.includes('JPY') ? 3 : 
+                                                      currentPrice < 1 ? 6 : 
+                                                      currentPrice < 10 ? 4 : 2
+                            })}
                         </div>
-                    )}
-
-                    {/* Price Display */}
-                    {!isLoading && tvLoaded && marketData.length > 0 && (
-                        <div style={styles.priceDisplay}>
-                            <div>
-                                <div style={styles.currentPrice} className="current-price">
-                                    ${currentPrice.toLocaleString(undefined, { 
-                                        minimumFractionDigits: 2, 
-                                        maximumFractionDigits: getCurrentAssetInfo().symbol.includes('JPY') ? 3 : 
-                                                              currentPrice < 1 ? 6 : 
-                                                              currentPrice < 10 ? 4 : 2
-                                    })}
-                                </div>
-                                <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                                    {getCurrentAssetInfo().name} • {timeframes[timeframe].label} • {marketData.length} candles
-                                </div>
-                            </div>
-                            <div style={styles.realTimeIndicator}>
-                                <div style={styles.liveIndicator}></div>
-                                <span style={{ color: '#10b981', fontWeight: '600', marginRight: '15px' }}>LIVE</span>
-                                <div style={{
-                                    ...styles.priceChange,
-                                    ...(priceChange >= 0 ? styles.priceChangePositive : styles.priceChangeNegative)
-                                }}>
-                                    {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
-                                </div>
-                            </div>
+                        <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                            {getCurrentAssetInfo().name} • {timeframes[timeframe].label} • {marketData.length} candles
                         </div>
-                    )}
-
-                    {/* Chart Container */}
-                    {!isLoading && tvLoaded && marketData.length > 0 && (
-                        <div style={styles.chartContainer} className="chart-container">
-                            <div style={styles.chartTitle} className="chart-title">
-                                {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].description}
-                            </div>
-                            
-                            <div 
-                                ref={chartContainerRef}
-                                style={{ 
-                                    width: '100%', 
-                                    height: '600px', 
-                                    borderRadius: '10px',
-                                    overflow: 'hidden'
-                                }}
-                            />
-                        </div>
-                    )}
-
-                    {/* Enhanced Chart Instructions */}
-                    <div style={styles.instructionsCard}>
-                        <div style={styles.instructionsTitle}>🎮 Advanced Chart Features & Controls</div>
-                        <ul style={styles.instructionsList}>
-                            <li style={styles.instructionItem}>📊 <strong>Extended Data:</strong> Up to 2,000 candles with multi-year lookback periods</li>
-                            <li style={styles.instructionItem}>🔄 <strong>Real Data Sources:</strong> Binance API for crypto, enhanced simulation for other assets</li>
-                            <li style={styles.instructionItem}>⚡ <strong>Live Updates:</strong> Real-time price movements every 5 seconds</li>
-                            <li style={styles.instructionItem}>🔍 <strong>Zoom & Pan:</strong> Mouse wheel to zoom, click and drag to navigate</li>
-                            <li style={styles.instructionItem}>📍 <strong>Crosshair:</strong> Hover for precise price and timestamp information</li>
-                            <li style={styles.instructionItem}>📈 <strong>Multiple Timeframes:</strong> 1M to 1W with appropriate data density</li>
-                            <li style={styles.instructionItem}>🏦 <strong>New Assets:</strong> Added Treasury bonds (ZB1!, US010Y, US05Y)</li>
-                            <li style={styles.instructionItem}>📱 <strong>Responsive:</strong> Optimized for desktop and mobile viewing</li>
-                            <li style={styles.instructionItem}>🎯 <strong>Auto-fit:</strong> Charts automatically scale to show all data</li>
-                            <li style={styles.instructionItem}>⚙️ <strong>Performance:</strong> Lightweight charts with smooth 60fps rendering</li>
-                        </ul>
-                        
-                        <div style={{ marginTop: '15px', padding: '10px', background: 'rgba(79, 70, 229, 0.05)', borderRadius: '8px' }}>
-                            <strong>💡 Pro Tip:</strong> Try different timeframes to see how the same asset behaves over various periods. 
-                            Crypto data comes from Binance API with real historical prices, while other assets use enhanced 
-                            simulation with realistic volatility patterns and market hour effects.
+                    </div>
+                    <div style={styles.realTimeIndicator}>
+                        <div style={styles.liveIndicator}></div>
+                        <span style={{ color: '#10b981', fontWeight: '600', marginRight: '15px' }}>LIVE</span>
+                        <div style={{
+                            ...styles.priceChange,
+                            ...(priceChange >= 0 ? styles.priceChangePositive : styles.priceChangeNegative)
+                        }}>
+                            {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Chart Container */}
+            {!isLoading && tvLoaded && marketData.length > 0 && (
+                <div style={styles.chartContainer} className="chart-container">
+                    <div style={styles.chartTitle} className="chart-title">
+                        {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].description}
+                    </div>
+                    
+                    <div 
+                        ref={chartContainerRef}
+                        style={{ 
+                            width: '100%', 
+                            height: '600px', 
+                            borderRadius: '10px',
+                            overflow: 'hidden'
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* Enhanced Chart Instructions */}
+            <div style={styles.instructionsCard}>
+                <div style={styles.instructionsTitle}>Advanced Chart Features & Controls</div>
+                <ul style={styles.instructionsList}>
+                    <li style={styles.instructionItem}><strong>Real Data Sources:</strong> Binance API for crypto, YFinance (via Django backend) for stocks, forex, commodities, and bonds</li>
+                    <li style={styles.instructionItem}><strong>Live Updates:</strong> Real-time price movements every 5 seconds</li>
+                    <li style={styles.instructionItem}><strong>Zoom & Pan:</strong> Mouse wheel to zoom, click and drag to navigate</li>
+                    <li style={styles.instructionItem}><strong>Crosshair:</strong> Hover for precise price and timestamp information</li>
+                    <li style={styles.instructionItem}><strong>Multiple Timeframes:</strong> 1M to 1W with appropriate data lookback periods</li>
+                    <li style={styles.instructionItem}><strong>Backend Integration:</strong> Custom Django API using yfinance for comprehensive market data</li>
+                    <li style={styles.instructionItem}><strong>Responsive:</strong> Optimized for desktop and mobile viewing</li>
+                    <li style={styles.instructionItem}><strong>Auto-fit:</strong> Charts automatically scale to show all data</li>
+                    <li style={styles.instructionItem}><strong>Performance:</strong> Lightweight charts with smooth 60fps rendering</li>
+                </ul>
+                
             </div>
+        </div>
+        </div>
         </div>
     );
 }
