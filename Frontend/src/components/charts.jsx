@@ -232,7 +232,7 @@ const styles = {
 
 export default function Charts() {
     // IMPORTANT: Replace this with your actual Railway backend URL
-    const BACKEND_API_URL = 'https://your-railway-app.up.railway.app/api/snowai-market-ohlc/';
+    const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app/api/snowai-market-ohlc/';
     
     // Refs for chart containers
     const chartContainerRef = useRef(null);
