@@ -328,6 +328,7 @@ const styles = {
     bottom: '120px',
     right: '30px',
     width: '450px',
+    maxWidth: 'calc(100vw - 40px)',
     maxHeight: '600px',
     background: 'white',
     borderRadius: '20px',
@@ -1278,6 +1279,28 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         transform: scale(1.1);
                         box-shadow: 0 12px 32px rgba(59, 130, 246, 0.6);
                     }
+                    
+                    /* Mobile responsive styles */
+                    @media (max-width: 768px) {
+                        .livingston-panel {
+                            width: calc(100vw - 20px) !important;
+                            right: 10px !important;
+                            left: 10px !important;
+                            bottom: 100px !important;
+                            max-height: 500px !important;
+                        }
+                        
+                        .livingston-toggle {
+                            right: 20px !important;
+                            bottom: 20px !important;
+                            width: 60px !important;
+                            height: 60px !important;
+                        }
+                        
+                        .livingston-messages {
+                            max-height: 300px !important;
+                        }
+                    }
                 `}
             </style>
             <div className="header">
@@ -1588,7 +1611,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
             
             {/* Livingston AI Chat Panel */}
             {livingstonOpen && (
-                <div style={styles.livingstonPanel}>
+                <div style={styles.livingstonPanel} className="livingston-panel">
                     <div style={styles.livingstonHeader}>
                         <div style={styles.livingstonHeaderTitle}>
                             <div style={styles.livingstonHeaderOrb}></div>
@@ -1612,7 +1635,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         </button>
                     </div>
                     
-                    <div style={styles.livingstonMessages}>
+                    <div style={styles.livingstonMessages} className="livingston-messages">
                         {livingstonMessages.map((msg, idx) => (
                             <div key={idx} style={styles.livingstonMessage}>
                                 {msg.image && (
