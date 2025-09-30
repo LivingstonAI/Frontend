@@ -139,10 +139,11 @@ const styles = {
   chartContainer: {
     background: 'white',
     borderRadius: '15px',
-    padding: '20px 20px 20px 20px',
+    padding: '20px',
     boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
     border: '1px solid rgba(226, 232, 240, 0.8)',
-    marginBottom: '25px'
+    marginBottom: '25px',
+    width: '100%'
   },
   chartTitle: {
     fontSize: '1.5rem',
@@ -227,18 +228,65 @@ const styles = {
     borderRadius: '8px',
     marginBottom: '20px',
     fontSize: '0.95rem'
+  },
+  drawingToolbar: {
+    display: 'flex',
+    gap: '10px',
+    padding: '15px',
+    background: 'rgba(248, 250, 252, 0.95)',
+    borderRadius: '10px',
+    marginBottom: '15px',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  toolButton: {
+    padding: '10px 16px',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: '500',
+    transition: 'all 0.3s ease',
+    background: 'white',
+    color: '#475569',
+    border: '2px solid #e2e8f0'
+  },
+  toolButtonActive: {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white',
+    border: '2px solid transparent'
+  },
+  indicatorButton: {
+    padding: '10px 16px',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: '500',
+    transition: 'all 0.3s ease',
+    background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+    color: 'white'
+  },
+  tvLogo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    background: 'white',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    color: '#475569',
+    fontWeight: '600'
   }
 };
 
 export default function Charts() {
-    // IMPORTANT: Replace this with your actual Railway backend URL
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app/api/snowai-market-ohlc/';
     
-    // Refs for chart containers
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
     
-    // State management
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
     const [timeframe, setTimeframe] = useState('1H');
@@ -250,8 +298,14 @@ export default function Charts() {
     const [dataSource, setDataSource] = useState('');
     const [error, setError] = useState('');
     const [dataStats, setDataStats] = useState(null);
+    const [drawingMode, setDrawingMode] = useState(null);
+    const [showIndicators, setShowIndicators] = useState({
+        ema: false,
+        sma: false,
+        volume: false
+    });
+    const [annotations, setAnnotations] = useState([]);
 
-    // Enhanced timeframe configurations
     const timeframes = {
         '1M': { 
             label: '1 Minute', 
@@ -304,7 +358,6 @@ export default function Charts() {
         }
     };
 
-    // Asset classes with yfinance symbols
     const assetClasses = {
         'Crypto': [
             { symbol: 'BTCUSD', name: 'Bitcoin', binanceSymbol: 'BTCUSDT', yfinanceSymbol: 'BTC-USD' },
@@ -337,7 +390,6 @@ export default function Charts() {
         ]
     };
 
-    // Load TradingView Lightweight Charts from CDN
     useEffect(() => {
         const loadTradingViewCharts = async () => {
             if (window.LightweightCharts) {
@@ -395,7 +447,6 @@ export default function Charts() {
         loadTradingViewCharts();
     }, []);
 
-    // Get current asset info
     const getCurrentAssetInfo = () => {
         for (const category of Object.values(assetClasses)) {
             const asset = category.find(a => a.symbol === selectedAsset);
@@ -404,27 +455,23 @@ export default function Charts() {
         return { symbol: selectedAsset, name: selectedAsset, binanceSymbol: null, yfinanceSymbol: selectedAsset };
     };
 
-    // Fetch real market data from multiple sources
     const fetchRealMarketData = async (assetInfo, timeframeKey) => {
         setError('');
         const timeframeConfig = timeframes[timeframeKey];
         
         try {
-            // Try Binance first for crypto assets
             if (assetInfo.binanceSymbol) {
                 try {
                     const data = await fetchBinanceData(assetInfo.binanceSymbol, timeframeConfig);
                     return data;
                 } catch (binanceError) {
                     console.log(`Binance failed for ${assetInfo.symbol}, trying yfinance:`, binanceError.message);
-                    // Fallback to yfinance for crypto if Binance fails
                     if (assetInfo.yfinanceSymbol) {
                         return await fetchYFinanceData(assetInfo.yfinanceSymbol, timeframeConfig);
                     }
                 }
             }
             
-            // Use yfinance for all other assets
             if (assetInfo.yfinanceSymbol) {
                 return await fetchYFinanceData(assetInfo.yfinanceSymbol, timeframeConfig);
             }
@@ -437,7 +484,6 @@ export default function Charts() {
         }
     };
 
-    // Fetch data from Binance API
     const fetchBinanceData = async (symbol, timeframeConfig) => {
         const response = await fetch(
             `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${timeframeConfig.binanceInterval}&limit=1000`
@@ -464,7 +510,6 @@ export default function Charts() {
         }).sort((a, b) => a.time - b.time);
     };
 
-    // Fetch data from Django backend using yfinance
     const fetchYFinanceData = async (symbol, timeframeConfig) => {
         const response = await fetch(BACKEND_API_URL, {
             method: 'POST',
@@ -502,7 +547,6 @@ export default function Charts() {
         })).sort((a, b) => a.time - b.time);
     };
 
-    // Fetch and update market data when asset or timeframe changes
     useEffect(() => {
         const fetchData = async () => {
             if (!tvLoaded) return;
@@ -519,11 +563,9 @@ export default function Charts() {
                     const firstCandle = data[0];
                     setCurrentPrice(latestCandle.close);
                     
-                    // Calculate price change from first to last candle
                     const changePercent = ((latestCandle.close - firstCandle.close) / firstCandle.close) * 100;
                     setPriceChange(changePercent);
                     
-                    // Set data statistics
                     setDataStats({
                         candles: data.length,
                         period: timeframes[timeframe].description,
@@ -545,18 +587,43 @@ export default function Charts() {
         fetchData();
     }, [selectedAsset, timeframe, tvLoaded]);
 
-    // Initialize TradingView Chart with real data
+    const calculateEMA = (data, period) => {
+        const k = 2 / (period + 1);
+        let ema = data[0].close;
+        const result = [];
+        
+        data.forEach((candle, i) => {
+            if (i === 0) {
+                ema = candle.close;
+            } else {
+                ema = candle.close * k + ema * (1 - k);
+            }
+            result.push({ time: candle.time, value: ema });
+        });
+        
+        return result;
+    };
+
+    const calculateSMA = (data, period) => {
+        const result = [];
+        
+        for (let i = period - 1; i < data.length; i++) {
+            const sum = data.slice(i - period + 1, i + 1).reduce((acc, candle) => acc + candle.close, 0);
+            result.push({ time: data[i].time, value: sum / period });
+        }
+        
+        return result;
+    };
+
     const initTradingViewChart = () => {
         if (!tvLoaded || !window.LightweightCharts || !chartContainerRef.current || marketData.length === 0) return;
 
         try {
-            // Clear previous chart
             if (chartRef.current) {
                 chartRef.current.destroy();
             }
             chartContainerRef.current.innerHTML = '';
 
-            // Create chart
             const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
                 width: chartContainerRef.current.clientWidth,
                 height: 700,
@@ -575,7 +642,7 @@ export default function Charts() {
                     borderColor: '#cccccc',
                     scaleMargins: {
                         top: 0.05,
-                        bottom: 0.05,
+                        bottom: showIndicators.volume ? 0.25 : 0.05,
                     },
                     autoScale: true,
                 },
@@ -598,10 +665,10 @@ export default function Charts() {
                 },
             });
 
-            let series;
+            let mainSeries;
             
             if (chartType === 'candlestick') {
-                series = chart.addCandlestickSeries({
+                mainSeries = chart.addCandlestickSeries({
                     upColor: '#26a69a',
                     downColor: '#ef5350',
                     borderVisible: false,
@@ -617,9 +684,9 @@ export default function Charts() {
                     close: parseFloat(d.close.toFixed(8))
                 }));
 
-                series.setData(candlestickData);
+                mainSeries.setData(candlestickData);
             } else {
-                series = chart.addLineSeries({
+                mainSeries = chart.addLineSeries({
                     color: '#667eea',
                     lineWidth: 3,
                     crosshairMarkerVisible: true,
@@ -631,10 +698,69 @@ export default function Charts() {
                     value: parseFloat(d.value.toFixed(8))
                 }));
 
-                series.setData(lineData);
+                mainSeries.setData(lineData);
             }
 
-            // Handle resize
+            // Add indicators
+            const indicatorSeries = {};
+            
+            if (showIndicators.ema) {
+                const ema20 = calculateEMA(marketData, 20);
+                indicatorSeries.ema = chart.addLineSeries({
+                    color: '#2196F3',
+                    lineWidth: 2,
+                    title: 'EMA 20'
+                });
+                indicatorSeries.ema.setData(ema20);
+            }
+            
+            if (showIndicators.sma) {
+                const sma50 = calculateSMA(marketData, 50);
+                indicatorSeries.sma = chart.addLineSeries({
+                    color: '#FF9800',
+                    lineWidth: 2,
+                    title: 'SMA 50'
+                });
+                indicatorSeries.sma.setData(sma50);
+            }
+            
+            if (showIndicators.volume) {
+                const volumeSeries = chart.addHistogramSeries({
+                    color: '#26a69a',
+                    priceFormat: {
+                        type: 'volume',
+                    },
+                    priceScaleId: 'volume',
+                });
+                
+                chart.priceScale('volume').applyOptions({
+                    scaleMargins: {
+                        top: 0.8,
+                        bottom: 0,
+                    },
+                });
+                
+                const volumeData = marketData.map(d => ({
+                    time: d.time,
+                    value: d.volume,
+                    color: d.close >= d.open ? '#26a69a80' : '#ef535080'
+                }));
+                
+                volumeSeries.setData(volumeData);
+            }
+
+            // Add price line markers for annotations
+            annotations.forEach(annotation => {
+                mainSeries.createPriceLine({
+                    price: annotation.price,
+                    color: annotation.color,
+                    lineWidth: 2,
+                    lineStyle: window.LightweightCharts.LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: annotation.text,
+                });
+            });
+
             const handleResize = () => {
                 if (chartContainerRef.current) {
                     chart.applyOptions({ 
@@ -645,10 +771,8 @@ export default function Charts() {
 
             window.addEventListener('resize', handleResize);
             
-            // Auto-fit content on load with better visibility
             setTimeout(() => {
                 chart.timeScale().fitContent();
-                // Set visible range to show most recent data with good spacing
                 const visibleLogicalRange = {
                     from: Math.max(0, marketData.length - 100),
                     to: marketData.length - 1
@@ -656,10 +780,10 @@ export default function Charts() {
                 chart.timeScale().setVisibleLogicalRange(visibleLogicalRange);
             }, 100);
 
-            // Store chart reference
             chartRef.current = {
                 chart,
-                series,
+                series: mainSeries,
+                indicatorSeries,
                 destroy: () => {
                     try {
                         window.removeEventListener('resize', handleResize);
@@ -680,7 +804,6 @@ export default function Charts() {
         }
     };
 
-    // Update chart when market data changes
     useEffect(() => {
         if (marketData.length > 0 && tvLoaded) {
             initTradingViewChart();
@@ -691,9 +814,8 @@ export default function Charts() {
                 chartRef.current.destroy();
             }
         };
-    }, [marketData, chartType, tvLoaded]);
+    }, [marketData, chartType, tvLoaded, showIndicators, annotations]);
 
-    // Real-time data updates (simulated for demo)
     useEffect(() => {
         if (marketData.length === 0) return;
         
@@ -701,17 +823,14 @@ export default function Charts() {
             const lastCandle = marketData[marketData.length - 1];
             const currentTime = Math.floor(Date.now() / 1000);
             
-            // Only update if enough time has passed for the timeframe
             const timeframeSeconds = getIntervalMilliseconds(timeframes[timeframe].interval) / 1000;
             if (currentTime - lastCandle.time < timeframeSeconds) return;
             
-            // Simulate small price movements
             const priceChange = (Math.random() - 0.5) * 0.001;
             const newPrice = lastCandle.close * (1 + priceChange);
             
             setCurrentPrice(newPrice);
             
-            // Update the chart if it exists
             if (chartRef.current && chartRef.current.series) {
                 const newCandle = {
                     time: currentTime,
@@ -741,12 +860,11 @@ export default function Charts() {
                     // Ignore update errors
                 }
             }
-        }, 5000); // Update every 5 seconds
+        }, 5000);
         
         return () => clearInterval(interval);
     }, [marketData, timeframe, chartType]);
 
-    // Helper functions
     const getIntervalMilliseconds = (interval) => {
         const multipliers = {
             '1m': 60 * 1000,
@@ -760,8 +878,33 @@ export default function Charts() {
         return multipliers[interval] || 60 * 60 * 1000;
     };
 
+    const toggleIndicator = (indicator) => {
+        setShowIndicators(prev => ({
+            ...prev,
+            [indicator]: !prev[indicator]
+        }));
+    };
+
+    const addAnnotation = () => {
+        if (marketData.length === 0) return;
+        
+        const midPrice = (dataStats.highestPrice + dataStats.lowestPrice) / 2;
+        const newAnnotation = {
+            id: Date.now(),
+            price: midPrice,
+            text: `Note ${annotations.length + 1}`,
+            color: '#2196F3'
+        };
+        
+        setAnnotations([...annotations, newAnnotation]);
+    };
+
+    const clearAnnotations = () => {
+        setAnnotations([]);
+    };
+
     return (
-        <div style={styles.container}>
+        <div style={{ width: '100%' }}>
             <style>
                 {`
                     @keyframes spin {
@@ -777,7 +920,13 @@ export default function Charts() {
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
                     }
                     
-                    /* Mobile responsiveness */
+                    .main-body-info {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 20px !important;
+                    }
+                    
                     @media (max-width: 768px) {
                         .controls-container {
                             padding: 15px !important;
@@ -831,6 +980,10 @@ export default function Charts() {
                         div[ref] {
                             height: 500px !important;
                         }
+                        
+                        .main-body-info {
+                            padding: 0 10px !important;
+                        }
                     }
                 `}
             </style>
@@ -839,7 +992,7 @@ export default function Charts() {
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info" style={styles.mainBodyInfo}>
+                <div className="main-body-info" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: '0 20px' }}>
                     <div style={styles.header} className="header-title">
                         ⚡ SnowAI Trading Charts - Real Market Data
                     </div>
@@ -859,9 +1012,7 @@ export default function Charts() {
                 </div>
             )}
             
-            {/* Controls */}
             <div style={styles.controlsContainer} className="controls-container">
-                {/* Asset Class Selector */}
                 {Object.entries(assetClasses).map(([category, assets]) => (
                     <div key={category} style={styles.assetSection} className="asset-section">
                         <div style={styles.categoryLabel} className="category-label">
@@ -886,7 +1037,6 @@ export default function Charts() {
                     </div>
                 ))}
                 
-                {/* Chart Type Selector */}
                 <div style={styles.chartTypeContainer}>
                     <span style={styles.categoryLabel} className="category-label">Chart Type:</span>
                     <button
@@ -913,7 +1063,6 @@ export default function Charts() {
                     </button>
                 </div>
 
-                {/* Timeframe Selector */}
                 <div style={styles.timeframeContainer}>
                     <span style={styles.categoryLabel} className="category-label">Timeframe:</span>
                     {Object.entries(timeframes).map(([key, config]) => (
@@ -933,7 +1082,6 @@ export default function Charts() {
                     ))}
                 </div>
                 
-                {/* Data Statistics */}
                 {dataStats && (
                     <div style={styles.dataStats}>
                         <strong>Data:</strong> {dataStats.candles} candles over {dataStats.period} 
@@ -944,7 +1092,6 @@ export default function Charts() {
                 )}
             </div>
 
-            {/* Loading indicator */}
             {isLoading && tvLoaded && (
                 <div style={styles.loadingContainer}>
                     <div style={styles.loadingSpinner}></div>
@@ -954,7 +1101,6 @@ export default function Charts() {
                 </div>
             )}
 
-            {/* Price Display */}
             {!isLoading && tvLoaded && marketData.length > 0 && (
                 <div style={styles.priceDisplay}>
                     <div>
@@ -983,41 +1129,104 @@ export default function Charts() {
                 </div>
             )}
 
-            {/* Chart Container */}
             {!isLoading && tvLoaded && marketData.length > 0 && (
-                <div style={styles.chartContainer} className="chart-container">
-                    <div style={styles.chartTitle} className="chart-title">
-                        {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].description}
+                <>
+                    <div style={styles.drawingToolbar}>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ fontWeight: '600', color: '#1e293b', marginRight: '10px' }}>Indicators:</span>
+                            <button
+                                onClick={() => toggleIndicator('ema')}
+                                style={{
+                                    ...styles.toolButton,
+                                    ...(showIndicators.ema ? styles.toolButtonActive : {})
+                                }}
+                            >
+                                EMA 20
+                            </button>
+                            <button
+                                onClick={() => toggleIndicator('sma')}
+                                style={{
+                                    ...styles.toolButton,
+                                    ...(showIndicators.sma ? styles.toolButtonActive : {})
+                                }}
+                            >
+                                SMA 50
+                            </button>
+                            <button
+                                onClick={() => toggleIndicator('volume')}
+                                style={{
+                                    ...styles.toolButton,
+                                    ...(showIndicators.volume ? styles.toolButtonActive : {})
+                                }}
+                            >
+                                Volume
+                            </button>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ fontWeight: '600', color: '#1e293b', marginRight: '10px' }}>Annotations:</span>
+                            <button
+                                onClick={addAnnotation}
+                                style={styles.indicatorButton}
+                            >
+                                Add Price Line
+                            </button>
+                            {annotations.length > 0 && (
+                                <button
+                                    onClick={clearAnnotations}
+                                    style={{
+                                        ...styles.toolButton,
+                                        background: '#ef4444',
+                                        color: 'white',
+                                        border: 'none'
+                                    }}
+                                >
+                                    Clear All ({annotations.length})
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div style={styles.tvLogo}>
+                            <svg width="20" height="20" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8.5 18L16.5 10L24.5 18" stroke="#2962FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M1.5 25L8.5 18L16.5 10" stroke="#2962FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M24.5 18L31.5 25" stroke="#2962FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span>Powered by TradingView</span>
+                        </div>
                     </div>
-                    
-                    <div 
-                        ref={chartContainerRef}
-                        style={{ 
-                            width: '100%', 
-                            height: '700px', 
-                            borderRadius: '10px',
-                            overflow: 'hidden',
-                            position: 'relative'
-                        }}
-                    />
-                </div>
+
+                    <div style={styles.chartContainer} className="chart-container">
+                        <div style={styles.chartTitle} className="chart-title">
+                            {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].description}
+                        </div>
+                        
+                        <div 
+                            ref={chartContainerRef}
+                            style={{ 
+                                width: '100%', 
+                                height: '700px', 
+                                borderRadius: '10px',
+                                overflow: 'hidden',
+                                position: 'relative'
+                            }}
+                        />
+                    </div>
+                </>
             )}
 
-            {/* Enhanced Chart Instructions */}
             <div style={styles.instructionsCard}>
                 <div style={styles.instructionsTitle}>Advanced Chart Features & Controls</div>
                 <ul style={styles.instructionsList}>
                     <li style={styles.instructionItem}><strong>Real Data Sources:</strong> Binance API for crypto, YFinance (via Django backend) for stocks, forex, commodities, and bonds</li>
+                    <li style={styles.instructionItem}><strong>Technical Indicators:</strong> Toggle EMA 20, SMA 50, and Volume indicators</li>
+                    <li style={styles.instructionItem}><strong>Annotations:</strong> Add horizontal price lines for marking key levels</li>
                     <li style={styles.instructionItem}><strong>Live Updates:</strong> Real-time price movements every 5 seconds</li>
                     <li style={styles.instructionItem}><strong>Zoom & Pan:</strong> Mouse wheel to zoom, click and drag to navigate</li>
                     <li style={styles.instructionItem}><strong>Crosshair:</strong> Hover for precise price and timestamp information</li>
                     <li style={styles.instructionItem}><strong>Multiple Timeframes:</strong> 1M to 1W with appropriate data lookback periods</li>
-                    <li style={styles.instructionItem}><strong>Backend Integration:</strong> Custom Django API using yfinance for comprehensive market data</li>
                     <li style={styles.instructionItem}><strong>Responsive:</strong> Optimized for desktop and mobile viewing</li>
-                    <li style={styles.instructionItem}><strong>Auto-fit:</strong> Charts automatically scale to show all data</li>
-                    <li style={styles.instructionItem}><strong>Performance:</strong> Lightweight charts with smooth 60fps rendering</li>
                 </ul>
-               
             </div>
         </div>
         </div>
