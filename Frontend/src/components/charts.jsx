@@ -295,6 +295,149 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '0.85rem'
+  },
+  // Livingston AI Styles
+  livingstonToggle: {
+    position: 'fixed',
+    bottom: '30px',
+    right: '30px',
+    width: '70px',
+    height: '70px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 8px 24px rgba(59, 130, 246, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
+    transition: 'all 0.3s ease',
+    animation: 'floatOrb 3s ease-in-out infinite'
+  },
+  livingstonOrb: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle at 30% 30%, #60a5fa, #3b82f6, #1e40af)',
+    boxShadow: '0 0 20px rgba(96, 165, 250, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3)',
+    animation: 'pulse 2s infinite'
+  },
+  livingstonPanel: {
+    position: 'fixed',
+    bottom: '120px',
+    right: '30px',
+    width: '450px',
+    maxHeight: '600px',
+    background: 'white',
+    borderRadius: '20px',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    zIndex: 998,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    border: '2px solid #3b82f6'
+  },
+  livingstonHeader: {
+    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+    color: 'white',
+    padding: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  livingstonHeaderTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  livingstonHeaderOrb: {
+    width: '35px',
+    height: '35px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle at 30% 30%, #60a5fa, #3b82f6)',
+    boxShadow: '0 0 15px rgba(96, 165, 250, 0.8)',
+    animation: 'pulse 2s infinite'
+  },
+  livingstonMessages: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '20px',
+    background: '#f8fafc',
+    maxHeight: '400px'
+  },
+  livingstonMessage: {
+    marginBottom: '15px',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  livingstonMessageUser: {
+    alignSelf: 'flex-end',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: 'white',
+    padding: '12px 16px',
+    borderRadius: '18px 18px 4px 18px',
+    maxWidth: '80%',
+    wordWrap: 'break-word'
+  },
+  livingstonMessageAI: {
+    alignSelf: 'flex-start',
+    background: 'white',
+    color: '#1e293b',
+    padding: '12px 16px',
+    borderRadius: '18px 18px 18px 4px',
+    maxWidth: '80%',
+    border: '1px solid #e2e8f0',
+    wordWrap: 'break-word'
+  },
+  livingstonInputArea: {
+    padding: '15px',
+    borderTop: '1px solid #e2e8f0',
+    background: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px'
+  },
+  livingstonInputRow: {
+    display: 'flex',
+    gap: '10px'
+  },
+  livingstonInput: {
+    flex: 1,
+    padding: '12px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '12px',
+    fontSize: '0.95rem',
+    outline: 'none',
+    transition: 'border 0.3s ease'
+  },
+  livingstonSendButton: {
+    padding: '12px 20px',
+    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    transition: 'all 0.3s ease'
+  },
+  livingstonImagePreview: {
+    width: '100px',
+    height: '100px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    border: '2px solid #3b82f6'
+  },
+  livingstonImageButton: {
+    padding: '10px 16px',
+    background: '#f1f5f9',
+    border: '2px solid #e2e8f0',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    color: '#475569',
+    fontWeight: '500',
+    transition: 'all 0.3s ease'
   }
 };
 
@@ -303,6 +446,8 @@ export default function Charts() {
     
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const messagesEndRef = useRef(null);
     
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
@@ -315,6 +460,27 @@ export default function Charts() {
     const [dataSource, setDataSource] = useState('');
     const [error, setError] = useState('');
     const [dataStats, setDataStats] = useState(null);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    
+    // Livingston AI Assistant States
+    const [livingstonOpen, setLivingstonOpen] = useState(false);
+    const [livingstonMessages, setLivingstonMessages] = useState([]);
+    const [livingstonInput, setLivingstonInput] = useState('');
+    const [livingstonLoading, setLivingstonLoading] = useState(false);
+    const [councilDiscussion, setCouncilDiscussion] = useState(null);
+    const [selectedImage, setSelectedImage] = useState(null);
+    
+    const fetchAPIKey = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching API key:", error);
+        }
+    };
     
     // Drawing and indicator states
     const [movingAverages, setMovingAverages] = useState([]);
@@ -401,6 +567,172 @@ export default function Charts() {
             { symbol: 'USOIL', name: 'US Oil (WTI)', binanceSymbol: null, yfinanceSymbol: 'CL=F' },
             { symbol: 'UKOIL', name: 'UK Oil (Brent)', binanceSymbol: null, yfinanceSymbol: 'BZ=F' }
         ]
+    };
+
+    // Fetch API Key on mount
+    useEffect(() => {
+        fetchAPIKey();
+    }, []);
+
+    // Fetch AI Council Discussion when Livingston is opened
+    useEffect(() => {
+        const fetchCouncilDiscussion = async () => {
+            if (!livingstonOpen) return;
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/livingston-ai-fetch-latest-council-discussion/`);
+                const data = await response.json();
+                
+                if (data.success && data.has_discussion) {
+                    setCouncilDiscussion(data.discussion);
+                    
+                    // Add welcome message with council context
+                    if (livingstonMessages.length === 0) {
+                        setLivingstonMessages([{
+                            role: 'assistant',
+                            content: `Hello! I'm Livingston, your AI trading assistant. I have access to the latest AI Trading Council discussion from ${new Date(data.discussion.created_at).toLocaleDateString()}. The council discussed ${data.discussion.participating_assets.join(', ')} with a ${data.discussion.overall_economic_outlook} economic outlook. How can I help you analyze the markets today?`
+                        }]);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching council discussion:', error);
+            }
+        };
+        
+        fetchCouncilDiscussion();
+    }, [livingstonOpen]);
+
+    // Scroll to bottom of messages
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [livingstonMessages]);
+
+    // Handle image selection
+    const handleImageSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setSelectedImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Send message to Livingston
+    const sendLivingstonMessage = async () => {
+        if ((!livingstonInput.trim() && !selectedImage) || livingstonLoading) return;
+        
+        const userMessage = {
+            role: 'user',
+            content: livingstonInput,
+            image: selectedImage
+        };
+        
+        setLivingstonMessages(prev => [...prev, userMessage]);
+        setLivingstonInput('');
+        setLivingstonLoading(true);
+        
+        try {
+            // Prepare messages for OpenAI
+            const messages = [
+                {
+                    role: 'system',
+                    content: `You are Livingston, an expert AI trading assistant. You have access to the latest AI Trading Council discussion with the following context:
+                    
+${councilDiscussion ? `
+Discussion Date: ${new Date(councilDiscussion.created_at).toLocaleString()}
+Participating Assets: ${councilDiscussion.participating_assets.join(', ')}
+Economic Outlook: ${councilDiscussion.overall_economic_outlook}
+Market Sentiment: ${councilDiscussion.global_market_sentiment}
+Volatility Level: ${councilDiscussion.market_volatility_level}
+Major Themes: ${councilDiscussion.major_economic_themes.join(', ')}
+Risk Factors: ${councilDiscussion.risk_factors_identified.join(', ')}
+Opportunities: ${councilDiscussion.opportunity_areas.join(', ')}
+Dominant Sentiment: ${councilDiscussion.dominant_sentiment}
+Bullish Count: ${councilDiscussion.bullish_sentiment_count}
+Bearish Count: ${councilDiscussion.bearish_sentiment_count}
+Neutral Count: ${councilDiscussion.neutral_sentiment_count}
+Confidence Score: ${councilDiscussion.average_confidence_score}
+
+Summary: ${councilDiscussion.conversation_summary}
+` : 'No recent council discussion available.'}
+
+Use this context to provide informed trading insights. Be concise, helpful, and professional.`
+                }
+            ];
+            
+            // Add conversation history
+            livingstonMessages.forEach(msg => {
+                if (msg.image) {
+                    messages.push({
+                        role: msg.role,
+                        content: [
+                            { type: 'text', text: msg.content },
+                            { type: 'image_url', image_url: { url: msg.image } }
+                        ]
+                    });
+                } else {
+                    messages.push({
+                        role: msg.role,
+                        content: msg.content
+                    });
+                }
+            });
+            
+            // Add current message
+            if (selectedImage) {
+                messages.push({
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: livingstonInput || 'Analyze this image' },
+                        { type: 'image_url', image_url: { url: selectedImage } }
+                    ]
+                });
+            } else {
+                messages.push({
+                    role: 'user',
+                    content: livingstonInput
+                });
+            }
+            
+            // Call OpenAI API
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: messages,
+                    max_tokens: 1000,
+                    temperature: 0.7
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.choices && data.choices[0]) {
+                const aiResponse = {
+                    role: 'assistant',
+                    content: data.choices[0].message.content
+                };
+                setLivingstonMessages(prev => [...prev, aiResponse]);
+            } else {
+                throw new Error('Invalid response from OpenAI');
+            }
+            
+        } catch (error) {
+            console.error('Error sending message to Livingston:', error);
+            setLivingstonMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'I apologize, but I encountered an error processing your request. Please try again.'
+            }]);
+        } finally {
+            setLivingstonLoading(false);
+            setSelectedImage(null);
+        }
     };
 
     useEffect(() => {
@@ -600,7 +932,6 @@ export default function Charts() {
         fetchData();
     }, [selectedAsset, timeframe, tvLoaded]);
 
-    // Calculate Moving Averages
     const calculateEMA = (data, period) => {
         const k = 2 / (period + 1);
         let ema = data[0].close;
@@ -761,7 +1092,6 @@ export default function Charts() {
                 mainSeries.setData(lineData);
             }
 
-            // Add Moving Averages
             const maSeries = {};
             movingAverages.forEach((ma, index) => {
                 maSeries[ma.id] = chart.addLineSeries({
@@ -774,7 +1104,6 @@ export default function Charts() {
                 maSeries[ma.id].setData(ma.data);
             });
             
-            // Add Volume
             let volumeSeries = null;
             if (showVolume) {
                 volumeSeries = chart.addHistogramSeries({
@@ -857,15 +1186,13 @@ export default function Charts() {
         };
     }, [marketData, chartType, tvLoaded, movingAverages, showVolume]);
 
-    // Realistic price updates every 10 seconds
     useEffect(() => {
         if (marketData.length === 0) return;
         
         const interval = setInterval(() => {
             const lastCandle = marketData[marketData.length - 1];
             
-            // Calculate realistic price movement based on asset volatility
-            const baseVolatility = 0.0001; // 0.01% base movement
+            const baseVolatility = 0.0001;
             const randomDirection = Math.random() > 0.5 ? 1 : -1;
             const randomMagnitude = Math.random() * baseVolatility;
             const priceChange = randomDirection * randomMagnitude;
@@ -874,7 +1201,6 @@ export default function Charts() {
             
             setCurrentPrice(newPrice);
             
-            // Update chart with realistic candle
             if (chartRef.current && chartRef.current.series) {
                 const currentTime = Math.floor(Date.now() / 1000);
                 
@@ -906,7 +1232,7 @@ export default function Charts() {
                     // Ignore update errors
                 }
             }
-        }, 10000); // Update every 10 seconds
+        }, 10000);
         
         return () => clearInterval(interval);
     }, [marketData, timeframe, chartType]);
@@ -923,6 +1249,10 @@ export default function Charts() {
                         0%, 100% { opacity: 1; }
                         50% { opacity: 0.5; }
                     }
+                    @keyframes floatOrb {
+                        0%, 100% { transform: translateY(0px); }
+                        50% { transform: translateY(-10px); }
+                    }
                     .asset-button:hover {
                         transform: translateY(-1px) !important;
                         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
@@ -933,6 +1263,20 @@ export default function Charts() {
                         max-width: 100% !important;
                         margin: 0 !important;
                         padding: 0 20px !important;
+                    }
+                    
+                    .livingston-input:focus {
+                        border-color: #3b82f6 !important;
+                    }
+                    
+                    .livingston-send:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+                    }
+                    
+                    .livingston-toggle:hover {
+                        transform: scale(1.1);
+                        box-shadow: 0 12px 32px rgba(59, 130, 246, 0.6);
                     }
                 `}
             </style>
@@ -1185,7 +1529,6 @@ export default function Charts() {
                         </div>
                     </div>
 
-                    {/* Active Indicators List */}
                     {movingAverages.length > 0 && (
                         <div style={styles.indicatorList}>
                             <h4 style={{ marginBottom: '15px', color: '#1e293b' }}>Active Indicators</h4>
@@ -1223,7 +1566,7 @@ export default function Charts() {
                             ref={chartContainerRef}
                             style={{ 
                                 width: '100%', 
-                                height: '320px', 
+                                height: '310px', 
                                 borderRadius: '10px',
                                 overflow: 'hidden',
                                 position: 'relative'
@@ -1231,6 +1574,157 @@ export default function Charts() {
                         />
                     </div>
                 </>
+            )}
+            
+            {/* Livingston AI Toggle Button */}
+            <button 
+                className="livingston-toggle"
+                style={styles.livingstonToggle}
+                onClick={() => setLivingstonOpen(!livingstonOpen)}
+                title="Chat with Livingston AI"
+            >
+                <div style={styles.livingstonOrb}></div>
+            </button>
+            
+            {/* Livingston AI Chat Panel */}
+            {livingstonOpen && (
+                <div style={styles.livingstonPanel}>
+                    <div style={styles.livingstonHeader}>
+                        <div style={styles.livingstonHeaderTitle}>
+                            <div style={styles.livingstonHeaderOrb}></div>
+                            <div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>Livingston</div>
+                                <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>AI Trading Assistant</div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setLivingstonOpen(false)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'white',
+                                fontSize: '1.5rem',
+                                cursor: 'pointer',
+                                padding: '5px 10px'
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.livingstonMessages}>
+                        {livingstonMessages.map((msg, idx) => (
+                            <div key={idx} style={styles.livingstonMessage}>
+                                {msg.image && (
+                                    <div style={{ marginBottom: '8px' }}>
+                                        <img 
+                                            src={msg.image} 
+                                            alt="User uploaded" 
+                                            style={styles.livingstonImagePreview}
+                                        />
+                                    </div>
+                                )}
+                                <div style={msg.role === 'user' ? styles.livingstonMessageUser : styles.livingstonMessageAI}>
+                                    {msg.content}
+                                </div>
+                            </div>
+                        ))}
+                        {livingstonLoading && (
+                            <div style={styles.livingstonMessage}>
+                                <div style={styles.livingstonMessageAI}>
+                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                        <div style={{ 
+                                            width: '8px', 
+                                            height: '8px', 
+                                            borderRadius: '50%', 
+                                            background: '#3b82f6',
+                                            animation: 'pulse 1s infinite'
+                                        }}></div>
+                                        <div style={{ 
+                                            width: '8px', 
+                                            height: '8px', 
+                                            borderRadius: '50%', 
+                                            background: '#3b82f6',
+                                            animation: 'pulse 1s infinite 0.2s'
+                                        }}></div>
+                                        <div style={{ 
+                                            width: '8px', 
+                                            height: '8px', 
+                                            borderRadius: '50%', 
+                                            background: '#3b82f6',
+                                            animation: 'pulse 1s infinite 0.4s'
+                                        }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    
+                    <div style={styles.livingstonInputArea}>
+                        {selectedImage && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <img src={selectedImage} alt="Selected" style={styles.livingstonImagePreview} />
+                                <button
+                                    onClick={() => setSelectedImage(null)}
+                                    style={{
+                                        ...styles.deleteButton,
+                                        fontSize: '0.8rem',
+                                        padding: '6px 10px'
+                                    }}
+                                >
+                                    Remove Image
+                                </button>
+                            </div>
+                        )}
+                        
+                        <div style={styles.livingstonInputRow}>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageSelect}
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                style={styles.livingstonImageButton}
+                                title="Attach image"
+                            >
+                                📎
+                            </button>
+                            <input
+                                className="livingston-input"
+                                type="text"
+                                value={livingstonInput}
+                                onChange={(e) => setLivingstonInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && sendLivingstonMessage()}
+                                placeholder="Ask Livingston about the markets..."
+                                style={styles.livingstonInput}
+                                disabled={livingstonLoading}
+                            />
+                            <button
+                                className="livingston-send"
+                                onClick={sendLivingstonMessage}
+                                style={styles.livingstonSendButton}
+                                disabled={livingstonLoading || (!livingstonInput.trim() && !selectedImage)}
+                            >
+                                {livingstonLoading ? '...' : '📤'}
+                            </button>
+                        </div>
+                        
+                        {councilDiscussion && (
+                            <div style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#64748b', 
+                                marginTop: '5px',
+                                textAlign: 'center'
+                            }}>
+                                Using Council Discussion from {new Date(councilDiscussion.created_at).toLocaleDateString()}
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
         </div>
