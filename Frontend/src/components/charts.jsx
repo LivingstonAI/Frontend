@@ -317,12 +317,8 @@ export default function Charts() {
     const [dataStats, setDataStats] = useState(null);
     
     // Drawing and indicator states
-    const [drawingMode, setDrawingMode] = useState(null);
     const [movingAverages, setMovingAverages] = useState([]);
     const [showVolume, setShowVolume] = useState(false);
-    const [horizontalLines, setHorizontalLines] = useState([]);
-    const [verticalLines, setVerticalLines] = useState([]);
-    const [fibRetracements, setFibRetracements] = useState([]);
     
     // Modal states
     const [showMADialog, setShowMADialog] = useState(false);
@@ -675,70 +671,8 @@ export default function Charts() {
         setMovingAverages(movingAverages.filter(ma => ma.id !== id));
     };
 
-    const addHorizontalLine = () => {
-        if (!dataStats) return;
-        const price = currentPrice;
-        setHorizontalLines([...horizontalLines, {
-            id: Date.now(),
-            price,
-            color: '#2196F3',
-            label: `H-Line ${horizontalLines.length + 1}`
-        }]);
-    };
-
-    const removeHorizontalLine = (id) => {
-        setHorizontalLines(horizontalLines.filter(line => line.id !== id));
-    };
-
-    const addVerticalLine = () => {
-        if (marketData.length === 0) return;
-        const midIndex = Math.floor(marketData.length / 2);
-        const time = marketData[midIndex].time;
-        setVerticalLines([...verticalLines, {
-            id: Date.now(),
-            time,
-            color: '#FF9800',
-            label: `V-Line ${verticalLines.length + 1}`
-        }]);
-    };
-
-    const removeVerticalLine = (id) => {
-        setVerticalLines(verticalLines.filter(line => line.id !== id));
-    };
-
-    const addFibRetracement = () => {
-        if (!dataStats) return;
-        const high = dataStats.highestPrice;
-        const low = dataStats.lowestPrice;
-        const diff = high - low;
-        
-        const levels = [
-            { level: 0, price: high, label: '0%' },
-            { level: 0.236, price: high - diff * 0.236, label: '23.6%' },
-            { level: 0.382, price: high - diff * 0.382, label: '38.2%' },
-            { level: 0.5, price: high - diff * 0.5, label: '50%' },
-            { level: 0.618, price: high - diff * 0.618, label: '61.8%' },
-            { level: 0.786, price: high - diff * 0.786, label: '78.6%' },
-            { level: 1, price: low, label: '100%' }
-        ];
-        
-        setFibRetracements([...fibRetracements, {
-            id: Date.now(),
-            levels,
-            high,
-            low
-        }]);
-    };
-
-    const removeFibRetracement = (id) => {
-        setFibRetracements(fibRetracements.filter(fib => fib.id !== id));
-    };
-
     const clearAllDrawings = () => {
         setMovingAverages([]);
-        setHorizontalLines([]);
-        setVerticalLines([]);
-        setFibRetracements([]);
     };
 
     const initTradingViewChart = () => {
@@ -867,34 +801,6 @@ export default function Charts() {
                 volumeSeries.setData(volumeData);
             }
 
-            // Add Horizontal Lines
-            horizontalLines.forEach(line => {
-                mainSeries.createPriceLine({
-                    price: line.price,
-                    color: line.color,
-                    lineWidth: 2,
-                    lineStyle: window.LightweightCharts.LineStyle.Solid,
-                    axisLabelVisible: true,
-                    title: line.label,
-                });
-            });
-
-            // Add Fibonacci Retracements
-            fibRetracements.forEach(fib => {
-                fib.levels.forEach(level => {
-                    const colors = ['#2196F3', '#4CAF50', '#FFC107', '#FF9800', '#FF5722', '#9C27B0', '#E91E63'];
-                    const colorIndex = Math.floor(level.level * 6);
-                    mainSeries.createPriceLine({
-                        price: level.price,
-                        color: colors[colorIndex],
-                        lineWidth: 1,
-                        lineStyle: window.LightweightCharts.LineStyle.Dashed,
-                        axisLabelVisible: true,
-                        title: `Fib ${level.label}`,
-                    });
-                });
-            });
-
             const handleResize = () => {
                 if (chartContainerRef.current) {
                     chart.applyOptions({ 
@@ -949,24 +855,29 @@ export default function Charts() {
                 chartRef.current.destroy();
             }
         };
-    }, [marketData, chartType, tvLoaded, movingAverages, showVolume, horizontalLines, fibRetracements]);
+    }, [marketData, chartType, tvLoaded, movingAverages, showVolume]);
 
+    // Realistic price updates every 10 seconds
     useEffect(() => {
         if (marketData.length === 0) return;
         
         const interval = setInterval(() => {
             const lastCandle = marketData[marketData.length - 1];
-            const currentTime = Math.floor(Date.now() / 1000);
             
-            const timeframeSeconds = getIntervalMilliseconds(timeframes[timeframe].interval) / 1000;
-            if (currentTime - lastCandle.time < timeframeSeconds) return;
+            // Calculate realistic price movement based on asset volatility
+            const baseVolatility = 0.0001; // 0.01% base movement
+            const randomDirection = Math.random() > 0.5 ? 1 : -1;
+            const randomMagnitude = Math.random() * baseVolatility;
+            const priceChange = randomDirection * randomMagnitude;
             
-            const priceChange = (Math.random() - 0.5) * 0.001;
             const newPrice = lastCandle.close * (1 + priceChange);
             
             setCurrentPrice(newPrice);
             
+            // Update chart with realistic candle
             if (chartRef.current && chartRef.current.series) {
+                const currentTime = Math.floor(Date.now() / 1000);
+                
                 const newCandle = {
                     time: currentTime,
                     open: lastCandle.close,
@@ -995,23 +906,10 @@ export default function Charts() {
                     // Ignore update errors
                 }
             }
-        }, 5000);
+        }, 10000); // Update every 10 seconds
         
         return () => clearInterval(interval);
     }, [marketData, timeframe, chartType]);
-
-    const getIntervalMilliseconds = (interval) => {
-        const multipliers = {
-            '1m': 60 * 1000,
-            '5m': 5 * 60 * 1000,
-            '15m': 15 * 60 * 1000,
-            '1h': 60 * 60 * 1000,
-            '4h': 4 * 60 * 60 * 1000,
-            '1d': 24 * 60 * 60 * 1000,
-            '1w': 7 * 24 * 60 * 60 * 1000
-        };
-        return multipliers[interval] || 60 * 60 * 1000;
-    };
 
     return (
         <div style={{ width: '100%' }}>
@@ -1273,28 +1171,7 @@ export default function Charts() {
                                 📈 Volume
                             </button>
                             
-                            <button
-                                onClick={addHorizontalLine}
-                                style={styles.toolButton}
-                            >
-                                ─ Horizontal Line
-                            </button>
-                            
-                            <button
-                                onClick={addVerticalLine}
-                                style={styles.toolButton}
-                            >
-                                │ Vertical Line
-                            </button>
-                            
-                            <button
-                                onClick={addFibRetracement}
-                                style={styles.toolButton}
-                            >
-                                📐 Fibonacci
-                            </button>
-                            
-                            {(movingAverages.length > 0 || horizontalLines.length > 0 || verticalLines.length > 0 || fibRetracements.length > 0) && (
+                            {movingAverages.length > 0 && (
                                 <button
                                     onClick={clearAllDrawings}
                                     style={{
@@ -1309,9 +1186,9 @@ export default function Charts() {
                     </div>
 
                     {/* Active Indicators List */}
-                    {(movingAverages.length > 0 || horizontalLines.length > 0 || verticalLines.length > 0 || fibRetracements.length > 0) && (
+                    {movingAverages.length > 0 && (
                         <div style={styles.indicatorList}>
-                            <h4 style={{ marginBottom: '15px', color: '#1e293b' }}>Active Indicators & Drawings</h4>
+                            <h4 style={{ marginBottom: '15px', color: '#1e293b' }}>Active Indicators</h4>
                             
                             {movingAverages.map(ma => (
                                 <div key={ma.id} style={styles.indicatorItem}>
@@ -1328,64 +1205,6 @@ export default function Charts() {
                                     </div>
                                     <button
                                         onClick={() => removeMovingAverage(ma.id)}
-                                        style={styles.deleteButton}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ))}
-                            
-                            {horizontalLines.map(line => (
-                                <div key={line.id} style={styles.indicatorItem}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ 
-                                            width: '20px', 
-                                            height: '2px', 
-                                            background: line.color 
-                                        }} />
-                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
-                                            {line.label} (${line.price.toFixed(2)})
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => removeHorizontalLine(line.id)}
-                                        style={styles.deleteButton}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ))}
-                            
-                            {verticalLines.map(line => (
-                                <div key={line.id} style={styles.indicatorItem}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ 
-                                            width: '2px', 
-                                            height: '20px', 
-                                            background: line.color 
-                                        }} />
-                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
-                                            {line.label}
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => removeVerticalLine(line.id)}
-                                        style={styles.deleteButton}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ))}
-                            
-                            {fibRetracements.map(fib => (
-                                <div key={fib.id} style={styles.indicatorItem}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
-                                            📐 Fibonacci Retracement ({fib.high.toFixed(2)} - {fib.low.toFixed(2)})
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => removeFibRetracement(fib.id)}
                                         style={styles.deleteButton}
                                     >
                                         Remove
