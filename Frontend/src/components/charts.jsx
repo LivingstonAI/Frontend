@@ -345,7 +345,8 @@ const styles = {
     padding: '20px',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    flexShrink: 0
   },
   livingstonHeaderTitle: {
     display: 'flex',
@@ -397,7 +398,8 @@ const styles = {
     background: 'white',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px'
+    gap: '10px',
+    flexShrink: 0
   },
   livingstonInputRow: {
     display: 'flex',
@@ -1285,7 +1287,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         .livingston-panel {
                             width: calc(100vw - 20px) !important;
                             right: 10px !important;
-                            left: 10px !important;
+                            left: auto !important;
                             bottom: 100px !important;
                             max-height: 500px !important;
                         }
