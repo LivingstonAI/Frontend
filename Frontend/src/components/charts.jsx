@@ -1080,7 +1080,7 @@ export default function Charts() {
                 </div>
 
                 <div style={styles.timeframeContainer}>
-                    <span style={styles.categoryLabel} className="category-label">Timeframe:</span>
+                    <span style={styles.categoryLabel}>Timeframe:</span>
                     {Object.entries(timeframes).map(([key, config]) => (
                         <button
                             key={key}
@@ -1120,7 +1120,7 @@ export default function Charts() {
             {!isLoading && tvLoaded && marketData.length > 0 && (
                 <div style={styles.priceDisplay}>
                     <div>
-                        <div style={styles.currentPrice} className="current-price">
+                        <div style={styles.currentPrice}>
                             ${currentPrice.toLocaleString(undefined, { 
                                 minimumFractionDigits: 2, 
                                 maximumFractionDigits: getCurrentAssetInfo().symbol.includes('JPY') ? 3 : 
@@ -1214,8 +1214,8 @@ export default function Charts() {
                         </div>
                     )}
 
-                    <div style={styles.chartContainer} className="chart-container">
-                        <div style={styles.chartTitle} className="chart-title">
+                    <div style={styles.chartContainer}>
+                        <div style={styles.chartTitle}>
                             {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart
                         </div>
                         
@@ -1223,7 +1223,7 @@ export default function Charts() {
                             ref={chartContainerRef}
                             style={{ 
                                 width: '100%', 
-                                height: '700px', 
+                                height: '300px', 
                                 borderRadius: '10px',
                                 overflow: 'hidden',
                                 position: 'relative'
