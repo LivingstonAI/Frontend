@@ -1602,14 +1602,16 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
             )}
             
             {/* Livingston AI Toggle Button */}
-            <button 
-                className="livingston-toggle"
-                style={styles.livingstonToggle}
-                onClick={() => setLivingstonOpen(!livingstonOpen)}
-                title="Chat with Livingston AI"
-            >
-                <div style={styles.livingstonOrb}></div>
-            </button>
+            {!livingstonOpen && (
+                <button 
+                    className="livingston-toggle"
+                    style={styles.livingstonToggle}
+                    onClick={() => setLivingstonOpen(true)}
+                    title="Chat with Livingston AI"
+                >
+                    <div style={styles.livingstonOrb}></div>
+                </button>
+            )}
             
             {/* Livingston AI Chat Panel */}
             {livingstonOpen && (
