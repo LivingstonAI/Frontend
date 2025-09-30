@@ -1223,7 +1223,7 @@ export default function Charts() {
                             ref={chartContainerRef}
                             style={{ 
                                 width: '100%', 
-                                height: '300px', 
+                                height: '400px', 
                                 borderRadius: '10px',
                                 overflow: 'hidden',
                                 position: 'relative'
