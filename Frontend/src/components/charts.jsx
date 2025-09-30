@@ -166,29 +166,6 @@ const styles = {
     marginRight: '8px',
     animation: 'pulse 2s infinite'
   },
-  instructionsCard: {
-    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-    padding: '20px',
-    borderRadius: '15px',
-    marginTop: '25px',
-    border: '1px solid #e2e8f0'
-  },
-  instructionsTitle: {
-    fontSize: '1.2rem',
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: '15px'
-  },
-  instructionsList: {
-    listStyle: 'none',
-    padding: '0',
-    margin: '0'
-  },
-  instructionItem: {
-    padding: '8px 0',
-    color: '#475569',
-    fontSize: '0.95rem'
-  },
   priceDisplay: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -237,8 +214,7 @@ const styles = {
     borderRadius: '10px',
     marginBottom: '15px',
     flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    alignItems: 'center'
   },
   toolButton: {
     padding: '10px 16px',
@@ -257,27 +233,68 @@ const styles = {
     color: 'white',
     border: '2px solid transparent'
   },
-  indicatorButton: {
-    padding: '10px 16px',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-    fontWeight: '500',
-    transition: 'all 0.3s ease',
-    background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-    color: 'white'
+  modal: {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    background: 'white',
+    padding: '30px',
+    borderRadius: '15px',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    zIndex: 1000,
+    minWidth: '400px'
   },
-  tvLogo: {
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999
+  },
+  input: {
+    padding: '10px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    width: '100%',
+    marginBottom: '15px'
+  },
+  select: {
+    padding: '10px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    width: '100%',
+    marginBottom: '15px',
+    cursor: 'pointer'
+  },
+  indicatorList: {
+    background: 'rgba(248, 250, 252, 0.95)',
+    padding: '15px',
+    borderRadius: '10px',
+    marginBottom: '15px'
+  },
+  indicatorItem: {
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '8px',
-    padding: '8px 12px',
+    padding: '10px',
     background: 'white',
     borderRadius: '8px',
-    fontSize: '0.85rem',
-    color: '#475569',
-    fontWeight: '600'
+    marginBottom: '8px',
+    border: '1px solid #e2e8f0'
+  },
+  deleteButton: {
+    padding: '6px 12px',
+    background: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '0.85rem'
   }
 };
 
@@ -298,13 +315,18 @@ export default function Charts() {
     const [dataSource, setDataSource] = useState('');
     const [error, setError] = useState('');
     const [dataStats, setDataStats] = useState(null);
+    
+    // Drawing and indicator states
     const [drawingMode, setDrawingMode] = useState(null);
-    const [showIndicators, setShowIndicators] = useState({
-        ema: false,
-        sma: false,
-        volume: false
-    });
-    const [annotations, setAnnotations] = useState([]);
+    const [movingAverages, setMovingAverages] = useState([]);
+    const [showVolume, setShowVolume] = useState(false);
+    const [horizontalLines, setHorizontalLines] = useState([]);
+    const [verticalLines, setVerticalLines] = useState([]);
+    const [fibRetracements, setFibRetracements] = useState([]);
+    
+    // Modal states
+    const [showMADialog, setShowMADialog] = useState(false);
+    const [maConfig, setMaConfig] = useState({ type: 'SMA', period: 20, color: '#2196F3' });
 
     const timeframes = {
         '1M': { 
@@ -382,11 +404,6 @@ export default function Charts() {
             { symbol: 'XAGUSD', name: 'Silver', binanceSymbol: null, yfinanceSymbol: 'SI=F' },
             { symbol: 'USOIL', name: 'US Oil (WTI)', binanceSymbol: null, yfinanceSymbol: 'CL=F' },
             { symbol: 'UKOIL', name: 'UK Oil (Brent)', binanceSymbol: null, yfinanceSymbol: 'BZ=F' }
-        ],
-        'Bonds/Futures': [
-            { symbol: 'ZB1!', name: '30-Year T-Bond Future', binanceSymbol: null, yfinanceSymbol: 'ZB=F' },
-            { symbol: 'US010Y', name: '10-Year Treasury Yield', binanceSymbol: null, yfinanceSymbol: '^TNX' },
-            { symbol: 'US05Y', name: '5-Year Treasury Yield', binanceSymbol: null, yfinanceSymbol: '^FVX' }
         ]
     };
 
@@ -587,6 +604,7 @@ export default function Charts() {
         fetchData();
     }, [selectedAsset, timeframe, tvLoaded]);
 
+    // Calculate Moving Averages
     const calculateEMA = (data, period) => {
         const k = 2 / (period + 1);
         let ema = data[0].close;
@@ -613,6 +631,114 @@ export default function Charts() {
         }
         
         return result;
+    };
+
+    const calculateWMA = (data, period) => {
+        const result = [];
+        const weights = Array.from({ length: period }, (_, i) => i + 1);
+        const weightSum = weights.reduce((a, b) => a + b, 0);
+        
+        for (let i = period - 1; i < data.length; i++) {
+            const slice = data.slice(i - period + 1, i + 1);
+            const wma = slice.reduce((sum, candle, idx) => sum + candle.close * weights[idx], 0) / weightSum;
+            result.push({ time: data[i].time, value: wma });
+        }
+        
+        return result;
+    };
+
+    const addMovingAverage = () => {
+        const id = Date.now();
+        let maData;
+        
+        if (maConfig.type === 'SMA') {
+            maData = calculateSMA(marketData, parseInt(maConfig.period));
+        } else if (maConfig.type === 'EMA') {
+            maData = calculateEMA(marketData, parseInt(maConfig.period));
+        } else if (maConfig.type === 'WMA') {
+            maData = calculateWMA(marketData, parseInt(maConfig.period));
+        }
+        
+        setMovingAverages([...movingAverages, {
+            id,
+            type: maConfig.type,
+            period: parseInt(maConfig.period),
+            color: maConfig.color,
+            data: maData
+        }]);
+        
+        setShowMADialog(false);
+        setMaConfig({ type: 'SMA', period: 20, color: '#2196F3' });
+    };
+
+    const removeMovingAverage = (id) => {
+        setMovingAverages(movingAverages.filter(ma => ma.id !== id));
+    };
+
+    const addHorizontalLine = () => {
+        if (!dataStats) return;
+        const price = currentPrice;
+        setHorizontalLines([...horizontalLines, {
+            id: Date.now(),
+            price,
+            color: '#2196F3',
+            label: `H-Line ${horizontalLines.length + 1}`
+        }]);
+    };
+
+    const removeHorizontalLine = (id) => {
+        setHorizontalLines(horizontalLines.filter(line => line.id !== id));
+    };
+
+    const addVerticalLine = () => {
+        if (marketData.length === 0) return;
+        const midIndex = Math.floor(marketData.length / 2);
+        const time = marketData[midIndex].time;
+        setVerticalLines([...verticalLines, {
+            id: Date.now(),
+            time,
+            color: '#FF9800',
+            label: `V-Line ${verticalLines.length + 1}`
+        }]);
+    };
+
+    const removeVerticalLine = (id) => {
+        setVerticalLines(verticalLines.filter(line => line.id !== id));
+    };
+
+    const addFibRetracement = () => {
+        if (!dataStats) return;
+        const high = dataStats.highestPrice;
+        const low = dataStats.lowestPrice;
+        const diff = high - low;
+        
+        const levels = [
+            { level: 0, price: high, label: '0%' },
+            { level: 0.236, price: high - diff * 0.236, label: '23.6%' },
+            { level: 0.382, price: high - diff * 0.382, label: '38.2%' },
+            { level: 0.5, price: high - diff * 0.5, label: '50%' },
+            { level: 0.618, price: high - diff * 0.618, label: '61.8%' },
+            { level: 0.786, price: high - diff * 0.786, label: '78.6%' },
+            { level: 1, price: low, label: '100%' }
+        ];
+        
+        setFibRetracements([...fibRetracements, {
+            id: Date.now(),
+            levels,
+            high,
+            low
+        }]);
+    };
+
+    const removeFibRetracement = (id) => {
+        setFibRetracements(fibRetracements.filter(fib => fib.id !== id));
+    };
+
+    const clearAllDrawings = () => {
+        setMovingAverages([]);
+        setHorizontalLines([]);
+        setVerticalLines([]);
+        setFibRetracements([]);
     };
 
     const initTradingViewChart = () => {
@@ -642,7 +768,7 @@ export default function Charts() {
                     borderColor: '#cccccc',
                     scaleMargins: {
                         top: 0.05,
-                        bottom: showIndicators.volume ? 0.25 : 0.05,
+                        bottom: showVolume ? 0.25 : 0.05,
                     },
                     autoScale: true,
                 },
@@ -701,31 +827,23 @@ export default function Charts() {
                 mainSeries.setData(lineData);
             }
 
-            // Add indicators
-            const indicatorSeries = {};
-            
-            if (showIndicators.ema) {
-                const ema20 = calculateEMA(marketData, 20);
-                indicatorSeries.ema = chart.addLineSeries({
-                    color: '#2196F3',
+            // Add Moving Averages
+            const maSeries = {};
+            movingAverages.forEach((ma, index) => {
+                maSeries[ma.id] = chart.addLineSeries({
+                    color: ma.color,
                     lineWidth: 2,
-                    title: 'EMA 20'
+                    title: `${ma.type} ${ma.period}`,
+                    lastValueVisible: true,
+                    priceLineVisible: false
                 });
-                indicatorSeries.ema.setData(ema20);
-            }
+                maSeries[ma.id].setData(ma.data);
+            });
             
-            if (showIndicators.sma) {
-                const sma50 = calculateSMA(marketData, 50);
-                indicatorSeries.sma = chart.addLineSeries({
-                    color: '#FF9800',
-                    lineWidth: 2,
-                    title: 'SMA 50'
-                });
-                indicatorSeries.sma.setData(sma50);
-            }
-            
-            if (showIndicators.volume) {
-                const volumeSeries = chart.addHistogramSeries({
+            // Add Volume
+            let volumeSeries = null;
+            if (showVolume) {
+                volumeSeries = chart.addHistogramSeries({
                     color: '#26a69a',
                     priceFormat: {
                         type: 'volume',
@@ -749,15 +867,31 @@ export default function Charts() {
                 volumeSeries.setData(volumeData);
             }
 
-            // Add price line markers for annotations
-            annotations.forEach(annotation => {
+            // Add Horizontal Lines
+            horizontalLines.forEach(line => {
                 mainSeries.createPriceLine({
-                    price: annotation.price,
-                    color: annotation.color,
+                    price: line.price,
+                    color: line.color,
                     lineWidth: 2,
-                    lineStyle: window.LightweightCharts.LineStyle.Dashed,
+                    lineStyle: window.LightweightCharts.LineStyle.Solid,
                     axisLabelVisible: true,
-                    title: annotation.text,
+                    title: line.label,
+                });
+            });
+
+            // Add Fibonacci Retracements
+            fibRetracements.forEach(fib => {
+                fib.levels.forEach(level => {
+                    const colors = ['#2196F3', '#4CAF50', '#FFC107', '#FF9800', '#FF5722', '#9C27B0', '#E91E63'];
+                    const colorIndex = Math.floor(level.level * 6);
+                    mainSeries.createPriceLine({
+                        price: level.price,
+                        color: colors[colorIndex],
+                        lineWidth: 1,
+                        lineStyle: window.LightweightCharts.LineStyle.Dashed,
+                        axisLabelVisible: true,
+                        title: `Fib ${level.label}`,
+                    });
                 });
             });
 
@@ -783,7 +917,8 @@ export default function Charts() {
             chartRef.current = {
                 chart,
                 series: mainSeries,
-                indicatorSeries,
+                maSeries,
+                volumeSeries,
                 destroy: () => {
                     try {
                         window.removeEventListener('resize', handleResize);
@@ -814,7 +949,7 @@ export default function Charts() {
                 chartRef.current.destroy();
             }
         };
-    }, [marketData, chartType, tvLoaded, showIndicators, annotations]);
+    }, [marketData, chartType, tvLoaded, movingAverages, showVolume, horizontalLines, fibRetracements]);
 
     useEffect(() => {
         if (marketData.length === 0) return;
@@ -878,31 +1013,6 @@ export default function Charts() {
         return multipliers[interval] || 60 * 60 * 1000;
     };
 
-    const toggleIndicator = (indicator) => {
-        setShowIndicators(prev => ({
-            ...prev,
-            [indicator]: !prev[indicator]
-        }));
-    };
-
-    const addAnnotation = () => {
-        if (marketData.length === 0) return;
-        
-        const midPrice = (dataStats.highestPrice + dataStats.lowestPrice) / 2;
-        const newAnnotation = {
-            id: Date.now(),
-            price: midPrice,
-            text: `Note ${annotations.length + 1}`,
-            color: '#2196F3'
-        };
-        
-        setAnnotations([...annotations, newAnnotation]);
-    };
-
-    const clearAnnotations = () => {
-        setAnnotations([]);
-    };
-
     return (
         <div style={{ width: '100%' }}>
             <style>
@@ -926,65 +1036,6 @@ export default function Charts() {
                         margin: 0 !important;
                         padding: 0 20px !important;
                     }
-                    
-                    @media (max-width: 768px) {
-                        .controls-container {
-                            padding: 15px !important;
-                        }
-                        
-                        .asset-section {
-                            margin-bottom: 15px !important;
-                        }
-                        
-                        .asset-button {
-                            margin: 3px 4px !important;
-                            padding: 8px 12px !important;
-                            font-size: 0.8rem !important;
-                        }
-                        
-                        .chart-type-button {
-                            padding: 10px 16px !important;
-                            font-size: 0.9rem !important;
-                            margin: 4px !important;
-                        }
-                        
-                        .timeframe-button {
-                            padding: 6px 12px !important;
-                            font-size: 0.8rem !important;
-                            margin: 3px !important;
-                        }
-                        
-                        .category-label {
-                            font-size: 1rem !important;
-                            margin-bottom: 8px !important;
-                        }
-                        
-                        .header-title {
-                            font-size: 1.5rem !important;
-                            padding: 15px !important;
-                        }
-                        
-                        .current-price {
-                            font-size: 1.4rem !important;
-                        }
-                        
-                        .chart-container {
-                            padding: 15px !important;
-                        }
-                        
-                        .chart-title {
-                            font-size: 1.2rem !important;
-                            margin-bottom: 10px !important;
-                        }
-                        
-                        div[ref] {
-                            height: 500px !important;
-                        }
-                        
-                        .main-body-info {
-                            padding: 0 10px !important;
-                        }
-                    }
                 `}
             </style>
             <div className="header">
@@ -994,8 +1045,75 @@ export default function Charts() {
                 <SideNavs />
                 <div className="main-body-info" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: '0 20px' }}>
                     <div style={styles.header} className="header-title">
-                        ⚡ SnowAI Trading Charts - Real Market Data
+                        ⚡ SnowAI Trading Charts - Professional Tools
                     </div>
+            
+            {/* Moving Average Dialog */}
+            {showMADialog && (
+                <>
+                    <div style={styles.modalOverlay} onClick={() => setShowMADialog(false)} />
+                    <div style={styles.modal}>
+                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>Add Moving Average</h3>
+                        
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
+                            Type
+                        </label>
+                        <select 
+                            style={styles.select}
+                            value={maConfig.type}
+                            onChange={(e) => setMaConfig({...maConfig, type: e.target.value})}
+                        >
+                            <option value="SMA">Simple Moving Average (SMA)</option>
+                            <option value="EMA">Exponential Moving Average (EMA)</option>
+                            <option value="WMA">Weighted Moving Average (WMA)</option>
+                        </select>
+                        
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
+                            Period
+                        </label>
+                        <input 
+                            type="number" 
+                            style={styles.input}
+                            value={maConfig.period}
+                            onChange={(e) => setMaConfig({...maConfig, period: e.target.value})}
+                            min="2"
+                            max="200"
+                        />
+                        
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
+                            Color
+                        </label>
+                        <input 
+                            type="color" 
+                            style={{...styles.input, height: '50px', cursor: 'pointer'}}
+                            value={maConfig.color}
+                            onChange={(e) => setMaConfig({...maConfig, color: e.target.value})}
+                        />
+                        
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                            <button 
+                                onClick={addMovingAverage}
+                                style={{
+                                    ...styles.toolButton,
+                                    ...styles.toolButtonActive,
+                                    flex: 1
+                                }}
+                            >
+                                Add Indicator
+                            </button>
+                            <button 
+                                onClick={() => setShowMADialog(false)}
+                                style={{
+                                    ...styles.toolButton,
+                                    flex: 1
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
             
             {error && (
                 <div style={styles.errorMessage}>
@@ -1132,73 +1250,154 @@ export default function Charts() {
             {!isLoading && tvLoaded && marketData.length > 0 && (
                 <>
                     <div style={styles.drawingToolbar}>
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '600', color: '#1e293b', marginRight: '10px' }}>Indicators:</span>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
                             <button
-                                onClick={() => toggleIndicator('ema')}
+                                onClick={() => setShowMADialog(true)}
                                 style={{
                                     ...styles.toolButton,
-                                    ...(showIndicators.ema ? styles.toolButtonActive : {})
+                                    background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                                    color: 'white',
+                                    border: 'none'
                                 }}
                             >
-                                EMA 20
+                                📊 Add Moving Average
                             </button>
+                            
                             <button
-                                onClick={() => toggleIndicator('sma')}
+                                onClick={() => setShowVolume(!showVolume)}
                                 style={{
                                     ...styles.toolButton,
-                                    ...(showIndicators.sma ? styles.toolButtonActive : {})
+                                    ...(showVolume ? styles.toolButtonActive : {})
                                 }}
                             >
-                                SMA 50
+                                📈 Volume
                             </button>
+                            
                             <button
-                                onClick={() => toggleIndicator('volume')}
-                                style={{
-                                    ...styles.toolButton,
-                                    ...(showIndicators.volume ? styles.toolButtonActive : {})
-                                }}
+                                onClick={addHorizontalLine}
+                                style={styles.toolButton}
                             >
-                                Volume
+                                ─ Horizontal Line
                             </button>
-                        </div>
-                        
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '600', color: '#1e293b', marginRight: '10px' }}>Annotations:</span>
+                            
                             <button
-                                onClick={addAnnotation}
-                                style={styles.indicatorButton}
+                                onClick={addVerticalLine}
+                                style={styles.toolButton}
                             >
-                                Add Price Line
+                                │ Vertical Line
                             </button>
-                            {annotations.length > 0 && (
+                            
+                            <button
+                                onClick={addFibRetracement}
+                                style={styles.toolButton}
+                            >
+                                📐 Fibonacci
+                            </button>
+                            
+                            {(movingAverages.length > 0 || horizontalLines.length > 0 || verticalLines.length > 0 || fibRetracements.length > 0) && (
                                 <button
-                                    onClick={clearAnnotations}
+                                    onClick={clearAllDrawings}
                                     style={{
-                                        ...styles.toolButton,
-                                        background: '#ef4444',
-                                        color: 'white',
-                                        border: 'none'
+                                        ...styles.deleteButton,
+                                        padding: '10px 16px'
                                     }}
                                 >
-                                    Clear All ({annotations.length})
+                                    🗑️ Clear All
                                 </button>
                             )}
                         </div>
-                        
-                        <div style={styles.tvLogo}>
-                            <svg width="20" height="20" viewBox="0 0 33 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8.5 18L16.5 10L24.5 18" stroke="#2962FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M1.5 25L8.5 18L16.5 10" stroke="#2962FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M24.5 18L31.5 25" stroke="#2962FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <span>Powered by TradingView</span>
-                        </div>
                     </div>
+
+                    {/* Active Indicators List */}
+                    {(movingAverages.length > 0 || horizontalLines.length > 0 || verticalLines.length > 0 || fibRetracements.length > 0) && (
+                        <div style={styles.indicatorList}>
+                            <h4 style={{ marginBottom: '15px', color: '#1e293b' }}>Active Indicators & Drawings</h4>
+                            
+                            {movingAverages.map(ma => (
+                                <div key={ma.id} style={styles.indicatorItem}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ 
+                                            width: '20px', 
+                                            height: '3px', 
+                                            background: ma.color,
+                                            borderRadius: '2px'
+                                        }} />
+                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                                            {ma.type} ({ma.period})
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => removeMovingAverage(ma.id)}
+                                        style={styles.deleteButton}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                            
+                            {horizontalLines.map(line => (
+                                <div key={line.id} style={styles.indicatorItem}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ 
+                                            width: '20px', 
+                                            height: '2px', 
+                                            background: line.color 
+                                        }} />
+                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                                            {line.label} (${line.price.toFixed(2)})
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => removeHorizontalLine(line.id)}
+                                        style={styles.deleteButton}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                            
+                            {verticalLines.map(line => (
+                                <div key={line.id} style={styles.indicatorItem}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ 
+                                            width: '2px', 
+                                            height: '20px', 
+                                            background: line.color 
+                                        }} />
+                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                                            {line.label}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => removeVerticalLine(line.id)}
+                                        style={styles.deleteButton}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                            
+                            {fibRetracements.map(fib => (
+                                <div key={fib.id} style={styles.indicatorItem}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                                            📐 Fibonacci Retracement ({fib.high.toFixed(2)} - {fib.low.toFixed(2)})
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => removeFibRetracement(fib.id)}
+                                        style={styles.deleteButton}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     <div style={styles.chartContainer} className="chart-container">
                         <div style={styles.chartTitle} className="chart-title">
-                            {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart - {timeframes[timeframe].description}
+                            {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart
                         </div>
                         
                         <div 
@@ -1214,20 +1413,6 @@ export default function Charts() {
                     </div>
                 </>
             )}
-
-            <div style={styles.instructionsCard}>
-                <div style={styles.instructionsTitle}>Advanced Chart Features & Controls</div>
-                <ul style={styles.instructionsList}>
-                    <li style={styles.instructionItem}><strong>Real Data Sources:</strong> Binance API for crypto, YFinance (via Django backend) for stocks, forex, commodities, and bonds</li>
-                    <li style={styles.instructionItem}><strong>Technical Indicators:</strong> Toggle EMA 20, SMA 50, and Volume indicators</li>
-                    <li style={styles.instructionItem}><strong>Annotations:</strong> Add horizontal price lines for marking key levels</li>
-                    <li style={styles.instructionItem}><strong>Live Updates:</strong> Real-time price movements every 5 seconds</li>
-                    <li style={styles.instructionItem}><strong>Zoom & Pan:</strong> Mouse wheel to zoom, click and drag to navigate</li>
-                    <li style={styles.instructionItem}><strong>Crosshair:</strong> Hover for precise price and timestamp information</li>
-                    <li style={styles.instructionItem}><strong>Multiple Timeframes:</strong> 1M to 1W with appropriate data lookback periods</li>
-                    <li style={styles.instructionItem}><strong>Responsive:</strong> Optimized for desktop and mobile viewing</li>
-                </ul>
-            </div>
         </div>
         </div>
         </div>
