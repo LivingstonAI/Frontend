@@ -1303,6 +1303,13 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                             max-height: 300px !important;
                         }
                     }
+                    
+                    /* Desktop positioning adjustment */
+                    @media (min-width: 769px) {
+                        .livingston-panel {
+                            bottom: 30px !important;
+                        }
+                    }
                 `}
             </style>
             <div className="header">
