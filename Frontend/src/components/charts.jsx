@@ -296,7 +296,6 @@ const styles = {
     cursor: 'pointer',
     fontSize: '0.85rem'
   },
-  // Livingston AI Styles
   livingstonToggle: {
     position: 'fixed',
     bottom: '30px',
@@ -451,6 +450,7 @@ export default function Charts() {
     const chartRef = useRef(null);
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const updateIntervalRef = useRef(null);
     
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
@@ -464,6 +464,7 @@ export default function Charts() {
     const [error, setError] = useState('');
     const [dataStats, setDataStats] = useState(null);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [lastUpdateTime, setLastUpdateTime] = useState(null);
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
     // Livingston AI Assistant States
@@ -499,49 +500,56 @@ export default function Charts() {
             interval: '1m', 
             binanceInterval: '1m',
             yfinancePeriod: '1d',
-            description: '1 day'
+            description: '1 day',
+            updateInterval: 10000 // 10 seconds
         },
         '5M': { 
             label: '5 Minutes', 
             interval: '5m', 
             binanceInterval: '5m',
             yfinancePeriod: '5d',
-            description: '5 days'
+            description: '5 days',
+            updateInterval: 10000 // 10 seconds
         },
         '15M': { 
             label: '15 Minutes', 
             interval: '15m', 
             binanceInterval: '15m',
             yfinancePeriod: '1mo',
-            description: '1 month'
+            description: '1 month',
+            updateInterval: 10000 // 10 seconds
         },
         '1H': { 
             label: '1 Hour', 
             interval: '1h', 
             binanceInterval: '1h',
             yfinancePeriod: '3mo',
-            description: '3 months'
+            description: '3 months',
+            updateInterval: 10000 // 10 seconds
         },
         '4H': { 
             label: '4 Hours', 
             interval: '4h', 
             binanceInterval: '4h',
             yfinancePeriod: '6mo',
-            description: '6 months'
+            description: '6 months',
+            updateInterval: 10000 // 10 seconds
         },
         '1D': { 
             label: '1 Day', 
             interval: '1d', 
             binanceInterval: '1d',
             yfinancePeriod: '2y',
-            description: '2 years'
+            description: '2 years',
+            updateInterval: 10000 // 10 seconds
         },
         '1W': { 
             label: '1 Week', 
             interval: '1w', 
             binanceInterval: '1w',
             yfinancePeriod: '10y',
-            description: '10 years'
+            description: '10 years',
+            updateInterval: 10000 // 10 seconds
         }
     };
 
@@ -895,6 +903,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         })).sort((a, b) => a.time - b.time);
     };
 
+    // Main data fetching effect
     useEffect(() => {
         const fetchData = async () => {
             if (!tvLoaded) return;
@@ -905,6 +914,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
             try {
                 const data = await fetchRealMarketData(assetInfo, timeframe);
                 setMarketData(data);
+                setLastUpdateTime(new Date());
                 
                 if (data.length > 0) {
                     const latestCandle = data[data.length - 1];
@@ -934,6 +944,59 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         
         fetchData();
     }, [selectedAsset, timeframe, tvLoaded]);
+
+    // Auto-update effect - makes real API calls
+    useEffect(() => {
+        if (marketData.length === 0 || !tvLoaded) return;
+        
+        // Clear existing interval
+        if (updateIntervalRef.current) {
+            clearInterval(updateIntervalRef.current);
+        }
+        
+        const assetInfo = getCurrentAssetInfo();
+        const timeframeConfig = timeframes[timeframe];
+        
+        // Set up interval based on timeframe
+        updateIntervalRef.current = setInterval(async () => {
+            console.log(`Auto-updating ${assetInfo.name} data...`);
+            
+            try {
+                const newData = await fetchRealMarketData(assetInfo, timeframe);
+                
+                if (newData.length > 0) {
+                    setMarketData(newData);
+                    setLastUpdateTime(new Date());
+                    
+                    const latestCandle = newData[newData.length - 1];
+                    const firstCandle = newData[0];
+                    setCurrentPrice(latestCandle.close);
+                    
+                    const changePercent = ((latestCandle.close - firstCandle.close) / firstCandle.close) * 100;
+                    setPriceChange(changePercent);
+                    
+                    setDataStats({
+                        candles: newData.length,
+                        period: timeframeConfig.description,
+                        firstDate: new Date(firstCandle.time * 1000).toLocaleDateString(),
+                        lastDate: new Date(latestCandle.time * 1000).toLocaleDateString(),
+                        highestPrice: Math.max(...newData.map(d => d.high)),
+                        lowestPrice: Math.min(...newData.map(d => d.low))
+                    });
+                    
+                    console.log(`Updated ${assetInfo.name} - Latest price: ${latestCandle.close}`);
+                }
+            } catch (error) {
+                console.error('Error during auto-update:', error);
+            }
+        }, timeframeConfig.updateInterval);
+        
+        return () => {
+            if (updateIntervalRef.current) {
+                clearInterval(updateIntervalRef.current);
+            }
+        };
+    }, [selectedAsset, timeframe, marketData.length, tvLoaded]);
 
     const calculateEMA = (data, period) => {
         const k = 2 / (period + 1);
@@ -1189,57 +1252,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         };
     }, [marketData, chartType, tvLoaded, movingAverages, showVolume]);
 
-    useEffect(() => {
-        if (marketData.length === 0) return;
-        
-        const interval = setInterval(() => {
-            const lastCandle = marketData[marketData.length - 1];
-            
-            const baseVolatility = 0.0001;
-            const randomDirection = Math.random() > 0.5 ? 1 : -1;
-            const randomMagnitude = Math.random() * baseVolatility;
-            const priceChange = randomDirection * randomMagnitude;
-            
-            const newPrice = lastCandle.close * (1 + priceChange);
-            
-            setCurrentPrice(newPrice);
-            
-            if (chartRef.current && chartRef.current.series) {
-                const currentTime = Math.floor(Date.now() / 1000);
-                
-                const newCandle = {
-                    time: currentTime,
-                    open: lastCandle.close,
-                    high: Math.max(lastCandle.close, newPrice),
-                    low: Math.min(lastCandle.close, newPrice),
-                    close: newPrice,
-                    value: newPrice
-                };
-                
-                try {
-                    if (chartType === 'candlestick') {
-                        chartRef.current.series.update({
-                            time: newCandle.time,
-                            open: newCandle.open,
-                            high: newCandle.high,
-                            low: newCandle.low,
-                            close: newCandle.close
-                        });
-                    } else {
-                        chartRef.current.series.update({
-                            time: newCandle.time,
-                            value: newCandle.value
-                        });
-                    }
-                } catch (e) {
-                    // Ignore update errors
-                }
-            }
-        }, 10000);
-        
-        return () => clearInterval(interval);
-    }, [marketData, timeframe, chartType]);
-
     return (
         <div style={{ width: '100%' }}>
             <style>
@@ -1282,7 +1294,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         box-shadow: 0 12px 32px rgba(59, 130, 246, 0.6);
                     }
                     
-                    /* Mobile responsive styles */
                     @media (max-width: 768px) {
                         .livingston-panel {
                             width: calc(100vw - 20px) !important;
@@ -1304,7 +1315,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         }
                     }
                     
-                    /* Desktop positioning adjustment */
                     @media (min-width: 769px) {
                         .livingston-panel {
                             bottom: 30px !important;
@@ -1322,7 +1332,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         ⚡ SnowAI Trading Charts - Professional Tools
                     </div>
             
-            {/* Moving Average Dialog */}
             {showMADialog && (
                 <>
                     <div style={styles.modalOverlay} onClick={() => setShowMADialog(false)} />
@@ -1480,6 +1489,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                         | <strong>Period:</strong> {dataStats.firstDate} to {dataStats.lastDate}
                         | <strong>Range:</strong> ${dataStats.lowestPrice.toFixed(4)} - ${dataStats.highestPrice.toFixed(4)}
                         | <strong>Source:</strong> {dataSource}
+                        {lastUpdateTime && <> | <strong>Last Update:</strong> {lastUpdateTime.toLocaleTimeString()}</>}
                     </div>
                 )}
             </div>
@@ -1608,7 +1618,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 </>
             )}
             
-            {/* Livingston AI Toggle Button */}
             {!livingstonOpen && (
                 <button 
                     className="livingston-toggle"
@@ -1620,7 +1629,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 </button>
             )}
             
-            {/* Livingston AI Chat Panel */}
             {livingstonOpen && (
                 <div style={styles.livingstonPanel} className="livingston-panel">
                     <div style={styles.livingstonHeader}>
