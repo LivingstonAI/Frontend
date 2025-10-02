@@ -74,15 +74,25 @@ const styles = {
         color: '#0369a1',
         border: '1px solid #7dd3fc'
     },
+    badgeCommodity: {
+        backgroundColor: '#fef3c7',
+        color: '#92400e',
+        border: '1px solid #fcd34d'
+    },
+    badgeBond: {
+        backgroundColor: '#f3e8ff',
+        color: '#6b21a8',
+        border: '1px solid #d8b4fe'
+    },
     badgeActive: {
         backgroundColor: '#dcfce7',
         color: '#166534',
         border: '1px solid #86efac'
     },
     badgeTriggered: {
-        backgroundColor: '#fef3c7',
-        color: '#92400e',
-        border: '1px solid #fcd34d'
+        backgroundColor: '#fecaca',
+        color: '#991b1b',
+        border: '1px solid #fca5a5'
     },
     deleteButton: {
         backgroundColor: '#ef4444',
@@ -119,8 +129,9 @@ const styles = {
         fontSize: '0.95rem'
     },
     radioGroup: {
-        display: 'flex',
-        gap: '20px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gap: '15px',
         marginTop: '8px'
     },
     radioItem: {
@@ -302,8 +313,10 @@ const styles = {
 };
 
 export default function AlertBot() {
-    const [forexAssets] = useState(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD']);
+    const [forexAssets] = useState(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'XAUUSD']);
     const [stockIndices] = useState(['S&P 500', 'NASDAQ', 'DOW JONES']);
+    const [commodities] = useState(['XAUUSD']);
+    const [bonds] = useState(['ZB1!', 'US10Y', 'US5Y']);
     const [outcome, setOutcome] = useState("");
     const [outcomeType, setOutcomeType] = useState("");
     const [selectedAssets, setSelectedAssets] = useState([]);
@@ -361,7 +374,18 @@ export default function AlertBot() {
     };
 
     const getAvailableAssets = () => {
-        return assetType === 'forex' ? forexAssets : stockIndices;
+        switch(assetType) {
+            case 'forex':
+                return forexAssets;
+            case 'stock':
+                return stockIndices;
+            case 'commodity':
+                return commodities;
+            case 'bond':
+                return bonds;
+            default:
+                return forexAssets;
+        }
     };
 
     const addAsset = () => {
@@ -389,7 +413,6 @@ export default function AlertBot() {
         setOutcome("Asset added successfully!");
         setOutcomeType("success");
         
-        // Clear form inputs
         document.getElementById("asset-select").value = "";
         document.getElementById("price-input").value = "";
         document.getElementById("condition-select").value = "";
@@ -441,16 +464,67 @@ export default function AlertBot() {
     const getAssetType = (asset) => {
         if (stockIndices.includes(asset)) {
             return 'Stock Index';
+        } else if (bonds.includes(asset)) {
+            return 'Bond';
+        } else if (asset === 'XAUUSD') {
+            return 'Commodity';
         } else if (forexAssets.includes(asset)) {
             return 'Forex';
         }
         return 'Unknown';
     };
 
+    const getAssetBadgeStyle = (asset) => {
+        const type = getAssetType(asset);
+        switch(type) {
+            case 'Stock Index':
+                return styles.badgeStock;
+            case 'Bond':
+                return styles.badgeBond;
+            case 'Commodity':
+                return styles.badgeCommodity;
+            case 'Forex':
+            default:
+                return styles.badgeForex;
+        }
+    };
+
     const activeAlerts = existingAlerts.filter(alert => !alert.checked).length;
     const triggeredAlerts = existingAlerts.filter(alert => alert.checked).length;
-    const forexAlerts = existingAlerts.filter(alert => forexAssets.includes(alert.asset)).length;
+    const forexAlerts = existingAlerts.filter(alert => forexAssets.includes(alert.asset) && alert.asset !== 'XAUUSD').length;
     const stockAlerts = existingAlerts.filter(alert => stockIndices.includes(alert.asset)).length;
+    const commodityAlerts = existingAlerts.filter(alert => alert.asset === 'XAUUSD').length;
+    const bondAlerts = existingAlerts.filter(alert => bonds.includes(alert.asset)).length;
+
+    const getPriceStep = () => {
+        switch(assetType) {
+            case 'forex':
+                return "0.00001";
+            case 'stock':
+                return "0.01";
+            case 'commodity':
+                return "0.01";
+            case 'bond':
+                return "0.001";
+            default:
+                return "0.01";
+        }
+    };
+
+    const getPricePlaceholder = () => {
+        switch(assetType) {
+            case 'forex':
+                return "e.g., 1.23456";
+            case 'stock':
+                return "e.g., 4500.00";
+            case 'commodity':
+                return "e.g., 2000.00";
+            case 'bond':
+                return "e.g., 4.250";
+            default:
+                return "Enter price";
+        }
+    };
 
     return (
         <div style={styles.container}>
@@ -460,15 +534,13 @@ export default function AlertBot() {
             <div className="main-page-body">
                 <SideNavs />
                 <div style={styles.mainContent}>
-                    {/* Header Section */}
                     <div style={styles.header}>
                         <h1 style={styles.headerTitle}>📊 Alert Bot</h1>
                         <p style={styles.headerSubtitle}>
-                            Set up intelligent price alerts for Forex pairs and Stock Indices
+                            Set up intelligent price alerts for Forex, Stocks, Commodities & Bonds
                         </p>
                     </div>
 
-                    {/* Stats Cards */}
                     <div style={styles.statsCards}>
                         <div style={styles.statsCard}>
                             <div style={styles.statsNumber}>{activeAlerts}</div>
@@ -486,9 +558,16 @@ export default function AlertBot() {
                             <div style={styles.statsNumber}>{stockAlerts}</div>
                             <div style={styles.statsLabel}>Stock Indices</div>
                         </div>
+                        <div style={styles.statsCard}>
+                            <div style={styles.statsNumber}>{commodityAlerts}</div>
+                            <div style={styles.statsLabel}>Commodities</div>
+                        </div>
+                        <div style={styles.statsCard}>
+                            <div style={styles.statsNumber}>{bondAlerts}</div>
+                            <div style={styles.statsLabel}>Bonds</div>
+                        </div>
                     </div>
                     
-                    {/* Existing Alerts Section */}
                     <div style={styles.alertsSection}>
                         <h2 style={styles.sectionTitle}>
                             🔔 Your Alerts
@@ -525,7 +604,7 @@ export default function AlertBot() {
                                                     <span 
                                                         style={{
                                                             ...styles.badge,
-                                                            ...(getAssetType(alert.asset) === 'Stock Index' ? styles.badgeStock : styles.badgeForex)
+                                                            ...getAssetBadgeStyle(alert.asset)
                                                         }}
                                                     >
                                                         {getAssetType(alert.asset)}
@@ -565,7 +644,6 @@ export default function AlertBot() {
                         </div>
                     </div>
 
-                    {/* Add New Alert Section */}
                     <div style={styles.card}>
                         <div style={styles.cardHeader}>
                             <h2 style={styles.sectionTitle}>
@@ -573,7 +651,6 @@ export default function AlertBot() {
                             </h2>
                         </div>
 
-                        {/* Asset Type Selection */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Asset Type</label>
                             <div style={styles.radioGroup}>
@@ -612,13 +689,50 @@ export default function AlertBot() {
                                         onChange={(e) => setAssetType(e.target.value)}
                                     />
                                     <label style={styles.radioLabel}>
-                                        📈 Stock Indices
+                                        📈 Stocks
+                                    </label>
+                                </div>
+                                <div 
+                                    style={{
+                                        ...styles.radioItem,
+                                        ...(assetType === 'commodity' ? styles.radioItemActive : {})
+                                    }}
+                                    onClick={() => setAssetType('commodity')}
+                                >
+                                    <input
+                                        style={styles.radioInput}
+                                        type="radio"
+                                        name="assetType"
+                                        value="commodity"
+                                        checked={assetType === 'commodity'}
+                                        onChange={(e) => setAssetType(e.target.value)}
+                                    />
+                                    <label style={styles.radioLabel}>
+                                        🪙 Commodities
+                                    </label>
+                                </div>
+                                <div 
+                                    style={{
+                                        ...styles.radioItem,
+                                        ...(assetType === 'bond' ? styles.radioItemActive : {})
+                                    }}
+                                    onClick={() => setAssetType('bond')}
+                                >
+                                    <input
+                                        style={styles.radioInput}
+                                        type="radio"
+                                        name="assetType"
+                                        value="bond"
+                                        checked={assetType === 'bond'}
+                                        onChange={(e) => setAssetType(e.target.value)}
+                                    />
+                                    <label style={styles.radioLabel}>
+                                        📜 Bonds
                                     </label>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Asset Selection */}
                         <div style={styles.formGroup}>
                             <label style={styles.label} htmlFor="asset-select">
                                 Select Asset
@@ -630,7 +744,10 @@ export default function AlertBot() {
                                 onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                             >
                                 <option value="">
-                                    Choose {assetType === 'forex' ? 'a forex pair' : 'a stock index'}
+                                    Choose {assetType === 'forex' ? 'a forex pair' : 
+                                            assetType === 'stock' ? 'a stock index' : 
+                                            assetType === 'commodity' ? 'a commodity' : 
+                                            'a bond'}
                                 </option>
                                 {getAvailableAssets().map((asset, index) => (
                                     <option key={index} value={asset}>
@@ -640,7 +757,6 @@ export default function AlertBot() {
                             </select>
                         </div>
 
-                        {/* Price Input */}
                         <div style={styles.formGroup}>
                             <label style={styles.label} htmlFor="price-input">
                                 Target Price
@@ -648,15 +764,14 @@ export default function AlertBot() {
                             <input
                                 style={styles.input}
                                 type="number"
-                                step={assetType === 'forex' ? "0.00001" : "0.01"}
+                                step={getPriceStep()}
                                 id="price-input"
-                                placeholder={assetType === 'forex' ? "e.g., 1.23456" : "e.g., 4500.00"}
+                                placeholder={getPricePlaceholder()}
                                 onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                 onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                             />
                         </div>
 
-                        {/* Condition Selection */}
                         <div style={styles.formGroup}>
                             <label style={styles.label} htmlFor="condition-select">
                                 Alert Condition
@@ -683,7 +798,6 @@ export default function AlertBot() {
                         </button>
                     </div>
 
-                    {/* Selected Assets Preview */}
                     {selectedAssets.length > 0 && (
                         <div style={styles.card}>
                             <div style={styles.cardHeader}>
