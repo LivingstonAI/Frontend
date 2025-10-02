@@ -104,48 +104,45 @@ export default function SideNavs() {
   const [touchFeedback, setTouchFeedback] = useState(null);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
-  // Virtual keyboard navigation items with Korean and Chinese characters
+  // Virtual keyboard navigation items with hieroglyphic symbols
   const navigationItems = [
-    { route: "/personal_info", symbol: "인" },
-    { route: "/account_analytics", symbol: "분" },
-    { route: "/market_makers", symbol: "시" },
-    { route: `/conversation/${uniqueID}`, symbol: "대" },
-    { route: "/daily_brief", symbol: "일" },
-    { route: "/performance_review/asset", symbol: "성" },
-    { route: "/update_news", symbol: "新" },
-    { route: "/enter_new_trade_info", symbol: "거" },
-    { route: "/scratch", symbol: "智" },
-    { route: "/model_performance", symbol: "모" },
-    { route: "/risk_bot", symbol: "险" },
-    { route: "/chill", symbol: "음" },
-    { route: "/quizifier", symbol: "퀴" },
-    { route: "/saved_quizzes", symbol: "저" },
-    { route: "/alert_bot", symbol: "警" },
-    { route: "/tradergpt_analysis", symbol: "지" },
-    { route: "/backtested_results", symbol: "结" },
-    { route: "/ideas_section", symbol: "아" },
-    { route: "/call_ai", symbol: "통" },
-    { route: "/trade_ideas", symbol: "想" },
-    { route: "/prop_firm_management", symbol: "社" },
-    { route: "/music", symbol: "乐" },
-    { route: "/calendar", symbol: "历" },
-    { route: "/calendar_data", symbol: "数" },
-    { route: "/forex_factory", symbol: "외" },
-    { route: "/trading_calendar", symbol: "易" },
-    { route: "/paper_gpt", symbol: "论" },
-    { route: "/process_checker", symbol: "检" },
-    { route: "/economics_gpt", symbol: "经" },
-    { route: "/ai_council", symbol: "议" },
-    { route: "/ai_council_conversations", symbol: "话" },
-    { route: "/firm_compliance", symbol: "规" },
-    { route: "/esi", symbol: "强" },
-    { route: "/research_logbook", symbol: "研" },
-    { route: "/snowai_central_hub", symbol: "枢" },
-    { route: "/snowai_earth", symbol: "地" },
-    { route: "/diagnostics", symbol: "诊" },
-    { route: "/video_transcription", symbol: "录" },
-    { route: "/board_of_governors", symbol: "理" },
-    { route: "/charts", symbol: "图" }
+    { route: "/personal_info", symbol: "𓀀", name: "Profile", description: "Personal Information" },
+    { route: "/account_analytics", symbol: "𓊖", name: "Analytics", description: "Account Analytics" },
+    { route: "/market_makers", symbol: "𓉤", name: "Markets", description: "Market Makers" },
+    { route: `/conversation/${uniqueID}`, symbol: "𓂋", name: "Chat", description: "Conversation" },
+    { route: "/daily_brief", symbol: "𓄿", name: "Brief", description: "Daily Brief" },
+    { route: "/performance_review/asset", symbol: "𓈖", name: "Review", description: "Performance Review" },
+    { route: "/update_news", symbol: "𓊪", name: "News", description: "Update News" },
+    { route: "/enter_new_trade_info", symbol: "𓇯", name: "Trade", description: "New Trade Info" },
+    { route: "/scratch", symbol: "𓌳", name: "AI", description: "Scratch AI" },
+    { route: "/model_performance", symbol: "𓊽", name: "Model", description: "Model Performance" },
+    { route: "/risk_bot", symbol: "𓈗", name: "Risk", description: "Risk Bot" },
+    { route: "/chill", symbol: "𓊝", name: "Music", description: "Chill Music" },
+    { route: "/quizifier", symbol: "𓊨", name: "Quiz", description: "Quizifier" },
+    { route: "/saved_quizzes", symbol: "𓈙", name: "Saved", description: "Saved Quizzes" },
+    { route: "/alert_bot", symbol: "𓊿", name: "Alert", description: "Alert Bot" },
+    { route: "/tradergpt_analysis", symbol: "𓋹", name: "GPT", description: "Trader GPT" },
+    { route: "/backtested_results", symbol: "𓊭", name: "Results", description: "Backtest Results" },
+    { route: "/ideas_section", symbol: "𓊤", name: "Ideas", description: "Ideas Section" },
+    { route: "/call_ai", symbol: "𓊚", name: "Call", description: "Call AI" },
+    { route: "/trade_ideas", symbol: "𓈘", name: "Trades", description: "Trade Ideas" },
+    { route: "/prop_firm_management", symbol: "𓉗", name: "Firm", description: "Prop Firm" },
+    { route: "/music", symbol: "𓊡", name: "Audio", description: "Music Player" },
+    { route: "/calendar", symbol: "𓊣", name: "Calendar", description: "Calendar" },
+    { route: "/calendar_data", symbol: "𓊦", name: "Data", description: "Calendar Data" },
+    { route: "/econ_explainer", symbol: "𓋻", name: "Econ", description: "Economics" },
+    { route: "/forex_factory", symbol: "𓊬", name: "Forex", description: "Forex Factory" },
+    { route: "/trading_econ_dashboard", symbol: "𓊲", name: "Dashboard", description: "Trading Dashboard" },
+    { route: "/trading_calendar", symbol: "𓊳", name: "TradeCal", description: "Trading Calendar" },
+    { route: "/paper_gpt", symbol: "𓊮", name: "Paper", description: "Paper GPT" },
+    { route: "/process_checker", symbol: "𓊯", name: "Process", description: "Process Checker" },
+    { route: "/science_playground", symbol: "𓊱", name: "Science", description: "Science Playground" },
+    { route: "/economics_gpt", symbol: "𓊴", name: "EconGPT", description: "Economics GPT" },
+    { route: "/ai_council", symbol: "𓊵", name: "Council", description: "AI Council" },
+    { route: "/ai_council_conversations", symbol: "𓊶", name: "Convos", description: "AI Conversations" },
+    { route: "/firm_compliance", symbol: "𓊷", name: "Compliance", description: "Firm Compliance" },
+    { route: "/esi", symbol: "𓊷", name: "Economic Strength Index", description: "Economic Strength Index" }
+
   ];
 
   // Import song files
@@ -232,14 +229,26 @@ export default function SideNavs() {
   ];
 
   // Enhanced touch navigation function
-  const handleTouchNavigation = (route) => {
+  const handleTouchNavigation = (route, itemName) => {
+    // Provide immediate visual feedback
+    setTouchFeedback(itemName);
+    
     // Add haptic feedback if available
     if (navigator.vibrate) {
-      navigator.vibrate(50);
+      navigator.vibrate(50); // 50ms vibration
     }
     
-    navigate(route);
-    setShowKeyboard(false);
+    // Audio feedback (optional)
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFAg+ltryxnkpBSl+zPLZjzoIGGS57OKdTgwPUarm7blmGggdDUJ6lc7xzHcrBSU1QwRGVJ2TbDZGJjJjpM/srzNHKtFQk8Pm7rtmGwcaDUNAr+HqtGcaCD1UltHwzHgqBSg5Tf'); // Optional sound effect
+    audio.volume = 0.1; // Keep it subtle
+    audio.play().catch(() => {}); // Ignore errors if audio fails
+    
+    // Navigate after a short delay to show visual feedback
+    setTimeout(() => {
+      navigate(route);
+      setShowKeyboard(false);
+      setTouchFeedback(null);
+    }, 150);
   };
 
   // Toggle functions
@@ -380,13 +389,66 @@ export default function SideNavs() {
   return (
     <div className="all-side-navs">
       <style jsx>{`
+        .virtual-keyboard-container {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 1000;
+          background: linear-gradient(135deg, #001f3f 0%, #003366 50%, #004080 100%);
+          border-top: 2px solid #00aaff;
+          box-shadow: 0 -8px 32px rgba(0, 170, 255, 0.3);
+          backdrop-filter: blur(10px);
+          padding: 20px;
+          transform: translateY(${showKeyboard ? '0' : '100%'});
+          transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .keyboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          color: #00aaff;
+          font-weight: bold;
+        }
+
+        .keyboard-close-btn {
+          background: transparent;
+          border: 2px solid #00aaff;
+          color: #00aaff;
+          border-radius: 8px;
+          padding: 8px 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .keyboard-close-btn:hover {
+          background: #00aaff;
+          color: #001f3f;
+          box-shadow: 0 0 20px rgba(0, 170, 255, 0.6);
+        }
+
+        .navigation-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+          gap: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+          padding: 10px;
+          background: rgba(0, 50, 100, 0.5);
+          border-radius: 12px;
+          border: 1px solid #00aaff;
+        }
+
         .nav-key {
           background: linear-gradient(145deg, #003366, #001f3f);
           border: 2px solid #00aaff;
           border-radius: 12px;
-          padding: 15px;
+          padding: 12px;
           min-height: 80px;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           cursor: pointer;
@@ -395,6 +457,9 @@ export default function SideNavs() {
           position: relative;
           overflow: hidden;
           user-select: none;
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
           touch-action: manipulation;
         }
 
@@ -410,7 +475,8 @@ export default function SideNavs() {
         }
 
         .nav-key:hover,
-        .nav-key:focus {
+        .nav-key:focus,
+        .nav-key.touch-active {
           background: linear-gradient(145deg, #004080, #00aaff);
           color: #ffffff;
           transform: translateY(-2px) scale(1.05);
@@ -419,7 +485,8 @@ export default function SideNavs() {
         }
 
         .nav-key:hover::before,
-        .nav-key:focus::before {
+        .nav-key:focus::before,
+        .nav-key.touch-active::before {
           left: 100%;
         }
 
@@ -428,9 +495,30 @@ export default function SideNavs() {
           box-shadow: 0 4px 15px rgba(0, 170, 255, 0.6);
         }
 
-        .character-symbol {
-          font-size: 32px;
+        .nav-key.feedback-pulse {
+          animation: touchFeedback 0.3s ease-out;
+          background: linear-gradient(145deg, #00ff88, #00aaff);
+          box-shadow: 0 0 30px rgba(0, 255, 136, 0.8);
+        }
+
+        @keyframes touchFeedback {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+          100% { transform: scale(1.05); }
+        }
+
+        .hieroglyph {
+          font-size: 24px;
+          margin-bottom: 4px;
+          font-family: 'Noto Sans Egyptian Hieroglyphs', serif;
+          pointer-events: none;
+        }
+
+        .key-label {
+          font-size: 10px;
           font-weight: bold;
+          text-align: center;
+          line-height: 1.2;
           pointer-events: none;
         }
 
@@ -481,14 +569,62 @@ export default function SideNavs() {
           border-radius: inherit;
         }
 
-        @media (max-width: 768px) {
+        .touch-feedback-overlay {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 170, 255, 0.9);
+          color: white;
+          padding: 15px 25px;
+          border-radius: 12px;
+          font-size: 18px;
+          font-weight: bold;
+          z-index: 2000;
+          pointer-events: none;
+          animation: fadeInOut 0.5s ease-out;
+        }
+
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* Enhanced touch targets for better touchscreen experience */
+        @media (hover: none) and (pointer: coarse) {
           .nav-key {
-            min-height: 70px;
-            padding: 12px;
+            min-height: 90px;
+            padding: 15px;
+            font-size: 12px;
           }
           
-          .character-symbol {
+          .hieroglyph {
             font-size: 28px;
+          }
+          
+          .key-label {
+            font-size: 11px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .navigation-grid {
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 10px;
+          }
+          
+          .nav-key {
+            min-height: 70px;
+            padding: 10px;
+          }
+          
+          .hieroglyph {
+            font-size: 20px;
+          }
+          
+          .key-label {
+            font-size: 9px;
           }
           
           .keyboard-toggle-btn {
@@ -499,13 +635,26 @@ export default function SideNavs() {
         }
 
         @media (max-width: 480px) {
-          .nav-key {
-            min-height: 60px;
-            padding: 10px;
+          .navigation-grid {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
           }
           
-          .character-symbol {
-            font-size: 24px;
+          .nav-key {
+            min-height: 60px;
+            padding: 8px;
+          }
+          
+          .hieroglyph {
+            font-size: 18px;
+          }
+          
+          .key-label {
+            font-size: 8px;
+          }
+          
+          .virtual-keyboard-container {
+            padding: 15px 10px;
           }
           
           .keyboard-toggle-btn {
@@ -517,22 +666,32 @@ export default function SideNavs() {
           }
         }
 
-        .navigation-grid::-webkit-scrollbar {
+        .scrollbar-hud::-webkit-scrollbar {
           width: 8px;
         }
 
-        .navigation-grid::-webkit-scrollbar-track {
+        .scrollbar-hud::-webkit-scrollbar-track {
           background: rgba(0, 31, 63, 0.5);
           border-radius: 4px;
         }
 
-        .navigation-grid::-webkit-scrollbar-thumb {
+        .scrollbar-hud::-webkit-scrollbar-thumb {
           background: linear-gradient(135deg, #00aaff, #0088cc);
           border-radius: 4px;
         }
 
-        .navigation-grid::-webkit-scrollbar-thumb:hover {
+        .scrollbar-hud::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(135deg, #0088cc, #0066aa);
+        }
+
+        /* Disable text selection on touch elements */
+        .virtual-keyboard-container * {
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          -khtml-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
         }
       `}</style>
 
@@ -561,10 +720,13 @@ export default function SideNavs() {
         <Link to="/music" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-music-note-beamed"></i></p></button></Link>
         <Link to="/calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-fill"></i></p></button></Link>
         <Link to="/calendar_data" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-clipboard-data-fill"></i></p></button></Link>
+        {/* <Link to="/econ_explainer" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cash-stack"></i></p></button></Link> */}
         <Link to="/forex_factory" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera-fill"></i></p></button></Link>
+        {/* <Link to="/trading_econ_dashboard" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-graph-up-arrow"></i></p></button></Link> */}
         <Link to="/trading_calendar" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-calendar-date-fill"></i></p></button></Link>
         <Link to="/paper_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-mortarboard-fill"></i></p></button></Link>
         <Link to="/process_checker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-patch-check-fill"></i></p></button></Link>
+        {/* <Link to="/science_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/economics_gpt" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-dollar"></i></p></button></Link>
         <Link to="/ai_council" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-pentagon-fill"></i></p></button></Link>
         <Link to="/ai_council_conversations" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chat-fill"></i></p></button></Link>
@@ -653,9 +815,15 @@ export default function SideNavs() {
         <Link to="/calendar_data" className="side-nav">
             <i className="bi bi-clipboard-data-fill"></i>
         </Link>
+        {/* <Link to="/econ_explainer" className="side-nav">
+            <i className="bi bi-cash-stack"></i>
+        </Link> */}
         <Link to="/forex_factory" className="side-nav">
             <i className="bi bi-camera-fill"></i>
         </Link>
+        {/* <Link to="/trading_econ_dashboard" className="side-nav">
+            <i className="bi bi-graph-up-arrow"></i>
+        </Link> */}
         <Link to="/trading_calendar" className="side-nav">
             <i className="bi bi-calendar-date-fill"></i>
         </Link>
@@ -665,6 +833,9 @@ export default function SideNavs() {
         <Link to="/process_checker" className="side-nav">
             <i className="bi bi-patch-check-fill"></i>
         </Link>
+        {/* <Link to="/science_playground" className="side-nav">
+            <i className="bi bi-infinity"></i>
+        </Link> */}
         <Link to="/economics_gpt" className="side-nav">
             <i className="bi bi-currency-dollar"></i>
         </Link>
@@ -738,7 +909,7 @@ export default function SideNavs() {
       {/* Conditional rendering of AssetTracker */}
       {showAssetTracker && <AssetTracker />}
 
-      {/* Music Player, Admin buttons */}
+      {/* Music Player, Admin buttons and Modal */}
       <div className="music-color-mode">
         <div className="music-player">
           <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
@@ -809,59 +980,59 @@ export default function SideNavs() {
         </nav>
       </div><br />
 
+      {/* Touch Feedback Overlay */}
+      {touchFeedback && (
+        <div className="touch-feedback-overlay">
+          Navigating to {touchFeedback}
+        </div>
+      )}
+
       {/* Virtual Keyboard Toggle Button */}
       <button 
         className="keyboard-toggle-btn hud-glow"
         onClick={toggleKeyboard}
         title="Toggle Touch Navigation"
-        data-bs-toggle="modal"
-        data-bs-target="#navigationModal"
+        onTouchStart={(e) => e.preventDefault()}
       >
         <FaKeyboard />
       </button>
 
-      {/* Navigation Modal */}
-      <div className="modal fade" id="navigationModal" tabIndex="-1" aria-labelledby="navigationModalLabel" aria-hidden="true">
-        <div className="modal-dialog modal-dialog-centered modal-lg">
-          <div className="modal-content" style={{
-            background: 'linear-gradient(135deg, #001f3f 0%, #003366 50%, #004080 100%)',
-            border: '2px solid #00aaff',
-            boxShadow: '0 8px 32px rgba(0, 170, 255, 0.3)'
-          }}>
-            <div className="modal-header" style={{ borderBottom: '2px solid #00aaff' }}>
-              <h5 className="modal-title" id="navigationModalLabel" style={{ color: '#00aaff', fontWeight: 'bold' }}>
-                ⚡ NAVIGATION SYSTEM ⚡
-              </h5>
-              <button type="button" className="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div className="modal-body">
-              <div className="navigation-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))',
-                gap: '12px',
-                maxHeight: '400px',
-                overflowY: 'auto',
-                padding: '10px'
-              }}>
-                {navigationItems.map((item, index) => (
-                  <div 
-                    key={index}
-                    className="nav-key"
-                    onClick={() => {
-                      handleTouchNavigation(item.route);
-                      const modal = document.getElementById('navigationModal');
-                      const bootstrapModal = window.bootstrap.Modal.getInstance(modal);
-                      if (bootstrapModal) bootstrapModal.hide();
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="character-symbol">{item.symbol}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Enhanced Virtual Touch Keyboard */}
+      <div className="virtual-keyboard-container">
+        <div className="keyboard-header">
+          <div>
+            <span>⚡ TOUCH NAVIGATION SYSTEM ⚡</span>
+            <div style={{ fontSize: '12px', opacity: 0.8 }}>Touch hieroglyphics to navigate instantly</div>
           </div>
+          <button 
+            className="keyboard-close-btn"
+            onClick={toggleKeyboard}
+            onTouchStart={(e) => e.preventDefault()}
+          >
+            <FaTimes />
+          </button>
+        </div>
+        
+        <div className="navigation-grid scrollbar-hud">
+          {navigationItems.map((item, index) => (
+            <div 
+              key={index}
+              className={`nav-key ${touchFeedback === item.name ? 'feedback-pulse' : ''}`}
+              onClick={() => handleTouchNavigation(item.route, item.name)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleTouchNavigation(item.route, item.name);
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              title={item.description}
+              tabIndex={0}
+              role="button"
+              aria-label={`Navigate to ${item.description}`}
+            >
+              <div className="hieroglyph">{item.symbol}</div>
+              <div className="key-label">{item.name}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
