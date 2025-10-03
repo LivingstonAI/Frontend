@@ -958,6 +958,12 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         setShowSeparators(!showSeparators);
     };
 
+    const clearAllDrawings = () => {
+        setMovingAverages([]);
+        setShowVolume(false);
+        setShowSeparators(false);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             if (!tvLoaded) return;
