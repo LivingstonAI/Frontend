@@ -963,6 +963,7 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         setShowVolume(false);
         setShowSeparators(false);
     };
+    
 
     useEffect(() => {
         const fetchData = async () => {
