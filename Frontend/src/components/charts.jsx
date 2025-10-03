@@ -1759,7 +1759,7 @@ return (
                             ref={chartContainerRef}
                             style={{ 
                                 width: '100%', 
-                                height: '700px', 
+                                height: '320px', 
                                 borderRadius: '10px',
                                 overflow: 'hidden',
                                 position: 'relative'
