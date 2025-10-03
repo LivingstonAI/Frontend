@@ -451,6 +451,8 @@ export default function Charts() {
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
     const updateIntervalRef = useRef(null);
+    const savedVisibleRangeRef = useRef(null);
+    const isInitialLoadRef = useRef(true);
     
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [chartType, setChartType] = useState('candlestick');
@@ -501,7 +503,7 @@ export default function Charts() {
             binanceInterval: '1m',
             yfinancePeriod: '1d',
             description: '1 day',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         },
         '5M': { 
             label: '5 Minutes', 
@@ -509,7 +511,7 @@ export default function Charts() {
             binanceInterval: '5m',
             yfinancePeriod: '5d',
             description: '5 days',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         },
         '15M': { 
             label: '15 Minutes', 
@@ -517,7 +519,7 @@ export default function Charts() {
             binanceInterval: '15m',
             yfinancePeriod: '1mo',
             description: '1 month',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         },
         '1H': { 
             label: '1 Hour', 
@@ -525,7 +527,7 @@ export default function Charts() {
             binanceInterval: '1h',
             yfinancePeriod: '3mo',
             description: '3 months',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         },
         '4H': { 
             label: '4 Hours', 
@@ -533,7 +535,7 @@ export default function Charts() {
             binanceInterval: '4h',
             yfinancePeriod: '6mo',
             description: '6 months',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         },
         '1D': { 
             label: '1 Day', 
@@ -541,7 +543,7 @@ export default function Charts() {
             binanceInterval: '1d',
             yfinancePeriod: '2y',
             description: '2 years',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         },
         '1W': { 
             label: '1 Week', 
@@ -549,7 +551,7 @@ export default function Charts() {
             binanceInterval: '1w',
             yfinancePeriod: '10y',
             description: '10 years',
-            updateInterval: 10000 // 10 seconds
+            updateInterval: 10000
         }
     };
 
@@ -580,12 +582,10 @@ export default function Charts() {
         ]
     };
 
-    // Fetch API Key on mount
     useEffect(() => {
         fetchAPIKey();
     }, []);
 
-    // Fetch AI Council Discussion when Livingston is opened
     const [transcriptInsights, setTranscriptInsights] = useState([]);
     
     useEffect(() => {
@@ -605,7 +605,6 @@ export default function Charts() {
                         setTranscriptInsights(data.transcript_insights);
                     }
                     
-                    // Add welcome message with context
                     if (livingstonMessages.length === 0) {
                         let welcomeMsg = `Hello! I'm Livingston, your AI trading assistant.`;
                         
@@ -633,12 +632,10 @@ export default function Charts() {
         fetchCouncilDiscussion();
     }, [livingstonOpen]);
 
-    // Scroll to bottom of messages
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [livingstonMessages]);
 
-    // Handle image selection
     const handleImageSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -650,7 +647,6 @@ export default function Charts() {
         }
     };
 
-    // Send message to Livingston
     const sendLivingstonMessage = async () => {
         if ((!livingstonInput.trim() && !selectedImage) || livingstonLoading) return;
         
@@ -665,7 +661,6 @@ export default function Charts() {
         setLivingstonLoading(true);
         
         try {
-            // Prepare messages for OpenAI
             const messages = [
                 {
                     role: 'system',
@@ -693,7 +688,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 }
             ];
             
-            // Add conversation history
             livingstonMessages.forEach(msg => {
                 if (msg.image) {
                     messages.push({
@@ -711,7 +705,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 }
             });
             
-            // Add current message
             if (selectedImage) {
                 messages.push({
                     role: 'user',
@@ -727,7 +720,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 });
             }
             
-            // Call OpenAI API
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -923,7 +915,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         })).sort((a, b) => a.time - b.time);
     };
 
-    // Main data fetching effect
     useEffect(() => {
         const fetchData = async () => {
             if (!tvLoaded) return;
@@ -963,13 +954,12 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         };
         
         fetchData();
+        isInitialLoadRef.current = true;
     }, [selectedAsset, timeframe, tvLoaded]);
 
-    // Auto-update effect - makes real API calls
     useEffect(() => {
         if (marketData.length === 0 || !tvLoaded) return;
         
-        // Clear existing interval
         if (updateIntervalRef.current) {
             clearInterval(updateIntervalRef.current);
         }
@@ -977,7 +967,6 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         const assetInfo = getCurrentAssetInfo();
         const timeframeConfig = timeframes[timeframe];
         
-        // Set up interval based on timeframe
         updateIntervalRef.current = setInterval(async () => {
             console.log(`Auto-updating ${assetInfo.name} data...`);
             
@@ -1096,6 +1085,14 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
         if (!tvLoaded || !window.LightweightCharts || !chartContainerRef.current || marketData.length === 0) return;
 
         try {
+            if (chartRef.current && chartRef.current.chart) {
+                try {
+                    savedVisibleRangeRef.current = chartRef.current.chart.timeScale().getVisibleLogicalRange();
+                } catch (e) {
+                    console.debug('Could not save visible range:', e.message);
+                }
+            }
+
             if (chartRef.current) {
                 chartRef.current.destroy();
             }
@@ -1227,12 +1224,29 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
             window.addEventListener('resize', handleResize);
             
             setTimeout(() => {
-                chart.timeScale().fitContent();
-                const visibleLogicalRange = {
-                    from: Math.max(0, marketData.length - 100),
-                    to: marketData.length - 1
-                };
-                chart.timeScale().setVisibleLogicalRange(visibleLogicalRange);
+                if (isInitialLoadRef.current && savedVisibleRangeRef.current) {
+                    try {
+                        chart.timeScale().setVisibleLogicalRange(savedVisibleRangeRef.current);
+                        isInitialLoadRef.current = false;
+                    } catch (e) {
+                        console.debug('Could not restore visible range:', e.message);
+                        chart.timeScale().fitContent();
+                    }
+                } else if (isInitialLoadRef.current) {
+                    chart.timeScale().fitContent();
+                    const visibleLogicalRange = {
+                        from: Math.max(0, marketData.length - 100),
+                        to: marketData.length - 1
+                    };
+                    chart.timeScale().setVisibleLogicalRange(visibleLogicalRange);
+                    isInitialLoadRef.current = false;
+                } else if (savedVisibleRangeRef.current) {
+                    try {
+                        chart.timeScale().setVisibleLogicalRange(savedVisibleRangeRef.current);
+                    } catch (e) {
+                        console.debug('Could not restore visible range:', e.message);
+                    }
+                }
             }, 100);
 
             chartRef.current = {
