@@ -477,6 +477,12 @@ export default function Charts() {
     const [councilDiscussion, setCouncilDiscussion] = useState(null);
     const [selectedImage, setSelectedImage] = useState(null);
     
+    // Period separator states
+    const [showPeriodSeparators, setShowPeriodSeparators] = useState(false);
+    const [weeklyData, setWeeklyData] = useState([]);
+    const [monthlyData, setMonthlyData] = useState([]);
+    const [separatorsLoading, setSeparatorsLoading] = useState(false);
+    
     const fetchAPIKey = async () => {
         try {
             const response = await fetch(`${baseUrl}/get_openai_key`);
@@ -756,6 +762,63 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
             setLivingstonLoading(false);
             setSelectedImage(null);
         }
+    };
+
+    // Fetch weekly and monthly separator data
+    const fetchPeriodSeparators = async () => {
+        setSeparatorsLoading(true);
+        const assetInfo = getCurrentAssetInfo();
+        
+        try {
+            // Fetch weekly data
+            const weeklyResponse = await fetch(BACKEND_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symbol: assetInfo.yfinanceSymbol,
+                    interval: '1wk',
+                    period: timeframes[timeframe].yfinancePeriod
+                })
+            });
+            
+            if (weeklyResponse.ok) {
+                const weeklyResult = await weeklyResponse.json();
+                if (weeklyResult.success && weeklyResult.data) {
+                    setWeeklyData(weeklyResult.data);
+                }
+            }
+            
+            // Fetch monthly data
+            const monthlyResponse = await fetch(BACKEND_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symbol: assetInfo.yfinanceSymbol,
+                    interval: '1mo',
+                    period: timeframes[timeframe].yfinancePeriod
+                })
+            });
+            
+            if (monthlyResponse.ok) {
+                const monthlyResult = await monthlyResponse.json();
+                if (monthlyResult.success && monthlyResult.data) {
+                    setMonthlyData(monthlyResult.data);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error fetching period separators:', error);
+        } finally {
+            setSeparatorsLoading(false);
+        }
+    };
+
+    // Toggle period separators
+    const togglePeriodSeparators = async () => {
+        if (!showPeriodSeparators) {
+            await fetchPeriodSeparators();
+        }
+        setShowPeriodSeparators(!showPeriodSeparators);
     };
 
     useEffect(() => {
@@ -1079,6 +1142,9 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
 
     const clearAllDrawings = () => {
         setMovingAverages([]);
+        setShowPeriodSeparators(false);
+        setWeeklyData([]);
+        setMonthlyData([]);
     };
 
     const initTradingViewChart = () => {
@@ -1187,6 +1253,37 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 maSeries[ma.id].setData(ma.data);
             });
             
+            // Add period separator lines
+            const periodMarkers = [];
+            
+            if (showPeriodSeparators && weeklyData.length > 0) {
+                weeklyData.forEach(week => {
+                    periodMarkers.push({
+                        time: week.time,
+                        position: 'inBar',
+                        color: '#3b82f680',
+                        shape: 'arrowDown',
+                        text: 'W'
+                    });
+                });
+            }
+            
+            if (showPeriodSeparators && monthlyData.length > 0) {
+                monthlyData.forEach(month => {
+                    periodMarkers.push({
+                        time: month.time,
+                        position: 'inBar',
+                        color: '#a855f780',
+                        shape: 'arrowDown',
+                        text: 'M'
+                    });
+                });
+            }
+            
+            if (periodMarkers.length > 0) {
+                mainSeries.setMarkers(periodMarkers);
+            }
+            
             let volumeSeries = null;
             if (showVolume) {
                 volumeSeries = chart.addHistogramSeries({
@@ -1284,526 +1381,568 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 chartRef.current.destroy();
             }
         };
-    }, [marketData, chartType, tvLoaded, movingAverages, showVolume]);
+    }, [marketData, chartType, tvLoaded, movingAverages, showVolume, showPeriodSeparators, weeklyData, monthlyData]);
 
-    return (
-        <div style={{ width: '100%' }}>
-            <style>
-                {`
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                    @keyframes pulse {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.5; }
-                    }
-                    @keyframes floatOrb {
-                        0%, 100% { transform: translateY(0px); }
-                        50% { transform: translateY(-10px); }
-                    }
-                    .asset-button:hover {
-                        transform: translateY(-1px) !important;
-                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
-                    }
-                    
-                    .main-body-info {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                        margin: 0 !important;
-                        padding: 0 20px !important;
-                    }
-                    
-                    .livingston-input:focus {
-                        border-color: #3b82f6 !important;
-                    }
-                    
-                    .livingston-send:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-                    }
-                    
-                    .livingston-toggle:hover {
-                        transform: scale(1.1);
-                        box-shadow: 0 12px 32px rgba(59, 130, 246, 0.6);
-                    }
-                    
-                    @media (max-width: 768px) {
-                        .livingston-panel {
-                            width: calc(100vw - 20px) !important;
-                            right: 10px !important;
-                            left: auto !important;
-                            bottom: 100px !important;
-                            max-height: 500px !important;
-                        }
-                        
-                        .livingston-toggle {
-                            right: 20px !important;
-                            bottom: 20px !important;
-                            width: 60px !important;
-                            height: 60px !important;
-                        }
-                        
-                        .livingston-messages {
-                            max-height: 300px !important;
-                        }
-                    }
-                    
-                    @media (min-width: 769px) {
-                        .livingston-panel {
-                            bottom: 30px !important;
-                        }
-                    }
-                `}
-            </style>
-            <div className="header">
-                <Header />
-            </div>
-            <div className="main-page-body">
-                <SideNavs />
-                <div className="main-body-info" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: '0 20px' }}>
-                    <div style={styles.header} className="header-title">
-                        ⚡ SnowAI Trading Charts - Professional Tools
-                    </div>
-            
-            {showMADialog && (
-                <>
-                    <div style={styles.modalOverlay} onClick={() => setShowMADialog(false)} />
-                    <div style={styles.modal}>
-                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>Add Moving Average</h3>
-                        
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
-                            Type
-                        </label>
-                        <select 
-                            style={styles.select}
-                            value={maConfig.type}
-                            onChange={(e) => setMaConfig({...maConfig, type: e.target.value})}
-                        >
-                            <option value="SMA">Simple Moving Average (SMA)</option>
-                            <option value="EMA">Exponential Moving Average (EMA)</option>
-                            <option value="WMA">Weighted Moving Average (WMA)</option>
-                        </select>
-                        
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
-                            Period
-                        </label>
-                        <input 
-                            type="number" 
-                            style={styles.input}
-                            value={maConfig.period}
-                            onChange={(e) => setMaConfig({...maConfig, period: e.target.value})}
-                            min="2"
-                            max="200"
-                        />
-                        
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
-                            Color
-                        </label>
-                        <input 
-                            type="color" 
-                            style={{...styles.input, height: '50px', cursor: 'pointer'}}
-                            value={maConfig.color}
-                            onChange={(e) => setMaConfig({...maConfig, color: e.target.value})}
-                        />
-                        
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                            <button 
-                                onClick={addMovingAverage}
-                                style={{
-                                    ...styles.toolButton,
-                                    ...styles.toolButtonActive,
-                                    flex: 1
-                                }}
-                            >
-                                Add Indicator
-                            </button>
-                            <button 
-                                onClick={() => setShowMADialog(false)}
-                                style={{
-                                    ...styles.toolButton,
-                                    flex: 1
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </>
-            )}
-            
-            {error && (
-                <div style={styles.errorMessage}>
-                    {error}
-                </div>
-            )}
-            
-            {!tvLoaded && (
-                <div style={styles.loadingContainer}>
-                    <div style={styles.loadingSpinner}></div>
-                    <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
-                        Loading TradingView Lightweight Charts...
-                    </span>
-                </div>
-            )}
-            
-            <div style={styles.controlsContainer} className="controls-container">
-                {Object.entries(assetClasses).map(([category, assets]) => (
-                    <div key={category} style={styles.assetSection} className="asset-section">
-                        <div style={styles.categoryLabel} className="category-label">
-                            {category}
-                        </div>
-                        <div>
-                            {assets.map(asset => (
-                                <button
-                                    key={asset.symbol}
-                                    className="asset-button"
-                                    onClick={() => setSelectedAsset(asset.symbol)}
-                                    style={{
-                                        ...styles.assetButton,
-                                        ...(selectedAsset === asset.symbol ? 
-                                            styles.assetButtonActive : styles.assetButtonInactive)
-                                    }}
-                                >
-                                    {asset.symbol}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                ))}
+return (
+    <div style={{ width: '100%' }}>
+        <style>
+            {`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+                @keyframes floatOrb {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-10px); }
+                }
+                .asset-button:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+                }
                 
-                <div style={styles.chartTypeContainer}>
-                    <span style={styles.categoryLabel} className="category-label">Chart Type:</span>
-                    <button
-                        className="chart-type-button"
-                        onClick={() => setChartType('candlestick')}
-                        style={{
-                            ...styles.chartTypeButton,
-                            ...(chartType === 'candlestick' ? 
-                                styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
-                        }}
-                    >
-                        Candlestick
-                    </button>
-                    <button
-                        className="chart-type-button"
-                        onClick={() => setChartType('line')}
-                        style={{
-                            ...styles.chartTypeButton,
-                            ...(chartType === 'line' ? 
-                                styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
-                        }}
-                    >
-                        Line Chart
-                    </button>
+                .main-body-info {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 20px !important;
+                }
+                
+                .livingston-input:focus {
+                    border-color: #3b82f6 !important;
+                }
+                
+                .livingston-send:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+                }
+                
+                .livingston-toggle:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.6);
+                }
+                
+                @media (max-width: 768px) {
+                    .livingston-panel {
+                        width: calc(100vw - 20px) !important;
+                        right: 10px !important;
+                        left: auto !important;
+                        bottom: 100px !important;
+                        max-height: 500px !important;
+                    }
+                    
+                    .livingston-toggle {
+                        right: 20px !important;
+                        bottom: 20px !important;
+                        width: 60px !important;
+                        height: 60px !important;
+                    }
+                    
+                    .livingston-messages {
+                        max-height: 300px !important;
+                    }
+                }
+                
+                @media (min-width: 769px) {
+                    .livingston-panel {
+                        bottom: 30px !important;
+                    }
+                }
+            `}
+        </style>
+        <div className="header">
+            <Header />
+        </div>
+        <div className="main-page-body">
+            <SideNavs />
+            <div className="main-body-info" style={{ width: '100%', maxWidth: '100%', margin: 0, padding: '0 20px' }}>
+                <div style={styles.header} className="header-title">
+                    ⚡ SnowAI Trading Charts - Professional Tools
                 </div>
-
-                <div style={styles.timeframeContainer}>
-                    <span style={styles.categoryLabel}>Timeframe:</span>
-                    {Object.entries(timeframes).map(([key, config]) => (
-                        <button
-                            key={key}
-                            className="timeframe-button"
-                            onClick={() => setTimeframe(key)}
+        
+        {showMADialog && (
+            <>
+                <div style={styles.modalOverlay} onClick={() => setShowMADialog(false)} />
+                <div style={styles.modal}>
+                    <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>Add Moving Average</h3>
+                    
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
+                        Type
+                    </label>
+                    <select 
+                        style={styles.select}
+                        value={maConfig.type}
+                        onChange={(e) => setMaConfig({...maConfig, type: e.target.value})}
+                    >
+                        <option value="SMA">Simple Moving Average (SMA)</option>
+                        <option value="EMA">Exponential Moving Average (EMA)</option>
+                        <option value="WMA">Weighted Moving Average (WMA)</option>
+                    </select>
+                    
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
+                        Period
+                    </label>
+                    <input 
+                        type="number" 
+                        style={styles.input}
+                        value={maConfig.period}
+                        onChange={(e) => setMaConfig({...maConfig, period: e.target.value})}
+                        min="2"
+                        max="200"
+                    />
+                    
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569' }}>
+                        Color
+                    </label>
+                    <input 
+                        type="color" 
+                        style={{...styles.input, height: '50px', cursor: 'pointer'}}
+                        value={maConfig.color}
+                        onChange={(e) => setMaConfig({...maConfig, color: e.target.value})}
+                    />
+                    
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                        <button 
+                            onClick={addMovingAverage}
                             style={{
-                                ...styles.timeframeButton,
-                                ...(timeframe === key ? 
-                                    styles.timeframeButtonActive : styles.timeframeButtonInactive)
+                                ...styles.toolButton,
+                                ...styles.toolButtonActive,
+                                flex: 1
                             }}
-                            title={`${config.description} of data`}
                         >
-                            {key}
+                            Add Indicator
                         </button>
-                    ))}
-                </div>
-                
-                {dataStats && (
-                    <div style={styles.dataStats}>
-                        <strong>Data:</strong> {dataStats.candles} candles over {dataStats.period} 
-                        | <strong>Period:</strong> {dataStats.firstDate} to {dataStats.lastDate}
-                        | <strong>Range:</strong> ${dataStats.lowestPrice.toFixed(4)} - ${dataStats.highestPrice.toFixed(4)}
-                        | <strong>Source:</strong> {dataSource}
-                        {lastUpdateTime && <> | <strong>Last Update:</strong> {lastUpdateTime.toLocaleTimeString()}</>}
+                        <button 
+                            onClick={() => setShowMADialog(false)}
+                            style={{
+                                ...styles.toolButton,
+                                flex: 1
+                            }}
+                        >
+                            Cancel
+                        </button>
                     </div>
-                )}
-            </div>
-
-            {isLoading && tvLoaded && (
-                <div style={styles.loadingContainer}>
-                    <div style={styles.loadingSpinner}></div>
-                    <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
-                        Fetching {getCurrentAssetInfo().name} data ({timeframes[timeframe].description} lookback)...
-                    </span>
                 </div>
-            )}
-
-            {!isLoading && tvLoaded && marketData.length > 0 && (
-                <div style={styles.priceDisplay}>
+            </>
+        )}
+        
+        {error && (
+            <div style={styles.errorMessage}>
+                {error}
+            </div>
+        )}
+        
+        {!tvLoaded && (
+            <div style={styles.loadingContainer}>
+                <div style={styles.loadingSpinner}></div>
+                <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
+                    Loading TradingView Lightweight Charts...
+                </span>
+            </div>
+        )}
+        
+        <div style={styles.controlsContainer} className="controls-container">
+            {Object.entries(assetClasses).map(([category, assets]) => (
+                <div key={category} style={styles.assetSection} className="asset-section">
+                    <div style={styles.categoryLabel} className="category-label">
+                        {category}
+                    </div>
                     <div>
-                        <div style={styles.currentPrice}>
-                            ${currentPrice.toLocaleString(undefined, { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: getCurrentAssetInfo().symbol.includes('JPY') ? 3 : 
-                                                      currentPrice < 1 ? 6 : 
-                                                      currentPrice < 10 ? 4 : 2
-                            })}
-                        </div>
-                        <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                            {getCurrentAssetInfo().name} • {timeframes[timeframe].label} • {marketData.length} candles
-                        </div>
-                    </div>
-                    <div style={styles.realTimeIndicator}>
-                        <div style={styles.liveIndicator}></div>
-                        <span style={{ color: '#10b981', fontWeight: '600', marginRight: '15px' }}>LIVE</span>
-                        <div style={{
-                            ...styles.priceChange,
-                            ...(priceChange >= 0 ? styles.priceChangePositive : styles.priceChangeNegative)
-                        }}>
-                            {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
-                        </div>
+                        {assets.map(asset => (
+                            <button
+                                key={asset.symbol}
+                                className="asset-button"
+                                onClick={() => setSelectedAsset(asset.symbol)}
+                                style={{
+                                    ...styles.assetButton,
+                                    ...(selectedAsset === asset.symbol ? 
+                                        styles.assetButtonActive : styles.assetButtonInactive)
+                                }}
+                            >
+                                {asset.symbol}
+                            </button>
+                        ))}
                     </div>
                 </div>
-            )}
-
-            {!isLoading && tvLoaded && marketData.length > 0 && (
-                <>
-                    <div style={styles.drawingToolbar}>
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
-                            <button
-                                onClick={() => setShowMADialog(true)}
-                                style={{
-                                    ...styles.toolButton,
-                                    background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                                    color: 'white',
-                                    border: 'none'
-                                }}
-                            >
-                                📊 Add Moving Average
-                            </button>
-                            
-                            <button
-                                onClick={() => setShowVolume(!showVolume)}
-                                style={{
-                                    ...styles.toolButton,
-                                    ...(showVolume ? styles.toolButtonActive : {})
-                                }}
-                            >
-                                📈 Volume
-                            </button>
-                            
-                            {movingAverages.length > 0 && (
-                                <button
-                                    onClick={clearAllDrawings}
-                                    style={{
-                                        ...styles.deleteButton,
-                                        padding: '10px 16px'
-                                    }}
-                                >
-                                    🗑️ Clear All
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    {movingAverages.length > 0 && (
-                        <div style={styles.indicatorList}>
-                            <h4 style={{ marginBottom: '15px', color: '#1e293b' }}>Active Indicators</h4>
-                            
-                            {movingAverages.map(ma => (
-                                <div key={ma.id} style={styles.indicatorItem}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ 
-                                            width: '20px', 
-                                            height: '3px', 
-                                            background: ma.color,
-                                            borderRadius: '2px'
-                                        }} />
-                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>
-                                            {ma.type} ({ma.period})
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => removeMovingAverage(ma.id)}
-                                        style={styles.deleteButton}
-                                    >
-                                        Remove
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <div style={styles.chartContainer}>
-                        <div style={styles.chartTitle}>
-                            {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart
-                        </div>
-                        
-                        <div 
-                            ref={chartContainerRef}
-                            style={{ 
-                                width: '100%', 
-                                height: '310px', 
-                                borderRadius: '10px',
-                                overflow: 'hidden',
-                                position: 'relative'
-                            }}
-                        />
-                    </div>
-                </>
-            )}
+            ))}
             
-            {!livingstonOpen && (
-                <button 
-                    className="livingston-toggle"
-                    style={styles.livingstonToggle}
-                    onClick={() => setLivingstonOpen(true)}
-                    title="Chat with Livingston AI"
+            <div style={styles.chartTypeContainer}>
+                <span style={styles.categoryLabel} className="category-label">Chart Type:</span>
+                <button
+                    className="chart-type-button"
+                    onClick={() => setChartType('candlestick')}
+                    style={{
+                        ...styles.chartTypeButton,
+                        ...(chartType === 'candlestick' ? 
+                            styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
+                    }}
                 >
-                    <div style={styles.livingstonOrb}></div>
+                    Candlestick
                 </button>
-            )}
+                <button
+                    className="chart-type-button"
+                    onClick={() => setChartType('line')}
+                    style={{
+                        ...styles.chartTypeButton,
+                        ...(chartType === 'line' ? 
+                            styles.chartTypeButtonActive : styles.chartTypeButtonInactive)
+                    }}
+                >
+                    Line Chart
+                </button>
+            </div>
+
+            <div style={styles.timeframeContainer}>
+                <span style={styles.categoryLabel}>Timeframe:</span>
+                {Object.entries(timeframes).map(([key, config]) => (
+                    <button
+                        key={key}
+                        className="timeframe-button"
+                        onClick={() => setTimeframe(key)}
+                        style={{
+                            ...styles.timeframeButton,
+                            ...(timeframe === key ? 
+                                styles.timeframeButtonActive : styles.timeframeButtonInactive)
+                        }}
+                        title={`${config.description} of data`}
+                    >
+                        {key}
+                    </button>
+                ))}
+            </div>
             
-            {livingstonOpen && (
-                <div style={styles.livingstonPanel} className="livingston-panel">
-                    <div style={styles.livingstonHeader}>
-                        <div style={styles.livingstonHeaderTitle}>
-                            <div style={styles.livingstonHeaderOrb}></div>
-                            <div>
-                                <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>Livingston</div>
-                                <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>AI Trading Assistant</div>
-                            </div>
-                        </div>
+            {dataStats && (
+                <div style={styles.dataStats}>
+                    <strong>Data:</strong> {dataStats.candles} candles over {dataStats.period} 
+                    | <strong>Period:</strong> {dataStats.firstDate} to {dataStats.lastDate}
+                    | <strong>Range:</strong> ${dataStats.lowestPrice.toFixed(4)} - ${dataStats.highestPrice.toFixed(4)}
+                    | <strong>Source:</strong> {dataSource}
+                    {lastUpdateTime && <> | <strong>Last Update:</strong> {lastUpdateTime.toLocaleTimeString()}</>}
+                </div>
+            )}
+        </div>
+
+        {isLoading && tvLoaded && (
+            <div style={styles.loadingContainer}>
+                <div style={styles.loadingSpinner}></div>
+                <span style={{ color: '#4f46e5', fontSize: '1.1rem', fontWeight: '500' }}>
+                    Fetching {getCurrentAssetInfo().name} data ({timeframes[timeframe].description} lookback)...
+                </span>
+            </div>
+        )}
+
+        {!isLoading && tvLoaded && marketData.length > 0 && (
+            <div style={styles.priceDisplay}>
+                <div>
+                    <div style={styles.currentPrice}>
+                        ${currentPrice.toLocaleString(undefined, { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: getCurrentAssetInfo().symbol.includes('JPY') ? 3 : 
+                                                  currentPrice < 1 ? 6 : 
+                                                  currentPrice < 10 ? 4 : 2
+                        })}
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                        {getCurrentAssetInfo().name} • {timeframes[timeframe].label} • {marketData.length} candles
+                    </div>
+                </div>
+                <div style={styles.realTimeIndicator}>
+                    <div style={styles.liveIndicator}></div>
+                    <span style={{ color: '#10b981', fontWeight: '600', marginRight: '15px' }}>LIVE</span>
+                    <div style={{
+                        ...styles.priceChange,
+                        ...(priceChange >= 0 ? styles.priceChangePositive : styles.priceChangeNegative)
+                    }}>
+                        {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {!isLoading && tvLoaded && marketData.length > 0 && (
+            <>
+                <div style={styles.drawingToolbar}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
                         <button
-                            onClick={() => setLivingstonOpen(false)}
+                            onClick={() => setShowMADialog(true)}
                             style={{
-                                background: 'transparent',
-                                border: 'none',
+                                ...styles.toolButton,
+                                background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
                                 color: 'white',
-                                fontSize: '1.5rem',
-                                cursor: 'pointer',
-                                padding: '5px 10px'
+                                border: 'none'
                             }}
                         >
-                            ×
+                            📊 Add Moving Average
                         </button>
+                        
+                        <button
+                            onClick={() => setShowVolume(!showVolume)}
+                            style={{
+                                ...styles.toolButton,
+                                ...(showVolume ? styles.toolButtonActive : {})
+                            }}
+                        >
+                            📈 Volume
+                        </button>
+                        
+                        <button
+                            onClick={togglePeriodSeparators}
+                            disabled={separatorsLoading}
+                            style={{
+                                ...styles.toolButton,
+                                ...(showPeriodSeparators ? styles.toolButtonActive : {}),
+                                opacity: separatorsLoading ? 0.6 : 1
+                            }}
+                        >
+                            {separatorsLoading ? '⏳ Loading...' : '📅 Week/Month Lines'}
+                        </button>
+                        
+                        {(movingAverages.length > 0 || showPeriodSeparators) && (
+                            <button
+                                onClick={clearAllDrawings}
+                                style={{
+                                    ...styles.deleteButton,
+                                    padding: '10px 16px'
+                                }}
+                            >
+                                🗑️ Clear All
+                            </button>
+                        )}
                     </div>
-                    
-                    <div style={styles.livingstonMessages} className="livingston-messages">
-                        {livingstonMessages.map((msg, idx) => (
-                            <div key={idx} style={styles.livingstonMessage}>
-                                {msg.image && (
-                                    <div style={{ marginBottom: '8px' }}>
-                                        <img 
-                                            src={msg.image} 
-                                            alt="User uploaded" 
-                                            style={styles.livingstonImagePreview}
-                                        />
-                                    </div>
-                                )}
-                                <div style={msg.role === 'user' ? styles.livingstonMessageUser : styles.livingstonMessageAI}>
-                                    {msg.content}
+                </div>
+
+                {(movingAverages.length > 0 || showPeriodSeparators) && (
+                    <div style={styles.indicatorList}>
+                        <h4 style={{ marginBottom: '15px', color: '#1e293b' }}>Active Indicators</h4>
+                        
+                        {movingAverages.map(ma => (
+                            <div key={ma.id} style={styles.indicatorItem}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ 
+                                        width: '20px', 
+                                        height: '3px', 
+                                        background: ma.color,
+                                        borderRadius: '2px'
+                                    }} />
+                                    <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                                        {ma.type} ({ma.period})
+                                    </span>
                                 </div>
+                                <button
+                                    onClick={() => removeMovingAverage(ma.id)}
+                                    style={styles.deleteButton}
+                                >
+                                    Remove
+                                </button>
                             </div>
                         ))}
-                        {livingstonLoading && (
-                            <div style={styles.livingstonMessage}>
-                                <div style={styles.livingstonMessageAI}>
-                                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                                        <div style={{ 
-                                            width: '8px', 
-                                            height: '8px', 
-                                            borderRadius: '50%', 
-                                            background: '#3b82f6',
-                                            animation: 'pulse 1s infinite'
-                                        }}></div>
-                                        <div style={{ 
-                                            width: '8px', 
-                                            height: '8px', 
-                                            borderRadius: '50%', 
-                                            background: '#3b82f6',
-                                            animation: 'pulse 1s infinite 0.2s'
-                                        }}></div>
-                                        <div style={{ 
-                                            width: '8px', 
-                                            height: '8px', 
-                                            borderRadius: '50%', 
-                                            background: '#3b82f6',
-                                            animation: 'pulse 1s infinite 0.4s'
-                                        }}></div>
+                        
+                        {showPeriodSeparators && (
+                            <div style={styles.indicatorItem}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <div style={{ 
+                                                width: '20px', 
+                                                height: '3px', 
+                                                background: '#3b82f6',
+                                                borderRadius: '2px'
+                                            }} />
+                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Weekly</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <div style={{ 
+                                                width: '20px', 
+                                                height: '3px', 
+                                                background: '#a855f7',
+                                                borderRadius: '2px'
+                                            }} />
+                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Monthly</span>
+                                        </div>
                                     </div>
                                 </div>
+                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                    {weeklyData.length} weeks, {monthlyData.length} months
+                                </span>
                             </div>
                         )}
-                        <div ref={messagesEndRef} />
+                    </div>
+                )}
+
+                <div style={styles.chartContainer}>
+                    <div style={styles.chartTitle}>
+                        {getCurrentAssetInfo().name} ({selectedAsset}) - {chartType === 'candlestick' ? 'Candlestick' : 'Line'} Chart
                     </div>
                     
-                    <div style={styles.livingstonInputArea}>
-                        {selectedImage && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <img src={selectedImage} alt="Selected" style={styles.livingstonImagePreview} />
-                                <button
-                                    onClick={() => setSelectedImage(null)}
-                                    style={{
-                                        ...styles.deleteButton,
-                                        fontSize: '0.8rem',
-                                        padding: '6px 10px'
-                                    }}
-                                >
-                                    Remove Image
-                                </button>
+                    <div 
+                        ref={chartContainerRef}
+                        style={{ 
+                            width: '100%', 
+                            height: '700px', 
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            position: 'relative'
+                        }}
+                    />
+                </div>
+            </>
+        )}
+        
+        {!livingstonOpen && (
+            <button 
+                className="livingston-toggle"
+                style={styles.livingstonToggle}
+                onClick={() => setLivingstonOpen(true)}
+                title="Chat with Livingston AI"
+            >
+                <div style={styles.livingstonOrb}></div>
+            </button>
+        )}
+        
+        {livingstonOpen && (
+            <div style={styles.livingstonPanel} className="livingston-panel">
+                <div style={styles.livingstonHeader}>
+                    <div style={styles.livingstonHeaderTitle}>
+                        <div style={styles.livingstonHeaderOrb}></div>
+                        <div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>Livingston</div>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>AI Trading Assistant</div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setLivingstonOpen(false)}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'white',
+                            fontSize: '1.5rem',
+                            cursor: 'pointer',
+                            padding: '5px 10px'
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
+                
+                <div style={styles.livingstonMessages} className="livingston-messages">
+                    {livingstonMessages.map((msg, idx) => (
+                        <div key={idx} style={styles.livingstonMessage}>
+                            {msg.image && (
+                                <div style={{ marginBottom: '8px' }}>
+                                    <img 
+                                        src={msg.image} 
+                                        alt="User uploaded" 
+                                        style={styles.livingstonImagePreview}
+                                    />
+                                </div>
+                            )}
+                            <div style={msg.role === 'user' ? styles.livingstonMessageUser : styles.livingstonMessageAI}>
+                                {msg.content}
                             </div>
-                        )}
-                        
-                        <div style={styles.livingstonInputRow}>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageSelect}
-                                accept="image/*"
-                                style={{ display: 'none' }}
-                            />
+                        </div>
+                    ))}
+                    {livingstonLoading && (
+                        <div style={styles.livingstonMessage}>
+                            <div style={styles.livingstonMessageAI}>
+                                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                    <div style={{ 
+                                        width: '8px', 
+                                        height: '8px', 
+                                        borderRadius: '50%', 
+                                        background: '#3b82f6',
+                                        animation: 'pulse 1s infinite'
+                                    }}></div>
+                                    <div style={{ 
+                                        width: '8px', 
+                                        height: '8px', 
+                                        borderRadius: '50%', 
+                                        background: '#3b82f6',
+                                        animation: 'pulse 1s infinite 0.2s'
+                                    }}></div>
+                                    <div style={{ 
+                                        width: '8px', 
+                                        height: '8px', 
+                                        borderRadius: '50%', 
+                                        background: '#3b82f6',
+                                        animation: 'pulse 1s infinite 0.4s'
+                                    }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+                
+                <div style={styles.livingstonInputArea}>
+                    {selectedImage && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img src={selectedImage} alt="Selected" style={styles.livingstonImagePreview} />
                             <button
-                                onClick={() => fileInputRef.current?.click()}
-                                style={styles.livingstonImageButton}
-                                title="Attach image"
+                                onClick={() => setSelectedImage(null)}
+                                style={{
+                                    ...styles.deleteButton,
+                                    fontSize: '0.8rem',
+                                    padding: '6px 10px'
+                                }}
                             >
-                                📎
-                            </button>
-                            <input
-                                className="livingston-input"
-                                type="text"
-                                value={livingstonInput}
-                                onChange={(e) => setLivingstonInput(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && sendLivingstonMessage()}
-                                placeholder="Ask Livingston about the markets..."
-                                style={styles.livingstonInput}
-                                disabled={livingstonLoading}
-                            />
-                            <button
-                                className="livingston-send"
-                                onClick={sendLivingstonMessage}
-                                style={styles.livingstonSendButton}
-                                disabled={livingstonLoading || (!livingstonInput.trim() && !selectedImage)}
-                            >
-                                {livingstonLoading ? '...' : '📤'}
+                                Remove Image
                             </button>
                         </div>
-                        
-                        {councilDiscussion && (
-                            <div style={{ 
-                                fontSize: '0.75rem', 
-                                color: '#64748b', 
-                                marginTop: '5px',
-                                textAlign: 'center'
-                            }}>
-                                Using Council Discussion from {new Date(councilDiscussion.created_at).toLocaleDateString()}
-                            </div>
-                        )}
+                    )}
+                    
+                    <div style={styles.livingstonInputRow}>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageSelect}
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            style={styles.livingstonImageButton}
+                            title="Attach image"
+                        >
+                            📎
+                        </button>
+                        <input
+                            className="livingston-input"
+                            type="text"
+                            value={livingstonInput}
+                            onChange={(e) => setLivingstonInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendLivingstonMessage()}
+                            placeholder="Ask Livingston about the markets..."
+                            style={styles.livingstonInput}
+                            disabled={livingstonLoading}
+                        />
+                        <button
+                            className="livingston-send"
+                            onClick={sendLivingstonMessage}
+                            style={styles.livingstonSendButton}
+                            disabled={livingstonLoading || (!livingstonInput.trim() && !selectedImage)}
+                        >
+                            {livingstonLoading ? '...' : '📤'}
+                        </button>
                     </div>
+                    
+                    {councilDiscussion && (
+                        <div style={{ 
+                            fontSize: '0.75rem', 
+                            color: '#64748b', 
+                            marginTop: '5px',
+                            textAlign: 'center'
+                        }}>
+                            Using Council Discussion from {new Date(councilDiscussion.created_at).toLocaleDateString()}
+                        </div>
+                    )}
                 </div>
-            )}
-        </div>
-        </div>
-        </div>
-    );
+            </div>
+        )}
+    </div>
+    </div>
+    </div>
+);
 }
