@@ -586,6 +586,8 @@ export default function Charts() {
     }, []);
 
     // Fetch AI Council Discussion when Livingston is opened
+    const [transcriptInsights, setTranscriptInsights] = useState([]);
+    
     useEffect(() => {
         const fetchCouncilDiscussion = async () => {
             if (!livingstonOpen) return;
@@ -594,14 +596,32 @@ export default function Charts() {
                 const response = await fetch(`${baseUrl}/api/livingston-ai-fetch-latest-council-discussion/`);
                 const data = await response.json();
                 
-                if (data.success && data.has_discussion) {
-                    setCouncilDiscussion(data.discussion);
+                if (data.success) {
+                    if (data.has_discussion) {
+                        setCouncilDiscussion(data.discussion);
+                    }
                     
-                    // Add welcome message with council context
+                    if (data.has_transcript_insights) {
+                        setTranscriptInsights(data.transcript_insights);
+                    }
+                    
+                    // Add welcome message with context
                     if (livingstonMessages.length === 0) {
+                        let welcomeMsg = `Hello! I'm Livingston, your AI trading assistant.`;
+                        
+                        if (data.has_discussion) {
+                            welcomeMsg += ` I have access to the latest AI Trading Council discussion from ${new Date(data.discussion.created_at).toLocaleDateString()}. The council discussed ${data.discussion.participating_assets.join(', ')} with a ${data.discussion.overall_economic_outlook} economic outlook.`;
+                        }
+                        
+                        if (data.has_transcript_insights) {
+                            welcomeMsg += ` I also have insights from ${data.transcript_insights_count} recent economic transcript analyses covering key themes and market predictions.`;
+                        }
+                        
+                        welcomeMsg += ` How can I help you analyze the markets today?`;
+                        
                         setLivingstonMessages([{
                             role: 'assistant',
-                            content: `Hello! I'm Livingston, your AI trading assistant. I have access to the latest AI Trading Council discussion from ${new Date(data.discussion.created_at).toLocaleDateString()}. The council discussed ${data.discussion.participating_assets.join(', ')} with a ${data.discussion.overall_economic_outlook} economic outlook. How can I help you analyze the markets today?`
+                            content: welcomeMsg
                         }]);
                     }
                 }
