@@ -1237,62 +1237,59 @@ Use this context to provide informed trading insights. Be concise, helpful, and 
                 maSeries[ma.id].setData(ma.data);
             });
             
-            // Add week separators (blue vertical lines)
-            const weekMarkers = [];
+            // Draw vertical lines for week/month separators using line series
+            const separatorSeries = [];
+            
             if (showSeparators && weekSeparators.length > 0) {
-                weekSeparators.forEach(timestamp => {
-                    mainSeries.createPriceLine({
-                        price: 0,
-                        color: '#3b82f6',
-                        lineWidth: 1,
-                        lineStyle: window.LightweightCharts.LineStyle.Solid,
-                        axisLabelVisible: false,
-                        title: 'Week',
-                    });
-                });
+                // Get price range for vertical lines
+                const priceHigh = Math.max(...marketData.map(d => d.high));
+                const priceLow = Math.min(...marketData.map(d => d.low));
                 
-                // Store for markers
+                // Create week separator lines (blue)
                 weekSeparators.forEach(timestamp => {
-                    weekMarkers.push({
-                        time: timestamp,
-                        position: 'belowBar',
+                    const weekSeparatorSeries = chart.addLineSeries({
                         color: '#3b82f6',
-                        shape: 'arrowUp',
-                        text: 'W'
-                    });
-                });
-            }
-            
-            // Add month separators (orange vertical lines)
-            const monthMarkers = [];
-            if (showSeparators && monthSeparators.length > 0) {
-                monthSeparators.forEach(timestamp => {
-                    mainSeries.createPriceLine({
-                        price: 0,
-                        color: '#f59e0b',
                         lineWidth: 2,
-                        lineStyle: window.LightweightCharts.LineStyle.Solid,
-                        axisLabelVisible: false,
-                        title: 'Month',
+                        lineStyle: window.LightweightCharts.LineStyle.Dashed,
+                        crosshairMarkerVisible: false,
+                        lastValueVisible: false,
+                        priceLineVisible: false
                     });
-                });
-                
-                // Store for markers
-                monthSeparators.forEach(timestamp => {
-                    monthMarkers.push({
-                        time: timestamp,
-                        position: 'aboveBar',
-                        color: '#f59e0b',
-                        shape: 'arrowDown',
-                        text: 'M'
-                    });
+                    
+                    // Create vertical line data points
+                    weekSeparatorSeries.setData([
+                        { time: timestamp, value: priceLow },
+                        { time: timestamp, value: priceHigh }
+                    ]);
+                    
+                    separatorSeries.push(weekSeparatorSeries);
                 });
             }
             
-            // Apply markers
-            if (showSeparators) {
-                const allMarkers = [...weekMarkers, ...monthMarkers].sort((a, b) => a.time - b.time);
-                mainSeries.setMarkers(allMarkers);
+            if (showSeparators && monthSeparators.length > 0) {
+                // Get price range for vertical lines
+                const priceHigh = Math.max(...marketData.map(d => d.high));
+                const priceLow = Math.min(...marketData.map(d => d.low));
+                
+                // Create month separator lines (orange)
+                monthSeparators.forEach(timestamp => {
+                    const monthSeparatorSeries = chart.addLineSeries({
+                        color: '#f59e0b',
+                        lineWidth: 3,
+                        lineStyle: window.LightweightCharts.LineStyle.Solid,
+                        crosshairMarkerVisible: false,
+                        lastValueVisible: false,
+                        priceLineVisible: false
+                    });
+                    
+                    // Create vertical line data points
+                    monthSeparatorSeries.setData([
+                        { time: timestamp, value: priceLow },
+                        { time: timestamp, value: priceHigh }
+                    ]);
+                    
+                    separatorSeries.push(monthSeparatorSeries);
+                });
             }
             
             let volumeSeries = null;
