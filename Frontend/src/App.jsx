@@ -71,6 +71,7 @@ import Diagnostics from './components/diagnostics.jsx';
 import VideoTranscription from './components/video_transcription.jsx';
 import BoardofGovernors from './components/governors.jsx';
 import Charts from './components/charts.jsx';
+import AssetCorrelation from './components/correlation..jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -478,6 +479,12 @@ function App() {
             <Route path='/charts' element={
               <ProtectedRoute>
                 <Charts />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/asset_correlation' element={
+              <ProtectedRoute>
+                <AssetCorrelation />
               </ProtectedRoute>
             } />
             
