@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import axios from 'axios';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { Link } from "react-router-dom";
 
@@ -19,7 +19,7 @@ export default function PerformanceReview() {
     const [loading, setLoading] = useState(false);
     const [loadingAssets, setLoadingAssets] = useState(true);
     const [reflectionsSummary, setReflectionsSummary] = useState('');
-    const [isSummaryExpanded, setIsSummaryExpanded] = useState(false); // State to handle expanded view
+    const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
     const [isReflectionsExpanded, setIsReflectionsExpanded] = useState(false);
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
     const initialEquity = 10000;
@@ -69,31 +69,9 @@ export default function PerformanceReview() {
                 }
             }
 
-            async function fetchAssetSummary() {
-                try {
-                    const response = await axios.get(`${baseURL}/get-asset-summary/${selectedAsset}`);
-                    const data = response.data.message;
-                    setAssetSummary(data);
-                } catch (error) {
-                    console.error('Error fetching asset summary:', error);
-                }
-            }
-
-            async function fetchReflectionsSummary() {
-                try {
-                    const response = await axios.get(`${baseURL}/reflections-summary/${selectedAsset}`);
-                    const data = response.data.message;
-                    setReflectionsSummary(data);
-                } catch (error) {
-                    console.error('Error fetching reflections summary:', error);
-                }
-            }
-            setReflectionsSummary('');
             setAssetSummary('');
             fetchAssetData();
             fetchModelData();
-            fetchAssetSummary();
-            fetchReflectionsSummary();
         }
     }, [selectedAsset]);
 
@@ -120,14 +98,203 @@ export default function PerformanceReview() {
         ],
     };
 
-    const toggleSummary = () => {
-        setIsSummaryExpanded(!isSummaryExpanded);
+    // Prepare bar chart data for model returns comparison
+    const getBarChartData = () => {
+        if (!modelData || modelData.length === 0) return null;
+
+        const labels = modelData.map(model => `Model ${model.model_id}`);
+        const returns = modelData.map(model => parseFloat(model.overall_return) || 0);
+        
+        // Create gradient colors for better visual appeal
+        const backgroundColors = returns.map(returnValue => 
+            returnValue >= 0 
+                ? 'rgba(54, 162, 235, 0.7)'  // Blue for positive returns
+                : 'rgba(255, 99, 132, 0.7)'  // Red for negative returns
+        );
+        
+        const borderColors = returns.map(returnValue => 
+            returnValue >= 0 
+                ? 'rgba(54, 162, 235, 1)'    // Darker blue border
+                : 'rgba(255, 99, 132, 1)'    // Darker red border
+        );
+
+        return {
+            labels,
+            datasets: [
+                {
+                    label: 'Overall Return',
+                    data: returns,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                }
+            ]
+        };
     };
-    
-    const toggleReflections = () => {
-        setIsReflectionsExpanded(!isReflectionsExpanded);
+
+    const barChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false, // Changed to false for better responsive behavior
+        plugins: {
+            title: {
+                display: true,
+                text: 'Model Performance Comparison',
+                font: {
+                    size: 16,
+                    weight: 'bold'
+                },
+                color: '#2c3e50'
+            },
+            legend: {
+                display: false
+            },
+            tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#007bff',
+                borderWidth: 1,
+                cornerRadius: 6,
+                displayColors: false,
+                callbacks: {
+                    title: function(tooltipItems) {
+                        return tooltipItems[0].label;
+                    },
+                    label: function(context) {
+                        const returnValue = context.parsed.y;
+                        const percentage = returnValue >= 0 ? '+' : '';
+                        return `Return: ${percentage}${returnValue.toFixed(2)}%`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Overall Return (%)',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Models',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    display: false
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
     };
-    
+
+    // Enhanced options for equity curve charts
+    const getEquityCurveOptions = (modelId) => ({
+        responsive: true,
+        maintainAspectRatio: false, // Changed to false for better responsive behavior
+        plugins: {
+            title: {
+                display: true,
+                text: `Equity Curve - Model ${modelId}`,
+                font: {
+                    size: 14,
+                    weight: 'bold'
+                },
+                color: '#2c3e50'
+            },
+            tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: 'rgba(75,192,192,1)',
+                borderWidth: 1,
+                cornerRadius: 6,
+                displayColors: false,
+                callbacks: {
+                    title: function(tooltipItems) {
+                        return `Trade #${tooltipItems[0].label}`;
+                    },
+                    label: function(context) {
+                        const equity = context.parsed.y;
+                        return `Equity: $${equity.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                title: {
+                    display: true,
+                    text: 'Equity ($)',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Trade Number',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)'
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        elements: {
+            point: {
+                radius: 0,
+                hoverRadius: 6,
+                hoverBorderWidth: 2
+            },
+            line: {
+                tension: 0.1
+            }
+        }
+    });
+
+    const barChartData = getBarChartData();
 
     return (
         <div>
@@ -162,100 +329,254 @@ export default function PerformanceReview() {
 
                     {selectedAsset && (
                         <div>
-                            <h6 className="performance-review-header">Performance Review for <Link to={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`} target="_blank" className="performance-review-header-tradingview">{selectedAsset.toUpperCase()}</Link></h6>
+                            <h6 className="performance-review-header">Model Performance Review for <Link to={`https://www.tradingview.com/chart/IArp0yBw/?symbol=${selectedAsset}`} target="_blank" className="performance-review-header-tradingview">{selectedAsset.toUpperCase()}</Link></h6><br />
                             {loading ? (
                                 <p>Loading data...</p>
                             ) : (
                                 <div className="personal-asset-review">
-                                    <div className="personal-asset-review-line-chart">
-                                        <Line data={data} />
-                                    </div>
-                                    <div>
-                                        <br />
-                                        <br />
-                                        <p>Win Rate: {winRate}%</p>
-                                        <p>Loss Rate: {lossRate}%</p>
-                                        <p>Overall Return: {overallReturn}</p>
-                                    </div>
-                                    <div>
-                                        <h6 className="performance-review-header">Strategy Performance Data</h6>
-                                        {Object.keys(strategyMetrics).map((strategy, index) => (
-                                            <div key={index}>
-                                                <h6 className="performance-review-header">Strategy: {strategy}</h6>
-                                                <Line
-                                                    data={{
-                                                        labels: strategyMetrics[strategy].profit_list.map((_, idx) => idx + 1),
-                                                        datasets: [
-                                                            {
-                                                                label: 'Equity Curve',
-                                                                data: calculateEquityCurve(strategyMetrics[strategy].profit_list),
-                                                                fill: false,
-                                                                backgroundColor: 'rgba(75,192,192,0.6)',
-                                                                borderColor: 'rgba(75,192,192,1)',
-                                                            },
-                                                        ],
-                                                    }}
-                                                />
-                                                <p>Win Rate: {strategyMetrics[strategy].win_rate}%</p>
-                                                <p>Loss Rate: {strategyMetrics[strategy].loss_rate}%</p>
-                                                <p>Overall Return: {strategyMetrics[strategy].overall_return}</p>
+                                    {/* Bar Chart for Model Returns Comparison */}
+                                    {barChartData && (
+                                        <div className="model-returns-comparison">
+                                            <div className="bar-chart-container">
+                                                <Bar data={barChartData} options={barChartOptions} />
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div>
-                                        <h6 className="performance-review-header">Model Performance Data</h6>
+                                        </div>
+                                    )}
+
+                                    <div className="model-performance-review-div">
                                         {modelData.map((model, index) => (
-                                            <div key={index}>
+                                            <div key={index} className="chart-container equity-chart-wrapper">
                                                 <h6 className="performance-review-header">Model ID: {model.model_id}</h6>
-                                                <Line
-                                                    data={{
-                                                        labels: model.equity_curve.map((_, idx) => idx + 1),
-                                                        datasets: [
-                                                            {
-                                                                label: 'Equity Curve',
-                                                                data: model.equity_curve,
-                                                                fill: false,
-                                                                backgroundColor: 'rgba(75,192,192,0.6)',
-                                                                borderColor: 'rgba(75,192,192,1)',
-                                                            },
-                                                        ],
-                                                    }}
-                                                />
-                                                <p>Win Rate: {model.win_rate}%</p>
-                                                <p>Loss Rate: {model.loss_rate}%</p>
-                                                <p>Overall Return: {model.overall_return}</p>
+                                                <div className="equity-chart-container">
+                                                    <Line
+                                                        data={{
+                                                            labels: model.equity_curve.map((_, idx) => idx + 1),
+                                                            datasets: [
+                                                                {
+                                                                    label: 'Equity Curve',
+                                                                    data: model.equity_curve,
+                                                                    fill: false,
+                                                                    backgroundColor: 'rgba(75,192,192,0.6)',
+                                                                    borderColor: 'rgba(75,192,192,1)',
+                                                                    borderWidth: 2,
+                                                                },
+                                                            ],
+                                                        }}
+                                                        options={getEquityCurveOptions(model.model_id)}
+                                                    />
+                                                </div>
+                                                <div className="model-metrics">
+                                                    <p>Win Rate: {model.win_rate}%</p>
+                                                    <p>Loss Rate: {model.loss_rate}%</p>
+                                                    <p>Overall Return: {model.overall_return}%</p>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
-                            <div className="daily-brief-div">
-                                <h6 className="performance-review-header">Reflections Summary</h6>
-                                <p>
-                                    {isReflectionsExpanded ? reflectionsSummary : `${reflectionsSummary.slice(0, 500)}...`}
-                                    {reflectionsSummary.length > 500 && (
-                                        <button onClick={toggleReflections} className="btn btn-link">
-                                            {isReflectionsExpanded ? "Read Less" : "Read More"}
-                                        </button>
-                                    )}
-                                </p>
-                            </div>
-                            <div className="daily-brief-div">
-                                <h6 className="performance-review-header">Daily Brief Summary</h6>
-                                <p>
-                                    {isSummaryExpanded ? assetSummary : `${assetSummary.slice(0, 500)}...`}
-                                    {assetSummary.length > 500 && (
-                                        <button onClick={toggleSummary} className="btn btn-link">
-                                            {isSummaryExpanded ? "Read Less" : "Read More"}
-                                        </button>
-                                    )}
-                                </p>
-                            </div><br />
-
+                            <br />
                         </div>
                     )}
                 </div>
             </div>
+
+            <style jsx>{`
+                .model-returns-comparison {
+                    margin-bottom: 30px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                    padding: 20px;
+                }
+
+                .bar-chart-container {
+                    height: 350px;
+                    width: 100%;
+                    position: relative;
+                }
+
+                /* Fixed equity chart container to prevent movement/blinking */
+                .equity-chart-container {
+                    height: 300px;
+                    width: 100%;
+                    position: relative;
+                    margin-bottom: 15px;
+                    /* Prevent any layout shifts */
+                    min-height: 300px;
+                    max-height: 300px;
+                    overflow: hidden;
+                    /* Stabilize the container */
+                    will-change: auto;
+                    transform: translateZ(0);
+                    backface-visibility: hidden;
+                    /* Prevent flickering on hover */
+                    pointer-events: auto;
+                }
+
+                /* Enhanced chart container with stability fixes */
+                .chart-container {
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    padding: 20px;
+                    margin-bottom: 20px;
+                    border-left: 4px solid #007bff;
+                    /* Prevent movement and blinking */
+                    position: relative;
+                    will-change: auto;
+                    transform: translateZ(0);
+                    backface-visibility: hidden;
+                    /* Ensure stable positioning */
+                    isolation: isolate;
+                }
+
+                /* Specific fixes for equity chart wrapper */
+                .equity-chart-wrapper {
+                    /* Prevent any transitions that might cause blinking */
+                    transition: none !important;
+                    animation: none !important;
+                    /* Ensure stable rendering */
+                    contain: layout style paint;
+                }
+
+                /* Prevent hover effects that might cause movement */
+                .equity-chart-wrapper:hover {
+                    /* Override any inherited hover effects */
+                    transform: none !important;
+                    transition: none !important;
+                    animation: none !important;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+                }
+
+                .model-metrics {
+                    display: flex;
+                    gap: 20px;
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 6px;
+                    border: 1px solid #e9ecef;
+                    /* Prevent metrics from causing parent movement */
+                    position: relative;
+                    z-index: 1;
+                }
+
+                .model-metrics p {
+                    margin: 0;
+                    font-weight: 600;
+                    color: #495057;
+                    font-size: 14px;
+                }
+
+                .performance-review-header {
+                    color: #2c3e50;
+                    font-weight: 600;
+                    margin-bottom: 15px;
+                }
+
+                .performance-review-header-tradingview {
+                    color: #007bff;
+                    text-decoration: none;
+                    transition: color 0.3s ease;
+                }
+
+                .performance-review-header-tradingview:hover {
+                    color: #0056b3;
+                    text-decoration: underline;
+                }
+
+                .personal-asset-review {
+                    background: #f8f9fa;
+                    border-radius: 10px;
+                    padding: 20px;
+                    margin-top: 20px;
+                    /* Prevent parent container movement */
+                    position: relative;
+                    contain: layout style;
+                }
+
+                .model-performance-review-div {
+                    display: grid;
+                    gap: 20px;
+                    /* Ensure stable grid layout */
+                    grid-template-columns: 1fr;
+                    position: relative;
+                }
+
+                /* Additional stability for chart.js canvas */
+                .equity-chart-container canvas {
+                    /* Prevent canvas from causing layout shifts */
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    /* Prevent blinking */
+                    will-change: auto;
+                    backface-visibility: hidden;
+                }
+
+                /* Mobile responsiveness */
+                @media (max-width: 768px) {
+                    .model-metrics {
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    
+                    .bar-chart-container {
+                        height: 250px;
+                    }
+
+                    .equity-chart-container {
+                        height: 220px;
+                        min-height: 220px;
+                        max-height: 220px;
+                    }
+
+                    .model-returns-comparison,
+                    .personal-asset-review {
+                        padding: 15px;
+                    }
+
+                    .chart-container {
+                        padding: 15px;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .bar-chart-container {
+                        height: 200px;
+                    }
+
+                    .equity-chart-container {
+                        height: 180px;
+                        min-height: 180px;
+                        max-height: 180px;
+                    }
+
+                    .model-metrics {
+                        gap: 8px;
+                    }
+
+                    .model-metrics p {
+                        font-size: 12px;
+                    }
+                }
+
+                /* Large screens */
+                @media (min-width: 1200px) {
+                    .bar-chart-container {
+                        height: 400px;
+                    }
+
+                    .equity-chart-container {
+                        height: 350px;
+                        min-height: 350px;
+                        max-height: 350px;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
