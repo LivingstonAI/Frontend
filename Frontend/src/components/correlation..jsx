@@ -31,10 +31,8 @@ export default function AssetCorrelation() {
     const [lastUpdated, setLastUpdated] = useState(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [selectedTimeframe, setSelectedTimeframe] = useState('1d');
-    const [correlations, setCorrelations] = useState([]);
-    const [showCorrelations, setShowCorrelations] = useState(false);
     const [loadingAI, setLoadingAI] = useState(false);
-    const [showChatModal, setShowChatModal] = useState(false);
+    const [showChatPanel, setShowChatPanel] = useState(false);
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
@@ -96,18 +94,6 @@ export default function AssetCorrelation() {
             alignItems: 'center',
             gap: '8px',
             boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
-        },
-        buttonSecondary: {
-            padding: '10px 20px',
-            backgroundColor: '#64748b',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 2px 4px rgba(100, 116, 139, 0.2)'
         },
         buttonPurple: {
             padding: '10px 20px',
@@ -232,40 +218,6 @@ export default function AssetCorrelation() {
         neutral: {
             color: '#64748b'
         },
-        correlationsSection: {
-            marginTop: '30px'
-        },
-        correlationsGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '15px'
-        },
-        correlationCard: {
-            padding: '18px 25px',
-            backgroundColor: '#ffffff',
-            borderRadius: '10px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-        },
-        correlationPair: {
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#1e293b',
-            marginBottom: '10px'
-        },
-        correlationValue: {
-            fontSize: '26px',
-            fontWeight: '700',
-            textAlign: 'center',
-            marginBottom: '5px'
-        },
-        correlationLabel: {
-            fontSize: '11px',
-            color: '#64748b',
-            textAlign: 'center',
-            textTransform: 'uppercase',
-            fontWeight: '600'
-        },
         loading: {
             textAlign: 'center',
             padding: '40px',
@@ -305,54 +257,50 @@ export default function AssetCorrelation() {
             transition: 'all 0.3s ease',
             zIndex: 1000
         },
-        modalOverlay: {
+        chatPanel: {
             position: 'fixed',
             top: 0,
-            left: 0,
             right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 2000
-        },
-        modalContent: {
+            width: '400px',
+            height: '100vh',
             backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            width: '90%',
-            maxWidth: '600px',
-            height: '80vh',
-            maxHeight: '700px',
+            boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+            transform: 'translateX(0)',
+            transition: 'transform 0.3s ease',
+            zIndex: 1001
         },
-        modalHeader: {
+        chatPanelHidden: {
+            transform: 'translateX(100%)'
+        },
+        chatHeader: {
             padding: '20px 25px',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            backgroundColor: '#8b5cf6',
+            color: '#ffffff'
         },
-        modalTitle: {
+        chatTitle: {
             fontSize: '18px',
             fontWeight: '700',
-            color: '#1e293b',
             margin: 0
         },
         closeButton: {
             backgroundColor: 'transparent',
             border: 'none',
-            fontSize: '24px',
-            color: '#64748b',
+            fontSize: '28px',
+            color: '#ffffff',
             cursor: 'pointer',
             padding: '0',
             width: '30px',
             height: '30px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            lineHeight: '1'
         },
         chatMessages: {
             flex: 1,
@@ -360,7 +308,8 @@ export default function AssetCorrelation() {
             padding: '20px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '15px'
+            gap: '15px',
+            backgroundColor: '#f8fafc'
         },
         messageUser: {
             alignSelf: 'flex-end',
@@ -374,19 +323,21 @@ export default function AssetCorrelation() {
         },
         messageAI: {
             alignSelf: 'flex-start',
-            backgroundColor: '#f1f5f9',
+            backgroundColor: '#ffffff',
             color: '#1e293b',
             padding: '12px 18px',
             borderRadius: '18px 18px 18px 4px',
             maxWidth: '75%',
             fontSize: '14px',
-            lineHeight: '1.5'
+            lineHeight: '1.5',
+            border: '1px solid #e2e8f0'
         },
         chatInputContainer: {
             padding: '20px',
             borderTop: '1px solid #e2e8f0',
             display: 'flex',
-            gap: '10px'
+            gap: '10px',
+            backgroundColor: '#ffffff'
         },
         chatInputField: {
             flex: 1,
@@ -589,34 +540,6 @@ Provide helpful, conversational responses about this market data. Keep responses
         setChatLoading(false);
     };
 
-    const fetchCorrelations = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(
-                `${baseUrl}/api/snowai-asset-correlation-correlations/`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        asset_class: selectedClass,
-                        period: '3mo'
-                    })
-                }
-            );
-            const result = await response.json();
-            
-            if (result.success) {
-                setCorrelations(result.correlations);
-                setShowCorrelations(true);
-            }
-        } catch (error) {
-            console.error('Error fetching correlations:', error);
-        }
-        setLoading(false);
-    };
-
     const getChangeColor = (value) => {
         if (!value) return styles.neutral;
         return value > 0 ? styles.positive : value < 0 ? styles.negative : styles.neutral;
@@ -632,22 +555,6 @@ Provide helpful, conversational responses about this market data. Keep responses
     const getInsightIcon = (type) => {
         if (type === 'ai') return '🤖';
         return 'ℹ️';
-    };
-
-    const getCorrelationColor = (value) => {
-        const absValue = Math.abs(value);
-        if (absValue > 0.7) return '#10b981';
-        if (absValue > 0.4) return '#3b82f6';
-        if (absValue > 0.2) return '#f59e0b';
-        return '#64748b';
-    };
-
-    const getCorrelationStrength = (value) => {
-        const absValue = Math.abs(value);
-        if (absValue > 0.7) return 'Strong';
-        if (absValue > 0.4) return 'Moderate';
-        if (absValue > 0.2) return 'Weak';
-        return 'Very Weak';
     };
 
     return (
@@ -685,6 +592,12 @@ Provide helpful, conversational responses about this market data. Keep responses
                 .chat-input-focus:focus {
                     border-color: #8b5cf6;
                 }
+
+                @media (max-width: 768px) {
+                    .chat-panel-mobile {
+                        width: 100% !important;
+                    }
+                }
             `}</style>
             
             <div className="header">
@@ -706,7 +619,6 @@ Provide helpful, conversational responses about this market data. Keep responses
                                 value={selectedClass}
                                 onChange={(e) => {
                                     setSelectedClass(e.target.value);
-                                    setShowCorrelations(false);
                                     setInsights([]);
                                 }}
                             >
@@ -758,15 +670,6 @@ Provide helpful, conversational responses about this market data. Keep responses
                             >
                                 {loadingAI ? '⏳ Analyzing...' : '🤖 Get AI Insight'}
                             </button>
-                            
-                            <button 
-                                style={styles.buttonSecondary}
-                                className="button-hover"
-                                onClick={fetchCorrelations}
-                                disabled={loading}
-                            >
-                                📊 View Correlations
-                            </button>
                         </div>
                     </div>
                     
@@ -811,104 +714,57 @@ Provide helpful, conversational responses about this market data. Keep responses
                             <p style={{marginTop: '20px'}}>Loading asset data...</p>
                         </div>
                     ) : (
-                        <>
-                            {!showCorrelations ? (
-                                <div style={styles.assetsGrid}>
-                                    {Object.keys(assetData).length === 0 ? (
-                                        <div style={styles.emptyState}>
-                                            <p style={{fontSize: '18px', marginBottom: '10px', fontWeight: '600', color: '#1e293b'}}>No data available</p>
-                                            <p>Click "Refresh Now" to load asset data</p>
-                                        </div>
-                                    ) : (
-                                        Object.entries(assetData).map(([assetName, data]) => (
-                                            <div key={assetName} style={styles.assetCard} className="asset-card-hover">
-                                                <div style={styles.assetName}>{assetName}</div>
-                                                <div style={styles.assetPrice}>
-                                                    ${data.current_price?.toFixed(4) || 'N/A'}
-                                                </div>
-                                                <div style={styles.timeframeChanges}>
-                                                    {data['1d'] && (
-                                                        <div style={styles.changeRow}>
-                                                            <span style={styles.changeLabel}>Daily:</span>
-                                                            <span style={{...styles.changeValue, ...getChangeColor(data['1d'].percent)}}>
-                                                                {data['1d'].percent > 0 ? '+' : ''}{data['1d'].percent}%
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {data['1wk'] && (
-                                                        <div style={styles.changeRow}>
-                                                            <span style={styles.changeLabel}>Weekly:</span>
-                                                            <span style={{...styles.changeValue, ...getChangeColor(data['1wk'].percent)}}>
-                                                                {data['1wk'].percent > 0 ? '+' : ''}{data['1wk'].percent}%
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {data['1mo'] && (
-                                                        <div style={styles.changeRow}>
-                                                            <span style={styles.changeLabel}>Monthly:</span>
-                                                            <span style={{...styles.changeValue, ...getChangeColor(data['1mo'].percent)}}>
-                                                                {data['1mo'].percent > 0 ? '+' : ''}{data['1mo'].percent}%
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {data['3mo'] && (
-                                                        <div style={styles.changeRow}>
-                                                            <span style={styles.changeLabel}>Quarterly:</span>
-                                                            <span style={{...styles.changeValue, ...getChangeColor(data['3mo'].percent)}}>
-                                                                {data['3mo'].percent > 0 ? '+' : ''}{data['3mo'].percent}%
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
+                        <div style={styles.assetsGrid}>
+                            {Object.keys(assetData).length === 0 ? (
+                                <div style={styles.emptyState}>
+                                    <p style={{fontSize: '18px', marginBottom: '10px', fontWeight: '600', color: '#1e293b'}}>No data available</p>
+                                    <p>Click "Refresh Now" to load asset data</p>
                                 </div>
                             ) : (
-                                <div style={styles.correlationsSection}>
-                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                                        <h6 style={{...styles.label, fontSize: '16px', margin: 0, color: '#1e293b'}}>
-                                            🔗 Asset Correlations (3-Month Period)
-                                        </h6>
-                                        <button 
-                                            style={styles.buttonSecondary}
-                                            className="button-hover"
-                                            onClick={() => setShowCorrelations(false)}
-                                        >
-                                            ← Back to Assets
-                                        </button>
-                                    </div>
-                                    
-                                    {correlations.length === 0 ? (
-                                        <div style={styles.emptyState}>
-                                            <p style={{fontSize: '18px', marginBottom: '10px', fontWeight: '600', color: '#1e293b'}}>No correlation data available</p>
+                                Object.entries(assetData).map(([assetName, data]) => (
+                                    <div key={assetName} style={styles.assetCard} className="asset-card-hover">
+                                        <div style={styles.assetName}>{assetName}</div>
+                                        <div style={styles.assetPrice}>
+                                            ${data.current_price?.toFixed(4) || 'N/A'}
                                         </div>
-                                    ) : (
-                                        <div style={styles.correlationsGrid}>
-                                            {correlations.slice(0, 20).map((corr, index) => (
-                                                <div key={index} style={styles.correlationCard}>
-                                                    <div style={styles.correlationPair}>
-                                                        {corr.asset1} ↔ {corr.asset2}
-                                                    </div>
-                                                    <div 
-                                                        style={{
-                                                            ...styles.correlationValue,
-                                                            color: getCorrelationColor(corr.correlation)
-                                                        }}
-                                                    >
-                                                        {corr.correlation > 0 ? '+' : ''}{corr.correlation.toFixed(3)}
-                                                    </div>
-                                                    <div style={styles.correlationLabel}>
-                                                        {getCorrelationStrength(corr.correlation)} {corr.correlation > 0 ? 'Positive' : 'Negative'}
-                                                        {corr.significant && ' • Significant'}
-                                                    </div>
+                                        <div style={styles.timeframeChanges}>
+                                            {data['1d'] && (
+                                                <div style={styles.changeRow}>
+                                                    <span style={styles.changeLabel}>Daily:</span>
+                                                    <span style={{...styles.changeValue, ...getChangeColor(data['1d'].percent)}}>
+                                                        {data['1d'].percent > 0 ? '+' : ''}{data['1d'].percent}%
+                                                    </span>
                                                 </div>
-                                            ))}
+                                            )}
+                                            {data['1wk'] && (
+                                                <div style={styles.changeRow}>
+                                                    <span style={styles.changeLabel}>Weekly:</span>
+                                                    <span style={{...styles.changeValue, ...getChangeColor(data['1wk'].percent)}}>
+                                                        {data['1wk'].percent > 0 ? '+' : ''}{data['1wk'].percent}%
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {data['1mo'] && (
+                                                <div style={styles.changeRow}>
+                                                    <span style={styles.changeLabel}>Monthly:</span>
+                                                    <span style={{...styles.changeValue, ...getChangeColor(data['1mo'].percent)}}>
+                                                        {data['1mo'].percent > 0 ? '+' : ''}{data['1mo'].percent}%
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {data['3mo'] && (
+                                                <div style={styles.changeRow}>
+                                                    <span style={styles.changeLabel}>Quarterly:</span>
+                                                    <span style={{...styles.changeValue, ...getChangeColor(data['3mo'].percent)}}>
+                                                        {data['3mo'].percent > 0 ? '+' : ''}{data['3mo'].percent}%
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ))
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
@@ -917,73 +773,75 @@ Provide helpful, conversational responses about this market data. Keep responses
             <button 
                 style={styles.chatButton}
                 className="chat-button-hover"
-                onClick={() => setShowChatModal(true)}
+                onClick={() => setShowChatPanel(true)}
             >
                 💬
             </button>
 
-            {/* Chat Modal */}
-            {showChatModal && (
-                <div style={styles.modalOverlay} onClick={() => setShowChatModal(false)}>
-                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <div style={styles.modalHeader}>
-                            <h3 style={styles.modalTitle}>💬 AI Market Assistant</h3>
-                            <button 
-                                style={styles.closeButton}
-                                onClick={() => setShowChatModal(false)}
-                            >
-                                ×
-                            </button>
-                        </div>
-                        
-                        <div style={styles.chatMessages}>
-                            {chatMessages.length === 0 && (
-                                <div style={{...styles.messageAI, maxWidth: '100%'}}>
-                                    Hi! I'm your AI market assistant. I have access to all the current asset data across forex, bonds, commodities, and indices. Ask me anything about market trends, correlations, or trading opportunities!
-                                </div>
-                            )}
-                            {chatMessages.map((msg, index) => (
-                                <div 
-                                    key={index} 
-                                    style={msg.role === 'user' ? styles.messageUser : styles.messageAI}
-                                >
-                                    {msg.content}
-                                </div>
-                            ))}
-                            {chatLoading && (
-                                <div style={styles.messageAI}>
-                                    Thinking...
-                                </div>
-                            )}
-                            <div ref={chatEndRef} />
-                        </div>
-                        
-                        <div style={styles.chatInputContainer}>
-                            <input
-                                type="text"
-                                style={styles.chatInputField}
-                                className="chat-input-focus"
-                                placeholder="Ask about market trends, correlations..."
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !chatLoading) {
-                                        sendChatMessage();
-                                    }
-                                }}
-                                disabled={chatLoading}
-                            />
-                            <button 
-                                style={styles.sendButton}
-                                onClick={sendChatMessage}
-                                disabled={chatLoading || !chatInput.trim()}
-                            >
-                                Send
-                            </button>
-                        </div>
-                    </div>
+            {/* Chat Side Panel */}
+            <div 
+                style={{
+                    ...styles.chatPanel,
+                    ...(showChatPanel ? {} : styles.chatPanelHidden)
+                }}
+                className="chat-panel-mobile"
+            >
+                <div style={styles.chatHeader}>
+                    <h3 style={styles.chatTitle}>💬 AI Market Assistant</h3>
+                    <button 
+                        style={styles.closeButton}
+                        onClick={() => setShowChatPanel(false)}
+                    >
+                        ×
+                    </button>
                 </div>
-            )}
+                
+                <div style={styles.chatMessages}>
+                    {chatMessages.length === 0 && (
+                        <div style={{...styles.messageAI, maxWidth: '100%'}}>
+                            Hi! I'm your AI market assistant. I have access to all the current asset data across forex, bonds, commodities, and indices. Ask me anything about market trends, correlations, or trading opportunities!
+                        </div>
+                    )}
+                    {chatMessages.map((msg, index) => (
+                        <div 
+                            key={index} 
+                            style={msg.role === 'user' ? styles.messageUser : styles.messageAI}
+                        >
+                            {msg.content}
+                        </div>
+                    ))}
+                    {chatLoading && (
+                        <div style={styles.messageAI}>
+                            Thinking...
+                        </div>
+                    )}
+                    <div ref={chatEndRef} />
+                </div>
+                
+                <div style={styles.chatInputContainer}>
+                    <input
+                        type="text"
+                        style={styles.chatInputField}
+                        className="chat-input-focus"
+                        placeholder="Ask about market trends, correlations..."
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !chatLoading) {
+                                sendChatMessage();
+                            }
+                        }}
+                        disabled={chatLoading}
+                    />
+                    <button 
+                        style={styles.sendButton}
+                        onClick={sendChatMessage}
+                        disabled={chatLoading || !chatInput.trim()}
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
