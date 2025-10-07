@@ -2,13 +2,30 @@ import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-
 export default function AssetCorrelation() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+
+    useEffect(() => {
+            fetchAPIKey();
+        }, []);
+
+    const fetchAPIKey = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching API key:", error);
+        }
+    };
+    
     
     const [assetClasses, setAssetClasses] = useState(['forex', 'bonds', 'commodities', 'indices']);
     const [selectedClass, setSelectedClass] = useState('forex');
     const [assetData, setAssetData] = useState({});
+    const [allAssetData, setAllAssetData] = useState({});
     const [insights, setInsights] = useState([]);
     const [loading, setLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(null);
@@ -16,7 +33,13 @@ export default function AssetCorrelation() {
     const [selectedTimeframe, setSelectedTimeframe] = useState('1d');
     const [correlations, setCorrelations] = useState([]);
     const [showCorrelations, setShowCorrelations] = useState(false);
+    const [loadingAI, setLoadingAI] = useState(false);
+    const [showChatModal, setShowChatModal] = useState(false);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [chatLoading, setChatLoading] = useState(false);
     const intervalRef = useRef(null);
+    const chatEndRef = useRef(null);
 
     const styles = {
         controlPanel: {
@@ -86,6 +109,18 @@ export default function AssetCorrelation() {
             transition: 'all 0.2s ease',
             boxShadow: '0 2px 4px rgba(100, 116, 139, 0.2)'
         },
+        buttonPurple: {
+            padding: '10px 20px',
+            backgroundColor: '#8b5cf6',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
+        },
         buttonActive: {
             backgroundColor: '#10b981',
             boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
@@ -117,21 +152,9 @@ export default function AssetCorrelation() {
             gap: '12px',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
-        insightBullish: {
-            borderLeftColor: '#10b981',
-            backgroundColor: '#f0fdf4'
-        },
-        insightBearish: {
-            borderLeftColor: '#ef4444',
-            backgroundColor: '#fef2f2'
-        },
-        insightInfo: {
-            borderLeftColor: '#3b82f6',
-            backgroundColor: '#eff6ff'
-        },
-        insightWarning: {
-            borderLeftColor: '#f59e0b',
-            backgroundColor: '#fffbeb'
+        insightAI: {
+            borderLeftColor: '#8b5cf6',
+            backgroundColor: '#faf5ff'
         },
         insightIcon: {
             fontSize: '20px',
@@ -265,17 +288,138 @@ export default function AssetCorrelation() {
             backgroundColor: '#ffffff',
             borderRadius: '12px',
             border: '1px solid #e2e8f0'
+        },
+        chatButton: {
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            width: '60px',
+            height: '60px',
+            backgroundColor: '#8b5cf6',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '50%',
+            fontSize: '24px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+            transition: 'all 0.3s ease',
+            zIndex: 1000
+        },
+        modalOverlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000
+        },
+        modalContent: {
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            width: '90%',
+            maxWidth: '600px',
+            height: '80vh',
+            maxHeight: '700px',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+        },
+        modalHeader: {
+            padding: '20px 25px',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+        },
+        modalTitle: {
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: 0
+        },
+        closeButton: {
+            backgroundColor: 'transparent',
+            border: 'none',
+            fontSize: '24px',
+            color: '#64748b',
+            cursor: 'pointer',
+            padding: '0',
+            width: '30px',
+            height: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        chatMessages: {
+            flex: 1,
+            overflowY: 'auto',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px'
+        },
+        messageUser: {
+            alignSelf: 'flex-end',
+            backgroundColor: '#3b82f6',
+            color: '#ffffff',
+            padding: '12px 18px',
+            borderRadius: '18px 18px 4px 18px',
+            maxWidth: '75%',
+            fontSize: '14px',
+            lineHeight: '1.5'
+        },
+        messageAI: {
+            alignSelf: 'flex-start',
+            backgroundColor: '#f1f5f9',
+            color: '#1e293b',
+            padding: '12px 18px',
+            borderRadius: '18px 18px 18px 4px',
+            maxWidth: '75%',
+            fontSize: '14px',
+            lineHeight: '1.5'
+        },
+        chatInputContainer: {
+            padding: '20px',
+            borderTop: '1px solid #e2e8f0',
+            display: 'flex',
+            gap: '10px'
+        },
+        chatInputField: {
+            flex: 1,
+            padding: '12px 18px',
+            border: '2px solid #e2e8f0',
+            borderRadius: '24px',
+            fontSize: '14px',
+            outline: 'none',
+            transition: 'border-color 0.2s ease'
+        },
+        sendButton: {
+            padding: '12px 24px',
+            backgroundColor: '#8b5cf6',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '24px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
         }
     };
 
     useEffect(() => {
         fetchAssetData();
+        fetchAllAssetData();
     }, [selectedClass]);
 
     useEffect(() => {
         if (autoRefresh) {
             intervalRef.current = setInterval(() => {
                 fetchAssetData();
+                fetchAllAssetData();
             }, 10000);
         } else {
             if (intervalRef.current) {
@@ -290,6 +434,12 @@ export default function AssetCorrelation() {
         };
     }, [autoRefresh, selectedClass]);
 
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [chatMessages]);
+
     const fetchAssetData = async () => {
         setLoading(true);
         try {
@@ -300,13 +450,143 @@ export default function AssetCorrelation() {
             
             if (result.success) {
                 setAssetData(result.data);
-                setInsights(result.insights || []);
                 setLastUpdated(new Date().toLocaleTimeString());
             }
         } catch (error) {
             console.error('Error fetching asset data:', error);
         }
         setLoading(false);
+    };
+
+    const fetchAllAssetData = async () => {
+        try {
+            const allClasses = ['forex', 'bonds', 'commodities', 'indices'];
+            const allData = {};
+            
+            for (const assetClass of allClasses) {
+                const response = await fetch(
+                    `${baseUrl}/api/snowai-asset-correlation-data/?asset_class=${assetClass}`
+                );
+                const result = await response.json();
+                
+                if (result.success) {
+                    allData[assetClass] = result.data;
+                }
+            }
+            
+            setAllAssetData(allData);
+        } catch (error) {
+            console.error('Error fetching all asset data:', error);
+        }
+    };
+
+    const getAIInsight = async () => {
+        setLoadingAI(true);
+        setInsights([]);
+        
+        try {
+            const assetSummary = Object.entries(allAssetData).map(([assetClass, data]) => {
+                return `${assetClass.toUpperCase()}: ${Object.entries(data).map(([name, values]) => 
+                    `${name} (${values.current_price}, 1d: ${values['1d']?.percent}%)`
+                ).join(', ')}`;
+            }).join(' | ');
+
+            const prompt = `You are a financial analyst. Based on this market data: ${assetSummary}. 
+Provide a correlation insight for ${selectedClass} trading opportunities. 
+Consider relationships between all asset classes (DXY vs forex, bonds vs equities, gold vs currencies, VIX vs risk assets, etc.). 
+Keep your response to 2-3 sentences maximum. Be specific and actionable. No markdown formatting.`;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 150,
+                    temperature: 0.7
+                })
+            });
+
+            const data = await response.json();
+            const aiMessage = data.choices[0].message.content.trim();
+
+            setInsights([{
+                type: 'ai',
+                message: aiMessage,
+                strength: 'AI Analysis'
+            }]);
+        } catch (error) {
+            console.error('Error getting AI insight:', error);
+            setInsights([{
+                type: 'ai',
+                message: 'Unable to generate AI insight at this time. Please try again.',
+                strength: 'Error'
+            }]);
+        }
+        
+        setLoadingAI(false);
+    };
+
+    const sendChatMessage = async () => {
+        if (!chatInput.trim() || chatLoading) return;
+
+        const userMessage = chatInput.trim();
+        setChatInput('');
+        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setChatLoading(true);
+
+        try {
+            const assetSummary = Object.entries(allAssetData).map(([assetClass, data]) => {
+                return `${assetClass.toUpperCase()}: ${Object.entries(data).map(([name, values]) => 
+                    `${name} ($${values.current_price}, Daily: ${values['1d']?.percent}%, Weekly: ${values['1wk']?.percent}%, Monthly: ${values['1mo']?.percent}%)`
+                ).join(', ')}`;
+            }).join('\n\n');
+
+            const conversationHistory = chatMessages.slice(-10).map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+
+            const systemPrompt = `You are a helpful financial assistant with access to live market data. Here's the current data:
+
+${assetSummary}
+
+Provide helpful, conversational responses about this market data. Keep responses short, sweet, and useful (2-4 sentences max). No markdown formatting - plain text only. Be friendly and natural in conversation.`;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        ...conversationHistory,
+                        { role: 'user', content: userMessage }
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.8
+                })
+            });
+
+            const data = await response.json();
+            const aiResponse = data.choices[0].message.content.trim();
+
+            setChatMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+        } catch (error) {
+            console.error('Error sending chat message:', error);
+            setChatMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: 'Sorry, I encountered an error. Please try again.' 
+            }]);
+        }
+
+        setChatLoading(false);
     };
 
     const fetchCorrelations = async () => {
@@ -343,22 +623,15 @@ export default function AssetCorrelation() {
     };
 
     const getInsightStyle = (type) => {
-        switch (type) {
-            case 'bullish': return { ...styles.insightCard, ...styles.insightBullish };
-            case 'bearish': return { ...styles.insightCard, ...styles.insightBearish };
-            case 'warning': return { ...styles.insightCard, ...styles.insightWarning };
-            default: return { ...styles.insightCard, ...styles.insightInfo };
+        if (type === 'ai') {
+            return { ...styles.insightCard, ...styles.insightAI };
         }
+        return styles.insightCard;
     };
 
     const getInsightIcon = (type) => {
-        switch (type) {
-            case 'bullish': return '📈';
-            case 'bearish': return '📉';
-            case 'warning': return '⚠️';
-            case 'correlation': return '🔗';
-            default: return 'ℹ️';
-        }
+        if (type === 'ai') return '🤖';
+        return 'ℹ️';
     };
 
     const getCorrelationColor = (value) => {
@@ -395,6 +668,11 @@ export default function AssetCorrelation() {
                     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
                 }
                 
+                .chat-button-hover:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+                }
+                
                 .select-hover:hover {
                     border-color: #3b82f6;
                 }
@@ -403,6 +681,10 @@ export default function AssetCorrelation() {
                     border-color: #3b82f6;
                     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
                 }
+
+                .chat-input-focus:focus {
+                    border-color: #8b5cf6;
+                }
             `}</style>
             
             <div className="header">
@@ -410,8 +692,10 @@ export default function AssetCorrelation() {
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info" style={styles.mainBodyInfo}>
-                    <h5 style={styles.header}>SnowAI Asset Correlation & Intermarket Analysis</h5>
+                <div className="main-body-info">
+                    <h5 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', marginBottom: '25px' }}>
+                        SnowAI Asset Correlation & Intermarket Analysis
+                    </h5>
                     
                     <div style={styles.controlPanel}>
                         <div style={styles.selectGroup}>
@@ -423,6 +707,7 @@ export default function AssetCorrelation() {
                                 onChange={(e) => {
                                     setSelectedClass(e.target.value);
                                     setShowCorrelations(false);
+                                    setInsights([]);
                                 }}
                             >
                                 <option value="forex">Forex</option>
@@ -466,6 +751,15 @@ export default function AssetCorrelation() {
                             </button>
                             
                             <button 
+                                style={styles.buttonPurple}
+                                className="button-hover"
+                                onClick={getAIInsight}
+                                disabled={loadingAI}
+                            >
+                                {loadingAI ? '⏳ Analyzing...' : '🤖 Get AI Insight'}
+                            </button>
+                            
+                            <button 
                                 style={styles.buttonSecondary}
                                 className="button-hover"
                                 onClick={fetchCorrelations}
@@ -491,7 +785,7 @@ export default function AssetCorrelation() {
                     {insights.length > 0 && (
                         <div style={styles.insightsSection}>
                             <h6 style={{...styles.label, fontSize: '16px', marginBottom: '15px', color: '#1e293b'}}>
-                                🎯 Market Insights & Trading Opportunities
+                                🎯 AI-Powered Market Insights
                             </h6>
                             {insights.map((insight, index) => (
                                 <div key={index} style={getInsightStyle(insight.type)}>
@@ -503,7 +797,7 @@ export default function AssetCorrelation() {
                                             {insight.message}
                                         </div>
                                         <div style={styles.insightStrength}>
-                                            {insight.strength} signal
+                                            {insight.strength}
                                         </div>
                                     </div>
                                 </div>
@@ -618,6 +912,78 @@ export default function AssetCorrelation() {
                     )}
                 </div>
             </div>
+
+            {/* Chat Button */}
+            <button 
+                style={styles.chatButton}
+                className="chat-button-hover"
+                onClick={() => setShowChatModal(true)}
+            >
+                💬
+            </button>
+
+            {/* Chat Modal */}
+            {showChatModal && (
+                <div style={styles.modalOverlay} onClick={() => setShowChatModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div style={styles.modalHeader}>
+                            <h3 style={styles.modalTitle}>💬 AI Market Assistant</h3>
+                            <button 
+                                style={styles.closeButton}
+                                onClick={() => setShowChatModal(false)}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        
+                        <div style={styles.chatMessages}>
+                            {chatMessages.length === 0 && (
+                                <div style={{...styles.messageAI, maxWidth: '100%'}}>
+                                    Hi! I'm your AI market assistant. I have access to all the current asset data across forex, bonds, commodities, and indices. Ask me anything about market trends, correlations, or trading opportunities!
+                                </div>
+                            )}
+                            {chatMessages.map((msg, index) => (
+                                <div 
+                                    key={index} 
+                                    style={msg.role === 'user' ? styles.messageUser : styles.messageAI}
+                                >
+                                    {msg.content}
+                                </div>
+                            ))}
+                            {chatLoading && (
+                                <div style={styles.messageAI}>
+                                    Thinking...
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
+                        </div>
+                        
+                        <div style={styles.chatInputContainer}>
+                            <input
+                                type="text"
+                                style={styles.chatInputField}
+                                className="chat-input-focus"
+                                placeholder="Ask about market trends, correlations..."
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !chatLoading) {
+                                        sendChatMessage();
+                                    }
+                                }}
+                                disabled={chatLoading}
+                            />
+                            <button 
+                                style={styles.sendButton}
+                                onClick={sendChatMessage}
+                                disabled={chatLoading || !chatInput.trim()}
+                            >
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
