@@ -381,9 +381,6 @@ export default function AssetCorrelation() {
                     border-color: #3b82f6;
                 }
                 
-                .main-page-body {
-                    display: flex;
-                }
             `}</style>
             
             <div className="header">
