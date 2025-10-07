@@ -24,10 +24,11 @@ export default function AssetCorrelation() {
             flexWrap: 'wrap',
             gap: '15px',
             marginBottom: '25px',
-            padding: '20px',
-            backgroundColor: '#0f1535',
-            borderRadius: '10px',
-            border: '1px solid #1e293b'
+            padding: '25px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
         selectGroup: {
             display: 'flex',
@@ -37,16 +38,16 @@ export default function AssetCorrelation() {
         label: {
             fontSize: '13px',
             fontWeight: '600',
-            color: '#94a3b8',
+            color: '#475569',
             textTransform: 'uppercase',
             letterSpacing: '0.5px'
         },
         select: {
             padding: '10px 15px',
-            backgroundColor: '#1e293b',
-            color: '#e0e6ed',
-            border: '1px solid #334155',
-            borderRadius: '6px',
+            backgroundColor: '#f8fafc',
+            color: '#1e293b',
+            border: '2px solid #e2e8f0',
+            borderRadius: '8px',
             fontSize: '14px',
             fontWeight: '500',
             cursor: 'pointer',
@@ -63,64 +64,74 @@ export default function AssetCorrelation() {
             backgroundColor: '#3b82f6',
             color: '#ffffff',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '8px',
             fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
         },
         buttonSecondary: {
             padding: '10px 20px',
-            backgroundColor: '#475569',
+            backgroundColor: '#64748b',
             color: '#ffffff',
             border: 'none',
-            borderRadius: '6px',
+            borderRadius: '8px',
             fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 4px rgba(100, 116, 139, 0.2)'
         },
         buttonActive: {
-            backgroundColor: '#10b981'
+            backgroundColor: '#10b981',
+            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
         },
         statusBar: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '12px 20px',
-            backgroundColor: '#0f1535',
-            borderRadius: '8px',
-            marginBottom: '20px',
+            padding: '15px 25px',
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
+            marginBottom: '25px',
             fontSize: '13px',
-            color: '#94a3b8'
+            color: '#475569',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
         insightsSection: {
             marginBottom: '25px'
         },
         insightCard: {
-            padding: '15px 20px',
-            backgroundColor: '#0f1535',
-            borderRadius: '8px',
+            padding: '18px 25px',
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
             marginBottom: '12px',
             borderLeft: '4px solid',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '12px'
+            gap: '12px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
         insightBullish: {
-            borderLeftColor: '#10b981'
+            borderLeftColor: '#10b981',
+            backgroundColor: '#f0fdf4'
         },
         insightBearish: {
-            borderLeftColor: '#ef4444'
+            borderLeftColor: '#ef4444',
+            backgroundColor: '#fef2f2'
         },
         insightInfo: {
-            borderLeftColor: '#3b82f6'
+            borderLeftColor: '#3b82f6',
+            backgroundColor: '#eff6ff'
         },
         insightWarning: {
-            borderLeftColor: '#f59e0b'
+            borderLeftColor: '#f59e0b',
+            backgroundColor: '#fffbeb'
         },
         insightIcon: {
             fontSize: '20px',
@@ -131,13 +142,14 @@ export default function AssetCorrelation() {
         },
         insightMessage: {
             fontSize: '14px',
-            color: '#e0e6ed',
+            color: '#1e293b',
             lineHeight: '1.6',
-            marginBottom: '5px'
+            marginBottom: '5px',
+            fontWeight: '500'
         },
         insightStrength: {
             fontSize: '12px',
-            color: '#94a3b8',
+            color: '#64748b',
             fontWeight: '600',
             textTransform: 'uppercase'
         },
@@ -149,21 +161,22 @@ export default function AssetCorrelation() {
         },
         assetCard: {
             padding: '20px',
-            backgroundColor: '#0f1535',
-            borderRadius: '10px',
-            border: '1px solid #1e293b',
-            transition: 'all 0.2s ease'
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
         assetName: {
             fontSize: '16px',
             fontWeight: '700',
-            color: '#ffffff',
+            color: '#1e293b',
             marginBottom: '12px',
             paddingBottom: '10px',
-            borderBottom: '1px solid #1e293b'
+            borderBottom: '2px solid #f1f5f9'
         },
         assetPrice: {
-            fontSize: '22px',
+            fontSize: '24px',
             fontWeight: '700',
             color: '#3b82f6',
             marginBottom: '15px'
@@ -180,7 +193,7 @@ export default function AssetCorrelation() {
             fontSize: '13px'
         },
         changeLabel: {
-            color: '#94a3b8',
+            color: '#64748b',
             fontWeight: '500'
         },
         changeValue: {
@@ -194,7 +207,7 @@ export default function AssetCorrelation() {
             color: '#ef4444'
         },
         neutral: {
-            color: '#94a3b8'
+            color: '#64748b'
         },
         correlationsSection: {
             marginTop: '30px'
@@ -205,40 +218,42 @@ export default function AssetCorrelation() {
             gap: '15px'
         },
         correlationCard: {
-            padding: '15px 20px',
-            backgroundColor: '#0f1535',
-            borderRadius: '8px',
-            border: '1px solid #1e293b'
+            padding: '18px 25px',
+            backgroundColor: '#ffffff',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
         correlationPair: {
             fontSize: '14px',
             fontWeight: '600',
-            color: '#e0e6ed',
-            marginBottom: '8px'
+            color: '#1e293b',
+            marginBottom: '10px'
         },
         correlationValue: {
-            fontSize: '24px',
+            fontSize: '26px',
             fontWeight: '700',
             textAlign: 'center',
             marginBottom: '5px'
         },
         correlationLabel: {
             fontSize: '11px',
-            color: '#94a3b8',
+            color: '#64748b',
             textAlign: 'center',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            fontWeight: '600'
         },
         loading: {
             textAlign: 'center',
             padding: '40px',
             fontSize: '16px',
-            color: '#94a3b8'
+            color: '#64748b'
         },
         spinner: {
             display: 'inline-block',
             width: '40px',
             height: '40px',
-            border: '4px solid #1e293b',
+            border: '4px solid #e2e8f0',
             borderTopColor: '#3b82f6',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
@@ -246,7 +261,10 @@ export default function AssetCorrelation() {
         emptyState: {
             textAlign: 'center',
             padding: '60px 20px',
-            color: '#64748b'
+            color: '#64748b',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0'
         }
     };
 
@@ -258,7 +276,7 @@ export default function AssetCorrelation() {
         if (autoRefresh) {
             intervalRef.current = setInterval(() => {
                 fetchAssetData();
-            }, 10000); // 10 seconds
+            }, 10000);
         } else {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
@@ -360,7 +378,7 @@ export default function AssetCorrelation() {
     };
 
     return (
-        <div>
+        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
             <style>{`
                 @keyframes spin {
                     to { transform: rotate(360deg); }
@@ -369,18 +387,22 @@ export default function AssetCorrelation() {
                 .asset-card-hover:hover {
                     transform: translateY(-2px);
                     border-color: #3b82f6;
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+                    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
                 }
                 
                 .button-hover:hover {
                     transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
                 }
                 
                 .select-hover:hover {
                     border-color: #3b82f6;
                 }
                 
+                .select-hover:focus {
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
             `}</style>
             
             <div className="header">
@@ -456,19 +478,19 @@ export default function AssetCorrelation() {
                     
                     <div style={styles.statusBar}>
                         <span>
-                            <strong>Status:</strong> {loading ? 'Updating...' : 'Live'}
+                            <strong style={{ color: '#1e293b' }}>Status:</strong> {loading ? 'Updating...' : 'Live'}
                         </span>
                         <span>
-                            <strong>Last Updated:</strong> {lastUpdated || 'Never'}
+                            <strong style={{ color: '#1e293b' }}>Last Updated:</strong> {lastUpdated || 'Never'}
                         </span>
                         <span>
-                            <strong>Assets:</strong> {Object.keys(assetData).length}
+                            <strong style={{ color: '#1e293b' }}>Assets:</strong> {Object.keys(assetData).length}
                         </span>
                     </div>
                     
                     {insights.length > 0 && (
                         <div style={styles.insightsSection}>
-                            <h6 style={{...styles.label, fontSize: '16px', marginBottom: '15px'}}>
+                            <h6 style={{...styles.label, fontSize: '16px', marginBottom: '15px', color: '#1e293b'}}>
                                 🎯 Market Insights & Trading Opportunities
                             </h6>
                             {insights.map((insight, index) => (
@@ -500,7 +522,7 @@ export default function AssetCorrelation() {
                                 <div style={styles.assetsGrid}>
                                     {Object.keys(assetData).length === 0 ? (
                                         <div style={styles.emptyState}>
-                                            <p style={{fontSize: '18px', marginBottom: '10px'}}>No data available</p>
+                                            <p style={{fontSize: '18px', marginBottom: '10px', fontWeight: '600', color: '#1e293b'}}>No data available</p>
                                             <p>Click "Refresh Now" to load asset data</p>
                                         </div>
                                     ) : (
@@ -551,11 +573,12 @@ export default function AssetCorrelation() {
                             ) : (
                                 <div style={styles.correlationsSection}>
                                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                                        <h6 style={{...styles.label, fontSize: '16px', margin: 0}}>
+                                        <h6 style={{...styles.label, fontSize: '16px', margin: 0, color: '#1e293b'}}>
                                             🔗 Asset Correlations (3-Month Period)
                                         </h6>
                                         <button 
                                             style={styles.buttonSecondary}
+                                            className="button-hover"
                                             onClick={() => setShowCorrelations(false)}
                                         >
                                             ← Back to Assets
@@ -564,7 +587,7 @@ export default function AssetCorrelation() {
                                     
                                     {correlations.length === 0 ? (
                                         <div style={styles.emptyState}>
-                                            <p>No correlation data available</p>
+                                            <p style={{fontSize: '18px', marginBottom: '10px', fontWeight: '600', color: '#1e293b'}}>No correlation data available</p>
                                         </div>
                                     ) : (
                                         <div style={styles.correlationsGrid}>
