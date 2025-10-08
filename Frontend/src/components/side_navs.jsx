@@ -85,6 +85,7 @@ import daisies from '../DAISIES.mp3';
 import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music Video).mp3';
 import judas from '../Lady Gaga - Judas (Lyrics).mp3';
 import xonada from '../MONTAGEM XONADA.mp3';
+import coffee_talk from '../Coffee Talk.mp3';
 
 
 export default function SideNavs() {
@@ -226,6 +227,7 @@ export default function SideNavs() {
         { name: "Timeless ⌛", file: timeless },
         { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
         { name: "Xonada 🟣", file: xonada },
+        { name: "Coffee Talk ☕👨‍💻", file: coffee_talk }
   ];
 
   // Enhanced touch navigation function

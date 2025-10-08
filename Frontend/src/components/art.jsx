@@ -82,6 +82,7 @@ import daisies from '../DAISIES.mp3';
 import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music Video).mp3';
 import judas from '../Lady Gaga - Judas (Lyrics).mp3';
 import xonada from '../MONTAGEM XONADA.mp3';
+import coffee_talk from '../Coffee Talk.mp3';
 
 
 // Audio to be used for authentication
@@ -310,6 +311,8 @@ export default function Art() {
     "77": { name: "Timeless ⌛", file: timeless },
     "78": { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
     "79": { name: "Xonada 🟣", file: xonada },
+    "80": { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
+    
   };
 
   const characterSets = {
