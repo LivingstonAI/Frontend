@@ -83,6 +83,7 @@ import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music
 import judas from '../Lady Gaga - Judas (Lyrics).mp3';
 import xonada from '../MONTAGEM XONADA.mp3';
 import coffee_talk from '../Coffee Talk.mp3';
+import sunroof from '../Nicky Youre, dazy - Sunroof (Lyrics).mp3';
 
 
 // Audio to be used for authentication
@@ -312,7 +313,7 @@ export default function Art() {
     "78": { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
     "79": { name: "Xonada 🟣", file: xonada },
     "80": { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
-    
+    "81": { name: "Sunroof 🏙️", file: sunroof },
   };
 
   const characterSets = {

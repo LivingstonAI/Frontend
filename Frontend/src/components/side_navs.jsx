@@ -86,6 +86,7 @@ import timeless from '../The Weeknd  Timeless with Playboi Carti (Official Music
 import judas from '../Lady Gaga - Judas (Lyrics).mp3';
 import xonada from '../MONTAGEM XONADA.mp3';
 import coffee_talk from '../Coffee Talk.mp3';
+import sunroof from '../Nicky Youre, dazy - Sunroof (Lyrics).mp3';
 
 
 export default function SideNavs() {
@@ -227,7 +228,8 @@ export default function SideNavs() {
         { name: "Timeless ⌛", file: timeless },
         { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
         { name: "Xonada 🟣", file: xonada },
-        { name: "Coffee Talk ☕👨‍💻", file: coffee_talk }
+        { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
+        { name: "Sunroof 🏙️", file: sunroof }
   ];
 
   // Enhanced touch navigation function
