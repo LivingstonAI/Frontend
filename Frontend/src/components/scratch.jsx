@@ -742,6 +742,20 @@ return [`bearish_market_sentiment(asset=asset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['buy_hold'] = function(block, generator) {
+
+
+  return [`buy_hold(dataset=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['buy_hold'] = function(block, generator) {
+
+return [`buy_hold(dataset=dataset)`, Order.NONE];
+
+};
+
+
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -1356,6 +1370,18 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+  Blockly.Blocks['buy_hold'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("buy and hold strategy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if Buy and Hold Conditions are met.");
+      this.setHelpUrl("");
+    }
+  };
   
   
 
@@ -1656,6 +1682,10 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "bearish_market_sentiment"
+            },
+            {
+              "kind": "block",
+              "type": "buy_hold"
             },
           ]
         },
