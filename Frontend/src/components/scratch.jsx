@@ -756,6 +756,19 @@ return [`buy_hold(dataset=dataset)`, Order.NONE];
 };
 
 
+pythonGenerator['forBlock']['buy_hold_regime'] = function(block, generator) {
+
+
+  return [`buy_hold_regime(dataset=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['buy_hold_regime'] = function(block, generator) {
+
+return [`buy_hold_regime(dataset=dataset)`, Order.NONE];
+
+};
+
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -1374,11 +1387,23 @@ Blockly.Blocks['rsi_block'] = {
   Blockly.Blocks['buy_hold'] = {
     init: function() {
       this.appendDummyInput()
-          .appendField("buy and hold strategy")
+          .appendField("buy and hold")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
       this.setColour(160);
       this.setTooltip("Check if Buy and Hold Conditions are met.");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['buy_hold_regime'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("buy and hold regime")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if Buy and Hold Conditions are met, with regime detection.");
       this.setHelpUrl("");
     }
   };
@@ -1686,6 +1711,10 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "buy_hold"
+            },
+            {
+              "kind": "block",
+              "type": "buy_hold_regime"
             },
           ]
         },
