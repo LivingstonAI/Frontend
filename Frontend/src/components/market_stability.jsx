@@ -718,7 +718,7 @@ export default function MarketStabilityScore() {
                                 <div className="summary-card volatile">
                                     <h3>🔴 Volatile</h3>
                                     <p className="big-number">{volatileAssets.length}</p>
-                                    <p className="label">Assets (MSS < 40)</p>
+                                    <p className="label">Assets (MSS less than 40)</p>
                                 </div>
                             </div>
 
