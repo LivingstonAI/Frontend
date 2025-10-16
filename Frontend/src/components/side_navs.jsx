@@ -744,6 +744,8 @@ export default function SideNavs() {
         <Link to="/board_of_governors" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bank2"></i></p></button></Link>
         <Link to="/charts" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-diagram-3"></i></p></button></Link>
         <Link to="/asset_correlation" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-yen"></i></p></button></Link>
+        <Link to="/market_stability_score" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chevron-bar-down"></i></p></button></Link>
+
       </div>
 
       <div className="side-navs-cellphone">
@@ -878,6 +880,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/asset_correlation" className="side-nav">
             <i className="bi bi-currency-yen"></i>
+        </Link>
+        <Link to="/market_stability_score" className="side-nav">
+            <i className="bi bi-chevron-bar-down"></i>
         </Link>
       </div>
       <br />

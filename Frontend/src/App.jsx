@@ -71,7 +71,8 @@ import Diagnostics from './components/diagnostics.jsx';
 import VideoTranscription from './components/video_transcription.jsx';
 import BoardofGovernors from './components/governors.jsx';
 import Charts from './components/charts.jsx';
-import AssetCorrelation from './components/correlation..jsx';
+import AssetCorrelation from './components/correlation.jsx';
+import MarketStabilityScore from './components/market_stability.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -485,6 +486,12 @@ function App() {
             <Route path='/asset_correlation' element={
               <ProtectedRoute>
                 <AssetCorrelation />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/market_stability_score' element={
+              <ProtectedRoute>
+                <MarketStabilityScore />
               </ProtectedRoute>
             } />
             
