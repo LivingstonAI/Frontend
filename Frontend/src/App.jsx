@@ -73,6 +73,7 @@ import BoardofGovernors from './components/governors.jsx';
 import Charts from './components/charts.jsx';
 import AssetCorrelation from './components/correlation.jsx';
 import MarketStabilityScore from './components/market_stability.jsx';
+import BlackHole from './components/black_hole.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -495,6 +496,11 @@ function App() {
               </ProtectedRoute>
             } />
             
+            <Route path='/black_hole' element={
+              <ProtectedRoute>
+                <MarketStabilityScore />
+              </ProtectedRoute>
+            } />
 
 
 
