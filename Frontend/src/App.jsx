@@ -498,7 +498,7 @@ function App() {
             
             <Route path='/black_hole' element={
               <ProtectedRoute>
-                <MarketStabilityScore />
+                <BlackHole />
               </ProtectedRoute>
             } />
 
