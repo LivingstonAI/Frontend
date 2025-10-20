@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 
-export default function BlackHole() {
+export default function BlackHoleSimulator() {
     const canvasRef = useRef(null);
     const [physicsMode, setPhysicsMode] = useState('schwarzschild');
     const [rotationSpeed, setRotationSpeed] = useState(0);
@@ -38,46 +38,47 @@ export default function BlackHole() {
             width: '100%',
             minHeight: '100vh',
             background: theme.gradient,
-            padding: '2rem',
+            padding: '1rem',
             fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
             transition: 'background 0.5s ease',
         },
         header: {
             textAlign: 'center',
-            marginBottom: '2rem',
+            marginBottom: '1.5rem',
         },
         title: {
             color: '#fff',
-            fontSize: '2.5rem',
+            fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
             fontWeight: '700',
             marginBottom: '0.5rem',
             textShadow: `0 0 20px ${theme.glow}`,
         },
         subtitle: {
             color: '#b8b8d4',
-            fontSize: '1rem',
+            fontSize: 'clamp(0.85rem, 3vw, 1rem)',
             fontWeight: '300',
         },
         mainGrid: {
             display: 'grid',
-            gridTemplateColumns: '1fr 350px',
-            gap: '2rem',
+            gridTemplateColumns: '1fr',
+            gap: '1.5rem',
             maxWidth: '1600px',
             margin: '0 auto',
         },
         canvasContainer: {
             background: 'rgba(0, 0, 0, 0.6)',
-            borderRadius: '20px',
-            padding: '1.5rem',
+            borderRadius: '16px',
+            padding: '1rem',
             boxShadow: `0 8px 32px ${theme.glow}`,
             border: `1px solid ${theme.primary}33`,
         },
         canvas: {
             width: '100%',
-            height: '600px',
+            height: 'clamp(300px, 60vh, 600px)',
             borderRadius: '12px',
             background: '#000',
             cursor: 'crosshair',
+            touchAction: 'none',
         },
         controlPanel: {
             display: 'flex',
@@ -86,16 +87,16 @@ export default function BlackHole() {
         },
         card: {
             background: 'rgba(20, 20, 40, 0.8)',
-            borderRadius: '16px',
-            padding: '1.5rem',
+            borderRadius: '12px',
+            padding: '1.25rem',
             border: `1px solid ${theme.primary}4d`,
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
         },
         cardTitle: {
             color: '#fff',
-            fontSize: '1.2rem',
+            fontSize: 'clamp(1rem, 4vw, 1.2rem)',
             fontWeight: '600',
-            marginBottom: '1rem',
+            marginBottom: '0.875rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
@@ -107,11 +108,11 @@ export default function BlackHole() {
         },
         button: {
             flex: 1,
-            padding: '0.75rem',
+            padding: '0.75rem 0.5rem',
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
-            fontSize: '0.9rem',
+            fontSize: 'clamp(0.8rem, 3vw, 0.9rem)',
             fontWeight: '600',
             transition: 'all 0.3s ease',
             background: `${theme.primary}33`,
@@ -142,30 +143,30 @@ export default function BlackHole() {
         },
         valueDisplay: {
             color: '#fff',
-            fontSize: '1rem',
+            fontSize: 'clamp(0.9rem, 3.5vw, 1rem)',
             fontWeight: '600',
             marginTop: '0.5rem',
         },
         timeDilationDisplay: {
             background: `${theme.primary}1a`,
-            padding: '1rem',
+            padding: '0.875rem',
             borderRadius: '8px',
             marginBottom: '0.5rem',
         },
         timeDilationLabel: {
             color: theme.primary,
-            fontSize: '0.85rem',
+            fontSize: 'clamp(0.75rem, 3vw, 0.85rem)',
             fontWeight: '600',
             marginBottom: '0.25rem',
         },
         timeDilationValue: {
             color: '#fff',
-            fontSize: '1.5rem',
+            fontSize: 'clamp(1.25rem, 5vw, 1.5rem)',
             fontWeight: '700',
         },
         infoText: {
             color: '#7c7c9e',
-            fontSize: '0.85rem',
+            fontSize: 'clamp(0.75rem, 3vw, 0.85rem)',
             lineHeight: '1.4',
             marginTop: '0.5rem',
         },
@@ -176,35 +177,63 @@ export default function BlackHole() {
         },
         themeButton: {
             flex: 1,
-            padding: '0.5rem',
+            padding: '0.625rem 0.5rem',
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '0.85rem',
+            fontSize: 'clamp(0.75rem, 3vw, 0.85rem)',
             fontWeight: '600',
             transition: 'all 0.3s ease',
         },
+        desktopOnly: {
+            display: 'none',
+        },
     };
+
+    // Add media query styles for desktop
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    if (mediaQuery.matches) {
+        styles.container.padding = '2rem';
+        styles.header.marginBottom = '2rem';
+        styles.mainGrid.gridTemplateColumns = '1fr 350px';
+        styles.mainGrid.gap = '2rem';
+        styles.canvasContainer.padding = '1.5rem';
+        styles.canvasContainer.borderRadius = '20px';
+        styles.card.padding = '1.5rem';
+        styles.card.borderRadius = '16px';
+    }
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const blackHoleRadius = 50;
+        
+        // Handle high DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        
+        const width = rect.width;
+        const height = rect.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        // Scale black hole based on screen size
+        const baseSize = Math.min(width, height);
+        const blackHoleRadius = baseSize * 0.08;
         let angle = 0;
 
-        // Generate static stars once
+        // Generate static stars once (fewer on mobile)
+        const isMobile = width < 768;
+        const starCount = isMobile ? 200 : 500;
         const stars = [];
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < starCount; i++) {
             stars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
+                x: Math.random() * width,
+                y: Math.random() * height,
                 size: Math.random() * 2,
                 brightness: Math.random(),
                 twinkleSpeed: Math.random() * 0.02 + 0.01,
@@ -305,10 +334,13 @@ export default function BlackHole() {
         const drawAccretionDisk = () => {
             const particles = [];
             
-            // Generate all particles with depth and velocity
-            for (let layer = 0; layer < 5; layer++) {
+            // Generate all particles with depth and velocity (fewer on mobile)
+            const layers = isMobile ? 3 : 5;
+            const particlesPerLayer = isMobile ? 300 : 500;
+            
+            for (let layer = 0; layer < layers; layer++) {
                 const layerOffset = layer * 15;
-                for (let i = 0; i < 500; i++) {
+                for (let i = 0; i < particlesPerLayer; i++) {
                     const diskAngle = (i + angle * (40 + rotationSpeed * 80)) * Math.PI / 180;
                     const baseRadius = blackHoleRadius * 2 + layerOffset;
                     const radiusVariation = Math.sin(i * 0.3 + angle * 2) * 5;
@@ -520,7 +552,7 @@ export default function BlackHole() {
         let frame = 0;
         const animate = () => {
             ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, width, height);
 
             drawStars(frame);
             drawLensing();
@@ -539,10 +571,11 @@ export default function BlackHole() {
             // Rotation indicator
             if (physicsMode === 'kerr' && rotationSpeed > 0) {
                 ctx.fillStyle = 'rgba(255, 100, 100, 0.9)';
-                ctx.font = 'bold 16px monospace';
+                const fontSize = isMobile ? 12 : 16;
+                ctx.font = `bold ${fontSize}px monospace`;
                 ctx.shadowBlur = 8;
                 ctx.shadowColor = 'rgba(255, 100, 100, 0.9)';
-                ctx.fillText(`↻ ${(rotationSpeed * 100).toFixed(0)}%`, 15, 30);
+                ctx.fillText(`↻ ${(rotationSpeed * 100).toFixed(0)}%`, 15, isMobile ? 25 : 30);
                 ctx.shadowBlur = 0;
             }
 
@@ -557,10 +590,22 @@ export default function BlackHole() {
 
         animate();
 
+        // Handle window resize
+        const handleResize = () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
+            // Re-run the effect by forcing a state update would be complex,
+            // so we just let the user refresh on major size changes
+        };
+        
+        window.addEventListener('resize', handleResize);
+
         return () => {
             if (animationRef.current) {
                 cancelAnimationFrame(animationRef.current);
             }
+            window.removeEventListener('resize', handleResize);
         };
     }, [physicsMode, rotationSpeed, observerDistance, isAnimating, colorTheme]);
 
