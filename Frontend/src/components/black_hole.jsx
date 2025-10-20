@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 
-export default function BlackHoleSimulator() {
+export default function BlackHole() {
     const canvasRef = useRef(null);
     const [physicsMode, setPhysicsMode] = useState('schwarzschild');
     const [rotationSpeed, setRotationSpeed] = useState(0);
