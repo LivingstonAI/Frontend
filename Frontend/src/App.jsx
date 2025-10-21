@@ -503,7 +503,7 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path='/black_hole' element={
+            <Route path='/snowx' element={
               <ProtectedRoute>
                 <SNOWXDashboard />
               </ProtectedRoute>
