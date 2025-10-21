@@ -87,6 +87,7 @@ import judas from '../Lady Gaga - Judas (Lyrics).mp3';
 import xonada from '../MONTAGEM XONADA.mp3';
 import coffee_talk from '../Coffee Talk.mp3';
 import sunroof from '../Nicky Youre, dazy - Sunroof (Lyrics).mp3';
+import can_you_hear from '../Can You Hear The Music.mp3';
 
 
 export default function SideNavs() {
@@ -229,7 +230,8 @@ export default function SideNavs() {
         { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
         { name: "Xonada 🟣", file: xonada },
         { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
-        { name: "Sunroof 🏙️", file: sunroof }
+        { name: "Sunroof 🏙️", file: sunroof },
+        { name: "Can you hear the music? 🎼", file: can_you_hear }
   ];
 
   // Enhanced touch navigation function
