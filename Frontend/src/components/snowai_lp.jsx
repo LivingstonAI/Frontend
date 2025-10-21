@@ -206,7 +206,9 @@ export default function SnowAILandingPage() {
       "79": { name: "Xonada 🟣", file: xonada },
       "80": { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
       "81": { name: "Sunroof 🏙️", file: sunroof },
-c    };
+      "82": { name: "Can you hear the music? 🎼", file: can_you_hear },
+
+    };
 
 
   const [searchTerm, setSearchTerm] = useState("");
