@@ -247,6 +247,14 @@ export default function HedgeFundTracker() {
         layout: {
             display: 'grid',
             gridTemplateColumns: '300px 1fr',
+            gap: '20px',
+            '@media (max-width: 768px)': {
+                gridTemplateColumns: '1fr'
+            }
+        },
+        layoutMobile: {
+            display: 'grid',
+            gridTemplateColumns: '1fr',
             gap: '20px'
         },
         sidebar: {
@@ -605,7 +613,7 @@ export default function HedgeFundTracker() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Hedge Fund Tracker</h5><br />
+                    <h5 className="major-upcoming-news-events-header">SnowAI Hedge Fund Tracker</h5><br /><br />
                     
                     <div style={styles.container}>
                         <div style={styles.header}>
