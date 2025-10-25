@@ -894,7 +894,7 @@ export default function SideNavs() {
         <Link to="/snowx" className="side-nav">
             <i className="bi bi-currency-bitcoin"></i>
         </Link>
-        <Link to="hedge_fund_tracker" className="side-nav">
+        <Link to="/hedge_fund_tracker" className="side-nav">
             <i className="bi bi-card-list"></i>
         </Link>
       </div>

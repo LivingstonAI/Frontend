@@ -75,7 +75,7 @@ import AssetCorrelation from './components/correlation.jsx';
 import MarketStabilityScore from './components/market_stability.jsx';
 import BlackHole from './components/black_hole.jsx';
 import SNOWXDashboard from './components/snowx.jsx';
-import HedgeFundTracker from './components/hedge_funds';
+import HedgeFundTracker from './components/hedge_funds.jsx';
 
 
 import Zhenya from './components/zhenya';
