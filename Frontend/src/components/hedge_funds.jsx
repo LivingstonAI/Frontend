@@ -693,14 +693,14 @@ export default function HedgeFundTracker() {
                     <SideNavs />
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1 style={{ margin: 0, fontSize: '24px' }}>SnowAI Hedge Fund Tracker</h1>
+                <h1 style={{ margin: 0, fontSize: '24px' }}>SnowAI Hedge Fund Tracker</h1><br />
                 <button 
                     style={styles.addButton}
                     onClick={() => setShowAddFundModal(true)}
                 >
                     + Add Hedge Fund
                 </button>
-            </div>
+            </div><br />
 
             {hedgeFunds.length === 0 ? (
                 <div style={styles.emptyState}>
