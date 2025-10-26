@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ChevronDown, TrendingUp } from 'lucide-react';
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
+
 
 export default function HedgeFundTracker() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -13,6 +15,9 @@ export default function HedgeFundTracker() {
     const [showAddPersonModal, setShowAddPersonModal] = useState(false);
     const [showAddResourceModal, setShowAddResourceModal] = useState(false);
     const [showAddPerformanceModal, setShowAddPerformanceModal] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [showFundSelector, setShowFundSelector] = useState(false);
+    const [showPerformanceChart, setShowPerformanceChart] = useState(false);
     
     const [newFund, setNewFund] = useState({
         name: '',
@@ -49,6 +54,13 @@ export default function HedgeFundTracker() {
 
     useEffect(() => {
         fetchHedgeFunds();
+        
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const fetchHedgeFunds = async () => {
@@ -235,6 +247,7 @@ export default function HedgeFundTracker() {
     };
 
     const styles = {
+        
         addButton: {
             padding: '10px 20px',
             backgroundColor: '#007bff',
@@ -247,10 +260,7 @@ export default function HedgeFundTracker() {
         layout: {
             display: 'grid',
             gridTemplateColumns: '300px 1fr',
-            gap: '20px',
-            '@media (max-width: 768px)': {
-                gridTemplateColumns: '1fr'
-            }
+            gap: '20px'
         },
         layoutMobile: {
             display: 'grid',
@@ -263,6 +273,14 @@ export default function HedgeFundTracker() {
             borderRadius: '8px',
             maxHeight: 'calc(100vh - 200px)',
             overflowY: 'auto'
+        },
+        sidebarMobile: {
+            backgroundColor: '#f8f9fa',
+            padding: '15px',
+            borderRadius: '8px',
+            maxHeight: 'none',
+            overflowY: 'visible',
+            marginBottom: '20px'
         },
         fundCard: {
             padding: '12px',
@@ -300,7 +318,13 @@ export default function HedgeFundTracker() {
             alignItems: 'center',
             marginBottom: '20px',
             paddingBottom: '20px',
-            borderBottom: '2px solid #e9ecef'
+            borderBottom: '2px solid #e9ecef',
+            flexWrap: 'wrap',
+            gap: '15px'
+        },
+        fundHeaderInfo: {
+            flex: 1,
+            minWidth: '200px'
         },
         fundLogoLarge: {
             width: '80px',
@@ -424,6 +448,17 @@ export default function HedgeFundTracker() {
             position: 'absolute',
             top: '10px',
             right: '10px'
+        },
+        deleteFundButton: {
+            padding: '8px 16px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            marginLeft: 'auto',
+            whiteSpace: 'nowrap'
         },
         resourceCard: {
             padding: '12px',
@@ -574,15 +609,62 @@ export default function HedgeFundTracker() {
             padding: '40px',
             color: '#6c757d'
         },
-        deleteFundButton: {
+        mobileFundSelector: {
+            padding: '12px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            marginBottom: '15px'
+        },
+        fundDropdown: {
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            backgroundColor: 'white',
+            border: '1px solid #dee2e6',
+            borderRadius: '5px',
+            marginTop: '5px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            zIndex: 100,
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        },
+        fundDropdownItem: {
+            padding: '12px',
+            cursor: 'pointer',
+            borderBottom: '1px solid #f0f0f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+        },
+        chartContainer: {
+            backgroundColor: '#f8f9fa',
+            padding: '20px',
+            borderRadius: '8px',
+            marginBottom: '20px'
+        },
+        chartToggle: {
             padding: '8px 16px',
-            backgroundColor: '#dc3545',
+            backgroundColor: '#17a2b8',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
             fontSize: '13px',
-            marginLeft: 'auto'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+        },
+        mobileContainer: {
+            position: 'relative'
         }
     };
 
@@ -594,536 +676,851 @@ export default function HedgeFundTracker() {
                 </div>
                 <div className="main-page-body">
                     <SideNavs />
-                    <div className="main-body-info">
-                        <h5 className="major-upcoming-news-events-header">SnowAI Hedge Fund Tracker</h5>
-                        <div style={styles.container}>
-                            <p>Loading hedge funds...</p>
-                        </div>
-                    </div>
-                </div>
+            <div style={styles.container}>
+                <p>Loading hedge funds...</p>
+            </div>
+            </div>
             </div>
         );
     }
 
     return (
         <div>
-            <div className="header">
-                <Header />
+                <div className="header">
+                    <Header />
+                </div>
+                <div className="main-page-body">
+                    <SideNavs />
+        <div style={styles.container}>
+            <div style={styles.header}>
+                <h1 style={{ margin: 0, fontSize: '24px' }}>SnowAI Hedge Fund Tracker</h1>
+                <button 
+                    style={styles.addButton}
+                    onClick={() => setShowAddFundModal(true)}
+                >
+                    + Add Hedge Fund
+                </button>
             </div>
-            <div className="main-page-body">
-                <SideNavs />
-                <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Hedge Fund Tracker</h5><br /><br />
+
+            {hedgeFunds.length === 0 ? (
+                <div style={styles.emptyState}>
+                    <h3>No hedge funds added yet</h3>
+                    <p>Click "Add Hedge Fund" to get started</p>
+                </div>
+            ) : isMobile ? (
+                /* Mobile Layout */
+                <div style={styles.mobileContainer}>
+                    {/* Mobile Fund Selector */}
+                    <button 
+                        style={styles.mobileFundSelector}
+                        onClick={() => setShowFundSelector(!showFundSelector)}
+                    >
+                        <span>{selectedFund ? selectedFund.name : 'Select a Hedge Fund'}</span>
+                        <ChevronDown size={20} />
+                    </button>
                     
-                    <div style={styles.container}>
-                        <div style={styles.header}>
-                            <button 
-                                style={styles.addButton}
-                                onClick={() => setShowAddFundModal(true)}
-                            >
-                                + Add Hedge Fund
-                            </button>
-                        </div>
-
-                        {hedgeFunds.length === 0 ? (
-                            <div style={styles.emptyState}>
-                                <h3>No hedge funds added yet</h3>
-                                <p>Click "Add Hedge Fund" to get started</p>
-                            </div>
-                        ) : (
-                            <div style={styles.layout}>
-                                {/* Sidebar */}
-                                <div style={styles.sidebar}>
-                                    {hedgeFunds.map(fund => (
-                                        <div
-                                            key={fund.id}
-                                            style={{
-                                                ...styles.fundCard,
-                                                ...(selectedFund?.id === fund.id ? styles.fundCardActive : {})
-                                            }}
-                                            onClick={() => setSelectedFund(fund)}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                {fund.logo_url && (
-                                                    <img 
-                                                        src={fund.logo_url} 
-                                                        alt={fund.name}
-                                                        style={styles.fundLogo}
-                                                        onError={(e) => e.target.style.display = 'none'}
-                                                    />
-                                                )}
-                                                <p style={styles.fundName}>{fund.name}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                    {/* Dropdown List */}
+                    {showFundSelector && (
+                        <div style={styles.fundDropdown}>
+                            {hedgeFunds.map(fund => (
+                                <div
+                                    key={fund.id}
+                                    style={styles.fundDropdownItem}
+                                    onClick={() => {
+                                        setSelectedFund(fund);
+                                        setShowFundSelector(false);
+                                    }}
+                                >
+                                    {fund.logo_url && (
+                                        <img 
+                                            src={fund.logo_url} 
+                                            alt={fund.name}
+                                            style={styles.fundLogo}
+                                            onError={(e) => e.target.style.display = 'none'}
+                                        />
+                                    )}
+                                    <span style={{ fontWeight: selectedFund?.id === fund.id ? '600' : '400' }}>
+                                        {fund.name}
+                                    </span>
                                 </div>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {/* Fund Details */}
+                    {selectedFund && (
+                        <div style={styles.mainContent}>
+                            {/* Fund Header */}
+                            <div style={styles.fundHeader}>
+                                {selectedFund.logo_url && (
+                                    <img 
+                                        src={selectedFund.logo_url} 
+                                        alt={selectedFund.name}
+                                        style={styles.fundLogoLarge}
+                                        onError={(e) => e.target.style.display = 'none'}
+                                    />
+                                )}
+                                <div style={styles.fundHeaderInfo}>
+                                    <h1 style={styles.fundTitle}>{selectedFund.name}</h1>
+                                    {selectedFund.headquarters && (
+                                        <p style={styles.fundSubtitle}>📍 {selectedFund.headquarters}</p>
+                                    )}
+                                    {selectedFund.founded_year && (
+                                        <p style={styles.fundSubtitle}>📅 Founded: {selectedFund.founded_year}</p>
+                                    )}
+                                </div>
+                                <button
+                                    style={styles.deleteFundButton}
+                                    onClick={() => handleDeleteFund(selectedFund.id)}
+                                >
+                                    Delete Fund
+                                </button>
+                            </div>
 
-                                {/* Main Content */}
-                                {selectedFund && (
-                                    <div style={styles.mainContent}>
-                                        {/* Fund Header */}
-                                        <div style={styles.fundHeader}>
-                                            {selectedFund.logo_url && (
-                                                <img 
-                                                    src={selectedFund.logo_url} 
-                                                    alt={selectedFund.name}
-                                                    style={styles.fundLogoLarge}
-                                                    onError={(e) => e.target.style.display = 'none'}
-                                                />
-                                            )}
-                                            <div style={{ flex: 1 }}>
-                                                <h1 style={styles.fundTitle}>{selectedFund.name}</h1>
-                                                {selectedFund.headquarters && (
-                                                    <p style={styles.fundSubtitle}>📍 {selectedFund.headquarters}</p>
-                                                )}
-                                                {selectedFund.founded_year && (
-                                                    <p style={styles.fundSubtitle}>📅 Founded: {selectedFund.founded_year}</p>
-                                                )}
-                                            </div>
-                                            <button
-                                                style={styles.deleteFundButton}
-                                                onClick={() => handleDeleteFund(selectedFund.id)}
-                                            >
-                                                Delete Fund
-                                            </button>
-                                        </div>
+                            {/* Description */}
+                            {selectedFund.description && (
+                                <div style={styles.section}>
+                                    <p style={styles.description}>{selectedFund.description}</p>
+                                </div>
+                            )}
 
-                                        {/* Description */}
-                                        {selectedFund.description && (
-                                            <div style={styles.section}>
-                                                <p style={styles.description}>{selectedFund.description}</p>
-                                            </div>
-                                        )}
-
-                                        {/* Info Grid */}
-                                        <div style={styles.infoGrid}>
-                                            {selectedFund.aum && (
-                                                <div style={styles.infoCard}>
-                                                    <div style={styles.infoLabel}>Assets Under Management</div>
-                                                    <div style={styles.infoValue}>{selectedFund.aum}</div>
-                                                </div>
-                                            )}
-                                            {selectedFund.strategy && (
-                                                <div style={styles.infoCard}>
-                                                    <div style={styles.infoLabel}>Strategy</div>
-                                                    <div style={styles.infoValue}>{selectedFund.strategy}</div>
-                                                </div>
-                                            )}
-                                            {selectedFund.website && (
-                                                <div style={styles.infoCard}>
-                                                    <div style={styles.infoLabel}>Website</div>
-                                                    <div style={styles.infoValue}>
-                                                        <a href={selectedFund.website} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                                                            Visit Website
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Performance Data */}
-                                        <div style={styles.section}>
-                                            <div style={styles.sectionHeader}>
-                                                <h3 style={styles.sectionTitle}>Performance History</h3>
-                                                <button
-                                                    style={styles.addSmallButton}
-                                                    onClick={() => setShowAddPerformanceModal(true)}
-                                                >
-                                                    + Add Performance
-                                                </button>
-                                            </div>
-                                            {selectedFund.performance && selectedFund.performance.length > 0 ? (
-                                                <div style={styles.performanceList}>
-                                                    {selectedFund.performance.map(perf => (
-                                                        <div key={perf.id} style={styles.performanceCard}>
-                                                            <button
-                                                                style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px'}}
-                                                                onClick={() => handleDeletePerformance(perf.id)}
-                                                            >
-                                                                ×
-                                                            </button>
-                                                            <div style={styles.performanceYear}>{perf.year}</div>
-                                                            <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
-                                                                {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
-                                            )}
-                                        </div>
-
-                                        {/* Key People */}
-                                        <div style={styles.section}>
-                                            <div style={styles.sectionHeader}>
-                                                <h3 style={styles.sectionTitle}>Key People</h3>
-                                                <button
-                                                    style={styles.addSmallButton}
-                                                    onClick={() => setShowAddPersonModal(true)}
-                                                >
-                                                    + Add Person
-                                                </button>
-                                            </div>
-                                            {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
-                                                selectedFund.key_people.map(person => (
-                                                    <div key={person.id} style={styles.personCard}>
-                                                        <button
-                                                            style={styles.deleteButton}
-                                                            onClick={() => handleDeletePerson(person.id)}
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                        {person.photo_url && (
-                                                            <img 
-                                                                src={person.photo_url} 
-                                                                alt={person.name}
-                                                                style={styles.personPhoto}
-                                                                onError={(e) => e.target.style.display = 'none'}
-                                                            />
-                                                        )}
-                                                        <div style={styles.personInfo}>
-                                                            <h4 style={styles.personName}>{person.name}</h4>
-                                                            {person.role && (
-                                                                <p style={styles.personRole}>{person.role}</p>
-                                                            )}
-                                                            {person.bio && (
-                                                                <p style={{ fontSize: '13px', color: '#495057', marginBottom: '8px' }}>
-                                                                    {person.bio}
-                                                                </p>
-                                                            )}
-                                                            <div style={styles.personLinks}>
-                                                                {person.wikipedia_url && (
-                                                                    <a href={person.wikipedia_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                                                                        Wikipedia
-                                                                    </a>
-                                                                )}
-                                                                {person.linkedin_url && (
-                                                                    <a href={person.linkedin_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                                                                        LinkedIn
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No key people added yet</p>
-                                            )}
-                                        </div>
-
-                                        {/* Resources */}
-                                        <div style={styles.section}>
-                                            <div style={styles.sectionHeader}>
-                                                <h3 style={styles.sectionTitle}>Resources & Articles</h3>
-                                                <button
-                                                    style={styles.addSmallButton}
-                                                    onClick={() => setShowAddResourceModal(true)}
-                                                >
-                                                    + Add Resource
-                                                </button>
-                                            </div>
-                                            {selectedFund.resources && selectedFund.resources.length > 0 ? (
-                                                selectedFund.resources.map(resource => (
-                                                    <div key={resource.id} style={styles.resourceCard}>
-                                                        <button
-                                                            style={styles.deleteButton}
-                                                            onClick={() => handleDeleteResource(resource.id)}
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                        <span style={styles.resourceType}>{resource.resource_type}</span>
-                                                        <h4 style={styles.resourceTitle}>
-                                                            <a href={resource.url} target="_blank" rel="noopener noreferrer" style={{...styles.link, fontSize: '14px'}}>
-                                                                {resource.title}
-                                                            </a>
-                                                        </h4>
-                                                        {resource.description && (
-                                                            <p style={styles.resourceDescription}>{resource.description}</p>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No resources added yet</p>
-                                            )}
+                            {/* Info Grid */}
+                            <div style={styles.infoGrid}>
+                                {selectedFund.aum && (
+                                    <div style={styles.infoCard}>
+                                        <div style={styles.infoLabel}>Assets Under Management</div>
+                                        <div style={styles.infoValue}>{selectedFund.aum}</div>
+                                    </div>
+                                )}
+                                {selectedFund.strategy && (
+                                    <div style={styles.infoCard}>
+                                        <div style={styles.infoLabel}>Strategy</div>
+                                        <div style={styles.infoValue}>{selectedFund.strategy}</div>
+                                    </div>
+                                )}
+                                {selectedFund.website && (
+                                    <div style={styles.infoCard}>
+                                        <div style={styles.infoLabel}>Website</div>
+                                        <div style={styles.infoValue}>
+                                            <a href={selectedFund.website} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                Visit Website
+                                            </a>
                                         </div>
                                     </div>
                                 )}
                             </div>
-                        )}
 
-                        {/* Add Fund Modal */}
-                        {showAddFundModal && (
-                            <div style={styles.modal} onClick={() => setShowAddFundModal(false)}>
-                                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                    <h2 style={styles.modalTitle}>Add New Hedge Fund</h2>
-                                    <form onSubmit={handleCreateFund}>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Fund Name *</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newFund.name}
-                                                onChange={(e) => setNewFund({...newFund, name: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Logo URL (external link, e.g., Imgur)</label>
-                                            <input
-                                                type="url"
-                                                style={styles.input}
-                                                value={newFund.logo_url}
-                                                onChange={(e) => setNewFund({...newFund, logo_url: e.target.value})}
-                                                placeholder="https://i.imgur.com/example.png"
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Description</label>
-                                            <textarea
-                                                style={styles.textarea}
-                                                value={newFund.description}
-                                                onChange={(e) => setNewFund({...newFund, description: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Founded Year</label>
-                                            <input
-                                                type="number"
-                                                style={styles.input}
-                                                value={newFund.founded_year}
-                                                onChange={(e) => setNewFund({...newFund, founded_year: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Assets Under Management</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newFund.aum}
-                                                onChange={(e) => setNewFund({...newFund, aum: e.target.value})}
-                                                placeholder="$50 billion"
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Strategy</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newFund.strategy}
-                                                onChange={(e) => setNewFund({...newFund, strategy: e.target.value})}
-                                                placeholder="Long/Short Equity, Global Macro, etc."
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Headquarters</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newFund.headquarters}
-                                                onChange={(e) => setNewFund({...newFund, headquarters: e.target.value})}
-                                                placeholder="New York, NY"
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Website</label>
-                                            <input
-                                                type="url"
-                                                style={styles.input}
-                                                value={newFund.website}
-                                                onChange={(e) => setNewFund({...newFund, website: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.buttonGroup}>
-                                            <button type="submit" style={styles.submitButton}>Create Fund</button>
-                                            <button type="button" style={styles.cancelButton} onClick={() => setShowAddFundModal(false)}>
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Add Person Modal */}
-                        {showAddPersonModal && (
-                            <div style={styles.modal} onClick={() => setShowAddPersonModal(false)}>
-                                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                    <h2 style={styles.modalTitle}>Add Key Person</h2>
-                                    <form onSubmit={handleAddPerson}>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Name *</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newPerson.name}
-                                                onChange={(e) => setNewPerson({...newPerson, name: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Role</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newPerson.role}
-                                                onChange={(e) => setNewPerson({...newPerson, role: e.target.value})}
-                                                placeholder="Founder & CEO"
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Photo URL (external link)</label>
-                                            <input
-                                                type="url"
-                                                style={styles.input}
-                                                value={newPerson.photo_url}
-                                                onChange={(e) => setNewPerson({...newPerson, photo_url: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Bio</label>
-                                            <textarea
-                                                style={styles.textarea}
-                                                value={newPerson.bio}
-                                                onChange={(e) => setNewPerson({...newPerson, bio: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Wikipedia URL</label>
-                                            <input
-                                                type="url"
-                                                style={styles.input}
-                                                value={newPerson.wikipedia_url}
-                                                onChange={(e) => setNewPerson({...newPerson, wikipedia_url: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>LinkedIn URL</label>
-                                            <input
-                                                type="url"
-                                                style={styles.input}
-                                                value={newPerson.linkedin_url}
-                                                onChange={(e) => setNewPerson({...newPerson, linkedin_url: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.buttonGroup}>
-                                            <button type="submit" style={styles.submitButton}>Add Person</button>
-                                            <button type="button" style={styles.cancelButton} onClick={() => setShowAddPersonModal(false)}>
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Add Resource Modal */}
-                        {showAddResourceModal && (
-                            <div style={styles.modal} onClick={() => setShowAddResourceModal(false)}>
-                                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                    <h2 style={styles.modalTitle}>Add Resource</h2>
-                                    <form onSubmit={handleAddResource}>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Title *</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                value={newResource.title}
-                                                onChange={(e) => setNewResource({...newResource, title: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>URL *</label>
-                                            <input
-                                                type="url"
-                                                style={styles.input}
-                                                value={newResource.url}
-                                                onChange={(e) => setNewResource({...newResource, url: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Description</label>
-                                            <textarea
-                                                style={styles.textarea}
-                                                value={newResource.description}
-                                                onChange={(e) => setNewResource({...newResource, description: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Type</label>
-                                            <select
-                                                style={styles.select}
-                                                value={newResource.resource_type}
-                                                onChange={(e) => setNewResource({...newResource, resource_type: e.target.value})}
+                            {/* Performance Data */}
+                            <div style={styles.section}>
+                                <div style={styles.sectionHeader}>
+                                    <h3 style={styles.sectionTitle}>Performance History</h3>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        {selectedFund.performance && selectedFund.performance.length > 0 && (
+                                            <button
+                                                style={styles.chartToggle}
+                                                onClick={() => setShowPerformanceChart(!showPerformanceChart)}
                                             >
-                                                <option value="article">Article</option>
-                                                <option value="interview">Interview</option>
-                                                <option value="video">Video</option>
-                                                <option value="report">Report</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div style={styles.buttonGroup}>
-                                            <button type="submit" style={styles.submitButton}>Add Resource</button>
-                                            <button type="button" style={styles.cancelButton} onClick={() => setShowAddResourceModal(false)}>
-                                                Cancel
+                                                <TrendingUp size={16} />
+                                                {showPerformanceChart ? 'Hide Chart' : 'Show Chart'}
                                             </button>
-                                        </div>
-                                    </form>
+                                        )}
+                                        <button
+                                            style={styles.addSmallButton}
+                                            onClick={() => setShowAddPerformanceModal(true)}
+                                        >
+                                            + Add Performance
+                                        </button>
+                                    </div>
                                 </div>
+                                
+                                {/* Performance Chart */}
+                                {showPerformanceChart && selectedFund.performance && selectedFund.performance.length > 0 && (
+                                    <div style={styles.chartContainer}>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <LineChart data={selectedFund.performance.sort((a, b) => a.year - b.year)}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis 
+                                                    dataKey="year" 
+                                                    label={{ value: 'Year', position: 'insideBottom', offset: -5 }}
+                                                />
+                                                <YAxis 
+                                                    label={{ value: 'Return (%)', angle: -90, position: 'insideLeft' }}
+                                                />
+                                                <Tooltip 
+                                                    formatter={(value) => `${value}%`}
+                                                    labelFormatter={(label) => `Year: ${label}`}
+                                                />
+                                                <Legend />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="return_percentage" 
+                                                    stroke="#007bff" 
+                                                    strokeWidth={2}
+                                                    name="Annual Return %"
+                                                    dot={{ fill: '#007bff', r: 4 }}
+                                                    activeDot={{ r: 6 }}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
+                                
+                                {selectedFund.performance && selectedFund.performance.length > 0 ? (
+                                    <div style={styles.performanceList}>
+                                        {selectedFund.performance.map(perf => (
+                                            <div key={perf.id} style={styles.performanceCard}>
+                                                <button
+                                                    style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px'}}
+                                                    onClick={() => handleDeletePerformance(perf.id)}
+                                                >
+                                                    ×
+                                                </button>
+                                                <div style={styles.performanceYear}>{perf.year}</div>
+                                                <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
+                                                    {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
+                                )}
                             </div>
-                        )}
 
-                        {/* Add Performance Modal */}
-                        {showAddPerformanceModal && (
-                            <div style={styles.modal} onClick={() => setShowAddPerformanceModal(false)}>
-                                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                    <h2 style={styles.modalTitle}>Add Performance Data</h2>
-                                    <form onSubmit={handleAddPerformance}>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Year *</label>
-                                            <input
-                                                type="number"
-                                                style={styles.input}
-                                                value={newPerformance.year}
-                                                onChange={(e) => setNewPerformance({...newPerformance, year: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Return Percentage * (e.g., 15.5 or -3.2)</label>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                style={styles.input}
-                                                value={newPerformance.return_percentage}
-                                                onChange={(e) => setNewPerformance({...newPerformance, return_percentage: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Notes</label>
-                                            <textarea
-                                                style={styles.textarea}
-                                                value={newPerformance.notes}
-                                                onChange={(e) => setNewPerformance({...newPerformance, notes: e.target.value})}
-                                            />
-                                        </div>
-                                        <div style={styles.buttonGroup}>
-                                            <button type="submit" style={styles.submitButton}>Add Performance</button>
-                                            <button type="button" style={styles.cancelButton} onClick={() => setShowAddPerformanceModal(false)}>
-                                                Cancel
+                            {/* Key People */}
+                            <div style={styles.section}>
+                                <div style={styles.sectionHeader}>
+                                    <h3 style={styles.sectionTitle}>Key People</h3>
+                                    <button
+                                        style={styles.addSmallButton}
+                                        onClick={() => setShowAddPersonModal(true)}
+                                    >
+                                        + Add Person
+                                    </button>
+                                </div>
+                                {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
+                                    selectedFund.key_people.map(person => (
+                                        <div key={person.id} style={styles.personCard}>
+                                            <button
+                                                style={styles.deleteButton}
+                                                onClick={() => handleDeletePerson(person.id)}
+                                            >
+                                                Delete
                                             </button>
+                                            {person.photo_url && (
+                                                <img 
+                                                    src={person.photo_url} 
+                                                    alt={person.name}
+                                                    style={styles.personPhoto}
+                                                    onError={(e) => e.target.style.display = 'none'}
+                                                />
+                                            )}
+                                            <div style={styles.personInfo}>
+                                                <h4 style={styles.personName}>{person.name}</h4>
+                                                {person.role && (
+                                                    <p style={styles.personRole}>{person.role}</p>
+                                                )}
+                                                {person.bio && (
+                                                    <p style={{ fontSize: '13px', color: '#495057', marginBottom: '8px' }}>
+                                                        {person.bio}
+                                                    </p>
+                                                )}
+                                                <div style={styles.personLinks}>
+                                                    {person.wikipedia_url && (
+                                                        <a href={person.wikipedia_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                            Wikipedia
+                                                        </a>
+                                                    )}
+                                                    {person.linkedin_url && (
+                                                        <a href={person.linkedin_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                            LinkedIn
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </form>
+                                    ))
+                                ) : (
+                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No key people added yet</p>
+                                )}
+                            </div>
+
+                            {/* Resources */}
+                            <div style={styles.section}>
+                                <div style={styles.sectionHeader}>
+                                    <h3 style={styles.sectionTitle}>Resources & Articles</h3>
+                                    <button
+                                        style={styles.addSmallButton}
+                                        onClick={() => setShowAddResourceModal(true)}
+                                    >
+                                        + Add Resource
+                                    </button>
+                                </div>
+                                {selectedFund.resources && selectedFund.resources.length > 0 ? (
+                                    selectedFund.resources.map(resource => (
+                                        <div key={resource.id} style={styles.resourceCard}>
+                                            <button
+                                                style={styles.deleteButton}
+                                                onClick={() => handleDeleteResource(resource.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                            <span style={styles.resourceType}>{resource.resource_type}</span>
+                                            <h4 style={styles.resourceTitle}>
+                                                <a href={resource.url} target="_blank" rel="noopener noreferrer" style={{...styles.link, fontSize: '14px'}}>
+                                                    {resource.title}
+                                                </a>
+                                            </h4>
+                                            {resource.description && (
+                                                <p style={styles.resourceDescription}>{resource.description}</p>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No resources added yet</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* Desktop Layout */
+                <div style={styles.layout}>
+                    {/* Sidebar */}
+                    <div style={styles.sidebar}>
+                        {hedgeFunds.map(fund => (
+                            <div
+                                key={fund.id}
+                                style={{
+                                    ...styles.fundCard,
+                                    ...(selectedFund?.id === fund.id ? styles.fundCardActive : {})
+                                }}
+                                onClick={() => setSelectedFund(fund)}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    {fund.logo_url && (
+                                        <img 
+                                            src={fund.logo_url} 
+                                            alt={fund.name}
+                                            style={styles.fundLogo}
+                                            onError={(e) => e.target.style.display = 'none'}
+                                        />
+                                    )}
+                                    <p style={styles.fundName}>{fund.name}</p>
                                 </div>
                             </div>
-                        )}
+                        ))}
+                    </div>
+
+                    {/* Main Content - Desktop */}
+                    {selectedFund && (
+                        <div style={styles.mainContent}>
+                            {/* Fund Header */}
+                            <div style={styles.fundHeader}>
+                                {selectedFund.logo_url && (
+                                    <img 
+                                        src={selectedFund.logo_url} 
+                                        alt={selectedFund.name}
+                                        style={styles.fundLogoLarge}
+                                        onError={(e) => e.target.style.display = 'none'}
+                                    />
+                                )}
+                                <div style={styles.fundHeaderInfo}>
+                                    <h1 style={styles.fundTitle}>{selectedFund.name}</h1>
+                                    {selectedFund.headquarters && (
+                                        <p style={styles.fundSubtitle}>📍 {selectedFund.headquarters}</p>
+                                    )}
+                                    {selectedFund.founded_year && (
+                                        <p style={styles.fundSubtitle}>📅 Founded: {selectedFund.founded_year}</p>
+                                    )}
+                                </div>
+                                <button
+                                    style={styles.deleteFundButton}
+                                    onClick={() => handleDeleteFund(selectedFund.id)}
+                                >
+                                    Delete Fund
+                                </button>
+                            </div>
+
+                            {/* Description */}
+                            {selectedFund.description && (
+                                <div style={styles.section}>
+                                    <p style={styles.description}>{selectedFund.description}</p>
+                                </div>
+                            )}
+
+                            {/* Info Grid */}
+                            <div style={styles.infoGrid}>
+                                {selectedFund.aum && (
+                                    <div style={styles.infoCard}>
+                                        <div style={styles.infoLabel}>Assets Under Management</div>
+                                        <div style={styles.infoValue}>{selectedFund.aum}</div>
+                                    </div>
+                                )}
+                                {selectedFund.strategy && (
+                                    <div style={styles.infoCard}>
+                                        <div style={styles.infoLabel}>Strategy</div>
+                                        <div style={styles.infoValue}>{selectedFund.strategy}</div>
+                                    </div>
+                                )}
+                                {selectedFund.website && (
+                                    <div style={styles.infoCard}>
+                                        <div style={styles.infoLabel}>Website</div>
+                                        <div style={styles.infoValue}>
+                                            <a href={selectedFund.website} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                Visit Website
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Performance Data */}
+                            <div style={styles.section}>
+                                <div style={styles.sectionHeader}>
+                                    <h3 style={styles.sectionTitle}>Performance History</h3>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        {selectedFund.performance && selectedFund.performance.length > 0 && (
+                                            <button
+                                                style={styles.chartToggle}
+                                                onClick={() => setShowPerformanceChart(!showPerformanceChart)}
+                                            >
+                                                <TrendingUp size={16} />
+                                                {showPerformanceChart ? 'Hide Chart' : 'Show Chart'}
+                                            </button>
+                                        )}
+                                        <button
+                                            style={styles.addSmallButton}
+                                            onClick={() => setShowAddPerformanceModal(true)}
+                                        >
+                                            + Add Performance
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Performance Chart */}
+                                {showPerformanceChart && selectedFund.performance && selectedFund.performance.length > 0 && (
+                                    <div style={styles.chartContainer}>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <LineChart data={selectedFund.performance.sort((a, b) => a.year - b.year)}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis 
+                                                    dataKey="year" 
+                                                    label={{ value: 'Year', position: 'insideBottom', offset: -5 }}
+                                                />
+                                                <YAxis 
+                                                    label={{ value: 'Return (%)', angle: -90, position: 'insideLeft' }}
+                                                />
+                                                <Tooltip 
+                                                    formatter={(value) => `${value}%`}
+                                                    labelFormatter={(label) => `Year: ${label}`}
+                                                />
+                                                <Legend />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="return_percentage" 
+                                                    stroke="#007bff" 
+                                                    strokeWidth={2}
+                                                    name="Annual Return %"
+                                                    dot={{ fill: '#007bff', r: 4 }}
+                                                    activeDot={{ r: 6 }}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
+                                
+                                {selectedFund.performance && selectedFund.performance.length > 0 ? (
+                                    <div style={styles.performanceList}>
+                                        {selectedFund.performance.map(perf => (
+                                            <div key={perf.id} style={styles.performanceCard}>
+                                                <button
+                                                    style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px'}}
+                                                    onClick={() => handleDeletePerformance(perf.id)}
+                                                >
+                                                    ×
+                                                </button>
+                                                <div style={styles.performanceYear}>{perf.year}</div>
+                                                <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
+                                                    {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
+                                )}
+                            </div>
+
+                            {/* Key People */}
+                            <div style={styles.section}>
+                                <div style={styles.sectionHeader}>
+                                    <h3 style={styles.sectionTitle}>Key People</h3>
+                                    <button
+                                        style={styles.addSmallButton}
+                                        onClick={() => setShowAddPersonModal(true)}
+                                    >
+                                        + Add Person
+                                    </button>
+                                </div>
+                                {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
+                                    selectedFund.key_people.map(person => (
+                                        <div key={person.id} style={styles.personCard}>
+                                            <button
+                                                style={styles.deleteButton}
+                                                onClick={() => handleDeletePerson(person.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                            {person.photo_url && (
+                                                <img 
+                                                    src={person.photo_url} 
+                                                    alt={person.name}
+                                                    style={styles.personPhoto}
+                                                    onError={(e) => e.target.style.display = 'none'}
+                                                />
+                                            )}
+                                            <div style={styles.personInfo}>
+                                                <h4 style={styles.personName}>{person.name}</h4>
+                                                {person.role && (
+                                                    <p style={styles.personRole}>{person.role}</p>
+                                                )}
+                                                {person.bio && (
+                                                    <p style={{ fontSize: '13px', color: '#495057', marginBottom: '8px' }}>
+                                                        {person.bio}
+                                                    </p>
+                                                )}
+                                                <div style={styles.personLinks}>
+                                                    {person.wikipedia_url && (
+                                                        <a href={person.wikipedia_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                            Wikipedia
+                                                        </a>
+                                                    )}
+                                                    {person.linkedin_url && (
+                                                        <a href={person.linkedin_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                            LinkedIn
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No key people added yet</p>
+                                )}
+                            </div>
+
+                            {/* Resources */}
+                            <div style={styles.section}>
+                                <div style={styles.sectionHeader}>
+                                    <h3 style={styles.sectionTitle}>Resources & Articles</h3>
+                                    <button
+                                        style={styles.addSmallButton}
+                                        onClick={() => setShowAddResourceModal(true)}
+                                    >
+                                        + Add Resource
+                                    </button>
+                                </div>
+                                {selectedFund.resources && selectedFund.resources.length > 0 ? (
+                                    selectedFund.resources.map(resource => (
+                                        <div key={resource.id} style={styles.resourceCard}>
+                                            <button
+                                                style={styles.deleteButton}
+                                                onClick={() => handleDeleteResource(resource.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                            <span style={styles.resourceType}>{resource.resource_type}</span>
+                                            <h4 style={styles.resourceTitle}>
+                                                <a href={resource.url} target="_blank" rel="noopener noreferrer" style={{...styles.link, fontSize: '14px'}}>
+                                                    {resource.title}
+                                                </a>
+                                            </h4>
+                                            {resource.description && (
+                                                <p style={styles.resourceDescription}>{resource.description}</p>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No resources added yet</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Add Fund Modal */}
+            {showAddFundModal && (
+                <div style={styles.modal} onClick={() => setShowAddFundModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <h2 style={styles.modalTitle}>Add New Hedge Fund</h2>
+                        <form onSubmit={handleCreateFund}>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Fund Name *</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newFund.name}
+                                    onChange={(e) => setNewFund({...newFund, name: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Logo URL (external link, e.g., Imgur)</label>
+                                <input
+                                    type="url"
+                                    style={styles.input}
+                                    value={newFund.logo_url}
+                                    onChange={(e) => setNewFund({...newFund, logo_url: e.target.value})}
+                                    placeholder="https://i.imgur.com/example.png"
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Description</label>
+                                <textarea
+                                    style={styles.textarea}
+                                    value={newFund.description}
+                                    onChange={(e) => setNewFund({...newFund, description: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Founded Year</label>
+                                <input
+                                    type="number"
+                                    style={styles.input}
+                                    value={newFund.founded_year}
+                                    onChange={(e) => setNewFund({...newFund, founded_year: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Assets Under Management</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newFund.aum}
+                                    onChange={(e) => setNewFund({...newFund, aum: e.target.value})}
+                                    placeholder="$50 billion"
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Strategy</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newFund.strategy}
+                                    onChange={(e) => setNewFund({...newFund, strategy: e.target.value})}
+                                    placeholder="Long/Short Equity, Global Macro, etc."
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Headquarters</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newFund.headquarters}
+                                    onChange={(e) => setNewFund({...newFund, headquarters: e.target.value})}
+                                    placeholder="New York, NY"
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Website</label>
+                                <input
+                                    type="url"
+                                    style={styles.input}
+                                    value={newFund.website}
+                                    onChange={(e) => setNewFund({...newFund, website: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.buttonGroup}>
+                                <button type="submit" style={styles.submitButton}>Create Fund</button>
+                                <button type="button" style={styles.cancelButton} onClick={() => setShowAddFundModal(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Add Person Modal */}
+            {showAddPersonModal && (
+                <div style={styles.modal} onClick={() => setShowAddPersonModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <h2 style={styles.modalTitle}>Add Key Person</h2>
+                        <form onSubmit={handleAddPerson}>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Name *</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newPerson.name}
+                                    onChange={(e) => setNewPerson({...newPerson, name: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Role</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newPerson.role}
+                                    onChange={(e) => setNewPerson({...newPerson, role: e.target.value})}
+                                    placeholder="Founder & CEO"
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Photo URL (external link)</label>
+                                <input
+                                    type="url"
+                                    style={styles.input}
+                                    value={newPerson.photo_url}
+                                    onChange={(e) => setNewPerson({...newPerson, photo_url: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Bio</label>
+                                <textarea
+                                    style={styles.textarea}
+                                    value={newPerson.bio}
+                                    onChange={(e) => setNewPerson({...newPerson, bio: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Wikipedia URL</label>
+                                <input
+                                    type="url"
+                                    style={styles.input}
+                                    value={newPerson.wikipedia_url}
+                                    onChange={(e) => setNewPerson({...newPerson, wikipedia_url: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>LinkedIn URL</label>
+                                <input
+                                    type="url"
+                                    style={styles.input}
+                                    value={newPerson.linkedin_url}
+                                    onChange={(e) => setNewPerson({...newPerson, linkedin_url: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.buttonGroup}>
+                                <button type="submit" style={styles.submitButton}>Add Person</button>
+                                <button type="button" style={styles.cancelButton} onClick={() => setShowAddPersonModal(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Resource Modal */}
+            {showAddResourceModal && (
+                <div style={styles.modal} onClick={() => setShowAddResourceModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <h2 style={styles.modalTitle}>Add Resource</h2>
+                        <form onSubmit={handleAddResource}>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Title *</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    value={newResource.title}
+                                    onChange={(e) => setNewResource({...newResource, title: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>URL *</label>
+                                <input
+                                    type="url"
+                                    style={styles.input}
+                                    value={newResource.url}
+                                    onChange={(e) => setNewResource({...newResource, url: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Description</label>
+                                <textarea
+                                    style={styles.textarea}
+                                    value={newResource.description}
+                                    onChange={(e) => setNewResource({...newResource, description: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Type</label>
+                                <select
+                                    style={styles.select}
+                                    value={newResource.resource_type}
+                                    onChange={(e) => setNewResource({...newResource, resource_type: e.target.value})}
+                                >
+                                    <option value="article">Article</option>
+                                    <option value="interview">Interview</option>
+                                    <option value="video">Video</option>
+                                    <option value="report">Report</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div style={styles.buttonGroup}>
+                                <button type="submit" style={styles.submitButton}>Add Resource</button>
+                                <button type="button" style={styles.cancelButton} onClick={() => setShowAddResourceModal(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Performance Modal */}
+            {showAddPerformanceModal && (
+                <div style={styles.modal} onClick={() => setShowAddPerformanceModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <h2 style={styles.modalTitle}>Add Performance Data</h2>
+                        <form onSubmit={handleAddPerformance}>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Year *</label>
+                                <input
+                                    type="number"
+                                    style={styles.input}
+                                    value={newPerformance.year}
+                                    onChange={(e) => setNewPerformance({...newPerformance, year: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Return Percentage * (e.g., 15.5 or -3.2)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    style={styles.input}
+                                    value={newPerformance.return_percentage}
+                                    onChange={(e) => setNewPerformance({...newPerformance, return_percentage: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Notes</label>
+                                <textarea
+                                    style={styles.textarea}
+                                    value={newPerformance.notes}
+                                    onChange={(e) => setNewPerformance({...newPerformance, notes: e.target.value})}
+                                />
+                            </div>
+                            <div style={styles.buttonGroup}>
+                                <button type="submit" style={styles.submitButton}>Add Performance</button>
+                                <button type="button" style={styles.cancelButton} onClick={() => setShowAddPerformanceModal(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
+        </div>
+            </div>
     );
 }
