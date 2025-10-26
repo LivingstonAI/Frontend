@@ -18,6 +18,11 @@ export default function HedgeFundTracker() {
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [showFundSelector, setShowFundSelector] = useState(false);
     const [showPerformanceChart, setShowPerformanceChart] = useState(false);
+    const [editingPerson, setEditingPerson] = useState(null);
+    const [editingResource, setEditingResource] = useState(null);
+    const [editingPerformance, setEditingPerformance] = useState(null);
+    const [editingFund, setEditingFund] = useState(null);
+
     
     const [newFund, setNewFund] = useState({
         name: '',
@@ -63,191 +68,321 @@ export default function HedgeFundTracker() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const fetchHedgeFunds = async () => {
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/`);
-            const data = await response.json();
-            if (data.success) {
-                setHedgeFunds(data.data);
-                if (data.data.length > 0 && !selectedFund) {
-                    setSelectedFund(data.data[0]);
+    const fetchHedgeFunds = async (callback) => {
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/`);
+        const data = await response.json();
+        if (data.success) {
+            setHedgeFunds(data.data);
+            
+            // Update selectedFund if it exists
+            if (selectedFund) {
+                const updatedFund = data.data.find(f => f.id === selectedFund.id);
+                if (updatedFund) {
+                    setSelectedFund(updatedFund);
                 }
+            } else if (data.data.length > 0 && !selectedFund) {
+                setSelectedFund(data.data[0]);
             }
-        } catch (error) {
-            console.error('Error fetching hedge funds:', error);
-        } finally {
-            setLoading(false);
+            
+            if (callback) callback();
         }
-    };
+    } catch (error) {
+        console.error('Error fetching hedge funds:', error);
+    } finally {
+        setLoading(false);
+    }
+};
+
+const handleUpdatePerson = async (e) => {
+    e.preventDefault();
+    if (!editingPerson) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/key-person/${editingPerson.id}/update/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editingPerson)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setEditingPerson(null);
+            await fetchHedgeFunds(); // Auto-refresh
+        }
+    } catch (error) {
+        console.error('Error updating person:', error);
+    }
+};
+
+
 
     const handleCreateFund = async (e) => {
-        e.preventDefault();
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/create/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newFund)
+    e.preventDefault();
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/create/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newFund)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setShowAddFundModal(false);
+            setNewFund({
+                name: '',
+                logo_url: '',
+                description: '',
+                founded_year: '',
+                aum: '',
+                strategy: '',
+                headquarters: '',
+                website: ''
             });
-            const data = await response.json();
-            if (data.success) {
-                setShowAddFundModal(false);
-                setNewFund({
-                    name: '',
-                    logo_url: '',
-                    description: '',
-                    founded_year: '',
-                    aum: '',
-                    strategy: '',
-                    headquarters: '',
-                    website: ''
-                });
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error creating fund:', error);
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error creating fund:', error);
+    }
+};
+
 
     const handleDeleteFund = async (fundId) => {
-        if (!window.confirm('Are you sure you want to delete this hedge fund?')) return;
-        
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/${fundId}/delete/`, {
-                method: 'DELETE'
-            });
-            const data = await response.json();
-            if (data.success) {
-                setSelectedFund(null);
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error deleting fund:', error);
+    if (!window.confirm('Are you sure you want to delete this hedge fund?')) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/${fundId}/delete/`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            setSelectedFund(null);
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error deleting fund:', error);
+    }
+};
+
+const handleUpdateResource = async (e) => {
+    e.preventDefault();
+    if (!editingResource) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/resource/${editingResource.id}/update/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editingResource)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setEditingResource(null);
+            await fetchHedgeFunds(); // Auto-refresh
+        }
+    } catch (error) {
+        console.error('Error updating resource:', error);
+    }
+};
+
+
+
+    const handleUpdateFund = async (e) => {
+    e.preventDefault();
+    if (!editingFund) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/${editingFund.id}/update/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editingFund)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setEditingFund(null);
+            await fetchHedgeFunds(); // Auto-refresh
+        }
+    } catch (error) {
+        console.error('Error updating fund:', error);
+    }
+};
+
 
     const handleAddPerson = async (e) => {
-        e.preventDefault();
-        if (!selectedFund) return;
-        
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/key-person/add/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPerson)
+    e.preventDefault();
+    if (!selectedFund) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/key-person/add/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newPerson)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setShowAddPersonModal(false);
+            setNewPerson({
+                name: '',
+                role: '',
+                wikipedia_url: '',
+                linkedin_url: '',
+                bio: '',
+                photo_url: ''
             });
-            const data = await response.json();
-            if (data.success) {
-                setShowAddPersonModal(false);
-                setNewPerson({
-                    name: '',
-                    role: '',
-                    wikipedia_url: '',
-                    linkedin_url: '',
-                    bio: '',
-                    photo_url: ''
-                });
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error adding person:', error);
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error adding person:', error);
+    }
+};
 
     const handleDeletePerson = async (personId) => {
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/key-person/${personId}/delete/`, {
-                method: 'DELETE'
-            });
-            const data = await response.json();
-            if (data.success) {
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error deleting person:', error);
+    if (!window.confirm('Are you sure you want to delete this person?')) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/key-person/${personId}/delete/`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error deleting person:', error);
+    }
+};
 
     const handleAddResource = async (e) => {
-        e.preventDefault();
-        if (!selectedFund) return;
-        
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/resource/add/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newResource)
+    e.preventDefault();
+    if (!selectedFund) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/resource/add/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newResource)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setShowAddResourceModal(false);
+            setNewResource({
+                title: '',
+                url: '',
+                description: '',
+                resource_type: 'article'
             });
-            const data = await response.json();
-            if (data.success) {
-                setShowAddResourceModal(false);
-                setNewResource({
-                    title: '',
-                    url: '',
-                    description: '',
-                    resource_type: 'article'
-                });
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error adding resource:', error);
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error adding resource:', error);
+    }
+};
+
 
     const handleDeleteResource = async (resourceId) => {
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/resource/${resourceId}/delete/`, {
-                method: 'DELETE'
-            });
-            const data = await response.json();
-            if (data.success) {
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error deleting resource:', error);
+    if (!window.confirm('Are you sure you want to delete this resource?')) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/resource/${resourceId}/delete/`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+    }
+};
+
 
     const handleAddPerformance = async (e) => {
-        e.preventDefault();
-        if (!selectedFund) return;
-        
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/performance/add/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPerformance)
+    e.preventDefault();
+    if (!selectedFund) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/performance/add/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newPerformance)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setShowAddPerformanceModal(false);
+            setNewPerformance({
+                year: new Date().getFullYear(),
+                return_percentage: '',
+                notes: ''
             });
-            const data = await response.json();
-            if (data.success) {
-                setShowAddPerformanceModal(false);
-                setNewPerformance({
-                    year: new Date().getFullYear(),
-                    return_percentage: '',
-                    notes: ''
-                });
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error adding performance:', error);
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error adding performance:', error);
+    }
+};
+
 
     const handleDeletePerformance = async (performanceId) => {
-        try {
-            const response = await fetch(`${baseUrl}/snowai/hedge-funds/performance/${performanceId}/delete/`, {
-                method: 'DELETE'
-            });
-            const data = await response.json();
-            if (data.success) {
-                fetchHedgeFunds();
-            }
-        } catch (error) {
-            console.error('Error deleting performance:', error);
+    if (!window.confirm('Are you sure you want to delete this performance data?')) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/performance/${performanceId}/delete/`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            await fetchHedgeFunds(); // Auto-refresh
         }
-    };
+    } catch (error) {
+        console.error('Error deleting performance:', error);
+    }
+};
+
+
+
+    const handleUpdatePerformance = async (e) => {
+    e.preventDefault();
+    if (!editingPerformance) return;
+    
+    try {
+        const response = await fetch(`${baseUrl}/snowai/hedge-funds/performance/${editingPerformance.id}/update/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(editingPerformance)
+        });
+        const data = await response.json();
+        if (data.success) {
+            setEditingPerformance(null);
+            await fetchHedgeFunds(); // Auto-refresh
+        }
+    } catch (error) {
+        console.error('Error updating performance:', error);
+    }
+};
+
 
     const styles = {
-        
+            editButton: {
+            padding: '4px 8px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '11px',
+            position: 'absolute',
+            top: '10px',
+            right: '70px'
+        },
+        editButtonFund: {
+            padding: '8px 16px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            marginLeft: 'auto',
+            marginRight: '10px',
+            whiteSpace: 'nowrap'
+        },
         addButton: {
             padding: '10px 20px',
             backgroundColor: '#007bff',
@@ -770,12 +905,19 @@ export default function HedgeFundTracker() {
                                     )}
                                 </div>
                                 <button
+                                    style={styles.editButtonFund}
+                                    onClick={() => setEditingFund({...selectedFund})}
+                                >
+                                    Edit Fund
+                                </button>
+                                <button
                                     style={styles.deleteFundButton}
                                     onClick={() => handleDeleteFund(selectedFund.id)}
                                 >
                                     Delete Fund
                                 </button>
                             </div>
+
 
                             {/* Description */}
                             {selectedFund.description && (
@@ -864,27 +1006,36 @@ export default function HedgeFundTracker() {
                                         </ResponsiveContainer>
                                     </div>
                                 )}
+
+                                {/* Done */}
                                 
                                 {selectedFund.performance && selectedFund.performance.length > 0 ? (
-                                    <div style={styles.performanceList}>
-                                        {selectedFund.performance.map(perf => (
-                                            <div key={perf.id} style={styles.performanceCard}>
-                                                <button
-                                                    style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px'}}
-                                                    onClick={() => handleDeletePerformance(perf.id)}
-                                                >
-                                                    ×
-                                                </button>
-                                                <div style={styles.performanceYear}>{perf.year}</div>
-                                                <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
-                                                    {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
-                                                </div>
+                                <div style={styles.performanceList}>
+                                    {selectedFund.performance.map(perf => (
+                                        <div key={perf.id} style={styles.performanceCard}>
+                                            <button
+                                                style={{...styles.editButton, right: '35px', top: '5px', fontSize: '10px', padding: '3px 6px'}}
+                                                onClick={() => setEditingPerformance({...perf})}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px', right: '5px', top: '5px'}}
+                                                onClick={() => handleDeletePerformance(perf.id)}
+                                            >
+                                                ×
+                                            </button>
+                                            <div style={styles.performanceYear}>{perf.year}</div>
+                                            <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
+                                                {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
-                                )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
+                            )}
+
                             </div>
 
                             {/* Key People */}
@@ -899,50 +1050,57 @@ export default function HedgeFundTracker() {
                                     </button>
                                 </div>
                                 {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
-                                    selectedFund.key_people.map(person => (
-                                        <div key={person.id} style={styles.personCard}>
-                                            <button
-                                                style={styles.deleteButton}
-                                                onClick={() => handleDeletePerson(person.id)}
-                                            >
-                                                Delete
-                                            </button>
-                                            {person.photo_url && (
-                                                <img 
-                                                    src={person.photo_url} 
-                                                    alt={person.name}
-                                                    style={styles.personPhoto}
-                                                    onError={(e) => e.target.style.display = 'none'}
-                                                />
+                                    // Done
+                                selectedFund.key_people.map(person => (
+                                    <div key={person.id} style={styles.personCard}>
+                                        <button
+                                            style={styles.editButton}
+                                            onClick={() => setEditingPerson({...person})}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            style={styles.deleteButton}
+                                            onClick={() => handleDeletePerson(person.id)}
+                                        >
+                                            Delete
+                                        </button>
+                                        {person.photo_url && (
+                                            <img 
+                                                src={person.photo_url} 
+                                                alt={person.name}
+                                                style={styles.personPhoto}
+                                                onError={(e) => e.target.style.display = 'none'}
+                                            />
+                                        )}
+                                        <div style={styles.personInfo}>
+                                            <h4 style={styles.personName}>{person.name}</h4>
+                                            {person.role && (
+                                                <p style={styles.personRole}>{person.role}</p>
                                             )}
-                                            <div style={styles.personInfo}>
-                                                <h4 style={styles.personName}>{person.name}</h4>
-                                                {person.role && (
-                                                    <p style={styles.personRole}>{person.role}</p>
+                                            {person.bio && (
+                                                <p style={{ fontSize: '13px', color: '#495057', marginBottom: '8px' }}>
+                                                    {person.bio}
+                                                </p>
+                                            )}
+                                            <div style={styles.personLinks}>
+                                                {person.wikipedia_url && (
+                                                    <a href={person.wikipedia_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                        Wikipedia
+                                                    </a>
                                                 )}
-                                                {person.bio && (
-                                                    <p style={{ fontSize: '13px', color: '#495057', marginBottom: '8px' }}>
-                                                        {person.bio}
-                                                    </p>
+                                                {person.linkedin_url && (
+                                                    <a href={person.linkedin_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
+                                                        LinkedIn
+                                                    </a>
                                                 )}
-                                                <div style={styles.personLinks}>
-                                                    {person.wikipedia_url && (
-                                                        <a href={person.wikipedia_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                                                            Wikipedia
-                                                        </a>
-                                                    )}
-                                                    {person.linkedin_url && (
-                                                        <a href={person.linkedin_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                                                            LinkedIn
-                                                        </a>
-                                                    )}
-                                                </div>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No key people added yet</p>
-                                )}
+                                    </div>
+                                ))
+                            ) : (
+                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No key people added yet</p>
+                            )}
                             </div>
 
                             {/* Resources */}
@@ -956,9 +1114,16 @@ export default function HedgeFundTracker() {
                                         + Add Resource
                                     </button>
                                 </div>
+                                {/* Done */}
                                 {selectedFund.resources && selectedFund.resources.length > 0 ? (
                                     selectedFund.resources.map(resource => (
                                         <div key={resource.id} style={styles.resourceCard}>
+                                            <button
+                                                style={styles.editButton}
+                                                onClick={() => setEditingResource({...resource})}
+                                            >
+                                                Edit
+                                            </button>
                                             <button
                                                 style={styles.deleteButton}
                                                 onClick={() => handleDeleteResource(resource.id)}
@@ -979,6 +1144,7 @@ export default function HedgeFundTracker() {
                                 ) : (
                                     <p style={{ color: '#6c757d', fontSize: '14px' }}>No resources added yet</p>
                                 )}
+
                             </div>
                         </div>
                     )}
@@ -1130,26 +1296,34 @@ export default function HedgeFundTracker() {
                                     </div>
                                 )}
                                 
+                                {/* Done */}
                                 {selectedFund.performance && selectedFund.performance.length > 0 ? (
-                                    <div style={styles.performanceList}>
-                                        {selectedFund.performance.map(perf => (
-                                            <div key={perf.id} style={styles.performanceCard}>
-                                                <button
-                                                    style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px'}}
-                                                    onClick={() => handleDeletePerformance(perf.id)}
-                                                >
-                                                    ×
-                                                </button>
-                                                <div style={styles.performanceYear}>{perf.year}</div>
-                                                <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
-                                                    {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
-                                                </div>
+                                <div style={styles.performanceList}>
+                                    {selectedFund.performance.map(perf => (
+                                        <div key={perf.id} style={styles.performanceCard}>
+                                            <button
+                                                style={{...styles.editButton, right: '35px', top: '5px', fontSize: '10px', padding: '3px 6px'}}
+                                                onClick={() => setEditingPerformance({...perf})}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                style={{...styles.deleteButton, fontSize: '10px', padding: '3px 6px', right: '5px', top: '5px'}}
+                                                onClick={() => handleDeletePerformance(perf.id)}
+                                            >
+                                                ×
+                                            </button>
+                                            <div style={styles.performanceYear}>{perf.year}</div>
+                                            <div style={perf.return_percentage >= 0 ? styles.performanceReturn : styles.performanceReturnNegative}>
+                                                {perf.return_percentage > 0 ? '+' : ''}{perf.return_percentage}%
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
-                                )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No performance data added yet</p>
+                            )}
+
                             </div>
 
                             {/* Key People */}
@@ -1164,8 +1338,15 @@ export default function HedgeFundTracker() {
                                     </button>
                                 </div>
                                 {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
+                                    // Done
                                     selectedFund.key_people.map(person => (
                                         <div key={person.id} style={styles.personCard}>
+                                            <button
+                                                style={styles.editButton}
+                                                onClick={() => setEditingPerson({...person})}
+                                            >
+                                                Edit
+                                            </button>
                                             <button
                                                 style={styles.deleteButton}
                                                 onClick={() => handleDeletePerson(person.id)}
@@ -1221,29 +1402,37 @@ export default function HedgeFundTracker() {
                                         + Add Resource
                                     </button>
                                 </div>
+                                {/* Done */}
                                 {selectedFund.resources && selectedFund.resources.length > 0 ? (
-                                    selectedFund.resources.map(resource => (
-                                        <div key={resource.id} style={styles.resourceCard}>
-                                            <button
-                                                style={styles.deleteButton}
-                                                onClick={() => handleDeleteResource(resource.id)}
-                                            >
-                                                Delete
-                                            </button>
-                                            <span style={styles.resourceType}>{resource.resource_type}</span>
-                                            <h4 style={styles.resourceTitle}>
-                                                <a href={resource.url} target="_blank" rel="noopener noreferrer" style={{...styles.link, fontSize: '14px'}}>
-                                                    {resource.title}
-                                                </a>
-                                            </h4>
-                                            {resource.description && (
-                                                <p style={styles.resourceDescription}>{resource.description}</p>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p style={{ color: '#6c757d', fontSize: '14px' }}>No resources added yet</p>
-                                )}
+                                selectedFund.resources.map(resource => (
+                                    <div key={resource.id} style={styles.resourceCard}>
+                                        <button
+                                            style={styles.editButton}
+                                            onClick={() => setEditingResource({...resource})}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            style={styles.deleteButton}
+                                            onClick={() => handleDeleteResource(resource.id)}
+                                        >
+                                            Delete
+                                        </button>
+                                        <span style={styles.resourceType}>{resource.resource_type}</span>
+                                        <h4 style={styles.resourceTitle}>
+                                            <a href={resource.url} target="_blank" rel="noopener noreferrer" style={{...styles.link, fontSize: '14px'}}>
+                                                {resource.title}
+                                            </a>
+                                        </h4>
+                                        {resource.description && (
+                                            <p style={styles.resourceDescription}>{resource.description}</p>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <p style={{ color: '#6c757d', fontSize: '14px' }}>No resources added yet</p>
+                            )}
+
                             </div>
                         </div>
                     )}
@@ -1521,6 +1710,271 @@ export default function HedgeFundTracker() {
             )}
         </div>
         </div>
+        {/* Edit Fund Modal */}
+{editingFund && (
+    <div style={styles.modal} onClick={() => setEditingFund(null)}>
+        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={styles.modalTitle}>Edit Hedge Fund</h2>
+            <form onSubmit={handleUpdateFund}>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Fund Name *</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingFund.name}
+                        onChange={(e) => setEditingFund({...editingFund, name: e.target.value})}
+                        required
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Logo URL</label>
+                    <input
+                        type="url"
+                        style={styles.input}
+                        value={editingFund.logo_url || ''}
+                        onChange={(e) => setEditingFund({...editingFund, logo_url: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Description</label>
+                    <textarea
+                        style={styles.textarea}
+                        value={editingFund.description || ''}
+                        onChange={(e) => setEditingFund({...editingFund, description: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Founded Year</label>
+                    <input
+                        type="number"
+                        style={styles.input}
+                        value={editingFund.founded_year || ''}
+                        onChange={(e) => setEditingFund({...editingFund, founded_year: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Assets Under Management</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingFund.aum || ''}
+                        onChange={(e) => setEditingFund({...editingFund, aum: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Strategy</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingFund.strategy || ''}
+                        onChange={(e) => setEditingFund({...editingFund, strategy: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Headquarters</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingFund.headquarters || ''}
+                        onChange={(e) => setEditingFund({...editingFund, headquarters: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Website</label>
+                    <input
+                        type="url"
+                        style={styles.input}
+                        value={editingFund.website || ''}
+                        onChange={(e) => setEditingFund({...editingFund, website: e.target.value})}
+                    />
+                </div>
+                <div style={styles.buttonGroup}>
+                    <button type="submit" style={styles.submitButton}>Update Fund</button>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingFund(null)}>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+)}
+
+{/* Edit Person Modal */}
+{editingPerson && (
+    <div style={styles.modal} onClick={() => setEditingPerson(null)}>
+        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={styles.modalTitle}>Edit Key Person</h2>
+            <form onSubmit={handleUpdatePerson}>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Name *</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingPerson.name}
+                        onChange={(e) => setEditingPerson({...editingPerson, name: e.target.value})}
+                        required
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Role</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingPerson.role || ''}
+                        onChange={(e) => setEditingPerson({...editingPerson, role: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Photo URL</label>
+                    <input
+                        type="url"
+                        style={styles.input}
+                        value={editingPerson.photo_url || ''}
+                        onChange={(e) => setEditingPerson({...editingPerson, photo_url: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Bio</label>
+                    <textarea
+                        style={styles.textarea}
+                        value={editingPerson.bio || ''}
+                        onChange={(e) => setEditingPerson({...editingPerson, bio: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Wikipedia URL</label>
+                    <input
+                        type="url"
+                        style={styles.input}
+                        value={editingPerson.wikipedia_url || ''}
+                        onChange={(e) => setEditingPerson({...editingPerson, wikipedia_url: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>LinkedIn URL</label>
+                    <input
+                        type="url"
+                        style={styles.input}
+                        value={editingPerson.linkedin_url || ''}
+                        onChange={(e) => setEditingPerson({...editingPerson, linkedin_url: e.target.value})}
+                    />
+                </div>
+                <div style={styles.buttonGroup}>
+                    <button type="submit" style={styles.submitButton}>Update Person</button>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingPerson(null)}>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+)}
+
+{/* Edit Resource Modal */}
+{editingResource && (
+    <div style={styles.modal} onClick={() => setEditingResource(null)}>
+        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={styles.modalTitle}>Edit Resource</h2>
+            <form onSubmit={handleUpdateResource}>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Title *</label>
+                    <input
+                        type="text"
+                        style={styles.input}
+                        value={editingResource.title}
+                        onChange={(e) => setEditingResource({...editingResource, title: e.target.value})}
+                        required
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>URL *</label>
+                    <input
+                        type="url"
+                        style={styles.input}
+                        value={editingResource.url}
+                        onChange={(e) => setEditingResource({...editingResource, url: e.target.value})}
+                        required
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Description</label>
+                    <textarea
+                        style={styles.textarea}
+                        value={editingResource.description || ''}
+                        onChange={(e) => setEditingResource({...editingResource, description: e.target.value})}
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Type</label>
+                    <select
+                        style={styles.select}
+                        value={editingResource.resource_type}
+                        onChange={(e) => setEditingResource({...editingResource, resource_type: e.target.value})}
+                    >
+                        <option value="article">Article</option>
+                        <option value="interview">Interview</option>
+                        <option value="video">Video</option>
+                        <option value="report">Report</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div style={styles.buttonGroup}>
+                    <button type="submit" style={styles.submitButton}>Update Resource</button>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingResource(null)}>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+)}
+
+{/* Edit Performance Modal */}
+{editingPerformance && (
+    <div style={styles.modal} onClick={() => setEditingPerformance(null)}>
+        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={styles.modalTitle}>Edit Performance Data</h2>
+            <form onSubmit={handleUpdatePerformance}>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Year *</label>
+                    <input
+                        type="number"
+                        style={styles.input}
+                        value={editingPerformance.year}
+                        onChange={(e) => setEditingPerformance({...editingPerformance, year: e.target.value})}
+                        required
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Return Percentage *</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        style={styles.input}
+                        value={editingPerformance.return_percentage}
+                        onChange={(e) => setEditingPerformance({...editingPerformance, return_percentage: e.target.value})}
+                        required
+                    />
+                </div>
+                <div style={styles.formGroup}>
+                    <label style={styles.label}>Notes</label>
+                    <textarea
+                        style={styles.textarea}
+                        value={editingPerformance.notes || ''}
+                        onChange={(e) => setEditingPerformance({...editingPerformance, notes: e.target.value})}
+                    />
+                </div>
+                <div style={styles.buttonGroup}>
+                    <button type="submit" style={styles.submitButton}>Update Performance</button>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingPerformance(null)}>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+)}
+
             </div>
     );
 }
