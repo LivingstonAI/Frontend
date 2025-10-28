@@ -7,8 +7,8 @@ export default function AssetCorrelation() {
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
 
     useEffect(() => {
-            fetchAPIKey();
-        }, []);
+        fetchAPIKey();
+    }, []);
 
     const fetchAPIKey = async () => {
         try {
@@ -20,7 +20,6 @@ export default function AssetCorrelation() {
             console.error("Error fetching API key:", error);
         }
     };
-    
     
     const [assetClasses, setAssetClasses] = useState(['forex', 'bonds', 'commodities', 'indices']);
     const [selectedClass, setSelectedClass] = useState('forex');
@@ -36,6 +35,11 @@ export default function AssetCorrelation() {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
+    const [latestCouncilDiscussion, setLatestCouncilDiscussion] = useState(null);
+    const [assetSentiments, setAssetSentiments] = useState({});
+    const [assetVolumes, setAssetVolumes] = useState({});
+    const [loadingSentiment, setLoadingSentiment] = useState({});
+    const [loadingVolume, setLoadingVolume] = useState({});
     const intervalRef = useRef(null);
     const chatEndRef = useRef(null);
 
@@ -164,7 +168,7 @@ export default function AssetCorrelation() {
         },
         assetsGrid: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: '20px',
             marginBottom: '25px'
         },
@@ -176,19 +180,99 @@ export default function AssetCorrelation() {
             transition: 'all 0.2s ease',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
         },
-        assetName: {
-            fontSize: '16px',
-            fontWeight: '700',
-            color: '#1e293b',
+        assetHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: '12px',
             paddingBottom: '10px',
             borderBottom: '2px solid #f1f5f9'
+        },
+        assetName: {
+            fontSize: '16px',
+            fontWeight: '700',
+            color: '#1e293b'
+        },
+        assetActions: {
+            display: 'flex',
+            gap: '6px'
+        },
+        iconButton: {
+            width: '32px',
+            height: '32px',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            backgroundColor: '#f1f5f9',
+            color: '#475569'
+        },
+        iconButtonActive: {
+            backgroundColor: '#3b82f6',
+            color: '#ffffff'
         },
         assetPrice: {
             fontSize: '24px',
             fontWeight: '700',
             color: '#3b82f6',
             marginBottom: '15px'
+        },
+        sentimentBadge: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: '700',
+            marginBottom: '12px',
+            textTransform: 'uppercase'
+        },
+        bullishBadge: {
+            backgroundColor: '#d1fae5',
+            color: '#065f46',
+            border: '1px solid #10b981'
+        },
+        bearishBadge: {
+            backgroundColor: '#fee2e2',
+            color: '#991b1b',
+            border: '1px solid #ef4444'
+        },
+        neutralBadge: {
+            backgroundColor: '#f1f5f9',
+            color: '#475569',
+            border: '1px solid #94a3b8'
+        },
+        sentimentReasoning: {
+            fontSize: '13px',
+            color: '#475569',
+            lineHeight: '1.5',
+            marginBottom: '12px',
+            fontStyle: 'italic'
+        },
+        volumeInfo: {
+            padding: '12px',
+            backgroundColor: '#f8fafc',
+            borderRadius: '8px',
+            marginBottom: '12px',
+            border: '1px solid #e2e8f0'
+        },
+        volumeLevel: {
+            fontSize: '14px',
+            fontWeight: '700',
+            marginBottom: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+        },
+        volumeDetails: {
+            fontSize: '12px',
+            color: '#64748b',
+            lineHeight: '1.5'
         },
         timeframeChanges: {
             display: 'flex',
@@ -358,12 +442,30 @@ export default function AssetCorrelation() {
             fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.2s ease'
+        },
+        councilBanner: {
+            padding: '15px 20px',
+            backgroundColor: '#faf5ff',
+            border: '2px solid #c084fc',
+            borderRadius: '10px',
+            marginBottom: '20px',
+            fontSize: '13px'
+        },
+        councilTitle: {
+            fontWeight: '700',
+            color: '#6b21a8',
+            marginBottom: '5px'
+        },
+        councilInfo: {
+            color: '#7c3aed',
+            lineHeight: '1.5'
         }
     };
 
     useEffect(() => {
         fetchAssetData();
         fetchAllAssetData();
+        fetchLatestCouncilDiscussion();
     }, [selectedClass]);
 
     useEffect(() => {
@@ -390,6 +492,27 @@ export default function AssetCorrelation() {
             chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [chatMessages]);
+
+    // Clear sentiments and volumes when switching asset classes
+    useEffect(() => {
+        setAssetSentiments({});
+        setAssetVolumes({});
+    }, [selectedClass]);
+
+    const fetchLatestCouncilDiscussion = async () => {
+        try {
+            const response = await fetch(
+                `${baseUrl}/api/snowai_fetch_latest_council_discussion_summary_for_frontend_v2/`
+            );
+            const result = await response.json();
+            
+            if (result.success) {
+                setLatestCouncilDiscussion(result.council_data);
+            }
+        } catch (error) {
+            console.error('Error fetching council discussion:', error);
+        }
+    };
 
     const fetchAssetData = async () => {
         setLoading(true);
@@ -431,6 +554,83 @@ export default function AssetCorrelation() {
         }
     };
 
+    const getAssetSentiment = async (assetName) => {
+        setLoadingSentiment(prev => ({ ...prev, [assetName]: true }));
+        
+        try {
+            // Flatten all asset data for the API
+            const allMovements = {};
+            Object.entries(allAssetData).forEach(([assetClass, data]) => {
+                Object.entries(data).forEach(([name, values]) => {
+                    allMovements[`${assetClass}:${name}`] = values;
+                });
+            });
+
+            const response = await fetch(
+                `${baseUrl}/api/snowai_intermarket_council_driven_asset_sentiment_analysis_v2/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        asset_name: assetName,
+                        asset_class: selectedClass,
+                        all_asset_movements: allMovements,
+                        openai_api_key: OPENAI_API_KEY
+                    })
+                }
+            );
+
+            const result = await response.json();
+            
+            if (result.success) {
+                setAssetSentiments(prev => ({
+                    ...prev,
+                    [assetName]: result
+                }));
+            }
+        } catch (error) {
+            console.error('Error getting asset sentiment:', error);
+        }
+        
+        setLoadingSentiment(prev => ({ ...prev, [assetName]: false }));
+    };
+
+    const getAssetVolume = async (assetName) => {
+        setLoadingVolume(prev => ({ ...prev, [assetName]: true }));
+        
+        try {
+            const response = await fetch(
+                `${baseUrl}/api/snowai_advanced_volume_proportion_analyzer_for_trading_assets_v2/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        asset_name: assetName,
+                        asset_class: selectedClass,
+                        period: '1y'
+                    })
+                }
+            );
+
+            const result = await response.json();
+            
+            if (result.success) {
+                setAssetVolumes(prev => ({
+                    ...prev,
+                    [assetName]: result
+                }));
+            }
+        } catch (error) {
+            console.error('Error getting asset volume:', error);
+        }
+        
+        setLoadingVolume(prev => ({ ...prev, [assetName]: false }));
+    };
+
     const getAIInsight = async () => {
         setLoadingAI(true);
         setInsights([]);
@@ -442,7 +642,11 @@ export default function AssetCorrelation() {
                 ).join(', ')}`;
             }).join(' | ');
 
-            const prompt = `You are a financial analyst. Based on this market data: ${assetSummary}. 
+            const councilContext = latestCouncilDiscussion 
+                ? `Latest AI Council Discussion: ${latestCouncilDiscussion.summary}. Economic Outlook: ${latestCouncilDiscussion.economic_outlook}. Key Themes: ${latestCouncilDiscussion.major_themes.join(', ')}.`
+                : '';
+
+            const prompt = `You are a financial analyst. ${councilContext} Based on this market data: ${assetSummary}. 
 Provide a correlation insight for ${selectedClass} trading opportunities. 
 Consider relationships between all asset classes (DXY vs forex, bonds vs equities, gold vs currencies, VIX vs risk assets, etc.). 
 Keep your response to 2-3 sentences maximum. Be specific and actionable. No markdown formatting.`;
@@ -492,20 +696,29 @@ Keep your response to 2-3 sentences maximum. Be specific and actionable. No mark
         try {
             const assetSummary = Object.entries(allAssetData).map(([assetClass, data]) => {
                 return `${assetClass.toUpperCase()}: ${Object.entries(data).map(([name, values]) => 
-                    `${name} ($${values.current_price}, Daily: ${values['1d']?.percent}%, Weekly: ${values['1wk']?.percent}%, Monthly: ${values['1mo']?.percent}%)`
+                    `${name} (${values.current_price}, Daily: ${values['1d']?.percent}%, Weekly: ${values['1wk']?.percent}%, Monthly: ${values['1mo']?.percent}%)`
                 ).join(', ')}`;
             }).join('\n\n');
+
+            const councilContext = latestCouncilDiscussion 
+                ? `\n\nLatest AI Trading Council Discussion (${new Date(latestCouncilDiscussion.created_at).toLocaleString()}):\n` +
+                  `Economic Outlook: ${latestCouncilDiscussion.economic_outlook}\n` +
+                  `Market Sentiment: ${latestCouncilDiscussion.market_sentiment}\n` +
+                  `Volatility: ${latestCouncilDiscussion.volatility_level}\n` +
+                  `Key Themes: ${latestCouncilDiscussion.major_themes.join(', ')}\n` +
+                  `Summary: ${latestCouncilDiscussion.summary}`
+                : '';
 
             const conversationHistory = chatMessages.slice(-10).map(msg => ({
                 role: msg.role,
                 content: msg.content
             }));
 
-            const systemPrompt = `You are a helpful financial assistant with access to live market data. Here's the current data:
+            const systemPrompt = `You are a helpful financial assistant with access to live market data and the latest AI Trading Council discussion. Here's the current data:
 
-${assetSummary}
+${assetSummary}${councilContext}
 
-Provide helpful, conversational responses about this market data. Keep responses short, sweet, and useful (2-4 sentences max). No markdown formatting - plain text only. Be friendly and natural in conversation.`;
+Provide helpful, conversational responses about this market data. Reference the council discussion when relevant. Keep responses short, sweet, and useful (2-4 sentences max). No markdown formatting - plain text only. Be friendly and natural in conversation.`;
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -557,6 +770,28 @@ Provide helpful, conversational responses about this market data. Keep responses
         return 'ℹ️';
     };
 
+    const getSentimentBadgeStyle = (sentiment) => {
+        switch(sentiment) {
+            case 'bullish':
+                return { ...styles.sentimentBadge, ...styles.bullishBadge };
+            case 'bearish':
+                return { ...styles.sentimentBadge, ...styles.bearishBadge };
+            default:
+                return { ...styles.sentimentBadge, ...styles.neutralBadge };
+        }
+    };
+
+    const getVolumeLevelColor = (level) => {
+        switch(level) {
+            case 'high':
+                return '#10b981';
+            case 'low':
+                return '#ef4444';
+            default:
+                return '#64748b';
+        }
+    };
+
     return (
         <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
             <style>{`
@@ -593,6 +828,10 @@ Provide helpful, conversational responses about this market data. Keep responses
                     border-color: #8b5cf6;
                 }
 
+                .icon-button-hover:hover {
+                    transform: scale(1.1);
+                }
+
                 @media (max-width: 768px) {
                     .chat-panel-mobile {
                         width: 100% !important;
@@ -609,6 +848,19 @@ Provide helpful, conversational responses about this market data. Keep responses
                     <h5 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', marginBottom: '25px' }}>
                         SnowAI Asset Correlation & Intermarket Analysis
                     </h5>
+                    
+                    {latestCouncilDiscussion && (
+                        <div style={styles.councilBanner}>
+                            <div style={styles.councilTitle}>
+                                🎯 Latest AI Trading Council Discussion
+                            </div>
+                            <div style={styles.councilInfo}>
+                                <strong>Outlook:</strong> {latestCouncilDiscussion.economic_outlook} • 
+                                <strong> Sentiment:</strong> {latestCouncilDiscussion.market_sentiment} • 
+                                <strong> Updated:</strong> {new Date(latestCouncilDiscussion.created_at).toLocaleString()}
+                            </div>
+                        </div>
+                    )}
                     
                     <div style={styles.controlPanel}>
                         <div style={styles.selectGroup}>
@@ -723,10 +975,74 @@ Provide helpful, conversational responses about this market data. Keep responses
                             ) : (
                                 Object.entries(assetData).map(([assetName, data]) => (
                                     <div key={assetName} style={styles.assetCard} className="asset-card-hover">
-                                        <div style={styles.assetName}>{assetName}</div>
+                                        <div style={styles.assetHeader}>
+                                            <div style={styles.assetName}>{assetName}</div>
+                                            <div style={styles.assetActions}>
+                                                <button
+                                                    style={{
+                                                        ...styles.iconButton,
+                                                        ...(assetSentiments[assetName] ? styles.iconButtonActive : {})
+                                                    }}
+                                                    className="icon-button-hover"
+                                                    onClick={() => getAssetSentiment(assetName)}
+                                                    disabled={loadingSentiment[assetName]}
+                                                    title="Get AI Sentiment"
+                                                >
+                                                    {loadingSentiment[assetName] ? '⏳' : '🧠'}
+                                                </button>
+                                                <button
+                                                    style={{
+                                                        ...styles.iconButton,
+                                                        ...(assetVolumes[assetName] ? styles.iconButtonActive : {})
+                                                    }}
+                                                    className="icon-button-hover"
+                                                    onClick={() => getAssetVolume(assetName)}
+                                                    disabled={loadingVolume[assetName]}
+                                                    title="Check Volume"
+                                                >
+                                                    {loadingVolume[assetName] ? '⏳' : '📊'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
                                         <div style={styles.assetPrice}>
                                             ${data.current_price?.toFixed(4) || 'N/A'}
                                         </div>
+                                        
+                                        {assetSentiments[assetName] && (
+                                            <>
+                                                <div style={getSentimentBadgeStyle(assetSentiments[assetName].sentiment)}>
+                                                    {assetSentiments[assetName].sentiment === 'bullish' && '📈'}
+                                                    {assetSentiments[assetName].sentiment === 'bearish' && '📉'}
+                                                    {assetSentiments[assetName].sentiment === 'neutral' && '➡️'}
+                                                    {' '}{assetSentiments[assetName].sentiment}
+                                                    {' '}({assetSentiments[assetName].confidence}%)
+                                                </div>
+                                                <div style={styles.sentimentReasoning}>
+                                                    "{assetSentiments[assetName].reasoning}"
+                                                </div>
+                                            </>
+                                        )}
+                                        
+                                        {assetVolumes[assetName] && (
+                                            <div style={styles.volumeInfo}>
+                                                <div style={styles.volumeLevel}>
+                                                    <span style={{ color: getVolumeLevelColor(assetVolumes[assetName].volume_level) }}>
+                                                        ●
+                                                    </span>
+                                                    Volume: {assetVolumes[assetName].volume_level.toUpperCase()}
+                                                </div>
+                                                <div style={styles.volumeDetails}>
+                                                    {assetVolumes[assetName].description}<br/>
+                                                    Current: {assetVolumes[assetName].current_volume.toLocaleString()}<br/>
+                                                    vs Avg: {assetVolumes[assetName].vs_average_percent > 0 ? '+' : ''}{assetVolumes[assetName].vs_average_percent}%
+                                                    {assetVolumes[assetName].trend !== 'insufficient_data' && (
+                                                        <> • Trend: {assetVolumes[assetName].trend}</>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                         <div style={styles.timeframeChanges}>
                                             {data['1d'] && (
                                                 <div style={styles.changeRow}>
@@ -799,7 +1115,7 @@ Provide helpful, conversational responses about this market data. Keep responses
                 <div style={styles.chatMessages}>
                     {chatMessages.length === 0 && (
                         <div style={{...styles.messageAI, maxWidth: '100%'}}>
-                            Hi! I'm your AI market assistant. I have access to all the current asset data across forex, bonds, commodities, and indices. Ask me anything about market trends, correlations, or trading opportunities!
+                            Hi! I'm your AI market assistant with access to all current asset data and the latest AI Trading Council discussion. Ask me anything about market trends, correlations, or trading opportunities!
                         </div>
                     )}
                     {chatMessages.map((msg, index) => (
