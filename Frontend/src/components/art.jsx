@@ -85,6 +85,7 @@ import xonada from '../MONTAGEM XONADA.mp3';
 import coffee_talk from '../Coffee Talk.mp3';
 import sunroof from '../Nicky Youre, dazy - Sunroof (Lyrics).mp3';
 import can_you_hear from '../Can You Hear The Music.mp3';
+import big_raga from '../I Summon... Divine General Mahoraga x Playboi Carti - Sovereign (Guitar Remix) (Slowed).mp3';
 
 
 // Audio to be used for authentication
@@ -316,6 +317,7 @@ export default function Art() {
     "80": { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
     "81": { name: "Sunroof 🏙️", file: sunroof },
     "82": { name: "Can you hear the music? 🎼", file: can_you_hear },
+    "83": { name: "Divine General Mahoraga", file: big_raga },
   };
 
   const characterSets = {
