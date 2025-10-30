@@ -21,7 +21,7 @@ export default function AssetCorrelation() {
         }
     };
     
-    const [assetClasses, setAssetClasses] = useState(['forex', 'bonds', 'commodities', 'indices']);
+    const [assetClasses, setAssetClasses] = useState(['forex', 'bonds', 'commodities', 'indices', 'stocks']);
     const [selectedClass, setSelectedClass] = useState('forex');
     const [assetData, setAssetData] = useState({});
     const [allAssetData, setAllAssetData] = useState({});
@@ -878,6 +878,7 @@ Provide helpful, conversational responses about this market data. Reference the 
                                 <option value="bonds">Bonds & Yields</option>
                                 <option value="commodities">Commodities</option>
                                 <option value="indices">Stock Indices</option>
+                                <option value="stocks">Stocks</option>
                             </select>
                         </div>
                         
