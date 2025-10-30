@@ -84,6 +84,7 @@ import coffee_talk from '../Coffee Talk.mp3';
 import sunroof from '../Nicky Youre, dazy - Sunroof (Lyrics).mp3';
 import can_you_hear from '../Can You Hear The Music.mp3';
 import big_raga from '../I Summon... Divine General Mahoraga x Playboi Carti - Sovereign (Guitar Remix) (Slowed).mp3';
+import love_story_lyrics from '../Indila - Love Story (Lyrics).mp3';
 
 
 export default function SnowAILandingPage() {
@@ -209,6 +210,8 @@ export default function SnowAILandingPage() {
       "81": { name: "Sunroof 🏙️", file: sunroof },
       "82": { name: "Can you hear the music? 🎼", file: can_you_hear },
       "83": { name: "Divine General Mahoraga", file: big_raga },
+      "84": { name: "Love Story 🌃", file: love_story_lyrics },
+      
     };
 
 
