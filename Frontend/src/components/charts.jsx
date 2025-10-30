@@ -565,6 +565,16 @@ export default function Charts() {
             { symbol: 'ADAUSD', name: 'Cardano', binanceSymbol: 'ADAUSDT', yfinanceSymbol: 'ADA-USD' },
             { symbol: 'SOLUSD', name: 'Solana', binanceSymbol: 'SOLUSDT', yfinanceSymbol: 'SOL-USD' }
         ],
+        'Indices': [
+            { symbol: 'SPX', name: 'S&P 500', binanceSymbol: null, yfinanceSymbol: '^GSPC' },
+            { symbol: 'NDX', name: 'NASDAQ 100', binanceSymbol: null, yfinanceSymbol: '^NDX' },
+            { symbol: 'DJI', name: 'Dow Jones', binanceSymbol: null, yfinanceSymbol: '^DJI' },
+            { symbol: 'RUT', name: 'Russell 2000', binanceSymbol: null, yfinanceSymbol: '^RUT' },
+            { symbol: 'VIX', name: 'VIX (Volatility)', binanceSymbol: null, yfinanceSymbol: '^VIX' },
+            { symbol: 'FTSE', name: 'FTSE 100', binanceSymbol: null, yfinanceSymbol: '^FTSE' },
+            { symbol: 'DAX', name: 'DAX', binanceSymbol: null, yfinanceSymbol: '^GDAXI' },
+            { symbol: 'N225', name: 'Nikkei 225', binanceSymbol: null, yfinanceSymbol: '^N225' }
+        ],
         'Forex': [
             { symbol: 'EURUSD', name: 'Euro/USD', binanceSymbol: null, yfinanceSymbol: 'EURUSD=X' },
             { symbol: 'GBPUSD', name: 'GBP/USD', binanceSymbol: null, yfinanceSymbol: 'GBPUSD=X' },
