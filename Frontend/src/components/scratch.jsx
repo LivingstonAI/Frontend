@@ -1734,7 +1734,7 @@ Blockly.Blocks['rsi_block'] = {
         },
         {
           "kind": "category",
-          "name": "Smart Concepts",
+          "name": "Other",
           "contents": [
             {
               "kind": "block",
