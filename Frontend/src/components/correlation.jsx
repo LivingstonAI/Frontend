@@ -6,6 +6,129 @@ export default function AssetCorrelation() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
 
+    const [savedBiases, setSavedBiases] = useState({}); // Track which assets have saved biases
+    const [savingBias, setSavingBias] = useState({}); // Track saving state per asset
+    const [savingVolume, setSavingVolume] = useState({}); // Track saving state per asset
+
+    const saveSentimentBias = async (assetName, sentimentData) => {
+        setSavingBias(prev => ({ ...prev, [assetName]: true }));
+        
+        try {
+            const response = await fetch(
+                `${baseUrl}/api/snowai_save_asset_bias_recommendation_v2/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        asset_name: assetName,
+                        bias: sentimentData.sentiment // 'bullish', 'bearish', or 'neutral'
+                    })
+                }
+            );
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update local state to show it's saved
+                setSavedBiases(prev => ({
+                    ...prev,
+                    [assetName]: {
+                        ...prev[assetName],
+                        bias: sentimentData.sentiment,
+                        bias_saved: true
+                    }
+                }));
+                
+                alert(`Bias saved: ${assetName} is now ${sentimentData.sentiment.toUpperCase()}`);
+            }
+        } catch (error) {
+            console.error('Error saving bias:', error);
+            alert('Failed to save bias. Please try again.');
+        }
+        
+        setSavingBias(prev => ({ ...prev, [assetName]: false }));
+    };
+
+
+    // ============================================================================
+    // ADD THIS NEW FUNCTION - Save Volume Level to Backend
+    // ============================================================================
+
+    const saveVolumeLevel = async (assetName, volumeData) => {
+        setSavingVolume(prev => ({ ...prev, [assetName]: true }));
+        
+        try {
+            const response = await fetch(
+                `${baseUrl}/api/snowai_save_asset_bias_recommendation_v2/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        asset_name: assetName,
+                        volume: volumeData.volume_level // 'high', 'medium', or 'low'
+                    })
+                }
+            );
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update local state to show it's saved
+                setSavedBiases(prev => ({
+                    ...prev,
+                    [assetName]: {
+                        ...prev[assetName],
+                        volume: volumeData.volume_level,
+                        volume_saved: true
+                    }
+                }));
+                
+                alert(`Volume saved: ${assetName} is now ${volumeData.volume_level.toUpperCase()} volume`);
+            }
+        } catch (error) {
+            console.error('Error saving volume:', error);
+            alert('Failed to save volume. Please try again.');
+        }
+        
+        setSavingVolume(prev => ({ ...prev, [assetName]: false }));
+    };
+
+
+    // ============================================================================
+    // ADD THIS NEW FUNCTION - Fetch Saved Biases on Load
+    // ============================================================================
+
+    const fetchSavedBiases = async () => {
+        try {
+            const response = await fetch(
+                `${baseUrl}/api/snowai_get_all_saved_asset_biases_v2/`
+            );
+            const result = await response.json();
+            
+            if (result.success) {
+                // Convert array to object keyed by asset_name for easy lookup
+                const biasesMap = {};
+                result.biases.forEach(item => {
+                    biasesMap[item.asset_name] = {
+                        bias: item.bias,
+                        volume: item.volume,
+                        bias_saved: !!item.bias,
+                        volume_saved: !!item.volume
+                    };
+                });
+                setSavedBiases(biasesMap);
+            }
+        } catch (error) {
+            console.error('Error fetching saved biases:', error);
+        }
+    };
+
+    
+
     useEffect(() => {
         fetchAPIKey();
     }, []);
@@ -44,6 +167,29 @@ export default function AssetCorrelation() {
     const chatEndRef = useRef(null);
 
     const styles = {
+        saveButton: {
+            padding: '6px 12px',
+            backgroundColor: '#10b981',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            marginTop: '8px'
+        },
+        saveButtonSaved: {
+            backgroundColor: '#6b7280',
+            cursor: 'default'
+        },
+        savedIndicator: {
+            fontSize: '11px',
+            color: '#10b981',
+            fontWeight: '600',
+            marginTop: '4px'
+        },
+
         controlPanel: {
             display: 'flex',
             flexWrap: 'wrap',
@@ -466,6 +612,7 @@ export default function AssetCorrelation() {
         fetchAssetData();
         fetchAllAssetData();
         fetchLatestCouncilDiscussion();
+        fetchSavedBiases();
     }, [selectedClass]);
 
     useEffect(() => {
@@ -1022,8 +1169,27 @@ Provide helpful, conversational responses about this market data. Reference the 
                                                 <div style={styles.sentimentReasoning}>
                                                     "{assetSentiments[assetName].reasoning}"
                                                 </div>
+                                                
+                                                {/* ADD THIS NEW SECTION - Save Bias Button */}
+                                                {savedBiases[assetName]?.bias_saved ? (
+                                                    <div style={styles.savedIndicator}>
+                                                        ✓ Bias Saved: {savedBiases[assetName].bias.toUpperCase()}
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        style={{
+                                                            ...styles.saveButton,
+                                                            ...(savingBias[assetName] ? styles.saveButtonSaved : {})
+                                                        }}
+                                                        onClick={() => saveSentimentBias(assetName, assetSentiments[assetName])}
+                                                        disabled={savingBias[assetName]}
+                                                    >
+                                                        {savingBias[assetName] ? '💾 Saving...' : '💾 Save Bias'}
+                                                    </button>
+                                                )}
                                             </>
                                         )}
+
                                         
                                         {assetVolumes[assetName] && (
                                             <div style={styles.volumeInfo}>
@@ -1041,6 +1207,22 @@ Provide helpful, conversational responses about this market data. Reference the 
                                                         <> • Trend: {assetVolumes[assetName].trend}</>
                                                     )}
                                                 </div>
+                                                {savedBiases[assetName]?.volume_saved ? (
+                                                    <div style={styles.savedIndicator}>
+                                                        ✓ Volume Saved: {savedBiases[assetName].volume.toUpperCase()}
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        style={{
+                                                            ...styles.saveButton,
+                                                            ...(savingVolume[assetName] ? styles.saveButtonSaved : {})
+                                                        }}
+                                                        onClick={() => saveVolumeLevel(assetName, assetVolumes[assetName])}
+                                                        disabled={savingVolume[assetName]}
+                                                    >
+                                                        {savingVolume[assetName] ? '💾 Saving...' : '💾 Save Volume'}
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                         
