@@ -1430,7 +1430,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("bearish market sentiment")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if it is a Bearish Market Sentiment");
       this.setHelpUrl("");
     }
@@ -1478,7 +1478,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("bearish bias")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if AI recommends a bearish bias");
       this.setHelpUrl("");
     }
@@ -1502,7 +1502,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("bearish bias")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if AI recommends a bearish bias");
       this.setHelpUrl("");
     }
