@@ -1192,7 +1192,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("uptrend")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if it's an Uptrend");
       this.setHelpUrl("");
     }
@@ -1228,7 +1228,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("asian range buy")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if it's an Asian Range Buy");
       this.setHelpUrl("");
     }
@@ -1280,7 +1280,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("optimal trade entry buy")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if it's an Optimal Trade Entry Buy");
       this.setHelpUrl("");
     }
@@ -1305,7 +1305,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("bullish orderblock")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(330);
+      this.setColour(160);
       this.setTooltip("Check if it's a Bullish Orderblock");
       this.setHelpUrl("");
     }
