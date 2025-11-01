@@ -1169,13 +1169,7 @@ Provide helpful, conversational responses about this market data. Reference the 
                                                 <div style={styles.sentimentReasoning}>
                                                     "{assetSentiments[assetName].reasoning}"
                                                 </div>
-                                                
-                                                {/* ADD THIS NEW SECTION - Save Bias Button */}
-                                                {savedBiases[assetName]?.bias_saved ? (
-                                                    <div style={styles.savedIndicator}>
-                                                        ✓ Bias Saved: {savedBiases[assetName].bias.toUpperCase()}
-                                                    </div>
-                                                ) : (
+                                                        
                                                     <button
                                                         style={{
                                                             ...styles.saveButton,
@@ -1186,7 +1180,7 @@ Provide helpful, conversational responses about this market data. Reference the 
                                                     >
                                                         {savingBias[assetName] ? '💾 Saving...' : '💾 Save Bias'}
                                                     </button>
-                                                )}
+                                                
                                             </>
                                         )}
 
@@ -1206,12 +1200,7 @@ Provide helpful, conversational responses about this market data. Reference the 
                                                     {assetVolumes[assetName].trend !== 'insufficient_data' && (
                                                         <> • Trend: {assetVolumes[assetName].trend}</>
                                                     )}
-                                                </div>
-                                                {savedBiases[assetName]?.volume_saved ? (
-                                                    <div style={styles.savedIndicator}>
-                                                        ✓ Volume Saved: {savedBiases[assetName].volume.toUpperCase()}
-                                                    </div>
-                                                ) : (
+                                                </div>                                        
                                                     <button
                                                         style={{
                                                             ...styles.saveButton,
@@ -1222,7 +1211,7 @@ Provide helpful, conversational responses about this market data. Reference the 
                                                     >
                                                         {savingVolume[assetName] ? '💾 Saving...' : '💾 Save Volume'}
                                                     </button>
-                                                )}
+                                                
                                             </div>
                                         )}
                                         
