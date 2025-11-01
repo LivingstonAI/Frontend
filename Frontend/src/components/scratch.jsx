@@ -769,6 +769,58 @@ return [`buy_hold_regime(dataset=dataset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['is_bullish_bias'] = function(block, generator) {
+
+
+  return [`is_bullish_bias(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bullish_bias'] = function(block, generator) {
+
+return [`is_bullish_bias(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['is_bearish_bias'] = function(block, generator) {
+
+
+  return [`is_bearish_bias(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_bias'] = function(block, generator) {
+
+return [`is_bearish_bias(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['is_bullish_volume'] = function(block, generator) {
+
+
+  return [`is_bullish_volume(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bullish_volume'] = function(block, generator) {
+
+return [`is_bullish_volume(asset=asset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['is_bearish_volume'] = function(block, generator) {
+
+
+  return [`is_bearish_volume(asset=asset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_volume'] = function(block, generator) {
+
+return [`is_bearish_volume(asset=asset)`, Order.NONE];
+
+};
+
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -1378,7 +1430,7 @@ Blockly.Blocks['rsi_block'] = {
           .appendField("bearish market sentiment")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(160);
+      this.setColour(330);
       this.setTooltip("Check if it is a Bearish Market Sentiment");
       this.setHelpUrl("");
     }
@@ -1404,6 +1456,54 @@ Blockly.Blocks['rsi_block'] = {
       this.setOutput(true, "Boolean");
       this.setColour(160);
       this.setTooltip("Check if Buy and Hold Conditions are met, with regime detection.");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_bullish_bias'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bullish bias")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if AI recommends a bullish bias");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_bearish_bias'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bearish bias")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if AI recommends a bearish bias");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_bullish_volume'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bullish volume")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if AI recommends a bullish volume");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_bearish_bias'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("bearish bias")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if AI recommends a bearish bias");
       this.setHelpUrl("");
     }
   };
@@ -1634,7 +1734,7 @@ Blockly.Blocks['rsi_block'] = {
         },
         {
           "kind": "category",
-          "name": "Other",
+          "name": "Smart Concepts",
           "contents": [
             {
               "kind": "block",
@@ -1715,6 +1815,22 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "buy_hold_regime"
+            },
+            {
+              "kind": "block",
+              "type": "is_bullish_bias"
+            },
+            {
+              "kind": "block",
+              "type": "is_bearish_bias"
+            },
+            {
+              "kind": "block",
+              "type": "is_bullish_volume"
+            },
+            {
+              "kind": "block",
+              "type": "is_bearish_volume"
             },
           ]
         },
