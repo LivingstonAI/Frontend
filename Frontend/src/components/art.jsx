@@ -87,6 +87,7 @@ import sunroof from '../Nicky Youre, dazy - Sunroof (Lyrics).mp3';
 import can_you_hear from '../Can You Hear The Music.mp3';
 import big_raga from '../I Summon... Divine General Mahoraga x Playboi Carti - Sovereign (Guitar Remix) (Slowed).mp3';
 import love_story_lyrics from '../Indila - Love Story (Lyrics).mp3';
+import russian_love_story from '../Indila - Love Story (кавер на русском)(Russian cover).mp3';
 
 
 // Audio to be used for authentication
@@ -320,6 +321,8 @@ export default function Art() {
     "82": { name: "Can you hear the music? 🎼", file: can_you_hear },
     "83": { name: "Divine General Mahoraga", file: big_raga },
     "84": { name: "Love Story 🌃", file: love_story_lyrics },
+    "85": { name: "Love Story (Russian) 🌃", file: russian_love_story },
+    
   };
 
   const characterSets = {
