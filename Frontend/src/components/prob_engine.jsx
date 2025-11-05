@@ -116,7 +116,7 @@ export default function ProbabilityEngine() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Probability Engine</h5>
+                    <h5 className="major-upcoming-news-events-header">SnowAI Probability Engine</h5><br />
                     <p style={{ color: "#94a3b8", marginBottom: "30px", fontSize: "15px" }}>
                         Use your historical trading data to predict the likelihood of success for your next trade
                     </p>
