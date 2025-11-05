@@ -54,7 +54,7 @@ export default function ProbabilityEngine() {
             return;
         }
 
-        const accountName = localStorage.getItem('account_name');
+        const accountName = Cookies.get('account_name');
         if (!accountName) {
             setError("Account name not found in local storage");
             return;
