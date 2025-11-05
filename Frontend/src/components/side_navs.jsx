@@ -756,6 +756,8 @@ export default function SideNavs() {
         <Link to="/black_hole" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
         <Link to="/snowx" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-bitcoin"></i></p></button></Link>
         <Link to="/hedge_fund_tracker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-card-list"></i></p></button></Link>
+        <Link to="/prob_engine" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cpu"></i></p></button></Link>
+
       </div>
 
       <div className="side-navs-cellphone">
@@ -902,6 +904,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/hedge_fund_tracker" className="side-nav">
             <i className="bi bi-card-list"></i>
+        </Link>
+        <Link to="/prob_engine" className="side-nav">
+            <i className="bi bi-cpu"></i>
         </Link>
       </div>
       <br />
