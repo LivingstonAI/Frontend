@@ -20,7 +20,7 @@ export default function ProbabilityEngine() {
     const [stats, setStats] = useState(null);
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-    const tradingSessions = ["Tokyo", "London", "New York", "Sydney"];
+    const tradingSessions = ["Asian", "London", "NY"];
     const orderTypes = ["Buy", "Sell"];
 
     const fetchAPIKey = async () => {
@@ -97,15 +97,15 @@ export default function ProbabilityEngine() {
     };
 
     const getProbabilityColor = (prob) => {
-        if (prob >= 70) return "#10b981"; // Green
-        if (prob >= 50) return "#f59e0b"; // Orange
-        return "#ef4444"; // Red
+        if (prob >= 70) return "#4ade80"; // Bright green
+        if (prob >= 50) return "#60a5fa"; // Blue
+        return "#f87171"; // Red
     };
 
     const getRecommendation = (prob) => {
-        if (prob >= 70) return "Strong probability - Good trade opportunity";
-        if (prob >= 50) return "Moderate probability - Proceed with caution";
-        return "Low probability - Consider avoiding this trade";
+        if (prob >= 70) return "✓ Strong probability - Good trade opportunity";
+        if (prob >= 50) return "⚠ Moderate probability - Proceed with caution";
+        return "✗ Low probability - Consider avoiding this trade";
     };
 
     return (
@@ -117,32 +117,44 @@ export default function ProbabilityEngine() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">SnowAI Probability Engine</h5>
-                    <p style={{ color: "#888", marginBottom: "30px" }}>
+                    <p style={{ color: "#94a3b8", marginBottom: "30px", fontSize: "15px" }}>
                         Use your historical trading data to predict the likelihood of success for your next trade
                     </p>
 
                     <div style={{ 
-                        backgroundColor: "#1a1a1a", 
-                        padding: "30px", 
-                        borderRadius: "10px",
-                        maxWidth: "800px"
+                        backgroundColor: "#ffffff", 
+                        padding: "35px", 
+                        borderRadius: "12px",
+                        maxWidth: "900px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                        border: "1px solid #e2e8f0"
                     }}>
-                        <h6 style={{ color: "#fff", marginBottom: "20px" }}>Trade Parameters</h6>
+                        <h6 style={{ color: "#1e293b", marginBottom: "25px", fontSize: "18px", fontWeight: "600" }}>
+                            Trade Parameters
+                        </h6>
                         
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }}>
                             <div>
-                                <label style={{ color: "#aaa", display: "block", marginBottom: "8px" }}>Day of Week</label>
+                                <label style={{ 
+                                    color: "#475569", 
+                                    display: "block", 
+                                    marginBottom: "8px",
+                                    fontSize: "14px",
+                                    fontWeight: "500"
+                                }}>Day of Week</label>
                                 <select
                                     name="day_of_week"
                                     value={formData.day_of_week}
                                     onChange={handleInputChange}
                                     style={{
                                         width: "100%",
-                                        padding: "10px",
-                                        backgroundColor: "#2a2a2a",
-                                        color: "#fff",
-                                        border: "1px solid #444",
-                                        borderRadius: "5px"
+                                        padding: "12px",
+                                        backgroundColor: "#f8fafc",
+                                        color: "#1e293b",
+                                        border: "1px solid #cbd5e1",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
                                     }}
                                 >
                                     <option value="">Select Day</option>
@@ -153,18 +165,26 @@ export default function ProbabilityEngine() {
                             </div>
 
                             <div>
-                                <label style={{ color: "#aaa", display: "block", marginBottom: "8px" }}>Trading Session</label>
+                                <label style={{ 
+                                    color: "#475569", 
+                                    display: "block", 
+                                    marginBottom: "8px",
+                                    fontSize: "14px",
+                                    fontWeight: "500"
+                                }}>Trading Session</label>
                                 <select
                                     name="trading_session"
                                     value={formData.trading_session}
                                     onChange={handleInputChange}
                                     style={{
                                         width: "100%",
-                                        padding: "10px",
-                                        backgroundColor: "#2a2a2a",
-                                        color: "#fff",
-                                        border: "1px solid #444",
-                                        borderRadius: "5px"
+                                        padding: "12px",
+                                        backgroundColor: "#f8fafc",
+                                        color: "#1e293b",
+                                        border: "1px solid #cbd5e1",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
                                     }}
                                 >
                                     <option value="">Select Session</option>
@@ -175,7 +195,13 @@ export default function ProbabilityEngine() {
                             </div>
 
                             <div>
-                                <label style={{ color: "#aaa", display: "block", marginBottom: "8px" }}>Asset</label>
+                                <label style={{ 
+                                    color: "#475569", 
+                                    display: "block", 
+                                    marginBottom: "8px",
+                                    fontSize: "14px",
+                                    fontWeight: "500"
+                                }}>Asset</label>
                                 <input
                                     type="text"
                                     name="asset"
@@ -184,28 +210,38 @@ export default function ProbabilityEngine() {
                                     placeholder="e.g., EURUSD, XAUUSD"
                                     style={{
                                         width: "100%",
-                                        padding: "10px",
-                                        backgroundColor: "#2a2a2a",
-                                        color: "#fff",
-                                        border: "1px solid #444",
-                                        borderRadius: "5px"
+                                        padding: "12px",
+                                        backgroundColor: "#f8fafc",
+                                        color: "#1e293b",
+                                        border: "1px solid #cbd5e1",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
                                     }}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ color: "#aaa", display: "block", marginBottom: "8px" }}>Order Type</label>
+                                <label style={{ 
+                                    color: "#475569", 
+                                    display: "block", 
+                                    marginBottom: "8px",
+                                    fontSize: "14px",
+                                    fontWeight: "500"
+                                }}>Order Type</label>
                                 <select
                                     name="order_type"
                                     value={formData.order_type}
                                     onChange={handleInputChange}
                                     style={{
                                         width: "100%",
-                                        padding: "10px",
-                                        backgroundColor: "#2a2a2a",
-                                        color: "#fff",
-                                        border: "1px solid #444",
-                                        borderRadius: "5px"
+                                        padding: "12px",
+                                        backgroundColor: "#f8fafc",
+                                        color: "#1e293b",
+                                        border: "1px solid #cbd5e1",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        outline: "none"
                                     }}
                                 >
                                     <option value="">Select Type</option>
@@ -221,14 +257,15 @@ export default function ProbabilityEngine() {
                             disabled={loading}
                             style={{
                                 width: "100%",
-                                padding: "12px",
-                                backgroundColor: loading ? "#444" : "#3b82f6",
-                                color: "#fff",
+                                padding: "14px",
+                                backgroundColor: loading ? "#94a3b8" : "#3b82f6",
+                                color: "#ffffff",
                                 border: "none",
-                                borderRadius: "5px",
+                                borderRadius: "8px",
                                 cursor: loading ? "not-allowed" : "pointer",
-                                fontSize: "16px",
-                                fontWeight: "600"
+                                fontSize: "15px",
+                                fontWeight: "600",
+                                transition: "all 0.2s"
                             }}
                         >
                             {loading ? "Calculating..." : "Calculate Probability"}
@@ -238,10 +275,11 @@ export default function ProbabilityEngine() {
                             <div style={{
                                 marginTop: "20px",
                                 padding: "15px",
-                                backgroundColor: "#ef444420",
-                                border: "1px solid #ef4444",
-                                borderRadius: "5px",
-                                color: "#ef4444"
+                                backgroundColor: "#fee2e2",
+                                border: "1px solid #fca5a5",
+                                borderRadius: "8px",
+                                color: "#dc2626",
+                                fontSize: "14px"
                             }}>
                                 {error}
                             </div>
@@ -251,41 +289,47 @@ export default function ProbabilityEngine() {
                             <div style={{ marginTop: "30px" }}>
                                 <div style={{
                                     textAlign: "center",
-                                    padding: "30px",
-                                    backgroundColor: "#2a2a2a",
-                                    borderRadius: "10px",
-                                    marginBottom: "20px"
+                                    padding: "40px",
+                                    backgroundColor: "#f8fafc",
+                                    borderRadius: "12px",
+                                    marginBottom: "25px",
+                                    border: "2px solid #e2e8f0"
                                 }}>
-                                    <div style={{ fontSize: "14px", color: "#aaa", marginBottom: "10px" }}>
+                                    <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "12px", fontWeight: "500", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                         Win Probability
                                     </div>
                                     <div style={{ 
-                                        fontSize: "48px", 
-                                        fontWeight: "bold", 
-                                        color: getProbabilityColor(probability.win_probability)
+                                        fontSize: "56px", 
+                                        fontWeight: "700", 
+                                        color: getProbabilityColor(probability.win_probability),
+                                        marginBottom: "10px"
                                     }}>
                                         {probability.win_probability.toFixed(1)}%
                                     </div>
                                     <div style={{ 
                                         marginTop: "15px", 
-                                        fontSize: "14px", 
-                                        color: getProbabilityColor(probability.win_probability)
+                                        fontSize: "15px", 
+                                        color: "#475569",
+                                        fontWeight: "500"
                                     }}>
                                         {getRecommendation(probability.win_probability)}
                                     </div>
                                     {probability.bias && (
                                         <div style={{ 
-                                            marginTop: "15px", 
-                                            padding: "10px",
-                                            backgroundColor: "#1a1a1a",
-                                            borderRadius: "5px"
+                                            marginTop: "20px", 
+                                            padding: "12px",
+                                            backgroundColor: "#ffffff",
+                                            borderRadius: "8px",
+                                            border: "1px solid #e2e8f0",
+                                            display: "inline-block"
                                         }}>
-                                            <span style={{ color: "#aaa" }}>Asset Bias: </span>
+                                            <span style={{ color: "#64748b", fontSize: "13px", fontWeight: "500" }}>Asset Bias: </span>
                                             <span style={{ 
                                                 color: probability.bias === 'bullish' ? '#10b981' : 
                                                        probability.bias === 'bearish' ? '#ef4444' : '#f59e0b',
                                                 fontWeight: "600",
-                                                textTransform: "capitalize"
+                                                textTransform: "capitalize",
+                                                fontSize: "14px"
                                             }}>
                                                 {probability.bias}
                                             </span>
@@ -296,50 +340,59 @@ export default function ProbabilityEngine() {
                                 {stats && (
                                     <div style={{ 
                                         display: "grid", 
-                                        gridTemplateColumns: "1fr 1fr", 
-                                        gap: "15px" 
+                                        gridTemplateColumns: "repeat(4, 1fr)", 
+                                        gap: "15px",
+                                        marginBottom: "20px"
                                     }}>
                                         <div style={{
-                                            padding: "15px",
-                                            backgroundColor: "#2a2a2a",
-                                            borderRadius: "5px"
+                                            padding: "20px",
+                                            backgroundColor: "#f8fafc",
+                                            borderRadius: "10px",
+                                            border: "1px solid #e2e8f0",
+                                            textAlign: "center"
                                         }}>
-                                            <div style={{ color: "#aaa", fontSize: "12px" }}>Total Trades</div>
-                                            <div style={{ color: "#fff", fontSize: "24px", fontWeight: "600" }}>
+                                            <div style={{ color: "#64748b", fontSize: "12px", fontWeight: "500", marginBottom: "8px" }}>Similar Trades</div>
+                                            <div style={{ color: "#1e293b", fontSize: "28px", fontWeight: "700" }}>
+                                                {stats.similar_trades}
+                                            </div>
+                                        </div>
+
+                                        <div style={{
+                                            padding: "20px",
+                                            backgroundColor: "#f8fafc",
+                                            borderRadius: "10px",
+                                            border: "1px solid #e2e8f0",
+                                            textAlign: "center"
+                                        }}>
+                                            <div style={{ color: "#64748b", fontSize: "12px", fontWeight: "500", marginBottom: "8px" }}>Total Trades</div>
+                                            <div style={{ color: "#1e293b", fontSize: "28px", fontWeight: "700" }}>
                                                 {stats.total_trades}
                                             </div>
                                         </div>
 
                                         <div style={{
-                                            padding: "15px",
-                                            backgroundColor: "#2a2a2a",
-                                            borderRadius: "5px"
+                                            padding: "20px",
+                                            backgroundColor: "#ecfdf5",
+                                            borderRadius: "10px",
+                                            border: "1px solid #a7f3d0",
+                                            textAlign: "center"
                                         }}>
-                                            <div style={{ color: "#aaa", fontSize: "12px" }}>Wins</div>
-                                            <div style={{ color: "#10b981", fontSize: "24px", fontWeight: "600" }}>
+                                            <div style={{ color: "#065f46", fontSize: "12px", fontWeight: "500", marginBottom: "8px" }}>Wins</div>
+                                            <div style={{ color: "#059669", fontSize: "28px", fontWeight: "700" }}>
                                                 {stats.wins}
                                             </div>
                                         </div>
 
                                         <div style={{
-                                            padding: "15px",
-                                            backgroundColor: "#2a2a2a",
-                                            borderRadius: "5px"
+                                            padding: "20px",
+                                            backgroundColor: "#fef2f2",
+                                            borderRadius: "10px",
+                                            border: "1px solid #fecaca",
+                                            textAlign: "center"
                                         }}>
-                                            <div style={{ color: "#aaa", fontSize: "12px" }}>Losses</div>
-                                            <div style={{ color: "#ef4444", fontSize: "24px", fontWeight: "600" }}>
+                                            <div style={{ color: "#991b1b", fontSize: "12px", fontWeight: "500", marginBottom: "8px" }}>Losses</div>
+                                            <div style={{ color: "#dc2626", fontSize: "28px", fontWeight: "700" }}>
                                                 {stats.losses}
-                                            </div>
-                                        </div>
-
-                                        <div style={{
-                                            padding: "15px",
-                                            backgroundColor: "#2a2a2a",
-                                            borderRadius: "5px"
-                                        }}>
-                                            <div style={{ color: "#aaa", fontSize: "12px" }}>Similar Trades</div>
-                                            <div style={{ color: "#fff", fontSize: "24px", fontWeight: "600" }}>
-                                                {stats.similar_trades}
                                             </div>
                                         </div>
                                     </div>
@@ -347,15 +400,15 @@ export default function ProbabilityEngine() {
 
                                 {probability.factors && (
                                     <div style={{ 
-                                        marginTop: "20px",
-                                        padding: "15px",
-                                        backgroundColor: "#2a2a2a",
-                                        borderRadius: "5px"
+                                        padding: "18px",
+                                        backgroundColor: "#eff6ff",
+                                        borderRadius: "10px",
+                                        border: "1px solid #bfdbfe"
                                     }}>
-                                        <div style={{ color: "#aaa", fontSize: "12px", marginBottom: "10px" }}>
+                                        <div style={{ color: "#1e40af", fontSize: "12px", marginBottom: "8px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                             Contributing Factors
                                         </div>
-                                        <div style={{ color: "#fff", fontSize: "14px" }}>
+                                        <div style={{ color: "#1e293b", fontSize: "14px", lineHeight: "1.6" }}>
                                             {probability.factors}
                                         </div>
                                     </div>
