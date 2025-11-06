@@ -449,6 +449,10 @@ export default function EconomicStrengthIndex() {
         let minVolume = Infinity, maxVolume = -Infinity;
         let hasForexData = false, hasStockData = false, hasVolumeData = false;
 
+        // ADD THESE LINES:
+        let minCommodity = Infinity, maxCommodity = -Infinity;
+        let hasCommodityData = false; // ADD THIS LINE
+
         economicData.forEach(point => {
             selectedForexPairs.forEach(pair => {
                 const priceKey = `${pair}_price`;
