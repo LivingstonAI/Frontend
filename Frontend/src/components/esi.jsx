@@ -9,6 +9,7 @@ export default function EconomicStrengthIndex() {
     const [selectedCurrencies, setSelectedCurrencies] = useState(['USD']);
     const [selectedForexPairs, setSelectedForexPairs] = useState([]);
     const [selectedStockIndices, setSelectedStockIndices] = useState([]);
+    const [selectedCommodities, setSelectedCommodities] = useState([]);
     const [selectedVolumeAssets, setSelectedVolumeAssets] = useState([]);
     const [economicData, setEconomicData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -49,10 +50,24 @@ export default function EconomicStrengthIndex() {
         { symbol: '^AXJO', name: 'ASX 200', displayName: 'ASX 200', color: '#8b5cf6' }
     ];
 
+    const commodities = [
+        { symbol: 'GC=F', name: 'Gold', displayName: 'Gold', color: '#fbbf24' },
+        { symbol: 'SI=F', name: 'Silver', displayName: 'Silver', color: '#9ca3af' },
+        { symbol: 'CL=F', name: 'Crude Oil WTI', displayName: 'Crude Oil (WTI)', color: '#1f2937' },
+        { symbol: 'BZ=F', name: 'Brent Crude', displayName: 'Brent Crude', color: '#374151' },
+        { symbol: 'NG=F', name: 'Natural Gas', displayName: 'Natural Gas', color: '#3b82f6' },
+        { symbol: 'HG=F', name: 'Copper', displayName: 'Copper', color: '#b45309' },
+        { symbol: 'PL=F', name: 'Platinum', displayName: 'Platinum', color: '#6b7280' },
+        { symbol: 'PA=F', name: 'Palladium', displayName: 'Palladium', color: '#4b5563' },
+        { symbol: 'ZC=F', name: 'Corn', displayName: 'Corn', color: '#eab308' },
+        { symbol: 'ZW=F', name: 'Wheat', displayName: 'Wheat', color: '#d97706' }
+    ];
+
     // All available assets for volume tracking
     const volumeAssets = [
         ...forexPairs.map(fp => ({ ...fp, type: 'forex', id: fp.pair })),
-        ...stockIndices.map(si => ({ ...si, type: 'stock', id: si.symbol, name: si.displayName }))
+        ...stockIndices.map(si => ({ ...si, type: 'stock', id: si.symbol, name: si.displayName })),
+        ...commodities.map(cm => ({ ...cm, type: 'commodity', id: cm.symbol, name: cm.displayName }))
     ];
 
     const fetchEconomicStrengthData = async () => {
@@ -67,6 +82,7 @@ export default function EconomicStrengthIndex() {
                     currencies: selectedCurrencies,
                     forex_pairs: selectedForexPairs,
                     stock_indices: selectedStockIndices,
+                    commodities: selectedCommodities,
                     volume_assets: selectedVolumeAssets,
                     date_range: dateRange
                 })
@@ -97,10 +113,12 @@ export default function EconomicStrengthIndex() {
     };
 
     useEffect(() => {
-        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0 || selectedVolumeAssets.length > 0) {
+        if (selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || 
+            selectedStockIndices.length > 0 || selectedVolumeAssets.length > 0 || 
+            selectedCommodities.length > 0) {
             fetchEconomicStrengthData();
         }
-    }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, dateRange]);
+    }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]); // NEW DEPENDENCY
 
     const handleCurrencyToggle = (currencyCode) => {
         setSelectedCurrencies(prev => {
@@ -128,6 +146,16 @@ export default function EconomicStrengthIndex() {
                 return prev.filter(s => s !== stockSymbol);
             } else {
                 return [...prev, stockSymbol];
+            }
+        });
+    };
+
+    const handleCommodityToggle = (commoditySymbol) => {
+        setSelectedCommodities(prev => {
+            if (prev.includes(commoditySymbol)) {
+                return prev.filter(c => c !== commoditySymbol);
+            } else {
+                return [...prev, commoditySymbol];
             }
         });
     };
@@ -254,6 +282,35 @@ export default function EconomicStrengthIndex() {
         downloadCSV(csv, filename);
     };
 
+    const handleDownloadCommodityData = (commoditySymbol) => {
+        if (!economicData || economicData.length === 0) {
+            alert('No data available to download');
+            return;
+        }
+
+        const commodityKey = `${commoditySymbol}_commodity`;
+        
+        // Filter data to only include date and the specific commodity price
+        const commodityData = economicData
+            .filter(row => row[commodityKey] !== undefined && row[commodityKey] !== null)
+            .map(row => ({
+                Date: row.date,
+                Price: row[commodityKey].toFixed(2)
+            }));
+
+        if (commodityData.length === 0) {
+            alert(`No commodity data available for ${commoditySymbol}`);
+            return;
+        }
+
+        const csv = convertToCSV(commodityData, ['Date', 'Price']);
+        const commodityInfo = commodities.find(c => c.symbol === commoditySymbol);
+        const displayName = commodityInfo ? commodityInfo.displayName.replace(/\s+/g, '_') : commoditySymbol;
+        const filename = `${displayName}_Price_${dateRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+        downloadCSV(csv, filename);
+    };
+
+
     const handleDownloadVolumeData = (assetId) => {
         if (!economicData || economicData.length === 0) {
             alert('No data available to download');
@@ -298,9 +355,19 @@ export default function EconomicStrengthIndex() {
             setTimeout(() => handleDownloadStockIndexData(symbol), 100 * (selectedCurrencies.length + selectedForexPairs.length + selectedStockIndices.indexOf(symbol)));
         });
 
+        selectedCommodities.forEach(symbol => {
+            setTimeout(() => handleDownloadCommodityData(symbol), 
+                100 * (selectedCurrencies.length + selectedForexPairs.length + 
+                    selectedStockIndices.length + selectedCommodities.indexOf(symbol)));
+        });
+
         // Download all selected volume assets
+        
         selectedVolumeAssets.forEach(assetId => {
-            setTimeout(() => handleDownloadVolumeData(assetId), 100 * (selectedCurrencies.length + selectedForexPairs.length + selectedStockIndices.length + selectedVolumeAssets.indexOf(assetId)));
+            setTimeout(() => handleDownloadVolumeData(assetId), 
+                100 * (selectedCurrencies.length + selectedForexPairs.length + 
+                    selectedStockIndices.length + selectedCommodities.length + 
+                    selectedVolumeAssets.indexOf(assetId)));
         });
     };
 
@@ -331,6 +398,7 @@ export default function EconomicStrengthIndex() {
                     {payload.map((entry, index) => {
                         const isForex = entry.dataKey.includes('_price');
                         const isStockIndex = entry.dataKey.includes('_index');
+                        const isCommodity = entry.dataKey.includes('_commodity');
                         const isVolume = entry.dataKey.includes('_volume_ratio');
                         
                         let displayName, formattedValue;
@@ -348,7 +416,14 @@ export default function EconomicStrengthIndex() {
                             const stockInfo = stockIndices.find(s => s.symbol === symbol);
                             displayName = stockInfo ? stockInfo.displayName : symbol;
                             formattedValue = entry.value?.toFixed(2) || 'N/A';
-                        } else {
+                        } 
+                         else if (isCommodity) {
+                            const symbol = entry.dataKey.replace('_commodity', '');
+                            const commodityInfo = commodities.find(c => c.symbol === symbol);
+                            displayName = commodityInfo ? commodityInfo.displayName : symbol;
+                            formattedValue = entry.value?.toFixed(2) || 'N/A';
+                         }
+                        else {
                             displayName = `${entry.dataKey} ESI`;
                             formattedValue = entry.value?.toFixed(2) || 'N/A';
                         }
@@ -393,6 +468,15 @@ export default function EconomicStrengthIndex() {
                 }
             });
 
+            selectedCommodities.forEach(symbol => {
+                const commodityKey = `${symbol}_commodity`;
+                if (point[commodityKey] !== undefined && point[commodityKey] !== null) {
+                    minCommodity = Math.min(minCommodity, point[commodityKey]);
+                    maxCommodity = Math.max(maxCommodity, point[commodityKey]);
+                    hasCommodityData = true;
+                }
+            });
+
             selectedVolumeAssets.forEach(assetId => {
                 const volumeKey = `${assetId}_volume_ratio`;
                 if (point[volumeKey] !== undefined && point[volumeKey] !== null) {
@@ -405,12 +489,14 @@ export default function EconomicStrengthIndex() {
 
         const forexPadding = hasForexData ? (maxForex - minForex) * 0.05 : 0;
         const stockPadding = hasStockData ? (maxStock - minStock) * 0.05 : 0;
+        const commodityPadding = hasCommodityData ? (maxCommodity - minCommodity) * 0.05 : 0;
         const volumePadding = hasVolumeData ? (maxVolume - minVolume) * 0.05 : 0;
         
         return {
             esi: [0, 100],
             forex: hasForexData ? [minForex - forexPadding, maxForex + forexPadding] : [0, 1],
             stock: hasStockData ? [minStock - stockPadding, maxStock + stockPadding] : [0, 1000],
+            commodity: hasCommodityData ? [minCommodity - commodityPadding, maxCommodity + commodityPadding] : [0, 1000],
             volume: hasVolumeData ? [Math.max(0, minVolume - volumePadding), maxVolume + volumePadding] : [0, 5]
         };
     };
@@ -418,6 +504,7 @@ export default function EconomicStrengthIndex() {
     const domains = getYAxisDomains();
     const hasForexData = selectedForexPairs.length > 0;
     const hasStockData = selectedStockIndices.length > 0;
+    const hasCommodityData = selectedCommodities.length > 0;
     const hasVolumeData = selectedVolumeAssets.length > 0;
 
     return (
@@ -488,6 +575,26 @@ export default function EconomicStrengthIndex() {
                                 ))}
                             </div>
                         </div>
+
+                        <div className="esi-commodity-selector">
+                            <h6>Select Commodities to Overlay:</h6>
+                            <div className="esi-currency-grid">
+                                {commodities.map(commodity => (
+                                    <label key={commodity.symbol} className="esi-currency-checkbox">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCommodities.includes(commodity.symbol)}
+                                            onChange={() => handleCommodityToggle(commodity.symbol)}
+                                        />
+                                        <span className="esi-checkmark commodity-checkmark" style={{borderColor: commodity.color}}></span>
+                                        <span className="esi-currency-label">
+                                            {commodity.displayName}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
 
                         <div className="esi-volume-selector">
                             <h6>Select Assets for Relative Volume Overlay:</h6>
@@ -584,6 +691,28 @@ export default function EconomicStrengthIndex() {
                                     </div>
                                 )}
 
+                                {selectedCommodities.length > 0 && (
+                                    <div className="esi-download-group">
+                                        <span className="download-label">Commodities:</span>
+                                        <div className="download-buttons">
+                                            {selectedCommodities.map(symbol => {
+                                                const commodityInfo = commodities.find(c => c.symbol === symbol);
+                                                return (
+                                                    <button
+                                                        key={`commodity-${symbol}`}
+                                                        onClick={() => handleDownloadCommodityData(symbol)}
+                                                        className="esi-download-btn commodity-btn"
+                                                        title={`Download ${commodityInfo?.displayName || symbol} data as CSV`}
+                                                    >
+                                                        {commodityInfo?.displayName || symbol}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+
                                 {selectedVolumeAssets.length > 0 && (
                                     <div className="esi-download-group">
                                         <span className="download-label">Volume Data:</span>
@@ -605,7 +734,7 @@ export default function EconomicStrengthIndex() {
                                     </div>
                                 )}
                                 
-                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0 || selectedVolumeAssets.length > 0) && (
+                                {(selectedCurrencies.length > 0 || selectedForexPairs.length > 0 || selectedStockIndices.length > 0 || selectedCommodities.length > 0 || selectedVolumeAssets.length > 0) && (
                                     <div className="esi-download-group">
                                         <button
                                             onClick={handleDownloadAllData}
@@ -690,6 +819,27 @@ export default function EconomicStrengthIndex() {
                                             }}
                                         />
                                     )}
+
+                                    {/* Fourth Right Y-Axis for Commodities */}
+                                    {hasCommodityData && (
+                                        <YAxis 
+                                            yAxisId="commodity"
+                                            orientation="right"
+                                            stroke="#fbbf24"
+                                            tick={{ fontSize: 12 }}
+                                            domain={domains.commodity}
+                                            tickFormatter={(value) => '$' + value.toFixed(0)}
+                                            label={{ 
+                                                value: 'Commodity Price', 
+                                                angle: 90, 
+                                                position: 'outside',
+                                                offset: (hasForexData && hasStockData && hasVolumeData) ? 120 : 
+                                                        ((hasForexData && hasStockData) || (hasForexData && hasVolumeData) || (hasStockData && hasVolumeData)) ? 80 :
+                                                        (hasForexData || hasStockData || hasVolumeData) ? 40 : 0
+                                            }}
+                                        />
+                                    )}
+
                                     <Tooltip content={<CustomTooltip />} />
                                     <Legend />
                                     
@@ -774,6 +924,28 @@ export default function EconomicStrengthIndex() {
                                             />
                                         );
                                     })}
+
+                                    {/* Commodity Lines */}
+                                    {selectedCommodities.map(commoditySymbol => {
+                                        const commodity = commodities.find(c => c.symbol === commoditySymbol);
+                                        const commodityKey = `${commoditySymbol}_commodity`;
+                                        return (
+                                            <Line
+                                                key={commodityKey}
+                                                yAxisId="commodity"
+                                                type="monotone"
+                                                dataKey={commodityKey}
+                                                stroke={commodity?.color || '#fbbf24'}
+                                                strokeWidth={2}
+                                                strokeDasharray="8 4"
+                                                dot={false}
+                                                activeDot={{ r: 4 }}
+                                                connectNulls={true}
+                                                name={commodity?.displayName || commoditySymbol}
+                                            />
+                                        );
+                                    })}
+
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
@@ -806,6 +978,12 @@ export default function EconomicStrengthIndex() {
                                 <div className="legend-item">
                                     <div className="legend-line volume-line"></div>
                                     <span>Relative Volume (Right Axis, Volume ratio)</span>
+                                </div>
+                            )}
+                            {hasCommodityData && (
+                                <div className="legend-item">
+                                    <div className="legend-line commodity-line"></div>
+                                    <span>Commodities (Right Axis, Price scale)</span>
                                 </div>
                             )}
                         </div>
@@ -1224,6 +1402,56 @@ export default function EconomicStrengthIndex() {
                 .esi-methodology li {
                     margin: 4px 0;
                 }
+
+                .esi-commodity-selector {
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #fef3c7;
+                    border-radius: 6px;
+                    border-left: 3px solid #fbbf24;
+                }
+
+                .esi-checkmark.commodity-checkmark {
+                    border-radius: 50%;
+                    position: relative;
+                }
+
+                .esi-checkmark.commodity-checkmark::before {
+                    content: '';
+                    position: absolute;
+                    width: 8px;
+                    height: 8px;
+                    background: currentColor;
+                    border-radius: 50%;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    opacity: 0;
+                }
+
+                .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark.commodity-checkmark::before {
+                    opacity: 1;
+                }
+
+                .esi-download-btn.commodity-btn {
+                    background: #fbbf24;
+                    color: #78350f;
+                    border-color: #f59e0b;
+                    font-weight: 600;
+                }
+
+                .esi-download-btn.commodity-btn:hover {
+                    background: #f59e0b;
+                    color: white;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+                }
+
+                .legend-line.commodity-line {
+                    background: linear-gradient(to right, #fbbf24 40%, transparent 40%);
+                    background-size: 10px 2px;
+                }
+
 
                 /* Mobile Responsive */
                 @media (max-width: 768px) {
