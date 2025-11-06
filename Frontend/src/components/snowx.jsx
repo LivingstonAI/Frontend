@@ -1,684 +1,814 @@
 import React, { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { Wallet, TrendingUp, ArrowDownCircle, ArrowUpCircle, AlertCircle, ExternalLink, Loader } from 'lucide-react';
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)',
+    padding: '1.5rem'
+  },
+  maxWidth: {
+    maxWidth: '80rem',
+    margin: '0 auto'
+  },
+  header: {
+    marginBottom: '1.5rem'
+  },
+  title: {
+    fontSize: '2.25rem',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: '0.5rem'
+  },
+  subtitle: {
+    color: '#4b5563'
+  },
+  notification: {
+    marginBottom: '1.5rem',
+    padding: '1rem',
+    borderRadius: '0.5rem'
+  },
+  notificationSuccess: {
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0'
+  },
+  notificationError: {
+    backgroundColor: '#fef2f2',
+    border: '1px solid #fecaca'
+  },
+  notificationTextSuccess: {
+    fontSize: '0.875rem',
+    color: '#166534'
+  },
+  notificationTextError: {
+    fontSize: '0.875rem',
+    color: '#991b1b'
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '0.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    padding: '1.5rem',
+    marginBottom: '1.5rem'
+  },
+  cardCompact: {
+    backgroundColor: 'white',
+    borderRadius: '0.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    padding: '1rem',
+    marginBottom: '1.5rem'
+  },
+  flexBetween: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  flexCenter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem'
+  },
+  heading: {
+    fontSize: '1.125rem',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: '0.25rem'
+  },
+  text: {
+    fontSize: '0.875rem',
+    color: '#4b5563'
+  },
+  buttonPrimary: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    fontWeight: '600',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '0.5rem',
+    transition: 'background-color 0.2s',
+    border: 'none',
+    cursor: 'pointer'
+  },
+  buttonPrimaryHover: {
+    backgroundColor: '#1d4ed8'
+  },
+  buttonDisabled: {
+    backgroundColor: '#9ca3af',
+    cursor: 'not-allowed'
+  },
+  avatar: {
+    width: '2.5rem',
+    height: '2.5rem',
+    backgroundColor: '#dbeafe',
+    borderRadius: '9999px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  addressText: {
+    fontWeight: '600',
+    color: '#1f2937'
+  },
+  labelText: {
+    fontSize: '0.875rem',
+    color: '#4b5563'
+  },
+  buttonYellow: {
+    backgroundColor: '#eab308',
+    color: 'white',
+    fontWeight: '600',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.5rem',
+    transition: 'background-color 0.2s',
+    border: 'none',
+    cursor: 'pointer'
+  },
+  buttonGray: {
+    backgroundColor: '#e5e7eb',
+    color: '#1f2937',
+    fontWeight: '600',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.5rem',
+    transition: 'background-color 0.2s',
+    border: 'none',
+    cursor: 'pointer'
+  },
+  alert: {
+    marginTop: '0.75rem',
+    backgroundColor: '#fefce8',
+    border: '1px solid #fde047',
+    borderRadius: '0.5rem',
+    padding: '0.75rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  },
+  alertText: {
+    fontSize: '0.875rem',
+    color: '#854d0e'
+  },
+  grid4: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(1, minmax(0, 1fr))',
+    gap: '1.5rem',
+    marginBottom: '2rem'
+  },
+  grid2: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(1, minmax(0, 1fr))',
+    gap: '1.5rem',
+    marginBottom: '2rem'
+  },
+  statCard: {
+    backgroundColor: 'white',
+    borderRadius: '0.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    padding: '1.5rem'
+  },
+  statHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '0.5rem'
+  },
+  statLabel: {
+    fontSize: '0.875rem',
+    color: '#4b5563'
+  },
+  statValue: {
+    fontSize: '1.875rem',
+    fontWeight: 'bold',
+    color: '#1f2937'
+  },
+  statUnit: {
+    fontSize: '0.75rem',
+    color: '#6b7280',
+    marginTop: '0.25rem'
+  },
+  actionCard: {
+    backgroundColor: 'white',
+    borderRadius: '0.5rem',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    padding: '1.5rem'
+  },
+  actionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '1rem'
+  },
+  actionTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginLeft: '0.5rem'
+  },
+  inputGroup: {
+    marginBottom: '1rem'
+  },
+  label: {
+    display: 'block',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '0.5rem'
+  },
+  input: {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    border: '1px solid #d1d5db',
+    borderRadius: '0.5rem',
+    fontSize: '1rem'
+  },
+  inputFocus: {
+    outline: 'none',
+    borderColor: 'transparent',
+    boxShadow: '0 0 0 2px #22c55e'
+  },
+  previewGreen: {
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    borderRadius: '0.5rem',
+    padding: '1rem',
+    marginBottom: '1rem'
+  },
+  previewRed: {
+    backgroundColor: '#fef2f2',
+    border: '1px solid #fecaca',
+    borderRadius: '0.5rem',
+    padding: '1rem',
+    marginBottom: '1rem'
+  },
+  previewLabel: {
+    fontSize: '0.875rem',
+    color: '#4b5563'
+  },
+  previewValueGreen: {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    color: '#16a34a'
+  },
+  previewValueRed: {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    color: '#dc2626'
+  },
+  previewNote: {
+    fontSize: '0.75rem',
+    color: '#6b7280',
+    marginTop: '0.25rem'
+  },
+  buttonGreen: {
+    width: '100%',
+    backgroundColor: '#16a34a',
+    color: 'white',
+    fontWeight: '600',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    transition: 'background-color 0.2s',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem'
+  },
+  buttonRed: {
+    width: '100%',
+    backgroundColor: '#dc2626',
+    color: 'white',
+    fontWeight: '600',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
+    transition: 'background-color 0.2s',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem'
+  },
+  historyCard: {
+    backgroundColor: 'white',
+    borderRadius: '0.5rem',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    padding: '1.5rem'
+  },
+  historyTitle: {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: '1rem'
+  },
+  tableContainer: {
+    overflowX: 'auto'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
+  },
+  tableHeader: {
+    borderBottom: '1px solid #e5e7eb'
+  },
+  th: {
+    textAlign: 'left',
+    padding: '0.75rem 1rem',
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#374151'
+  },
+  tr: {
+    borderBottom: '1px solid #f3f4f6'
+  },
+  td: {
+    padding: '0.75rem 1rem'
+  },
+  badgeMint: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '9999px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    backgroundColor: '#dcfce7',
+    color: '#166534'
+  },
+  badgeBurn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '9999px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    backgroundColor: '#fee2e2',
+    color: '#991b1b'
+  },
+  statusConfirmed: {
+    display: 'inline-flex',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '9999px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    color: '#16a34a',
+    backgroundColor: '#dcfce7'
+  },
+  statusPending: {
+    display: 'inline-flex',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '9999px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    color: '#ca8a04',
+    backgroundColor: '#fef9c3'
+  },
+  statusFailed: {
+    display: 'inline-flex',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '9999px',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    color: '#dc2626',
+    backgroundColor: '#fee2e2'
+  },
+  link: {
+    color: '#2563eb',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+    fontSize: '0.875rem',
+    textDecoration: 'none'
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '2rem',
+    color: '#6b7280'
+  }
+};
+
+// Media query styles would be applied via JS
+const applyResponsiveStyles = () => {
+  if (window.innerWidth >= 768) {
+    styles.grid4.gridTemplateColumns = 'repeat(4, minmax(0, 1fr))';
+  }
+  if (window.innerWidth >= 1024) {
+    styles.grid2.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+  }
+};
+
+const useWeb3Mock = () => {
+  const [account, setAccount] = useState(null);
+  const [chainId, setChainId] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  
+  const connectWallet = async () => {
+    setIsConnecting(true);
+    setTimeout(() => {
+      setAccount('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb');
+      setChainId('11155111');
+      setIsConnecting(false);
+    }, 1000);
+  };
+  
+  const disconnectWallet = () => {
+    setAccount(null);
+    setChainId(null);
+  };
+  
+  const switchToSepolia = () => {
+    setChainId('11155111');
+  };
+  
+  return { account, chainId, isConnecting, connectWallet, disconnectWallet, switchToSepolia };
+};
 
 const SNOWXDashboard = () => {
-  const [account, setAccount] = useState(null);
-  const [balance, setBalance] = useState('0');
-  const [stakedBalance, setStakedBalance] = useState('0');
-  const [accessTier, setAccessTier] = useState(0);
-  const [pendingRewards, setPendingRewards] = useState({ usdc: '0', usdt: '0' });
-  const [stakeAmount, setStakeAmount] = useState('');
-  const [unstakeAmount, setUnstakeAmount] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [txStatus, setTxStatus] = useState('');
+  const { account, chainId, isConnecting, connectWallet, disconnectWallet, switchToSepolia } = useWeb3Mock();
+  
+  const [balance, setBalance] = useState(0);
+  const [collateral, setCollateral] = useState(0);
+  const [collateralRatio, setCollateralRatio] = useState(0);
+  const [ethPrice, setEthPrice] = useState(2000);
+  const [ethAmount, setEthAmount] = useState('');
+  const [burnAmount, setBurnAmount] = useState('');
+  const [calculatedMint, setCalculatedMint] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
 
-  // Contract addresses (replace with your actual deployed addresses)
-  const SNOWX_TOKEN = '0x...'; // Your SNOWX token address
-  const TREASURY = '0x...'; // Your treasury address
-  const USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
-  const USDT = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
-
-  const SNOWX_ABI = [
-    'function balanceOf(address) view returns (uint256)',
-    'function approve(address spender, uint256 amount) returns (bool)',
-    'function getAccessTier(address) view returns (uint8)',
-    'function transfer(address to, uint256 amount) returns (bool)'
-  ];
-
-  const TREASURY_ABI = [
-    'function stakedBalance(address) view returns (uint256)',
-    'function pendingRewards(address user, address token) view returns (uint256)',
-    'function stake(uint256 amount)',
-    'function unstake(uint256 amount)',
-    'function claimRewards()'
-  ];
+  const isWrongNetwork = chainId && chainId !== '11155111';
 
   useEffect(() => {
-    checkWalletConnection();
+    applyResponsiveStyles();
+    window.addEventListener('resize', applyResponsiveStyles);
+    return () => window.removeEventListener('resize', applyResponsiveStyles);
   }, []);
 
   useEffect(() => {
     if (account) {
-      loadUserData();
-      const interval = setInterval(loadUserData, 15000);
+      fetchDashboardData();
+      fetchPrice();
+      const interval = setInterval(fetchPrice, 60000);
       return () => clearInterval(interval);
     }
   }, [account]);
 
-  const checkWalletConnection = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const accounts = await provider.listAccounts();
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-        }
-      } catch (error) {
-        console.error('Error checking wallet:', error);
-      }
-    }
+  const fetchDashboardData = async () => {
+    setBalance(1000.50);
+    setCollateral(0.75);
+    setCollateralRatio(150);
+    
+    setTransactions([
+      { id: 1, type: 'MINT', amount: 500, eth: 0.375, status: 'CONFIRMED', date: '2025-11-06 10:30', hash: '0xabc...123' },
+      { id: 2, type: 'MINT', amount: 500.50, eth: 0.375, status: 'CONFIRMED', date: '2025-11-06 09:15', hash: '0xdef...456' }
+    ]);
   };
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      alert('Please install MetaMask to use this feature');
+  const fetchPrice = async () => {
+    setEthPrice(2000);
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const calculateMint = (eth) => {
+    if (!eth || eth <= 0) {
+      setCalculatedMint(0);
       return;
     }
-
-    try {
-      setLoading(true);
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send('eth_requestAccounts', []);
-      const signer = provider.getSigner();
-      const address = await signer.getAddress();
-      setAccount(address);
-      setTxStatus('Wallet connected!');
-      setTimeout(() => setTxStatus(''), 3000);
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      setTxStatus('Failed to connect wallet');
-    } finally {
-      setLoading(false);
-    }
+    const ethValue = eth * ethPrice;
+    const stablecoins = (ethValue / 1.5).toFixed(2);
+    setCalculatedMint(stablecoins);
   };
 
-  const loadUserData = async () => {
-    if (!account) return;
+  useEffect(() => {
+    calculateMint(ethAmount);
+  }, [ethAmount, ethPrice]);
 
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const snowxContract = new ethers.Contract(SNOWX_TOKEN, SNOWX_ABI, provider);
-      const treasuryContract = new ethers.Contract(TREASURY, TREASURY_ABI, provider);
-
-      const [bal, staked, tier, usdcRewards, usdtRewards] = await Promise.all([
-        snowxContract.balanceOf(account),
-        treasuryContract.stakedBalance(account),
-        snowxContract.getAccessTier(account),
-        treasuryContract.pendingRewards(account, USDC),
-        treasuryContract.pendingRewards(account, USDT)
-      ]);
-
-      setBalance(ethers.utils.formatEther(bal));
-      setStakedBalance(ethers.utils.formatEther(staked));
-      setAccessTier(tier);
-      setPendingRewards({
-        usdc: ethers.utils.formatUnits(usdcRewards, 6),
-        usdt: ethers.utils.formatUnits(usdtRewards, 6)
-      });
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
+  const handleMint = async () => {
+    if (!ethAmount || ethAmount <= 0 || isWrongNetwork) return;
+    
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      const txHash = '0x' + Math.random().toString(16).substr(2, 64);
+      const newTx = {
+        id: transactions.length + 1,
+        type: 'MINT',
+        amount: calculatedMint,
+        eth: ethAmount,
+        status: 'PENDING',
+        date: new Date().toLocaleString(),
+        hash: txHash
+      };
+      
+      setTransactions([newTx, ...transactions]);
+      setBalance(prev => prev + parseFloat(calculatedMint));
+      setCollateral(prev => prev + parseFloat(ethAmount));
+      setEthAmount('');
+      setCalculatedMint(0);
+      setIsLoading(false);
+      
+      showNotification(`Successfully minted ${calculatedMint} SNOW! Tx: ${txHash.slice(0, 10)}...`);
+    }, 2000);
   };
 
-  const handleStake = async () => {
-    if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
-      setTxStatus('Please enter a valid amount');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setTxStatus('Approving SNOWX...');
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const snowxContract = new ethers.Contract(SNOWX_TOKEN, SNOWX_ABI, signer);
-      const treasuryContract = new ethers.Contract(TREASURY, TREASURY_ABI, signer);
-
-      const amount = ethers.utils.parseEther(stakeAmount);
-
-      const approveTx = await snowxContract.approve(TREASURY, amount);
-      setTxStatus('Approval pending...');
-      await approveTx.wait();
-
-      setTxStatus('Staking tokens...');
-      const stakeTx = await treasuryContract.stake(amount);
-      await stakeTx.wait();
-
-      setTxStatus('Stake successful!');
-      setStakeAmount('');
-      await loadUserData();
-      setTimeout(() => setTxStatus(''), 3000);
-    } catch (error) {
-      console.error('Stake error:', error);
-      setTxStatus(error.message || 'Stake failed');
-    } finally {
-      setLoading(false);
-    }
+  const handleBurn = async () => {
+    if (!burnAmount || burnAmount <= 0 || burnAmount > balance || isWrongNetwork) return;
+    
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      const ethReturned = (burnAmount * 1.5 / ethPrice).toFixed(4);
+      const txHash = '0x' + Math.random().toString(16).substr(2, 64);
+      
+      const newTx = {
+        id: transactions.length + 1,
+        type: 'BURN',
+        amount: burnAmount,
+        eth: ethReturned,
+        status: 'PENDING',
+        date: new Date().toLocaleString(),
+        hash: txHash
+      };
+      
+      setTransactions([newTx, ...transactions]);
+      setBalance(prev => prev - parseFloat(burnAmount));
+      setCollateral(prev => prev - parseFloat(ethReturned));
+      setBurnAmount('');
+      setIsLoading(false);
+      
+      showNotification(`Successfully burned ${burnAmount} SNOW and withdrew ${ethReturned} ETH!`);
+    }, 2000);
   };
 
-  const handleUnstake = async () => {
-    if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) {
-      setTxStatus('Please enter a valid amount');
-      return;
-    }
+  const formatAddress = (addr) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-    try {
-      setLoading(true);
-      setTxStatus('Unstaking tokens...');
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const treasuryContract = new ethers.Contract(TREASURY, TREASURY_ABI, signer);
-
-      const amount = ethers.utils.parseEther(unstakeAmount);
-      const unstakeTx = await treasuryContract.unstake(amount);
-      await unstakeTx.wait();
-
-      setTxStatus('Unstake successful!');
-      setUnstakeAmount('');
-      await loadUserData();
-      setTimeout(() => setTxStatus(''), 3000);
-    } catch (error) {
-      console.error('Unstake error:', error);
-      setTxStatus(error.message || 'Unstake failed');
-    } finally {
-      setLoading(false);
+  const getStatusStyle = (status) => {
+    switch(status) {
+      case 'CONFIRMED': return styles.statusConfirmed;
+      case 'PENDING': return styles.statusPending;
+      case 'FAILED': return styles.statusFailed;
+      default: return styles.statusConfirmed;
     }
   };
-
-  const handleClaimRewards = async () => {
-    try {
-      setLoading(true);
-      setTxStatus('Claiming rewards...');
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const treasuryContract = new ethers.Contract(TREASURY, TREASURY_ABI, signer);
-
-      const claimTx = await treasuryContract.claimRewards();
-      await claimTx.wait();
-
-      setTxStatus('Rewards claimed!');
-      await loadUserData();
-      setTimeout(() => setTxStatus(''), 3000);
-    } catch (error) {
-      console.error('Claim error:', error);
-      setTxStatus(error.message || 'Claim failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getTierInfo = (tier) => {
-    const tiers = {
-      0: { name: 'Free', color: '#6b7280', features: 'No access' },
-      1: { name: 'Basic', color: '#3b82f6', features: 'Basic signals, Market overview' },
-      2: { name: 'Premium', color: '#8b5cf6', features: 'Advanced analytics, Backtesting' },
-      3: { name: 'Elite', color: '#f59e0b', features: 'Real-time AI, Custom models, API access' }
-    };
-    return tiers[tier] || tiers[0];
-  };
-
-  const formatNumber = (num) => {
-    return parseFloat(num).toLocaleString('en-US', { maximumFractionDigits: 2 });
-  };
-
-  const styles = {
-    container: {
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-      maxWidth: '1400px',
-      margin: '0 auto',
-      padding: '20px',
-      backgroundColor: '#0a0e1a',
-      color: '#ffffff',
-      minHeight: '100vh'
-    },
-    header: {
-      marginBottom: '32px',
-      textAlign: 'center'
-    },
-    title: {
-      fontSize: 'clamp(24px, 5vw, 36px)',
-      fontWeight: '700',
-      marginBottom: '8px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text'
-    },
-    subtitle: {
-      fontSize: '14px',
-      color: '#9ca3af',
-      marginBottom: '24px'
-    },
-    connectButton: {
-      backgroundColor: '#667eea',
-      color: 'white',
-      border: 'none',
-      padding: '12px 32px',
-      fontSize: '16px',
-      fontWeight: '600',
-      borderRadius: '12px',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      display: 'inline-block',
-      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-      gap: '20px',
-      marginBottom: '32px'
-    },
-    card: {
-      backgroundColor: '#1a1f2e',
-      borderRadius: '16px',
-      padding: '24px',
-      border: '1px solid #2d3748',
-      transition: 'all 0.3s ease'
-    },
-    cardHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
-    },
-    cardTitle: {
-      fontSize: '14px',
-      color: '#9ca3af',
-      marginBottom: '8px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    cardValue: {
-      fontSize: 'clamp(24px, 4vw, 32px)',
-      fontWeight: '700',
-      marginBottom: '8px'
-    },
-    cardSubtext: {
-      fontSize: '13px',
-      color: '#6b7280'
-    },
-    tierBadge: {
-      display: 'inline-block',
-      padding: '6px 16px',
-      borderRadius: '20px',
-      fontSize: '12px',
-      fontWeight: '600',
-      marginTop: '8px'
-    },
-    actionSection: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-      gap: '24px',
-      marginBottom: '32px'
-    },
-    actionCard: {
-      backgroundColor: '#1a1f2e',
-      borderRadius: '16px',
-      padding: '24px',
-      border: '1px solid #2d3748'
-    },
-    actionTitle: {
-      fontSize: '18px',
-      fontWeight: '600',
-      marginBottom: '16px',
-      color: '#f3f4f6'
-    },
-    inputGroup: {
-      marginBottom: '16px'
-    },
-    label: {
-      display: 'block',
-      fontSize: '13px',
-      color: '#9ca3af',
-      marginBottom: '8px'
-    },
-    input: {
-      width: '100%',
-      padding: '12px 16px',
-      backgroundColor: '#0f1419',
-      border: '1px solid #374151',
-      borderRadius: '8px',
-      color: '#ffffff',
-      fontSize: '16px',
-      boxSizing: 'border-box',
-      outline: 'none',
-      transition: 'border-color 0.3s ease'
-    },
-    button: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#667eea',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '15px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      marginTop: '8px'
-    },
-    buttonSecondary: {
-      backgroundColor: '#4c1d95',
-      marginTop: '8px'
-    },
-    buttonDisabled: {
-      backgroundColor: '#374151',
-      cursor: 'not-allowed',
-      opacity: 0.6
-    },
-    rewardsCard: {
-      backgroundColor: '#1a1f2e',
-      borderRadius: '16px',
-      padding: '24px',
-      border: '1px solid #2d3748'
-    },
-    rewardItem: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #2d3748'
-    },
-    rewardLabel: {
-      fontSize: '14px',
-      color: '#9ca3af'
-    },
-    rewardValue: {
-      fontSize: '18px',
-      fontWeight: '600',
-      color: '#10b981'
-    },
-    statusMessage: {
-      position: 'fixed',
-      bottom: '24px',
-      right: '24px',
-      backgroundColor: '#1a1f2e',
-      color: '#ffffff',
-      padding: '16px 24px',
-      borderRadius: '12px',
-      border: '1px solid #667eea',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-      zIndex: 1000,
-      maxWidth: 'calc(100vw - 48px)',
-      fontSize: '14px'
-    },
-    walletInfo: {
-      backgroundColor: '#1a1f2e',
-      borderRadius: '12px',
-      padding: '12px 20px',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '12px',
-      border: '1px solid #2d3748',
-      marginBottom: '24px',
-      fontSize: '14px'
-    },
-    dot: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      backgroundColor: '#10b981'
-    },
-    featuresText: {
-      fontSize: '12px',
-      color: '#9ca3af',
-      marginTop: '8px',
-      lineHeight: '1.6'
-    },
-    '@media (max-width: 768px)': {
-      container: {
-        padding: '16px'
-      },
-      grid: {
-        gridTemplateColumns: '1fr',
-        gap: '16px'
-      },
-      actionSection: {
-        gridTemplateColumns: '1fr'
-      },
-      card: {
-        padding: '20px'
-      },
-      actionCard: {
-        padding: '20px'
-      }
-    }
-  };
-
-  const tierInfo = getTierInfo(accessTier);
-
-  if (!account) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>❄️ SNOWX Dashboard</h1>
-          <p style={styles.subtitle}>Stake SNOWX • Access AI Signals • Earn Trading Profits</p>
-          <button 
-            style={styles.connectButton}
-            onClick={connectWallet}
-            disabled={loading}
-          >
-            {loading ? 'Connecting...' : 'Connect Wallet'}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>❄️ SNOWX Dashboard</h1>
-        <p style={styles.subtitle}>Stake SNOWX • Access AI Signals • Earn Trading Profits</p>
-        
-        <div style={styles.walletInfo}>
-          <div style={styles.dot}></div>
-          <span>{account.slice(0, 6)}...{account.slice(-4)}</span>
-        </div>
-      </div>
-
-      <div style={styles.grid}>
-        <div style={styles.card}>
-          <div style={styles.cardTitle}>Wallet Balance</div>
-          <div style={styles.cardValue}>{formatNumber(balance)}</div>
-          <div style={styles.cardSubtext}>SNOWX</div>
+      <div style={styles.maxWidth}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>SnowCoin Dashboard</h1>
+          <p style={styles.subtitle}>Hybrid stablecoin backed by ETH on Sepolia testnet</p>
         </div>
 
-        <div style={styles.card}>
-          <div style={styles.cardTitle}>Staked Balance</div>
-          <div style={styles.cardValue}>{formatNumber(stakedBalance)}</div>
-          <div style={styles.cardSubtext}>SNOWX earning rewards</div>
-        </div>
-
-        <div style={styles.card}>
-          <div style={styles.cardTitle}>Access Tier</div>
-          <div style={styles.cardValue}>{tierInfo.name}</div>
-          <div 
-            style={{
-              ...styles.tierBadge,
-              backgroundColor: `${tierInfo.color}22`,
-              color: tierInfo.color,
-              border: `1px solid ${tierInfo.color}`
-            }}
-          >
-            Tier {accessTier}
+        {notification && (
+          <div style={{...styles.notification, ...(notification.type === 'success' ? styles.notificationSuccess : styles.notificationError)}}>
+            <p style={notification.type === 'success' ? styles.notificationTextSuccess : styles.notificationTextError}>
+              {notification.message}
+            </p>
           </div>
-          <div style={styles.featuresText}>{tierInfo.features}</div>
-        </div>
+        )}
 
-        <div style={styles.card}>
-          <div style={styles.cardTitle}>Total Value Staked</div>
-          <div style={styles.cardValue}>
-            ${formatNumber((parseFloat(balance) + parseFloat(stakedBalance)) * 0.10)}
+        {!account ? (
+          <div style={styles.card}>
+            <div style={styles.flexBetween}>
+              <div>
+                <h3 style={styles.heading}>Connect Your Wallet</h3>
+                <p style={styles.text}>Connect MetaMask to start using SnowCoin</p>
+              </div>
+              <button
+                onClick={connectWallet}
+                disabled={isConnecting}
+                style={{...styles.buttonPrimary, ...(isConnecting ? styles.buttonDisabled : {})}}
+                onMouseEnter={(e) => !isConnecting && (e.target.style.backgroundColor = styles.buttonPrimaryHover.backgroundColor)}
+                onMouseLeave={(e) => !isConnecting && (e.target.style.backgroundColor = styles.buttonPrimary.backgroundColor)}
+              >
+                <Wallet style={{width: '1.25rem', height: '1.25rem'}} />
+                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            </div>
           </div>
-          <div style={styles.cardSubtext}>@ $0.10 per SNOWX</div>
-        </div>
-      </div>
-
-      <div style={styles.actionSection}>
-        <div style={styles.actionCard}>
-          <div style={styles.actionTitle}>💎 Stake SNOWX</div>
-          <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
-            Stake tokens to earn trading profits and unlock AI features
-          </p>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Amount to Stake</label>
-            <input
-              type="number"
-              style={styles.input}
-              placeholder="0.00"
-              value={stakeAmount}
-              onChange={(e) => setStakeAmount(e.target.value)}
-              disabled={loading}
-            />
+        ) : (
+          <div style={styles.cardCompact}>
+            <div style={styles.flexBetween}>
+              <div style={styles.flexCenter}>
+                <div style={styles.avatar}>
+                  <Wallet style={{width: '1.25rem', height: '1.25rem', color: '#2563eb'}} />
+                </div>
+                <div>
+                  <p style={styles.labelText}>Connected Wallet</p>
+                  <p style={styles.addressText}>{formatAddress(account)}</p>
+                </div>
+              </div>
+              
+              <div style={styles.flexCenter}>
+                {isWrongNetwork && (
+                  <button
+                    onClick={switchToSepolia}
+                    style={styles.buttonYellow}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#ca8a04'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = '#eab308'}
+                  >
+                    Switch to Sepolia
+                  </button>
+                )}
+                <button
+                  onClick={disconnectWallet}
+                  style={styles.buttonGray}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#d1d5db'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                >
+                  Disconnect
+                </button>
+              </div>
+            </div>
+            
+            {isWrongNetwork && (
+              <div style={styles.alert}>
+                <AlertCircle style={{width: '1.25rem', height: '1.25rem', color: '#ca8a04'}} />
+                <p style={styles.alertText}>Please switch to Sepolia testnet to use this dApp</p>
+              </div>
+            )}
           </div>
+        )}
 
-          <button
-            style={{
-              ...styles.button,
-              ...(loading ? styles.buttonDisabled : {})
-            }}
-            onClick={handleStake}
-            disabled={loading || !stakeAmount}
-            onMouseEnter={(e) => {
-              if (!loading && stakeAmount) {
-                e.target.style.backgroundColor = '#5568d3';
-                e.target.style.transform = 'translateY(-1px)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#667eea';
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            {loading ? 'Processing...' : 'Stake Tokens'}
-          </button>
+        {account && !isWrongNetwork && (
+          <>
+            <div style={styles.grid4}>
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Stablecoin Balance</span>
+                  <Wallet style={{width: '1.25rem', height: '1.25rem', color: '#2563eb'}} />
+                </div>
+                <p style={styles.statValue}>{balance.toFixed(2)}</p>
+                <p style={styles.statUnit}>SNOW</p>
+              </div>
 
-          <button
-            style={{
-              ...styles.button,
-              ...styles.buttonSecondary,
-              ...(loading ? styles.buttonDisabled : {})
-            }}
-            onClick={() => setStakeAmount(balance)}
-            disabled={loading}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.target.style.backgroundColor = '#5b21b6';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#4c1d95';
-            }}
-          >
-            Stake Max
-          </button>
-        </div>
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Collateral</span>
+                  <TrendingUp style={{width: '1.25rem', height: '1.25rem', color: '#9333ea'}} />
+                </div>
+                <p style={styles.statValue}>{collateral.toFixed(4)}</p>
+                <p style={styles.statUnit}>ETH</p>
+              </div>
 
-        <div style={styles.actionCard}>
-          <div style={styles.actionTitle}>💸 Unstake SNOWX</div>
-          <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
-            Withdraw staked tokens (claims pending rewards automatically)
-          </p>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Amount to Unstake</label>
-            <input
-              type="number"
-              style={styles.input}
-              placeholder="0.00"
-              value={unstakeAmount}
-              onChange={(e) => setUnstakeAmount(e.target.value)}
-              disabled={loading}
-            />
-          </div>
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>Collateral Ratio</span>
+                  <AlertCircle style={{width: '1.25rem', height: '1.25rem', color: '#16a34a'}} />
+                </div>
+                <p style={styles.statValue}>{collateralRatio}%</p>
+                <p style={styles.statUnit}>Healthy</p>
+              </div>
 
-          <button
-            style={{
-              ...styles.button,
-              ...(loading ? styles.buttonDisabled : {})
-            }}
-            onClick={handleUnstake}
-            disabled={loading || !unstakeAmount}
-            onMouseEnter={(e) => {
-              if (!loading && unstakeAmount) {
-                e.target.style.backgroundColor = '#5568d3';
-                e.target.style.transform = 'translateY(-1px)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#667eea';
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            {loading ? 'Processing...' : 'Unstake Tokens'}
-          </button>
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <span style={styles.statLabel}>ETH Price</span>
+                  <TrendingUp style={{width: '1.25rem', height: '1.25rem', color: '#ca8a04'}} />
+                </div>
+                <p style={styles.statValue}>${ethPrice}</p>
+                <p style={styles.statUnit}>Live Price</p>
+              </div>
+            </div>
 
-          <button
-            style={{
-              ...styles.button,
-              ...styles.buttonSecondary,
-              ...(loading ? styles.buttonDisabled : {})
-            }}
-            onClick={() => setUnstakeAmount(stakedBalance)}
-            disabled={loading}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.target.style.backgroundColor = '#5b21b6';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#4c1d95';
-            }}
-          >
-            Unstake All
-          </button>
-        </div>
+            <div style={styles.grid2}>
+              <div style={styles.actionCard}>
+                <div style={styles.actionHeader}>
+                  <ArrowDownCircle style={{width: '1.5rem', height: '1.5rem', color: '#16a34a'}} />
+                  <h2 style={styles.actionTitle}>Mint Stablecoins</h2>
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Deposit ETH Amount</label>
+                  <input
+                    type="number"
+                    value={ethAmount}
+                    onChange={(e) => setEthAmount(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    style={styles.input}
+                  />
+                </div>
+
+                {calculatedMint > 0 && (
+                  <div style={styles.previewGreen}>
+                    <p style={styles.previewLabel}>You will receive:</p>
+                    <p style={styles.previewValueGreen}>{calculatedMint} SNOW</p>
+                    <p style={styles.previewNote}>At 150% collateralization ratio</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleMint}
+                  disabled={!ethAmount || ethAmount <= 0 || isLoading}
+                  style={{...styles.buttonGreen, ...(!ethAmount || ethAmount <= 0 || isLoading ? styles.buttonDisabled : {})}}
+                  onMouseEnter={(e) => !((!ethAmount || ethAmount <= 0 || isLoading)) && (e.target.style.backgroundColor = '#15803d')}
+                  onMouseLeave={(e) => !((!ethAmount || ethAmount <= 0 || isLoading)) && (e.target.style.backgroundColor = '#16a34a')}
+                >
+                  {isLoading ? <><Loader style={{width: '1.25rem', height: '1.25rem', animation: 'spin 1s linear infinite'}} /> Processing...</> : 'Mint Stablecoins'}
+                </button>
+              </div>
+
+              <div style={styles.actionCard}>
+                <div style={styles.actionHeader}>
+                  <ArrowUpCircle style={{width: '1.5rem', height: '1.5rem', color: '#dc2626'}} />
+                  <h2 style={styles.actionTitle}>Burn & Withdraw</h2>
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Stablecoin Amount</label>
+                  <input
+                    type="number"
+                    value={burnAmount}
+                    onChange={(e) => setBurnAmount(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    max={balance}
+                    style={styles.input}
+                  />
+                  <p style={{...styles.previewNote, marginTop: '0.25rem'}}>Available: {balance.toFixed(2)} SNOW</p>
+                </div>
+
+                {burnAmount > 0 && (
+                  <div style={styles.previewRed}>
+                    <p style={styles.previewLabel}>You will receive:</p>
+                    <p style={styles.previewValueRed}>{(burnAmount * 1.5 / ethPrice).toFixed(4)} ETH</p>
+                    <p style={styles.previewNote}>Including your collateral</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleBurn}
+                  disabled={!burnAmount || burnAmount <= 0 || burnAmount > balance || isLoading}
+                  style={{...styles.buttonRed, ...(!burnAmount || burnAmount <= 0 || burnAmount > balance || isLoading ? styles.buttonDisabled : {})}}
+                  onMouseEnter={(e) => !(!burnAmount || burnAmount <= 0 || burnAmount > balance || isLoading) && (e.target.style.backgroundColor = '#b91c1c')}
+                  onMouseLeave={(e) => !(!burnAmount || burnAmount <= 0 || burnAmount > balance || isLoading) && (e.target.style.backgroundColor = '#dc2626')}
+                >
+                  {isLoading ? <><Loader style={{width: '1.25rem', height: '1.25rem', animation: 'spin 1s linear infinite'}} /> Processing...</> : 'Burn & Withdraw'}
+                </button>
+              </div>
+            </div>
+
+            <div style={styles.historyCard}>
+              <h2 style={styles.historyTitle}>Transaction History</h2>
+              
+              <div style={styles.tableContainer}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th style={styles.th}>Type</th>
+                      <th style={styles.th}>Amount</th>
+                      <th style={styles.th}>ETH</th>
+                      <th style={styles.th}>Status</th>
+                      <th style={styles.th}>Date</th>
+                      <th style={styles.th}>Tx Hash</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx) => (
+                      <tr key={tx.id} style={styles.tr}>
+                        <td style={styles.td}>
+                          <span style={tx.type === 'MINT' ? styles.badgeMint : styles.badgeBurn}>
+                            {tx.type}
+                          </span>
+                        </td>
+                        <td style={{...styles.td, fontWeight: '500'}}>{tx.amount} SNOW</td>
+                        <td style={styles.td}>{tx.eth} ETH</td>
+                        <td style={styles.td}>
+                          <span style={getStatusStyle(tx.status)}>
+                            {tx.status}
+                          </span>
+                        </td>
+                        <td style={{...styles.td, ...styles.labelText}}>{tx.date}</td>
+                        <td style={styles.td}>
+                          <a 
+                            href={`https://sepolia.etherscan.io/tx/${tx.hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={styles.link}
+                          >
+                            {formatAddress(tx.hash)}
+                            <ExternalLink style={{width: '0.75rem', height: '0.75rem'}} />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {transactions.length === 0 && (
+                <div style={styles.emptyState}>
+                  No transactions yet. Mint your first stablecoins above!
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
-
-      <div style={styles.rewardsCard}>
-        <div style={styles.actionTitle}>🎁 Pending Rewards</div>
-        <p style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '16px' }}>
-          Your share of SnowAI trading profits
-        </p>
-
-        <div style={styles.rewardItem}>
-          <span style={styles.rewardLabel}>USDC Rewards</span>
-          <span style={styles.rewardValue}>${formatNumber(pendingRewards.usdc)}</span>
-        </div>
-
-        <div style={styles.rewardItem}>
-          <span style={styles.rewardLabel}>USDT Rewards</span>
-          <span style={styles.rewardValue}>${formatNumber(pendingRewards.usdt)}</span>
-        </div>
-
-        <div style={{ ...styles.rewardItem, borderBottom: 'none', paddingTop: '16px' }}>
-          <span style={{ fontSize: '16px', fontWeight: '600' }}>Total Rewards</span>
-          <span style={{ fontSize: '20px', fontWeight: '700', color: '#10b981' }}>
-            ${formatNumber(parseFloat(pendingRewards.usdc) + parseFloat(pendingRewards.usdt))}
-          </span>
-        </div>
-
-        <button
-          style={{
-            ...styles.button,
-            ...(loading ? styles.buttonDisabled : {}),
-            marginTop: '16px'
-          }}
-          onClick={handleClaimRewards}
-          disabled={loading || (parseFloat(pendingRewards.usdc) === 0 && parseFloat(pendingRewards.usdt) === 0)}
-          onMouseEnter={(e) => {
-            if (!loading && (parseFloat(pendingRewards.usdc) > 0 || parseFloat(pendingRewards.usdt) > 0)) {
-              e.target.style.backgroundColor = '#5568d3';
-              e.target.style.transform = 'translateY(-1px)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#667eea';
-            e.target.style.transform = 'translateY(0)';
-          }}
-        >
-          {loading ? 'Processing...' : 'Claim All Rewards'}
-        </button>
-      </div>
-
-      {txStatus && (
-        <div style={styles.statusMessage}>
-          {txStatus}
-        </div>
-      )}
     </div>
   );
 };
