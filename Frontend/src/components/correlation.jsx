@@ -10,46 +10,62 @@ export default function AssetCorrelation() {
     const [savingBias, setSavingBias] = useState({}); // Track saving state per asset
     const [savingVolume, setSavingVolume] = useState({}); // Track saving state per asset
 
-    const saveSentimentBias = async (assetName, sentimentData) => {
-        setSavingBias(prev => ({ ...prev, [assetName]: true }));
-        
-        try {
-            const response = await fetch(
-                `${baseUrl}/api/snowai_save_asset_bias_recommendation_v2/`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        asset_name: assetName,
-                        bias: sentimentData.sentiment // 'bullish', 'bearish', or 'neutral'
-                    })
-                }
-            );
-
-            const result = await response.json();
+    const getAssetSymbol = (assetName) => {
+    // Map common display names to their standard trading symbols
+            const symbolMap = {
+                'Gold': 'XAUUSD',
+                'Silver': 'XAGUSD',
+                'Oil': 'USOIL',
+                'Crude Oil': 'USOIL',
+                'Natural Gas': 'NATGAS',
+                'Copper': 'COPPER',
+                // Add more mappings as needed for your asset names
+            };
             
-            if (result.success) {
-                // Update local state to show it's saved
-                setSavedBiases(prev => ({
-                    ...prev,
-                    [assetName]: {
-                        ...prev[assetName],
-                        bias: sentimentData.sentiment,
-                        bias_saved: true
+            // Return mapped symbol or original name if no mapping exists
+            return symbolMap[assetName] || assetName;
+        };
+
+
+        const saveSentimentBias = async (assetName, sentimentData) => {
+            setSavingBias(prev => ({ ...prev, [assetName]: true }));
+            
+            try {
+                const response = await fetch(
+                    `${baseUrl}/api/snowai_save_asset_bias_recommendation_v2/`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            asset_name: getAssetSymbol(assetName), // CHANGED: Use symbol mapping
+                            bias: sentimentData.sentiment
+                        })
                     }
-                }));
+                );
+
+                const result = await response.json();
                 
-                alert(`Bias saved: ${assetName} is now ${sentimentData.sentiment.toUpperCase()}`);
+                if (result.success) {
+                    setSavedBiases(prev => ({
+                        ...prev,
+                        [assetName]: {
+                            ...prev[assetName],
+                            bias: sentimentData.sentiment,
+                            bias_saved: true
+                        }
+                    }));
+                    
+                    alert(`Bias saved: ${assetName} is now ${sentimentData.sentiment.toUpperCase()}`);
+                }
+            } catch (error) {
+                console.error('Error saving bias:', error);
+                alert('Failed to save bias. Please try again.');
             }
-        } catch (error) {
-            console.error('Error saving bias:', error);
-            alert('Failed to save bias. Please try again.');
-        }
-        
-        setSavingBias(prev => ({ ...prev, [assetName]: false }));
-    };
+            
+            setSavingBias(prev => ({ ...prev, [assetName]: false }));
+        };
 
 
     // ============================================================================
@@ -68,8 +84,8 @@ export default function AssetCorrelation() {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        asset_name: assetName,
-                        volume: volumeData.volume_level // 'high', 'medium', or 'low'
+                        asset_name: getAssetSymbol(assetName), // CHANGED: Use symbol mapping
+                        volume: volumeData.volume_level
                     })
                 }
             );
@@ -77,7 +93,6 @@ export default function AssetCorrelation() {
             const result = await response.json();
             
             if (result.success) {
-                // Update local state to show it's saved
                 setSavedBiases(prev => ({
                     ...prev,
                     [assetName]: {
@@ -96,6 +111,7 @@ export default function AssetCorrelation() {
         
         setSavingVolume(prev => ({ ...prev, [assetName]: false }));
     };
+
 
 
     // ============================================================================
