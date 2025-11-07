@@ -64,6 +64,17 @@ const styles = {
         textTransform: 'uppercase',
         letterSpacing: '0.5px'
     },
+        badgeIndividualStock: {
+        backgroundColor: '#e0e7ff',
+        color: '#4338ca',
+        border: '1px solid #a5b4fc'
+    },
+    badgeCrypto: {
+        backgroundColor: '#fef9c3',
+        color: '#854d0e',
+        border: '1px solid #fde047'
+    },
+
     badgeForex: {
         backgroundColor: '#dbeafe',
         color: '#1e40af',
@@ -314,7 +325,42 @@ const styles = {
 
 export default function AlertBot() {
     const [forexAssets] = useState(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'XAUUSD']);
-    const [stockIndices] = useState(['S&P 500', 'NASDAQ', 'DOW JONES']);
+    
+    const [stockIndices] = useState([
+        'S&P 500', 
+        'NASDAQ', 
+        'DOW JONES',
+        'FTSE 100',      
+        'DAX',           
+        'CAC 40',        
+        'Nikkei 225',    
+        'Hang Seng'      
+    ]);
+
+    const [stocks] = useState([      // NEW ARRAY
+        'AAPL',   // Apple
+        'MSFT',   // Microsoft
+        'GOOGL',  // Google
+        'AMZN',   // Amazon
+        'TSLA',   // Tesla
+        'META',   // Meta
+        'NVDA',   // Nvidia
+        'JPM',    // JPMorgan
+        'V',      // Visa
+        'WMT'     // Walmart
+    ]);
+
+    const [cryptos] = useState([
+        'BTC-USD',   // Bitcoin
+        'ETH-USD',   // Ethereum
+        'BNB-USD',   // Binance Coin
+        'XRP-USD',   // Ripple
+        'ADA-USD',   // Cardano
+        'DOGE-USD',  // Dogecoin
+        'SOL-USD',   // Solana
+        'MATIC-USD'  // Polygon
+    ]);
+
     const [commodities] = useState(['XAUUSD']);
     const [bonds] = useState(['ZB1!', 'US10Y', 'US5Y']);
     const [outcome, setOutcome] = useState("");
@@ -377,8 +423,12 @@ export default function AlertBot() {
         switch(assetType) {
             case 'forex':
                 return forexAssets;
-            case 'stock':
+            case 'stock-index':
                 return stockIndices;
+            case 'stock':             
+                return stocks;
+            case 'crypto':             
+                return cryptos;
             case 'commodity':
                 return commodities;
             case 'bond':
@@ -387,6 +437,7 @@ export default function AlertBot() {
                 return forexAssets;
         }
     };
+
 
     const addAsset = () => {
         const asset = document.getElementById("asset-select").value;
@@ -464,6 +515,10 @@ export default function AlertBot() {
     const getAssetType = (asset) => {
         if (stockIndices.includes(asset)) {
             return 'Stock Index';
+        } else if (stocks.includes(asset)) {    // NEW
+            return 'Stock';
+        } else if (cryptos.includes(asset)) {   // NEW
+            return 'Crypto';
         } else if (bonds.includes(asset)) {
             return 'Bond';
         } else if (asset === 'XAUUSD') {
@@ -474,11 +529,16 @@ export default function AlertBot() {
         return 'Unknown';
     };
 
+
     const getAssetBadgeStyle = (asset) => {
         const type = getAssetType(asset);
         switch(type) {
             case 'Stock Index':
                 return styles.badgeStock;
+            case 'Stock':                    // NEW
+                return styles.badgeIndividualStock;
+            case 'Crypto':                   // NEW
+                return styles.badgeCrypto;
             case 'Bond':
                 return styles.badgeBond;
             case 'Commodity':
@@ -489,18 +549,25 @@ export default function AlertBot() {
         }
     };
 
+
     const activeAlerts = existingAlerts.filter(alert => !alert.checked).length;
     const triggeredAlerts = existingAlerts.filter(alert => alert.checked).length;
     const forexAlerts = existingAlerts.filter(alert => forexAssets.includes(alert.asset) && alert.asset !== 'XAUUSD').length;
     const stockAlerts = existingAlerts.filter(alert => stockIndices.includes(alert.asset)).length;
     const commodityAlerts = existingAlerts.filter(alert => alert.asset === 'XAUUSD').length;
     const bondAlerts = existingAlerts.filter(alert => bonds.includes(alert.asset)).length;
+    const individualStockAlerts = existingAlerts.filter(alert => stocks.includes(alert.asset)).length;  // NEW
+    const cryptoAlerts = existingAlerts.filter(alert => cryptos.includes(alert.asset)).length;          // NEW
+
 
     const getPriceStep = () => {
         switch(assetType) {
             case 'forex':
                 return "0.00001";
-            case 'stock':
+            case 'stock-index':
+            case 'stock':          
+                return "0.01";
+            case 'crypto':        
                 return "0.01";
             case 'commodity':
                 return "0.01";
@@ -515,8 +582,12 @@ export default function AlertBot() {
         switch(assetType) {
             case 'forex':
                 return "e.g., 1.23456";
-            case 'stock':
+            case 'stock-index':
                 return "e.g., 4500.00";
+            case 'stock':           
+                return "e.g., 150.00";
+            case 'crypto':         
+                return "e.g., 45000.00";
             case 'commodity':
                 return "e.g., 2000.00";
             case 'bond':
@@ -558,6 +629,15 @@ export default function AlertBot() {
                             <div style={styles.statsNumber}>{stockAlerts}</div>
                             <div style={styles.statsLabel}>Stock Indices</div>
                         </div>
+                        <div style={styles.statsCard}>
+                            <div style={styles.statsNumber}>{individualStockAlerts}</div>
+                            <div style={styles.statsLabel}>Individual Stocks</div>
+                        </div>
+                        <div style={styles.statsCard}>
+                            <div style={styles.statsNumber}>{cryptoAlerts}</div>
+                            <div style={styles.statsLabel}>Cryptocurrencies</div>
+                        </div>
+
                         <div style={styles.statsCard}>
                             <div style={styles.statsNumber}>{commodityAlerts}</div>
                             <div style={styles.statsLabel}>Commodities</div>
@@ -669,10 +749,28 @@ export default function AlertBot() {
                                         checked={assetType === 'forex'}
                                         onChange={(e) => setAssetType(e.target.value)}
                                     />
-                                    <label style={styles.radioLabel}>
-                                        💱 Forex
-                                    </label>
+                                    <label style={styles.radioLabel}>💱 Forex</label>
                                 </div>
+                                
+                                <div 
+                                    style={{
+                                        ...styles.radioItem,
+                                        ...(assetType === 'stock-index' ? styles.radioItemActive : {})
+                                    }}
+                                    onClick={() => setAssetType('stock-index')}
+                                >
+                                    <input
+                                        style={styles.radioInput}
+                                        type="radio"
+                                        name="assetType"
+                                        value="stock-index"
+                                        checked={assetType === 'stock-index'}
+                                        onChange={(e) => setAssetType(e.target.value)}
+                                    />
+                                    <label style={styles.radioLabel}>📊 Stock Indices</label>
+                                </div>
+
+                                {/* NEW: Individual Stocks */}
                                 <div 
                                     style={{
                                         ...styles.radioItem,
@@ -688,10 +786,28 @@ export default function AlertBot() {
                                         checked={assetType === 'stock'}
                                         onChange={(e) => setAssetType(e.target.value)}
                                     />
-                                    <label style={styles.radioLabel}>
-                                        📈 Stocks
-                                    </label>
+                                    <label style={styles.radioLabel}>📈 Stocks</label>
                                 </div>
+
+                                {/* NEW: Cryptocurrencies */}
+                                <div 
+                                    style={{
+                                        ...styles.radioItem,
+                                        ...(assetType === 'crypto' ? styles.radioItemActive : {})
+                                    }}
+                                    onClick={() => setAssetType('crypto')}
+                                >
+                                    <input
+                                        style={styles.radioInput}
+                                        type="radio"
+                                        name="assetType"
+                                        value="crypto"
+                                        checked={assetType === 'crypto'}
+                                        onChange={(e) => setAssetType(e.target.value)}
+                                    />
+                                    <label style={styles.radioLabel}>₿ Crypto</label>
+                                </div>
+                                
                                 <div 
                                     style={{
                                         ...styles.radioItem,
@@ -707,10 +823,9 @@ export default function AlertBot() {
                                         checked={assetType === 'commodity'}
                                         onChange={(e) => setAssetType(e.target.value)}
                                     />
-                                    <label style={styles.radioLabel}>
-                                        🪙 Commodities
-                                    </label>
+                                    <label style={styles.radioLabel}>🪙 Commodities</label>
                                 </div>
+                                
                                 <div 
                                     style={{
                                         ...styles.radioItem,
@@ -726,11 +841,10 @@ export default function AlertBot() {
                                         checked={assetType === 'bond'}
                                         onChange={(e) => setAssetType(e.target.value)}
                                     />
-                                    <label style={styles.radioLabel}>
-                                        📜 Bonds
-                                    </label>
+                                    <label style={styles.radioLabel}>📜 Bonds</label>
                                 </div>
                             </div>
+
                         </div>
 
                         <div style={styles.formGroup}>
@@ -745,10 +859,13 @@ export default function AlertBot() {
                             >
                                 <option value="">
                                     Choose {assetType === 'forex' ? 'a forex pair' : 
-                                            assetType === 'stock' ? 'a stock index' : 
+                                            assetType === 'stock-index' ? 'a stock index' : 
+                                            assetType === 'stock' ? 'a stock' :           // NEW
+                                            assetType === 'crypto' ? 'a cryptocurrency' :  // NEW
                                             assetType === 'commodity' ? 'a commodity' : 
                                             'a bond'}
                                 </option>
+
                                 {getAvailableAssets().map((asset, index) => (
                                     <option key={index} value={asset}>
                                         {asset}
