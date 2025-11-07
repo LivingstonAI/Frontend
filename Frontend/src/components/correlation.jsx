@@ -10,21 +10,75 @@ export default function AssetCorrelation() {
     const [savingBias, setSavingBias] = useState({}); // Track saving state per asset
     const [savingVolume, setSavingVolume] = useState({}); // Track saving state per asset
 
-    const getAssetSymbol = (assetName) => {
-    // Map common display names to their standard trading symbols
-            const symbolMap = {
-                'Gold': 'XAUUSD',
-                'Silver': 'XAGUSD',
-                'Oil': 'USOIL',
-                'Crude Oil': 'USOIL',
-                'Natural Gas': 'NATGAS',
-                'Copper': 'COPPER',
-                // Add more mappings as needed for your asset names
-            };
-            
-            // Return mapped symbol or original name if no mapping exists
-            return symbolMap[assetName] || assetName;
-        };
+    // ============================================================================
+// UPDATED HELPER FUNCTION - Map Display Names to Standard Trading Symbols
+// ============================================================================
+
+const getAssetSymbol = (assetName) => {
+    // Map display names to standard trading platform symbols
+    const symbolMap = {
+        // FOREX - Keep as-is (already in standard format)
+        'EURUSD': 'EURUSD',
+        'GBPUSD': 'GBPUSD',
+        'USDJPY': 'USDJPY',
+        'USDCHF': 'USDCHF',
+        'AUDUSD': 'AUDUSD',
+        'NZDUSD': 'NZDUSD',
+        'USDCAD': 'USDCAD',
+        'DXY': 'DXY',
+        
+        // BONDS - Convert to standard naming
+        'US30Y': 'US30Y',
+        'US10Y': 'US10Y',
+        'US5Y': 'US5Y',
+        'US2Y': 'US2Y',
+        'German 10Y': 'DE10Y',
+        'UK 10Y': 'UK10Y',
+        
+        // COMMODITIES - Convert to standard symbols
+        'Gold': 'XAUUSD',
+        'Silver': 'XAGUSD',
+        'Crude Oil': 'USOIL',  // or 'CL' for WTI Crude
+        'Copper': 'COPPER',
+        'Natural Gas': 'NATGAS',
+        'Platinum': 'XPTUSD',
+        
+        // INDICES - Convert to standard symbols
+        'S&P 500': 'SPX',
+        'Nasdaq': 'NDX',
+        'Dow Jones': 'DJI',
+        'Russell 2000': 'RUT',
+        'VIX': 'VIX',
+        'FTSE 100': 'FTSE',
+        'DAX': 'DAX',
+        'Nikkei': 'NKY',
+        
+        // STOCKS - Use ticker symbols
+        'Apple': 'AAPL',
+        'Microsoft': 'MSFT',
+        'Amazon': 'AMZN',
+        'Google': 'GOOGL',
+        'Tesla': 'TSLA',
+        'NVIDIA': 'NVDA',
+        'Meta': 'META',
+        'Berkshire': 'BRK.B',
+        'JPMorgan': 'JPM',
+        'Visa': 'V',
+        'Johnson & Johnson': 'JNJ',
+        'Walmart': 'WMT',
+        'Exxon Mobil': 'XOM',
+        'Procter & Gamble': 'PG',
+        'Mastercard': 'MA',
+        'Home Depot': 'HD',
+        'Chevron': 'CVX',
+        'Pfizer': 'PFE',
+        'Coca-Cola': 'KO',
+        'Boeing': 'BA'
+    };
+    
+    // Return mapped symbol or original name if no mapping exists
+    return symbolMap[assetName] || assetName;
+};
 
 
         const saveSentimentBias = async (assetName, sentimentData) => {
