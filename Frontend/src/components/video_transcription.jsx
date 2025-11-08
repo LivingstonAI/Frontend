@@ -347,7 +347,13 @@ styleSheet.innerHTML = `
     }
     
     .video-wrapper-mobile {
-      padding-bottom: 75% !important;
+      padding-bottom: 85% !important;
+    }
+  }
+  
+  @media (min-width: 769px) {
+    .video-wrapper-mobile {
+      padding-bottom: 45% !important;
     }
   }
 `;
@@ -1211,41 +1217,58 @@ export default function VideoTranscription() {
                                                 style={snowaiTranscriptionStyles.videoIframe}
                                             />
                                         </div>
+                                    ) : JSON.parse(currentVideoId).type === 'tv' ? (
+                                        <div style={{
+                                            ...snowaiTranscriptionStyles.videoPlayerSection,
+                                            minHeight: '400px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#fff',
+                                            padding: '40px'
+                                        }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <p style={{ fontSize: '64px', marginBottom: '20px' }}>🚫</p>
+                                                <h3 style={{ marginBottom: '15px', color: '#fff' }}>Bilibili.tv Cannot Be Embedded</h3>
+                                                <p style={{ marginBottom: '20px', color: '#d1d5db', maxWidth: '500px' }}>
+                                                    Due to platform restrictions, bilibili.tv videos cannot be embedded. 
+                                                    Please use bilibili.com videos (BV/AV format) instead, or watch directly on Bilibili.tv.
+                                                </p>
+                                                <a
+                                                    href={`https://www.bilibili.tv/en/video/${JSON.parse(currentVideoId).tvid}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        ...snowaiTranscriptionStyles.button,
+                                                        backgroundColor: '#00a1d6',
+                                                        display: 'inline-block',
+                                                        textDecoration: 'none'
+                                                    }}
+                                                >
+                                                    🔗 Watch on Bilibili.tv
+                                                </a>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
-                                            {JSON.parse(currentVideoId).type === 'tv' ? (
-                                                <iframe
-                                                    src={`https://www.bilibili.tv/en/play/${JSON.parse(currentVideoId).tvid}`}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        left: 0,
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        border: 'none'
-                                                    }}
-                                                    scrolling="no"
-                                                    allowFullScreen={true}
-                                                />
-                                            ) : (
-                                                <iframe
-                                                    src={`https://player.bilibili.com/player.html?${
-                                                        JSON.parse(currentVideoId).type === 'bv' 
-                                                            ? `bvid=${JSON.parse(currentVideoId).bvid}` 
-                                                            : `aid=${JSON.parse(currentVideoId).aid}`
-                                                    }&page=1&high_quality=1&danmaku=0`}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        left: 0,
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        border: 'none'
-                                                    }}
-                                                    scrolling="no"
-                                                    allowFullScreen={true}
-                                                />
-                                            )}
+                                            <iframe
+                                                src={`https://player.bilibili.com/player.html?${
+                                                    JSON.parse(currentVideoId).type === 'bv' 
+                                                        ? `bvid=${JSON.parse(currentVideoId).bvid}` 
+                                                        : `aid=${JSON.parse(currentVideoId).aid}`
+                                                }&page=1&high_quality=1&danmaku=0`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    border: 'none'
+                                                }}
+                                                scrolling="no"
+                                                allowFullScreen={true}
+                                            />
                                         </div>
                                     )
                                 ) : (
