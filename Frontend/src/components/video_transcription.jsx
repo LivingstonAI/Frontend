@@ -5,6 +5,7 @@ import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
 
+
 // Inline styles for the component
 const snowaiTranscriptionStyles = {
   mainContainer: {
