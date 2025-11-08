@@ -322,10 +322,7 @@ const snowaiTranscriptionStyles = {
     height: 0,
     overflow: 'hidden',
     borderRadius: '8px',
-    backgroundColor: '#000',
-    '@media (max-width: 768px)': {
-      paddingBottom: '75%'
-    }
+    backgroundColor: '#000'
   },
   videoIframe: {
     position: 'absolute',
@@ -514,8 +511,18 @@ export default function VideoTranscription() {
         } else if (platform === 'bilibili') {
             const bilibiliInfo = extractBilibiliInfo(videoUrl);
             if (bilibiliInfo) {
-                setCurrentVideoId(JSON.stringify(bilibiliInfo));
-                setError('');
+                // Check if it's bilibili.tv (international version)
+                if (bilibiliInfo.type === 'tv') {
+                    // Open in new tab instead of embedding
+                    const bilitvUrl = `https://www.bilibili.tv/en/video/${bilibiliInfo.tvid}`;
+                    window.open(bilitvUrl, '_blank');
+                    setMessage('Bilibili.tv videos cannot be embedded. Opening in new tab...');
+                    setCurrentVideoId('');
+                } else {
+                    // bilibili.com videos can be embedded
+                    setCurrentVideoId(JSON.stringify(bilibiliInfo));
+                    setError('');
+                }
             } else {
                 setError('Invalid Bilibili URL or Video ID. Use format: BV1xx411c7XD or https://bilibili.com/video/BV...');
                 setCurrentVideoId('');
@@ -1206,23 +1213,39 @@ export default function VideoTranscription() {
                                         </div>
                                     ) : (
                                         <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
-                                            <iframe
-                                                src={`https://player.bilibili.com/player.html?${
-                                                    JSON.parse(currentVideoId).type === 'bv' 
-                                                        ? `bvid=${JSON.parse(currentVideoId).bvid}` 
-                                                        : `aid=${JSON.parse(currentVideoId).aid}`
-                                                }&page=1&high_quality=1&danmaku=0`}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: 0,
-                                                    left: 0,
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    border: 'none'
-                                                }}
-                                                scrolling="no"
-                                                allowFullScreen={true}
-                                            />
+                                            {JSON.parse(currentVideoId).type === 'tv' ? (
+                                                <iframe
+                                                    src={`https://www.bilibili.tv/en/play/${JSON.parse(currentVideoId).tvid}`}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        border: 'none'
+                                                    }}
+                                                    scrolling="no"
+                                                    allowFullScreen={true}
+                                                />
+                                            ) : (
+                                                <iframe
+                                                    src={`https://player.bilibili.com/player.html?${
+                                                        JSON.parse(currentVideoId).type === 'bv' 
+                                                            ? `bvid=${JSON.parse(currentVideoId).bvid}` 
+                                                            : `aid=${JSON.parse(currentVideoId).aid}`
+                                                    }&page=1&high_quality=1&danmaku=0`}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        border: 'none'
+                                                    }}
+                                                    scrolling="no"
+                                                    allowFullScreen={true}
+                                                />
+                                            )}
                                         </div>
                                     )
                                 ) : (
@@ -1239,7 +1262,8 @@ export default function VideoTranscription() {
                                             <p>Enter a YouTube or Bilibili URL/ID to start watching</p>
                                             <div style={{ marginTop: '15px', fontSize: '14px', color: '#6b7280' }}>
                                                 <p style={{ margin: '5px 0' }}><strong>YouTube:</strong> https://youtube.com/watch?v=dQw4w9WgXcQ</p>
-                                                <p style={{ margin: '5px 0' }}><strong>Bilibili:</strong> https://bilibili.com/video/BV1xx411c7XD</p>
+                                                <p style={{ margin: '5px 0' }}><strong>Bilibili (CN):</strong> https://bilibili.com/video/BV1xx411c7XD</p>
+                                                <p style={{ margin: '5px 0' }}><strong>Bilibili (International):</strong> https://bilibili.tv/en/video/4786992439237120</p>
                                             </div>
                                         </div>
                                     </div>
