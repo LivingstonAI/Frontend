@@ -5,7 +5,6 @@ import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
 
-
 // Inline styles for the component
 const snowaiTranscriptionStyles = {
   mainContainer: {
@@ -323,7 +322,10 @@ const snowaiTranscriptionStyles = {
     height: 0,
     overflow: 'hidden',
     borderRadius: '8px',
-    backgroundColor: '#000'
+    backgroundColor: '#000',
+    '@media (max-width: 768px)': {
+      paddingBottom: '75%'
+    }
   },
   videoIframe: {
     position: 'absolute',
@@ -334,7 +336,7 @@ const snowaiTranscriptionStyles = {
   }
 };
 
-// Add CSS animation keyframes
+// Add CSS animation keyframes and mobile styles
 const styleSheet = document.createElement("style");
 styleSheet.innerHTML = `
   @keyframes spin {
@@ -345,6 +347,10 @@ styleSheet.innerHTML = `
   @media (max-width: 768px) {
     .snowai-responsive-hide {
       display: none !important;
+    }
+    
+    .video-wrapper-mobile {
+      padding-bottom: 75% !important;
     }
   }
 `;
@@ -1076,7 +1082,7 @@ export default function VideoTranscription() {
                     {/* Video Player Modal */}
                     {showVideoPlayerModal && (
                         <div style={snowaiTranscriptionStyles.modal}>
-                            <div style={{...snowaiTranscriptionStyles.modalContent, maxWidth: '1200px'}}>
+                            <div style={{...snowaiTranscriptionStyles.modalContent, maxWidth: '1400px', width: '95%'}}>
                                 <button
                                     style={snowaiTranscriptionStyles.closeButton}
                                     onClick={() => setShowVideoPlayerModal(false)}
@@ -1112,7 +1118,7 @@ export default function VideoTranscription() {
                                 </div>
 
                                 {currentVideoId ? (
-                                    <div style={snowaiTranscriptionStyles.videoWrapper}>
+                                    <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
                                         <YouTube
                                             videoId={currentVideoId}
                                             opts={youtubeOpts}
