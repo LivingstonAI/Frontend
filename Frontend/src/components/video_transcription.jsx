@@ -13,7 +13,6 @@ const snowaiTranscriptionStyles = {
     backgroundColor: '#f8fafc'
   },
   mainPageBody: {
-    display: 'flex',
     minHeight: 'calc(100vh - 60px)'
   },
   mainBodyInfo: {
