@@ -374,6 +374,7 @@ export default function VideoTranscription() {
     const [videoUrl, setVideoUrl] = useState('');
     const [currentVideoId, setCurrentVideoId] = useState('');
     const [player, setPlayer] = useState(null);
+    const [videoPlatform, setVideoPlatform] = useState('youtube'); // 'youtube' or 'bilibili'
     
     // Extract transcript form state
     const [extractForm, setExtractForm] = useState({
