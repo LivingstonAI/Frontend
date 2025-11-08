@@ -446,28 +446,101 @@ export default function VideoTranscription() {
         return '';
     };
 
+    // Extract Bilibili video info from URL
+    const extractBilibiliInfo = (url) => {
+        if (!url) return null;
+        
+        // Handle bilibili.tv format (international version with numeric ID)
+        const bilitvMatch = url.match(/bilibili\.tv\/(?:en\/)?video\/(\d+)/);
+        if (bilitvMatch && bilitvMatch[1]) {
+            return { tvid: bilitvMatch[1], type: 'tv' };
+        }
+        
+        // Handle BV ID (preferred format for bilibili.com)
+        const bvMatch = url.match(/(?:bilibili\.com\/video\/)?(BV[a-zA-Z0-9]+)/);
+        if (bvMatch && bvMatch[1]) {
+            return { bvid: bvMatch[1], type: 'bv' };
+        }
+        
+        // Handle AV ID format
+        const avMatch = url.match(/(?:bilibili\.com\/video\/)?av(\d+)/i);
+        if (avMatch && avMatch[1]) {
+            return { aid: avMatch[1], type: 'av' };
+        }
+        
+        // Handle direct BV or AV ID
+        if (url.startsWith('BV') && url.length >= 10) {
+            return { bvid: url, type: 'bv' };
+        }
+        if (/^\d+$/.test(url) && url.length > 5) {
+            // Assume long numeric IDs are bilibili.tv IDs
+            return { tvid: url, type: 'tv' };
+        }
+        
+        return null;
+    };
+
+    // Detect platform from URL
+    const detectPlatform = (url) => {
+        if (!url) return 'youtube';
+        
+        if (url.includes('bilibili.com') || url.includes('bilibili.tv') || url.startsWith('BV') || url.startsWith('av')) {
+            return 'bilibili';
+        }
+        
+        return 'youtube';
+    };
+
     const handleOpenVideoPlayer = () => {
         setShowVideoPlayerModal(true);
         setVideoUrl('');
         setCurrentVideoId('');
+        setVideoPlatform('youtube');
     };
 
     const handleLoadVideo = () => {
-        const videoId = extractVideoId(videoUrl);
-        if (videoId) {
-            setCurrentVideoId(videoId);
-            setError('');
-        } else {
-            setError('Invalid YouTube URL or Video ID');
+        const platform = detectPlatform(videoUrl);
+        setVideoPlatform(platform);
+        
+        if (platform === 'youtube') {
+            const videoId = extractVideoId(videoUrl);
+            if (videoId) {
+                setCurrentVideoId(videoId);
+                setError('');
+            } else {
+                setError('Invalid YouTube URL or Video ID');
+                setCurrentVideoId('');
+            }
+        } else if (platform === 'bilibili') {
+            const bilibiliInfo = extractBilibiliInfo(videoUrl);
+            if (bilibiliInfo) {
+                setCurrentVideoId(JSON.stringify(bilibiliInfo));
+                setError('');
+            } else {
+                setError('Invalid Bilibili URL or Video ID. Use format: BV1xx411c7XD or https://bilibili.com/video/BV...');
+                setCurrentVideoId('');
+            }
         }
     };
 
     const handlePlayTranscriptVideo = (url) => {
-        const videoId = extractVideoId(url);
-        if (videoId) {
-            setVideoUrl(url);
-            setCurrentVideoId(videoId);
-            setShowVideoPlayerModal(true);
+        const platform = detectPlatform(url);
+        setVideoPlatform(platform);
+        
+        if (platform === 'youtube') {
+            const videoId = extractVideoId(url);
+            if (videoId) {
+                setVideoUrl(url);
+                setCurrentVideoId(videoId);
+                setShowVideoPlayerModal(true);
+            }
+        } else if (platform === 'bilibili') {
+            const bilibiliInfo = extractBilibiliInfo(url);
+            if (bilibiliInfo) {
+                setVideoUrl(url);
+                setCurrentVideoId(JSON.stringify(bilibiliInfo));
+                setShowVideoPlayerModal(true);
+            }
         }
     };
 
@@ -1098,15 +1171,15 @@ export default function VideoTranscription() {
                                 <div style={{ marginBottom: '20px' }}>
                                     <div style={snowaiTranscriptionStyles.inputGroup}>
                                         <label style={snowaiTranscriptionStyles.label}>
-                                            YouTube URL or Video ID
+                                            YouTube or Bilibili URL / Video ID
                                         </label>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                             <input
                                                 type="text"
-                                                style={{...snowaiTranscriptionStyles.input, flex: 1}}
+                                                style={{...snowaiTranscriptionStyles.input, flex: 1, minWidth: '250px'}}
                                                 value={videoUrl}
                                                 onChange={(e) => setVideoUrl(e.target.value)}
-                                                placeholder="https://www.youtube.com/watch?v=... or video ID"
+                                                placeholder="YouTube: https://youtube.com/watch?v=... | Bilibili: https://bilibili.com/video/BV..."
                                             />
                                             <button
                                                 style={snowaiTranscriptionStyles.button}
@@ -1115,18 +1188,43 @@ export default function VideoTranscription() {
                                                 Load Video
                                             </button>
                                         </div>
+                                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '5px' }}>
+                                            Supports: YouTube URLs/IDs • Bilibili URLs (BV/AV format)
+                                        </div>
                                     </div>
                                 </div>
 
                                 {currentVideoId ? (
-                                    <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
-                                        <YouTube
-                                            videoId={currentVideoId}
-                                            opts={youtubeOpts}
-                                            onReady={onPlayerReady}
-                                            style={snowaiTranscriptionStyles.videoIframe}
-                                        />
-                                    </div>
+                                    videoPlatform === 'youtube' ? (
+                                        <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
+                                            <YouTube
+                                                videoId={currentVideoId}
+                                                opts={youtubeOpts}
+                                                onReady={onPlayerReady}
+                                                style={snowaiTranscriptionStyles.videoIframe}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
+                                            <iframe
+                                                src={`https://player.bilibili.com/player.html?${
+                                                    JSON.parse(currentVideoId).type === 'bv' 
+                                                        ? `bvid=${JSON.parse(currentVideoId).bvid}` 
+                                                        : `aid=${JSON.parse(currentVideoId).aid}`
+                                                }&page=1&high_quality=1&danmaku=0`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    border: 'none'
+                                                }}
+                                                scrolling="no"
+                                                allowFullScreen={true}
+                                            />
+                                        </div>
+                                    )
                                 ) : (
                                     <div style={{
                                         ...snowaiTranscriptionStyles.videoPlayerSection,
@@ -1138,7 +1236,11 @@ export default function VideoTranscription() {
                                     }}>
                                         <div>
                                             <p style={{ fontSize: '48px', marginBottom: '10px' }}>📺</p>
-                                            <p>Enter a YouTube URL or Video ID to start watching</p>
+                                            <p>Enter a YouTube or Bilibili URL/ID to start watching</p>
+                                            <div style={{ marginTop: '15px', fontSize: '14px', color: '#6b7280' }}>
+                                                <p style={{ margin: '5px 0' }}><strong>YouTube:</strong> https://youtube.com/watch?v=dQw4w9WgXcQ</p>
+                                                <p style={{ margin: '5px 0' }}><strong>Bilibili:</strong> https://bilibili.com/video/BV1xx411c7XD</p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
