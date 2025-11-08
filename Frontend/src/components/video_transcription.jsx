@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
+import YouTube from 'react-youtube';
 import Header from "./header";
 import SideNavs from "./side_navs";
+import Cookies from 'js-cookie';
+
 
 // Inline styles for the component
 const snowaiTranscriptionStyles = {
@@ -20,10 +23,6 @@ const snowaiTranscriptionStyles = {
     margin: '20px',
     borderRadius: '12px',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    '@media (max-width: 768px)': {
-      margin: '10px',
-      padding: '15px'
-    }
   },
   headerTitle: {
     color: '#1e293b',
@@ -32,10 +31,6 @@ const snowaiTranscriptionStyles = {
     marginBottom: '30px',
     borderBottom: '3px solid #3b82f6',
     paddingBottom: '10px',
-    '@media (max-width: 768px)': {
-      fontSize: '22px',
-      marginBottom: '20px'
-    }
   },
   sectionCard: {
     backgroundColor: '#f1f5f9',
@@ -43,10 +38,6 @@ const snowaiTranscriptionStyles = {
     borderRadius: '8px',
     padding: '25px',
     marginBottom: '25px',
-    '@media (max-width: 768px)': {
-      padding: '15px',
-      marginBottom: '15px'
-    }
   },
   sectionTitle: {
     fontSize: '20px',
@@ -55,9 +46,6 @@ const snowaiTranscriptionStyles = {
     marginBottom: '15px',
     display: 'flex',
     alignItems: 'center',
-    '@media (max-width: 768px)': {
-      fontSize: '18px'
-    }
   },
   inputGroup: {
     marginBottom: '15px'
@@ -77,11 +65,6 @@ const snowaiTranscriptionStyles = {
     fontSize: '14px',
     transition: 'all 0.2s',
     boxSizing: 'border-box',
-    ':focus': {
-      outline: 'none',
-      borderColor: '#3b82f6',
-      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
-    }
   },
   textarea: {
     width: '100%',
@@ -113,13 +96,6 @@ const snowaiTranscriptionStyles = {
     fontSize: '14px',
     fontWeight: '500',
     transition: 'all 0.2s',
-    ':hover': {
-      backgroundColor: '#2563eb'
-    },
-    ':disabled': {
-      backgroundColor: '#9ca3af',
-      cursor: 'not-allowed'
-    }
   },
   buttonSecondary: {
     padding: '12px 24px',
@@ -212,9 +188,6 @@ const snowaiTranscriptionStyles = {
     padding: '20px',
     marginBottom: '15px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-    '@media (max-width: 768px)': {
-      padding: '15px'
-    }
   },
   transcriptHeader: {
     display: 'flex',
@@ -253,10 +226,6 @@ const snowaiTranscriptionStyles = {
     gap: '15px',
     marginBottom: '20px',
     flexWrap: 'wrap',
-    '@media (max-width: 768px)': {
-      flexDirection: 'column',
-      gap: '10px'
-    }
   },
   searchInput: {
     flex: '2',
@@ -340,6 +309,28 @@ const snowaiTranscriptionStyles = {
     gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
     gap: '15px',
     marginBottom: '15px'
+  },
+  videoPlayerSection: {
+    backgroundColor: '#000',
+    borderRadius: '8px',
+    padding: '20px',
+    marginBottom: '20px',
+    textAlign: 'center'
+  },
+  videoWrapper: {
+    position: 'relative',
+    paddingBottom: '56.25%',
+    height: 0,
+    overflow: 'hidden',
+    borderRadius: '8px',
+    backgroundColor: '#000'
+  },
+  videoIframe: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%'
   }
 };
 
@@ -357,7 +348,10 @@ styleSheet.innerHTML = `
     }
   }
 `;
-document.head.appendChild(styleSheet);
+if (!document.head.querySelector('style[data-snowai]')) {
+  styleSheet.setAttribute('data-snowai', 'true');
+  document.head.appendChild(styleSheet);
+}
 
 export default function VideoTranscription() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -368,6 +362,12 @@ export default function VideoTranscription() {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [showCookieSection, setShowCookieSection] = useState(false);
+    
+    // Video player state
+    const [showVideoPlayerModal, setShowVideoPlayerModal] = useState(false);
+    const [videoUrl, setVideoUrl] = useState('');
+    const [currentVideoId, setCurrentVideoId] = useState('');
+    const [player, setPlayer] = useState(null);
     
     // Extract transcript form state
     const [extractForm, setExtractForm] = useState({
@@ -413,6 +413,60 @@ export default function VideoTranscription() {
             return () => clearTimeout(timer);
         }
     }, [message, error]);
+
+    // Extract video ID from YouTube URL
+    const extractVideoId = (url) => {
+        if (!url) return '';
+        
+        // Handle direct video ID
+        if (url.length === 11 && !url.includes('/') && !url.includes('?')) {
+            return url;
+        }
+        
+        // Handle various YouTube URL formats
+        const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+            /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        
+        return '';
+    };
+
+    const handleOpenVideoPlayer = () => {
+        setShowVideoPlayerModal(true);
+        setVideoUrl('');
+        setCurrentVideoId('');
+    };
+
+    const handleLoadVideo = () => {
+        const videoId = extractVideoId(videoUrl);
+        if (videoId) {
+            setCurrentVideoId(videoId);
+            setError('');
+        } else {
+            setError('Invalid YouTube URL or Video ID');
+        }
+    };
+
+    const handlePlayTranscriptVideo = (url) => {
+        const videoId = extractVideoId(url);
+        if (videoId) {
+            setVideoUrl(url);
+            setCurrentVideoId(videoId);
+            setShowVideoPlayerModal(true);
+        }
+    };
+
+    const onPlayerReady = (event) => {
+        setPlayer(event.target);
+    };
 
     const loadSnowAISavedTranscriptsData = async () => {
         setLoading(true);
@@ -619,20 +673,35 @@ export default function VideoTranscription() {
         }));
     };
 
+    const youtubeOpts = {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+            autoplay: 0,
+        },
+    };
+
     return (
         <div>
-                    <div className="header">
-                        <Header />
-                    </div>
-                    <div className="main-page-body">
-                        <SideNavs />
-                        <div className="main-body-info">
-        <div style={snowaiTranscriptionStyles.mainContainer}>
-            <div style={snowaiTranscriptionStyles.mainPageBody}>
-                <div style={snowaiTranscriptionStyles.mainBodyInfo}>
+            <div className="header">
+                <Header />
+            </div>
+            <div className="main-page-body" style={snowaiTranscriptionStyles.mainPageBody}>
+                <SideNavs />
+                <div className="main-body-info" style={snowaiTranscriptionStyles.mainBodyInfo}>
                     <h5 style={snowaiTranscriptionStyles.headerTitle}>
                         SnowAI Video Transcription System
                     </h5>
+
+                    {/* Video Player Button */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <button
+                            style={{...snowaiTranscriptionStyles.button, backgroundColor: '#8b5cf6'}}
+                            onClick={handleOpenVideoPlayer}
+                        >
+                            🎬 Open YouTube Video Player
+                        </button>
+                    </div>
 
                     {/* Tab Navigation */}
                     <div style={snowaiTranscriptionStyles.tabContainer}>
@@ -928,6 +997,14 @@ export default function VideoTranscription() {
                                                     </div>
                                                     
                                                     <div style={snowaiTranscriptionStyles.buttonGroup}>
+                                                        {transcript.youtube_url && (
+                                                            <button
+                                                                style={{...snowaiTranscriptionStyles.button, padding: '6px 12px', fontSize: '12px', backgroundColor: '#8b5cf6'}}
+                                                                onClick={() => handlePlayTranscriptVideo(transcript.youtube_url)}
+                                                            >
+                                                                ▶️ Play
+                                                            </button>
+                                                        )}
                                                         <button
                                                             style={{...snowaiTranscriptionStyles.button, padding: '6px 12px', fontSize: '12px'}}
                                                             onClick={() => handleSnowAIViewTranscriptDetails(transcript.id)}
@@ -996,6 +1073,72 @@ export default function VideoTranscription() {
                         </>
                     )}
 
+                    {/* Video Player Modal */}
+                    {showVideoPlayerModal && (
+                        <div style={snowaiTranscriptionStyles.modal}>
+                            <div style={{...snowaiTranscriptionStyles.modalContent, maxWidth: '1200px'}}>
+                                <button
+                                    style={snowaiTranscriptionStyles.closeButton}
+                                    onClick={() => setShowVideoPlayerModal(false)}
+                                >
+                                    ✕
+                                </button>
+                                
+                                <h2 style={{ marginBottom: '20px', color: '#1e293b' }}>
+                                    🎬 YouTube Video Player
+                                </h2>
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <div style={snowaiTranscriptionStyles.inputGroup}>
+                                        <label style={snowaiTranscriptionStyles.label}>
+                                            YouTube URL or Video ID
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <input
+                                                type="text"
+                                                style={{...snowaiTranscriptionStyles.input, flex: 1}}
+                                                value={videoUrl}
+                                                onChange={(e) => setVideoUrl(e.target.value)}
+                                                placeholder="https://www.youtube.com/watch?v=... or video ID"
+                                            />
+                                            <button
+                                                style={snowaiTranscriptionStyles.button}
+                                                onClick={handleLoadVideo}
+                                            >
+                                                Load Video
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {currentVideoId ? (
+                                    <div style={snowaiTranscriptionStyles.videoWrapper}>
+                                        <YouTube
+                                            videoId={currentVideoId}
+                                            opts={youtubeOpts}
+                                            onReady={onPlayerReady}
+                                            style={snowaiTranscriptionStyles.videoIframe}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        ...snowaiTranscriptionStyles.videoPlayerSection,
+                                        minHeight: '400px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#9ca3af'
+                                    }}>
+                                        <div>
+                                            <p style={{ fontSize: '48px', marginBottom: '10px' }}>📺</p>
+                                            <p>Enter a YouTube URL or Video ID to start watching</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Transcript Detail Modal */}
                     {showModal && selectedTranscript && (
                         <div style={snowaiTranscriptionStyles.modal}>
@@ -1033,7 +1176,16 @@ export default function VideoTranscription() {
                                 </div>
                                 
                                 {selectedTranscript.youtube_url && (
-                                    <div style={{ margin: '20px 0' }}>
+                                    <div style={{ margin: '20px 0', display: 'flex', gap: '10px' }}>
+                                        <button
+                                            style={{...snowaiTranscriptionStyles.button, backgroundColor: '#8b5cf6'}}
+                                            onClick={() => {
+                                                handlePlayTranscriptVideo(selectedTranscript.youtube_url);
+                                                setShowModal(false);
+                                            }}
+                                        >
+                                            ▶️ Play Video
+                                        </button>
                                         <a 
                                             href={selectedTranscript.youtube_url} 
                                             target="_blank" 
@@ -1065,9 +1217,6 @@ export default function VideoTranscription() {
                     )}
                 </div>
             </div>
-        </div>
-        </div>
-        </div>
         </div>
     );
 }
