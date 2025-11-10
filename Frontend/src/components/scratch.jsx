@@ -61,11 +61,22 @@ export default function ScratchInterFace () {
     const [usdjpyData, setUjpyusdData] = useState(['USDJPY5M.csv', 'USDJPY15M.csv', 'USDJPY30M.csv',
     'USDJPY1H.csv','USDJPY4H.csv', 'USDJPY1D.csv']);
 
+    
+    const [appleData, setAppleData] = useState(['AAPL1D.csv']);
+
+    const [btcData, setBtcData] = useState(['BTCUSD1D.csv']);
+
+    const [ftseData, setFtseData] = useState(['FTSE1D.csv']);
+
+    const [spxData, setSpxData] = useState(['SPX1D.csv']);
+
+    const [ndxData, setNdxData] = useState(['NDX1D.csv']);
+
     const [chosenDataSet, setChosenDataSet] = useState('');
 
     const [availableYears, setAvailableYears] = useState(['2008', '2009', '2010',
     '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021',
-    '2022', '2023', '2024']);
+    '2022', '2023', '2024', '2025']);
 
     const [startYear, setStartYear] = useState('');
     const [endYear, setEndYear] = useState('');
@@ -2228,6 +2239,62 @@ Blockly.Blocks['rsi_block'] = {
                             <br /><br />
                             <p><b>USDJPY</b></p>
                             {usdjpyData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                            <br /><br />
+                            <p><b>Apple</b></p>
+                            {appleData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                            <br /><br />
+                            <p><b>Bitcoin</b></p>
+                            {btcData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                            <br /><br />
+                            <p><b>S&P 500</b></p>
+                            {spxData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+                            <br /><br />
+                            <p><b>FTSE 100</b></p>
+                            {ftseData.map((data, index) => (
+                                <button 
+                                    className="btn btn-light" 
+                                    key={index}
+                                    onClick={() => handleButtonClick(data)}
+                                >
+                                    {data}
+                                </button>
+                            ))}
+
+                            <br /><br />
+                            <p><b>Nasdaq</b></p>
+                            {ndxData.map((data, index) => (
                                 <button 
                                     className="btn btn-light" 
                                     key={index}
