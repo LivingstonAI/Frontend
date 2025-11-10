@@ -92,6 +92,7 @@ import big_raga from '../I Summon... Divine General Mahoraga x Playboi Carti - S
 import love_story_lyrics from '../Indila - Love Story (Lyrics).mp3';
 import russian_love_story from '../Indila - Love Story (кавер на русском)(Russian cover).mp3';
 import lovesong from '../TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori Lyrics (Color Coded Lyrics).mp3';
+import everythings_good from "../Phil Good - Everything's Good (Official Music Video).mp3";
 
 
 export default function SideNavs() {
@@ -239,7 +240,8 @@ export default function SideNavs() {
         { name: "Divine General Mahoraga", file: big_raga },
         { name: "Love Story 🌃", file: love_story_lyrics },
         { name: "Love Story (Russian) 🌃", file: russian_love_story },
-        { name: "TXT - Lovesong 🎧", file: lovesong }
+        { name: "TXT - Lovesong 🎧", file: lovesong },
+        { name: "Everything's Good 🏖️🏄", file: everythings_good }
   ];
 
   // Enhanced touch navigation function
