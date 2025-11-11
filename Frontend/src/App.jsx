@@ -76,7 +76,8 @@ import MarketStabilityScore from './components/market_stability.jsx';
 import BlackHole from './components/black_hole.jsx';
 import SNOWXDashboard from './components/snowx.jsx';
 import HedgeFundTracker from './components/hedge_funds.jsx';
-import ProbabilityEngine from './components/prob_engine.jsx'
+import ProbabilityEngine from './components/prob_engine.jsx';
+import SnowAIBrowser from './components/browser.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -520,6 +521,12 @@ function App() {
             <Route path='/prob_engine' element={
               <ProtectedRoute>
                 <ProbabilityEngine />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/browser' element={
+              <ProtectedRoute>
+                <SnowAIBrowser />
               </ProtectedRoute>
             } />
             
