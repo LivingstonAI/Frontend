@@ -76,6 +76,7 @@ export default function SnowAIBrowser() {
         setIsLoading(true);
     };
 
+
     const styles = {
         container: {
             flexDirection: 'column',
