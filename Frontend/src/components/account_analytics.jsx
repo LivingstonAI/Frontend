@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { Bar, Line } from 'react-chartjs-2';
 import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
-import { Bar, Line } from 'react-chartjs-2';
-import { Chart as ChartJS } from 'chart.js';
+
 
 export default function AccountAnalytics() {
     const [accountData, setAccountData] = useState(null);
@@ -11,6 +11,10 @@ export default function AccountAnalytics() {
     const [aiSummary, setAiSummary] = useState("");
     const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
     const [summaryExpanded, setSummaryExpanded] = useState(true);
+    const [simulationData, setSimulationData] = useState(null);
+    const [simulationLoading, setSimulationLoading] = useState(false);
+    const [simulationExpanded, setSimulationExpanded] = useState(false);
+    const [selectedSimulationPeriod, setSelectedSimulationPeriod] = useState('month');
     const [filters, setFilters] = useState({
         dayOfWeek: 'all',
         tradingSession: 'all',
@@ -35,7 +39,6 @@ export default function AccountAnalytics() {
             const response = await fetch(`${baseUrl}/get-trading-analytics?account_name=${accountName}`);
             const data = await response.json();
             if (response.ok) {
-                // Parse date_entered strings into Date objects
                 data.trades = data.trades.map(trade => ({
                     ...trade,
                     date_entered: trade.date_entered ? new Date(trade.date_entered) : null
@@ -55,7 +58,6 @@ export default function AccountAnalytics() {
         fetchAccountDataFromAPI();
     }, []);
 
-    // Get available time periods based on the selected time frame
     const getAvailableTimePeriods = () => {
         if (!accountData?.trades || filters.timeFrame === 'all') return ['all'];
 
@@ -68,14 +70,12 @@ export default function AccountAnalytics() {
         const periods = new Set();
         dates.forEach(date => {
             if (filters.timeFrame === 'month') {
-                // Format: "MMMM YYYY"
                 const monthYear = date.toLocaleString('default', { 
                     month: 'long',
                     year: 'numeric'
                 });
                 periods.add(monthYear);
             } else if (filters.timeFrame === 'week') {
-                // Get the Monday of the week
                 const monday = new Date(date);
                 monday.setDate(date.getDate() - date.getDay() + 1);
                 const sunday = new Date(monday);
@@ -93,7 +93,6 @@ export default function AccountAnalytics() {
         });
     };
 
-    // Filter trades based on current filter settings
     const getFilteredTrades = () => {
         if (!accountData?.trades) return [];
 
@@ -126,13 +125,11 @@ export default function AccountAnalytics() {
         });
     };
 
-    // Get unique values for filter dropdowns
     const getUniqueValues = (field) => {
         if (!accountData || !accountData.trades) return [];
         return ['all', ...new Set(accountData.trades.map(trade => trade[field]))];
     };
 
-    // Helper function for generating chart data
     const generateChartData = (field) => {
         if (!accountData || !accountData.trades) return { labels: [], datasets: [] };
 
@@ -218,16 +215,12 @@ export default function AccountAnalytics() {
     };
 
     const fetchAISummary = async () => {
-        console.log(accountData)
         if (!accountData) return;
 
         setAiSummaryLoading(true);
         try {
             const metricsData = generateMetricsData();
             const filteredTrades = getFilteredTrades();
-
-            console.log(metricsData);
-            console.log(filteredTrades);
             
             const response = await fetch(`${baseUrl}/ai-account-summary`, {
                 method: 'POST',
@@ -249,12 +242,10 @@ export default function AccountAnalytics() {
             });
 
             const data = await response.json();
-
-            console.log(data);
             
             if (response.ok && data.summary) {
                 setAiSummary(data.summary);
-                setSummaryExpanded(true); // Auto-expand when new summary is generated
+                setSummaryExpanded(true);
             } else {
                 console.error('Error fetching AI summary:', data.error);
                 setAiSummary("Sorry, we couldn't generate an AI summary at this time.");
@@ -267,35 +258,96 @@ export default function AccountAnalytics() {
         }
     };
 
-    // Parse and format the AI summary for better display
+    const runSimulation = async () => {
+        if (!accountData) return;
+
+        setSimulationLoading(true);
+        try {
+            const response = await fetch(`${baseUrl}/simulate-trading-performance`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account_name: accountData.account_name,
+                    simulation_period: selectedSimulationPeriod,
+                    num_simulations: 1000
+                }),
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                setSimulationData(data);
+                setSimulationExpanded(true);
+            } else {
+                console.error('Error running simulation:', data.error);
+                alert(data.error || "Sorry, we couldn't run the simulation at this time.");
+            }
+        } catch (error) {
+            console.error('Error running simulation:', error);
+            alert("Sorry, we couldn't run the simulation at this time.");
+        } finally {
+            setSimulationLoading(false);
+        }
+    };
+
+    const generateSimulationCurveData = () => {
+        if (!simulationData || !simulationData.sample_equity_curves) {
+            return { labels: [], datasets: [] };
+        }
+
+        const curves = simulationData.sample_equity_curves;
+        const maxLength = Math.max(...curves.map(c => c.length));
+        const labels = Array.from({ length: maxLength }, (_, i) => `Trade ${i}`);
+
+        const colors = [
+            'rgba(30, 136, 229, 0.3)',
+            'rgba(76, 175, 80, 0.3)',
+            'rgba(255, 193, 7, 0.3)',
+            'rgba(233, 30, 99, 0.3)',
+            'rgba(156, 39, 176, 0.3)',
+            'rgba(0, 188, 212, 0.3)',
+            'rgba(255, 87, 34, 0.3)',
+            'rgba(121, 134, 203, 0.3)',
+            'rgba(139, 195, 74, 0.3)',
+            'rgba(255, 152, 0, 0.3)',
+        ];
+
+        const datasets = curves.map((curve, index) => ({
+            label: `Simulation ${index + 1}`,
+            data: curve,
+            borderColor: colors[index % colors.length].replace('0.3', '0.6'),
+            backgroundColor: colors[index % colors.length],
+            fill: false,
+            pointRadius: 0,
+            borderWidth: 1,
+        }));
+
+        return { labels, datasets };
+    };
+
     const formatAiSummary = () => {
         if (!aiSummary) return [];
         
-        // Split the summary into sections based on emoji patterns
-        // This will likely be sections like overall statement, metrics, patterns, recommendations
         const sections = [];
         let currentSection = "";
         
         aiSummary.split('\n').forEach(line => {
-            // Check if line starts with an emoji (common emoji pattern: 1-2 characters at start of line)
             const emojiRegex = /^[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/u;
             
             if (line.trim() === "") {
-                // Skip empty lines
                 return;
             } else if (emojiRegex.test(line) || sections.length === 0) {
-                // Start a new section if we find an emoji at the start or this is the first line
                 if (currentSection) {
                     sections.push(currentSection);
                 }
                 currentSection = line;
             } else {
-                // Continue current section
                 currentSection += "\n" + line;
             }
         });
         
-        // Add the last section
         if (currentSection) {
             sections.push(currentSection);
         }
@@ -305,6 +357,10 @@ export default function AccountAnalytics() {
 
     const toggleSummary = () => {
         setSummaryExpanded(!summaryExpanded);
+    };
+
+    const toggleSimulation = () => {
+        setSimulationExpanded(!simulationExpanded);
     };
 
     const baseChartOptions = {
@@ -346,25 +402,23 @@ export default function AccountAnalytics() {
             },
         },
     };
+
     const weekdayChartData = generateChartData('day_of_week_entered');
     const sessionChartData = generateChartData('trading_session_entered');
     const strategyChartData = generateChartData('strategy');
-    const assetChartData = generateChartData('asset'); // New asset chart data
+    const assetChartData = generateChartData('asset');
     const equityCurveData = generateEquityCurveData();
     const metricsData = generateMetricsData();
-
-    // Format AI summary into sections
     const summaryContent = formatAiSummary();
+    const simulationCurveData = generateSimulationCurveData();
 
     return (
-        <div>
-            <div className="header">
-                <Header />
-            </div>
-            <div className="main-page-body">
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <Header />
+            <div style={{ display: 'flex', flex: 1 }}>
                 <SideNavs />
-                <div className="main-body-info">
-                    <h5 className="account-analytics">Account Analytics</h5>
+                <div style={{ flex: 1, padding: '20px', backgroundColor: '#fafafa' }}>
+                    <h5 style={{ marginBottom: '30px', fontSize: '28px', fontWeight: 'bold' }}>Account Analytics</h5>
 
                     {loading ? (
                         <div>Loading...</div>
@@ -372,36 +426,317 @@ export default function AccountAnalytics() {
                         <div>No account data available.</div>
                     ) : (
                         <>
-                            {/* Enhanced AI Summary Section */}
-                            <div className="ai-summary-section" style={{
+                            {/* Performance Simulation Section */}
+                            <div style={{
                                 marginBottom: '20px',
-                                backgroundColor: '#f0f7ff',
+                                backgroundColor: '#fff3e0',
                                 borderRadius: '12px',
                                 padding: '20px',
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                transition: 'all 0.3s ease'
+                                border: '2px solid #ff9800'
                             }}>
                                 <div style={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    marginBottom: '15px'
+                                    marginBottom: '15px',
+                                    flexWrap: 'wrap',
+                                    gap: '10px'
                                 }}>
                                     <h6 style={{
-                                        margin: 0, 
-                                        fontSize: '20px', 
+                                        margin: 0,
+                                        fontSize: '20px',
                                         fontWeight: 'bold',
                                         display: 'flex',
                                         alignItems: 'center'
                                     }}>
-                                        <span style={{marginRight: '10px'}}>✨</span>
+                                        <span style={{ marginRight: '10px' }}>📊</span>
+                                        Performance Forecast
+                                    </h6>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <select
+                                            value={selectedSimulationPeriod}
+                                            onChange={(e) => setSelectedSimulationPeriod(e.target.value)}
+                                            style={{
+                                                padding: '8px 12px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #ff9800',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            <option value="week">1 Week</option>
+                                            <option value="2weeks">2 Weeks</option>
+                                            <option value="3weeks">3 Weeks</option>
+                                            <option value="month">1 Month</option>
+                                            <option value="3months">3 Months</option>
+                                            <option value="6months">6 Months</option>
+                                            <option value="9months">9 Months</option>
+                                            <option value="year">1 Year</option>
+                                        </select>
+                                        {simulationData && !simulationLoading && (
+                                            <button
+                                                onClick={toggleSimulation}
+                                                style={{
+                                                    border: '1px solid #ff9800',
+                                                    padding: '8px 12px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '14px',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#ff9800',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {simulationExpanded ? '▼ Hide' : '▶ Show'}
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={runSimulation}
+                                            disabled={simulationLoading}
+                                            style={{
+                                                backgroundColor: '#ff9800',
+                                                border: 'none',
+                                                padding: '8px 15px',
+                                                borderRadius: '4px',
+                                                fontSize: '14px',
+                                                color: 'white',
+                                                cursor: simulationLoading ? 'not-allowed' : 'pointer',
+                                                opacity: simulationLoading ? 0.6 : 1
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '16px' }}>🔮</span>
+                                            {simulationLoading ? ' Running...' : simulationData ? ' Re-run Simulation' : ' Run Simulation'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    overflow: 'hidden',
+                                    maxHeight: simulationExpanded ? '5000px' : '0',
+                                    opacity: simulationExpanded ? 1 : 0,
+                                    transition: 'max-height 0.5s ease, opacity 0.5s ease'
+                                }}>
+                                    {simulationLoading ? (
+                                        <div style={{
+                                            textAlign: 'center',
+                                            padding: '30px',
+                                            backgroundColor: 'white',
+                                            borderRadius: '8px'
+                                        }}>
+                                            <div style={{
+                                                width: '50px',
+                                                height: '50px',
+                                                border: '5px solid #f3f3f3',
+                                                borderTop: '5px solid #ff9800',
+                                                borderRadius: '50%',
+                                                animation: 'spin 1s linear infinite',
+                                                margin: '0 auto 15px'
+                                            }} />
+                                            <p style={{ color: '#555' }}>Running 1000 Monte Carlo simulations...</p>
+                                            <p style={{ fontSize: '14px', color: '#777' }}>Analyzing historical patterns</p>
+                                        </div>
+                                    ) : simulationData ? (
+                                        <div style={{ marginTop: '20px' }}>
+                                            {/* Projection Cards */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                                                <div style={{
+                                                    backgroundColor: '#e8f5e9',
+                                                    borderRadius: '8px',
+                                                    padding: '20px',
+                                                    border: '2px solid #4CAF50'
+                                                }}>
+                                                    <h6 style={{ color: '#2e7d32', marginBottom: '10px', fontSize: '16px' }}>🎯 Best Case (95th %ile)</h6>
+                                                    <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0', color: '#1b5e20' }}>
+                                                        ${simulationData.projections.best_case.balance.toLocaleString()}
+                                                    </p>
+                                                    <p style={{ fontSize: '18px', color: '#4CAF50', margin: 0 }}>
+                                                        +{simulationData.projections.best_case.return_pct.toFixed(2)}%
+                                                    </p>
+                                                    <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+                                                        Profit: ${simulationData.projections.best_case.profit.toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div style={{
+                                                    backgroundColor: '#fff9e6',
+                                                    borderRadius: '8px',
+                                                    padding: '20px',
+                                                    border: '2px solid #FFC107'
+                                                }}>
+                                                    <h6 style={{ color: '#f57f17', marginBottom: '10px', fontSize: '16px' }}>📈 Expected Case (Median)</h6>
+                                                    <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0', color: '#f57f17' }}>
+                                                        ${simulationData.projections.expected_case.balance.toLocaleString()}
+                                                    </p>
+                                                    <p style={{ fontSize: '18px', color: simulationData.projections.expected_case.return_pct >= 0 ? '#4CAF50' : '#E57373', margin: 0 }}>
+                                                        {simulationData.projections.expected_case.return_pct >= 0 ? '+' : ''}{simulationData.projections.expected_case.return_pct.toFixed(2)}%
+                                                    </p>
+                                                    <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+                                                        Profit: ${simulationData.projections.expected_case.profit.toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div style={{
+                                                    backgroundColor: '#ffebee',
+                                                    borderRadius: '8px',
+                                                    padding: '20px',
+                                                    border: '2px solid #E57373'
+                                                }}>
+                                                    <h6 style={{ color: '#c62828', marginBottom: '10px', fontSize: '16px' }}>⚠️ Worst Case (5th %ile)</h6>
+                                                    <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0', color: '#b71c1c' }}>
+                                                        ${simulationData.projections.worst_case.balance.toLocaleString()}
+                                                    </p>
+                                                    <p style={{ fontSize: '18px', color: '#E57373', margin: 0 }}>
+                                                        {simulationData.projections.worst_case.return_pct.toFixed(2)}%
+                                                    </p>
+                                                    <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+                                                        Profit: ${simulationData.projections.worst_case.profit.toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Risk Metrics */}
+                                            <div style={{
+                                                backgroundColor: 'white',
+                                                borderRadius: '8px',
+                                                padding: '20px',
+                                                marginBottom: '20px'
+                                            }}>
+                                                <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>⚡ Risk Analysis</h6>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                                                    <div style={{ padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                                                        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 5px 0' }}>Expected Drawdown</p>
+                                                        <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#ff9800', margin: 0 }}>
+                                                            {simulationData.risk_metrics.expected_drawdown_pct.toFixed(2)}%
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                                                        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 5px 0' }}>Worst Drawdown (95th)</p>
+                                                        <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#E57373', margin: 0 }}>
+                                                            {simulationData.risk_metrics.worst_drawdown_pct.toFixed(2)}%
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                                                        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 5px 0' }}>Avg Recovery Time</p>
+                                                        <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E88E5', margin: 0 }}>
+                                                            {simulationData.risk_metrics.avg_recovery_weeks.toFixed(1)} weeks
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                                                        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 5px 0' }}>Probability of Profit</p>
+                                                        <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#4CAF50', margin: 0 }}>
+                                                            {simulationData.risk_metrics.probability_of_profit.toFixed(1)}%
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                                                        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 5px 0' }}>Risk of Ruin (50% loss)</p>
+                                                        <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#c62828', margin: 0 }}>
+                                                            {simulationData.risk_metrics.risk_of_ruin.toFixed(2)}%
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Historical Stats */}
+                                            <div style={{
+                                                backgroundColor: 'white',
+                                                borderRadius: '8px',
+                                                padding: '20px',
+                                                marginBottom: '20px'
+                                            }}>
+                                                <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>📚 Historical Performance Used</h6>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                                                    <div>
+                                                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Win Rate</p>
+                                                        <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>{simulationData.historical_stats.win_rate}%</p>
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Avg Win</p>
+                                                        <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0', color: '#4CAF50' }}>${simulationData.historical_stats.avg_win}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Avg Loss</p>
+                                                        <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0', color: '#E57373' }}>${simulationData.historical_stats.avg_loss}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Total Trades</p>
+                                                        <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>{simulationData.historical_stats.total_trades}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Trades/Week</p>
+                                                        <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>{simulationData.historical_stats.avg_trades_per_week}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Expected Trades</p>
+                                                        <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>{simulationData.expected_trades}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Sample Equity Curves */}
+                                            <div style={{
+                                                backgroundColor: 'white',
+                                                borderRadius: '8px',
+                                                padding: '20px',
+                                                height: '400px'
+                                            }}>
+                                                <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>📉 Sample Simulation Paths (10 of 1000)</h6>
+                                                <div style={{ height: '350px' }}>
+                                                    <Line data={simulationCurveData} options={{
+                                                        ...baseChartOptions,
+                                                        plugins: {
+                                                            legend: {
+                                                                display: false
+                                                            }
+                                                        }
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            textAlign: 'center',
+                                            padding: '30px',
+                                            backgroundColor: 'white',
+                                            borderRadius: '8px'
+                                        }}>
+                                            <p style={{ fontSize: '16px', marginBottom: '5px' }}>No simulation run yet</p>
+                                            <p style={{ fontSize: '14px', color: '#777' }}>
+                                                Select a time period and click "Run Simulation" to forecast your trading performance
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* AI Summary Section */}
+                            <div style={{
+                                marginBottom: '20px',
+                                backgroundColor: '#f0f7ff',
+                                borderRadius: '12px',
+                                padding: '20px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '15px',
+                                    flexWrap: 'wrap',
+                                    gap: '10px'
+                                }}>
+                                    <h6 style={{
+                                        margin: 0,
+                                        fontSize: '20px',
+                                        fontWeight: 'bold',
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span style={{ marginRight: '10px' }}>✨</span>
                                         AI Trading Insights
                                     </h6>
-                                    <div style={{display: 'flex', gap: '10px'}}>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
                                         {aiSummary && !aiSummaryLoading && (
-                                            <button 
+                                            <button
                                                 onClick={toggleSummary}
-                                                className="btn btn-outline-primary"
                                                 style={{
                                                     border: '1px solid #1E88E5',
                                                     padding: '8px 12px',
@@ -409,78 +744,65 @@ export default function AccountAnalytics() {
                                                     fontSize: '14px',
                                                     backgroundColor: 'transparent',
                                                     color: '#1E88E5',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '5px'
+                                                    cursor: 'pointer'
                                                 }}
                                             >
-                                                {summaryExpanded ? (
-                                                    <>
-                                                        <span style={{fontSize: '18px'}}>▼</span> 
-                                                        Hide Summary
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span style={{fontSize: '18px'}}>▶</span> 
-                                                        Show Summary
-                                                    </>
-                                                )}
+                                                {summaryExpanded ? '▼ Hide' : '▶ Show'}
                                             </button>
                                         )}
-                                        <button 
+                                        <button
                                             onClick={fetchAISummary}
                                             disabled={aiSummaryLoading}
-                                            className="btn btn-primary"
                                             style={{
                                                 backgroundColor: '#1E88E5',
                                                 border: 'none',
                                                 padding: '8px 15px',
                                                 borderRadius: '4px',
                                                 fontSize: '14px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '5px'
+                                                color: 'white',
+                                                cursor: aiSummaryLoading ? 'not-allowed' : 'pointer',
+                                                opacity: aiSummaryLoading ? 0.6 : 1
                                             }}
                                         >
-                                            <span style={{fontSize: '16px'}}>🔄</span>
-                                            {aiSummaryLoading ? 'Generating...' : aiSummary ? 'Refresh Analysis' : 'Generate Analysis'}
+                                            <span style={{ fontSize: '16px' }}>🔄</span>
+                                            {aiSummaryLoading ? ' Generating...' : aiSummary ? ' Refresh' : ' Generate'}
                                         </button>
                                     </div>
                                 </div>
-                                
-                                {/* AI Summary Content with Toggle */}
-                                <div className="ai-summary-content" style={{
+
+                                <div style={{
                                     overflow: 'hidden',
                                     maxHeight: summaryExpanded ? '2000px' : '0',
                                     opacity: summaryExpanded ? 1 : 0,
-                                    transition: 'max-height 0.5s ease, opacity 0.5s ease',
-                                    marginTop: summaryExpanded ? '15px' : 0
+                                    transition: 'max-height 0.5s ease, opacity 0.5s ease'
                                 }}>
                                     {aiSummaryLoading ? (
                                         <div style={{
-                                            textAlign: 'center', 
-                                            width: '100%',
-                                            padding: '30px 20px',
+                                            textAlign: 'center',
+                                            padding: '30px',
                                             backgroundColor: 'white',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                                            borderRadius: '8px'
                                         }}>
-                                            <div className="spinner-border text-primary" role="status">
-                                                <span className="visually-hidden">Loading...</span>
-                                            </div>
-                                            <p style={{marginTop: '15px', color: '#555'}}>Analyzing your trading data...</p>
-                                            <p style={{fontSize: '14px', color: '#777'}}>This may take a few moments</p>
+                                            <div style={{
+                                                width: '50px',
+                                                height: '50px',
+                                                border: '5px solid #f3f3f3',
+                                                borderTop: '5px solid #1E88E5',
+                                                borderRadius: '50%',
+                                                animation: 'spin 1s linear infinite',
+                                                margin: '0 auto 15px'
+                                            }} />
+                                            <p style={{ color: '#555' }}>Analyzing your trading data...</p>
                                         </div>
                                     ) : aiSummary ? (
                                         <div style={{
                                             backgroundColor: 'white',
                                             borderRadius: '8px',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-                                            overflow: 'hidden',
+                                            overflow: 'hidden'
                                         }}>
                                             {summaryContent.map((section, index) => (
-                                                <div 
-                                                    key={index} 
+                                                <div
+                                                    key={index}
                                                     style={{
                                                         padding: '16px 20px',
                                                         borderBottom: index < summaryContent.length - 1 ? '1px solid #f0f0f0' : 'none',
@@ -502,55 +824,71 @@ export default function AccountAnalytics() {
                                         </div>
                                     ) : (
                                         <div style={{
-                                            textAlign: 'center', 
-                                            color: '#666',
-                                            padding: '30px 20px',
+                                            textAlign: 'center',
+                                            padding: '30px',
                                             backgroundColor: 'white',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                                            borderRadius: '8px'
                                         }}>
-                                            <p style={{fontSize: '16px', marginBottom: '5px'}}>No analysis generated yet</p>
-                                            <p style={{fontSize: '14px', color: '#777'}}>
-                                                Click "Generate Analysis" to get personalized insights about your trading performance
-                                            </p>
+                                            <p style={{ fontSize: '16px' }}>No analysis generated yet</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="account-info">
-                                <h6>Account: {accountData.account_name}</h6>
-                                <p>Main Assets: {accountData.main_assets}</p>
-                                <p>Initial Capital: ${accountData.initial_capital}</p>
+                            {/* Account Info */}
+                            <div style={{
+                                backgroundColor: 'white',
+                                borderRadius: '8px',
+                                padding: '20px',
+                                marginBottom: '20px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                            }}>
+                                <h6 style={{ marginBottom: '10px' }}>Account: {accountData.account_name}</h6>
+                                <p style={{ margin: '5px 0' }}>Main Assets: {accountData.main_assets}</p>
+                                <p style={{ margin: '5px 0' }}>Initial Capital: ${accountData.initial_capital}</p>
                             </div>
 
-                            <div className="filters-container">
-                                {/* Time frame filter */}
+                            {/* Filters */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '10px',
+                                marginBottom: '20px',
+                                flexWrap: 'wrap'
+                            }}>
                                 <select
                                     value={filters.timeFrame}
                                     onChange={(e) => setFilters({
                                         ...filters,
                                         timeFrame: e.target.value,
-                                        selectedPeriod: 'all' // Reset period when changing time frame
+                                        selectedPeriod: 'all'
                                     })}
-                                    className="filter-select form-control"
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     <option value="all">All Time</option>
                                     <option value="month">By Month</option>
                                     <option value="week">By Week</option>
                                 </select>
 
-                                {/* Period filter */}
                                 <select
                                     value={filters.selectedPeriod}
-                                    onChange={(e) => setFilters({...filters, selectedPeriod: e.target.value})}
-                                    className="filter-select form-control"
+                                    onChange={(e) => setFilters({ ...filters, selectedPeriod: e.target.value })}
                                     disabled={filters.timeFrame === 'all'}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     {getAvailableTimePeriods().map(period => (
                                         <option key={period} value={period}>
-                                            {period === 'all' ? 
-                                                `All ${filters.timeFrame === 'month' ? 'Months' : 'Weeks'}` : 
+                                            {period === 'all' ?
+                                                `All ${filters.timeFrame === 'month' ? 'Months' : 'Weeks'}` :
                                                 period}
                                         </option>
                                     ))}
@@ -558,8 +896,13 @@ export default function AccountAnalytics() {
 
                                 <select
                                     value={filters.asset}
-                                    onChange={(e) => setFilters({...filters, asset: e.target.value})}
-                                    className="filter-select form-control"
+                                    onChange={(e) => setFilters({ ...filters, asset: e.target.value })}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     {getUniqueValues('asset').map(asset => (
                                         <option key={asset} value={asset}>
@@ -570,8 +913,13 @@ export default function AccountAnalytics() {
 
                                 <select
                                     value={filters.dayOfWeek}
-                                    onChange={(e) => setFilters({...filters, dayOfWeek: e.target.value})}
-                                    className="filter-select form-control"
+                                    onChange={(e) => setFilters({ ...filters, dayOfWeek: e.target.value })}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     {getUniqueValues('day_of_week_entered').map(day => (
                                         <option key={day} value={day}>
@@ -582,8 +930,13 @@ export default function AccountAnalytics() {
 
                                 <select
                                     value={filters.tradingSession}
-                                    onChange={(e) => setFilters({...filters, tradingSession: e.target.value})}
-                                    className="filter-select form-control"
+                                    onChange={(e) => setFilters({ ...filters, tradingSession: e.target.value })}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     {getUniqueValues('trading_session_entered').map(session => (
                                         <option key={session} value={session}>
@@ -594,8 +947,13 @@ export default function AccountAnalytics() {
 
                                 <select
                                     value={filters.strategy}
-                                    onChange={(e) => setFilters({...filters, strategy: e.target.value})}
-                                    className="filter-select form-control"
+                                    onChange={(e) => setFilters({ ...filters, strategy: e.target.value })}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     {getUniqueValues('strategy').map(strategy => (
                                         <option key={strategy} value={strategy}>
@@ -606,8 +964,13 @@ export default function AccountAnalytics() {
 
                                 <select
                                     value={filters.outcome}
-                                    onChange={(e) => setFilters({...filters, outcome: e.target.value})}
-                                    className="filter-select form-control"
+                                    onChange={(e) => setFilters({ ...filters, outcome: e.target.value })}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #ddd',
+                                        fontSize: '14px'
+                                    }}
                                 >
                                     {['all', 'Win', 'Loss', 'Break-even'].map(outcome => (
                                         <option key={outcome} value={outcome}>
@@ -617,96 +980,139 @@ export default function AccountAnalytics() {
                                 </select>
                             </div>
 
-                            <h6 className="trade-overview-header">Trades Overview</h6>
+                            <h6 style={{ marginTop: '30px', marginBottom: '20px', fontSize: '20px' }}>Trades Overview</h6>
 
-                            <div className="trade-chart-container">
-                                <div className="chart-wrapper">
-                                    <h6>Performance by Day of Week</h6>
-                                    <Bar data={weekdayChartData} options={baseChartOptions} />
+                            {/* Charts */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                                gap: '20px',
+                                marginBottom: '30px'
+                            }}>
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    height: '350px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                }}>
+                                    <h6 style={{ marginBottom: '15px' }}>Performance by Day of Week</h6>
+                                    <div style={{ height: '280px' }}>
+                                        <Bar data={weekdayChartData} options={baseChartOptions} />
+                                    </div>
                                 </div>
-                                <div className="chart-wrapper">
-                                    <h6>Performance by Trading Session</h6>
-                                    <Bar data={sessionChartData} options={baseChartOptions} />
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    height: '350px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                }}>
+                                    <h6 style={{ marginBottom: '15px' }}>Performance by Trading Session</h6>
+                                    <div style={{ height: '280px' }}>
+                                        <Bar data={sessionChartData} options={baseChartOptions} />
+                                    </div>
                                 </div>
-                                <div className="chart-wrapper">
-                                    <h6>Performance by Strategy</h6>
-                                    <Bar data={strategyChartData} options={baseChartOptions} />
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    height: '350px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                }}>
+                                    <h6 style={{ marginBottom: '15px' }}>Performance by Strategy</h6>
+                                    <div style={{ height: '280px' }}>
+                                        <Bar data={strategyChartData} options={baseChartOptions} />
+                                    </div>
                                 </div>
-                                <div className="chart-wrapper">
-                                    <h6>Performance by Asset</h6>
-                                    <Bar data={assetChartData} options={baseChartOptions} />
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    height: '350px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                }}>
+                                    <h6 style={{ marginBottom: '15px' }}>Performance by Asset</h6>
+                                    <div style={{ height: '280px' }}>
+                                        <Bar data={assetChartData} options={baseChartOptions} />
+                                    </div>
                                 </div>
-                                <div className="chart-wrapper">
-                                    <h6>Equity Curve</h6>
-                                    <Line data={equityCurveData} options={baseChartOptions} />
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    height: '350px',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    gridColumn: 'span 2'
+                                }}>
+                                    <h6 style={{ marginBottom: '15px' }}>Equity Curve</h6>
+                                    <div style={{ height: '280px' }}>
+                                        <Line data={equityCurveData} options={baseChartOptions} />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="metrics-container" style={{
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '15px',
-                                marginTop: '20px'
+                            {/* Metrics Cards */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gap: '15px'
                             }}>
-                                <div className="metric-card" style={{
+                                <div style={{
                                     backgroundColor: '#f8f9fa',
                                     borderRadius: '8px',
-                                    padding: '15px',
-                                    flex: '1 1 200px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                    textAlign: 'center'
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                 }}>
-                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Win Rate</h6>
+                                    <h6 style={{ color: '#333', marginBottom: '10px', fontSize: '16px' }}>Win Rate</h6>
                                     <p style={{
-                                        fontSize: '24px',
+                                        fontSize: '28px',
                                         fontWeight: 'bold',
                                         margin: 0,
                                         color: metricsData.winRate > 50 ? '#4CAF50' : '#E57373'
                                     }}>{metricsData.winRate.toFixed(2)}%</p>
                                 </div>
-                                <div className="metric-card" style={{
+                                <div style={{
                                     backgroundColor: '#f8f9fa',
                                     borderRadius: '8px',
-                                    padding: '15px',
-                                    flex: '1 1 200px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                    textAlign: 'center'
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                 }}>
-                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Average Win</h6>
+                                    <h6 style={{ color: '#333', marginBottom: '10px', fontSize: '16px' }}>Average Win</h6>
                                     <p style={{
-                                        fontSize: '24px',
+                                        fontSize: '28px',
                                         fontWeight: 'bold',
                                         margin: 0,
                                         color: '#4CAF50'
                                     }}>${metricsData.averageWin.toFixed(2)}</p>
                                 </div>
-                                <div className="metric-card" style={{
+                                <div style={{
                                     backgroundColor: '#f8f9fa',
                                     borderRadius: '8px',
-                                    padding: '15px',
-                                    flex: '1 1 200px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                    textAlign: 'center'
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                 }}>
-                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Average Loss</h6>
+                                    <h6 style={{ color: '#333', marginBottom: '10px', fontSize: '16px' }}>Average Loss</h6>
                                     <p style={{
-                                        fontSize: '24px',
+                                        fontSize: '28px',
                                         fontWeight: 'bold',
                                         margin: 0,
                                         color: '#E57373'
                                     }}>${metricsData.averageLoss.toFixed(2)}</p>
                                 </div>
-                                <div className="metric-card" style={{
+                                <div style={{
                                     backgroundColor: '#f8f9fa',
                                     borderRadius: '8px',
-                                    padding: '15px',
-                                    flex: '1 1 200px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                    textAlign: 'center'
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                 }}>
-                                    <h6 style={{color: '#333', marginBottom: '10px'}}>Profit Factor</h6>
+                                    <h6 style={{ color: '#333', marginBottom: '10px', fontSize: '16px' }}>Profit Factor</h6>
                                     <p style={{
-                                        fontSize: '24px',
+                                        fontSize: '28px',
                                         fontWeight: 'bold',
                                         margin: 0,
                                         color: metricsData.profitFactor > 1 ? '#4CAF50' : '#E57373'
@@ -717,6 +1123,12 @@ export default function AccountAnalytics() {
                     )}
                 </div>
             </div>
+            <style>{`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 }
