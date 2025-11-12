@@ -29,6 +29,7 @@ export default function AccountAnalytics() {
 
     const fetchAccountDataFromAPI = async () => {
         // Mock account name - replace with: const accountName = Cookies.get('account_name');
+
         const accountName = Cookies.get('account_name');
         
         if (!accountName) {
@@ -415,7 +416,7 @@ export default function AccountAnalytics() {
     return (
         <div style={{ flexDirection: 'column', minHeight: '100vh' }}>
             <Header />
-            <div>
+            <div> 
                 <SideNavs />
                 <div style={{ flex: 1, padding: '20px', backgroundColor: '#fafafa' }}>
                     <h5 style={{ marginBottom: '30px', fontSize: '28px', fontWeight: 'bold' }}>Account Analytics</h5>
@@ -1008,71 +1009,92 @@ export default function AccountAnalytics() {
                             <h6 style={{ marginTop: '30px', marginBottom: '20px', fontSize: '20px' }}>Trades Overview</h6>
 
                             {/* Charts */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                                gap: '20px',
-                                marginBottom: '30px'
-                            }}>
+                            <div style={{ marginBottom: '30px' }}>
+                                {/* Day of Week and Trading Session */}
                                 <div style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: '8px',
-                                    padding: '20px',
-                                    height: '350px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    display: 'grid',
+                                    gridTemplateColumns: window.innerWidth >= 768 ? '1fr 1fr' : '1fr',
+                                    gap: '20px',
+                                    marginBottom: '20px'
                                 }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Day of Week</h6>
-                                    <div style={{ height: '280px' }}>
-                                        <Bar data={weekdayChartData} options={baseChartOptions} />
+                                    <div style={{
+                                        backgroundColor: 'white',
+                                        borderRadius: '8px',
+                                        padding: '20px',
+                                        height: '350px',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <h6 style={{ marginBottom: '15px' }}>Performance by Day of Week</h6>
+                                        <div style={{ height: '280px' }}>
+                                            <Bar data={weekdayChartData} options={baseChartOptions} />
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: 'white',
+                                        borderRadius: '8px',
+                                        padding: '20px',
+                                        height: '350px',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <h6 style={{ marginBottom: '15px' }}>Performance by Trading Session</h6>
+                                        <div style={{ height: '280px' }}>
+                                            <Bar data={sessionChartData} options={baseChartOptions} />
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Strategy and Asset */}
                                 <div style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: '8px',
-                                    padding: '20px',
-                                    height: '350px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    display: 'grid',
+                                    gridTemplateColumns: window.innerWidth >= 768 ? '1fr 1fr' : '1fr',
+                                    gap: '20px',
+                                    marginBottom: '20px'
                                 }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Trading Session</h6>
-                                    <div style={{ height: '280px' }}>
-                                        <Bar data={sessionChartData} options={baseChartOptions} />
+                                    <div style={{
+                                        backgroundColor: 'white',
+                                        borderRadius: '8px',
+                                        padding: '20px',
+                                        height: '350px',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <h6 style={{ marginBottom: '15px' }}>Performance by Strategy</h6>
+                                        <div style={{ height: '280px' }}>
+                                            <Bar data={strategyChartData} options={baseChartOptions} />
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        backgroundColor: 'white',
+                                        borderRadius: '8px',
+                                        padding: '20px',
+                                        height: '350px',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <h6 style={{ marginBottom: '15px' }}>Performance by Asset</h6>
+                                        <div style={{ height: '280px' }}>
+                                            <Bar data={assetChartData} options={baseChartOptions} />
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Equity Curve - Centered and Full Width */}
                                 <div style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: '8px',
-                                    padding: '20px',
-                                    height: '350px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    width: '100%'
                                 }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Strategy</h6>
-                                    <div style={{ height: '280px' }}>
-                                        <Bar data={strategyChartData} options={baseChartOptions} />
-                                    </div>
-                                </div>
-                                <div style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: '8px',
-                                    padding: '20px',
-                                    height: '350px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                                }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Performance by Asset</h6>
-                                    <div style={{ height: '280px' }}>
-                                        <Bar data={assetChartData} options={baseChartOptions} />
-                                    </div>
-                                </div>
-                                <div style={{
-                                    backgroundColor: 'white',
-                                    borderRadius: '8px',
-                                    padding: '20px',
-                                    height: '350px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                    gridColumn: window.innerWidth >= 768 ? 'span 2' : 'span 1'
-                                }}>
-                                    <h6 style={{ marginBottom: '15px' }}>Equity Curve</h6>
-                                    <div style={{ height: '280px' }}>
-                                        <Line data={equityCurveData} options={baseChartOptions} />
+                                    <div style={{
+                                        backgroundColor: 'white',
+                                        borderRadius: '8px',
+                                        padding: '20px',
+                                        height: '400px',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                        width: window.innerWidth >= 768 ? '85%' : '100%',
+                                        maxWidth: '1400px'
+                                    }}>
+                                        <h6 style={{ marginBottom: '15px' }}>Equity Curve</h6>
+                                        <div style={{ height: '330px' }}>
+                                            <Line data={equityCurveData} options={baseChartOptions} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
