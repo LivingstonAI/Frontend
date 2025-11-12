@@ -28,6 +28,7 @@ export default function AccountAnalytics() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
     const fetchAccountDataFromAPI = async () => {
+        // Mock account name - replace with: const accountName = Cookies.get('account_name');
         const accountName = Cookies.get('account_name');
         
         if (!accountName) {
@@ -292,39 +293,39 @@ export default function AccountAnalytics() {
         }
     };
 
-    const generateSimulationCurveData = () => {
-        if (!simulationData || !simulationData.sample_equity_curves) {
-            return { labels: [], datasets: [] };
+    const generateProjectionCurveData = (caseType) => {
+        if (!simulationData || !accountData) return { labels: [], datasets: [] };
+
+        const initial = accountData.initial_capital;
+        const projection = simulationData.projections[caseType];
+        const expectedTrades = simulationData.expected_trades;
+        
+        // Generate a smooth curve from initial to final balance
+        const points = Math.min(expectedTrades, 50); // Cap at 50 points for performance
+        const increment = (projection.balance - initial) / points;
+        
+        const curve = [];
+        for (let i = 0; i <= points; i++) {
+            curve.push(initial + (increment * i));
         }
 
-        const curves = simulationData.sample_equity_curves;
-        const maxLength = Math.max(...curves.map(c => c.length));
-        const labels = Array.from({ length: maxLength }, (_, i) => `Trade ${i}`);
+        const colors = {
+            best_case: { border: '#4CAF50', bg: 'rgba(76, 175, 80, 0.2)' },
+            expected_case: { border: '#FFC107', bg: 'rgba(255, 193, 7, 0.2)' },
+            worst_case: { border: '#E57373', bg: 'rgba(229, 115, 115, 0.2)' }
+        };
 
-        const colors = [
-            'rgba(30, 136, 229, 0.3)',
-            'rgba(76, 175, 80, 0.3)',
-            'rgba(255, 193, 7, 0.3)',
-            'rgba(233, 30, 99, 0.3)',
-            'rgba(156, 39, 176, 0.3)',
-            'rgba(0, 188, 212, 0.3)',
-            'rgba(255, 87, 34, 0.3)',
-            'rgba(121, 134, 203, 0.3)',
-            'rgba(139, 195, 74, 0.3)',
-            'rgba(255, 152, 0, 0.3)',
-        ];
-
-        const datasets = curves.map((curve, index) => ({
-            label: `Simulation ${index + 1}`,
-            data: curve,
-            borderColor: colors[index % colors.length].replace('0.3', '0.6'),
-            backgroundColor: colors[index % colors.length],
-            fill: false,
-            pointRadius: 0,
-            borderWidth: 1,
-        }));
-
-        return { labels, datasets };
+        return {
+            labels: curve.map((_, i) => `Trade ${Math.floor((i / points) * expectedTrades)}`),
+            datasets: [{
+                label: `${caseType.replace('_', ' ').toUpperCase()} Projection`,
+                data: curve,
+                borderColor: colors[caseType].border,
+                backgroundColor: colors[caseType].bg,
+                fill: true,
+                tension: 0.4,
+            }],
+        };
     };
 
     const formatAiSummary = () => {
@@ -410,7 +411,6 @@ export default function AccountAnalytics() {
     const equityCurveData = generateEquityCurveData();
     const metricsData = generateMetricsData();
     const summaryContent = formatAiSummary();
-    const simulationCurveData = generateSimulationCurveData();
 
     return (
         <div style={{ flexDirection: 'column', minHeight: '100vh' }}>
@@ -601,7 +601,7 @@ export default function AccountAnalytics() {
                                                 marginBottom: '20px'
                                             }}>
                                                 <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>⚡ Risk Analysis</h6>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
                                                     <div style={{ padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
                                                         <p style={{ fontSize: '14px', color: '#666', margin: '0 0 5px 0' }}>Expected Drawdown</p>
                                                         <p style={{ fontSize: '22px', fontWeight: 'bold', color: '#ff9800', margin: 0 }}>
@@ -643,7 +643,7 @@ export default function AccountAnalytics() {
                                                 marginBottom: '20px'
                                             }}>
                                                 <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>📚 Historical Performance Used</h6>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
                                                     <div>
                                                         <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>Win Rate</p>
                                                         <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>{simulationData.historical_stats.win_rate}%</p>
@@ -671,23 +671,48 @@ export default function AccountAnalytics() {
                                                 </div>
                                             </div>
 
-                                            {/* Sample Equity Curves */}
+                                            {/* Projection Equity Curves */}
                                             <div style={{
                                                 backgroundColor: 'white',
                                                 borderRadius: '8px',
                                                 padding: '20px',
-                                                height: '400px'
+                                                marginBottom: '20px'
                                             }}>
-                                                <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>📉 Sample Simulation Paths (10 of 1000)</h6>
-                                                <div style={{ height: '350px' }}>
-                                                    <Line data={simulationCurveData} options={{
-                                                        ...baseChartOptions,
-                                                        plugins: {
-                                                            legend: {
-                                                                display: false
-                                                            }
-                                                        }
-                                                    }} />
+                                                <h6 style={{ marginBottom: '15px', fontSize: '18px', fontWeight: 'bold' }}>📉 Projection Scenarios</h6>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                                                    <div style={{ height: '300px' }}>
+                                                        <h6 style={{ marginBottom: '10px', fontSize: '14px', color: '#2e7d32' }}>Best Case Trajectory</h6>
+                                                        <div style={{ height: '260px' }}>
+                                                            <Line data={generateProjectionCurveData('best_case')} options={{
+                                                                ...baseChartOptions,
+                                                                plugins: {
+                                                                    legend: { display: false }
+                                                                }
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ height: '300px' }}>
+                                                        <h6 style={{ marginBottom: '10px', fontSize: '14px', color: '#f57f17' }}>Expected Case Trajectory</h6>
+                                                        <div style={{ height: '260px' }}>
+                                                            <Line data={generateProjectionCurveData('expected_case')} options={{
+                                                                ...baseChartOptions,
+                                                                plugins: {
+                                                                    legend: { display: false }
+                                                                }
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ height: '300px' }}>
+                                                        <h6 style={{ marginBottom: '10px', fontSize: '14px', color: '#c62828' }}>Worst Case Trajectory</h6>
+                                                        <div style={{ height: '260px' }}>
+                                                            <Line data={generateProjectionCurveData('worst_case')} options={{
+                                                                ...baseChartOptions,
+                                                                plugins: {
+                                                                    legend: { display: false }
+                                                                }
+                                                            }} />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -985,7 +1010,7 @@ export default function AccountAnalytics() {
                             {/* Charts */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                                 gap: '20px',
                                 marginBottom: '30px'
                             }}>
@@ -1043,7 +1068,7 @@ export default function AccountAnalytics() {
                                     padding: '20px',
                                     height: '350px',
                                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                    gridColumn: 'span 2'
+                                    gridColumn: window.innerWidth >= 768 ? 'span 2' : 'span 1'
                                 }}>
                                     <h6 style={{ marginBottom: '15px' }}>Equity Curve</h6>
                                     <div style={{ height: '280px' }}>
@@ -1055,7 +1080,7 @@ export default function AccountAnalytics() {
                             {/* Metrics Cards */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                                 gap: '15px'
                             }}>
                                 <div style={{
