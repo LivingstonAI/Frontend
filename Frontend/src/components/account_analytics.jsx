@@ -413,9 +413,9 @@ export default function AccountAnalytics() {
     const simulationCurveData = generateSimulationCurveData();
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <div style={{ flexDirection: 'column', minHeight: '100vh' }}>
             <Header />
-            <div style={{ display: 'flex', flex: 1 }}>
+            <div>
                 <SideNavs />
                 <div style={{ flex: 1, padding: '20px', backgroundColor: '#fafafa' }}>
                     <h5 style={{ marginBottom: '30px', fontSize: '28px', fontWeight: 'bold' }}>Account Analytics</h5>
