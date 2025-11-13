@@ -88,6 +88,7 @@ import love_story_lyrics from '../Indila - Love Story (Lyrics).mp3';
 import russian_love_story from '../Indila - Love Story (кавер на русском)(Russian cover).mp3';
 import lovesong from '../TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori Lyrics (Color Coded Lyrics).mp3';
 import everythings_good from "../Phil Good - Everything's Good (Official Music Video).mp3";
+import coffee_date from '../Coffee Date.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -217,6 +218,8 @@ export default function SnowAILandingPage() {
       "85": { name: "Love Story (Russian) 🌃", file: russian_love_story },
       "86": { name: "TXT - Lovesong 🎧", file: lovesong },
       "87": { name: "Everything's Good 🏖️🏄", file: everythings_good },
+      "88": { name: "Coffee Date ☕🦫", file: coffee_date },
+
     };
 
 

@@ -93,6 +93,7 @@ import love_story_lyrics from '../Indila - Love Story (Lyrics).mp3';
 import russian_love_story from '../Indila - Love Story (кавер на русском)(Russian cover).mp3';
 import lovesong from '../TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori Lyrics (Color Coded Lyrics).mp3';
 import everythings_good from "../Phil Good - Everything's Good (Official Music Video).mp3";
+import coffee_date from '../Coffee Date.mp3';
 
 
 export default function SideNavs() {
@@ -241,7 +242,8 @@ export default function SideNavs() {
         { name: "Love Story 🌃", file: love_story_lyrics },
         { name: "Love Story (Russian) 🌃", file: russian_love_story },
         { name: "TXT - Lovesong 🎧", file: lovesong },
-        { name: "Everything's Good 🏖️🏄", file: everythings_good }
+        { name: "Everything's Good 🏖️🏄", file: everythings_good },
+        { name: "Coffee Date ☕🦫", file: coffee_date }
   ];
 
   // Enhanced touch navigation function
@@ -757,7 +759,7 @@ export default function SideNavs() {
         <Link to="/charts" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-diagram-3"></i></p></button></Link>
         <Link to="/asset_correlation" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-yen"></i></p></button></Link>
         <Link to="/market_stability_score" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chevron-bar-down"></i></p></button></Link>
-        <Link to="/black_hole" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link>
+        {/* <Link to="/black_hole" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-infinity"></i></p></button></Link> */}
         <Link to="/snowx" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-currency-bitcoin"></i></p></button></Link>
         <Link to="/hedge_fund_tracker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-card-list"></i></p></button></Link>
         <Link to="/prob_engine" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cpu"></i></p></button></Link>
@@ -901,9 +903,9 @@ export default function SideNavs() {
         <Link to="/market_stability_score" className="side-nav">
             <i className="bi bi-chevron-bar-down"></i>
         </Link>
-        <Link to="/black_hole" className="side-nav">
+        {/* <Link to="/black_hole" className="side-nav">
             <i className="bi bi-infinity"></i>
-        </Link>
+        </Link> */}
         <Link to="/snowx" className="side-nav">
             <i className="bi bi-currency-bitcoin"></i>
         </Link>
