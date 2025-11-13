@@ -585,7 +585,18 @@ export default function Charts() {
             { symbol: 'AAPL', name: 'Apple Inc.', binanceSymbol: null, yfinanceSymbol: 'AAPL' },
             { symbol: 'GOOGL', name: 'Alphabet Inc.', binanceSymbol: null, yfinanceSymbol: 'GOOGL' },
             { symbol: 'TSLA', name: 'Tesla Inc.', binanceSymbol: null, yfinanceSymbol: 'TSLA' },
-            { symbol: 'MSFT', name: 'Microsoft', binanceSymbol: null, yfinanceSymbol: 'MSFT' }
+            { symbol: 'MSFT', name: 'Microsoft', binanceSymbol: null, yfinanceSymbol: 'MSFT' },
+            { symbol: 'AMZN', name: 'Amazon.com Inc.', binanceSymbol: null, yfinanceSymbol: 'AMZN' },
+            { symbol: 'NVDA', name: 'NVIDIA Corporation', binanceSymbol: null, yfinanceSymbol: 'NVDA' },
+            { symbol: 'META', name: 'Meta Platforms Inc.', binanceSymbol: null, yfinanceSymbol: 'META' },
+            { symbol: 'BRK.B', name: 'Berkshire Hathaway Inc. (Class B)', binanceSymbol: null, yfinanceSymbol: 'BRK-B' },
+            { symbol: 'JPM', name: 'JPMorgan Chase & Co.', binanceSymbol: null, yfinanceSymbol: 'JPM' },
+            { symbol: 'V', name: 'Visa Inc.', binanceSymbol: null, yfinanceSymbol: 'V' },
+            { symbol: 'NFLX', name: 'Netflix Inc.', binanceSymbol: null, yfinanceSymbol: 'NFLX' },
+            { symbol: 'DIS', name: 'The Walt Disney Company', binanceSymbol: null, yfinanceSymbol: 'DIS' },
+            { symbol: 'BABA', name: 'Alibaba Group Holding Ltd.', binanceSymbol: null, yfinanceSymbol: 'BABA' },
+            { symbol: 'NKE', name: 'Nike Inc.', binanceSymbol: null, yfinanceSymbol: 'NKE' },
+            { symbol: 'INTC', name: 'Intel Corporation', binanceSymbol: null, yfinanceSymbol: 'INTC' }
         ],
         'Commodities': [
             { symbol: 'XAUUSD', name: 'Gold', binanceSymbol: null, yfinanceSymbol: 'GC=F' },
