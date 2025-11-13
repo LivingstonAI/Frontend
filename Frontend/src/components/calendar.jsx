@@ -4,6 +4,300 @@ import SideNavs from "./side_navs";
 import axios from "axios";
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 
+const styles = {
+  container: {
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: '#f3f4f6'
+  },
+  headerWrapper: {
+    flex: 'none',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    zIndex: 10
+  },
+  main: {
+    display: 'flex',
+    flex: 1,
+    overflow: 'hidden'
+  },
+  content: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '0.5rem'
+  },
+  processingOverlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50
+  },
+  processingModal: {
+    backgroundColor: 'white',
+    padding: '1rem',
+    borderRadius: '0.5rem',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+  spinner: {
+    border: '2px solid #e5e7eb',
+    borderTopColor: '#2563eb',
+    borderRadius: '50%',
+    width: '3rem',
+    height: '3rem',
+    animation: 'spin 1s linear infinite'
+  },
+  processingText: {
+    fontSize: '1.125rem',
+    fontWeight: 500,
+    marginTop: '0.75rem'
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '0.5rem',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    overflow: 'hidden'
+  },
+  titleSection: {
+    padding: '1rem'
+  },
+  title: {
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    marginBottom: '1rem'
+  },
+  viewModeButtons: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    backgroundColor: 'rgba(30, 58, 138, 0.3)',
+    borderRadius: '0.5rem',
+    padding: '0.25rem'
+  },
+  viewBtn: {
+    padding: '0.25rem 0.75rem',
+    borderRadius: '0.375rem',
+    color: '#dbeafe',
+    transition: 'all 0.2s',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '0.875rem'
+  },
+  viewBtnActive: {
+    backgroundColor: '#2563eb',
+    color: 'white'
+  },
+  navBar: {
+    padding: '0.75rem 1rem',
+    backgroundColor: '#f9fafb',
+    borderTop: '1px solid #e5e7eb',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '0.5rem'
+  },
+  navBtn: {
+    backgroundColor: '#2563eb',
+    color: 'white',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '0.375rem',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'background-color 0.2s'
+  },
+  dateTitle: {
+    fontSize: '1.125rem',
+    fontWeight: 500,
+    color: '#1e3a8a'
+  },
+  navActions: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
+  addEventBtn: {
+    backgroundColor: '#2563eb',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 500,
+    transition: 'background-color 0.2s'
+  },
+  formContainer: {
+    padding: '1rem',
+    borderBottom: '1px solid #e5e7eb',
+    backgroundColor: '#eff6ff'
+  },
+  formTitle: {
+    fontSize: '1.125rem',
+    fontWeight: 500,
+    marginBottom: '1rem',
+    color: '#1e3a8a'
+  },
+  form: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: '1rem'
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem'
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    color: '#374151'
+  },
+  formInput: {
+    display: 'block',
+    width: '100%',
+    padding: '0.5rem 0.75rem',
+    border: '1px solid #d1d5db',
+    borderRadius: '0.375rem',
+    backgroundColor: 'white',
+    color: '#111827',
+    fontSize: '0.875rem'
+  },
+  formActions: {
+    gridColumn: '1 / -1',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '0.75rem',
+    marginTop: '1rem'
+  },
+  btnCancel: {
+    backgroundColor: '#e5e7eb',
+    color: '#1f2937',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 500,
+    transition: 'background-color 0.2s'
+  },
+  btnSubmit: {
+    backgroundColor: '#2563eb',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 500,
+    transition: 'background-color 0.2s'
+  },
+  tableContainer: {
+    overflowX: 'auto'
+  },
+  loadingState: {
+    padding: '1.5rem',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  loadingText: {
+    color: '#4b5563',
+    marginLeft: '0.75rem'
+  },
+  errorState: {
+    padding: '1.5rem',
+    textAlign: 'center',
+    color: '#dc2626'
+  },
+  emptyState: {
+    padding: '1.5rem',
+    textAlign: 'center',
+    color: '#6b7280'
+  },
+  tableWrapper: {
+    position: 'relative',
+    overflowX: 'auto',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  },
+  table: {
+    minWidth: '100%',
+    borderCollapse: 'collapse'
+  },
+  thead: {
+    background: 'linear-gradient(to right, #1d4ed8, #2563eb)',
+    color: 'white'
+  },
+  th: {
+    padding: '0.75rem 1rem',
+    textAlign: 'left',
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em'
+  },
+  tbody: {
+    backgroundColor: 'white'
+  },
+  tr: {
+    borderBottom: '1px solid #e5e7eb',
+    transition: 'background-color 0.2s'
+  },
+  td: {
+    padding: '1rem',
+    whiteSpace: 'nowrap',
+    fontSize: '0.875rem'
+  },
+  timeCell: {
+    color: '#111827',
+    fontWeight: 500
+  },
+  impactCell: {
+    textAlign: 'center'
+  },
+  valueHigher: {
+    color: '#16a34a',
+    fontWeight: 500
+  },
+  valueLower: {
+    color: '#dc2626',
+    fontWeight: 500
+  },
+  valueEqual: {
+    color: '#6b7280',
+    fontWeight: 500
+  },
+  actionsCell: {
+    textAlign: 'right',
+    fontWeight: 500,
+    whiteSpace: 'nowrap'
+  },
+  actionBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    padding: '0.25rem 0.5rem',
+    transition: 'color 0.2s'
+  },
+  editBtn: {
+    color: '#2563eb',
+    marginRight: '0.75rem'
+  },
+  deleteBtn: {
+    color: '#dc2626'
+  }
+};
+
 export default function Calendar() {
   const baseUrl = "https://backend-production-c0ab.up.railway.app";
   const [events, setEvents] = useState([]);
@@ -27,13 +321,6 @@ export default function Calendar() {
     forecast: "",
     previous: ""
   });
-
-  // Impact color mapping
-  const impactColors = {
-    high: "#e53e3e", // red-600
-    medium: "#ed8936", // orange-500
-    low: "#ecc94b" // yellow-500
-  };
 
   useEffect(() => {
     fetchEvents();
@@ -103,10 +390,10 @@ export default function Calendar() {
     setActionType(editingEvent ? "Saving" : "Adding");
     
     try {
-      // Format the data for submission
+      // Format the data for submission WITHOUT the 'Z' suffix
       const eventData = {
         ...formData,
-        date_time: `${formData.date}T${formData.time}:00Z`,
+        date_time: `${formData.date}T${formData.time}:00`,
       };
       
       if (editingEvent) {
@@ -216,56 +503,75 @@ export default function Calendar() {
     }
   };
 
-  // Button styles
-  const btnPrimary = "bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50";
-  const btnSecondary = "bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50";
-  const btnSmall = "px-3 py-1 text-sm";
-  const btnDanger = "bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50";
-  
-  // Input styles
-  const inputStyle = "block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900";
-
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <div className="flex-none shadow-md z-10">
+    <div style={styles.container}>
+      <style>
+        {`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          .spinner { animation: spin 1s linear infinite; }
+          @media (min-width: 768px) {
+            .calendar-content { padding: 1rem; }
+            .nav-bar { padding: 0.75rem 1.5rem; }
+            .form-container { padding: 1.5rem; }
+            .form { grid-template-columns: repeat(2, 1fr); }
+            .form-group-full { grid-column: 1 / -1; }
+            .table th, .table td { padding: 0.75rem 1.5rem; }
+          }
+          .view-btn:hover { background-color: #1e3a8a; }
+          .nav-btn:hover { background-color: #1d4ed8; }
+          .add-event-btn:hover { background-color: #1d4ed8; }
+          .btn-cancel:hover { background-color: #d1d5db; }
+          .btn-submit:hover:not(:disabled) { background-color: #1d4ed8; }
+          .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+          .table-row:hover { background-color: #eff6ff; }
+          .edit-btn:hover { color: #1d4ed8; }
+          .delete-btn:hover { color: #b91c1c; }
+        `}
+      </style>
+      <div style={styles.headerWrapper}>
         <Header />
       </div>
       
-      <div className="flex flex-1 overflow-hidden">
+      <div style={styles.main}>
         <SideNavs />
         
-        <div className="flex-1 overflow-y-auto p-2 md:p-4">
+        <div style={styles.content} className="calendar-content">
           {/* Processing Overlay */}
           {processing && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-3"></div>
-                <p className="text-lg font-medium">{actionType}...</p>
+            <div style={styles.processingOverlay}>
+              <div style={styles.processingModal}>
+                <div style={styles.spinner} className="spinner"></div>
+                <p style={styles.processingText}>{actionType}...</p>
               </div>
             </div>
           )}
           
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div style={styles.card}>
             {/* Calendar Header */}
-            <div className="">
-              <h5 className="text-xl font-bold">Trading Calendar</h5>
+            <div style={styles.titleSection}>
+              <h5 style={styles.title}>Trading Calendar</h5>
               
-              <div className="flex items-center space-x-2 bg-blue-900 bg-opacity-30 rounded-lg p-1">
+              <div style={styles.viewModeButtons}>
                 <button 
                   onClick={() => setViewMode("day")} 
-                  className={`btn btn-primary px-3 py-1 rounded ${viewMode === "day" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                  style={{...styles.viewBtn, ...(viewMode === "day" ? styles.viewBtnActive : {})}}
+                  className="view-btn"
                 >
                   Day
                 </button>
                 <button 
                   onClick={() => setViewMode("week")} 
-                  className={`btn btn-primary px-3 py-1 rounded ${viewMode === "week" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                  style={{...styles.viewBtn, ...(viewMode === "week" ? styles.viewBtnActive : {})}}
+                  className="view-btn"
                 >
                   Week
                 </button>
                 <button 
                   onClick={() => setViewMode("month")} 
-                  className={`btn btn-primary px-3 py-1 rounded ${viewMode === "month" ? "bg-blue-600 text-white" : "text-blue-100 hover:bg-blue-800"} transition-colors duration-200`}
+                  style={{...styles.viewBtn, ...(viewMode === "month" ? styles.viewBtnActive : {})}}
+                  className="view-btn"
                 >
                   Month
                 </button>
@@ -273,17 +579,18 @@ export default function Calendar() {
             </div>
             
             {/* Navigation Bar */}
-            <div className="px-4 md:px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+            <div style={styles.navBar} className="nav-bar">
               <button 
                 onClick={handlePrevious}
-                className={`btn btn-primary ${btnSmall} flex items-center`}
+                style={styles.navBtn}
+                className="nav-btn"
               >
-                <span className="mr-1">←</span> Previous
+                <span style={{marginRight: '0.25rem'}}>←</span> Previous
               </button>
               
-              <h5 className="text-lg font-medium text-blue-900">{getTitle()}</h5>
+              <h5 style={styles.dateTitle}>{getTitle()}</h5>
               
-              <div className="flex space-x-2">
+              <div style={styles.navActions}>
                 <button
                   onClick={() => {
                     setEditingEvent(null);
@@ -299,58 +606,60 @@ export default function Calendar() {
                     });
                     setShowAddForm(!showAddForm);
                   }}
-                  className="btn btn-primary"
+                  style={styles.addEventBtn}
+                  className="add-event-btn"
                 >
                   {showAddForm ? "Cancel" : "Add Event"}
-                </button><br /><br />
+                </button>
                 
                 <button 
                   onClick={handleNext}
-                  className={`btn btn-primary ${btnSmall} flex items-center`}
+                  style={styles.navBtn}
+                  className="nav-btn"
                 >
-                  Next <span className="ml-1">→</span>
+                  Next <span style={{marginLeft: '0.25rem'}}>→</span>
                 </button>
               </div>
             </div>
             
             {/* Event Form */}
             {showAddForm && (
-              <div className="p-4 md:p-6 border-b border-gray-200 bg-blue-50">
-                <h5 className="text-lg font-medium mb-4 text-blue-900">
+              <div style={styles.formContainer} className="form-container">
+                <h5 style={styles.formTitle}>
                   {editingEvent ? "Edit Event" : "Add New Event"}
                 </h5>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Date</label>
+                <form onSubmit={handleSubmit} style={styles.form} className="form">
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Date</label>
                     <input 
                       type="date"
                       name="date"
                       value={formData.date}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                       required
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Time</label>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Time</label>
                     <input 
                       type="time"
                       name="time"
                       value={formData.time}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                       required
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Currency</label>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Currency</label>
                     <select 
                       name="currency"
                       value={formData.currency}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                       required
                     >
                       <option value="USD">USD</option>
@@ -364,13 +673,13 @@ export default function Calendar() {
                     </select>
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Impact</label>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Impact</label>
                     <select 
                       name="impact"
                       value={formData.impact}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                       required
                     >
                       <option value="low">Low</option>
@@ -379,62 +688,64 @@ export default function Calendar() {
                     </select>
                   </div>
                   
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Event Name</label>
+                  <div style={{...styles.formGroup, gridColumn: '1 / -1'}} className="form-group-full">
+                    <label style={styles.formLabel}>Event Name</label>
                     <input 
                       type="text"
                       name="event_name"
                       value={formData.event_name}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                       required
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Actual</label>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Actual</label>
                     <input 
                       type="text"
                       name="actual"
                       value={formData.actual}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Forecast</label>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Forecast</label>
                     <input 
                       type="text"
                       name="forecast"
                       value={formData.forecast}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Previous</label>
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Previous</label>
                     <input 
                       type="text"
                       name="previous"
                       value={formData.previous}
                       onChange={handleInputChange}
-                      className={inputStyle}
+                      style={styles.formInput}
                     />
                   </div>
                   
-                  <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
+                  <div style={styles.formActions}>
                     <button
                       type="button"
                       onClick={() => setShowAddForm(false)}
-                      className="btn btn-primary"
+                      style={styles.btnCancel}
+                      className="btn-cancel"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="btn btn-primary"
+                      style={styles.btnSubmit}
+                      className="btn-submit"
                       disabled={processing}
                     >
                       {editingEvent ? "Update Event" : "Add Event"}
@@ -445,92 +756,84 @@ export default function Calendar() {
             )}
             
             {/* Events Table */}
-            <div className="overflow-x-auto">
+            <div style={styles.tableContainer}>
               {loading ? (
-                <div className="p-6 text-center flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mr-3"></div>
-                  <span className="text-gray-600">Loading events...</span>
+                <div style={styles.loadingState}>
+                  <div style={styles.spinner} className="spinner"></div>
+                  <span style={styles.loadingText}>Loading events...</span>
                 </div>
               ) : error ? (
-                <div className="p-6 text-center text-red-500">{error}</div>
+                <div style={styles.errorState}>{error}</div>
               ) : events.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">No events for the selected period</div>
+                <div style={styles.emptyState}>No events for the selected period</div>
               ) : (
-                <div className="relative overflow-x-auto shadow-md">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-blue-700 to-blue-600 text-white">
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table} className="table">
+                    <thead style={styles.thead}>
                       <tr>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Time
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Currency
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Impact
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Event
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Actual
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Forecast
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                          Previous
-                        </th>
-                        <th scope="col" className="px-4 md:px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
-                          Actions
-                        </th>
+                        <th style={styles.th}>Time</th>
+                        <th style={styles.th}>Currency</th>
+                        <th style={styles.th}>Impact</th>
+                        <th style={styles.th}>Event</th>
+                        <th style={styles.th}>Actual</th>
+                        <th style={styles.th}>Forecast</th>
+                        <th style={styles.th}>Previous</th>
+                        <th style={{...styles.th, textAlign: 'right'}}>Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody style={styles.tbody}>
                       {events.map((event) => {
                         const eventDate = parseISO(event.date_time);
-                        // Get comparison result
                         const comparison = compareValues(event.actual, event.forecast);
                         
                         return (
-                          <tr key={event.id} className="hover:bg-blue-50 transition-colors duration-200">
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                          <tr key={event.id} style={styles.tr} className="table-row">
+                            <td style={{...styles.td, ...styles.timeCell}}>
                               {viewMode !== "day" && format(eventDate, "MMM d, ")}
                               {format(eventDate, "h:mm a")}
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                            <td style={{...styles.td, ...styles.timeCell}}>
                               {event.currency}
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center justify-center">
-                                <span className="impact-indicator">
+                            <td style={{...styles.td, ...styles.impactCell}}>
+                              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                <span>
                                   {event.impact === "high" && "🔴"}
                                   {event.impact === "medium" && "🟠"} 
                                   {event.impact === "low" && "🟡"} 
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td style={styles.td}>
                               {event.event_name}
                             </td>
-                            <td className={`px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                              comparison === 'higher' ? 'text-green-css' : 
-                              comparison === 'lower' ? 'text-red-css' : 
-                              'text-gray-css'
-                            }`}>
+                            <td style={{
+                              ...styles.td,
+                              ...(comparison === 'higher' ? styles.valueHigher : 
+                                  comparison === 'lower' ? styles.valueLower : 
+                                  styles.valueEqual)
+                            }}>
                               {event.actual || "—"}
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td style={styles.td}>
                               {event.forecast || "—"}
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <td style={styles.td}>
                               {event.previous || "—"}
                             </td>
-                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button onClick={() => handleEdit(event)} className="btn btn-primary text-blue-600 hover:text-blue-800 mr-3 transition-colors duration-200">
+                            <td style={styles.actionsCell}>
+                              <button 
+                                onClick={() => handleEdit(event)} 
+                                style={{...styles.actionBtn, ...styles.editBtn}}
+                                className="edit-btn"
+                              >
                                 Edit
-                              </button><br /><br />
-                              <button onClick={() => handleDelete(event.id)} className="btn btn-primary text-red-600 hover:text-red-800 transition-colors duration-200">
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(event.id)} 
+                                style={{...styles.actionBtn, ...styles.deleteBtn}}
+                                className="delete-btn"
+                              >
                                 Delete
                               </button>
                             </td>
