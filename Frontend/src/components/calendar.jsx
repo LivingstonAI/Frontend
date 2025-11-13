@@ -1,32 +1,30 @@
 import React, { useState, useEffect } from "react";
+import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import axios from "axios";
-import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
+
 
 const styles = {
   container: {
-    // display: 'flex',
-    flexDirection: 'column',
     minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
     backgroundColor: '#f3f4f6'
   },
   headerWrapper: {
-    flex: 'none',
+    width: '100%',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
     zIndex: 10
   },
-  main: {
-    display: 'flex',
-    flex: 1,
-    overflow: 'hidden',
-    width: '100%'
+  sideNavWrapper: {
+    width: '100%',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
   },
   content: {
     flex: 1,
-    overflowY: 'auto',
-    padding: '0.5rem',
-    width: '100%'
+    padding: '1rem',
+    width: '100%',
+    overflowY: 'auto'
   },
   processingOverlay: {
     position: 'fixed',
@@ -232,7 +230,7 @@ const styles = {
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
   },
   table: {
-    minWidth: '100%',
+    width: '100%',
     borderCollapse: 'collapse'
   },
   thead: {
@@ -304,16 +302,15 @@ const styles = {
 export default function Calendar() {
   const baseUrl = "https://backend-production-c0ab.up.railway.app";
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState("day"); // "day", "week", "month"
+  const [viewMode, setViewMode] = useState("day");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [actionType, setActionType] = useState("");
   
-  // Form state
   const [formData, setFormData] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     time: "10:00",
@@ -341,17 +338,15 @@ export default function Calendar() {
         start = format(startOfWeek(currentDate), "yyyy-MM-dd");
         end = format(endOfWeek(currentDate), "yyyy-MM-dd");
       } else {
-        // Month view logic here
         const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         start = format(firstDayOfMonth, "yyyy-MM-dd");
         end = format(lastDayOfMonth, "yyyy-MM-dd");
       }
       
-      const response = await axios.get(`${baseUrl}/api/economic-events/`, {
-        params: { start_date: start, end_date: end }
-      });
-      setEvents(response.data);
+      const response = await fetch(`${baseUrl}/api/economic-events/?start_date=${start}&end_date=${end}`);
+      const data = await response.json();
+      setEvents(data);
     } catch (err) {
       setError("Failed to fetch events");
       console.error(err);
@@ -366,7 +361,6 @@ export default function Calendar() {
     } else if (viewMode === "week") {
       setCurrentDate(prev => addDays(prev, -7));
     } else {
-      // Month view
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
     }
   };
@@ -377,7 +371,6 @@ export default function Calendar() {
     } else if (viewMode === "week") {
       setCurrentDate(prev => addDays(prev, 7));
     } else {
-      // Month view
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     }
   };
@@ -393,21 +386,23 @@ export default function Calendar() {
     setActionType(editingEvent ? "Saving" : "Adding");
     
     try {
-      // Format the data for submission WITHOUT the 'Z' suffix
       const eventData = {
         ...formData,
         date_time: `${formData.date}T${formData.time}:00`,
       };
       
-      if (editingEvent) {
-        // Update existing event
-        await axios.put(`${baseUrl}/api/economic-events/${editingEvent.id}/`, eventData);
-      } else {
-        // Create new event
-        await axios.post(`${baseUrl}/api/economic-events/`, eventData);
-      }
+      const url = editingEvent 
+        ? `${baseUrl}/api/economic-events/${editingEvent.id}/`
+        : `${baseUrl}/api/economic-events/`;
       
-      // Reset form and refresh events
+      const method = editingEvent ? 'PUT' : 'POST';
+      
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      });
+      
       setFormData({
         date: format(new Date(), "yyyy-MM-dd"),
         time: "10:00",
@@ -431,7 +426,6 @@ export default function Calendar() {
   };
 
   const handleEdit = (event) => {
-    // Parse event data into form format
     const eventDate = parseISO(event.date_time);
     setFormData({
       date: format(eventDate, "yyyy-MM-dd"),
@@ -452,7 +446,7 @@ export default function Calendar() {
       setProcessing(true);
       setActionType("Deleting");
       try {
-        await axios.delete(`${baseUrl}/api/economic-events/${id}/`);
+        await fetch(`${baseUrl}/api/economic-events/${id}/`, { method: 'DELETE' });
         fetchEvents();
       } catch (err) {
         setError("Failed to delete event");
@@ -464,28 +458,18 @@ export default function Calendar() {
     }
   };
 
-  // Function to extract numeric value from strings like "3.2%", "1.5B", "500K", etc.
   const extractNumericValue = (value) => {
     if (!value || value === "—") return null;
-    
-    // Remove all non-numeric characters except for decimal point
     const numericString = value.replace(/[^0-9.-]/g, '');
-    
-    // Convert to number
     const numericValue = parseFloat(numericString);
-    
-    // Check if it's a valid number
     if (isNaN(numericValue)) return null;
-    
     return numericValue;
   };
 
-  // Function to compare actual vs forecast values
   const compareValues = (actual, forecast) => {
     const actualValue = extractNumericValue(actual);
     const forecastValue = extractNumericValue(forecast);
     
-    // If either value is not a valid number, return null (no comparison)
     if (actualValue === null || forecastValue === null) return null;
     
     if (actualValue > forecastValue) return 'higher';
@@ -493,7 +477,6 @@ export default function Calendar() {
     return 'equal';
   };
 
-  // Format title based on view mode
   const getTitle = () => {
     if (viewMode === "day") {
       return format(currentDate, "MMM d, yyyy");
@@ -513,15 +496,6 @@ export default function Calendar() {
           @keyframes spin {
             to { transform: rotate(360deg); }
           }
-          .spinner { animation: spin 1s linear infinite; }
-          @media (min-width: 768px) {
-            .calendar-content { padding: 1rem; }
-            .nav-bar { padding: 0.75rem 1.5rem; }
-            .form-container { padding: 1.5rem; }
-            .form { grid-template-columns: repeat(2, 1fr); }
-            .form-group-full { grid-column: 1 / -1; }
-            .table th, .table td { padding: 0.75rem 1.5rem; }
-          }
           .view-btn:hover { background-color: #1e3a8a; }
           .nav-btn:hover { background-color: #1d4ed8; }
           .add-event-btn:hover { background-color: #1d4ed8; }
@@ -533,321 +507,317 @@ export default function Calendar() {
           .delete-btn:hover { color: #b91c1c; }
         `}
       </style>
+      
       <div style={styles.headerWrapper}>
         <Header />
       </div>
       
-      <div style={styles.main}>
+      <div style={styles.sideNavWrapper}>
         <SideNavs />
+      </div>
+      
+      <div style={styles.content}>
+        {processing && (
+          <div style={styles.processingOverlay}>
+            <div style={styles.processingModal}>
+              <div style={styles.spinner}></div>
+              <p style={styles.processingText}>{actionType}...</p>
+            </div>
+          </div>
+        )}
         
-        <div style={styles.content} className="calendar-content">
-          {/* Processing Overlay */}
-          {processing && (
-            <div style={styles.processingOverlay}>
-              <div style={styles.processingModal}>
-                <div style={styles.spinner} className="spinner"></div>
-                <p style={styles.processingText}>{actionType}...</p>
-              </div>
-            </div>
-          )}
-          
-          <div style={styles.card}>
-            {/* Calendar Header */}
-            <div style={styles.titleSection}>
-              <h5 style={styles.title}>Trading Calendar</h5>
-              
-              <div style={styles.viewModeButtons}>
-                <button 
-                  onClick={() => setViewMode("day")} 
-                  style={{...styles.viewBtn, ...(viewMode === "day" ? styles.viewBtnActive : {})}}
-                  className="view-btn"
-                >
-                  Day
-                </button>
-                <button 
-                  onClick={() => setViewMode("week")} 
-                  style={{...styles.viewBtn, ...(viewMode === "week" ? styles.viewBtnActive : {})}}
-                  className="view-btn"
-                >
-                  Week
-                </button>
-                <button 
-                  onClick={() => setViewMode("month")} 
-                  style={{...styles.viewBtn, ...(viewMode === "month" ? styles.viewBtnActive : {})}}
-                  className="view-btn"
-                >
-                  Month
-                </button>
-              </div>
-            </div>
+        <div style={styles.card}>
+          <div style={styles.titleSection}>
+            <h5 style={styles.title}>Trading Calendar</h5>
             
-            {/* Navigation Bar */}
-            <div style={styles.navBar} className="nav-bar">
+            <div style={styles.viewModeButtons}>
               <button 
-                onClick={handlePrevious}
+                onClick={() => setViewMode("day")} 
+                style={{...styles.viewBtn, ...(viewMode === "day" ? styles.viewBtnActive : {})}}
+                className="view-btn"
+              >
+                Day
+              </button>
+              <button 
+                onClick={() => setViewMode("week")} 
+                style={{...styles.viewBtn, ...(viewMode === "week" ? styles.viewBtnActive : {})}}
+                className="view-btn"
+              >
+                Week
+              </button>
+              <button 
+                onClick={() => setViewMode("month")} 
+                style={{...styles.viewBtn, ...(viewMode === "month" ? styles.viewBtnActive : {})}}
+                className="view-btn"
+              >
+                Month
+              </button>
+            </div>
+          </div>
+          
+          <div style={styles.navBar}>
+            <button 
+              onClick={handlePrevious}
+              style={styles.navBtn}
+              className="nav-btn"
+            >
+              <span style={{marginRight: '0.25rem'}}>←</span> Previous
+            </button>
+            
+            <h5 style={styles.dateTitle}>{getTitle()}</h5>
+            
+            <div style={styles.navActions}>
+              <button
+                onClick={() => {
+                  setEditingEvent(null);
+                  setFormData({
+                    date: format(new Date(), "yyyy-MM-dd"),
+                    time: "10:00",
+                    currency: "USD",
+                    impact: "medium",
+                    event_name: "",
+                    actual: "",
+                    forecast: "",
+                    previous: ""
+                  });
+                  setShowAddForm(!showAddForm);
+                }}
+                style={styles.addEventBtn}
+                className="add-event-btn"
+              >
+                {showAddForm ? "Cancel" : "Add Event"}
+              </button>
+              
+              <button 
+                onClick={handleNext}
                 style={styles.navBtn}
                 className="nav-btn"
               >
-                <span style={{marginRight: '0.25rem'}}>←</span> Previous
+                Next <span style={{marginLeft: '0.25rem'}}>→</span>
               </button>
-              
-              <h5 style={styles.dateTitle}>{getTitle()}</h5>
-              
-              <div style={styles.navActions}>
-                <button
-                  onClick={() => {
-                    setEditingEvent(null);
-                    setFormData({
-                      date: format(new Date(), "yyyy-MM-dd"),
-                      time: "10:00",
-                      currency: "USD",
-                      impact: "medium",
-                      event_name: "",
-                      actual: "",
-                      forecast: "",
-                      previous: ""
-                    });
-                    setShowAddForm(!showAddForm);
-                  }}
-                  style={styles.addEventBtn}
-                  className="add-event-btn"
-                >
-                  {showAddForm ? "Cancel" : "Add Event"}
-                </button>
-                
-                <button 
-                  onClick={handleNext}
-                  style={styles.navBtn}
-                  className="nav-btn"
-                >
-                  Next <span style={{marginLeft: '0.25rem'}}>→</span>
-                </button>
-              </div>
             </div>
-            
-            {/* Event Form */}
-            {showAddForm && (
-              <div style={styles.formContainer} className="form-container">
-                <h5 style={styles.formTitle}>
-                  {editingEvent ? "Edit Event" : "Add New Event"}
-                </h5>
-                <form onSubmit={handleSubmit} style={styles.form} className="form">
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Date</label>
-                    <input 
-                      type="date"
-                      name="date"
-                      value={formData.date}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                      required
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Time</label>
-                    <input 
-                      type="time"
-                      name="time"
-                      value={formData.time}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                      required
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Currency</label>
-                    <select 
-                      name="currency"
-                      value={formData.currency}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                      required
-                    >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="JPY">JPY</option>
-                      <option value="AUD">AUD</option>
-                      <option value="CAD">CAD</option>
-                      <option value="CHF">CHF</option>
-                      <option value="CNY">CNY</option>
-                    </select>
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Impact</label>
-                    <select 
-                      name="impact"
-                      value={formData.impact}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                      required
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                  
-                  <div style={{...styles.formGroup, gridColumn: '1 / -1'}} className="form-group-full">
-                    <label style={styles.formLabel}>Event Name</label>
-                    <input 
-                      type="text"
-                      name="event_name"
-                      value={formData.event_name}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                      required
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Actual</label>
-                    <input 
-                      type="text"
-                      name="actual"
-                      value={formData.actual}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Forecast</label>
-                    <input 
-                      type="text"
-                      name="forecast"
-                      value={formData.forecast}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formGroup}>
-                    <label style={styles.formLabel}>Previous</label>
-                    <input 
-                      type="text"
-                      name="previous"
-                      value={formData.previous}
-                      onChange={handleInputChange}
-                      style={styles.formInput}
-                    />
-                  </div>
-                  
-                  <div style={styles.formActions}>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddForm(false)}
-                      style={styles.btnCancel}
-                      className="btn-cancel"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      style={styles.btnSubmit}
-                      className="btn-submit"
-                      disabled={processing}
-                    >
-                      {editingEvent ? "Update Event" : "Add Event"}
-                    </button>
-                  </div>
-                </form>
+          </div>
+          
+          {showAddForm && (
+            <div style={styles.formContainer}>
+              <h5 style={styles.formTitle}>
+                {editingEvent ? "Edit Event" : "Add New Event"}
+              </h5>
+              <form onSubmit={handleSubmit} style={styles.form}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Date</label>
+                  <input 
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Time</label>
+                  <input 
+                    type="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Currency</label>
+                  <select 
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                    required
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                    <option value="AUD">AUD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                    <option value="CNY">CNY</option>
+                  </select>
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Impact</label>
+                  <select 
+                    name="impact"
+                    value={formData.impact}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                    required
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                
+                <div style={{...styles.formGroup, gridColumn: '1 / -1'}}>
+                  <label style={styles.formLabel}>Event Name</label>
+                  <input 
+                    type="text"
+                    name="event_name"
+                    value={formData.event_name}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                    required
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Actual</label>
+                  <input 
+                    type="text"
+                    name="actual"
+                    value={formData.actual}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Forecast</label>
+                  <input 
+                    type="text"
+                    name="forecast"
+                    value={formData.forecast}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                  />
+                </div>
+                
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Previous</label>
+                  <input 
+                    type="text"
+                    name="previous"
+                    value={formData.previous}
+                    onChange={handleInputChange}
+                    style={styles.formInput}
+                  />
+                </div>
+                
+                <div style={styles.formActions}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    style={styles.btnCancel}
+                    className="btn-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={styles.btnSubmit}
+                    className="btn-submit"
+                    disabled={processing}
+                  >
+                    {editingEvent ? "Update Event" : "Add Event"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+          
+          <div style={styles.tableContainer}>
+            {loading ? (
+              <div style={styles.loadingState}>
+                <div style={styles.spinner}></div>
+                <span style={styles.loadingText}>Loading events...</span>
+              </div>
+            ) : error ? (
+              <div style={styles.errorState}>{error}</div>
+            ) : events.length === 0 ? (
+              <div style={styles.emptyState}>No events for the selected period</div>
+            ) : (
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead style={styles.thead}>
+                    <tr>
+                      <th style={styles.th}>Time</th>
+                      <th style={styles.th}>Currency</th>
+                      <th style={styles.th}>Impact</th>
+                      <th style={styles.th}>Event</th>
+                      <th style={styles.th}>Actual</th>
+                      <th style={styles.th}>Forecast</th>
+                      <th style={styles.th}>Previous</th>
+                      <th style={{...styles.th, textAlign: 'right'}}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody style={styles.tbody}>
+                    {events.map((event) => {
+                      const eventDate = parseISO(event.date_time);
+                      const comparison = compareValues(event.actual, event.forecast);
+                      
+                      return (
+                        <tr key={event.id} style={styles.tr} className="table-row">
+                          <td style={{...styles.td, ...styles.timeCell}}>
+                            {viewMode !== "day" && format(eventDate, "MMM d, ")}
+                            {format(eventDate, "h:mm a")}
+                          </td>
+                          <td style={{...styles.td, ...styles.timeCell}}>
+                            {event.currency}
+                          </td>
+                          <td style={{...styles.td, ...styles.impactCell}}>
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                              <span>
+                                {event.impact === "high" && "🔴"}
+                                {event.impact === "medium" && "🟠"} 
+                                {event.impact === "low" && "🟡"} 
+                              </span>
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            {event.event_name}
+                          </td>
+                          <td style={{
+                            ...styles.td,
+                            ...(comparison === 'higher' ? styles.valueHigher : 
+                                comparison === 'lower' ? styles.valueLower : 
+                                styles.valueEqual)
+                          }}>
+                            {event.actual || "—"}
+                          </td>
+                          <td style={styles.td}>
+                            {event.forecast || "—"}
+                          </td>
+                          <td style={styles.td}>
+                            {event.previous || "—"}
+                          </td>
+                          <td style={styles.actionsCell}>
+                            <button 
+                              onClick={() => handleEdit(event)} 
+                              style={{...styles.actionBtn, ...styles.editBtn}}
+                              className="edit-btn"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(event.id)} 
+                              style={{...styles.actionBtn, ...styles.deleteBtn}}
+                              className="delete-btn"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
-            
-            {/* Events Table */}
-            <div style={styles.tableContainer}>
-              {loading ? (
-                <div style={styles.loadingState}>
-                  <div style={styles.spinner} className="spinner"></div>
-                  <span style={styles.loadingText}>Loading events...</span>
-                </div>
-              ) : error ? (
-                <div style={styles.errorState}>{error}</div>
-              ) : events.length === 0 ? (
-                <div style={styles.emptyState}>No events for the selected period</div>
-              ) : (
-                <div style={styles.tableWrapper}>
-                  <table style={styles.table} className="table">
-                    <thead style={styles.thead}>
-                      <tr>
-                        <th style={styles.th}>Time</th>
-                        <th style={styles.th}>Currency</th>
-                        <th style={styles.th}>Impact</th>
-                        <th style={styles.th}>Event</th>
-                        <th style={styles.th}>Actual</th>
-                        <th style={styles.th}>Forecast</th>
-                        <th style={styles.th}>Previous</th>
-                        <th style={{...styles.th, textAlign: 'right'}}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody style={styles.tbody}>
-                      {events.map((event) => {
-                        const eventDate = parseISO(event.date_time);
-                        const comparison = compareValues(event.actual, event.forecast);
-                        
-                        return (
-                          <tr key={event.id} style={styles.tr} className="table-row">
-                            <td style={{...styles.td, ...styles.timeCell}}>
-                              {viewMode !== "day" && format(eventDate, "MMM d, ")}
-                              {format(eventDate, "h:mm a")}
-                            </td>
-                            <td style={{...styles.td, ...styles.timeCell}}>
-                              {event.currency}
-                            </td>
-                            <td style={{...styles.td, ...styles.impactCell}}>
-                              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                <span>
-                                  {event.impact === "high" && "🔴"}
-                                  {event.impact === "medium" && "🟠"} 
-                                  {event.impact === "low" && "🟡"} 
-                                </span>
-                              </div>
-                            </td>
-                            <td style={styles.td}>
-                              {event.event_name}
-                            </td>
-                            <td style={{
-                              ...styles.td,
-                              ...(comparison === 'higher' ? styles.valueHigher : 
-                                  comparison === 'lower' ? styles.valueLower : 
-                                  styles.valueEqual)
-                            }}>
-                              {event.actual || "—"}
-                            </td>
-                            <td style={styles.td}>
-                              {event.forecast || "—"}
-                            </td>
-                            <td style={styles.td}>
-                              {event.previous || "—"}
-                            </td>
-                            <td style={styles.actionsCell}>
-                              <button 
-                                onClick={() => handleEdit(event)} 
-                                style={{...styles.actionBtn, ...styles.editBtn}}
-                                className="edit-btn"
-                              >
-                                Edit
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(event.id)} 
-                                style={{...styles.actionBtn, ...styles.deleteBtn}}
-                                className="delete-btn"
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

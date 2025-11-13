@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
+
 export default function SnowAIBrowser() {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState(null);
