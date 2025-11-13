@@ -8,7 +8,6 @@ const styles = {
   container: {
     flexDirection: 'column',
     minHeight: '100vh',
-    backgroundColor: '#f3f4f6'
   },
   headerWrapper: {
     flex: 'none',
