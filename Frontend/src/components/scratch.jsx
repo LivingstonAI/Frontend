@@ -833,6 +833,47 @@ return [`is_low_volume(asset=asset)`, Order.NONE];
 };
 
 
+pythonGenerator['forBlock']['is_medium_volume_backtest'] = function(block, generator) {
+
+
+  return [`is_medium_volume_backtest(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_medium_volume_backtest'] = function(block, generator) {
+
+return [`is_medium_volume_backtest(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_high_volume_backtest'] = function(block, generator) {
+
+
+  return [`is_high_volume_backtest(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_high_volume_backtest'] = function(block, generator) {
+
+return [`is_high_volume_backtest(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_low_volume_backtest'] = function(block, generator) {
+
+
+  return [`is_low_volume_backtest(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_low_volume_backtest'] = function(block, generator) {
+
+return [`is_low_volume_backtest(data=dataset)`, Order.NONE];
+
+};
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -1518,9 +1559,44 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
-  
-  
 
+  Blockly.Blocks['is_medium_volume_backtest'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("medium volume backtest")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(210);
+      this.setTooltip("Check if asset has medium volume for backtesting");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_high_volume_backtest'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("high volume backtest")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Check if asset has high volume for backtesting");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['is_low_volume_backtest'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("low volume backtest")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Check if asset has low volume for backtesting");
+      this.setHelpUrl("");
+    }
+  };
+  
+  
     const MY_TOOLBOX = {
       "kind": "categoryToolbox",
       "contents": [
@@ -1842,6 +1918,18 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "is_low_volume"
+            },
+            {
+              "kind": "block",
+              "type": "is_medium_volume_backtest"
+            },
+            {
+              "kind": "block",
+              "type": "is_high_volume_backtest"
+            },
+            {
+              "kind": "block",
+              "type": "is_low_volume_backtest"
             },
           ]
         },
