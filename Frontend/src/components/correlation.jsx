@@ -935,7 +935,7 @@ Keep your response to 2-3 sentences maximum. Be specific and actionable. No mark
 
 ${assetSummary}${councilContext}
 
-Provide helpful, conversational responses about this market data. Reference the council discussion when relevant. Keep responses short, sweet, and useful (2-4 sentences max). No markdown formatting - plain text only. Be friendly and natural in conversation.`;
+Provide helpful, conversational responses about this market data. Reference the council discussion when relevant. Don't over-rely on the council summary. Use it only as reference, but make your own conclusions. Asset class movements across all asset class data that you have should have more weighting for you bias recommendation, but the council should provide context. Keep responses short, sweet, and useful (2-4 sentences max). No markdown formatting - plain text only. Be friendly and natural in conversation.`;
 
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
