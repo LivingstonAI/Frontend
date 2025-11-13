@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Upload, Edit3, Save, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, Plus } from "lucide-react";
-
-
 import Header from "./header";
 import SideNavs from "./side_navs";
+
 
 export default function ForexFactoryCapturer() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -199,89 +198,103 @@ export default function ForexFactoryCapturer() {
   };
 
   const addNewEvent = () => {
-  const newEvent = {
-    date_time: new Date().toISOString().slice(0, 19), // Current date/time
-    currency: '',
-    impact: '',
-    event_name: '',
-    actual: '',
-    forecast: '',
-    previous: ''
+    // Get current date/time in local timezone without conversion
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+    
+    const newEvent = {
+      date_time: localDateTime,
+      currency: '',
+      impact: '',
+      event_name: '',
+      actual: '',
+      forecast: '',
+      previous: ''
+    };
+    setEconomicEvents([...economicEvents, newEvent]);
   };
-  setEconomicEvents([...economicEvents, newEvent]);
-};
 
   // Replace the saveEvents function in ForexFactoryCapturer with this:
+  const saveEvents = async () => {
+    if (economicEvents.length === 0) {
+      alert('No events to save');
+      return;
+    }
 
-const saveEvents = async () => {
-  if (economicEvents.length === 0) {
-    alert('No events to save');
-    return;
-  }
+    setSaving(true);
+    setSaveStatus(null);
 
-  setSaving(true);
-  setSaveStatus(null);
+    try {
+      let savedCount = 0;
+      const errors = [];
 
-  try {
-    let savedCount = 0;
-    const errors = [];
+      // Save events one by one using the same REST API endpoint as Calendar
+      for (const event of economicEvents) {
+        try {
+          // Format datetime for backend - append seconds if not present
+          let dateTime = event.date_time;
+          if (dateTime && !dateTime.includes(':00:00') && dateTime.length === 16) {
+            dateTime = dateTime + ':00';
+          }
+          
+          const response = await fetch(`${baseUrl}/api/economic-events/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              date_time: dateTime,
+              currency: event.currency,
+              impact: event.impact,
+              event_name: event.event_name,
+              actual: event.actual || '',
+              forecast: event.forecast || '',
+              previous: event.previous || ''
+            })
+          });
 
-    // Save events one by one using the same REST API endpoint as Calendar
-    for (const event of economicEvents) {
-      try {
-        const response = await fetch(`${baseUrl}/api/economic-events/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date_time: event.date_time,
-            currency: event.currency,
-            impact: event.impact,
-            event_name: event.event_name,
-            actual: event.actual || '',
-            forecast: event.forecast || '',
-            previous: event.previous || ''
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          errors.push(`Failed to save "${event.event_name}": ${errorData.detail || response.statusText}`);
-        } else {
-          savedCount++;
+          if (!response.ok) {
+            const errorData = await response.json();
+            errors.push(`Failed to save "${event.event_name}": ${errorData.detail || response.statusText}`);
+          } else {
+            savedCount++;
+          }
+        } catch (error) {
+          errors.push(`Failed to save "${event.event_name}": ${error.message}`);
         }
-      } catch (error) {
-        errors.push(`Failed to save "${event.event_name}": ${error.message}`);
       }
-    }
 
-    if (savedCount > 0) {
-      setSaveStatus({ 
-        type: 'success', 
-        message: `Successfully saved ${savedCount} events${errors.length > 0 ? ` (${errors.length} failed)` : ''}` 
-      });
-      
-      // Clear the form after successful save
-      setTimeout(() => {
-        setEconomicEvents([]);
-        setSelectedFile(null);
-        setPreviewUrl(null);
-        setSaveStatus(null);
-      }, 2000);
-    } else {
-      setSaveStatus({ 
-        type: 'error', 
-        message: `Save failed. Errors: ${errors.join(', ')}` 
-      });
+      if (savedCount > 0) {
+        setSaveStatus({ 
+          type: 'success', 
+          message: `Successfully saved ${savedCount} events${errors.length > 0 ? ` (${errors.length} failed)` : ''}` 
+        });
+        
+        // Clear the form after successful save
+        setTimeout(() => {
+          setEconomicEvents([]);
+          setSelectedFile(null);
+          setPreviewUrl(null);
+          setSaveStatus(null);
+        }, 2000);
+      } else {
+        setSaveStatus({ 
+          type: 'error', 
+          message: `Save failed. Errors: ${errors.join(', ')}` 
+        });
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      setSaveStatus({ type: 'error', message: `Save failed: ${error.message}` });
+    } finally {
+      setSaving(false);
     }
-  } catch (error) {
-    console.error('Save error:', error);
-    setSaveStatus({ type: 'error', message: `Save failed: ${error.message}` });
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   return (
     <>
@@ -406,14 +419,12 @@ const saveEvents = async () => {
           to { transform: rotate(360deg); }
         }
 
-        /* Mobile-responsive table container */
         .table-container {
           width: 100%;
           overflow-x: auto;
           margin-top: 2rem;
           border-radius: 8px;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          /* Custom blue scrollbar */
           scrollbar-width: thin;
           scrollbar-color: #3b82f6 #e2e8f0;
         }
@@ -438,7 +449,7 @@ const saveEvents = async () => {
 
         .events-table {
           width: 100%;
-          min-width: 1000px; /* Ensures table doesn't get too cramped */
+          min-width: 1000px;
           border-collapse: collapse;
           background: white;
         }
@@ -586,30 +597,29 @@ const saveEvents = async () => {
         }
 
         .add-event-section {
-              margin: 1rem 0;
-              text-align: center;
-            }
+          margin: 1rem 0;
+          text-align: center;
+        }
 
-            .add-button {
-              background: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
-              color: white;
-              border: none;
-              padding: 0.75rem 1.5rem;
-              border-radius: 8px;
-              cursor: pointer;
-              font-weight: 600;
-              display: inline-flex;
-              align-items: center;
-              gap: 0.5rem;
-              transition: all 0.3s ease;
-            }
+        .add-button {
+          background: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
+        }
 
-            .add-button:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
-            }
+        .add-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+        }
               
-        /* Mobile responsiveness */
         @media (max-width: 768px) {
           .upload-section {
             padding: 1.5rem;
@@ -677,6 +687,69 @@ const saveEvents = async () => {
             font-size: 0.9rem;
           }
         }
+        
+        .main-page-body {
+          display: flex;
+        }
+        
+        .main-body-info {
+          flex: 1;
+          padding: 2rem;
+        }
+        
+        .major-upcoming-news-events-header {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #1e40af;
+        }
+
+        @media (max-width: 1024px) {
+          .main-page-body {
+            flex-direction: column;
+          }
+          
+          .main-body-info {
+            padding: 1.5rem;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .main-body-info {
+            padding: 1rem;
+          }
+          
+          .major-upcoming-news-events-header {
+            font-size: 1.25rem;
+          }
+          
+          .add-event-section {
+            margin: 0.75rem 0;
+          }
+          
+          .add-button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .main-body-info {
+            padding: 0.75rem;
+          }
+          
+          .major-upcoming-news-events-header {
+            font-size: 1.1rem;
+          }
+          
+          br {
+            display: none;
+          }
+          
+          .add-button {
+            padding: 0.625rem 1rem;
+            font-size: 0.9rem;
+          }
+        }
       `}</style>
 
       <div className="forex-capturer-container">
@@ -690,7 +763,6 @@ const saveEvents = async () => {
               Forex Factory Screenshot Analyzer
             </h5><br /><br /><br />
 
-            {/* Upload Section */}
             <div className="upload-section">
               <input
                 type="file"
@@ -708,7 +780,6 @@ const saveEvents = async () => {
               </p>
             </div>
 
-            {/* Preview Section */}
             {previewUrl && (
               <div className="preview-section">
                 <button
@@ -726,7 +797,6 @@ const saveEvents = async () => {
               </div>
             )}
 
-            {/* Analyze Button */}
             {selectedFile && (
               <button
                 onClick={analyzeScreenshot}
@@ -747,7 +817,6 @@ const saveEvents = async () => {
               </button>
             )}
 
-            {/* Status Messages */}
             {saveStatus && (
               <div className={`status-message status-${saveStatus.type}`}>
                 {saveStatus.type === 'success' && <CheckCircle size={20} />}
@@ -757,17 +826,13 @@ const saveEvents = async () => {
               </div>
             )}
 
-              {/* Add Event Button - only show when we have events or after analysis */}
-              {(economicEvents.length > 0 || (selectedFile && !isAnalyzing)) && (
-                <div className="add-event-section">
-                  <button onClick={addNewEvent} className="add-button">
-                    <Plus size={20} />
-                    Add New Event
-                  </button>
-                </div>
-              )}
+            <div className="add-event-section">
+              <button onClick={addNewEvent} className="add-button">
+                <Plus size={20} />
+                Add New Event
+              </button>
+            </div>
 
-            {/* Events Table */}
             {economicEvents.length > 0 ? (
               <>
                 <div className="table-container">
@@ -790,7 +855,7 @@ const saveEvents = async () => {
                           <td>
                             <input
                               type="datetime-local"
-                              value={event.date_time?.replace('Z', '') || ''}
+                              value={event.date_time?.slice(0, 16) || ''}
                               onChange={(e) => handleEdit(index, 'date_time', e.target.value)}
                             />
                           </td>
@@ -871,7 +936,6 @@ const saveEvents = async () => {
                   </table>
                 </div>
 
-                {/* Save Section */}
                 <div className="save-section">
                   <button
                     onClick={saveEvents}
