@@ -6,8 +6,10 @@ import { format, addDays, startOfWeek, endOfWeek, parseISO } from "date-fns";
 
 const styles = {
   container: {
+    // display: 'flex',
     flexDirection: 'column',
     minHeight: '100vh',
+    backgroundColor: '#f3f4f6'
   },
   headerWrapper: {
     flex: 'none',
@@ -17,12 +19,14 @@ const styles = {
   main: {
     display: 'flex',
     flex: 1,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    width: '100%'
   },
   content: {
     flex: 1,
     overflowY: 'auto',
-    padding: '0.5rem'
+    padding: '0.5rem',
+    width: '100%'
   },
   processingOverlay: {
     position: 'fixed',
