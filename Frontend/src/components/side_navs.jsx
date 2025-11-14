@@ -716,6 +716,7 @@ export default function SideNavs() {
       <div className="side-navs trading-history-links">
         <Link to="/personal_info" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person-fill"></i></p></button></Link>
         <Link to="/account_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bar-chart-line-fill"></i></p></button></Link>
+        <Link to="/multiple_account_analytics" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-percent"></i></p></button></Link>
         <Link to="/market_makers" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bank"></i></p></button></Link>
         <Link to={`/conversation/${uniqueID}`} className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-chat-square-dots"></i></p></button></Link>
         <Link to='/daily_brief' className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-briefcase-fill"></i></p></button></Link>
@@ -773,6 +774,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/account_analytics" className="side-nav">
             <i className="bi bi-bar-chart-line-fill"></i>
+        </Link>
+        <Link to="/multiple_account_analytics" className="side-nav">
+            <i className="bi bi-percent"></i>
         </Link>
         <Link to="/market_makers" className="side-nav">
             <i className="bi bi-bank"></i>

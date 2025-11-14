@@ -78,6 +78,7 @@ import SNOWXDashboard from './components/snowx.jsx';
 import HedgeFundTracker from './components/hedge_funds.jsx';
 import ProbabilityEngine from './components/prob_engine.jsx';
 import SnowAIBrowser from './components/browser.jsx';
+import MultiAccountAnalytics from './components/multi_account.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -290,6 +291,13 @@ function App() {
             <Route path='/account_analytics' element={
               <ProtectedRoute>
                 <AccountAnalytics />
+              </ProtectedRoute>
+            } />
+
+            
+            <Route path='/multiple_account_analytics' element={
+              <ProtectedRoute>
+                <MultiAccountAnalytics />
               </ProtectedRoute>
             } />
             
