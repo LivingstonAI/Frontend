@@ -687,10 +687,7 @@ export default function ForexFactoryCapturer() {
             font-size: 0.9rem;
           }
         }
-        
-        .main-page-body {
-          display: flex;
-        }
+       
         
         .main-body-info {
           flex: 1;
