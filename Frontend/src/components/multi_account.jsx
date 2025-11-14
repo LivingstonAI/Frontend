@@ -10,7 +10,6 @@ const styles = `
     background: #ffffff;
     min-height: 100vh;
     color: #1a1a2e;
-    padding: 2rem;
 }
 
 .portfolio_content {
