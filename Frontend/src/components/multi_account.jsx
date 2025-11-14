@@ -3,6 +3,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
+
 const styles = `
 .portfolio_container {
     width: 100%;
