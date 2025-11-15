@@ -12,6 +12,10 @@ export default function MultiAccountAnalytics() {
     const [equityCurveData, setEquityCurveData] = useState(null);
     const [isLoadingOverview, setIsLoadingOverview] = useState(true);
     const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
+    const [accountFilter, setAccountFilter] = useState('all'); // 'all', 'profitable', 'losing'
+    const [monteCarloResults, setMonteCarloResults] = useState(null);
+    const [isRunningMonteCarlo, setIsRunningMonteCarlo] = useState(false);
+    const [showMonteCarloModal, setShowMonteCarloModal] = useState(false);
 
     // Fetch performance overview on mount
     useEffect(() => {
@@ -58,6 +62,49 @@ export default function MultiAccountAnalytics() {
             console.error('Error fetching equity curve:', error);
         } finally {
             setIsLoadingEquityCurve(false);
+        }
+    };
+
+    const runMonteCarloSimulation = async (accountId) => {
+        try {
+            setIsRunningMonteCarlo(true);
+            const response = await fetch(`${baseUrl}/execute_portfolio_monte_carlo_risk_simulation/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account_id: accountId,
+                    num_simulations: 1000,
+                    num_trades: 100
+                })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                setMonteCarloResults(data);
+                setShowMonteCarloModal(true);
+            } else {
+                alert('Error running simulation: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error running Monte Carlo:', error);
+            alert('Failed to run Monte Carlo simulation');
+        } finally {
+            setIsRunningMonteCarlo(false);
+        }
+    };
+
+    const getFilteredAccounts = () => {
+        if (!performanceOverviewData || !performanceOverviewData.all_accounts) return [];
+        
+        switch (accountFilter) {
+            case 'profitable':
+                return performanceOverviewData.all_accounts.filter(acc => acc.roi > 0);
+            case 'losing':
+                return performanceOverviewData.all_accounts.filter(acc => acc.roi < 0);
+            default:
+                return performanceOverviewData.all_accounts;
         }
     };
 
@@ -231,6 +278,102 @@ export default function MultiAccountAnalytics() {
             marginTop: '15px',
             fontSize: '12px',
             color: '#6b7280'
+        },
+        filterButtonsContainer: {
+            display: 'flex',
+            gap: '10px',
+            marginBottom: '20px'
+        },
+        filterButton: {
+            padding: '8px 16px',
+            borderRadius: '6px',
+            border: '2px solid #e5e7eb',
+            backgroundColor: '#ffffff',
+            color: '#6b7280',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'all 0.2s ease'
+        },
+        filterButtonActive: {
+            backgroundColor: '#3b82f6',
+            color: '#ffffff',
+            borderColor: '#3b82f6'
+        },
+        monteCarloButton: {
+            padding: '6px 12px',
+            borderRadius: '4px',
+            border: 'none',
+            backgroundColor: '#8b5cf6',
+            color: '#ffffff',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: '600',
+            marginTop: '8px',
+            transition: 'all 0.2s ease',
+            width: '100%'
+        },
+        monteCarloButtonHover: {
+            backgroundColor: '#7c3aed'
+        },
+        modalOverlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+        },
+        modalContent: {
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '800px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+        },
+        modalHeader: {
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1f2937',
+            marginBottom: '20px',
+            borderBottom: '2px solid #3b82f6',
+            paddingBottom: '10px'
+        },
+        modalClose: {
+            float: 'right',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#6b7280',
+            fontWeight: '700'
+        },
+        statsGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            marginTop: '20px'
+        },
+        statCard: {
+            backgroundColor: '#f9fafb',
+            padding: '15px',
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb'
+        },
+        statLabel: {
+            fontSize: '12px',
+            color: '#6b7280',
+            marginBottom: '5px'
+        },
+        statValue: {
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#1f2937'
         }
     };
 
@@ -381,7 +524,6 @@ export default function MultiAccountAnalytics() {
                 <SideNavs />
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5>
-                    <br />
                     
                     <div style={styles.analyticsContainer}>
                         {/* Top Performance Cards */}
@@ -478,8 +620,76 @@ export default function MultiAccountAnalytics() {
                         {/* All Accounts Section */}
                         <div style={styles.allAccountsSection}>
                             <div style={styles.sectionHeader}>All Accounts Overview</div>
+                            
+                            {/* Filter Buttons */}
+                            <div style={styles.filterButtonsContainer}>
+                                <button
+                                    style={{
+                                        ...styles.filterButton,
+                                        ...(accountFilter === 'all' ? styles.filterButtonActive : {})
+                                    }}
+                                    onClick={() => setAccountFilter('all')}
+                                    onMouseEnter={(e) => {
+                                        if (accountFilter !== 'all') {
+                                            e.currentTarget.style.backgroundColor = '#eff6ff';
+                                            e.currentTarget.style.borderColor = '#3b82f6';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (accountFilter !== 'all') {
+                                            e.currentTarget.style.backgroundColor = '#ffffff';
+                                            e.currentTarget.style.borderColor = '#e5e7eb';
+                                        }
+                                    }}
+                                >
+                                    All Accounts ({performanceOverviewData.all_accounts.length})
+                                </button>
+                                <button
+                                    style={{
+                                        ...styles.filterButton,
+                                        ...(accountFilter === 'profitable' ? styles.filterButtonActive : {})
+                                    }}
+                                    onClick={() => setAccountFilter('profitable')}
+                                    onMouseEnter={(e) => {
+                                        if (accountFilter !== 'profitable') {
+                                            e.currentTarget.style.backgroundColor = '#eff6ff';
+                                            e.currentTarget.style.borderColor = '#3b82f6';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (accountFilter !== 'profitable') {
+                                            e.currentTarget.style.backgroundColor = '#ffffff';
+                                            e.currentTarget.style.borderColor = '#e5e7eb';
+                                        }
+                                    }}
+                                >
+                                    Profitable ({performanceOverviewData.all_accounts.filter(a => a.roi > 0).length})
+                                </button>
+                                <button
+                                    style={{
+                                        ...styles.filterButton,
+                                        ...(accountFilter === 'losing' ? styles.filterButtonActive : {})
+                                    }}
+                                    onClick={() => setAccountFilter('losing')}
+                                    onMouseEnter={(e) => {
+                                        if (accountFilter !== 'losing') {
+                                            e.currentTarget.style.backgroundColor = '#eff6ff';
+                                            e.currentTarget.style.borderColor = '#3b82f6';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (accountFilter !== 'losing') {
+                                            e.currentTarget.style.backgroundColor = '#ffffff';
+                                            e.currentTarget.style.borderColor = '#e5e7eb';
+                                        }
+                                    }}
+                                >
+                                    Losing ({performanceOverviewData.all_accounts.filter(a => a.roi < 0).length})
+                                </button>
+                            </div>
+                            
                             <div style={styles.accountsGrid}>
-                                {performanceOverviewData.all_accounts.map((account) => (
+                                {getFilteredAccounts().map((account) => (
                                     <div
                                         key={account.account_id}
                                         style={{
@@ -533,6 +743,22 @@ export default function MultiAccountAnalytics() {
                                         <div style={{...styles.badge, backgroundColor: account.roi > 0 ? '#d1fae5' : '#fee2e2', color: account.roi > 0 ? '#065f46' : '#991b1b'}}>
                                             {account.roi > 0 ? '↑' : '↓'} ${account.current_balance.toFixed(2)}
                                         </div>
+                                        <button
+                                            style={styles.monteCarloButton}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                runMonteCarloSimulation(account.account_id);
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#7c3aed';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#8b5cf6';
+                                            }}
+                                            disabled={isRunningMonteCarlo}
+                                        >
+                                            {isRunningMonteCarlo ? 'Running...' : '🎲 Monte Carlo'}
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -578,6 +804,98 @@ export default function MultiAccountAnalytics() {
                     </div>
                 </div>
             </div>
+            
+            {/* Monte Carlo Results Modal */}
+            {showMonteCarloModal && monteCarloResults && (
+                <div style={styles.modalOverlay} onClick={() => setShowMonteCarloModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <span style={styles.modalClose} onClick={() => setShowMonteCarloModal(false)}>&times;</span>
+                        <div style={styles.modalHeader}>
+                            Monte Carlo Simulation Results
+                            <div style={{fontSize: '16px', color: '#6b7280', fontWeight: '500', marginTop: '5px'}}>
+                                {monteCarloResults.account_name}
+                            </div>
+                        </div>
+                        
+                        <div style={{marginBottom: '20px', color: '#6b7280', fontSize: '14px'}}>
+                            Simulated {monteCarloResults.num_simulations} scenarios with {monteCarloResults.num_trades_simulated} trades each
+                        </div>
+                        
+                        <div style={styles.statsGrid}>
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Initial Capital</div>
+                                <div style={styles.statValue}>${monteCarloResults.initial_capital.toLocaleString()}</div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Mean Final Balance</div>
+                                <div style={{...styles.statValue, color: monteCarloResults.statistics.mean_final_balance > monteCarloResults.initial_capital ? '#10b981' : '#ef4444'}}>
+                                    ${monteCarloResults.statistics.mean_final_balance.toLocaleString()}
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Median Final Balance</div>
+                                <div style={{...styles.statValue, color: monteCarloResults.statistics.median_final_balance > monteCarloResults.initial_capital ? '#10b981' : '#ef4444'}}>
+                                    ${monteCarloResults.statistics.median_final_balance.toLocaleString()}
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Probability of Profit</div>
+                                <div style={{...styles.statValue, color: monteCarloResults.statistics.probability_of_profit > 50 ? '#10b981' : '#ef4444'}}>
+                                    {monteCarloResults.statistics.probability_of_profit}%
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>5th Percentile (Worst Case)</div>
+                                <div style={{...styles.statValue, color: '#ef4444'}}>
+                                    ${monteCarloResults.statistics.percentile_5.toLocaleString()}
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>95th Percentile (Best Case)</div>
+                                <div style={{...styles.statValue, color: '#10b981'}}>
+                                    ${monteCarloResults.statistics.percentile_95.toLocaleString()}
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Max Potential Loss</div>
+                                <div style={{...styles.statValue, color: '#ef4444'}}>
+                                    ${monteCarloResults.statistics.max_potential_loss.toLocaleString()}
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Max Loss Percentage</div>
+                                <div style={{...styles.statValue, color: '#ef4444'}}>
+                                    {monteCarloResults.statistics.max_loss_percentage.toFixed(2)}%
+                                </div>
+                            </div>
+                            
+                            <div style={styles.statCard}>
+                                <div style={styles.statLabel}>Standard Deviation</div>
+                                <div style={styles.statValue}>
+                                    ${monteCarloResults.statistics.std_deviation.toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #3b82f6'}}>
+                            <div style={{fontWeight: '600', color: '#1f2937', marginBottom: '8px'}}>💡 Interpretation</div>
+                            <div style={{fontSize: '13px', color: '#6b7280', lineHeight: '1.6'}}>
+                                Based on {monteCarloResults.num_simulations} simulations, there's a {monteCarloResults.statistics.probability_of_profit}% chance of profit.
+                                The expected balance ranges from ${monteCarloResults.statistics.percentile_5.toLocaleString()} (worst 5%) 
+                                to ${monteCarloResults.statistics.percentile_95.toLocaleString()} (best 5%).
+                                Maximum potential loss is {monteCarloResults.statistics.max_loss_percentage.toFixed(1)}% of capital.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
