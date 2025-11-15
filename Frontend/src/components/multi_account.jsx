@@ -77,7 +77,8 @@ export default function MultiAccountAnalytics() {
         analyticsContainer: {
             padding: '20px',
             maxWidth: '1400px',
-            margin: '0 auto'
+            margin: '0 auto',
+            backgroundColor: '#ffffff'
         },
         topCardsGrid: {
             display: 'grid',
@@ -86,15 +87,15 @@ export default function MultiAccountAnalytics() {
             marginBottom: '30px'
         },
         performanceCard: {
-            backgroundColor: '#1e293b',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
             padding: '20px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-            border: '1px solid #334155'
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb'
         },
         cardTitle: {
             fontSize: '14px',
-            color: '#94a3b8',
+            color: '#6b7280',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
             marginBottom: '15px',
@@ -102,7 +103,7 @@ export default function MultiAccountAnalytics() {
         },
         accountName: {
             fontSize: '20px',
-            color: '#f1f5f9',
+            color: '#1f2937',
             fontWeight: '700',
             marginBottom: '10px'
         },
@@ -118,24 +119,25 @@ export default function MultiAccountAnalytics() {
         },
         metricLabel: {
             fontSize: '12px',
-            color: '#94a3b8',
+            color: '#6b7280',
             marginBottom: '4px'
         },
         metricValue: {
             fontSize: '16px',
             fontWeight: '600',
-            color: '#f1f5f9'
+            color: '#1f2937'
         },
         allAccountsSection: {
-            backgroundColor: '#1e293b',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
             padding: '25px',
             marginBottom: '30px',
-            border: '1px solid #334155'
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
         },
         sectionHeader: {
             fontSize: '18px',
-            color: '#f1f5f9',
+            color: '#1f2937',
             fontWeight: '700',
             marginBottom: '20px',
             borderBottom: '2px solid #3b82f6',
@@ -147,29 +149,31 @@ export default function MultiAccountAnalytics() {
             gap: '15px'
         },
         accountCard: {
-            backgroundColor: '#0f172a',
+            backgroundColor: '#f9fafb',
             borderRadius: '8px',
             padding: '15px',
-            border: '1px solid #334155',
+            border: '2px solid #e5e7eb',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             position: 'relative'
         },
         accountCardHover: {
             transform: 'translateY(-2px)',
-            boxShadow: '0 8px 12px rgba(0, 0, 0, 0.4)',
+            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
             borderColor: '#3b82f6'
         },
         accountCardSelected: {
             borderColor: '#3b82f6',
-            backgroundColor: '#1e3a5f'
+            backgroundColor: '#eff6ff',
+            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
         },
         equityCurveSection: {
-            backgroundColor: '#1e293b',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
             padding: '25px',
             marginBottom: '30px',
-            border: '1px solid #334155'
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
         },
         accountSelector: {
             display: 'flex',
@@ -180,9 +184,9 @@ export default function MultiAccountAnalytics() {
         accountButton: {
             padding: '8px 16px',
             borderRadius: '6px',
-            border: '1px solid #334155',
-            backgroundColor: '#0f172a',
-            color: '#94a3b8',
+            border: '2px solid #e5e7eb',
+            backgroundColor: '#ffffff',
+            color: '#6b7280',
             cursor: 'pointer',
             fontSize: '14px',
             fontWeight: '500',
@@ -194,11 +198,12 @@ export default function MultiAccountAnalytics() {
             borderColor: '#3b82f6'
         },
         chartContainer: {
-            backgroundColor: '#0f172a',
+            backgroundColor: '#f9fafb',
             borderRadius: '8px',
             padding: '20px',
             minHeight: '400px',
-            position: 'relative'
+            position: 'relative',
+            border: '1px solid #e5e7eb'
         },
         svgChart: {
             width: '100%',
@@ -209,7 +214,7 @@ export default function MultiAccountAnalytics() {
             justifyContent: 'center',
             alignItems: 'center',
             padding: '40px',
-            color: '#94a3b8',
+            color: '#6b7280',
             fontSize: '16px'
         },
         badge: {
@@ -225,7 +230,7 @@ export default function MultiAccountAnalytics() {
             justifyContent: 'space-between',
             marginTop: '15px',
             fontSize: '12px',
-            color: '#94a3b8'
+            color: '#6b7280'
         }
     };
 
@@ -266,11 +271,11 @@ export default function MultiAccountAnalytics() {
                                     y1={y}
                                     x2={width - padding.right}
                                     y2={y}
-                                    stroke="#334155"
+                                    stroke="#e5e7eb"
                                     strokeWidth="1"
                                     strokeDasharray="4"
                                 />
-                                <text x={padding.left - 10} y={y + 4} fill="#94a3b8" fontSize="11" textAnchor="end">
+                                <text x={padding.left - 10} y={y + 4} fill="#6b7280" fontSize="11" textAnchor="end">
                                     ${balance.toFixed(0)}
                                 </text>
                             </g>
@@ -282,7 +287,7 @@ export default function MultiAccountAnalytics() {
                         const x = padding.left + (ratio * (width - padding.left - padding.right));
                         const tradeNum = Math.round(ratio * maxTrade);
                         return (
-                            <text key={idx} x={x} y={height - padding.bottom + 20} fill="#94a3b8" fontSize="11" textAnchor="middle">
+                            <text key={idx} x={x} y={height - padding.bottom + 20} fill="#6b7280" fontSize="11" textAnchor="middle">
                                 Trade {tradeNum}
                             </text>
                         );
@@ -293,7 +298,7 @@ export default function MultiAccountAnalytics() {
                         d={pathData}
                         fill="none"
                         stroke="#3b82f6"
-                        strokeWidth="2.5"
+                        strokeWidth="3"
                     />
 
                     {/* Data points */}
@@ -304,7 +309,7 @@ export default function MultiAccountAnalytics() {
                             cy={yScale(point.balance)}
                             r="4"
                             fill={point.outcome === 'Win' ? '#10b981' : point.outcome === 'Loss' ? '#ef4444' : '#3b82f6'}
-                            stroke="#1e293b"
+                            stroke="#ffffff"
                             strokeWidth="2"
                         >
                             <title>
@@ -378,7 +383,7 @@ export default function MultiAccountAnalytics() {
                         <div style={styles.topCardsGrid}>
                             {/* Best Performer */}
                             {performanceOverviewData.best_performer && (
-                                <div style={{...styles.performanceCard, borderTop: '3px solid #10b981'}}>
+                                <div style={{...styles.performanceCard, borderTop: '4px solid #10b981'}}>
                                     <div style={styles.cardTitle}>🏆 Best Performer</div>
                                     <div style={styles.accountName}>{performanceOverviewData.best_performer.account_name}</div>
                                     <div style={styles.metricsGrid}>
@@ -408,7 +413,7 @@ export default function MultiAccountAnalytics() {
 
                             {/* Worst Performer */}
                             {performanceOverviewData.worst_performer && (
-                                <div style={{...styles.performanceCard, borderTop: '3px solid #ef4444'}}>
+                                <div style={{...styles.performanceCard, borderTop: '4px solid #ef4444'}}>
                                     <div style={styles.cardTitle}>📉 Worst Performer</div>
                                     <div style={styles.accountName}>{performanceOverviewData.worst_performer.account_name}</div>
                                     <div style={styles.metricsGrid}>
@@ -437,7 +442,7 @@ export default function MultiAccountAnalytics() {
                             )}
 
                             {/* Average Performance */}
-                            <div style={{...styles.performanceCard, borderTop: '3px solid #3b82f6'}}>
+                            <div style={{...styles.performanceCard, borderTop: '4px solid #3b82f6'}}>
                                 <div style={styles.cardTitle}>📊 Average Performance</div>
                                 <div style={styles.accountName}>Portfolio Metrics</div>
                                 <div style={styles.metricsGrid}>
@@ -480,7 +485,7 @@ export default function MultiAccountAnalytics() {
                                         onMouseEnter={(e) => {
                                             if (selectedAccountForEquityCurve !== account.account_id) {
                                                 e.currentTarget.style.transform = 'translateY(-2px)';
-                                                e.currentTarget.style.boxShadow = '0 8px 12px rgba(0, 0, 0, 0.4)';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
                                                 e.currentTarget.style.borderColor = '#3b82f6';
                                             }
                                         }}
@@ -488,39 +493,39 @@ export default function MultiAccountAnalytics() {
                                             if (selectedAccountForEquityCurve !== account.account_id) {
                                                 e.currentTarget.style.transform = 'translateY(0)';
                                                 e.currentTarget.style.boxShadow = 'none';
-                                                e.currentTarget.style.borderColor = '#334155';
+                                                e.currentTarget.style.borderColor = '#e5e7eb';
                                             }
                                         }}
                                     >
-                                        <div style={{fontSize: '16px', fontWeight: '700', color: '#f1f5f9', marginBottom: '8px'}}>
+                                        <div style={{fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '8px'}}>
                                             {account.account_name}
                                         </div>
-                                        <div style={{fontSize: '12px', color: '#64748b', marginBottom: '12px'}}>
+                                        <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '12px'}}>
                                             {account.main_assets}
                                         </div>
                                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px'}}>
                                             <div>
-                                                <div style={{color: '#94a3b8'}}>ROI</div>
+                                                <div style={{color: '#6b7280'}}>ROI</div>
                                                 <div style={{color: getColorForROI(account.roi), fontWeight: '600', fontSize: '14px'}}>
                                                     {account.roi}%
                                                 </div>
                                             </div>
                                             <div>
-                                                <div style={{color: '#94a3b8'}}>Net P&L</div>
+                                                <div style={{color: '#6b7280'}}>Net P&L</div>
                                                 <div style={{color: getColorForPnL(account.net_pnl), fontWeight: '600', fontSize: '14px'}}>
                                                     ${account.net_pnl}
                                                 </div>
                                             </div>
                                             <div>
-                                                <div style={{color: '#94a3b8'}}>Win Rate</div>
-                                                <div style={{color: '#f1f5f9', fontWeight: '600'}}>{account.win_rate}%</div>
+                                                <div style={{color: '#6b7280'}}>Win Rate</div>
+                                                <div style={{color: '#1f2937', fontWeight: '600'}}>{account.win_rate}%</div>
                                             </div>
                                             <div>
-                                                <div style={{color: '#94a3b8'}}>Trades</div>
-                                                <div style={{color: '#f1f5f9', fontWeight: '600'}}>{account.total_trades}</div>
+                                                <div style={{color: '#6b7280'}}>Trades</div>
+                                                <div style={{color: '#1f2937', fontWeight: '600'}}>{account.total_trades}</div>
                                             </div>
                                         </div>
-                                        <div style={{...styles.badge, backgroundColor: account.roi > 0 ? '#10b98120' : '#ef444420', color: account.roi > 0 ? '#10b981' : '#ef4444'}}>
+                                        <div style={{...styles.badge, backgroundColor: account.roi > 0 ? '#d1fae5' : '#fee2e2', color: account.roi > 0 ? '#065f46' : '#991b1b'}}>
                                             {account.roi > 0 ? '↑' : '↓'} ${account.current_balance.toFixed(2)}
                                         </div>
                                     </div>
@@ -542,14 +547,14 @@ export default function MultiAccountAnalytics() {
                                         onClick={() => setSelectedAccountForEquityCurve(account.account_id)}
                                         onMouseEnter={(e) => {
                                             if (selectedAccountForEquityCurve !== account.account_id) {
-                                                e.currentTarget.style.backgroundColor = '#1e293b';
+                                                e.currentTarget.style.backgroundColor = '#eff6ff';
                                                 e.currentTarget.style.borderColor = '#3b82f6';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
                                             if (selectedAccountForEquityCurve !== account.account_id) {
-                                                e.currentTarget.style.backgroundColor = '#0f172a';
-                                                e.currentTarget.style.borderColor = '#334155';
+                                                e.currentTarget.style.backgroundColor = '#ffffff';
+                                                e.currentTarget.style.borderColor = '#e5e7eb';
                                             }
                                         }}
                                     >
