@@ -541,7 +541,7 @@ function App() {
 
             <Route path='/videos' element={
               <ProtectedRoute>
-                <SnowAIBrowser />
+                <SnowAIVideos />
               </ProtectedRoute>
             } />
             
