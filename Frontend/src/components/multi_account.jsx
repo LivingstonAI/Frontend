@@ -240,6 +240,10 @@ export default function MultiAccountAnalytics() {
         }
 
         const data = equityCurveData.equity_curve;
+        
+        // Debug: log the equity curve data
+        console.log('Equity Curve Data:', data);
+        
         const width = 1000;
         const height = 350;
         const padding = { top: 20, right: 30, bottom: 40, left: 60 };
@@ -316,7 +320,7 @@ export default function MultiAccountAnalytics() {
                                 Trade {point.trade_number}
                                 {point.asset ? ` - ${point.asset}` : ''}
                                 {'\n'}Balance: ${point.balance}
-                                {point.trade_amount ? `\nP&L: $${point.trade_amount}` : ''}
+                                {point.trade_amount !== undefined && point.trade_amount !== null ? `\nP&L: ${point.trade_amount}` : ''}
                             </title>
                         </circle>
                     ))}
