@@ -94,6 +94,7 @@ import russian_love_story from '../Indila - Love Story (кавер на русс
 import lovesong from '../TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori Lyrics (Color Coded Lyrics).mp3';
 import everythings_good from "../Phil Good - Everything's Good (Official Music Video).mp3";
 import coffee_date from '../Coffee Date.mp3';
+import kdrama_study from '../Study motivation Kdrama Part 5 [IT] - #Kdramastudymotivation #Studymotivation #Kdrama.mp3';
 
 
 export default function SideNavs() {
@@ -243,7 +244,9 @@ export default function SideNavs() {
         { name: "Love Story (Russian) 🌃", file: russian_love_story },
         { name: "TXT - Lovesong 🎧", file: lovesong },
         { name: "Everything's Good 🏖️🏄", file: everythings_good },
-        { name: "Coffee Date ☕🦫", file: coffee_date }
+        { name: "Coffee Date ☕🦫", file: coffee_date },
+        { name: "K-Drama Study Motivation 🇰🇷 (1)", file: kdrama_study }
+
   ];
 
   // Enhanced touch navigation function
