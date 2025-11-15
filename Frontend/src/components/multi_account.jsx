@@ -523,7 +523,7 @@ export default function MultiAccountAnalytics() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5>
+                    <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5><br />
                     
                     <div style={styles.analyticsContainer}>
                         {/* Top Performance Cards */}
