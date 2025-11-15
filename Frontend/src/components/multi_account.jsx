@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 
 const styles = `
@@ -10,6 +10,7 @@ const styles = `
     background: #ffffff;
     min-height: 100vh;
     color: #1a1a2e;
+    padding: 2rem;
 }
 
 .portfolio_content {
@@ -361,8 +362,6 @@ export default function MultiAccountAnalytics() {
         return (
             <div className="portfolio_container">
                 <style>{styles}</style>
-                <Header />
-                <SideNavs />
                 <div className="loading">
                     Loading comprehensive portfolio analytics...
                 </div>
@@ -374,8 +373,6 @@ export default function MultiAccountAnalytics() {
         return (
             <div className="portfolio_container">
                 <style>{styles}</style>
-                <Header />
-                <SideNavs />
                 <div className="error">
                     Error: {error}
                 </div>
@@ -392,16 +389,18 @@ export default function MultiAccountAnalytics() {
         best_accounts,
         worst_accounts,
         individual_equity_curves,
-        risk_metrics,
         capital_allocation,
         monte_carlo_simulations
     } = portfolioData;
 
     return (
+        <div>
+            <Header />
+            <div> 
+                <SideNavs />
+                
         <div className="portfolio_container">
             <style>{styles}</style>
-            <Header />
-            <SideNavs />
             <div className="portfolio_content">
                 <h1 className="portfolio_header">Multi-Account Portfolio Analytics</h1>
 
@@ -418,12 +417,6 @@ export default function MultiAccountAnalytics() {
                         onClick={() => setActiveTab('performance')}
                     >
                         Individual Performance
-                    </button>
-                    <button 
-                        className={`portfolio_tab ${activeTab === 'risk' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('risk')}
-                    >
-                        Risk Analysis
                     </button>
                     <button 
                         className={`portfolio_tab ${activeTab === 'monte_carlo' ? 'active' : ''}`}
@@ -612,111 +605,6 @@ export default function MultiAccountAnalytics() {
                             </div>
                         ))}
                     </div>
-                )}
-
-                {/* Risk Analysis Tab */}
-                {activeTab === 'risk' && (
-                    <>
-                        <div className="metrics_grid">
-                            <div className="metric_card">
-                                <div className="metric_label">Value at Risk (95%)</div>
-                                <div className="metric_value negative">
-                                    ${risk_metrics?.value_at_risk?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0'}
-                                </div>
-                                <div className="metric_subtext">
-                                    Daily VaR estimate
-                                </div>
-                            </div>
-
-                            <div className="metric_card">
-                                <div className="metric_label">Sortino Ratio</div>
-                                <div className={`metric_value ${risk_metrics?.sortino_ratio > 1 ? 'positive' : 'neutral'}`}>
-                                    {risk_metrics?.sortino_ratio?.toFixed(3) || '0'}
-                                </div>
-                                <div className="metric_subtext">
-                                    Downside risk adjusted
-                                </div>
-                            </div>
-
-                            <div className="metric_card">
-                                <div className="metric_label">Calmar Ratio</div>
-                                <div className={`metric_value ${risk_metrics?.calmar_ratio > 1 ? 'positive' : 'neutral'}`}>
-                                    {risk_metrics?.calmar_ratio?.toFixed(3) || '0'}
-                                </div>
-                                <div className="metric_subtext">
-                                    Return / Max Drawdown
-                                </div>
-                            </div>
-
-                            <div className="metric_card">
-                                <div className="metric_label">Portfolio Volatility</div>
-                                <div className="metric_value neutral">
-                                    {risk_metrics?.portfolio_volatility?.toFixed(2) || '0'}%
-                                </div>
-                                <div className="metric_subtext">
-                                    Annualized std dev
-                                </div>
-                            </div>
-
-                            <div className="metric_card">
-                                <div className="metric_label">Beta</div>
-                                <div className="metric_value">
-                                    {risk_metrics?.beta?.toFixed(3) || '0'}
-                                </div>
-                                <div className="metric_subtext">
-                                    Market sensitivity
-                                </div>
-                            </div>
-
-                            <div className="metric_card">
-                                <div className="metric_label">Recovery Factor</div>
-                                <div className={`metric_value ${risk_metrics?.recovery_factor > 2 ? 'positive' : 'neutral'}`}>
-                                    {risk_metrics?.recovery_factor?.toFixed(2) || '0'}
-                                </div>
-                                <div className="metric_subtext">
-                                    Net profit / Max drawdown
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Individual Account Drawdowns */}
-                        <div className="charts_grid">
-                            {risk_metrics?.account_risk_details?.map((account) => (
-                                <div key={account.account_id} className="chart_section">
-                                    <div className="chart_title">{account.account_name} - Drawdown Analysis</div>
-                                    <div style={{marginBottom: '1rem'}}>
-                                        <span className="metric_label">Max Drawdown: </span>
-                                        <span className="negative" style={{fontSize: '1.2rem', fontWeight: 700}}>
-                                            {account.max_drawdown?.toFixed(2)}%
-                                        </span>
-                                    </div>
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <LineChart data={account.drawdown_curve}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e8f0fe" />
-                                            <XAxis dataKey="period" stroke="#5f6368" tick={{fontSize: 11}} />
-                                            <YAxis stroke="#5f6368" tick={{fontSize: 11}} />
-                                            <Tooltip 
-                                                contentStyle={{
-                                                    background: '#ffffff',
-                                                    border: '2px solid #ea4335',
-                                                    borderRadius: '8px'
-                                                }}
-                                                formatter={(value) => [`${value.toFixed(2)}%`, 'Drawdown']}
-                                            />
-                                            <Line 
-                                                type="monotone" 
-                                                dataKey="drawdown" 
-                                                stroke="#ea4335" 
-                                                strokeWidth={2}
-                                                dot={false}
-                                                name="Drawdown %"
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            ))}
-                        </div>
-                    </>
                 )}
 
                 {/* Monte Carlo Tab */}
@@ -943,5 +831,7 @@ export default function MultiAccountAnalytics() {
                 )}
             </div>
         </div>
+        </div>
+    </div>
     );
 }
