@@ -191,7 +191,7 @@ export default function SnowAIVideos() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Videos of Interest</h5>
+                    <h5 className="major-upcoming-news-events-header">SnowAI Videos of Interest</h5><br />
                     
                     <style>{styles}</style>
                     
