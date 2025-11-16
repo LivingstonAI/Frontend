@@ -7,8 +7,10 @@ export default function SnowAIVideos() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
     const [videos, setVideos] = useState([]);
+    const [filteredVideos, setFilteredVideos] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [isAddingVideo, setIsAddingVideo] = useState(false);
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [editingVideo, setEditingVideo] = useState(null);
@@ -30,6 +32,21 @@ export default function SnowAIVideos() {
         fetchVideos();
     }, []);
 
+    useEffect(() => {
+        // Filter videos based on search query
+        if (searchQuery.trim() === '') {
+            setFilteredVideos(videos);
+        } else {
+            const query = searchQuery.toLowerCase();
+            const filtered = videos.filter(video => 
+                video.video_title.toLowerCase().includes(query) ||
+                video.notes?.toLowerCase().includes(query) ||
+                video.category_name.toLowerCase().includes(query)
+            );
+            setFilteredVideos(filtered);
+        }
+    }, [searchQuery, videos]);
+
     const fetchCategories = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/snowai-video-categories/`);
@@ -49,6 +66,7 @@ export default function SnowAIVideos() {
             const response = await fetch(url);
             const data = await response.json();
             setVideos(data.videos || []);
+            setFilteredVideos(data.videos || []);
         } catch (err) {
             setError('Failed to fetch videos');
         } finally {
@@ -58,6 +76,7 @@ export default function SnowAIVideos() {
 
     const handleCategoryFilter = (categoryId) => {
         setSelectedCategory(categoryId);
+        setSearchQuery(''); // Clear search when filtering by category
         if (categoryId === 'all') {
             fetchVideos();
         } else {
@@ -221,6 +240,25 @@ export default function SnowAIVideos() {
                             </div>
                         </div>
 
+                        {/* Search Bar */}
+                        <div className="snowai-search-section">
+                            <input
+                                type="text"
+                                placeholder="🔍 Search videos by title, notes, or category..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="snowai-search-input"
+                            />
+                            {searchQuery && (
+                                <button 
+                                    className="snowai-clear-search"
+                                    onClick={() => setSearchQuery('')}
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+
                         {/* Add Video Button */}
                         {!isAddingVideo && (
                             <button 
@@ -315,11 +353,18 @@ export default function SnowAIVideos() {
                         {/* Videos List */}
                         {loading ? (
                             <div className="snowai-loading">Loading videos...</div>
-                        ) : videos.length === 0 ? (
-                            <div className="snowai-empty">No videos found. Add your first video!</div>
+                        ) : filteredVideos.length === 0 ? (
+                            <div className="snowai-empty">
+                                {searchQuery ? `No videos found matching "${searchQuery}"` : 'No videos found. Add your first video!'}
+                            </div>
                         ) : (
                             <div className="snowai-videos-list">
-                                {videos.map(video => (
+                                {searchQuery && (
+                                    <div className="snowai-search-results-header">
+                                        Found {filteredVideos.length} video{filteredVideos.length !== 1 ? 's' : ''}
+                                    </div>
+                                )}
+                                {filteredVideos.map(video => (
                                     <div key={video.id} className="snowai-video-card">
                                         <div 
                                             className="snowai-video-title"
@@ -333,6 +378,11 @@ export default function SnowAIVideos() {
                                                 {new Date(video.date_entered).toLocaleDateString()}
                                             </span>
                                         </div>
+                                        {video.notes && (
+                                            <div className="snowai-video-card-notes">
+                                                {video.notes.substring(0, 100)}{video.notes.length > 100 ? '...' : ''}
+                                            </div>
+                                        )}
                                         <div className="snowai-video-actions">
                                             <button 
                                                 className="snowai-btn-action snowai-btn-play"
@@ -437,6 +487,61 @@ const styles = `
     background: #007bff;
     color: white;
     border-color: #007bff;
+}
+
+.snowai-search-section {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    position: relative;
+}
+
+.snowai-search-input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.snowai-search-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+.snowai-clear-search {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.snowai-clear-search:hover {
+    background: #5a6268;
+}
+
+.snowai-search-results-header {
+    padding: 10px 15px;
+    background: #e7f3ff;
+    border-left: 4px solid #007bff;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #004085;
 }
 
 .snowai-btn-add-video {
@@ -658,7 +763,7 @@ const styles = `
 
 .snowai-category-tag {
     background: #e7f3ff;
-     color: #007bff;
+    color: #007bff;
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
@@ -669,6 +774,16 @@ const styles = `
 .snowai-date {
     color: #6c757d;
     font-size: 13px;
+}
+
+.snowai-video-card-notes {
+    padding: 10px;
+    background: #f8f9fa;
+    border-left: 3px solid #dee2e6;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #495057;
+    line-height: 1.5;
 }
 
 .snowai-video-actions {
@@ -723,6 +838,16 @@ const styles = `
         margin-bottom: 8px;
         padding: 6px 12px;
         font-size: 13px;
+    }
+    
+    .snowai-search-input {
+        font-size: 14px;
+    }
+    
+    .snowai-clear-search {
+        right: 20px;
+        padding: 5px 10px;
+        font-size: 12px;
     }
     
     .snowai-video-title {
