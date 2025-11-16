@@ -191,7 +191,7 @@ export default function SnowAIVideos() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Videos of Interest</h5><br />
+                    <h5 className="major-upcoming-news-events-header">SnowAI Videos of Interest</h5>
                     
                     <style>{styles}</style>
                     
@@ -330,7 +330,7 @@ export default function SnowAIVideos() {
                                         className="snowai-btn-close"
                                         onClick={() => setPlayingVideo(null)}
                                     >
-                                        ✕
+                                        ×
                                     </button>
                                 </div>
                                 <div className="snowai-iframe-container">
@@ -418,6 +418,7 @@ const styles = `
 .snowai-videos-container {
     padding: 20px;
     max-width: 1200px;
+    margin: 0 auto;
 }
 
 .snowai-category-section {
@@ -468,7 +469,7 @@ const styles = `
 
 .snowai-category-btn {
     background: white;
-    border: 2px solid #dee2e6;
+    border: 2px solid #007bff;
     padding: 8px 16px;
     margin-right: 10px;
     margin-bottom: 10px;
@@ -476,11 +477,11 @@ const styles = `
     cursor: pointer;
     font-size: 14px;
     transition: all 0.3s ease;
+    color: #007bff;
 }
 
 .snowai-category-btn:hover {
-    border-color: #007bff;
-    color: #007bff;
+    background: #e7f3ff;
 }
 
 .snowai-category-btn.active {
@@ -655,6 +656,7 @@ const styles = `
 
 .snowai-player-header {
     margin-bottom: 15px;
+    overflow: hidden;
 }
 
 .snowai-player-header h6 {
@@ -663,21 +665,24 @@ const styles = `
     font-weight: 600;
     color: #333;
     display: inline-block;
+    max-width: calc(100% - 40px);
 }
 
 .snowai-btn-close {
-    background: #dc3545;
-    color: white;
+    background: transparent;
+    color: #6c757d;
     border: none;
-    padding: 6px 12px;
-    border-radius: 5px;
+    padding: 0;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 28px;
     float: right;
+    line-height: 1;
+    font-weight: 300;
+    transition: color 0.3s ease;
 }
 
 .snowai-btn-close:hover {
-    background: #c82333;
+    color: #dc3545;
 }
 
 .snowai-iframe-container {
@@ -831,6 +836,7 @@ const styles = `
 @media (max-width: 768px) {
     .snowai-videos-container {
         padding: 15px;
+        margin: 0;
     }
     
     .snowai-category-btn {
