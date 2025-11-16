@@ -542,7 +542,7 @@ export default function MultiAccountAnalytics() {
                 <div className="main-page-body">
                     <SideNavs />
                     <div className="main-body-info">
-                        <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5>
+                        <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5><br />
                         <div style={styles.loadingSpinner}>No data available</div>
                     </div>
                 </div>
@@ -819,7 +819,7 @@ export default function MultiAccountAnalytics() {
                                             }}
                                             disabled={isRunningMonteCarlo}
                                         >
-                                            {isRunningMonteCarlo ? 'Running...' : '🎲 Run Monte Carlo'}
+                                            {isRunningMonteCarlo ? 'Running...' : '🎲 Monte Carlo'}
                                         </button>
                                     </div>
                                     ))
@@ -892,6 +892,13 @@ export default function MultiAccountAnalytics() {
                         
                         <div style={{marginBottom: '20px', color: '#6b7280', fontSize: '14px'}}>
                             Simulated {monteCarloResults.num_simulations} scenarios with {monteCarloResults.num_trades_simulated} trades each
+                            <div style={{marginTop: '8px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                                <strong>Time Horizon:</strong> ~{monteCarloResults.time_horizon.estimated_days} days 
+                                ({monteCarloResults.time_horizon.estimated_weeks.toFixed(1)} weeks / {monteCarloResults.time_horizon.estimated_months.toFixed(1)} months)
+                                <div style={{fontSize: '12px', marginTop: '4px', color: '#9ca3af'}}>
+                                    Based on your avg trading frequency: {monteCarloResults.time_horizon.avg_trades_per_day} trades/day
+                                </div>
+                            </div>
                         </div>
                         
                         <div style={styles.statsGrid}>
@@ -960,7 +967,8 @@ export default function MultiAccountAnalytics() {
                         <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #3b82f6'}}>
                             <div style={{fontWeight: '600', color: '#1f2937', marginBottom: '8px'}}>💡 Interpretation</div>
                             <div style={{fontSize: '13px', color: '#6b7280', lineHeight: '1.6'}}>
-                                Based on {monteCarloResults.num_simulations} simulations, there's a {monteCarloResults.statistics.probability_of_profit}% chance of profit.
+                                Based on {monteCarloResults.num_simulations} simulations over approximately <strong>{monteCarloResults.time_horizon.estimated_months.toFixed(1)} months</strong>, 
+                                there's a {monteCarloResults.statistics.probability_of_profit}% chance of profit.
                                 The expected balance ranges from ${monteCarloResults.statistics.percentile_5.toLocaleString()} (worst 5%) 
                                 to ${monteCarloResults.statistics.percentile_95.toLocaleString()} (best 5%).
                                 Maximum potential loss is {monteCarloResults.statistics.max_loss_percentage.toFixed(1)}% of capital.
