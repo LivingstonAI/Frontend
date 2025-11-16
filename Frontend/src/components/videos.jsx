@@ -648,14 +648,17 @@ const styles = `
 
 .snowai-video-player {
     background: #fff;
-    padding: 25px;
+    padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
     margin-bottom: 25px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .snowai-player-header {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     overflow: hidden;
 }
 
@@ -687,10 +690,11 @@ const styles = `
 
 .snowai-iframe-container {
     position: relative;
-    padding-bottom: 56.25%;
+    padding-bottom: 45%;
     height: 0;
     overflow: hidden;
     border-radius: 8px;
+    max-height: 450px;
 }
 
 .snowai-iframe-container iframe {
@@ -837,6 +841,15 @@ const styles = `
     .snowai-videos-container {
         padding: 15px;
         margin: 0;
+    }
+    
+    .snowai-video-player {
+        max-width: 100%;
+    }
+    
+    .snowai-iframe-container {
+        padding-bottom: 56.25%;
+        max-height: none;
     }
     
     .snowai-category-btn {
