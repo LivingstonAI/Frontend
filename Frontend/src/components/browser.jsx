@@ -379,13 +379,13 @@ export default function SnowAIBrowser() {
                         style={activeTab === "search" ? styles.activeTab : styles.tab}
                         onClick={() => setActiveTab("search")}
                     >
-                        🔍 Search
+                        🔍
                     </button>
                     <button
                         style={activeTab === "page" ? styles.activeTab : styles.tab}
                         onClick={() => setActiveTab("page")}
                     >
-                        🌐 Page Viewer
+                        🌐
                     </button>
                 </div>
 
