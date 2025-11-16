@@ -16,6 +16,7 @@ export default function MultiAccountAnalytics() {
     const [monteCarloResults, setMonteCarloResults] = useState(null);
     const [isRunningMonteCarlo, setIsRunningMonteCarlo] = useState(false);
     const [showMonteCarloModal, setShowMonteCarloModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Fetch performance overview on mount
     useEffect(() => {
@@ -98,14 +99,30 @@ export default function MultiAccountAnalytics() {
     const getFilteredAccounts = () => {
         if (!performanceOverviewData || !performanceOverviewData.all_accounts) return [];
         
+        let filtered = performanceOverviewData.all_accounts;
+        
+        // Apply filter
         switch (accountFilter) {
             case 'profitable':
-                return performanceOverviewData.all_accounts.filter(acc => acc.roi > 0);
+                filtered = filtered.filter(acc => acc.roi > 0);
+                break;
             case 'losing':
-                return performanceOverviewData.all_accounts.filter(acc => acc.roi < 0);
+                filtered = filtered.filter(acc => acc.roi < 0);
+                break;
             default:
-                return performanceOverviewData.all_accounts;
+                break;
         }
+        
+        // Apply search
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(acc => 
+                acc.account_name.toLowerCase().includes(query) ||
+                acc.main_assets.toLowerCase().includes(query)
+            );
+        }
+        
+        return filtered;
     };
 
     const getColorForROI = (roi) => {
@@ -374,6 +391,24 @@ export default function MultiAccountAnalytics() {
             fontSize: '18px',
             fontWeight: '700',
             color: '#1f2937'
+        },
+        searchContainer: {
+            marginBottom: '15px'
+        },
+        searchInput: {
+            width: '100%',
+            padding: '10px 15px',
+            borderRadius: '8px',
+            border: '2px solid #e5e7eb',
+            fontSize: '14px',
+            color: '#1f2937',
+            backgroundColor: '#ffffff',
+            transition: 'all 0.2s ease',
+            outline: 'none'
+        },
+        searchInputFocus: {
+            borderColor: '#3b82f6',
+            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
         }
     };
 
@@ -621,6 +656,25 @@ export default function MultiAccountAnalytics() {
                         <div style={styles.allAccountsSection}>
                             <div style={styles.sectionHeader}>All Accounts Overview</div>
                             
+                            {/* Search Bar */}
+                            <div style={styles.searchContainer}>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Search accounts by name or asset class..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={styles.searchInput}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = '#3b82f6';
+                                        e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = '#e5e7eb';
+                                        e.target.style.boxShadow = 'none';
+                                    }}
+                                />
+                            </div>
+                            
                             {/* Filter Buttons */}
                             <div style={styles.filterButtonsContainer}>
                                 <button
@@ -688,8 +742,16 @@ export default function MultiAccountAnalytics() {
                                 </button>
                             </div>
                             
+                            {/* Results count */}
+                            {searchQuery && (
+                                <div style={{marginBottom: '15px', color: '#6b7280', fontSize: '14px'}}>
+                                    Found {getFilteredAccounts().length} account(s)
+                                </div>
+                            )}
+                            
                             <div style={styles.accountsGrid}>
-                                {getFilteredAccounts().map((account) => (
+                                {getFilteredAccounts().length > 0 ? (
+                                    getFilteredAccounts().map((account) => (
                                     <div
                                         key={account.account_id}
                                         style={{
@@ -757,10 +819,21 @@ export default function MultiAccountAnalytics() {
                                             }}
                                             disabled={isRunningMonteCarlo}
                                         >
-                                            {isRunningMonteCarlo ? 'Running...' : '🎲 Monte Carlo'}
+                                            {isRunningMonteCarlo ? 'Running...' : '🎲 Run Monte Carlo'}
                                         </button>
                                     </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <div style={{
+                                        gridColumn: '1 / -1',
+                                        textAlign: 'center',
+                                        padding: '40px',
+                                        color: '#6b7280',
+                                        fontSize: '16px'
+                                    }}>
+                                        No accounts found matching "{searchQuery}"
+                                    </div>
+                                )}
                             </div>
                         </div>
 
