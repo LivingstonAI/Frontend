@@ -532,7 +532,7 @@ export default function SnowAIStockScreener() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Stock Screener</h5>
+                    <h5 className="major-upcoming-news-events-header">SnowAI Stock Screener</h5><br />
                     
                     <div style={styles.container}>
                         <div style={styles.searchSection}>
