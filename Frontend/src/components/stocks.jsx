@@ -6,7 +6,87 @@ import SideNavs from "./side_navs";
 export default function SnowAIStockScreener() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
-    const [ticker, setTicker] = useState('AAPL');
+    const popularStocks = [
+        // Tech Giants
+        { name: "Apple", symbol: "AAPL", category: "Tech Giants" },
+        { name: "Microsoft", symbol: "MSFT", category: "Tech Giants" },
+        { name: "Google (Alphabet)", symbol: "GOOGL", category: "Tech Giants" },
+        { name: "Amazon", symbol: "AMZN", category: "Tech Giants" },
+        { name: "Meta (Facebook)", symbol: "META", category: "Tech Giants" },
+        { name: "Tesla", symbol: "TSLA", category: "Tech Giants" },
+        { name: "NVIDIA", symbol: "NVDA", category: "Tech Giants" },
+        { name: "Netflix", symbol: "NFLX", category: "Tech Giants" },
+        
+        // Financial Services
+        { name: "JPMorgan Chase", symbol: "JPM", category: "Financial" },
+        { name: "Bank of America", symbol: "BAC", category: "Financial" },
+        { name: "Wells Fargo", symbol: "WFC", category: "Financial" },
+        { name: "Goldman Sachs", symbol: "GS", category: "Financial" },
+        { name: "Morgan Stanley", symbol: "MS", category: "Financial" },
+        { name: "Visa", symbol: "V", category: "Financial" },
+        { name: "Mastercard", symbol: "MA", category: "Financial" },
+        { name: "American Express", symbol: "AXP", category: "Financial" },
+        
+        // Consumer & Retail
+        { name: "Walmart", symbol: "WMT", category: "Retail" },
+        { name: "Target", symbol: "TGT", category: "Retail" },
+        { name: "Home Depot", symbol: "HD", category: "Retail" },
+        { name: "Nike", symbol: "NKE", category: "Retail" },
+        { name: "Starbucks", symbol: "SBUX", category: "Retail" },
+        { name: "McDonald's", symbol: "MCD", category: "Retail" },
+        { name: "Coca-Cola", symbol: "KO", category: "Retail" },
+        { name: "PepsiCo", symbol: "PEP", category: "Retail" },
+        
+        // Healthcare & Pharma
+        { name: "Johnson & Johnson", symbol: "JNJ", category: "Healthcare" },
+        { name: "Pfizer", symbol: "PFE", category: "Healthcare" },
+        { name: "UnitedHealth", symbol: "UNH", category: "Healthcare" },
+        { name: "Moderna", symbol: "MRNA", category: "Healthcare" },
+        { name: "AbbVie", symbol: "ABBV", category: "Healthcare" },
+        { name: "Eli Lilly", symbol: "LLY", category: "Healthcare" },
+        
+        // Semiconductor & Hardware
+        { name: "Intel", symbol: "INTC", category: "Semiconductors" },
+        { name: "AMD", symbol: "AMD", category: "Semiconductors" },
+        { name: "Qualcomm", symbol: "QCOM", category: "Semiconductors" },
+        { name: "Broadcom", symbol: "AVGO", category: "Semiconductors" },
+        { name: "Texas Instruments", symbol: "TXN", category: "Semiconductors" },
+        
+        // Energy
+        { name: "ExxonMobil", symbol: "XOM", category: "Energy" },
+        { name: "Chevron", symbol: "CVX", category: "Energy" },
+        { name: "ConocoPhillips", symbol: "COP", category: "Energy" },
+        { name: "NextEra Energy", symbol: "NEE", category: "Energy" },
+        
+        // Entertainment & Media
+        { name: "Disney", symbol: "DIS", category: "Media" },
+        { name: "Comcast", symbol: "CMCSA", category: "Media" },
+        { name: "Warner Bros Discovery", symbol: "WBD", category: "Media" },
+        
+        // Software & Cloud
+        { name: "Salesforce", symbol: "CRM", category: "Software" },
+        { name: "Adobe", symbol: "ADBE", category: "Software" },
+        { name: "Oracle", symbol: "ORCL", category: "Software" },
+        { name: "ServiceNow", symbol: "NOW", category: "Software" },
+        
+        // Automotive
+        { name: "Ford", symbol: "F", category: "Automotive" },
+        { name: "General Motors", symbol: "GM", category: "Automotive" },
+        { name: "Rivian", symbol: "RIVN", category: "Automotive" },
+        { name: "Lucid", symbol: "LCID", category: "Automotive" },
+        
+        // Aerospace & Defense
+        { name: "Boeing", symbol: "BA", category: "Aerospace" },
+        { name: "Lockheed Martin", symbol: "LMT", category: "Aerospace" },
+        
+        // E-commerce & Fintech
+        { name: "PayPal", symbol: "PYPL", category: "Fintech" },
+        { name: "Square (Block)", symbol: "SQ", category: "Fintech" },
+        { name: "Shopify", symbol: "SHOP", category: "Fintech" },
+        { name: "Coinbase", symbol: "COIN", category: "Fintech" },
+    ];
+    
+    const [ticker, setTicker] = useState('');
     const [stockData, setStockData] = useState(null);
     const [financials, setFinancials] = useState(null);
     const [earnings, setEarnings] = useState(null);
@@ -19,7 +99,8 @@ export default function SnowAIStockScreener() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [voices, setVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState(null);
-    const [showVoiceSelect, setShowVoiceSelect] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
 
     useEffect(() => {
         const loadVoices = () => {
@@ -34,14 +115,14 @@ export default function SnowAIStockScreener() {
         window.speechSynthesis.onvoiceschanged = loadVoices;
     }, []);
 
-    const fetchStockData = async () => {
-        if (!ticker) return;
+    const fetchStockData = async (symbol) => {
+        if (!symbol) return;
         
         setLoading(true);
         setError(null);
         
         try {
-            const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${ticker}`);
+            const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${symbol}`);
             const data = await response.json();
             
             if (response.ok) {
@@ -49,6 +130,7 @@ export default function SnowAIStockScreener() {
                 setFinancials(data.financials);
                 setEarnings(data.earnings);
                 setNews(data.news || []);
+                setTicker(symbol);
             } else {
                 setError(data.error || 'Failed to fetch stock data');
             }
@@ -61,7 +143,14 @@ export default function SnowAIStockScreener() {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchStockData();
+        if (ticker) {
+            fetchStockData(ticker);
+        }
+    };
+
+    const handleStockClick = (symbol) => {
+        fetchStockData(symbol);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const formatNewsDate = (timestamp) => {
@@ -135,6 +224,15 @@ export default function SnowAIStockScreener() {
         }
     };
 
+    const categories = ['All', ...new Set(popularStocks.map(s => s.category))];
+    
+    const filteredStocks = popularStocks.filter(stock => {
+        const matchesCategory = selectedCategory === 'All' || stock.category === selectedCategory;
+        const matchesSearch = stock.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            stock.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
     const styles = {
         container: {
             padding: '15px',
@@ -175,6 +273,77 @@ export default function SnowAIStockScreener() {
             cursor: 'pointer',
             fontWeight: '600',
             whiteSpace: 'nowrap',
+        },
+        stockPickerSection: {
+            marginBottom: '30px',
+            backgroundColor: '#fff',
+            padding: '20px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        },
+        stockPickerHeader: {
+            fontSize: '20px',
+            fontWeight: '700',
+            marginBottom: '15px',
+            color: '#1a1a1a',
+        },
+        categoryFilter: {
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '20px',
+            flexWrap: 'wrap',
+        },
+        categoryButton: {
+            padding: '8px 16px',
+            fontSize: '14px',
+            border: '2px solid #e0e0e0',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            backgroundColor: '#fff',
+            color: '#666',
+            fontWeight: '500',
+            transition: 'all 0.2s',
+        },
+        categoryButtonActive: {
+            backgroundColor: '#2563eb',
+            color: '#fff',
+            borderColor: '#2563eb',
+        },
+        stockGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gap: '12px',
+            marginTop: '15px',
+        },
+        stockCard: {
+            padding: '15px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            border: '2px solid transparent',
+            textAlign: 'center',
+        },
+        stockCardHover: {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
+            borderColor: '#2563eb',
+        },
+        stockName: {
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#1a1a1a',
+            marginBottom: '4px',
+        },
+        stockSymbol: {
+            fontSize: '13px',
+            color: '#2563eb',
+            fontWeight: '700',
+        },
+        stockCategory: {
+            fontSize: '11px',
+            color: '#999',
+            marginTop: '4px',
         },
         tabContainer: {
             display: 'flex',
@@ -347,6 +516,13 @@ export default function SnowAIStockScreener() {
             cursor: 'pointer',
             maxWidth: '250px',
         },
+        divider: {
+            textAlign: 'center',
+            margin: '20px 0',
+            color: '#999',
+            fontSize: '14px',
+            fontWeight: '500',
+        },
     };
 
     return (
@@ -375,6 +551,59 @@ export default function SnowAIStockScreener() {
                                 </button>
                             </div>
                             {error && <div style={styles.error}>{error}</div>}
+                        </div>
+
+                        <div style={styles.divider}>— OR CHOOSE FROM POPULAR STOCKS —</div>
+
+                        <div style={styles.stockPickerSection}>
+                            <div style={styles.stockPickerHeader}>Select a Stock</div>
+                            
+                            <input
+                                type="text"
+                                placeholder="Search stocks..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{...styles.input, width: '100%', marginBottom: '15px'}}
+                            />
+                            
+                            <div style={styles.categoryFilter}>
+                                {categories.map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        style={{
+                                            ...styles.categoryButton,
+                                            ...(selectedCategory === category ? styles.categoryButtonActive : {})
+                                        }}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div style={styles.stockGrid}>
+                                {filteredStocks.map((stock, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={styles.stockCard}
+                                        onClick={() => handleStockClick(stock.symbol)}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
+                                            e.currentTarget.style.borderColor = '#2563eb';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                            e.currentTarget.style.borderColor = 'transparent';
+                                        }}
+                                    >
+                                        <div style={styles.stockName}>{stock.name}</div>
+                                        <div style={styles.stockSymbol}>{stock.symbol}</div>
+                                        <div style={styles.stockCategory}>{stock.category}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {stockData && (
@@ -510,7 +739,7 @@ export default function SnowAIStockScreener() {
                                                                 <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
                                                                 {row.values?.map((val, i) => (
                                                                     <td key={i} style={styles.td}>
-                                                                        {val && val !== 0 ? `$${(val / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                        {val && val !== 0 ? `${(val / 1e9).toFixed(2)}B` : 'N/A'}
                                                                     </td>
                                                                 ))}
                                                             </tr>
@@ -524,7 +753,7 @@ export default function SnowAIStockScreener() {
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="year" />
                                                     <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
-                                                    <Tooltip formatter={(value) => `$${value}B`} />
+                                                    <Tooltip formatter={(value) => `${value}B`} />
                                                     <Legend />
                                                     {financials.data?.map((row, idx) => (
                                                         <Line 
@@ -576,10 +805,10 @@ export default function SnowAIStockScreener() {
                                                             <tr key={idx}>
                                                                 <td style={styles.td}>{earning.quarter}</td>
                                                                 <td style={styles.td}>
-                                                                    {earning.revenue && earning.revenue !== 0 ? `$${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                    {earning.revenue && earning.revenue !== 0 ? `${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
                                                                 </td>
                                                                 <td style={styles.td}>
-                                                                    {earning.earnings && earning.earnings !== 0 ? `$${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                    {earning.earnings && earning.earnings !== 0 ? `${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -592,7 +821,7 @@ export default function SnowAIStockScreener() {
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="quarter" />
                                                     <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
-                                                    <Tooltip formatter={(value) => value ? `$${value}B` : 'N/A'} />
+                                                    <Tooltip formatter={(value) => value ? `${value}B` : 'N/A'} />
                                                     <Legend />
                                                     <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
                                                     <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
@@ -630,7 +859,7 @@ export default function SnowAIStockScreener() {
 
                         {!stockData && !loading && (
                             <div style={styles.loading}>
-                                Enter a stock ticker above to get started
+                                Select a stock from above or enter a ticker to get started
                             </div>
                         )}
                     </div>
