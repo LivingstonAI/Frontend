@@ -769,6 +769,7 @@ export default function SideNavs() {
         <Link to="/prob_engine" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-cpu"></i></p></button></Link>
         <Link to="/browser" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-search"></i></p></button></Link>
         <Link to="/videos" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-play-circle-fill"></i></p></button></Link>
+        <Link to="/stock_screener" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-apple"></i></p></button></Link>
       </div>
 
       <div className="side-navs-cellphone">
@@ -927,6 +928,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/videos" className="side-nav">
             <i className="bi bi-play-circle-fill"></i>
+        </Link>
+        <Link to="/stock_screener" className="side-nav">
+            <i className="bi bi-apple"></i>
         </Link>
       </div>
       <br />

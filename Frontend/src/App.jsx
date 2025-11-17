@@ -80,6 +80,7 @@ import ProbabilityEngine from './components/prob_engine.jsx';
 import SnowAIBrowser from './components/browser.jsx';
 import MultiAccountAnalytics from './components/multi_account.jsx';
 import SnowAIVideos from './components/videos.jsx';
+import SnowAIStockScreener from './components/stocks.jsx';
 
 
 import Zhenya from './components/zhenya';
@@ -540,6 +541,12 @@ function App() {
             } />
 
             <Route path='/videos' element={
+              <ProtectedRoute>
+                <SnowAIVideos />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/stock_screener' element={
               <ProtectedRoute>
                 <SnowAIVideos />
               </ProtectedRoute>
