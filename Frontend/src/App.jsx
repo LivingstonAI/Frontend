@@ -548,7 +548,7 @@ function App() {
 
             <Route path='/stock_screener' element={
               <ProtectedRoute>
-                <SnowAIVideos />
+                <SnowAIStockScreener />
               </ProtectedRoute>
             } />
             
