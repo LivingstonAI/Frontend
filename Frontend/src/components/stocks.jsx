@@ -21,11 +21,8 @@ export default function SnowAIStockScreener() {
         setError(null);
         
         try {
-            console.log('Fetching:', `${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${ticker}`);
             const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${ticker}`);
-            console.log('Response status:', response.status);
             const data = await response.json();
-            console.log('Data received:', data);
             
             if (response.ok) {
                 setStockData(data.stock_info);
@@ -36,7 +33,6 @@ export default function SnowAIStockScreener() {
                 setError(data.error || 'Failed to fetch stock data');
             }
         } catch (err) {
-            console.error('Full error:', err);
             setError('Network error. Please try again.');
         } finally {
             setLoading(false);
@@ -48,8 +44,25 @@ export default function SnowAIStockScreener() {
         fetchStockData();
     };
 
+    const formatNewsDate = (timestamp) => {
+        if (!timestamp || timestamp === 'N/A') return 'N/A';
+        try {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return timestamp;
+        }
+    };
+
     const styles = {
         container: {
+            padding: '20px',
             maxWidth: '1400px',
         },
         searchSection: {
@@ -97,6 +110,7 @@ export default function SnowAIStockScreener() {
             backgroundColor: 'transparent',
             borderBottom: '3px solid transparent',
             transition: 'all 0.3s',
+            color: '#666',
         },
         activeTabStyle: {
             borderBottom: '3px solid #2563eb',
@@ -363,7 +377,7 @@ export default function SnowAIStockScreener() {
                                                 >
                                                     <div style={styles.newsTitle}>{item.title}</div>
                                                     <div style={styles.newsPublisher}>
-                                                        {item.publisher} • {item.providerPublishTime}
+                                                        {item.publisher} • {formatNewsDate(item.providerPublishTime)}
                                                     </div>
                                                 </div>
                                             ))
