@@ -101,6 +101,7 @@ export default function SnowAIStockScreener() {
     const [selectedVoice, setSelectedVoice] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         const loadVoices = () => {
@@ -150,6 +151,7 @@ export default function SnowAIStockScreener() {
 
     const handleStockClick = (symbol) => {
         fetchStockData(symbol);
+        setShowModal(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -204,6 +206,55 @@ export default function SnowAIStockScreener() {
         }).filter(item => item !== null).reverse();
     };
 
+    const getChartDomain = () => {
+        const chartData = prepareEarningsChartData();
+        if (!chartData || chartData.length === 0) return [0, 'auto'];
+        
+        let allValues = [];
+        chartData.forEach(item => {
+            if (item.revenue !== null) allValues.push(parseFloat(item.revenue));
+            if (item.earnings !== null) allValues.push(parseFloat(item.earnings));
+        });
+        
+        if (allValues.length === 0) return [0, 'auto'];
+        
+        const minValue = Math.min(...allValues);
+        const maxValue = Math.max(...allValues);
+        
+        // Add 10% padding on both sides
+        const padding = (maxValue - minValue) * 0.1;
+        const domainMin = minValue - padding;
+        const domainMax = maxValue + padding;
+        
+        return [Math.floor(domainMin), Math.ceil(domainMax)];
+    };
+
+    const getFinancialChartDomain = () => {
+        const chartData = prepareFinancialsChartData();
+        if (!chartData || chartData.length === 0) return [0, 'auto'];
+        
+        let allValues = [];
+        chartData.forEach(item => {
+            Object.keys(item).forEach(key => {
+                if (key !== 'year' && item[key] !== null) {
+                    allValues.push(parseFloat(item[key]));
+                }
+            });
+        });
+        
+        if (allValues.length === 0) return [0, 'auto'];
+        
+        const minValue = Math.min(...allValues);
+        const maxValue = Math.max(...allValues);
+        
+        // Add 10% padding on both sides
+        const padding = (maxValue - minValue) * 0.1;
+        const domainMin = minValue - padding;
+        const domainMax = maxValue + padding;
+        
+        return [Math.floor(domainMin), Math.ceil(domainMax)];
+    };
+
     const handleSpeak = () => {
         if (isSpeaking) {
             window.speechSynthesis.cancel();
@@ -235,6 +286,7 @@ export default function SnowAIStockScreener() {
 
     const styles = {
         container: {
+            padding: '15px',
             maxWidth: '1400px',
             width: '100%',
             boxSizing: 'border-box',
@@ -273,17 +325,63 @@ export default function SnowAIStockScreener() {
             fontWeight: '600',
             whiteSpace: 'nowrap',
         },
-        stockPickerSection: {
-            marginBottom: '30px',
-            backgroundColor: '#fff',
-            padding: '20px',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        browseButton: {
+            padding: '10px 25px',
+            fontSize: '16px',
+            backgroundColor: '#10b981',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            whiteSpace: 'nowrap',
         },
-        stockPickerHeader: {
-            fontSize: '20px',
+        modalOverlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            overflow: 'auto',
+        },
+        modalContent: {
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '1000px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            position: 'relative',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        },
+        closeButton: {
+            position: 'absolute',
+            top: '15px',
+            right: '15px',
+            background: 'none',
+            border: 'none',
+            fontSize: '28px',
+            cursor: 'pointer',
+            color: '#666',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '50%',
+            transition: 'all 0.2s',
+        },
+        modalHeader: {
+            fontSize: '24px',
             fontWeight: '700',
-            marginBottom: '15px',
+            marginBottom: '20px',
             color: '#1a1a1a',
         },
         categoryFilter: {
@@ -322,11 +420,6 @@ export default function SnowAIStockScreener() {
             transition: 'all 0.2s',
             border: '2px solid transparent',
             textAlign: 'center',
-        },
-        stockCardHover: {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
-            borderColor: '#2563eb',
         },
         stockName: {
             fontSize: '14px',
@@ -515,13 +608,6 @@ export default function SnowAIStockScreener() {
             cursor: 'pointer',
             maxWidth: '250px',
         },
-        divider: {
-            textAlign: 'center',
-            margin: '20px 0',
-            color: '#999',
-            fontSize: '14px',
-            fontWeight: '500',
-        },
     };
 
     return (
@@ -532,7 +618,7 @@ export default function SnowAIStockScreener() {
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Stock Screener</h5><br />
+                    <h5 className="major-upcoming-news-events-header">SnowAI Stock Screener</h5>
                     
                     <div style={styles.container}>
                         <div style={styles.searchSection}>
@@ -548,62 +634,81 @@ export default function SnowAIStockScreener() {
                                 <button onClick={handleSearch} style={styles.searchButton} disabled={loading}>
                                     {loading ? 'Loading...' : 'Search'}
                                 </button>
+                                <button onClick={() => setShowModal(true)} style={styles.browseButton}>
+                                    📊 Browse Stocks
+                                </button>
                             </div>
                             {error && <div style={styles.error}>{error}</div>}
                         </div>
 
-                        <div style={styles.divider}>— OR CHOOSE FROM POPULAR STOCKS —</div>
-
-                        <div style={styles.stockPickerSection}>
-                            <div style={styles.stockPickerHeader}>Select a Stock</div>
-                            
-                            <input
-                                type="text"
-                                placeholder="Search stocks..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                style={{...styles.input, width: '100%', marginBottom: '15px'}}
-                            />
-                            
-                            <div style={styles.categoryFilter}>
-                                {categories.map(category => (
-                                    <button
-                                        key={category}
-                                        onClick={() => setSelectedCategory(category)}
-                                        style={{
-                                            ...styles.categoryButton,
-                                            ...(selectedCategory === category ? styles.categoryButtonActive : {})
-                                        }}
-                                    >
-                                        {category}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div style={styles.stockGrid}>
-                                {filteredStocks.map((stock, idx) => (
-                                    <div
-                                        key={idx}
-                                        style={styles.stockCard}
-                                        onClick={() => handleStockClick(stock.symbol)}
+                        {/* Modal */}
+                        {showModal && (
+                            <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                                    <button 
+                                        style={styles.closeButton}
+                                        onClick={() => setShowModal(false)}
                                         onMouseEnter={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
-                                            e.currentTarget.style.borderColor = '#2563eb';
+                                            e.currentTarget.style.backgroundColor = '#f0f0f0';
                                         }}
                                         onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.boxShadow = 'none';
-                                            e.currentTarget.style.borderColor = 'transparent';
+                                            e.currentTarget.style.backgroundColor = 'transparent';
                                         }}
                                     >
-                                        <div style={styles.stockName}>{stock.name}</div>
-                                        <div style={styles.stockSymbol}>{stock.symbol}</div>
-                                        <div style={styles.stockCategory}>{stock.category}</div>
+                                        ×
+                                    </button>
+                                    
+                                    <div style={styles.modalHeader}>Select a Stock</div>
+                                    
+                                    <input
+                                        type="text"
+                                        placeholder="Search stocks..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{...styles.input, width: '100%', marginBottom: '15px'}}
+                                    />
+                                    
+                                    <div style={styles.categoryFilter}>
+                                        {categories.map(category => (
+                                            <button
+                                                key={category}
+                                                onClick={() => setSelectedCategory(category)}
+                                                style={{
+                                                    ...styles.categoryButton,
+                                                    ...(selectedCategory === category ? styles.categoryButtonActive : {})
+                                                }}
+                                            >
+                                                {category}
+                                            </button>
+                                        ))}
                                     </div>
-                                ))}
+
+                                    <div style={styles.stockGrid}>
+                                        {filteredStocks.map((stock, idx) => (
+                                            <div
+                                                key={idx}
+                                                style={styles.stockCard}
+                                                onClick={() => handleStockClick(stock.symbol)}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
+                                                    e.currentTarget.style.borderColor = '#2563eb';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                    e.currentTarget.style.borderColor = 'transparent';
+                                                }}
+                                            >
+                                                <div style={styles.stockName}>{stock.name}</div>
+                                                <div style={styles.stockSymbol}>{stock.symbol}</div>
+                                                <div style={styles.stockCategory}>{stock.category}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {stockData && (
                             <>
@@ -751,7 +856,10 @@ export default function SnowAIStockScreener() {
                                                 <LineChart data={prepareFinancialsChartData()}>
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="year" />
-                                                    <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <YAxis 
+                                                        domain={getFinancialChartDomain()}
+                                                        label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} 
+                                                    />
                                                     <Tooltip formatter={(value) => `${value}B`} />
                                                     <Legend />
                                                     {financials.data?.map((row, idx) => (
@@ -819,7 +927,10 @@ export default function SnowAIStockScreener() {
                                                 <BarChart data={prepareEarningsChartData()}>
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="quarter" />
-                                                    <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <YAxis 
+                                                        domain={getChartDomain()}
+                                                        label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} 
+                                                    />
                                                     <Tooltip formatter={(value) => value ? `${value}B` : 'N/A'} />
                                                     <Legend />
                                                     <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
@@ -858,7 +969,7 @@ export default function SnowAIStockScreener() {
 
                         {!stockData && !loading && (
                             <div style={styles.loading}>
-                                Select a stock from above or enter a ticker to get started
+                                Enter a stock ticker or browse stocks to get started
                             </div>
                         )}
                     </div>
