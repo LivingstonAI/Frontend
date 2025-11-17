@@ -21,8 +21,11 @@ export default function SnowAIStockScreener() {
         setError(null);
         
         try {
+            console.log('Fetching:', `${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${ticker}`);
             const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${ticker}`);
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Data received:', data);
             
             if (response.ok) {
                 setStockData(data.stock_info);
@@ -33,6 +36,7 @@ export default function SnowAIStockScreener() {
                 setError(data.error || 'Failed to fetch stock data');
             }
         } catch (err) {
+            console.error('Full error:', err);
             setError('Network error. Please try again.');
         } finally {
             setLoading(false);
