@@ -14,8 +14,25 @@ export default function SnowAIStockScreener() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
-    const [financialsView, setFinancialsView] = useState('table'); // 'table' or 'chart'
-    const [earningsView, setEarningsView] = useState('table'); // 'table' or 'chart'
+    const [financialsView, setFinancialsView] = useState('table');
+    const [earningsView, setEarningsView] = useState('table');
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [showVoiceSelect, setShowVoiceSelect] = useState(false);
+
+    useEffect(() => {
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            setVoices(availableVoices);
+            if (availableVoices.length > 0 && !selectedVoice) {
+                setSelectedVoice(availableVoices[0]);
+            }
+        };
+
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }, []);
 
     const fetchStockData = async () => {
         if (!ticker) return;
@@ -31,7 +48,7 @@ export default function SnowAIStockScreener() {
                 setStockData(data.stock_info);
                 setFinancials(data.financials);
                 setEarnings(data.earnings);
-                setNews(data.news);
+                setNews(data.news || []);
             } else {
                 setError(data.error || 'Failed to fetch stock data');
             }
@@ -68,13 +85,17 @@ export default function SnowAIStockScreener() {
         
         const chartData = financials.columns.map((year, idx) => {
             const dataPoint = { year };
+            let hasData = false;
+            
             financials.data.forEach(row => {
-                if (row.values && row.values[idx]) {
+                if (row.values && row.values[idx] !== null && row.values[idx] !== 0) {
                     dataPoint[row.metric] = (row.values[idx] / 1e9).toFixed(2);
+                    hasData = true;
                 }
             });
-            return dataPoint;
-        }).reverse(); // Reverse to show oldest to newest
+            
+            return hasData ? dataPoint : null;
+        }).filter(item => item !== null).reverse();
         
         return chartData;
     };
@@ -82,22 +103,49 @@ export default function SnowAIStockScreener() {
     const prepareEarningsChartData = () => {
         if (!earnings || earnings.length === 0) return [];
         
-        return earnings.map(earning => ({
-            quarter: earning.quarter,
-            revenue: earning.revenue ? (earning.revenue / 1e9).toFixed(2) : 0,
-            earnings: earning.earnings ? (earning.earnings / 1e9).toFixed(2) : 0
-        })).reverse(); // Reverse to show oldest to newest
+        return earnings.map(earning => {
+            if ((earning.revenue && earning.revenue !== 0) || (earning.earnings && earning.earnings !== 0)) {
+                return {
+                    quarter: earning.quarter,
+                    revenue: earning.revenue && earning.revenue !== 0 ? (earning.revenue / 1e9).toFixed(2) : null,
+                    earnings: earning.earnings && earning.earnings !== 0 ? (earning.earnings / 1e9).toFixed(2) : null
+                };
+            }
+            return null;
+        }).filter(item => item !== null).reverse();
+    };
+
+    const handleSpeak = () => {
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+        } else {
+            const text = stockData?.longBusinessSummary || 'No description available.';
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => setIsSpeaking(false);
+            
+            window.speechSynthesis.speak(utterance);
+            setIsSpeaking(true);
+        }
     };
 
     const styles = {
         container: {
-            padding: '20px',
+            padding: '15px',
             maxWidth: '1400px',
+            width: '100%',
+            boxSizing: 'border-box',
         },
         searchSection: {
-            marginBottom: '30px',
+            marginBottom: '20px',
             backgroundColor: '#fff',
-            padding: '20px',
+            padding: '15px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         },
@@ -105,6 +153,7 @@ export default function SnowAIStockScreener() {
             display: 'flex',
             gap: '10px',
             alignItems: 'center',
+            flexWrap: 'wrap',
         },
         input: {
             padding: '10px 15px',
@@ -112,7 +161,9 @@ export default function SnowAIStockScreener() {
             border: '2px solid #e0e0e0',
             borderRadius: '6px',
             width: '200px',
+            maxWidth: '100%',
             outline: 'none',
+            boxSizing: 'border-box',
         },
         searchButton: {
             padding: '10px 25px',
@@ -123,16 +174,19 @@ export default function SnowAIStockScreener() {
             borderRadius: '6px',
             cursor: 'pointer',
             fontWeight: '600',
+            whiteSpace: 'nowrap',
         },
         tabContainer: {
             display: 'flex',
-            gap: '10px',
+            gap: '5px',
             marginBottom: '20px',
             borderBottom: '2px solid #e0e0e0',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
         },
         tab: {
-            padding: '12px 24px',
-            fontSize: '15px',
+            padding: '12px 20px',
+            fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
             border: 'none',
@@ -140,6 +194,8 @@ export default function SnowAIStockScreener() {
             borderBottom: '3px solid transparent',
             transition: 'all 0.3s',
             color: '#666',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
         },
         activeTabStyle: {
             borderBottom: '3px solid #2563eb',
@@ -147,15 +203,19 @@ export default function SnowAIStockScreener() {
         },
         contentCard: {
             backgroundColor: '#fff',
-            padding: '25px',
+            padding: '20px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             marginBottom: '20px',
+            width: '100%',
+            boxSizing: 'border-box',
+            overflowX: 'auto',
         },
         viewToggle: {
             display: 'flex',
             gap: '10px',
             marginBottom: '20px',
+            flexWrap: 'wrap',
         },
         toggleButton: {
             padding: '8px 16px',
@@ -175,7 +235,7 @@ export default function SnowAIStockScreener() {
         },
         overviewGrid: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '15px',
             marginTop: '20px',
         },
@@ -195,11 +255,13 @@ export default function SnowAIStockScreener() {
             fontSize: '20px',
             fontWeight: '700',
             color: '#1a1a1a',
+            wordBreak: 'break-word',
         },
         table: {
             width: '100%',
             borderCollapse: 'collapse',
             marginTop: '15px',
+            minWidth: '600px',
         },
         th: {
             textAlign: 'left',
@@ -247,13 +309,43 @@ export default function SnowAIStockScreener() {
             marginBottom: '20px',
         },
         companyName: {
-            fontSize: '28px',
+            fontSize: '24px',
             fontWeight: '700',
             marginBottom: '5px',
         },
         companySymbol: {
-            fontSize: '16px',
+            fontSize: '14px',
             color: '#666',
+        },
+        voiceControls: {
+            display: 'flex',
+            gap: '10px',
+            marginTop: '15px',
+            marginBottom: '15px',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+        },
+        voiceButton: {
+            padding: '8px 16px',
+            fontSize: '14px',
+            backgroundColor: '#2563eb',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+        },
+        voiceButtonStop: {
+            backgroundColor: '#ef4444',
+        },
+        voiceSelect: {
+            padding: '8px 12px',
+            fontSize: '14px',
+            border: '2px solid #e0e0e0',
+            borderRadius: '6px',
+            outline: 'none',
+            cursor: 'pointer',
+            maxWidth: '250px',
         },
     };
 
@@ -354,6 +446,28 @@ export default function SnowAIStockScreener() {
                                         </div>
                                         <div style={{marginTop: '20px'}}>
                                             <h4>About</h4>
+                                            <div style={styles.voiceControls}>
+                                                <button 
+                                                    onClick={handleSpeak} 
+                                                    style={{...styles.voiceButton, ...(isSpeaking ? styles.voiceButtonStop : {})}}
+                                                >
+                                                    {isSpeaking ? '⏹ Stop Reading' : '🔊 Read Aloud'}
+                                                </button>
+                                                <select 
+                                                    value={selectedVoice?.name || ''} 
+                                                    onChange={(e) => {
+                                                        const voice = voices.find(v => v.name === e.target.value);
+                                                        setSelectedVoice(voice);
+                                                    }}
+                                                    style={styles.voiceSelect}
+                                                >
+                                                    {voices.map((voice, idx) => (
+                                                        <option key={idx} value={voice.name}>
+                                                            {voice.name} ({voice.lang})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                             <p style={{lineHeight: '1.6', color: '#444'}}>{stockData.longBusinessSummary || 'No description available.'}</p>
                                         </div>
                                     </div>
@@ -361,7 +475,7 @@ export default function SnowAIStockScreener() {
 
                                 {activeTab === 'financials' && financials && (
                                     <div style={styles.contentCard}>
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
                                             <h3>Financial Statements (Annual)</h3>
                                             <div style={styles.viewToggle}>
                                                 <button
@@ -380,28 +494,30 @@ export default function SnowAIStockScreener() {
                                         </div>
 
                                         {financialsView === 'table' ? (
-                                            <table style={styles.table}>
-                                                <thead>
-                                                    <tr>
-                                                        <th style={styles.th}>Metric</th>
-                                                        {financials.columns?.map((col, idx) => (
-                                                            <th key={idx} style={styles.th}>{col}</th>
-                                                        ))}
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {financials.data?.map((row, idx) => (
-                                                        <tr key={idx}>
-                                                            <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
-                                                            {row.values?.map((val, i) => (
-                                                                <td key={i} style={styles.td}>
-                                                                    {val ? `$${(val / 1e9).toFixed(2)}B` : 'N/A'}
-                                                                </td>
+                                            <div style={{overflowX: 'auto'}}>
+                                                <table style={styles.table}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th style={styles.th}>Metric</th>
+                                                            {financials.columns?.map((col, idx) => (
+                                                                <th key={idx} style={styles.th}>{col}</th>
                                                             ))}
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {financials.data?.map((row, idx) => (
+                                                            <tr key={idx}>
+                                                                <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
+                                                                {row.values?.map((val, i) => (
+                                                                    <td key={i} style={styles.td}>
+                                                                        {val && val !== 0 ? `$${(val / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         ) : (
                                             <ResponsiveContainer width="100%" height={400}>
                                                 <LineChart data={prepareFinancialsChartData()}>
@@ -427,7 +543,7 @@ export default function SnowAIStockScreener() {
 
                                 {activeTab === 'earnings' && earnings && (
                                     <div style={styles.contentCard}>
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
                                             <h3>Quarterly Earnings</h3>
                                             <div style={styles.viewToggle}>
                                                 <button
@@ -446,35 +562,37 @@ export default function SnowAIStockScreener() {
                                         </div>
 
                                         {earningsView === 'table' ? (
-                                            <table style={styles.table}>
-                                                <thead>
-                                                    <tr>
-                                                        <th style={styles.th}>Quarter</th>
-                                                        <th style={styles.th}>Revenue</th>
-                                                        <th style={styles.th}>Earnings</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {earnings.map((earning, idx) => (
-                                                        <tr key={idx}>
-                                                            <td style={styles.td}>{earning.quarter}</td>
-                                                            <td style={styles.td}>
-                                                                {earning.revenue ? `$${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
-                                                            </td>
-                                                            <td style={styles.td}>
-                                                                {earning.earnings ? `$${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
-                                                            </td>
+                                            <div style={{overflowX: 'auto'}}>
+                                                <table style={styles.table}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th style={styles.th}>Quarter</th>
+                                                            <th style={styles.th}>Revenue</th>
+                                                            <th style={styles.th}>Earnings</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {earnings.map((earning, idx) => (
+                                                            <tr key={idx}>
+                                                                <td style={styles.td}>{earning.quarter}</td>
+                                                                <td style={styles.td}>
+                                                                    {earning.revenue && earning.revenue !== 0 ? `$${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                </td>
+                                                                <td style={styles.td}>
+                                                                    {earning.earnings && earning.earnings !== 0 ? `$${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         ) : (
                                             <ResponsiveContainer width="100%" height={400}>
                                                 <BarChart data={prepareEarningsChartData()}>
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="quarter" />
                                                     <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
-                                                    <Tooltip formatter={(value) => `$${value}B`} />
+                                                    <Tooltip formatter={(value) => value ? `$${value}B` : 'N/A'} />
                                                     <Legend />
                                                     <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
                                                     <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
@@ -487,9 +605,9 @@ export default function SnowAIStockScreener() {
                                 {activeTab === 'news' && (
                                     <div style={styles.contentCard}>
                                         <h3>Recent News</h3>
-                                        {news.length > 0 ? (
+                                        {news && news.length > 0 ? (
                                             news.map((item, idx) => (
-                                                item.link && item.title ? (
+                                                item && item.link && item.title ? (
                                                     <div
                                                         key={idx}
                                                         style={styles.newsCard}
