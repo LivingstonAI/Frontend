@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -13,6 +14,8 @@ export default function SnowAIStockScreener() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [financialsView, setFinancialsView] = useState('table'); // 'table' or 'chart'
+    const [earningsView, setEarningsView] = useState('table'); // 'table' or 'chart'
 
     const fetchStockData = async () => {
         if (!ticker) return;
@@ -58,6 +61,32 @@ export default function SnowAIStockScreener() {
         } catch {
             return timestamp;
         }
+    };
+
+    const prepareFinancialsChartData = () => {
+        if (!financials || !financials.data || !financials.columns) return [];
+        
+        const chartData = financials.columns.map((year, idx) => {
+            const dataPoint = { year };
+            financials.data.forEach(row => {
+                if (row.values && row.values[idx]) {
+                    dataPoint[row.metric] = (row.values[idx] / 1e9).toFixed(2);
+                }
+            });
+            return dataPoint;
+        }).reverse(); // Reverse to show oldest to newest
+        
+        return chartData;
+    };
+
+    const prepareEarningsChartData = () => {
+        if (!earnings || earnings.length === 0) return [];
+        
+        return earnings.map(earning => ({
+            quarter: earning.quarter,
+            revenue: earning.revenue ? (earning.revenue / 1e9).toFixed(2) : 0,
+            earnings: earning.earnings ? (earning.earnings / 1e9).toFixed(2) : 0
+        })).reverse(); // Reverse to show oldest to newest
     };
 
     const styles = {
@@ -122,6 +151,27 @@ export default function SnowAIStockScreener() {
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             marginBottom: '20px',
+        },
+        viewToggle: {
+            display: 'flex',
+            gap: '10px',
+            marginBottom: '20px',
+        },
+        toggleButton: {
+            padding: '8px 16px',
+            fontSize: '14px',
+            border: '1px solid #e0e0e0',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            backgroundColor: '#fff',
+            color: '#666',
+            fontWeight: '500',
+            transition: 'all 0.2s',
+        },
+        toggleButtonActive: {
+            backgroundColor: '#2563eb',
+            color: '#fff',
+            borderColor: '#2563eb',
         },
         overviewGrid: {
             display: 'grid',
@@ -311,57 +361,126 @@ export default function SnowAIStockScreener() {
 
                                 {activeTab === 'financials' && financials && (
                                     <div style={styles.contentCard}>
-                                        <h3>Financial Statements (Annual)</h3>
-                                        <table style={styles.table}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={styles.th}>Metric</th>
-                                                    {financials.columns?.map((col, idx) => (
-                                                        <th key={idx} style={styles.th}>{col}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {financials.data?.map((row, idx) => (
-                                                    <tr key={idx}>
-                                                        <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
-                                                        {row.values?.map((val, i) => (
-                                                            <td key={i} style={styles.td}>
-                                                                {val ? `$${(val / 1e9).toFixed(2)}B` : 'N/A'}
-                                                            </td>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                                            <h3>Financial Statements (Annual)</h3>
+                                            <div style={styles.viewToggle}>
+                                                <button
+                                                    style={{...styles.toggleButton, ...(financialsView === 'table' ? styles.toggleButtonActive : {})}}
+                                                    onClick={() => setFinancialsView('table')}
+                                                >
+                                                    Table View
+                                                </button>
+                                                <button
+                                                    style={{...styles.toggleButton, ...(financialsView === 'chart' ? styles.toggleButtonActive : {})}}
+                                                    onClick={() => setFinancialsView('chart')}
+                                                >
+                                                    Chart View
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {financialsView === 'table' ? (
+                                            <table style={styles.table}>
+                                                <thead>
+                                                    <tr>
+                                                        <th style={styles.th}>Metric</th>
+                                                        {financials.columns?.map((col, idx) => (
+                                                            <th key={idx} style={styles.th}>{col}</th>
                                                         ))}
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {financials.data?.map((row, idx) => (
+                                                        <tr key={idx}>
+                                                            <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
+                                                            {row.values?.map((val, i) => (
+                                                                <td key={i} style={styles.td}>
+                                                                    {val ? `$${(val / 1e9).toFixed(2)}B` : 'N/A'}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={prepareFinancialsChartData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="year" />
+                                                    <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <Tooltip formatter={(value) => `$${value}B`} />
+                                                    <Legend />
+                                                    {financials.data?.map((row, idx) => (
+                                                        <Line 
+                                                            key={idx}
+                                                            type="monotone" 
+                                                            dataKey={row.metric} 
+                                                            stroke={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][idx % 4]}
+                                                            strokeWidth={2}
+                                                        />
+                                                    ))}
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        )}
                                     </div>
                                 )}
 
                                 {activeTab === 'earnings' && earnings && (
                                     <div style={styles.contentCard}>
-                                        <h3>Quarterly Earnings</h3>
-                                        <table style={styles.table}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={styles.th}>Quarter</th>
-                                                    <th style={styles.th}>Revenue</th>
-                                                    <th style={styles.th}>Earnings</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {earnings.map((earning, idx) => (
-                                                    <tr key={idx}>
-                                                        <td style={styles.td}>{earning.quarter}</td>
-                                                        <td style={styles.td}>
-                                                            {earning.revenue ? `$${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
-                                                        </td>
-                                                        <td style={styles.td}>
-                                                            {earning.earnings ? `$${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
-                                                        </td>
+                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                                            <h3>Quarterly Earnings</h3>
+                                            <div style={styles.viewToggle}>
+                                                <button
+                                                    style={{...styles.toggleButton, ...(earningsView === 'table' ? styles.toggleButtonActive : {})}}
+                                                    onClick={() => setEarningsView('table')}
+                                                >
+                                                    Table View
+                                                </button>
+                                                <button
+                                                    style={{...styles.toggleButton, ...(earningsView === 'chart' ? styles.toggleButtonActive : {})}}
+                                                    onClick={() => setEarningsView('chart')}
+                                                >
+                                                    Chart View
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {earningsView === 'table' ? (
+                                            <table style={styles.table}>
+                                                <thead>
+                                                    <tr>
+                                                        <th style={styles.th}>Quarter</th>
+                                                        <th style={styles.th}>Revenue</th>
+                                                        <th style={styles.th}>Earnings</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody>
+                                                    {earnings.map((earning, idx) => (
+                                                        <tr key={idx}>
+                                                            <td style={styles.td}>{earning.quarter}</td>
+                                                            <td style={styles.td}>
+                                                                {earning.revenue ? `$${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
+                                                            </td>
+                                                            <td style={styles.td}>
+                                                                {earning.earnings ? `$${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <BarChart data={prepareEarningsChartData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="quarter" />
+                                                    <YAxis label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <Tooltip formatter={(value) => `$${value}B`} />
+                                                    <Legend />
+                                                    <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
+                                                    <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        )}
                                     </div>
                                 )}
 
@@ -370,16 +489,18 @@ export default function SnowAIStockScreener() {
                                         <h3>Recent News</h3>
                                         {news.length > 0 ? (
                                             news.map((item, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    style={styles.newsCard}
-                                                    onClick={() => window.open(item.link, '_blank')}
-                                                >
-                                                    <div style={styles.newsTitle}>{item.title}</div>
-                                                    <div style={styles.newsPublisher}>
-                                                        {item.publisher} • {formatNewsDate(item.providerPublishTime)}
+                                                item.link && item.title ? (
+                                                    <div
+                                                        key={idx}
+                                                        style={styles.newsCard}
+                                                        onClick={() => item.link && window.open(item.link, '_blank')}
+                                                    >
+                                                        <div style={styles.newsTitle}>{item.title}</div>
+                                                        <div style={styles.newsPublisher}>
+                                                            {item.publisher} • {formatNewsDate(item.providerPublishTime)}
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                ) : null
                                             ))
                                         ) : (
                                             <p>No recent news available.</p>
