@@ -235,7 +235,6 @@ export default function SnowAIStockScreener() {
 
     const styles = {
         container: {
-            padding: '15px',
             maxWidth: '1400px',
             width: '100%',
             boxSizing: 'border-box',
