@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
-
 
 export default function SnowAIStockScreener() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -103,6 +102,11 @@ export default function SnowAIStockScreener() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [showModal, setShowModal] = useState(false);
+    
+    // AI Analysis states
+    const [aiAnalysisRunning, setAiAnalysisRunning] = useState(false);
+    const [aiAnalysisResults, setAiAnalysisResults] = useState(null);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
 
     useEffect(() => {
         const loadVoices = () => {
@@ -143,6 +147,155 @@ export default function SnowAIStockScreener() {
         }
     };
 
+    const analyzeStock = (stockData) => {
+        const { earnings } = stockData;
+        
+        if (!earnings || earnings.length < 4) {
+            return {
+                signal: 'INSUFFICIENT_DATA',
+                confidence: 0,
+                reason: 'Not enough data for analysis',
+                revenueDeviation: 0,
+                earningsDeviation: 0
+            };
+        }
+
+        // Get last 4 quarters for analysis
+        const recentQuarters = earnings.slice(0, 4);
+        const olderQuarters = earnings.slice(4, 8);
+
+        // Calculate averages
+        const recentRevenue = recentQuarters
+            .filter(q => q.revenue && q.revenue !== 0)
+            .map(q => q.revenue);
+        const recentEarnings = recentQuarters
+            .filter(q => q.earnings && q.earnings !== 0)
+            .map(q => q.earnings);
+
+        const olderRevenue = olderQuarters
+            .filter(q => q.revenue && q.revenue !== 0)
+            .map(q => q.revenue);
+        const olderEarnings = olderQuarters
+            .filter(q => q.earnings && q.earnings !== 0)
+            .map(q => q.earnings);
+
+        if (recentRevenue.length === 0 || olderRevenue.length === 0) {
+            return {
+                signal: 'INSUFFICIENT_DATA',
+                confidence: 0,
+                reason: 'Not enough data for analysis',
+                revenueDeviation: 0,
+                earningsDeviation: 0
+            };
+        }
+
+        const avgRecentRevenue = recentRevenue.reduce((a, b) => a + b, 0) / recentRevenue.length;
+        const avgOlderRevenue = olderRevenue.reduce((a, b) => a + b, 0) / olderRevenue.length;
+        const avgRecentEarnings = recentEarnings.length > 0 
+            ? recentEarnings.reduce((a, b) => a + b, 0) / recentEarnings.length 
+            : 0;
+        const avgOlderEarnings = olderEarnings.length > 0 
+            ? olderEarnings.reduce((a, b) => a + b, 0) / olderEarnings.length 
+            : 0;
+
+        // Calculate percentage deviations
+        const revenueDeviation = ((avgRecentRevenue - avgOlderRevenue) / Math.abs(avgOlderRevenue)) * 100;
+        const earningsDeviation = avgOlderEarnings !== 0 
+            ? ((avgRecentEarnings - avgOlderEarnings) / Math.abs(avgOlderEarnings)) * 100 
+            : 0;
+
+        // Determine signal based on deviations
+        const THRESHOLD = 10; // 10% threshold for significant deviation
+        let signal = 'NEUTRAL';
+        let confidence = 0;
+        let reason = '';
+
+        if (Math.abs(revenueDeviation) > THRESHOLD || Math.abs(earningsDeviation) > THRESHOLD) {
+            if (revenueDeviation > THRESHOLD || earningsDeviation > THRESHOLD) {
+                signal = 'BULLISH';
+                confidence = Math.min(95, 50 + Math.abs((revenueDeviation + earningsDeviation) / 2));
+                reason = 'Revenue and/or earnings showing significant positive growth compared to previous quarters';
+            } else if (revenueDeviation < -THRESHOLD || earningsDeviation < -THRESHOLD) {
+                signal = 'BEARISH';
+                confidence = Math.min(95, 50 + Math.abs((revenueDeviation + earningsDeviation) / 2));
+                reason = 'Revenue and/or earnings showing significant decline compared to previous quarters';
+            }
+        } else {
+            signal = 'NEUTRAL';
+            confidence = 70;
+            reason = 'Performance is stable and within normal range. Likely to continue current trend';
+        }
+
+        return {
+            signal,
+            confidence: Math.round(confidence),
+            reason,
+            revenueDeviation: revenueDeviation.toFixed(2),
+            earningsDeviation: earningsDeviation.toFixed(2),
+            avgRecentRevenue: (avgRecentRevenue / 1e9).toFixed(2),
+            avgOlderRevenue: (avgOlderRevenue / 1e9).toFixed(2),
+            avgRecentEarnings: (avgRecentEarnings / 1e9).toFixed(2),
+            avgOlderEarnings: (avgOlderEarnings / 1e9).toFixed(2)
+        };
+    };
+
+    const runAIAnalysis = async () => {
+        setAiAnalysisRunning(true);
+        setError(null);
+        
+        const results = {
+            bullish: [],
+            bearish: [],
+            neutral: [],
+            insufficient: [],
+            timestamp: new Date().toLocaleString()
+        };
+
+        try {
+            for (const stock of popularStocks) {
+                try {
+                    const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${stock.symbol}`);
+                    const data = await response.json();
+                    
+                    if (response.ok && data.earnings) {
+                        const analysis = analyzeStock(data);
+                        
+                        const stockResult = {
+                            ...stock,
+                            ...analysis,
+                            currentPrice: data.stock_info?.currentPrice,
+                            marketCap: data.stock_info?.marketCap
+                        };
+
+                        if (analysis.signal === 'BULLISH') {
+                            results.bullish.push(stockResult);
+                        } else if (analysis.signal === 'BEARISH') {
+                            results.bearish.push(stockResult);
+                        } else if (analysis.signal === 'NEUTRAL') {
+                            results.neutral.push(stockResult);
+                        } else {
+                            results.insufficient.push(stockResult);
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Error analyzing ${stock.symbol}:`, err);
+                }
+            }
+
+            // Sort by confidence
+            results.bullish.sort((a, b) => b.confidence - a.confidence);
+            results.bearish.sort((a, b) => b.confidence - a.confidence);
+            results.neutral.sort((a, b) => b.confidence - a.confidence);
+
+            setAiAnalysisResults(results);
+            setShowAnalysisModal(true);
+        } catch (err) {
+            setError('Failed to complete AI analysis');
+        } finally {
+            setAiAnalysisRunning(false);
+        }
+    };
+
     const handleSearch = (e) => {
         e.preventDefault();
         if (ticker) {
@@ -153,6 +306,7 @@ export default function SnowAIStockScreener() {
     const handleStockClick = (symbol) => {
         fetchStockData(symbol);
         setShowModal(false);
+        setShowAnalysisModal(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -222,13 +376,11 @@ export default function SnowAIStockScreener() {
         const minValue = Math.min(...allValues);
         const maxValue = Math.max(...allValues);
         
-        // Add 20% padding on both sides to ensure all values fit
         const range = maxValue - minValue;
         const padding = range * 0.2;
         const domainMin = minValue - padding;
         const domainMax = maxValue + padding;
         
-        // Round to nice numbers
         return [Math.floor(domainMin * 10) / 10, Math.ceil(domainMax * 10) / 10];
     };
 
@@ -250,13 +402,11 @@ export default function SnowAIStockScreener() {
         const minValue = Math.min(...allValues);
         const maxValue = Math.max(...allValues);
         
-        // Add 20% padding on both sides to ensure all values fit
         const range = maxValue - minValue;
         const padding = range * 0.2;
         const domainMin = minValue - padding;
         const domainMax = maxValue + padding;
         
-        // Round to nice numbers
         return [Math.floor(domainMin * 10) / 10, Math.ceil(domainMax * 10) / 10];
     };
 
@@ -341,6 +491,20 @@ export default function SnowAIStockScreener() {
             fontWeight: '600',
             whiteSpace: 'nowrap',
         },
+        aiAnalysisButton: {
+            padding: '10px 25px',
+            fontSize: '16px',
+            backgroundColor: '#8b5cf6',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+        },
         modalOverlay: {
             position: 'fixed',
             top: 0,
@@ -359,7 +523,7 @@ export default function SnowAIStockScreener() {
             backgroundColor: '#fff',
             borderRadius: '12px',
             padding: '30px',
-            maxWidth: '1000px',
+            maxWidth: '1200px',
             width: '100%',
             maxHeight: '90vh',
             overflow: 'auto',
@@ -441,6 +605,72 @@ export default function SnowAIStockScreener() {
             fontSize: '11px',
             color: '#999',
             marginTop: '4px',
+        },
+        analysisCard: {
+            padding: '20px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            marginBottom: '15px',
+            border: '2px solid transparent',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+        },
+        analysisCardBullish: {
+            borderLeft: '4px solid #10b981',
+            backgroundColor: '#f0fdf4',
+        },
+        analysisCardBearish: {
+            borderLeft: '4px solid #ef4444',
+            backgroundColor: '#fef2f2',
+        },
+        analysisCardNeutral: {
+            borderLeft: '4px solid #f59e0b',
+            backgroundColor: '#fffbeb',
+        },
+        signalBadge: {
+            display: 'inline-block',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '700',
+            marginRight: '10px',
+        },
+        bullishBadge: {
+            backgroundColor: '#10b981',
+            color: '#fff',
+        },
+        bearishBadge: {
+            backgroundColor: '#ef4444',
+            color: '#fff',
+        },
+        neutralBadge: {
+            backgroundColor: '#f59e0b',
+            color: '#fff',
+        },
+        confidenceBadge: {
+            display: 'inline-block',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '600',
+            backgroundColor: '#e0e0e0',
+            color: '#333',
+        },
+        analysisSection: {
+            marginBottom: '30px',
+        },
+        analysisSectionTitle: {
+            fontSize: '20px',
+            fontWeight: '700',
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+        },
+        deviationText: {
+            fontSize: '13px',
+            color: '#666',
+            marginTop: '8px',
         },
         tabContainer: {
             display: 'flex',
@@ -622,361 +852,556 @@ export default function SnowAIStockScreener() {
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info" style={{flex: 1}}>
+                <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header" style={{padding: '15px', margin: 0}}>SnowAI Stock Screener</h5>
                     
                     <div style={styles.container}>
-                        <div style={styles.searchSection}>
-                            <div style={styles.searchForm}>
-                                <input
-                                    type="text"
-                                    value={ticker}
-                                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
-                                    placeholder="Enter ticker (e.g., AAPL)"
-                                    style={styles.input}
-                                />
-                                <button onClick={handleSearch} style={styles.searchButton} disabled={loading}>
-                                    {loading ? 'Loading...' : 'Search'}
-                                </button>
-                                <button onClick={() => setShowModal(true)} style={styles.browseButton}>
-                                    📊 Browse Stocks
-                                </button>
-                            </div>
-                            {error && <div style={styles.error}>{error}</div>}
-                        </div>
+                <div style={styles.searchSection}>
+                    <div style={styles.searchForm}>
+                        <input
+                            type="text"
+                            value={ticker}
+                            onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                            placeholder="Enter ticker (e.g., AAPL)"
+                            style={styles.input}
+                        />
+                        <button onClick={handleSearch} style={styles.searchButton} disabled={loading}>
+                            {loading ? 'Loading...' : 'Search'}
+                        </button>
+                        <button onClick={() => setShowModal(true)} style={styles.browseButton}>
+                            📊 Browse Stocks
+                        </button>
+                        <button 
+                            onClick={runAIAnalysis} 
+                            style={styles.aiAnalysisButton}
+                            disabled={aiAnalysisRunning}
+                        >
+                            {aiAnalysisRunning ? (
+                                <>
+                                    <span>⏳</span>
+                                    <span>Analyzing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>🤖</span>
+                                    <span>AI Stock Analysis</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                    {error && <div style={styles.error}>{error}</div>}
+                </div>
 
-                        {/* Modal */}
-                        {showModal && (
-                            <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
-                                <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                    <button 
-                                        style={styles.closeButton}
-                                        onClick={() => setShowModal(false)}
+                {/* Browse Stocks Modal */}
+                {showModal && (
+                    <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                            <button 
+                                style={styles.closeButton}
+                                onClick={() => setShowModal(false)}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                            >
+                                ×
+                            </button>
+                            
+                            <div style={styles.modalHeader}>Select a Stock</div>
+                            
+                            <input
+                                type="text"
+                                placeholder="Search stocks..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{...styles.input, width: '100%', marginBottom: '15px'}}
+                            />
+                            
+                            <div style={styles.categoryFilter}>
+                                {categories.map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        style={{
+                                            ...styles.categoryButton,
+                                            ...(selectedCategory === category ? styles.categoryButtonActive : {})
+                                        }}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div style={styles.stockGrid}>
+                                {filteredStocks.map((stock, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={styles.stockCard}
+                                        onClick={() => handleStockClick(stock.symbol)}
                                         onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
+                                            e.currentTarget.style.borderColor = '#2563eb';
                                         }}
                                         onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                            e.currentTarget.style.borderColor = 'transparent';
                                         }}
                                     >
-                                        ×
-                                    </button>
-                                    
-                                    <div style={styles.modalHeader}>Select a Stock</div>
-                                    
-                                    <input
-                                        type="text"
-                                        placeholder="Search stocks..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        style={{...styles.input, width: '100%', marginBottom: '15px'}}
-                                    />
-                                    
-                                    <div style={styles.categoryFilter}>
-                                        {categories.map(category => (
-                                            <button
-                                                key={category}
-                                                onClick={() => setSelectedCategory(category)}
-                                                style={{
-                                                    ...styles.categoryButton,
-                                                    ...(selectedCategory === category ? styles.categoryButtonActive : {})
-                                                }}
-                                            >
-                                                {category}
-                                            </button>
-                                        ))}
+                                        <div style={styles.stockName}>{stock.name}</div>
+                                        <div style={styles.stockSymbol}>{stock.symbol}</div>
+                                        <div style={styles.stockCategory}>{stock.category}</div>
                                     </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-                                    <div style={styles.stockGrid}>
-                                        {filteredStocks.map((stock, idx) => (
+                {/* AI Analysis Results Modal */}
+                {showAnalysisModal && aiAnalysisResults && (
+                    <div style={styles.modalOverlay} onClick={() => setShowAnalysisModal(false)}>
+                        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                            <button 
+                                style={styles.closeButton}
+                                onClick={() => setShowAnalysisModal(false)}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                            >
+                                ×
+                            </button>
+                            
+                            <div style={styles.modalHeader}>🤖 AI Stock Analysis Results</div>
+                            <p style={{color: '#666', marginBottom: '20px'}}>
+                                Analysis completed at {aiAnalysisResults.timestamp}
+                            </p>
+
+                            {/* Bullish Stocks */}
+                            {aiAnalysisResults.bullish.length > 0 && (
+                                <div style={styles.analysisSection}>
+                                    <div style={styles.analysisSectionTitle}>
+                                        <span>📈</span>
+                                        <span>Bullish Opportunities ({aiAnalysisResults.bullish.length})</span>
+                                    </div>
+                                    {aiAnalysisResults.bullish.map((stock, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{...styles.analysisCard, ...styles.analysisCardBullish}}
+                                            onClick={() => handleStockClick(stock.symbol)}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateX(5px)';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16,185,129,0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateX(0)';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '10px'}}>
+                                                <div>
+                                                    <div style={{fontSize: '18px', fontWeight: '700', color: '#1a1a1a'}}>
+                                                        {stock.name} ({stock.symbol})
+                                                    </div>
+                                                    <div style={{fontSize: '13px', color: '#666', marginTop: '4px'}}>
+                                                        {stock.category}
+                                                    </div>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <span style={{...styles.signalBadge, ...styles.bullishBadge}}>
+                                                        BULLISH
+                                                    </span>
+                                                    <span style={styles.confidenceBadge}>
+                                                        {stock.confidence}% Confidence
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div style={{fontSize: '14px', color: '#333', lineHeight: '1.5'}}>
+                                                {stock.reason}
+                                            </div>
+                                            <div style={styles.deviationText}>
+                                                Revenue Growth: <strong style={{color: '#10b981'}}>{stock.revenueDeviation > 0 ? '+' : ''}{stock.revenueDeviation}%</strong> | 
+                                                Earnings Growth: <strong style={{color: '#10b981'}}>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Bearish Stocks */}
+                            {aiAnalysisResults.bearish.length > 0 && (
+                                <div style={styles.analysisSection}>
+                                    <div style={styles.analysisSectionTitle}>
+                                        <span>📉</span>
+                                        <span>Bearish Warnings ({aiAnalysisResults.bearish.length})</span>
+                                    </div>
+                                    {aiAnalysisResults.bearish.map((stock, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{...styles.analysisCard, ...styles.analysisCardBearish}}
+                                            onClick={() => handleStockClick(stock.symbol)}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateX(5px)';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239,68,68,0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateX(0)';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '10px'}}>
+                                                <div>
+                                                    <div style={{fontSize: '18px', fontWeight: '700', color: '#1a1a1a'}}>
+                                                        {stock.name} ({stock.symbol})
+                                                    </div>
+                                                    <div style={{fontSize: '13px', color: '#666', marginTop: '4px'}}>
+                                                        {stock.category}
+                                                    </div>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <span style={{...styles.signalBadge, ...styles.bearishBadge}}>
+                                                        BEARISH
+                                                    </span>
+                                                    <span style={styles.confidenceBadge}>
+                                                        {stock.confidence}% Confidence
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div style={{fontSize: '14px', color: '#333', lineHeight: '1.5'}}>
+                                                {stock.reason}
+                                            </div>
+                                            <div style={styles.deviationText}>
+                                                Revenue Growth: <strong style={{color: '#ef4444'}}>{stock.revenueDeviation > 0 ? '+' : ''}{stock.revenueDeviation}%</strong> | 
+                                                Earnings Growth: <strong style={{color: '#ef4444'}}>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Neutral Stocks */}
+                            {aiAnalysisResults.neutral.length > 0 && (
+                                <div style={styles.analysisSection}>
+                                    <div style={styles.analysisSectionTitle}>
+                                        <span>➡️</span>
+                                        <span>Neutral / Stable ({aiAnalysisResults.neutral.length})</span>
+                                    </div>
+                                    {aiAnalysisResults.neutral.map((stock, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{...styles.analysisCard, ...styles.analysisCardNeutral}}
+                                            onClick={() => handleStockClick(stock.symbol)}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'translateX(5px)';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(245,158,11,0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'translateX(0)';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '10px'}}>
+                                                <div>
+                                                    <div style={{fontSize: '18px', fontWeight: '700', color: '#1a1a1a'}}>
+                                                        {stock.name} ({stock.symbol})
+                                                    </div>
+                                                    <div style={{fontSize: '13px', color: '#666', marginTop: '4px'}}>
+                                                        {stock.category}
+                                                    </div>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <span style={{...styles.signalBadge, ...styles.neutralBadge}}>
+                                                        NEUTRAL
+                                                    </span>
+                                                    <span style={styles.confidenceBadge}>
+                                                        {stock.confidence}% Confidence
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div style={{fontSize: '14px', color: '#333', lineHeight: '1.5'}}>
+                                                {stock.reason}
+                                            </div>
+                                            <div style={styles.deviationText}>
+                                                Revenue Growth: <strong>{stock.revenueDeviation > 0 ? '+' : ''}{stock.revenueDeviation}%</strong> | 
+                                                Earnings Growth: <strong>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {stockData && (
+                    <>
+                        <div style={styles.companyHeader}>
+                            <div style={styles.companyName}>{stockData.longName || ticker}</div>
+                            <div style={styles.companySymbol}>{stockData.symbol} • {stockData.sector} • {stockData.industry}</div>
+                        </div>
+
+                        <div style={styles.tabContainer}>
+                            <button
+                                style={{...styles.tab, ...(activeTab === 'overview' ? styles.activeTabStyle : {})}}
+                                onClick={() => setActiveTab('overview')}
+                            >
+                                Overview
+                            </button>
+                            <button
+                                style={{...styles.tab, ...(activeTab === 'financials' ? styles.activeTabStyle : {})}}
+                                onClick={() => setActiveTab('financials')}
+                            >
+                                Financials
+                            </button>
+                            <button
+                                style={{...styles.tab, ...(activeTab === 'earnings' ? styles.activeTabStyle : {})}}
+                                onClick={() => setActiveTab('earnings')}
+                            >
+                                Earnings
+                            </button>
+                            <button
+                                style={{...styles.tab, ...(activeTab === 'news' ? styles.activeTabStyle : {})}}
+                                onClick={() => setActiveTab('news')}
+                            >
+                                News
+                            </button>
+                        </div>
+
+                        {activeTab === 'overview' && (
+                            <div style={styles.contentCard}>
+                                <h3>Company Overview</h3>
+                                <div style={styles.overviewGrid}>
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statLabel}>Current Price</div>
+                                        <div style={styles.statValue}>${stockData.currentPrice?.toFixed(2) || 'N/A'}</div>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statLabel}>Market Cap</div>
+                                        <div style={styles.statValue}>
+                                            ${stockData.marketCap ? (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statLabel}>P/E Ratio</div>
+                                        <div style={styles.statValue}>{stockData.trailingPE?.toFixed(2) || 'N/A'}</div>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statLabel}>52 Week High</div>
+                                        <div style={styles.statValue}>${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}</div>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statLabel}>52 Week Low</div>
+                                        <div style={styles.statValue}>${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}</div>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <div style={styles.statLabel}>Dividend Yield</div>
+                                        <div style={styles.statValue}>
+                                            {stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) + '%' : 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{marginTop: '20px'}}>
+                                    <h4>About</h4>
+                                    <div style={styles.voiceControls}>
+                                        <button 
+                                            onClick={handleSpeak} 
+                                            style={{...styles.voiceButton, ...(isSpeaking ? styles.voiceButtonStop : {})}}
+                                        >
+                                            {isSpeaking ? '⏹ Stop Reading' : '🔊 Read Aloud'}
+                                        </button>
+                                        <select 
+                                            value={selectedVoice?.name || ''} 
+                                            onChange={(e) => {
+                                                const voice = voices.find(v => v.name === e.target.value);
+                                                setSelectedVoice(voice);
+                                            }}
+                                            style={styles.voiceSelect}
+                                        >
+                                            {voices.map((voice, idx) => (
+                                                <option key={idx} value={voice.name}>
+                                                    {voice.name} ({voice.lang})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <p style={{lineHeight: '1.6', color: '#444'}}>{stockData.longBusinessSummary || 'No description available.'}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'financials' && financials && (
+                            <div style={styles.contentCard}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
+                                    <h3>Financial Statements (Annual)</h3>
+                                    <div style={styles.viewToggle}>
+                                        <button
+                                            style={{...styles.toggleButton, ...(financialsView === 'table' ? styles.toggleButtonActive : {})}}
+                                            onClick={() => setFinancialsView('table')}
+                                        >
+                                            Table View
+                                        </button>
+                                        <button
+                                            style={{...styles.toggleButton, ...(financialsView === 'chart' ? styles.toggleButtonActive : {})}}
+                                            onClick={() => setFinancialsView('chart')}
+                                        >
+                                            Chart View
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {financialsView === 'table' ? (
+                                    <div style={{overflowX: 'auto'}}>
+                                        <table style={styles.table}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={styles.th}>Metric</th>
+                                                    {financials.columns?.map((col, idx) => (
+                                                        <th key={idx} style={styles.th}>{col}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {financials.data?.map((row, idx) => (
+                                                    <tr key={idx}>
+                                                        <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
+                                                        {row.values?.map((val, i) => (
+                                                            <td key={i} style={styles.td}>
+                                                                {val && val !== 0 ? `${(val / 1e9).toFixed(2)}B` : 'N/A'}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <LineChart data={prepareFinancialsChartData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="year" />
+                                            <YAxis 
+                                                domain={getFinancialChartDomain()}
+                                                label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} 
+                                            />
+                                            <Tooltip formatter={(value) => `${value}B`} />
+                                            <Legend />
+                                            {financials.data?.map((row, idx) => (
+                                                <Line 
+                                                    key={idx}
+                                                    type="monotone" 
+                                                    dataKey={row.metric} 
+                                                    stroke={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][idx % 4]}
+                                                    strokeWidth={2}
+                                                />
+                                            ))}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'earnings' && earnings && (
+                            <div style={styles.contentCard}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
+                                    <h3>Quarterly Earnings</h3>
+                                    <div style={styles.viewToggle}>
+                                        <button
+                                            style={{...styles.toggleButton, ...(earningsView === 'table' ? styles.toggleButtonActive : {})}}
+                                            onClick={() => setEarningsView('table')}
+                                        >
+                                            Table View
+                                        </button>
+                                        <button
+                                            style={{...styles.toggleButton, ...(earningsView === 'chart' ? styles.toggleButtonActive : {})}}
+                                            onClick={() => setEarningsView('chart')}
+                                        >
+                                            Chart View
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {earningsView === 'table' ? (
+                                    <div style={{overflowX: 'auto'}}>
+                                        <table style={styles.table}>
+                                            <thead>
+                                                <tr>
+                                                    <th style={styles.th}>Quarter</th>
+                                                    <th style={styles.th}>Revenue</th>
+                                                    <th style={styles.th}>Earnings</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {earnings.map((earning, idx) => (
+                                                    <tr key={idx}>
+                                                        <td style={styles.td}>{earning.quarter}</td>
+                                                        <td style={styles.td}>
+                                                            {earning.revenue && earning.revenue !== 0 ? `${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
+                                                        </td>
+                                                        <td style={styles.td}>
+                                                            {earning.earnings && earning.earnings !== 0 ? `${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={400}>
+                                        <BarChart data={prepareEarningsChartData()}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="quarter" />
+                                            <YAxis 
+                                                domain={getChartDomain()}
+                                                label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} 
+                                            />
+                                            <Tooltip formatter={(value) => value ? `${value}B` : 'N/A'} />
+                                            <Legend />
+                                            <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
+                                            <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'news' && (
+                            <div style={styles.contentCard}>
+                                <h3>Recent News</h3>
+                                {news && news.length > 0 ? (
+                                    news.map((item, idx) => (
+                                        item && item.link && item.title ? (
                                             <div
                                                 key={idx}
-                                                style={styles.stockCard}
-                                                onClick={() => handleStockClick(stock.symbol)}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
-                                                    e.currentTarget.style.borderColor = '#2563eb';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'translateY(0)';
-                                                    e.currentTarget.style.boxShadow = 'none';
-                                                    e.currentTarget.style.borderColor = 'transparent';
-                                                }}
+                                                style={styles.newsCard}
+                                                onClick={() => item.link && window.open(item.link, '_blank')}
                                             >
-                                                <div style={styles.stockName}>{stock.name}</div>
-                                                <div style={styles.stockSymbol}>{stock.symbol}</div>
-                                                <div style={styles.stockCategory}>{stock.category}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {stockData && (
-                            <>
-                                <div style={styles.companyHeader}>
-                                    <div style={styles.companyName}>{stockData.longName || ticker}</div>
-                                    <div style={styles.companySymbol}>{stockData.symbol} • {stockData.sector} • {stockData.industry}</div>
-                                </div>
-
-                                <div style={styles.tabContainer}>
-                                    <button
-                                        style={{...styles.tab, ...(activeTab === 'overview' ? styles.activeTabStyle : {})}}
-                                        onClick={() => setActiveTab('overview')}
-                                    >
-                                        Overview
-                                    </button>
-                                    <button
-                                        style={{...styles.tab, ...(activeTab === 'financials' ? styles.activeTabStyle : {})}}
-                                        onClick={() => setActiveTab('financials')}
-                                    >
-                                        Financials
-                                    </button>
-                                    <button
-                                        style={{...styles.tab, ...(activeTab === 'earnings' ? styles.activeTabStyle : {})}}
-                                        onClick={() => setActiveTab('earnings')}
-                                    >
-                                        Earnings
-                                    </button>
-                                    <button
-                                        style={{...styles.tab, ...(activeTab === 'news' ? styles.activeTabStyle : {})}}
-                                        onClick={() => setActiveTab('news')}
-                                    >
-                                        News
-                                    </button>
-                                </div>
-
-                                {activeTab === 'overview' && (
-                                    <div style={styles.contentCard}>
-                                        <h3>Company Overview</h3>
-                                        <div style={styles.overviewGrid}>
-                                            <div style={styles.statBox}>
-                                                <div style={styles.statLabel}>Current Price</div>
-                                                <div style={styles.statValue}>${stockData.currentPrice?.toFixed(2) || 'N/A'}</div>
-                                            </div>
-                                            <div style={styles.statBox}>
-                                                <div style={styles.statLabel}>Market Cap</div>
-                                                <div style={styles.statValue}>
-                                                    ${stockData.marketCap ? (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+                                                <div style={styles.newsTitle}>{item.title}</div>
+                                                <div style={styles.newsPublisher}>
+                                                    {item.publisher} • {formatNewsDate(item.providerPublishTime)}
                                                 </div>
                                             </div>
-                                            <div style={styles.statBox}>
-                                                <div style={styles.statLabel}>P/E Ratio</div>
-                                                <div style={styles.statValue}>{stockData.trailingPE?.toFixed(2) || 'N/A'}</div>
-                                            </div>
-                                            <div style={styles.statBox}>
-                                                <div style={styles.statLabel}>52 Week High</div>
-                                                <div style={styles.statValue}>${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}</div>
-                                            </div>
-                                            <div style={styles.statBox}>
-                                                <div style={styles.statLabel}>52 Week Low</div>
-                                                <div style={styles.statValue}>${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}</div>
-                                            </div>
-                                            <div style={styles.statBox}>
-                                                <div style={styles.statLabel}>Dividend Yield</div>
-                                                <div style={styles.statValue}>
-                                                    {stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) + '%' : 'N/A'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style={{marginTop: '20px'}}>
-                                            <h4>About</h4>
-                                            <div style={styles.voiceControls}>
-                                                <button 
-                                                    onClick={handleSpeak} 
-                                                    style={{...styles.voiceButton, ...(isSpeaking ? styles.voiceButtonStop : {})}}
-                                                >
-                                                    {isSpeaking ? '⏹ Stop Reading' : '🔊 Read Aloud'}
-                                                </button>
-                                                <select 
-                                                    value={selectedVoice?.name || ''} 
-                                                    onChange={(e) => {
-                                                        const voice = voices.find(v => v.name === e.target.value);
-                                                        setSelectedVoice(voice);
-                                                    }}
-                                                    style={styles.voiceSelect}
-                                                >
-                                                    {voices.map((voice, idx) => (
-                                                        <option key={idx} value={voice.name}>
-                                                            {voice.name} ({voice.lang})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <p style={{lineHeight: '1.6', color: '#444'}}>{stockData.longBusinessSummary || 'No description available.'}</p>
-                                        </div>
-                                    </div>
+                                        ) : null
+                                    ))
+                                ) : (
+                                    <p>No recent news available.</p>
                                 )}
-
-                                {activeTab === 'financials' && financials && (
-                                    <div style={styles.contentCard}>
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
-                                            <h3>Financial Statements (Annual)</h3>
-                                            <div style={styles.viewToggle}>
-                                                <button
-                                                    style={{...styles.toggleButton, ...(financialsView === 'table' ? styles.toggleButtonActive : {})}}
-                                                    onClick={() => setFinancialsView('table')}
-                                                >
-                                                    Table View
-                                                </button>
-                                                <button
-                                                    style={{...styles.toggleButton, ...(financialsView === 'chart' ? styles.toggleButtonActive : {})}}
-                                                    onClick={() => setFinancialsView('chart')}
-                                                >
-                                                    Chart View
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {financialsView === 'table' ? (
-                                            <div style={{overflowX: 'auto'}}>
-                                                <table style={styles.table}>
-                                                    <thead>
-                                                        <tr>
-                                                            <th style={styles.th}>Metric</th>
-                                                            {financials.columns?.map((col, idx) => (
-                                                                <th key={idx} style={styles.th}>{col}</th>
-                                                            ))}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {financials.data?.map((row, idx) => (
-                                                            <tr key={idx}>
-                                                                <td style={{...styles.td, fontWeight: '600'}}>{row.metric}</td>
-                                                                {row.values?.map((val, i) => (
-                                                                    <td key={i} style={styles.td}>
-                                                                        {val && val !== 0 ? `${(val / 1e9).toFixed(2)}B` : 'N/A'}
-                                                                    </td>
-                                                                ))}
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        ) : (
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <LineChart data={prepareFinancialsChartData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="year" />
-                                                    <YAxis 
-                                                        domain={getFinancialChartDomain()}
-                                                        label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} 
-                                                    />
-                                                    <Tooltip formatter={(value) => `${value}B`} />
-                                                    <Legend />
-                                                    {financials.data?.map((row, idx) => (
-                                                        <Line 
-                                                            key={idx}
-                                                            type="monotone" 
-                                                            dataKey={row.metric} 
-                                                            stroke={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][idx % 4]}
-                                                            strokeWidth={2}
-                                                        />
-                                                    ))}
-                                                </LineChart>
-                                            </ResponsiveContainer>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeTab === 'earnings' && earnings && (
-                                    <div style={styles.contentCard}>
-                                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
-                                            <h3>Quarterly Earnings</h3>
-                                            <div style={styles.viewToggle}>
-                                                <button
-                                                    style={{...styles.toggleButton, ...(earningsView === 'table' ? styles.toggleButtonActive : {})}}
-                                                    onClick={() => setEarningsView('table')}
-                                                >
-                                                    Table View
-                                                </button>
-                                                <button
-                                                    style={{...styles.toggleButton, ...(earningsView === 'chart' ? styles.toggleButtonActive : {})}}
-                                                    onClick={() => setEarningsView('chart')}
-                                                >
-                                                    Chart View
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {earningsView === 'table' ? (
-                                            <div style={{overflowX: 'auto'}}>
-                                                <table style={styles.table}>
-                                                    <thead>
-                                                        <tr>
-                                                            <th style={styles.th}>Quarter</th>
-                                                            <th style={styles.th}>Revenue</th>
-                                                            <th style={styles.th}>Earnings</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {earnings.map((earning, idx) => (
-                                                            <tr key={idx}>
-                                                                <td style={styles.td}>{earning.quarter}</td>
-                                                                <td style={styles.td}>
-                                                                    {earning.revenue && earning.revenue !== 0 ? `${(earning.revenue / 1e9).toFixed(2)}B` : 'N/A'}
-                                                                </td>
-                                                                <td style={styles.td}>
-                                                                    {earning.earnings && earning.earnings !== 0 ? `${(earning.earnings / 1e9).toFixed(2)}B` : 'N/A'}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        ) : (
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <BarChart data={prepareEarningsChartData()}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="quarter" />
-                                                    <YAxis 
-                                                        domain={getChartDomain()}
-                                                        label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} 
-                                                    />
-                                                    <Tooltip formatter={(value) => value ? `${value}B` : 'N/A'} />
-                                                    <Legend />
-                                                    <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
-                                                    <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeTab === 'news' && (
-                                    <div style={styles.contentCard}>
-                                        <h3>Recent News</h3>
-                                        {news && news.length > 0 ? (
-                                            news.map((item, idx) => (
-                                                item && item.link && item.title ? (
-                                                    <div
-                                                        key={idx}
-                                                        style={styles.newsCard}
-                                                        onClick={() => item.link && window.open(item.link, '_blank')}
-                                                    >
-                                                        <div style={styles.newsTitle}>{item.title}</div>
-                                                        <div style={styles.newsPublisher}>
-                                                            {item.publisher} • {formatNewsDate(item.providerPublishTime)}
-                                                        </div>
-                                                    </div>
-                                                ) : null
-                                            ))
-                                        ) : (
-                                            <p>No recent news available.</p>
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {!stockData && !loading && (
-                            <div style={styles.loading}>
-                                Enter a stock ticker or browse stocks to get started
                             </div>
                         )}
+                    </>
+                )}
+
+                {!stockData && !loading && (
+                    <div style={styles.loading}>
+                        Enter a stock ticker, browse stocks, or run AI analysis to get started
+                    </div>
+                )}
                     </div>
                 </div>
             </div>
