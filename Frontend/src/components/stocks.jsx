@@ -673,6 +673,7 @@ export default function SnowAIStockScreener() {
             overflow: 'auto',
             position: 'relative',
             boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+            boxSizing: 'border-box',
         },
         closeButton: {
             position: 'absolute',
@@ -778,6 +779,8 @@ export default function SnowAIStockScreener() {
             fontSize: '12px',
             fontWeight: '700',
             marginRight: '10px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
         },
         bullishBadge: {
             backgroundColor: '#10b981',
@@ -799,6 +802,8 @@ export default function SnowAIStockScreener() {
             fontWeight: '600',
             backgroundColor: '#e0e0e0',
             color: '#333',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
         },
         analysisSection: {
             marginBottom: '30px',
@@ -979,7 +984,7 @@ export default function SnowAIStockScreener() {
             backgroundColor: '#ef4444',
         },
         marketSentimentCard: {
-            padding: '25px',
+            padding: '20px',
             backgroundColor: '#f8f9fa',
             borderRadius: '12px',
             marginBottom: '30px',
@@ -1001,19 +1006,21 @@ export default function SnowAIStockScreener() {
             backgroundColor: '#fffbeb',
         },
         sentimentHeader: {
-            fontSize: '22px',
+            fontSize: '20px',
             fontWeight: '700',
             marginBottom: '15px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
             flexWrap: 'wrap',
+            width: '100%',
         },
         sentimentGrid: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
             gap: '15px',
             marginTop: '20px',
+            width: '100%',
         },
         sentimentStatBox: {
             padding: '15px',
@@ -1025,7 +1032,7 @@ export default function SnowAIStockScreener() {
         },
         indicesGrid: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
             gap: '15px',
             marginTop: '20px',
             width: '100%',
@@ -1036,11 +1043,14 @@ export default function SnowAIStockScreener() {
             },
         },
         indexCard: {
-            padding: '20px',
+            padding: '15px',
             backgroundColor: '#fff',
             borderRadius: '8px',
             border: '2px solid #e0e0e0',
             boxSizing: 'border-box',
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
         },
         indexCardBullish: {
             borderColor: '#10b981',
@@ -1229,11 +1239,11 @@ export default function SnowAIStockScreener() {
                                         styles.marketSentimentNeutral)
                                 }}>
                                     <div style={styles.sentimentHeader}>
-                                        <span style={{fontSize: '28px'}}>
+                                        <span style={{fontSize: '28px', flexShrink: 0}}>
                                             {aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? '📈' :
                                              aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? '📉' : '➡️'}
                                         </span>
-                                        <span>Overall Market Sentiment: {aiAnalysisResults.marketSentiment.marketOutlook}</span>
+                                        <span style={{flex: '1 1 auto', minWidth: 0}}>Overall Market Sentiment: {aiAnalysisResults.marketSentiment.marketOutlook}</span>
                                         <span style={styles.confidenceBadge}>
                                             {aiAnalysisResults.marketSentiment.marketConfidence}% Confidence
                                         </span>
