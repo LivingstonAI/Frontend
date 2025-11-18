@@ -8,11 +8,212 @@ import {v4 as uuidv4} from 'uuid';
 import axios from "axios";
 import useForceUpdate from 'use-force-update';
 
-
+const styles = {
+    mainPageBody: {
+        padding: '30px',
+        backgroundColor: '#f8f9fa',
+        minHeight: '100vh',
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+    },
+    personalInfoTitle: {
+        color: '#1e3a8a',
+        fontSize: '28px',
+        fontWeight: '600',
+        marginBottom: '30px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+    },
+    personalInfoIcon: {
+        fontSize: '32px',
+        color: '#3b82f6'
+    },
+    newAccountSection: {
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        marginBottom: '30px',
+        border: '1px solid #e5e7eb'
+    },
+    sectionTitle: {
+        color: '#1e3a8a',
+        fontSize: '22px',
+        fontWeight: '600',
+        marginBottom: '25px',
+        borderBottom: '2px solid #3b82f6',
+        paddingBottom: '10px'
+    },
+    formGroup: {
+        marginBottom: '20px'
+    },
+    label: {
+        display: 'block',
+        color: '#374151',
+        fontWeight: '500',
+        marginBottom: '8px',
+        fontSize: '14px'
+    },
+    input: {
+        width: '100%',
+        padding: '12px 16px',
+        border: '2px solid #e5e7eb',
+        borderRadius: '8px',
+        fontSize: '14px',
+        transition: 'all 0.3s ease',
+        outline: 'none',
+        backgroundColor: 'white'
+    },
+    inputFocus: {
+        borderColor: '#3b82f6',
+        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
+    },
+    btnPrimary: {
+        backgroundColor: '#3b82f6',
+        color: 'white',
+        padding: '12px 24px',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        marginTop: '10px'
+    },
+    btnPrimaryHover: {
+        backgroundColor: '#2563eb',
+        transform: 'translateY(-1px)',
+        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+    },
+    btnSuccess: {
+        backgroundColor: '#10b981',
+        color: 'white',
+        padding: '10px 20px',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        marginRight: '10px',
+        transition: 'all 0.3s ease'
+    },
+    btnDanger: {
+        backgroundColor: '#ef4444',
+        color: 'white',
+        padding: '10px 20px',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease'
+    },
+    btnSecondary: {
+        backgroundColor: 'white',
+        color: '#3b82f6',
+        padding: '10px 20px',
+        border: '2px solid #3b82f6',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        marginRight: '10px',
+        transition: 'all 0.3s ease'
+    },
+    accountList: {
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        marginBottom: '30px',
+        border: '1px solid #e5e7eb'
+    },
+    searchBar: {
+        width: '100%',
+        padding: '12px 16px',
+        border: '2px solid #e5e7eb',
+        borderRadius: '8px',
+        fontSize: '14px',
+        marginBottom: '20px',
+        outline: 'none',
+        transition: 'all 0.3s ease'
+    },
+    accountItem: {
+        backgroundColor: '#f9fafb',
+        padding: '20px',
+        borderRadius: '10px',
+        marginBottom: '15px',
+        border: '2px solid #e5e7eb',
+        transition: 'all 0.3s ease',
+        listStyle: 'none'
+    },
+    accountItemHover: {
+        borderColor: '#3b82f6',
+        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)'
+    },
+    accountDetails: {
+        marginBottom: '15px'
+    },
+    accountName: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#1e3a8a',
+        marginRight: '10px'
+    },
+    accountBalance: {
+        fontSize: '16px',
+        color: '#6b7280',
+        fontWeight: '500'
+    },
+    accountAssets: {
+        marginTop: '12px',
+        marginBottom: '15px'
+    },
+    assetList: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        padding: '0',
+        margin: '0'
+    },
+    assetItem: {
+        backgroundColor: '#dbeafe',
+        color: '#1e40af',
+        padding: '6px 14px',
+        borderRadius: '20px',
+        fontSize: '13px',
+        fontWeight: '500',
+        listStyle: 'none',
+        display: 'inline-block'
+    },
+    accountActions: {
+        display: 'flex',
+        gap: '10px',
+        flexWrap: 'wrap',
+        marginTop: '15px'
+    },
+    editAccountSection: {
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        marginBottom: '30px',
+        border: '2px solid #3b82f6'
+    },
+    noResults: {
+        textAlign: 'center',
+        color: '#6b7280',
+        padding: '40px',
+        fontSize: '16px'
+    },
+    buttonGroup: {
+        display: 'flex',
+        gap: '10px',
+        marginTop: '20px'
+    }
+};
 
 export default function ModifyPersonalInfo({ ModalOpen }) {
-
-
     const fetchEmailDataFromAPI = () => {
         return Cookies.get('email');
     };
@@ -40,16 +241,13 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
     const [editingName, setEditingName] = useState("");
     const [editingBalance, setEditingBalance] = useState("");
     const [editingAssets,setEditingAssets] = useState("");
-    const [assets, setAssets] = useState("");  // Add this state for assets
-
-    // State for the search query
+    const [assets, setAssets] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [hoveredAccount, setHoveredAccount] = useState(null);
 
-    // Filter accounts based on the search query
     const filteredAccounts = accounts.filter((account) =>
         account.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
 
     const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
@@ -57,24 +255,22 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         return Cookies.get('account_name');
     };
 
-    
-        async function fetchUserData() {
-            try {
-                const email = fetchEmailDataFromAPI(); 
-                const response = await fetch(`${baseURL}/get_user_data/${email}/`);
-                const data = await response.json();
-                setTellUsMore(data);
-                // console.log(data);
-                setTradingExp(data.trading_experience);
-                const mainAssets = data.main_assets.split(',').map(asset => asset.trim());
-                setAssetArray(mainAssets);
-                setInitialCap(data.initial_capital);
-                setGoals(data.trading_goals);
-                setBenefits(data.benefits);
-            } catch (error) {
-                console.error('Error fetching journals:', error);
-            };
-        }
+    async function fetchUserData() {
+        try {
+            const email = fetchEmailDataFromAPI(); 
+            const response = await fetch(`${baseURL}/get_user_data/${email}/`);
+            const data = await response.json();
+            setTellUsMore(data);
+            setTradingExp(data.trading_experience);
+            const mainAssets = data.main_assets.split(',').map(asset => asset.trim());
+            setAssetArray(mainAssets);
+            setInitialCap(data.initial_capital);
+            setGoals(data.trading_goals);
+            setBenefits(data.benefits);
+        } catch (error) {
+            console.error('Error fetching journals:', error);
+        };
+    }
 
     const handleTradingExperienceChange = (event) => {
         setTradingExp(event.target.value);
@@ -105,21 +301,17 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         setGoals(event.target.value);
     };
 
-
     const handleExpectedBenefitsChange = (event) => {
         setBenefits(event.target.value);
     };
 
+    const toggleModal = () => {
+        setIsModalOpen(!isModalOpen);
+    };
 
-
-  const toggleModal = () => {
-    setIsModalOpen(!isModalOpen);
-    // setModalClosed(!modalClosed);
-  };
-
-  const toggleCurrenyModal = () => {
-    setCurrencyModal(!currencyModal);
-  }
+    const toggleCurrenyModal = () => {
+        setCurrencyModal(!currencyModal);
+    }
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -147,14 +339,13 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         
         const requestData = {
             trading_experience: tradingExp,
-            main_assets: assetArray.join(", "),  // Convert array to a string
+            main_assets: assetArray.join(", "),
             initial_capital: parseFloat(initialCap),
             trading_goals: goals,
             benefits: benefits,
             user_email: fetchEmailDataFromAPI(),
         };
         
-
         setFinalData([tradingExp, [assetArray], initialCap, goals, benefits]);
         let email = fetchEmailDataFromAPI();
 
@@ -163,12 +354,10 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    // You might need to include an authentication header if your API requires it
                 },
                 body: JSON.stringify(requestData),
             });
             if (response.status === 200) {
-                // Navigate to the next page or show a success message
                 navigate(`/conversation/${uniqueID}`);
             } else {
                 console.error("Data save failed.");
@@ -176,9 +365,6 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         } catch (error) {
             console.error("Error while saving data:", error);
         }
-        
-        // Perform form submission logic
-
     };
 
     useEffect(() => {
@@ -189,16 +375,13 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         fetchUserData();
         const acc_name = fetchAccountDataFromAPI(); 
         console.log("Account Name is", acc_name);
-
     }, []);
 
-    // Fetch accounts from backend
     async function fetchAccounts() {
         try {
             const response = await fetch(`${baseURL}/accounts/`);
             const data = await response.json();
             setAccounts(data);
-            // console.log('Accounts data is:', data);
         } catch (error) {
             console.error("Error fetching accounts:", error);
         }
@@ -213,7 +396,7 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         const newAccount = {
             name: accountName,
             initial_capital: parseFloat(accountBalance),
-            main_assets: assets.trim(),  // Include assets
+            main_assets: assets.trim(),
         };
     
         try {
@@ -224,10 +407,10 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
             });
     
             if (response.ok) {
-                setAccountName(""); // Reset input fields
+                setAccountName("");
                 setAccountBalance(0);
-                setAssets(""); // Clear the assets input
-                fetchAccounts(); // Refresh account list
+                setAssets("");
+                fetchAccounts();
             } else {
                 alert("Error adding account.");
             }
@@ -236,36 +419,30 @@ export default function ModifyPersonalInfo({ ModalOpen }) {
         }
     };
     
-    // Delete an account
-const handleDeleteAccount = async (accountId) => {
-    // Display a confirmation alert
-    const confirmDelete = window.confirm("Are you sure you want to delete this account? This action cannot be undone.");
+    const handleDeleteAccount = async (accountId) => {
+        const confirmDelete = window.confirm("Are you sure you want to delete this account? This action cannot be undone.");
 
-    if (confirmDelete) {
-        try {
-            const response = await fetch(`${baseURL}/delete_account/${accountId}/`, {
-                method: "DELETE",
-            });
-            if (response.ok) {
-                fetchAccounts(); // Refresh account list
-            } else {
-                alert("Error deleting account.");
+        if (confirmDelete) {
+            try {
+                const response = await fetch(`${baseURL}/delete_account/${accountId}/`, {
+                    method: "DELETE",
+                });
+                if (response.ok) {
+                    fetchAccounts();
+                } else {
+                    alert("Error deleting account.");
+                }
+            } catch (error) {
+                console.error("Error deleting account:", error);
             }
-        } catch (error) {
-            console.error("Error deleting account:", error);
+        } else {
+            console.log("Account deletion canceled.");
         }
-    } else {
-        // If the user cancels, do nothing
-        console.log("Account deletion canceled.");
-    }
     };
 
-
-    // Load accounts on component mount
     useEffect(() => {
         fetchAccounts();
     }, []);
-
 
     const handleUpdateAccount = async () => {
         console.log("Handle Update Account Function triggered.");
@@ -276,10 +453,10 @@ const handleDeleteAccount = async (accountId) => {
     
         try {
             const updatedAccountData = {
-                id: editingAccount.id,  // Include the ID of the account you're updating
+                id: editingAccount.id,
                 name: editingName,
                 initial_capital: editingBalance,
-                main_assets: editingAssets,  // Include the updated main_assets
+                main_assets: editingAssets,
             };
     
             const response = await fetch(`${baseURL}/accounts/update/`, {
@@ -296,220 +473,209 @@ const handleDeleteAccount = async (accountId) => {
     
             const updatedAccount = await response.json();
     
-            // Update the accounts list with the updated account
             setAccounts(accounts.map((acc) =>
                 acc.id === updatedAccount.id ? updatedAccount : acc
             ));
     
-            // Reset the form and editing state
             setEditingAccount(null);
             setEditingName("");
             setEditingBalance("");
-            setEditingAssets(""); // Reset assets field after updating
+            setEditingAssets("");
         } catch (error) {
             console.error("Error updating account:", error);
         }
     };
 
-    //  Cookies.set('email', email);
     const handleUpdateSelectedAccount = async (account_name) => {
         Cookies.set('account_name', account_name);
     }
-
 
     return (
         <div>
             <div className="header">
                 <Header />
             </div>
-                <SideNavs/>
-                {/* <iframe src="https://opexams.com/quiz/OM_u2kWH9jU" className="quiz-view"></iframe> */}
+            <SideNavs/>
 
-            <div className="main-page-body">
-                
-            <h4 className="personal-info-title"><i className="bi bi-person-circle personal-info-icon">Personal Information</i></h4><br />
+            <div style={styles.mainPageBody}>
+                <h4 style={styles.personalInfoTitle}>
+                    <i className="bi bi-person-circle" style={styles.personalInfoIcon}></i>
+                    Personal Information
+                </h4>
 
+                <div style={styles.newAccountSection}>
+                    <h3 style={styles.sectionTitle}>Manage Accounts</h3>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Account Name:</label>
+                        <input
+                            type="text"
+                            value={accountName}
+                            onChange={(e) => setAccountName(e.target.value)}
+                            placeholder="Enter account name"
+                            style={styles.input}
+                        />
+                    </div>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Initial Capital:</label>
+                        <input
+                            type="number"
+                            value={accountBalance}
+                            onChange={(e) => setAccountBalance(e.target.value)}
+                            placeholder="Enter initial balance"
+                            style={styles.input}
+                        />
+                    </div>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Main Assets:</label>
+                        <input
+                            type="text"
+                            value={assets}
+                            onChange={(e) => setAssets(e.target.value)}
+                            placeholder="Enter assets (comma separated)"
+                            style={styles.input}
+                        />
+                    </div>
+                    <button style={styles.btnPrimary} onClick={handleAddAccount}>
+                        Add Account
+                    </button>
+                </div>
 
-                 {/* New Account Section */}
-            <div className="new-account-section">
-                <h3>Manage Accounts</h3>
-                <div>
-                    <label>Account Name:</label>
+                <div style={styles.accountList}>
+                    <h4 style={styles.sectionTitle}>Existing Accounts</h4>
+
                     <input
                         type="text"
-                        value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
-                        placeholder="Enter account name"
-                        className="form-control"
+                        style={styles.searchBar}
+                        placeholder="Search accounts by name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                </div>
-                <div>
-                    <label>Initial Capital:</label>
-                    <input
-                        type="number"
-                        value={accountBalance}
-                        onChange={(e) => setAccountBalance(e.target.value)}
-                        placeholder="Enter initial balance"
-                        className="form-control"
-                    />
-                </div>
-                <div>
-                    <label>Main Assets:</label>
-                    <input
-                        type="text"
-                        value={assets}
-                        onChange={(e) => setAssets(e.target.value)}  // Update assets state
-                        placeholder="Enter assets (comma separated)"
-                        className="form-control"
-                    />
-                </div>
-                <button className="btn btn-primary" onClick={handleAddAccount}>
-                    Add Account
-                </button>
-            </div>
 
-            {/* Account List */}
-            <div className="account-list">
-            <h4>Existing Accounts</h4>
-
-            {/* Search Bar */}
-            <input
-                type="text"
-                className="search-bar form-control"
-                placeholder="Search accounts by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)} // Update the search query state
-            />
-            <br />
-            <ul>
-                {filteredAccounts.map((account) => (
-                    <li key={account.id} className="account-item">
-                        <div className="account-details">
-                            <span className="account-name">{account.name}</span> 
-                            <span className="account-balance">(${account.initial_capital})</span>
-                        </div>
-
-                        <div className="account-assets">
-                            {account.main_assets && account.main_assets.length > 0 ? (
-                                Array.isArray(account.main_assets) ? (
-                                    <ul>
-                                        {account.main_assets.map((asset, index) => (
-                                            <li key={index} className="asset-item">{asset.trim()}</li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <ul>
-                                        {account.main_assets.split(",").map((asset, index) => (
-                                            <li key={index} className="asset-item">{asset.trim()}</li>
-                                        ))}
-                                    </ul>
-                                )
-                            ) : (
-                                <span>No assets added</span>
-                            )}
-                        </div>
-
-                        <div className="account-actions">
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => {
-                                    setEditingAccount(account);
-                                    setEditingName(account.name);
-                                    setEditingBalance(account.initial_capital);
-
-                                    if (Array.isArray(account.main_assets)) {
-                                        setEditingAssets(account.main_assets.join(", "));
-                                    } else if (typeof account.main_assets === "string") {
-                                        setEditingAssets(account.main_assets);
-                                    } else {
-                                        setEditingAssets("");
-                                    }
+                    <ul style={{ padding: 0 }}>
+                        {filteredAccounts.map((account) => (
+                            <li 
+                                key={account.id} 
+                                style={{
+                                    ...styles.accountItem,
+                                    ...(hoveredAccount === account.id ? styles.accountItemHover : {})
                                 }}
+                                onMouseEnter={() => setHoveredAccount(account.id)}
+                                onMouseLeave={() => setHoveredAccount(null)}
                             >
-                                Edit
-                            </button><br /><br />
+                                <div style={styles.accountDetails}>
+                                    <span style={styles.accountName}>{account.name}</span> 
+                                    <span style={styles.accountBalance}>(${account.initial_capital})</span>
+                                </div>
 
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleDeleteAccount(account.id)}
-                            >
-                                Delete
-                            </button><br /><br />
+                                <div style={styles.accountAssets}>
+                                    {account.main_assets && account.main_assets.length > 0 ? (
+                                        Array.isArray(account.main_assets) ? (
+                                            <div style={styles.assetList}>
+                                                {account.main_assets.map((asset, index) => (
+                                                    <span key={index} style={styles.assetItem}>{asset.trim()}</span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={styles.assetList}>
+                                                {account.main_assets.split(",").map((asset, index) => (
+                                                    <span key={index} style={styles.assetItem}>{asset.trim()}</span>
+                                                ))}
+                                            </div>
+                                        )
+                                    ) : (
+                                        <span style={{ color: '#9ca3af' }}>No assets added</span>
+                                    )}
+                                </div>
 
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleUpdateSelectedAccount(account.name)}
-                            >
-                                Select Account
-                            </button>
-                        </div>
-                    </li>
-                ))}
-            </ul>
+                                <div style={styles.accountActions}>
+                                    <button
+                                        style={styles.btnSecondary}
+                                        onClick={() => {
+                                            setEditingAccount(account);
+                                            setEditingName(account.name);
+                                            setEditingBalance(account.initial_capital);
 
-            {/* Display a message if no accounts match the search query */}
-            {filteredAccounts.length === 0 && (
-                <p>No accounts match your search query.</p>
-            )}
-        </div>
+                                            if (Array.isArray(account.main_assets)) {
+                                                setEditingAssets(account.main_assets.join(", "));
+                                            } else if (typeof account.main_assets === "string") {
+                                                setEditingAssets(account.main_assets);
+                                            } else {
+                                                setEditingAssets("");
+                                            }
+                                        }}
+                                    >
+                                        Edit
+                                    </button>
 
+                                    <button
+                                        style={styles.btnDanger}
+                                        onClick={() => handleDeleteAccount(account.id)}
+                                    >
+                                        Delete
+                                    </button>
 
+                                    <button
+                                        style={styles.btnPrimary}
+                                        onClick={() => handleUpdateSelectedAccount(account.name)}
+                                    >
+                                        Select Account
+                                    </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
 
-                {/* Edit Account Section */}
+                    {filteredAccounts.length === 0 && (
+                        <p style={styles.noResults}>No accounts match your search query.</p>
+                    )}
+                </div>
+
                 {editingAccount && (
-                    <div className="edit-account-section">
-                        <h4>Edit Account</h4>
+                    <div style={styles.editAccountSection}>
+                        <h4 style={styles.sectionTitle}>Edit Account</h4>
                         
-                        {/* Account Name */}
-                        <div>
-                            <label>Account Name:</label>
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Account Name:</label>
                             <input
                                 type="text"
                                 value={editingName}
                                 onChange={(e) => setEditingName(e.target.value)}
-                                className="form-control"
+                                style={styles.input}
                             />
                         </div>
                         
-                        {/* Initial Capital */}
-                        <div>
-                            <label>Initial Capital:</label>
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Initial Capital:</label>
                             <input
                                 type="number"
                                 value={editingBalance}
                                 onChange={(e) => setEditingBalance(e.target.value)}
-                                className="form-control"
+                                style={styles.input}
                             />
                         </div>
                         
-                        {/* Main Assets (Comma-separated) */}
-                        <div>
-                            <label>Main Assets (comma-separated):</label>
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Main Assets (comma-separated):</label>
                             <input
                                 type="text"
                                 value={editingAssets}
                                 onChange={(e) => setEditingAssets(e.target.value)}
-                                className="form-control"
+                                style={styles.input}
                                 placeholder="Enter assets, e.g., EURUSD, GBPUSD, Gold"
                             />
                         </div>
 
-                        {/* Buttons to Save or Cancel */}
-                        <div>
-                            <button className="btn btn-success" onClick={handleUpdateAccount}>
+                        <div style={styles.buttonGroup}>
+                            <button style={styles.btnSuccess} onClick={handleUpdateAccount}>
                                 Save Changes
                             </button>
-                            <button className="btn btn-danger" onClick={() => setEditingAccount(null)}>
+                            <button style={styles.btnDanger} onClick={() => setEditingAccount(null)}>
                                 Cancel
                             </button>
                         </div>
                     </div>
                 )}
-
-
-
             </div>
         </div>
     )
 }
-
