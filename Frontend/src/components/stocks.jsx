@@ -1081,6 +1081,33 @@ export default function SnowAIStockScreener() {
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
         },
+        indicesGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '15px',
+            marginTop: '20px',
+            width: '100%',
+            maxWidth: '100%',
+            margin: '20px 0 0 0',
+        },
+        '@media (max-width: 768px)': {
+            indicesGrid: {
+                gridTemplateColumns: '1fr',
+                gap: '12px',
+                padding: '0',
+            },
+        },
+        indexCard: {
+            padding: '15px',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            border: '2px solid #e0e0e0',
+            boxSizing: 'border-box',
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            margin: '0',
+        },
     };
 
     return (
