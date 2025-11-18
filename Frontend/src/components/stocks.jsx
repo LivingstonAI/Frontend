@@ -107,6 +107,7 @@ export default function SnowAIStockScreener() {
     const [aiAnalysisRunning, setAiAnalysisRunning] = useState(false);
     const [aiAnalysisResults, setAiAnalysisResults] = useState(null);
     const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [analysisFilterCategory, setAnalysisFilterCategory] = useState('All');
 
     useEffect(() => {
         const loadVoices = () => {
@@ -889,6 +890,14 @@ export default function SnowAIStockScreener() {
                                 </>
                             )}
                         </button>
+                        {aiAnalysisResults && (
+                            <button 
+                                onClick={() => setShowAnalysisModal(true)} 
+                                style={{...styles.browseButton, backgroundColor: '#f59e0b'}}
+                            >
+                                📊 View Results
+                            </button>
+                        )}
                     </div>
                     {error && <div style={styles.error}>{error}</div>}
                 </div>
@@ -984,14 +993,44 @@ export default function SnowAIStockScreener() {
                                 Analysis completed at {aiAnalysisResults.timestamp}
                             </p>
 
+                            {/* Category Filter */}
+                            <div style={styles.categoryFilter}>
+                                <button
+                                    onClick={() => setAnalysisFilterCategory('All')}
+                                    style={{
+                                        ...styles.categoryButton,
+                                        ...(analysisFilterCategory === 'All' ? styles.categoryButtonActive : {})
+                                    }}
+                                >
+                                    All Stocks
+                                </button>
+                                {categories.filter(c => c !== 'All').map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setAnalysisFilterCategory(category)}
+                                        style={{
+                                            ...styles.categoryButton,
+                                            ...(analysisFilterCategory === category ? styles.categoryButtonActive : {})
+                                        }}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+
                             {/* Bullish Stocks */}
-                            {aiAnalysisResults.bullish.length > 0 && (
-                                <div style={styles.analysisSection}>
-                                    <div style={styles.analysisSectionTitle}>
-                                        <span>📈</span>
-                                        <span>Bullish Opportunities ({aiAnalysisResults.bullish.length})</span>
-                                    </div>
-                                    {aiAnalysisResults.bullish.map((stock, idx) => (
+                            {(() => {
+                                const filteredBullish = analysisFilterCategory === 'All' 
+                                    ? aiAnalysisResults.bullish 
+                                    : aiAnalysisResults.bullish.filter(s => s.category === analysisFilterCategory);
+                                
+                                return filteredBullish.length > 0 && (
+                                    <div style={styles.analysisSection}>
+                                        <div style={styles.analysisSectionTitle}>
+                                            <span>📈</span>
+                                            <span>Bullish Opportunities ({filteredBullish.length})</span>
+                                        </div>
+                                        {filteredBullish.map((stock, idx) => (
                                         <div
                                             key={idx}
                                             style={{...styles.analysisCard, ...styles.analysisCardBullish}}
@@ -1031,18 +1070,24 @@ export default function SnowAIStockScreener() {
                                                 Earnings Growth: <strong style={{color: '#10b981'}}>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                );
+                            })()}
 
                             {/* Bearish Stocks */}
-                            {aiAnalysisResults.bearish.length > 0 && (
-                                <div style={styles.analysisSection}>
-                                    <div style={styles.analysisSectionTitle}>
-                                        <span>📉</span>
-                                        <span>Bearish Warnings ({aiAnalysisResults.bearish.length})</span>
-                                    </div>
-                                    {aiAnalysisResults.bearish.map((stock, idx) => (
+                            {(() => {
+                                const filteredBearish = analysisFilterCategory === 'All' 
+                                    ? aiAnalysisResults.bearish 
+                                    : aiAnalysisResults.bearish.filter(s => s.category === analysisFilterCategory);
+                                
+                                return filteredBearish.length > 0 && (
+                                    <div style={styles.analysisSection}>
+                                        <div style={styles.analysisSectionTitle}>
+                                            <span>📉</span>
+                                            <span>Bearish Warnings ({filteredBearish.length})</span>
+                                        </div>
+                                        {filteredBearish.map((stock, idx) => (
                                         <div
                                             key={idx}
                                             style={{...styles.analysisCard, ...styles.analysisCardBearish}}
@@ -1082,18 +1127,24 @@ export default function SnowAIStockScreener() {
                                                 Earnings Growth: <strong style={{color: '#ef4444'}}>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                );
+                            })()}
 
                             {/* Neutral Stocks */}
-                            {aiAnalysisResults.neutral.length > 0 && (
-                                <div style={styles.analysisSection}>
-                                    <div style={styles.analysisSectionTitle}>
-                                        <span>➡️</span>
-                                        <span>Neutral / Stable ({aiAnalysisResults.neutral.length})</span>
-                                    </div>
-                                    {aiAnalysisResults.neutral.map((stock, idx) => (
+                            {(() => {
+                                const filteredNeutral = analysisFilterCategory === 'All' 
+                                    ? aiAnalysisResults.neutral 
+                                    : aiAnalysisResults.neutral.filter(s => s.category === analysisFilterCategory);
+                                
+                                return filteredNeutral.length > 0 && (
+                                    <div style={styles.analysisSection}>
+                                        <div style={styles.analysisSectionTitle}>
+                                            <span>➡️</span>
+                                            <span>Neutral / Stable ({filteredNeutral.length})</span>
+                                        </div>
+                                        {filteredNeutral.map((stock, idx) => (
                                         <div
                                             key={idx}
                                             style={{...styles.analysisCard, ...styles.analysisCardNeutral}}
@@ -1133,9 +1184,10 @@ export default function SnowAIStockScreener() {
                                                 Earnings Growth: <strong>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
