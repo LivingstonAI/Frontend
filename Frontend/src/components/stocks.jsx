@@ -620,7 +620,7 @@ export default function SnowAIStockScreener() {
             <div className="header">
                 <Header />
             </div>
-            <div className="main-page-body" style={{display: 'flex'}}>
+            <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info" style={{flex: 1}}>
                     <h5 className="major-upcoming-news-events-header" style={{padding: '15px', margin: 0}}>SnowAI Stock Screener</h5>
