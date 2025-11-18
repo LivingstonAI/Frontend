@@ -288,6 +288,10 @@ export default function SnowAIStockScreener() {
             results.bearish.sort((a, b) => b.confidence - a.confidence);
             results.neutral.sort((a, b) => b.confidence - a.confidence);
 
+            // Calculate market sentiment
+            const marketSentiment = calculateMarketSentiment(results);
+            results.marketSentiment = marketSentiment;
+
             setAiAnalysisResults(results);
             setShowAnalysisModal(true);
         } catch (err) {
@@ -295,6 +299,145 @@ export default function SnowAIStockScreener() {
         } finally {
             setAiAnalysisRunning(false);
         }
+    };
+
+    const calculateMarketSentiment = (results) => {
+        const allAnalyzedStocks = [...results.bullish, ...results.bearish, ...results.neutral];
+        
+        if (allAnalyzedStocks.length === 0) {
+            return null;
+        }
+
+        // Calculate total market cap for weighted analysis
+        let totalMarketCap = 0;
+        let weightedBullishScore = 0;
+        let weightedBearishScore = 0;
+        let weightedNeutralScore = 0;
+
+        allAnalyzedStocks.forEach(stock => {
+            const marketCap = stock.marketCap || 0;
+            totalMarketCap += marketCap;
+
+            if (stock.signal === 'BULLISH') {
+                weightedBullishScore += marketCap * (stock.confidence / 100);
+            } else if (stock.signal === 'BEARISH') {
+                weightedBearishScore += marketCap * (stock.confidence / 100);
+            } else {
+                weightedNeutralScore += marketCap * (stock.confidence / 100);
+            }
+        });
+
+        // Calculate percentages
+        const bullishPercentage = totalMarketCap > 0 ? (weightedBullishScore / totalMarketCap) * 100 : 0;
+        const bearishPercentage = totalMarketCap > 0 ? (weightedBearishScore / totalMarketCap) * 100 : 0;
+        const neutralPercentage = totalMarketCap > 0 ? (weightedNeutralScore / totalMarketCap) * 100 : 0;
+
+        // Calculate raw counts
+        const bullishCount = results.bullish.length;
+        const bearishCount = results.bearish.length;
+        const neutralCount = results.neutral.length;
+        const totalCount = bullishCount + bearishCount + neutralCount;
+
+        // Determine overall market outlook
+        let marketOutlook = 'NEUTRAL';
+        let marketConfidence = 50;
+        let marketDescription = '';
+        let indicesOutlook = {
+            sp500: { direction: 'NEUTRAL', confidence: 50, reasoning: '' },
+            nasdaq: { direction: 'NEUTRAL', confidence: 50, reasoning: '' },
+            dowJones: { direction: 'NEUTRAL', confidence: 50, reasoning: '' }
+        };
+
+        const netSentiment = bullishPercentage - bearishPercentage;
+
+        if (netSentiment > 15) {
+            marketOutlook = 'BULLISH';
+            marketConfidence = Math.min(85, 50 + netSentiment);
+            marketDescription = 'Strong positive momentum across major stocks. Large-cap growth stocks are showing significant earnings expansion, suggesting market strength.';
+            
+            indicesOutlook.sp500 = {
+                direction: 'BULLISH',
+                confidence: Math.min(85, 50 + netSentiment * 0.9),
+                reasoning: 'Broad-based strength across sectors with large-cap leadership driving index higher.'
+            };
+            indicesOutlook.nasdaq = {
+                direction: 'BULLISH',
+                confidence: Math.min(90, 50 + netSentiment * 1.1),
+                reasoning: 'Tech and growth stocks showing strong momentum, particularly beneficial for tech-heavy Nasdaq.'
+            };
+            indicesOutlook.dowJones = {
+                direction: 'BULLISH',
+                confidence: Math.min(80, 50 + netSentiment * 0.85),
+                reasoning: 'Blue-chip stocks demonstrating solid performance, supporting Dow Jones upward movement.'
+            };
+        } else if (netSentiment < -15) {
+            marketOutlook = 'BEARISH';
+            marketConfidence = Math.min(85, 50 + Math.abs(netSentiment));
+            marketDescription = 'Widespread weakness across major stocks. Earnings pressures and declining fundamentals suggest market headwinds.';
+            
+            indicesOutlook.sp500 = {
+                direction: 'BEARISH',
+                confidence: Math.min(85, 50 + Math.abs(netSentiment) * 0.9),
+                reasoning: 'Broad-based weakness across multiple sectors indicating downward pressure on the index.'
+            };
+            indicesOutlook.nasdaq = {
+                direction: 'BEARISH',
+                confidence: Math.min(90, 50 + Math.abs(netSentiment) * 1.1),
+                reasoning: 'Tech sector showing significant weakness, likely to drag Nasdaq lower given tech concentration.'
+            };
+            indicesOutlook.dowJones = {
+                direction: 'BEARISH',
+                confidence: Math.min(80, 50 + Math.abs(netSentiment) * 0.85),
+                reasoning: 'Industrial and blue-chip stocks facing headwinds, pressuring Dow Jones downward.'
+            };
+        } else {
+            marketOutlook = 'NEUTRAL';
+            marketConfidence = 65;
+            marketDescription = 'Mixed signals across the market. Stocks are showing stable performance with balanced bullish and bearish signals, suggesting consolidation.';
+            
+            indicesOutlook.sp500 = {
+                direction: 'NEUTRAL',
+                confidence: 65,
+                reasoning: 'Balanced performance across sectors suggests range-bound trading and consolidation.'
+            };
+            indicesOutlook.nasdaq = {
+                direction: 'NEUTRAL',
+                confidence: 65,
+                reasoning: 'Tech stocks showing mixed signals, likely to trade sideways with moderate volatility.'
+            };
+            indicesOutlook.dowJones = {
+                direction: 'NEUTRAL',
+                confidence: 65,
+                reasoning: 'Blue-chip stocks demonstrating stability, indicating sideways movement in the near term.'
+            };
+        }
+
+        // Calculate sector breakdown
+        const sectorBreakdown = {};
+        allAnalyzedStocks.forEach(stock => {
+            if (!sectorBreakdown[stock.category]) {
+                sectorBreakdown[stock.category] = { bullish: 0, bearish: 0, neutral: 0 };
+            }
+            if (stock.signal === 'BULLISH') sectorBreakdown[stock.category].bullish++;
+            else if (stock.signal === 'BEARISH') sectorBreakdown[stock.category].bearish++;
+            else sectorBreakdown[stock.category].neutral++;
+        });
+
+        return {
+            marketOutlook,
+            marketConfidence: Math.round(marketConfidence),
+            marketDescription,
+            bullishPercentage: bullishPercentage.toFixed(1),
+            bearishPercentage: bearishPercentage.toFixed(1),
+            neutralPercentage: neutralPercentage.toFixed(1),
+            bullishCount,
+            bearishCount,
+            neutralCount,
+            totalCount,
+            totalMarketCap: (totalMarketCap / 1e12).toFixed(2), // in trillions
+            indicesOutlook,
+            sectorBreakdown
+        };
     };
 
     const handleSearch = (e) => {
@@ -835,14 +978,79 @@ export default function SnowAIStockScreener() {
         voiceButtonStop: {
             backgroundColor: '#ef4444',
         },
-        voiceSelect: {
-            padding: '8px 12px',
-            fontSize: '14px',
+        marketSentimentCard: {
+            padding: '25px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '12px',
+            marginBottom: '30px',
+            border: '3px solid #e0e0e0',
+        },
+        marketSentimentBullish: {
+            borderColor: '#10b981',
+            backgroundColor: '#f0fdf4',
+        },
+        marketSentimentBearish: {
+            borderColor: '#ef4444',
+            backgroundColor: '#fef2f2',
+        },
+        marketSentimentNeutral: {
+            borderColor: '#f59e0b',
+            backgroundColor: '#fffbeb',
+        },
+        sentimentHeader: {
+            fontSize: '22px',
+            fontWeight: '700',
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+        },
+        sentimentGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            marginTop: '20px',
+        },
+        sentimentStatBox: {
+            padding: '15px',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            textAlign: 'center',
+        },
+        indicesGrid: {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '15px',
+            marginTop: '20px',
+        },
+        indexCard: {
+            padding: '20px',
+            backgroundColor: '#fff',
+            borderRadius: '8px',
             border: '2px solid #e0e0e0',
-            borderRadius: '6px',
-            outline: 'none',
-            cursor: 'pointer',
-            maxWidth: '250px',
+        },
+        indexCardBullish: {
+            borderColor: '#10b981',
+        },
+        indexCardBearish: {
+            borderColor: '#ef4444',
+        },
+        indexCardNeutral: {
+            borderColor: '#f59e0b',
+        },
+        indexName: {
+            fontSize: '18px',
+            fontWeight: '700',
+            marginBottom: '10px',
+        },
+        indexDirection: {
+            fontSize: '14px',
+            marginBottom: '10px',
+        },
+        indexReasoning: {
+            fontSize: '13px',
+            color: '#666',
+            lineHeight: '1.5',
         },
     };
 
@@ -992,6 +1200,156 @@ export default function SnowAIStockScreener() {
                             <p style={{color: '#666', marginBottom: '20px'}}>
                                 Analysis completed at {aiAnalysisResults.timestamp}
                             </p>
+
+                            {/* Market Sentiment Overview */}
+                            {aiAnalysisResults.marketSentiment && (
+                                <div style={{
+                                    ...styles.marketSentimentCard,
+                                    ...(aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? styles.marketSentimentBullish :
+                                        aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? styles.marketSentimentBearish :
+                                        styles.marketSentimentNeutral)
+                                }}>
+                                    <div style={styles.sentimentHeader}>
+                                        <span style={{fontSize: '28px'}}>
+                                            {aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? '📈' :
+                                             aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? '📉' : '➡️'}
+                                        </span>
+                                        <span>Overall Market Sentiment: {aiAnalysisResults.marketSentiment.marketOutlook}</span>
+                                        <span style={styles.confidenceBadge}>
+                                            {aiAnalysisResults.marketSentiment.marketConfidence}% Confidence
+                                        </span>
+                                    </div>
+                                    
+                                    <p style={{fontSize: '15px', color: '#333', lineHeight: '1.6', marginBottom: '20px'}}>
+                                        {aiAnalysisResults.marketSentiment.marketDescription}
+                                    </p>
+
+                                    <div style={styles.sentimentGrid}>
+                                        <div style={styles.sentimentStatBox}>
+                                            <div style={{fontSize: '13px', color: '#666', marginBottom: '5px'}}>Bullish Signals</div>
+                                            <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>
+                                                {aiAnalysisResults.marketSentiment.bullishPercentage}%
+                                            </div>
+                                            <div style={{fontSize: '12px', color: '#999'}}>
+                                                {aiAnalysisResults.marketSentiment.bullishCount} stocks
+                                            </div>
+                                        </div>
+                                        <div style={styles.sentimentStatBox}>
+                                            <div style={{fontSize: '13px', color: '#666', marginBottom: '5px'}}>Bearish Signals</div>
+                                            <div style={{fontSize: '24px', fontWeight: '700', color: '#ef4444'}}>
+                                                {aiAnalysisResults.marketSentiment.bearishPercentage}%
+                                            </div>
+                                            <div style={{fontSize: '12px', color: '#999'}}>
+                                                {aiAnalysisResults.marketSentiment.bearishCount} stocks
+                                            </div>
+                                        </div>
+                                        <div style={styles.sentimentStatBox}>
+                                            <div style={{fontSize: '13px', color: '#666', marginBottom: '5px'}}>Neutral/Stable</div>
+                                            <div style={{fontSize: '24px', fontWeight: '700', color: '#f59e0b'}}>
+                                                {aiAnalysisResults.marketSentiment.neutralPercentage}%
+                                            </div>
+                                            <div style={{fontSize: '12px', color: '#999'}}>
+                                                {aiAnalysisResults.marketSentiment.neutralCount} stocks
+                                            </div>
+                                        </div>
+                                        <div style={styles.sentimentStatBox}>
+                                            <div style={{fontSize: '13px', color: '#666', marginBottom: '5px'}}>Total Market Cap</div>
+                                            <div style={{fontSize: '24px', fontWeight: '700', color: '#2563eb'}}>
+                                                ${aiAnalysisResults.marketSentiment.totalMarketCap}T
+                                            </div>
+                                            <div style={{fontSize: '12px', color: '#999'}}>
+                                                {aiAnalysisResults.marketSentiment.totalCount} stocks analyzed
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* US Indices Outlook */}
+                                    <div style={{marginTop: '25px'}}>
+                                        <h4 style={{fontSize: '18px', fontWeight: '700', marginBottom: '15px'}}>
+                                            📊 US Stock Indices Outlook
+                                        </h4>
+                                        <div style={styles.indicesGrid}>
+                                            {/* S&P 500 */}
+                                            <div style={{
+                                                ...styles.indexCard,
+                                                ...(aiAnalysisResults.marketSentiment.indicesOutlook.sp500.direction === 'BULLISH' ? styles.indexCardBullish :
+                                                    aiAnalysisResults.marketSentiment.indicesOutlook.sp500.direction === 'BEARISH' ? styles.indexCardBearish :
+                                                    styles.indexCardNeutral)
+                                            }}>
+                                                <div style={styles.indexName}>S&P 500</div>
+                                                <div style={styles.indexDirection}>
+                                                    <span style={{
+                                                        ...styles.signalBadge,
+                                                        ...(aiAnalysisResults.marketSentiment.indicesOutlook.sp500.direction === 'BULLISH' ? styles.bullishBadge :
+                                                            aiAnalysisResults.marketSentiment.indicesOutlook.sp500.direction === 'BEARISH' ? styles.bearishBadge :
+                                                            styles.neutralBadge)
+                                                    }}>
+                                                        {aiAnalysisResults.marketSentiment.indicesOutlook.sp500.direction}
+                                                    </span>
+                                                    <span style={styles.confidenceBadge}>
+                                                        {aiAnalysisResults.marketSentiment.indicesOutlook.sp500.confidence}%
+                                                    </span>
+                                                </div>
+                                                <div style={styles.indexReasoning}>
+                                                    {aiAnalysisResults.marketSentiment.indicesOutlook.sp500.reasoning}
+                                                </div>
+                                            </div>
+
+                                            {/* NASDAQ */}
+                                            <div style={{
+                                                ...styles.indexCard,
+                                                ...(aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.direction === 'BULLISH' ? styles.indexCardBullish :
+                                                    aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.direction === 'BEARISH' ? styles.indexCardBearish :
+                                                    styles.indexCardNeutral)
+                                            }}>
+                                                <div style={styles.indexName}>NASDAQ Composite</div>
+                                                <div style={styles.indexDirection}>
+                                                    <span style={{
+                                                        ...styles.signalBadge,
+                                                        ...(aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.direction === 'BULLISH' ? styles.bullishBadge :
+                                                            aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.direction === 'BEARISH' ? styles.bearishBadge :
+                                                            styles.neutralBadge)
+                                                    }}>
+                                                        {aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.direction}
+                                                    </span>
+                                                    <span style={styles.confidenceBadge}>
+                                                        {aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.confidence}%
+                                                    </span>
+                                                </div>
+                                                <div style={styles.indexReasoning}>
+                                                    {aiAnalysisResults.marketSentiment.indicesOutlook.nasdaq.reasoning}
+                                                </div>
+                                            </div>
+
+                                            {/* Dow Jones */}
+                                            <div style={{
+                                                ...styles.indexCard,
+                                                ...(aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.direction === 'BULLISH' ? styles.indexCardBullish :
+                                                    aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.direction === 'BEARISH' ? styles.indexCardBearish :
+                                                    styles.indexCardNeutral)
+                                            }}>
+                                                <div style={styles.indexName}>Dow Jones Industrial</div>
+                                                <div style={styles.indexDirection}>
+                                                    <span style={{
+                                                        ...styles.signalBadge,
+                                                        ...(aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.direction === 'BULLISH' ? styles.bullishBadge :
+                                                            aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.direction === 'BEARISH' ? styles.bearishBadge :
+                                                            styles.neutralBadge)
+                                                    }}>
+                                                        {aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.direction}
+                                                    </span>
+                                                    <span style={styles.confidenceBadge}>
+                                                        {aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.confidence}%
+                                                    </span>
+                                                </div>
+                                                <div style={styles.indexReasoning}>
+                                                    {aiAnalysisResults.marketSentiment.indicesOutlook.dowJones.reasoning}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Category Filter */}
                             <div style={styles.categoryFilter}>
