@@ -3,6 +3,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import Header from "./header";
 import SideNavs from "./side_navs";
 
+
 export default function SnowAIStockScreener() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
@@ -221,12 +222,14 @@ export default function SnowAIStockScreener() {
         const minValue = Math.min(...allValues);
         const maxValue = Math.max(...allValues);
         
-        // Add 10% padding on both sides
-        const padding = (maxValue - minValue) * 0.1;
+        // Add 20% padding on both sides to ensure all values fit
+        const range = maxValue - minValue;
+        const padding = range * 0.2;
         const domainMin = minValue - padding;
         const domainMax = maxValue + padding;
         
-        return [Math.floor(domainMin), Math.ceil(domainMax)];
+        // Round to nice numbers
+        return [Math.floor(domainMin * 10) / 10, Math.ceil(domainMax * 10) / 10];
     };
 
     const getFinancialChartDomain = () => {
@@ -247,12 +250,14 @@ export default function SnowAIStockScreener() {
         const minValue = Math.min(...allValues);
         const maxValue = Math.max(...allValues);
         
-        // Add 10% padding on both sides
-        const padding = (maxValue - minValue) * 0.1;
+        // Add 20% padding on both sides to ensure all values fit
+        const range = maxValue - minValue;
+        const padding = range * 0.2;
         const domainMin = minValue - padding;
         const domainMax = maxValue + padding;
         
-        return [Math.floor(domainMin), Math.ceil(domainMax)];
+        // Round to nice numbers
+        return [Math.floor(domainMin * 10) / 10, Math.ceil(domainMax * 10) / 10];
     };
 
     const handleSpeak = () => {
@@ -615,10 +620,10 @@ export default function SnowAIStockScreener() {
             <div className="header">
                 <Header />
             </div>
-            <div className="main-page-body">
+            <div className="main-page-body" style={{display: 'flex'}}>
                 <SideNavs />
-                <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">SnowAI Stock Screener</h5>
+                <div className="main-body-info" style={{flex: 1}}>
+                    <h5 className="major-upcoming-news-events-header" style={{padding: '15px', margin: 0}}>SnowAI Stock Screener</h5>
                     
                     <div style={styles.container}>
                         <div style={styles.searchSection}>
