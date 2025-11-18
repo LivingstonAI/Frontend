@@ -984,6 +984,9 @@ export default function SnowAIStockScreener() {
             borderRadius: '12px',
             marginBottom: '30px',
             border: '3px solid #e0e0e0',
+            boxSizing: 'border-box',
+            width: '100%',
+            overflow: 'hidden',
         },
         marketSentimentBullish: {
             borderColor: '#10b981',
@@ -1004,6 +1007,7 @@ export default function SnowAIStockScreener() {
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
+            flexWrap: 'wrap',
         },
         sentimentGrid: {
             display: 'grid',
@@ -1016,18 +1020,27 @@ export default function SnowAIStockScreener() {
             backgroundColor: '#fff',
             borderRadius: '8px',
             textAlign: 'center',
+            boxSizing: 'border-box',
+            minWidth: '0',
         },
         indicesGrid: {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '15px',
             marginTop: '20px',
+            width: '100%',
+        },
+        '@media (max-width: 768px)': {
+            indicesGrid: {
+                gridTemplateColumns: '1fr',
+            },
         },
         indexCard: {
             padding: '20px',
             backgroundColor: '#fff',
             borderRadius: '8px',
             border: '2px solid #e0e0e0',
+            boxSizing: 'border-box',
         },
         indexCardBullish: {
             borderColor: '#10b981',
@@ -1046,11 +1059,17 @@ export default function SnowAIStockScreener() {
         indexDirection: {
             fontSize: '14px',
             marginBottom: '10px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            alignItems: 'center',
         },
         indexReasoning: {
             fontSize: '13px',
             color: '#666',
             lineHeight: '1.5',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
         },
     };
 
