@@ -50,6 +50,7 @@ const cssStyles = `
     background: linear-gradient(to right, #4f46e5, #9333ea);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    line-height: 1.2;
   }
 
   .app-subtitle {
@@ -62,6 +63,7 @@ const cssStyles = `
     width: 64px;
     height: 64px;
     color: #a855f7;
+    flex-shrink: 0;
   }
 
   /* Tab Navigation */
@@ -76,6 +78,13 @@ const cssStyles = `
   .tab-header {
     display: flex;
     border-bottom: 1px solid #e5e7eb;
+    overflow-x: auto; /* Scroll on mobile */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .tab-header::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
   }
 
   .tab-button {
@@ -89,6 +98,8 @@ const cssStyles = `
     font-size: 1rem;
     color: #6b7280;
     border-bottom: 4px solid transparent;
+    white-space: nowrap;
+    min-width: 120px; /* Ensure touch targets are big enough */
   }
 
   .tab-button:hover {
@@ -199,6 +210,7 @@ const cssStyles = `
     padding: 8px;
     border-radius: 8px;
     font-size: 1.5rem;
+    flex-shrink: 0;
   }
 
   .model-info {
@@ -243,10 +255,12 @@ const cssStyles = `
     align-items: center;
     gap: 12px;
     margin-bottom: 12px;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
   }
 
   .pipeline-card {
     flex: 1;
+    min-width: 250px; /* Ensure card doesn't get too small */
     padding: 16px;
     border-radius: 8px;
     background: white;
@@ -261,6 +275,7 @@ const cssStyles = `
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
   }
 
   .param-input {
@@ -378,6 +393,7 @@ const cssStyles = `
     margin-bottom: 4px;
     border-bottom: 1px solid #333;
     padding-bottom: 2px;
+    word-break: break-all; /* Handle long log lines on mobile */
   }
 
   /* Results Section */
@@ -461,10 +477,15 @@ const cssStyles = `
 
   .info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 16px;
   }
-  @media (min-width: 768px) {
+  @media (min-width: 640px) {
+    .info-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (min-width: 1024px) {
     .info-grid {
       grid-template-columns: repeat(4, 1fr);
     }
@@ -474,6 +495,48 @@ const cssStyles = `
     text-align: center;
     padding: 48px 0;
     color: #6b7280;
+  }
+
+  /* --- Mobile Specific Adjustments --- */
+  @media (max-width: 640px) {
+    .ml-playground-wrapper {
+      padding: 16px;
+    }
+    .header-card {
+      flex-direction: column;
+      text-align: center;
+      gap: 16px;
+    }
+    .app-title {
+      font-size: 1.75rem;
+    }
+    .upload-zone {
+      padding: 24px;
+    }
+    .pipeline-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .pipeline-inner {
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .delete-btn {
+      align-self: flex-end;
+      margin-top: -40px; /* Adjust position relative to stacked content */
+    }
+    .metric-value {
+      font-size: 1.5rem;
+    }
+    .backtest-card {
+      padding: 16px;
+    }
+    /* Ensure charts don't overflow width */
+    .recharts-wrapper {
+        max-width: 100%;
+    }
   }
 `;
 
@@ -675,7 +738,6 @@ const MLPlayground = () => {
   const buildTensorFlowModel = (inputShape) => {
     const model = tf.sequential();
     modelBlocks.forEach((block, idx) => {
-      // ... (Same tensorflow model build logic)
        if (block.modelId === 'dense') {
         model.add(tf.layers.dense({
           units: block.params.units || 64,
@@ -705,29 +767,22 @@ const MLPlayground = () => {
     return model;
   };
 
-  // --- SIMULATED TRADING ENGINE ---
   const runBacktest = (actualArray, predArray) => {
-    let strategyBalance = 10000; // Start with $10,000
+    let strategyBalance = 10000; 
     let marketBalance = 10000;
     const equityCurve = [];
     let wins = 0;
     let totalTrades = 0;
 
-    // We assume data is sequential. We start at i=1 because we need i-1 for calculations
     for (let i = 1; i < actualArray.length; i++) {
         const prevPrice = actualArray[i-1][0];
         const currentPrice = actualArray[i][0];
-        const predictedPrice = predArray[i][0]; // Prediction for currentPrice made at i-1 (conceptually)
+        const predictedPrice = predArray[i][0]; 
 
-        // Market Return (Buy & Hold)
         const rawReturn = (currentPrice - prevPrice) / prevPrice;
         marketBalance = marketBalance * (1 + rawReturn);
 
-        // Strategy: If Model Predicts UP (Predicted > Prev), we are Long. Else Short/Cash.
-        // Simplified: Long if Pred > Prev, Short if Pred < Prev
         const signal = predictedPrice > prevPrice ? 1 : -1;
-        
-        // Strategy Return
         const strategyReturn = signal * rawReturn;
         strategyBalance = strategyBalance * (1 + strategyReturn);
 
@@ -826,7 +881,6 @@ const MLPlayground = () => {
         const predArray = await predictions.mul(yStd.add(1e-7)).add(yMean).array();
         const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
 
-        // Run Backtest
         const backtestResults = runBacktest(actualArray, predArray);
 
         const mse = actualArray.reduce((sum, val, i) => 
@@ -900,7 +954,6 @@ const MLPlayground = () => {
 
           const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
           
-          // Run Backtest per model
           const backtestResults = runBacktest(actualArray, predictions);
 
           const mse = actualArray.reduce((sum, val, i) => 
@@ -1052,7 +1105,7 @@ const MLPlayground = () => {
                               <div>
                                 <p style={{ fontWeight: 600 }}>{block.name}</p>
                                 {block.type === 'dl' && (
-                                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                     {Object.entries(block.params).map(([key, value]) => (
                                       <input key={key} type="number" value={value} onChange={(e) => updateBlockParams(block.id, { [key]: parseFloat(e.target.value) })} className="param-input" placeholder={key} />
                                     ))}
@@ -1062,7 +1115,7 @@ const MLPlayground = () => {
                             </div>
                             <button onClick={() => removeModelBlock(block.id)} className="delete-btn"><Trash2 size={20} /></button>
                           </div>
-                          {idx < modelBlocks.length - 1 && (<div style={{ fontSize: 24, color: '#a855f7' }}>→</div>)}
+                          {idx < modelBlocks.length - 1 && (<div style={{ fontSize: 24, color: '#a855f7', margin: '0 8px' }}>→</div>)}
                         </div>
                       ))}
                     </div>
@@ -1146,7 +1199,7 @@ const MLPlayground = () => {
                         </h4>
                         <div className="grid-two-cols">
                             <div>
-                                <div className="metric-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                <div className="grid-two-cols" style={{ gap: 16, marginBottom: 16 }}>
                                     <div style={{ background: 'rgba(255,255,255,0.6)', padding: 12, borderRadius: 8 }}>
                                         <p style={{ fontSize: '0.85rem' }}>Total Return</p>
                                         <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: results.backtest.totalReturn >= 0 ? '#059669' : '#dc2626' }}>
