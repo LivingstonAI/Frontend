@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity } from 'lucide-react';
-import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb } from 'lucide-react';
+import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
 import Header from "./header";
 import SideNavs from "./side_navs";
-
 // ------------------------------------------------------------
 
 // --- Standard CSS Styles ---
@@ -176,7 +175,7 @@ const cssStyles = `
     padding: 16px;
     border-radius: 12px;
     text-align: left;
-    border: 1px solid #e5e7eb; /* Added border for visibility */
+    border: 1px solid #e5e7eb;
     cursor: pointer;
     display: flex;
     align-items: flex-start;
@@ -220,7 +219,7 @@ const cssStyles = `
     line-height: 1.4;
   }
 
-  /* Model Colors - Adjusted for better contrast */
+  /* Model Colors */
   .bg-blue-100 { background-color: #e0f2fe; border-left: 4px solid #3b82f6; }
   .bg-cyan-100 { background-color: #ecfeff; border-left: 4px solid #06b6d4; }
   .bg-teal-100 { background-color: #f0fdfa; border-left: 4px solid #14b8a6; }
@@ -416,6 +415,7 @@ const cssStyles = `
   .text-purple { color: #7c3aed; }
   .text-pink { color: #db2777; }
   .text-indigo { color: #4f46e5; }
+  .text-green { color: #059669; }
 
   .chart-card {
     background: white;
@@ -423,6 +423,31 @@ const cssStyles = `
     border-radius: 16px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     margin-bottom: 24px;
+  }
+
+  .backtest-card {
+    background: linear-gradient(to bottom right, #f0fdf4, #ecfccb);
+    border: 1px solid #bef264;
+    padding: 24px;
+    border-radius: 16px;
+    margin-top: 24px;
+  }
+  
+  .insight-card {
+    background: linear-gradient(to bottom right, #fffbeb, #fef3c7);
+    border: 1px solid #f59e0b;
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .insight-title {
+    color: #b45309;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
   }
 
   /* Info Panel */
@@ -470,7 +495,6 @@ const MLPlayground = () => {
   const fileInputRef = useRef(null);
   const logsEndRef = useRef(null);
 
-  // Auto-scroll logs
   useEffect(() => {
     if (logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -561,6 +585,31 @@ const MLPlayground = () => {
     ]
   };
 
+  const getLaymanExplanation = (metrics, backtest) => {
+    const r2 = metrics.r2;
+    const ret = backtest.totalReturn;
+    const winRate = backtest.winRate;
+    
+    let fitDesc = "";
+    if (r2 > 0.8) fitDesc = "an incredibly precise";
+    else if (r2 > 0.5) fitDesc = "a reasonably strong";
+    else if (r2 > 0.2) fitDesc = "a somewhat weak";
+    else fitDesc = "a poor";
+
+    let profitDesc = "";
+    if (ret > 10) profitDesc = "highly profitable, generating significant returns";
+    else if (ret > 0) profitDesc = "moderately profitable, making small gains";
+    else if (ret > -10) profitDesc = "slightly unprofitable, losing a small amount";
+    else profitDesc = "risky, resulting in significant losses";
+
+    let winDesc = "";
+    if (winRate > 60) winDesc = "very reliable, winning most trades";
+    else if (winRate > 50) winDesc = "marginally effective, barely beating a coin toss";
+    else winDesc = "unreliable, getting the direction wrong more often than not";
+
+    return `This model shows ${fitDesc} fit to the data (R²: ${r2.toFixed(2)}). In a simulated trading environment, this strategy was ${profitDesc} (${ret.toFixed(2)}% return). The prediction accuracy was ${winDesc} (Win Rate: ${winRate.toFixed(1)}%).`;
+  };
+
   const parseCSV = (text) => {
     const lines = text.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim());
@@ -625,9 +674,9 @@ const MLPlayground = () => {
 
   const buildTensorFlowModel = (inputShape) => {
     const model = tf.sequential();
-    
     modelBlocks.forEach((block, idx) => {
-      if (block.modelId === 'dense') {
+      // ... (Same tensorflow model build logic)
+       if (block.modelId === 'dense') {
         model.add(tf.layers.dense({
           units: block.params.units || 64,
           activation: block.params.activation || 'relu',
@@ -652,11 +701,52 @@ const MLPlayground = () => {
         }));
       }
     });
-
-    // Add output layer
     model.add(tf.layers.dense({ units: 1 }));
-
     return model;
+  };
+
+  // --- SIMULATED TRADING ENGINE ---
+  const runBacktest = (actualArray, predArray) => {
+    let strategyBalance = 10000; // Start with $10,000
+    let marketBalance = 10000;
+    const equityCurve = [];
+    let wins = 0;
+    let totalTrades = 0;
+
+    // We assume data is sequential. We start at i=1 because we need i-1 for calculations
+    for (let i = 1; i < actualArray.length; i++) {
+        const prevPrice = actualArray[i-1][0];
+        const currentPrice = actualArray[i][0];
+        const predictedPrice = predArray[i][0]; // Prediction for currentPrice made at i-1 (conceptually)
+
+        // Market Return (Buy & Hold)
+        const rawReturn = (currentPrice - prevPrice) / prevPrice;
+        marketBalance = marketBalance * (1 + rawReturn);
+
+        // Strategy: If Model Predicts UP (Predicted > Prev), we are Long. Else Short/Cash.
+        // Simplified: Long if Pred > Prev, Short if Pred < Prev
+        const signal = predictedPrice > prevPrice ? 1 : -1;
+        
+        // Strategy Return
+        const strategyReturn = signal * rawReturn;
+        strategyBalance = strategyBalance * (1 + strategyReturn);
+
+        if (strategyReturn > 0) wins++;
+        totalTrades++;
+
+        equityCurve.push({
+            t: i,
+            Strategy: strategyBalance,
+            Market: marketBalance
+        });
+    }
+
+    return {
+        equityCurve,
+        finalBalance: strategyBalance,
+        winRate: (wins / totalTrades) * 100,
+        totalReturn: ((strategyBalance - 10000) / 10000) * 100
+    };
   };
 
   const trainModel = async () => {
@@ -667,10 +757,7 @@ const MLPlayground = () => {
 
     setIsTraining(true);
     setTrainingProgress(0);
-    setTrainingLogs([]); // Clear previous logs
-    
-    // Only switch tab once training starts visually
-    // We keep the user on the Train tab to see the logs now!
+    setTrainingLogs([]);
 
     try {
       const numericHeaders = selectedDataset.headers.filter(h => 
@@ -682,7 +769,6 @@ const MLPlayground = () => {
         return;
       }
 
-      // Prepare data
       const features = selectedDataset.data.map(row => 
         numericHeaders.slice(0, -1).map(h => row[h])
       );
@@ -691,7 +777,6 @@ const MLPlayground = () => {
       const X = tf.tensor2d(features);
       const y = tf.tensor2d(targets, [targets.length, 1]);
 
-      // Normalize
       const xMean = X.mean(0);
       const xStd = X.sub(xMean).square().mean(0).sqrt();
       const XNorm = X.sub(xMean).div(xStd.add(1e-7));
@@ -700,18 +785,15 @@ const MLPlayground = () => {
       const yStd = y.sub(yMean).square().mean().sqrt();
       const yNorm = y.sub(yMean).div(yStd.add(1e-7));
 
-      // Split data
       const splitIdx = Math.floor(features.length * trainingConfig.trainTestSplit);
       const XTrain = XNorm.slice([0, 0], [splitIdx, -1]);
       const yTrain = yNorm.slice([0, 0], [splitIdx, -1]);
       const XTest = XNorm.slice([splitIdx, 0], [-1, -1]);
       const yTest = yNorm.slice([splitIdx, 0], [-1, -1]);
 
-      // Build and compile model
       const hasDLBlocks = modelBlocks.some(b => b.type === 'dl');
       
       if (hasDLBlocks) {
-        // Deep Learning Model
         const model = buildTensorFlowModel(numericHeaders.length - 1);
         model.compile({
           optimizer: tf.train.adam(trainingConfig.learningRate),
@@ -731,28 +813,25 @@ const MLPlayground = () => {
               setTrainingProgress(progress);
               history.loss.push(logs.loss);
               history.val_loss.push(logs.val_loss);
-              
               setTrainingLogs(prev => [
                 ...prev, 
                 `Epoch ${epoch + 1}/${trainingConfig.epochs} - Loss: ${logs.loss.toFixed(4)} - Val Loss: ${logs.val_loss.toFixed(4)}`
               ]);
-              
-              // Small delay to allow UI to update visually
               await new Promise(r => setTimeout(r, 10));
             }
           }
         });
 
-        // Make predictions
         const predictions = model.predict(XTest);
         const predArray = await predictions.mul(yStd.add(1e-7)).add(yMean).array();
         const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
 
-        // Calculate metrics
+        // Run Backtest
+        const backtestResults = runBacktest(actualArray, predArray);
+
         const mse = actualArray.reduce((sum, val, i) => 
           sum + Math.pow(val[0] - predArray[i][0], 2), 0) / actualArray.length;
         const rmse = Math.sqrt(mse);
-        
         const yMeanVal = actualArray.reduce((sum, val) => sum + val[0], 0) / actualArray.length;
         const ssTot = actualArray.reduce((sum, val) => sum + Math.pow(val[0] - yMeanVal, 2), 0);
         const ssRes = actualArray.reduce((sum, val, i) => sum + Math.pow(val[0] - predArray[i][0], 2), 0);
@@ -763,82 +842,70 @@ const MLPlayground = () => {
           modelName: 'Custom Neural Network',
           metrics: { r2, rmse, mse },
           history,
+          backtest: backtestResults,
+          explanation: getLaymanExplanation({ r2 }, backtestResults),
           predictions: actualArray.map((val, i) => ({
             actual: val[0],
             predicted: predArray[i][0]
           }))
         });
 
-        // Cleanup
         model.dispose();
       } else {
-        // Machine Learning Models
         const mlResults = [];
-        const totalSteps = modelBlocks.length * 10; // Fake steps for visualization
+        const totalSteps = modelBlocks.length * 10;
 
         for (let i = 0; i < modelBlocks.length; i++) {
           const block = modelBlocks[i];
           const XTrainArray = await XTrain.array();
-          const yTrainArray = await yTrain.array();
           const XTestArray = await XTest.array();
-          const yTestArray = await yTest.array();
 
           let predictions;
-          
           setTrainingLogs(prev => [...prev, `Training ${block.name}...`]);
 
-          // Fake progress loop for non-DL models to show activity
           for(let s=0; s<10; s++) {
               setTrainingProgress( ((i*10 + s + 1) / totalSteps) * 100 );
               await new Promise(r => setTimeout(r, 50));
           }
 
           if (block.modelId === 'linear') {
-            // Simple linear regression using TensorFlow
             const simpleModel = tf.sequential([
               tf.layers.dense({ units: 1, inputShape: [numericHeaders.length - 1] })
             ]);
             simpleModel.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
-            
-            // Custom fit loop to show logs even for simple regression
             await simpleModel.fit(XTrain, yTrain, { 
                 epochs: 20, 
                 verbose: 0,
                 callbacks: {
                     onEpochEnd: (epoch, logs) => {
-                        if (epoch % 5 === 0) {
-                             setTrainingLogs(prev => [...prev, `  Iter ${epoch}: Loss ${logs.loss.toFixed(4)}`]);
-                        }
+                        if (epoch % 5 === 0) setTrainingLogs(prev => [...prev, `  Iter ${epoch}: Loss ${logs.loss.toFixed(4)}`]);
                     }
                 }
             });
-
             const pred = simpleModel.predict(XTest);
             predictions = await pred.mul(yStd.add(1e-7)).add(yMean).array();
             simpleModel.dispose();
             pred.dispose();
           } else {
-            // For other ML models, use a simple approximation
             setTrainingLogs(prev => [...prev, `  Fitting ${block.name} parameters...`]);
-            await new Promise(r => setTimeout(r, 500)); // Fake computation delay
-
+            await new Promise(r => setTimeout(r, 500));
             const weights = XTrainArray[0].map(() => Math.random() * 2 - 1);
             const bias = Math.random();
-            
             predictions = XTestArray.map(row => {
               const pred = row.reduce((sum, val, i) => sum + val * weights[i], bias);
               return [pred * yStd.arraySync() + yMean.arraySync()];
             });
-            
             setTrainingLogs(prev => [...prev, `  ${block.name} converged.`]);
           }
 
           const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
           
+          // Run Backtest per model
+          const backtestResults = runBacktest(actualArray, predictions);
+
           const mse = actualArray.reduce((sum, val, i) => 
             sum + Math.pow(val[0] - predictions[i][0], 2), 0) / actualArray.length;
           const rmse = Math.sqrt(mse);
-          
           const yMeanVal = actualArray.reduce((sum, val) => sum + val[0], 0) / actualArray.length;
           const ssTot = actualArray.reduce((sum, val) => sum + Math.pow(val[0] - yMeanVal, 2), 0);
           const ssRes = actualArray.reduce((sum, val, i) => sum + Math.pow(val[0] - predictions[i][0], 2), 0);
@@ -848,6 +915,8 @@ const MLPlayground = () => {
             modelName: block.name,
             icon: block.icon,
             metrics: { r2, rmse, mse },
+            backtest: backtestResults,
+            explanation: getLaymanExplanation({ r2 }, backtestResults),
             predictions: actualArray.map((val, i) => ({
               actual: val[0],
               predicted: predictions[i][0]
@@ -861,19 +930,9 @@ const MLPlayground = () => {
         });
       }
 
-      // Cleanup tensors
-      X.dispose();
-      y.dispose();
-      XNorm.dispose();
-      yNorm.dispose();
-      XTrain.dispose();
-      yTrain.dispose();
-      XTest.dispose();
-      yTest.dispose();
-      xMean.dispose();
-      xStd.dispose();
-      yMean.dispose();
-      yStd.dispose();
+      X.dispose(); y.dispose(); XNorm.dispose(); yNorm.dispose();
+      XTrain.dispose(); yTrain.dispose(); XTest.dispose(); yTest.dispose();
+      xMean.dispose(); xStd.dispose(); yMean.dispose(); yStd.dispose();
       
       setTrainingLogs(prev => [...prev, "Training Complete! Redirecting to results..."]);
       await new Promise(r => setTimeout(r, 1000));
@@ -891,9 +950,7 @@ const MLPlayground = () => {
 
   return (
     <div className="ml-playground-wrapper">
-      {/* Inject the CSS Styles */}
       <style>{cssStyles}</style>
-
       <Header />
       <SideNavs />
       
@@ -901,9 +958,7 @@ const MLPlayground = () => {
         {/* Header */}
         <div className="header-card">
           <div>
-            <h1 className="app-title">
-              🚀 SnowAI ML/DL Model Builder
-            </h1>
+            <h1 className="app-title">🚀 SnowAI ML/DL Model Builder</h1>
             <p className="app-subtitle">Drag, drop, and build AI models visually</p>
           </div>
           <Brain className="header-icon" />
@@ -927,40 +982,21 @@ const MLPlayground = () => {
             {/* Upload Tab */}
             {activeTab === 'upload' && (
               <div>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="upload-zone"
-                >
+                <div onClick={() => fileInputRef.current?.click()} className="upload-zone">
                   <Upload className="header-icon" style={{ width: 48, height: 48, marginBottom: 16 }} />
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>
-                    Drop your CSV dataset here
-                  </h3>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>Drop your CSV dataset here</h3>
                   <p style={{ color: '#6b7280' }}>or click to browse files</p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    style={{ display: 'none' }}
-                  />
+                  <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
                 </div>
-
                 {datasets.length > 0 && (
                   <div className="dataset-list">
                     <h3 className="section-title">Uploaded Datasets</h3>
                     <div>
                       {datasets.map(ds => (
-                        <div
-                          key={ds.id}
-                          onClick={() => setSelectedDataset(ds)}
-                          className={`dataset-item ${selectedDataset?.id === ds.id ? 'active' : ''}`}
-                        >
+                        <div key={ds.id} onClick={() => setSelectedDataset(ds)} className={`dataset-item ${selectedDataset?.id === ds.id ? 'active' : ''}`}>
                           <div>
                             <p style={{ fontWeight: 600 }}>{ds.name}</p>
-                            <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>
-                              {ds.rows} rows × {ds.cols} columns
-                            </p>
+                            <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>{ds.rows} rows × {ds.cols} columns</p>
                           </div>
                           <BarChart3 style={{ color: '#a855f7' }} />
                         </div>
@@ -975,19 +1011,11 @@ const MLPlayground = () => {
             {activeTab === 'configure' && (
               <div>
                 <div className="grid-two-cols">
-                  {/* ML Models */}
                   <div>
-                    <h3 className="section-title">
-                      <TrendingUp size={24} />
-                      Machine Learning Models
-                    </h3>
+                    <h3 className="section-title"><TrendingUp size={24} /> Machine Learning Models</h3>
                     <div>
                       {modelTypes.ml.map(model => (
-                        <button
-                          key={model.id}
-                          onClick={() => addModelBlock('ml', model.id)}
-                          className={`model-button ${model.color}`}
-                        >
+                        <button key={model.id} onClick={() => addModelBlock('ml', model.id)} className={`model-button ${model.color}`}>
                           <span className="model-icon-wrapper">{model.icon}</span>
                           <div className="model-info">
                             <span className="model-name">{model.name}</span>
@@ -997,20 +1025,11 @@ const MLPlayground = () => {
                       ))}
                     </div>
                   </div>
-
-                  {/* DL Layers */}
                   <div>
-                    <h3 className="section-title">
-                      <Brain size={24} />
-                      Deep Learning Layers
-                    </h3>
+                    <h3 className="section-title"><Brain size={24} /> Deep Learning Layers</h3>
                     <div>
                       {modelTypes.dl.map(layer => (
-                        <button
-                          key={layer.id}
-                          onClick={() => addModelBlock('dl', layer.id)}
-                          className="model-button bg-purple-100"
-                        >
+                        <button key={layer.id} onClick={() => addModelBlock('dl', layer.id)} className="model-button bg-purple-100">
                           <span className="model-icon-wrapper">{layer.icon}</span>
                           <div className="model-info">
                             <span className="model-name">{layer.name}</span>
@@ -1021,8 +1040,6 @@ const MLPlayground = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Model Pipeline */}
                 {modelBlocks.length > 0 && (
                   <div className="pipeline-container">
                     <h3 className="section-title">Your Model Pipeline</h3>
@@ -1037,31 +1054,15 @@ const MLPlayground = () => {
                                 {block.type === 'dl' && (
                                   <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
                                     {Object.entries(block.params).map(([key, value]) => (
-                                      <input
-                                        key={key}
-                                        type="number"
-                                        value={value}
-                                        onChange={(e) => updateBlockParams(block.id, {
-                                          [key]: parseFloat(e.target.value)
-                                        })}
-                                        className="param-input"
-                                        placeholder={key}
-                                      />
+                                      <input key={key} type="number" value={value} onChange={(e) => updateBlockParams(block.id, { [key]: parseFloat(e.target.value) })} className="param-input" placeholder={key} />
                                     ))}
                                   </div>
                                 )}
                               </div>
                             </div>
-                            <button
-                              onClick={() => removeModelBlock(block.id)}
-                              className="delete-btn"
-                            >
-                              <Trash2 size={20} />
-                            </button>
+                            <button onClick={() => removeModelBlock(block.id)} className="delete-btn"><Trash2 size={20} /></button>
                           </div>
-                          {idx < modelBlocks.length - 1 && (
-                            <div style={{ fontSize: 24, color: '#a855f7' }}>→</div>
-                          )}
+                          {idx < modelBlocks.length - 1 && (<div style={{ fontSize: 24, color: '#a855f7' }}>→</div>)}
                         </div>
                       ))}
                     </div>
@@ -1076,79 +1077,32 @@ const MLPlayground = () => {
                 <div className="grid-two-cols" style={{ marginBottom: 24 }}>
                   <div className="input-group">
                     <label className="input-label">Epochs</label>
-                    <input
-                      type="number"
-                      value={trainingConfig.epochs}
-                      onChange={(e) => setTrainingConfig({...trainingConfig, epochs: parseInt(e.target.value)})}
-                      className="styled-input"
-                    />
+                    <input type="number" value={trainingConfig.epochs} onChange={(e) => setTrainingConfig({...trainingConfig, epochs: parseInt(e.target.value)})} className="styled-input" />
                   </div>
                   <div className="input-group">
                     <label className="input-label">Batch Size</label>
-                    <input
-                      type="number"
-                      value={trainingConfig.batchSize}
-                      onChange={(e) => setTrainingConfig({...trainingConfig, batchSize: parseInt(e.target.value)})}
-                      className="styled-input"
-                    />
+                    <input type="number" value={trainingConfig.batchSize} onChange={(e) => setTrainingConfig({...trainingConfig, batchSize: parseInt(e.target.value)})} className="styled-input" />
                   </div>
                   <div className="input-group">
                     <label className="input-label">Learning Rate</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={trainingConfig.learningRate}
-                      onChange={(e) => setTrainingConfig({...trainingConfig, learningRate: parseFloat(e.target.value)})}
-                      className="styled-input"
-                    />
+                    <input type="number" step="0.001" value={trainingConfig.learningRate} onChange={(e) => setTrainingConfig({...trainingConfig, learningRate: parseFloat(e.target.value)})} className="styled-input" />
                   </div>
                   <div className="input-group">
                     <label className="input-label">Train/Test Split</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0.5"
-                      max="0.9"
-                      value={trainingConfig.trainTestSplit}
-                      onChange={(e) => setTrainingConfig({...trainingConfig, trainTestSplit: parseFloat(e.target.value)})}
-                      className="styled-input"
-                    />
+                    <input type="number" step="0.1" min="0.5" max="0.9" value={trainingConfig.trainTestSplit} onChange={(e) => setTrainingConfig({...trainingConfig, trainTestSplit: parseFloat(e.target.value)})} className="styled-input" />
                   </div>
                 </div>
-
-                <button
-                  onClick={trainModel}
-                  disabled={isTraining || !selectedDataset || modelBlocks.length === 0}
-                  className="train-button"
-                >
-                  {isTraining ? (
-                    <Activity className="animate-spin" />
-                  ) : (
-                    <Play size={24} />
-                  )}
+                <button onClick={trainModel} disabled={isTraining || !selectedDataset || modelBlocks.length === 0} className="train-button">
+                  {isTraining ? (<Activity className="animate-spin" />) : (<Play size={24} />)}
                   {isTraining ? 'Training in Progress...' : 'Start Training'}
                 </button>
-
                 {isTraining && (
                   <div className="progress-container">
-                     <h4 style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                       <Terminal size={18} />
-                       Training Output
-                     </h4>
-                    <div className="progress-bar-bg">
-                      <div
-                        className="progress-bar-fill"
-                        style={{ width: `${trainingProgress}%` }}
-                      />
-                    </div>
-                    <p style={{ textAlign: 'center', marginTop: 8, fontWeight: 600, color: '#7c3aed', marginBottom: 16 }}>
-                      {trainingProgress.toFixed(0)}% Complete
-                    </p>
-                    
+                     <h4 style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}><Terminal size={18} /> Training Output</h4>
+                    <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${trainingProgress}%` }} /></div>
+                    <p style={{ textAlign: 'center', marginTop: 8, fontWeight: 600, color: '#7c3aed', marginBottom: 16 }}>{trainingProgress.toFixed(0)}% Complete</p>
                     <div className="terminal-logs">
-                      {trainingLogs.map((log, i) => (
-                        <div key={i} className="log-line">{log}</div>
-                      ))}
+                      {trainingLogs.map((log, i) => (<div key={i} className="log-line">{log}</div>))}
                       <div ref={logsEndRef} />
                     </div>
                   </div>
@@ -1170,37 +1124,75 @@ const MLPlayground = () => {
                   <div>
                     <div className="results-header">
                       <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 16 }}>{results.modelName}</h3>
+                      
+                      {/* Layman Explanation */}
+                      <div className="insight-card">
+                         <div className="insight-title"><Lightbulb size={24} /> Smart Insight</div>
+                         <p style={{ lineHeight: 1.6 }}>{results.explanation}</p>
+                      </div>
+
                       <div className="metric-grid">
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>R² Score</p>
-                          <p className="metric-value text-purple">
-                            {results.metrics.r2.toFixed(4)}
-                          </p>
-                        </div>
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>RMSE</p>
-                          <p className="metric-value text-pink">
-                            {results.metrics.rmse.toFixed(4)}
-                          </p>
-                        </div>
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>MSE</p>
-                          <p className="metric-value text-indigo">
-                            {results.metrics.mse.toFixed(4)}
-                          </p>
-                        </div>
+                        <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>R² Score</p><p className="metric-value text-purple">{results.metrics.r2.toFixed(4)}</p></div>
+                        <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>RMSE</p><p className="metric-value text-pink">{results.metrics.rmse.toFixed(4)}</p></div>
+                        <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>MSE</p><p className="metric-value text-indigo">{results.metrics.mse.toFixed(4)}</p></div>
                       </div>
                     </div>
 
-                    <div className="grid-two-cols">
+                    {/* Backtest Card for DL */}
+                    <div className="backtest-card">
+                        <h4 style={{ fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <DollarSign size={24} color="#65a30d" />
+                            Algorithmic Trading Simulation (Test Set)
+                        </h4>
+                        <div className="grid-two-cols">
+                            <div>
+                                <div className="metric-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.6)', padding: 12, borderRadius: 8 }}>
+                                        <p style={{ fontSize: '0.85rem' }}>Total Return</p>
+                                        <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: results.backtest.totalReturn >= 0 ? '#059669' : '#dc2626' }}>
+                                            {results.backtest.totalReturn.toFixed(2)}%
+                                        </p>
+                                    </div>
+                                    <div style={{ background: 'rgba(255,255,255,0.6)', padding: 12, borderRadius: 8 }}>
+                                        <p style={{ fontSize: '0.85rem' }}>Win Rate</p>
+                                        <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4f46e5' }}>
+                                            {results.backtest.winRate.toFixed(1)}%
+                                        </p>
+                                    </div>
+                                </div>
+                                <p style={{ marginTop: 16, fontSize: '0.9rem', color: '#4b5563' }}>
+                                    *Simulation assumes sequential data (time-series). It goes <strong>Long</strong> when the model predicts a price increase and <strong>Short</strong> when it predicts a decrease relative to the previous step.
+                                </p>
+                            </div>
+                            <div style={{ height: 200, background: 'white', borderRadius: 8, padding: 8 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={results.backtest.equityCurve}>
+                                        <defs>
+                                            <linearGradient id="colorStrategy" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
+                                            </linearGradient>
+                                            <linearGradient id="colorMarket" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <Tooltip />
+                                        <Area type="monotone" dataKey="Strategy" stroke="#82ca9d" fillOpacity={1} fill="url(#colorStrategy)" />
+                                        <Area type="monotone" dataKey="Market" stroke="#8884d8" fillOpacity={1} fill="url(#colorMarket)" />
+                                        <Legend />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid-two-cols" style={{ marginTop: 24 }}>
                       <div className="chart-card">
                         <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Training History</h4>
                         <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={results.history.loss.map((loss, i) => ({
-                            epoch: i + 1,
-                            train: loss,
-                            val: results.history.val_loss[i]
-                          }))}>
+                          <LineChart data={results.history.loss.map((loss, i) => ({ epoch: i + 1, train: loss, val: results.history.val_loss[i] }))}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="epoch" />
                             <YAxis />
@@ -1211,7 +1203,6 @@ const MLPlayground = () => {
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
-
                       <div className="chart-card">
                         <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Predictions vs Actual</h4>
                         <ResponsiveContainer width="100%" height={300}>
@@ -1236,26 +1227,40 @@ const MLPlayground = () => {
                           <span style={{ fontSize: '1.5rem' }}>{model.icon}</span>
                           {model.modelName}
                         </h3>
-                        <div className="metric-grid" style={{ marginBottom: 16 }}>
-                          <div style={{ backgroundColor: '#f3e8ff', padding: 12, borderRadius: 8, textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>R² Score</p>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#7c3aed' }}>
-                              {model.metrics.r2.toFixed(4)}
-                            </p>
-                          </div>
-                          <div style={{ backgroundColor: '#fce7f3', padding: 12, borderRadius: 8, textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>RMSE</p>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#db2777' }}>
-                              {model.metrics.rmse.toFixed(4)}
-                            </p>
-                          </div>
-                          <div style={{ backgroundColor: '#e0e7ff', padding: 12, borderRadius: 8, textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>MSE</p>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4f46e5' }}>
-                              {model.metrics.mse.toFixed(4)}
-                            </p>
-                          </div>
+                        
+                        {/* Layman Explanation Per Model */}
+                        <div className="insight-card" style={{ marginBottom: 16 }}>
+                             <div className="insight-title"><Lightbulb size={20} /> Smart Insight</div>
+                             <p style={{ lineHeight: 1.6, fontSize: '0.9rem' }}>{model.explanation}</p>
                         </div>
+
+                        <div className="metric-grid" style={{ marginBottom: 16 }}>
+                          <div style={{ backgroundColor: '#f3e8ff', padding: 12, borderRadius: 8, textAlign: 'center' }}><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>R² Score</p><p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#7c3aed' }}>{model.metrics.r2.toFixed(4)}</p></div>
+                          <div style={{ backgroundColor: '#fce7f3', padding: 12, borderRadius: 8, textAlign: 'center' }}><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>RMSE</p><p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#db2777' }}>{model.metrics.rmse.toFixed(4)}</p></div>
+                          <div style={{ backgroundColor: '#e0e7ff', padding: 12, borderRadius: 8, textAlign: 'center' }}><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>MSE</p><p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4f46e5' }}>{model.metrics.mse.toFixed(4)}</p></div>
+                        </div>
+
+                        {/* Backtest for ML */}
+                        <div className="backtest-card" style={{ marginBottom: 24 }}>
+                            <h4 style={{ fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <DollarSign size={20} color="#65a30d" /> Trading Backtest
+                            </h4>
+                            <div style={{ display: 'flex', gap: 24, alignItems: 'center', marginBottom: 16 }}>
+                                <div><span style={{ fontWeight: 'bold' }}>Return:</span> <span style={{ color: model.backtest.totalReturn >= 0 ? 'green' : 'red' }}>{model.backtest.totalReturn.toFixed(2)}%</span></div>
+                                <div><span style={{ fontWeight: 'bold' }}>Win Rate:</span> {model.backtest.winRate.toFixed(1)}%</div>
+                            </div>
+                            <div style={{ height: 150, background: 'white', borderRadius: 8 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={model.backtest.equityCurve}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <Tooltip />
+                                        <Area type="monotone" dataKey="Strategy" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} />
+                                        <Area type="monotone" dataKey="Market" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
                         <ResponsiveContainer width="100%" height={250}>
                           <ScatterChart>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -1276,27 +1281,12 @@ const MLPlayground = () => {
 
         {/* Info Panel */}
         <div className="info-panel">
-          <h3 className="section-title">
-            <AlertCircle size={20} color="#a855f7" />
-            Quick Guide
-          </h3>
+          <h3 className="section-title"><AlertCircle size={20} color="#a855f7" /> Quick Guide</h3>
           <div className="info-grid">
-            <div>
-              <p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>📤 Step 1: Upload</p>
-              <p style={{ color: '#4b5563' }}>Drop your CSV file with numeric data</p>
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>🎯 Step 2: Configure</p>
-              <p style={{ color: '#4b5563' }}>Add ML models or build custom DL layers</p>
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>⚙️ Step 3: Train</p>
-              <p style={{ color: '#4b5563' }}>Set hyperparameters and start training</p>
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>📊 Step 4: Results</p>
-              <p style={{ color: '#4b5563' }}>View metrics and visualizations</p>
-            </div>
+            <div><p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>📤 Step 1: Upload</p><p style={{ color: '#4b5563' }}>Drop your CSV file with numeric data</p></div>
+            <div><p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>🎯 Step 2: Configure</p><p style={{ color: '#4b5563' }}>Add ML models or build custom DL layers</p></div>
+            <div><p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>⚙️ Step 3: Train</p><p style={{ color: '#4b5563' }}>Set hyperparameters and start training</p></div>
+            <div><p style={{ fontWeight: 600, color: '#7c3aed', marginBottom: 4 }}>📊 Step 4: Results</p><p style={{ color: '#4b5563' }}>View metrics and visualizations</p></div>
           </div>
         </div>
       </div>
