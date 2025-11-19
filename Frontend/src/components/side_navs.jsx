@@ -770,6 +770,8 @@ export default function SideNavs() {
         <Link to="/browser" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-search"></i></p></button></Link>
         <Link to="/videos" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-play-circle-fill"></i></p></button></Link>
         <Link to="/stock_screener" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-apple"></i></p></button></Link>
+        <Link to="/ml_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-droplet-fill"></i></p></button></Link>
+
       </div>
 
       <div className="side-navs-cellphone">
@@ -931,6 +933,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/stock_screener" className="side-nav">
             <i className="bi bi-apple"></i>
+        </Link>
+        <Link to="/stock_screener" className="side-nav">
+            <i className="bi bi-droplet-fill"></i>
         </Link>
       </div>
       <br />
