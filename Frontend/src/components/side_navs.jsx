@@ -934,7 +934,7 @@ export default function SideNavs() {
         <Link to="/stock_screener" className="side-nav">
             <i className="bi bi-apple"></i>
         </Link>
-        <Link to="/stock_screener" className="side-nav">
+        <Link to="/ml_playground" className="side-nav">
             <i className="bi bi-droplet-fill"></i>
         </Link>
       </div>
