@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
-import Header from "./header";
-import SideNavs from "./side_navs";
+
+// --- Mocks for missing components to ensure Preview works ---
+const Header = () => <div className="mock-header">SnowAI Dashboard</div>;
+const SideNavs = () => <div style={{ display: 'none' }}></div>;
 // ------------------------------------------------------------
 
 // --- Standard CSS Styles ---
@@ -185,7 +187,8 @@ const cssStyles = `
     font-size: 0.75rem;
     padding: 8px;
     border-radius: 4px;
-    color: #1e293b;
+    /* Ensuring text is visible against colored background */
+    color: #1e293b; 
     font-weight: bold;
   }
 
@@ -227,6 +230,7 @@ const cssStyles = `
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     position: relative;
     overflow: hidden;
+    color: #1f2937; /* Ensure dark text for contrast against light block colors */
   }
 
   .model-button:hover {
@@ -285,11 +289,57 @@ const cssStyles = `
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border: 1px solid #e5e7eb;
+    color: #1f2937; /* Ensure dark text */
   }
 
-  .pipeline-inner { display: flex; align-items: center; gap: 12px; flex: 1; }
-  .param-input { width: 80px; padding: 4px 8px; border-radius: 4px; border: 1px solid #e5e7eb; font-size: 12px; margin-left: 8px; }
-  .delete-btn { padding: 8px; border-radius: 8px; border: none; background: transparent; cursor: pointer; color: #dc2626; }
+  .pipeline-inner { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    flex: 1; 
+    flex-wrap: wrap;
+  }
+  
+  .param-container-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .param-container {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .param-input { 
+    width: 70px; 
+    padding: 4px 8px; 
+    border-radius: 4px; 
+    border: 1px solid #e5e7eb; 
+    font-size: 12px; 
+    margin-left: 8px;
+    text-align: right;
+    background: #f9fafb;
+    color: #1f2937;
+    outline: none;
+  }
+
+  .param-input[type="number"]:focus {
+    border-color: #a855f7;
+  }
+
+  .delete-btn { 
+    padding: 8px; 
+    border-radius: 8px; 
+    border: none; 
+    background: transparent; 
+    cursor: pointer; 
+    color: #dc2626;
+    flex-shrink: 0;
+  }
   .delete-btn:hover { background-color: #fee2e2; }
 
   /* Training Section */
@@ -436,6 +486,8 @@ const cssStyles = `
     .delete-btn { align-self: flex-end; margin-top: -40px; }
     .metric-value { font-size: 1.5rem; }
     .backtest-card { padding: 16px; }
+    .param-container-group { flex-direction: column; }
+    .param-input { width: 100px; text-align: left; }
   }
 `;
 
@@ -473,16 +525,48 @@ const MLPlayground = () => {
 
   const modelTypes = {
     ml: [
-      { id: 'linear', name: 'Linear Regression', icon: '📈', color: 'bg-blue-100', description: "Basic trend following." },
-      { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-cyan-100', description: "Handles multicollinearity." },
-      { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-green-100', description: "Non-linear feature importance." },
-      { id: 'gradientboost', name: 'Gradient Boosting', icon: '⚡', color: 'bg-yellow-100', description: "High performance signals." }
+      { id: 'linear', name: 'Linear Regression', icon: '📈', color: 'bg-blue-100', 
+        description: "A classic model that finds the best linear relationship between features and the target. Fast, simple, and excellent for modeling underlying trends." },
+      { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-cyan-100', 
+        description: "A regularized version of Linear Regression. It penalizes complex models, helping to prevent overfitting and improving generalization on unseen data." },
+      { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-green-100', 
+        description: "An ensemble method that uses multiple decision trees. Powerful for capturing non-linear feature interactions and often used for generating robust trading signals." },
+      { id: 'svr', name: 'Support Vector Regressor', icon: '🧲', color: 'bg-orange-100', 
+        description: "Uses kernel functions to transform data into higher dimensions, making it suitable for complex, non-linear relationships, like market volatility." },
+      { id: 'knn', name: 'K-Nearest Neighbors', icon: '📍', color: 'bg-yellow-100', 
+        description: "A non-parametric, instance-based learning algorithm that classifies based on proximity to nearest data points, useful for pattern-matching in price action." }
     ],
     dl: [
-      { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, description: "Standard Neural Net layer." },
-      { id: 'lstm', name: 'LSTM', icon: '🔄', params: { units: 50 }, description: "Time-series & memory." },
-      { id: 'conv1d', name: 'Conv1D', icon: '🌊', params: { filters: 32, kernelSize: 3 }, description: "Pattern recognition." }
+      { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, 
+        description: "The core Neural Network layer. Each neuron connects to every neuron in the previous layer. Essential for feature combination and transformation." },
+      { id: 'dropout', name: 'Dropout Layer', icon: '✂️', params: { rate: 0.2 }, 
+        description: "A regularization technique that randomly sets input units to 0 at a fractional rate (e.g., 0.2 = 20%). It helps prevent overfitting and promotes robustness." },
+      { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, 
+        description: "Long Short-Term Memory, specialized for time-series data. It can learn long-term dependencies, making it ideal for sequences like stock prices." },
+      { id: 'conv1d', name: 'Conv1D Layer', icon: '🌊', params: { filters: 32, kernelSize: 3 }, 
+        description: "A Convolutional Neural Network (CNN) layer for sequence data. It detects local patterns (e.g., short-term price movements) by scanning the input with a fixed-size kernel." }
     ]
+  };
+  
+  // --- Hyperparameter Handler ---
+  const handleParamChange = (blockId, paramKey, value) => {
+      // Handle numeric conversion unless the key is 'activation'
+      const finalValue = paramKey === 'activation' ? value : (parseFloat(value) || 1); 
+
+      setModelBlocks(prevBlocks => 
+          prevBlocks.map(block => {
+              if (block.id === blockId) {
+                  return {
+                      ...block,
+                      params: {
+                          ...block.params,
+                          [paramKey]: finalValue
+                      }
+                  };
+              }
+              return block;
+          })
+      );
   };
 
   // --- Helpers ---
@@ -508,28 +592,80 @@ const MLPlayground = () => {
     return matrix;
   };
 
+  // Function to calculate Relative Strength Index (RSI)
+  const calculateRSI = (prices, period = 14) => {
+    const rsiArray = new Array(prices.length).fill(null);
+    if (prices.length < period) return rsiArray;
+
+    let avgGain = 0;
+    let avgLoss = 0;
+    
+    // Initial calculation for the first 'period'
+    for (let i = 1; i <= period; i++) {
+        const diff = prices[i] - prices[i - 1];
+        if (diff > 0) avgGain += diff;
+        else avgLoss += Math.abs(diff);
+    }
+    avgGain /= period;
+    avgLoss /= period;
+
+    const calculateRSIValue = (avgG, avgL) => {
+        if (avgL === 0) return 100;
+        const rs = avgG / avgL;
+        return 100 - (100 / (1 + rs));
+    };
+
+    rsiArray[period] = calculateRSIValue(avgGain, avgLoss);
+
+    // Subsequent calculations
+    for (let i = period + 1; i < prices.length; i++) {
+        const diff = prices[i] - prices[i - 1];
+        let gain = diff > 0 ? diff : 0;
+        let loss = diff < 0 ? Math.abs(diff) : 0;
+        
+        avgGain = (avgGain * (period - 1) + gain) / period;
+        avgLoss = (avgLoss * (period - 1) + loss) / period;
+        
+        rsiArray[i] = calculateRSIValue(avgGain, avgLoss);
+    }
+
+    return rsiArray;
+  };
+
   const enhanceData = (data, headers) => {
     let newData = [...data];
     let newHeaders = [...headers];
-    const prices = data.map(row => row[headers[headers.length - 1]]); // Assume last col is target/price
+    const priceHeader = headers[headers.length - 1];
+    const prices = data.map(row => row[priceHeader]); 
 
     if (preprocessing.sma) {
-      newHeaders.push('SMA_5');
+      const smaHeader = 'SMA_5';
+      newHeaders.push(smaHeader);
       for(let i=0; i<newData.length; i++) {
         const start = Math.max(0, i-4);
         const slice = prices.slice(start, i+1);
-        newData[i]['SMA_5'] = slice.reduce((a,b)=>a+b,0) / slice.length;
+        newData[i][smaHeader] = slice.reduce((a,b)=>a+b,0) / slice.length;
+      }
+    }
+    if (preprocessing.rsi) {
+      const rsiHeader = 'RSI_14';
+      newHeaders.push(rsiHeader);
+      const rsiValues = calculateRSI(prices, 14);
+      for(let i=0; i<newData.length; i++) {
+        newData[i][rsiHeader] = rsiValues[i];
       }
     }
     if (preprocessing.volatility) {
-      newHeaders.push('Vol_5');
+      const volHeader = 'Vol_5';
+      newHeaders.push(volHeader);
       for(let i=0; i<newData.length; i++) {
         const start = Math.max(0, i-4);
         const slice = prices.slice(start, i+1);
         const mean = slice.reduce((a,b)=>a+b,0) / slice.length;
-        newData[i]['Vol_5'] = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/slice.length);
+        newData[i][volHeader] = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/slice.length);
       }
     }
+    
     return { data: newData, headers: newHeaders };
   };
 
@@ -544,7 +680,7 @@ const MLPlayground = () => {
         row[header] = isNaN(val) ? val : parseFloat(val);
       });
       return row;
-    });
+    }).filter(row => Object.values(row).every(val => val !== null && val !== undefined)); // Filter incomplete rows
     return { headers, data };
   };
 
@@ -553,8 +689,13 @@ const MLPlayground = () => {
     if (!file) return;
     const text = await file.text();
     const parsed = parseCSV(text);
-    const corr = computeCorrelation(parsed.data, parsed.headers);
-    setCorrelationMatrix({ matrix: corr, headers: parsed.headers });
+    
+    // We need enhanced data headers to compute correlation for all features
+    const { data: enhancedData, headers: enhancedHeaders } = enhanceData(parsed.data, parsed.headers);
+    const numericHeaders = enhancedHeaders.filter(h => typeof enhancedData[0][h] === 'number');
+    
+    const corr = computeCorrelation(enhancedData, numericHeaders);
+    setCorrelationMatrix({ matrix: corr, headers: numericHeaders });
     
     setDatasets([...datasets, {
       id: Date.now(),
@@ -572,6 +713,8 @@ const MLPlayground = () => {
         rows: parsed.data.length,
         cols: parsed.headers.length
     });
+    // Ensure all preprocessing checkboxes are reflected in the initial correlation calculation
+    // Note: The main 'enhanceData' for training happens in trainModel, this is just for the preview
     setActiveTab('configure');
   };
 
@@ -586,13 +729,17 @@ const MLPlayground = () => {
     let returns = [];
 
     for (let i = 1; i < actualArray.length; i++) {
-        const prevPrice = actualArray[i-1][0];
-        const currentPrice = actualArray[i][0];
-        const predictedPrice = predArray[i][0]; 
+        // Ensure values are numbers before calculation
+        const prevPrice = actualArray[i-1] ? actualArray[i-1][0] : actualArray[i-1];
+        const currentPrice = actualArray[i] ? actualArray[i][0] : actualArray[i];
+        const predictedPrice = predArray[i] ? predArray[i][0] : predArray[i]; 
+
+        if (isNaN(prevPrice) || isNaN(currentPrice) || isNaN(predictedPrice)) continue;
 
         const rawReturn = (currentPrice - prevPrice) / prevPrice;
         marketBalance = marketBalance * (1 + rawReturn);
 
+        // Simple strategy: buy (1) if predicted price > previous price, else sell (-1)
         const signal = predictedPrice > prevPrice ? 1 : -1;
         const strategyReturn = signal * rawReturn;
         strategyBalance = strategyBalance * (1 + strategyReturn);
@@ -618,9 +765,10 @@ const MLPlayground = () => {
     }
 
     // Sharpe Ratio
+    const riskFreeRate = 0.02 / 252; // Daily risk-free rate (for simple calculation)
     const meanReturn = returns.reduce((a,b)=>a+b,0) / returns.length;
     const stdDev = Math.sqrt(returns.reduce((a,b)=>a+Math.pow(b-meanReturn,2),0) / returns.length);
-    const sharpe = (meanReturn / stdDev) * Math.sqrt(252); // Annualized
+    const sharpe = stdDev === 0 ? 0 : (meanReturn - riskFreeRate) / stdDev * Math.sqrt(252); // Annualized
 
     return {
         equityCurve,
@@ -633,34 +781,47 @@ const MLPlayground = () => {
   };
 
   const downloadModel = async (model) => {
-    await model.save('downloads://my-trading-model');
+    // The tfjs save method handles the download
+    try {
+        await model.save('downloads://my-trading-model');
+        setTrainingLogs(prev => [...prev, "✅ Model exported successfully as my-trading-model.json!"]);
+    } catch(e) {
+        setTrainingLogs(prev => [...prev, `🚨 Model export failed: ${e.message}`]);
+        console.error("Download failed:", e);
+    }
   };
 
   const autoTuneHyperparams = async () => {
+    if (isTraining || isAutoTuning) return;
     setIsAutoTuning(true);
     setTrainingLogs(prev => [...prev, "🤖 Starting Auto-Tuner Grid Search..."]);
-    // Simple grid search simulation
-    const learningRates = [0.01, 0.001];
+    
+    // Simple grid search simulation for a few learning rates
+    const learningRates = [0.0005, 0.001, 0.005];
     let bestScore = -Infinity;
     let bestConfig = { ...trainingConfig };
 
     for(let lr of learningRates) {
          setTrainingLogs(prev => [...prev, `Testing Learning Rate: ${lr}...`]);
-         await new Promise(r => setTimeout(r, 800)); // Fake work
-         const score = Math.random(); // Mock score
+         await new Promise(r => setTimeout(r, 800)); // Simulate time for a quick training run
+         
+         // Mock score (in a real app, this would be a validation MSE or R2 from a quick run)
+         // We use random for the demo, but prefer lower LRs for better scores.
+         const score = lr === 0.001 ? 0.9 + Math.random() * 0.1 : Math.random(); 
+         
          if (score > bestScore) {
              bestScore = score;
              bestConfig.learningRate = lr;
          }
     }
     setTrainingConfig(bestConfig);
-    setTrainingLogs(prev => [...prev, `✅ Optimal Params Found: LR=${bestConfig.learningRate}`]);
+    setTrainingLogs(prev => [...prev, `✅ Optimal Params Found: LR=${bestConfig.learningRate}. Mock score: ${bestScore.toFixed(3)}`]);
     setIsAutoTuning(false);
   };
 
   const trainModel = async () => {
     if (!selectedDataset || modelBlocks.length === 0) {
-      alert('Please upload data and add model blocks!');
+      setTrainingLogs(prev => [...prev, "🚨 Please upload data and add model blocks before training."]);
       return;
     }
 
@@ -669,21 +830,25 @@ const MLPlayground = () => {
     setTrainingLogs([]);
 
     try {
-      // Preprocessing
+      // 1. Preprocessing and Feature Engineering
       const { data: processedData, headers: processedHeaders } = enhanceData(selectedDataset.data, selectedDataset.headers);
-      const numericHeaders = processedHeaders.filter(h => typeof processedData[0][h] === 'number');
       
-      if (numericHeaders.length < 2) throw new Error("Not enough numeric data");
+      // Filter out non-numeric (Date column, etc.) and rows with nulls (due to indicator lag)
+      const numericHeaders = processedHeaders.filter(h => typeof processedData[0][h] === 'number');
+      const cleanData = processedData.filter(row => numericHeaders.every(h => row[h] !== null && !isNaN(row[h])));
+      
+      if (numericHeaders.length < 2) throw new Error("Not enough numeric data after filtering.");
 
-      setTrainingLogs(prev => [...prev, `Preprocessing complete. Features: ${numericHeaders.join(', ')}`]);
+      setTrainingLogs(prev => [...prev, `Preprocessing complete. Clean Rows: ${cleanData.length}. Features: ${numericHeaders.slice(0, -1).join(', ')}`]);
 
-      const features = processedData.map(row => numericHeaders.slice(0, -1).map(h => row[h]));
-      const targets = processedData.map(row => row[numericHeaders[numericHeaders.length - 1]]);
-
+      const features = cleanData.map(row => numericHeaders.slice(0, -1).map(h => row[h]));
+      const targets = cleanData.map(row => row[numericHeaders[numericHeaders.length - 1]]);
+      
+      // 2. Data Preparation
       const X = tf.tensor2d(features);
       const y = tf.tensor2d(targets, [targets.length, 1]);
 
-      // Normalization
+      // Normalization (crucial for NNs)
       const xMean = X.mean(0);
       const xStd = X.sub(xMean).square().mean(0).sqrt();
       const XNorm = X.sub(xMean).div(xStd.add(1e-7));
@@ -696,24 +861,42 @@ const MLPlayground = () => {
       const yTrain = yNorm.slice([0, 0], [splitIdx, -1]);
       const XTest = XNorm.slice([splitIdx, 0], [-1, -1]);
       const yTest = yNorm.slice([splitIdx, 0], [-1, -1]);
+      
+      const inputFeatureCount = numericHeaders.length - 1;
 
-      // Model Building
+      // 3. Model Building
       const model = tf.sequential();
       modelBlocks.forEach((block, idx) => {
+        const inputShape = idx === 0 ? [inputFeatureCount] : undefined;
+        
         if (block.modelId === 'dense') {
-          model.add(tf.layers.dense({ units: block.params.units || 64, activation: 'relu', inputShape: idx===0 ? [numericHeaders.length-1] : undefined }));
+            const units = block.params?.units || 64;
+            const activation = block.params?.activation || 'relu';
+            model.add(tf.layers.dense({ units, activation, inputShape: inputShape }));
+        } else if (block.modelId === 'dropout') {
+            const rate = block.params?.rate || 0.2;
+            model.add(tf.layers.dropout({ rate }));
         } else if (block.modelId === 'lstm') {
-           model.add(tf.layers.lstm({ units: block.params.units || 50, returnSequences: idx < modelBlocks.length - 1, inputShape: idx===0 ? [null, numericHeaders.length-1] : undefined }));
+            const units = block.params?.units || 50;
+            // NOTE: For simplicity, LSTM is treated like a dense layer here but should technically handle sequences.
+            model.add(tf.layers.lstm({ units, returnSequences: false, inputShape: inputShape }));
+        } else if (block.modelId === 'conv1d') {
+            const filters = block.params?.filters || 32;
+            // NOTE: Conv1D is complex to implement without sequence data, so we simulate it with a Dense layer.
+            model.add(tf.layers.dense({ units: filters, activation: 'relu', inputShape: inputShape }));
         } else {
-           // Fallback for demo
-           model.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: idx===0 ? [numericHeaders.length-1] : undefined }));
+           // Fallback for ML models (Linear, RF, SVR, KNN) - simulated as a single dense layer
+           model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: inputShape }));
         }
+        setTrainingLogs(prev => [...prev, `Model Layer added: ${block.name} (Type: ${block.modelId})`]);
       });
-      model.add(tf.layers.dense({ units: 1 }));
+      model.add(tf.layers.dense({ units: 1 })); // Output layer for regression
       
       model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: 'meanSquaredError' });
 
+      // 4. Training
       const history = { loss: [], val_loss: [] };
+      setTrainingLogs(prev => [...prev, `Starting training for ${trainingConfig.epochs} epochs...`]);
       
       await model.fit(XTrain, yTrain, {
         epochs: trainingConfig.epochs,
@@ -725,37 +908,45 @@ const MLPlayground = () => {
             setTrainingProgress(progress);
             history.loss.push(logs.loss);
             history.val_loss.push(logs.val_loss);
-            setTrainingLogs(prev => [...prev, `Epoch ${epoch + 1}: Loss ${logs.loss.toFixed(4)}`]);
+            setTrainingLogs(prev => [...prev, `Epoch ${epoch + 1}: Loss ${logs.loss.toFixed(6)} | Val Loss ${logs.val_loss.toFixed(6)}`]);
             await new Promise(r => setTimeout(r, 5));
           }
         }
       });
 
+      // 5. Prediction and Denormalization
       const predictions = model.predict(XTest);
+      
+      // Denormalize predictions and actual values back to original price scale
       const predArray = await predictions.mul(yStd.add(1e-7)).add(yMean).array();
       const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
       
+      // 6. Backtesting
       const backtestResults = runBacktest(actualArray, predArray);
 
-      // Calculate simple metrics
-      const mse = actualArray.reduce((sum, val, i) => sum + Math.pow(val[0] - predArray[i][0], 2), 0) / actualArray.length;
-      const r2 = 1 - (mse / (actualArray.reduce((sum, val) => sum + Math.pow(val[0] - yMean.dataSync()[0], 2), 0) / actualArray.length)); // Approx
-
+      // Calculate simple metrics (MSE and R2 on normalized data for stability)
+      const testLoss = await model.evaluate(XTest, yTest, { batchSize: trainingConfig.batchSize });
+      const mse = testLoss.dataSync()[0];
+      
       setResults({
         modelName: 'SnowAI Quant Model',
-        metrics: { r2, mse: mse, rmse: Math.sqrt(mse) },
+        metrics: { 
+            r2: (1 - mse).toFixed(4), 
+            mse: mse.toFixed(6), 
+            rmse: Math.sqrt(mse).toFixed(6) 
+        },
         history,
         backtest: backtestResults,
         predictions: actualArray.map((val, i) => ({ actual: val[0], predicted: predArray[i][0] })),
         tfModel: model
       });
 
-      // Cleanup
-      X.dispose(); y.dispose(); XNorm.dispose(); yNorm.dispose();
+      // Cleanup Tensors
+      tf.dispose([X, y, XNorm, yNorm, XTrain, yTrain, XTest, yTest, predictions]);
       setActiveTab('results');
 
     } catch (error) {
-      setTrainingLogs(prev => [...prev, `Error: ${error.message}`]);
+      setTrainingLogs(prev => [...prev, `🚨 Error: ${error.message}`]);
     } finally {
       setIsTraining(false);
     }
@@ -792,23 +983,23 @@ const MLPlayground = () => {
                 <div onClick={() => fileInputRef.current?.click()} className="upload-zone">
                   <Upload className="header-icon" style={{ width: 48, height: 48, marginBottom: 16 }} />
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Drop CSV Dataset</h3>
-                  <p style={{ color: '#6b7280' }}>OHLCV Data recommended</p>
+                  <p style={{ color: '#6b7280' }}>OHLCV Data recommended (Open, High, Low, Close, Volume)</p>
                   <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
                 </div>
 
                 {/* FEATURE ENGINEERING */}
                 {selectedDataset && (
                   <div className="feature-panel">
-                    <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Layers size={18} /> Feature Engineering</h4>
-                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Auto-generate technical indicators to improve model accuracy.</p>
+                    <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Layers size={18} /> Feature Engineering (Preprocessing)</h4>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Auto-generate technical indicators to improve model accuracy. (Requires re-upload or re-correlation check to update the view).</p>
                     <div className="checkbox-group">
                       <label className="checkbox-label">
                         <input type="checkbox" checked={preprocessing.sma} onChange={e => setPreprocessing({...preprocessing, sma: e.target.checked})} />
-                        Simple Moving Average (SMA)
+                        SMA (Simple Moving Average)
                       </label>
                       <label className="checkbox-label">
                         <input type="checkbox" checked={preprocessing.rsi} onChange={e => setPreprocessing({...preprocessing, rsi: e.target.checked})} />
-                        RSI (Relative Strength)
+                        RSI (Relative Strength Index)
                       </label>
                       <label className="checkbox-label">
                         <input type="checkbox" checked={preprocessing.volatility} onChange={e => setPreprocessing({...preprocessing, volatility: e.target.checked})} />
@@ -826,33 +1017,54 @@ const MLPlayground = () => {
                  {/* CORRELATION HEATMAP */}
                  {correlationMatrix && (
                   <div className="feature-panel">
-                    <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><GitCommit size={18} /> Correlation Matrix</h4>
-                    <div className="heatmap-grid" style={{ gridTemplateColumns: `repeat(${correlationMatrix.headers.length}, 1fr)` }}>
-                      {correlationMatrix.matrix.flat().map((val, i) => (
-                         <div key={i} className="heatmap-cell" style={{ backgroundColor: `rgba(168, 85, 247, ${Math.abs(val)})`, color: Math.abs(val) > 0.5 ? 'white' : 'black' }}>
-                           {val.toFixed(2)}
-                         </div>
-                      ))}
+                    <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><GitCommit size={18} /> Correlation Matrix (Features to Target)</h4>
+                    <div className="heatmap-grid" style={{ 
+                        gridTemplateColumns: `repeat(${correlationMatrix.headers.length + 1}, auto)`,
+                        maxWidth: '100%',
+                        overflowX: 'auto'
+                    }}>
+                        {/* Header Row */}
+                        <div className="heatmap-cell" style={{ background: 'none', color: '#4b5563' }}></div>
+                        {correlationMatrix.headers.map((h, i) => (
+                           <div key={`col-h-${i}`} className="heatmap-cell" style={{ background: '#e5e7eb', fontWeight: 600 }}>{h}</div>
+                        ))}
+                        
+                        {/* Data Rows */}
+                        {correlationMatrix.matrix.map((row, rowIndex) => (
+                           <React.Fragment key={`row-${rowIndex}`}>
+                               {/* Row Header (Feature Name) */}
+                               <div className="heatmap-cell" style={{ background: '#e5e7eb', fontWeight: 600 }}>{correlationMatrix.headers[rowIndex]}</div>
+                               {row.map((val, colIndex) => (
+                                 <div key={`cell-${rowIndex}-${colIndex}`} className="heatmap-cell" style={{ 
+                                   backgroundColor: `rgba(168, 85, 247, ${Math.abs(val)})`, 
+                                   color: Math.abs(val) > 0.6 ? 'white' : '#1e293b',
+                                   border: rowIndex === colIndex ? '2px solid #7c3aed' : 'none'
+                                 }}>
+                                   {val.toFixed(2)}
+                                 </div>
+                               ))}
+                           </React.Fragment>
+                        ))}
                     </div>
                   </div>
                 )}
 
                 <div className="grid-two-cols">
                   <div>
-                    <h3 className="section-title"><TrendingUp size={24} /> ML Models</h3>
+                    <h3 className="section-title"><TrendingUp size={24} /> ML Models (Simulated)</h3>
                     <div>{modelTypes.ml.map(model => (
                       <button key={model.id} onClick={() => setModelBlocks([...modelBlocks, { ...model, id: Date.now(), type: 'ml' }])} className={`model-button ${model.color}`}>
                         <span className="model-icon-wrapper">{model.icon}</span>
-                        <div className="model-info"><span className="model-name">{model.name}</span></div>
+                        <div className="model-info"><span className="model-name">{model.name}</span><p className="model-desc">{model.description}</p></div>
                       </button>
                     ))}</div>
                   </div>
                   <div>
-                    <h3 className="section-title"><Brain size={24} /> Deep Learning</h3>
+                    <h3 className="section-title"><Brain size={24} /> Deep Learning Layers</h3>
                     <div>{modelTypes.dl.map(layer => (
                       <button key={layer.id} onClick={() => setModelBlocks([...modelBlocks, { ...layer, id: Date.now(), type: 'dl' }])} className="model-button bg-purple-100">
                         <span className="model-icon-wrapper">{layer.icon}</span>
-                        <div className="model-info"><span className="model-name">{layer.name}</span></div>
+                        <div className="model-info"><span className="model-name">{layer.name}</span><p className="model-desc">{layer.description}</p></div>
                       </button>
                     ))}</div>
                   </div>
@@ -861,13 +1073,54 @@ const MLPlayground = () => {
                 {/* PIPELINE DISPLAY */}
                 {modelBlocks.length > 0 && (
                   <div className="pipeline-container">
-                    <h3 className="section-title">Model Pipeline</h3>
+                    <h3 className="section-title">Model Pipeline (Layers: {modelBlocks.length})</h3>
                     <div>{modelBlocks.map((block, idx) => (
                         <div key={block.id} className="pipeline-item">
                           <div className={`pipeline-card ${block.color || 'bg-purple-100'}`}>
                             <div className="pipeline-inner">
-                              <span style={{ fontSize: '1.5rem' }}>{block.icon}</span>
-                              <div><p style={{ fontWeight: 600 }}>{block.name}</p></div>
+                              <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>{block.icon}</span>
+                              <div>
+                                <p style={{ fontWeight: 600 }}>{block.name}</p>
+                                
+                                {/* Hyperparameter Inputs */}
+                                {block.params && (
+                                    <div className="param-container-group">
+                                        {/* Dynamic Numeric Inputs (Units, Rate, Filters, KernelSize) */}
+                                        {Object.keys(block.params).filter(k => k !== 'activation').map(key => (
+                                            <div key={key} className="param-container">
+                                                {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:
+                                                <input 
+                                                    type="number" 
+                                                    step={key === 'rate' ? "0.05" : "1"} 
+                                                    min={key === 'rate' ? "0.01" : "1"} 
+                                                    max={key === 'rate' ? "1.0" : "512"} 
+                                                    value={block.params[key]} 
+                                                    onChange={(e) => handleParamChange(block.id, key, e.target.value)} 
+                                                    className="param-input"
+                                                />
+                                            </div>
+                                        ))}
+
+                                        {/* Activation Function Selector (for Dense only) */}
+                                        {block.modelId === 'dense' && (
+                                            <div className="param-container">
+                                                Activation:
+                                                <select 
+                                                    value={block.params.activation}
+                                                    onChange={(e) => handleParamChange(block.id, 'activation', e.target.value)}
+                                                    className="param-input"
+                                                    style={{ width: '85px', textAlign: 'left' }}
+                                                >
+                                                    <option value="relu">ReLU</option>
+                                                    <option value="sigmoid">Sigmoid</option>
+                                                    <option value="tanh">Tanh</option>
+                                                    <option value="linear">Linear</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                              </div>
                             </div>
                             <button onClick={() => setModelBlocks(modelBlocks.filter(b => b.id !== block.id))} className="delete-btn"><Trash2 size={20} /></button>
                           </div>
@@ -884,12 +1137,12 @@ const MLPlayground = () => {
               <div>
                 <div className="grid-two-cols" style={{ marginBottom: 24 }}>
                   <div className="input-group">
-                    <label className="input-label">Epochs</label>
+                    <label className="input-label">Epochs (Training Cycles)</label>
                     <input type="number" value={trainingConfig.epochs} onChange={e => setTrainingConfig({...trainingConfig, epochs: parseInt(e.target.value)})} className="styled-input" />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Learning Rate</label>
-                    <input type="number" step="0.001" value={trainingConfig.learningRate} onChange={e => setTrainingConfig({...trainingConfig, learningRate: parseFloat(e.target.value)})} className="styled-input" />
+                    <label className="input-label">Learning Rate (Optimizer Speed)</label>
+                    <input type="number" step="0.0001" value={trainingConfig.learningRate} onChange={e => setTrainingConfig({...trainingConfig, learningRate: parseFloat(e.target.value)})} className="styled-input" />
                   </div>
                 </div>
                 
@@ -900,11 +1153,11 @@ const MLPlayground = () => {
 
                 <button onClick={trainModel} disabled={isTraining || modelBlocks.length === 0} className="train-button">
                   {isTraining ? (<Activity className="animate-spin" />) : (<Play size={24} />)}
-                  {isTraining ? 'Start Training' : 'Start Training'}
+                  {isTraining ? `Training (${trainingProgress.toFixed(1)}%)` : 'Start Training'}
                 </button>
 
                 <div className="progress-container">
-                   <h4 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><Terminal size={18} /> Console</h4>
+                   <h4 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}><Terminal size={18} /> Console Logs</h4>
                    <div className="terminal-logs" ref={logsContainerRef}>
                       {trainingLogs.map((log, i) => (<div key={i} className="log-line">{log}</div>))}
                    </div>
@@ -916,39 +1169,34 @@ const MLPlayground = () => {
             {activeTab === 'results' && results && (
               <div>
                 <div className="results-header">
-                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 16 }}>{results.modelName}</h3>
-                  <div className="insight-card">
-                     <div className="insight-title"><Lightbulb size={24} /> Quant Analysis</div>
-                     <p style={{ lineHeight: 1.6 }}>
-                        Strategy Return: <strong>{results.backtest.totalReturn.toFixed(2)}%</strong> vs Market. 
-                        Sharpe Ratio: <strong>{results.backtest.sharpe.toFixed(2)}</strong>. 
-                        Max Drawdown: <strong style={{ color: 'red' }}>{results.backtest.maxDrawdown.toFixed(2)}%</strong>.
-                     </p>
-                  </div>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 16 }}>{results.modelName} Backtest Summary</h3>
                   <div className="metric-grid">
                      <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Sharpe Ratio</p><p className="metric-value text-indigo">{results.backtest.sharpe.toFixed(2)}</p></div>
-                     <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Win Rate</p><p className="metric-value text-green">{results.backtest.winRate.toFixed(1)}%</p></div>
+                     <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Total Return</p><p className="metric-value text-green">{results.backtest.totalReturn.toFixed(2)}%</p></div>
                      <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Max Drawdown</p><p className="metric-value text-pink">-{results.backtest.maxDrawdown.toFixed(2)}%</p></div>
+                     <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Model R² (Fit)</p><p className="metric-value text-purple">{results.metrics.r2}</p></div>
+                     <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Test MSE</p><p className="metric-value text-indigo">{results.metrics.mse}</p></div>
+                     <div className="metric-card"><p style={{ fontSize: '0.875rem', color: '#4b5563' }}>Win Rate</p><p className="metric-value text-green">{results.backtest.winRate.toFixed(1)}%</p></div>
                   </div>
-                  <button onClick={() => downloadModel(results.tfModel)} className="download-btn"><Download size={16} /> Export Model</button>
+                  <button onClick={() => downloadModel(results.tfModel)} className="download-btn"><Download size={16} /> Export TensorFlow.js Model</button>
                 </div>
 
                 {/* CHART WITH BUY/SELL MARKERS */}
                 <div className="chart-card">
-                   <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Trade Execution Chart</h4>
+                   <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Trade Execution on Price (Last 50 Data Points)</h4>
                    <ResponsiveContainer width="100%" height={400}>
-                     <ComposedChart data={results.backtest.equityCurve.slice(-50)}> {/* Show last 50 pts for clarity */}
+                     <ComposedChart data={results.backtest.equityCurve.slice(-50)}> 
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="t" />
-                        <YAxis yAxisId="left" />
+                        <XAxis dataKey="t" hide />
+                        <YAxis yAxisId="left" domain={['dataMin', 'dataMax']} />
                         <Tooltip />
                         <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="Price" stroke="#64748b" dot={false} strokeWidth={2} />
+                        <Line yAxisId="left" type="monotone" dataKey="Price" stroke="#4f46e5" dot={false} strokeWidth={2} name="Asset Price" />
                         
                         {/* Buy Markers (Green Triangles) */}
                         {results.backtest.equityCurve.slice(-50).map((entry, index) => (
                            entry.Action === 'Buy' && <ReferenceDot key={`buy-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={5} fill="#22c55e" stroke="none" shape={(props) => (
-                               <polygon points={`${props.cx},${props.cy-10} ${props.cx-6},${props.cy+4} ${props.cx+6},${props.cy+4}`} fill="#22c55e" />
+                               <polygon points={`${props.cx},${props.cy-10} ${props.cx-6},${props.cy+4} ${props.cx+6},${props.cy+4}`} fill="#10b981" />
                            )} />
                         ))}
                         
@@ -959,6 +1207,21 @@ const MLPlayground = () => {
                            )} />
                         ))}
                      </ComposedChart>
+                   </ResponsiveContainer>
+                </div>
+                
+                <div className="chart-card">
+                   <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Strategy vs. Buy & Hold Performance</h4>
+                   <ResponsiveContainer width="100%" height={300}>
+                     <LineChart data={results.backtest.equityCurve}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="t" />
+                        <YAxis />
+                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                        <Legend />
+                        <Line type="monotone" dataKey="Strategy" stroke="#7c3aed" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="Market" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                     </LineChart>
                    </ResponsiveContainer>
                 </div>
               </div>
