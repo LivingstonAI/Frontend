@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
-
-// --- Mocks for missing components to ensure Preview works ---
-const Header = () => <div className="mock-header">SnowAI Dashboard</div>;
-const SideNavs = () => <div style={{ display: 'none' }}></div>;
+import Header from "./header";
+import SideNavs from "./side_navs";
 // ------------------------------------------------------------
 
 // --- Standard CSS Styles ---
