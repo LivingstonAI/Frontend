@@ -4,15 +4,13 @@ import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, To
 import * as tf from "@tensorflow/tfjs";
 import Header from "./header";
 import SideNavs from "./side_navs";
-// ------------------------------------------------------------
 
 // --- Standard CSS Styles ---
 const cssStyles = `
   /* Global Resets & Layout */
   .ml-playground-wrapper {
     min-height: 100vh;
-    background: linear-gradient(135deg, #eef2ff 0%, #f3e8ff 50%, #fdf2f8 100%);
-    padding: 0; /* Removed padding here as requested */
+    padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #374151;
   }
@@ -185,7 +183,6 @@ const cssStyles = `
     font-size: 0.75rem;
     padding: 8px;
     border-radius: 4px;
-    /* Ensuring text is visible against colored background */
     color: #1e293b; 
     font-weight: bold;
   }
@@ -228,7 +225,7 @@ const cssStyles = `
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     position: relative;
     overflow: hidden;
-    color: #1f2937; /* Ensure dark text for contrast against light block colors */
+    color: #1f2937;
   }
 
   .model-button:hover {
@@ -257,6 +254,7 @@ const cssStyles = `
   .bg-yellow-100 { background-color: #fefce8; border-left: 4px solid #eab308; }
   .bg-orange-100 { background-color: #fff7ed; border-left: 4px solid #f97316; }
   .bg-purple-100 { background-color: #faf5ff; border-left: 4px solid #a855f7; }
+  .bg-pink-100 { background-color: #fce7f3; border-left: 4px solid #ec4899; }
 
   /* Pipeline */
   .pipeline-container {
@@ -287,7 +285,7 @@ const cssStyles = `
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border: 1px solid #e5e7eb;
-    color: #1f2937; /* Ensure dark text */
+    color: #1f2937;
   }
 
   .pipeline-inner { 
@@ -527,12 +525,22 @@ const MLPlayground = () => {
         description: "A classic model that finds the best linear relationship between features and the target. Fast, simple, and excellent for modeling underlying trends." },
       { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-cyan-100', 
         description: "A regularized version of Linear Regression. It penalizes complex models, helping to prevent overfitting and improving generalization on unseen data." },
+      { id: 'lasso', name: 'Lasso Regression', icon: '🎯', color: 'bg-teal-100', 
+        description: "Uses L1 regularization to automatically select important features by shrinking less important ones to zero. Great for feature selection." },
+      { id: 'elasticnet', name: 'Elastic Net', icon: '🕸️', color: 'bg-cyan-100', 
+        description: "Combines Ridge and Lasso regularization for balanced feature selection and coefficient shrinkage. Best of both worlds." },
       { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-green-100', 
         description: "An ensemble method that uses multiple decision trees. Powerful for capturing non-linear feature interactions and often used for generating robust trading signals." },
+      { id: 'gradientboost', name: 'Gradient Boosting', icon: '🚀', color: 'bg-green-100', 
+        description: "Sequential ensemble that builds trees to correct errors of previous ones. Extremely powerful for complex patterns in financial data." },
+      { id: 'xgboost', name: 'XGBoost', icon: '⚡', color: 'bg-yellow-100', 
+        description: "Optimized gradient boosting with built-in regularization. Industry standard for ML competitions and financial modeling." },
       { id: 'svr', name: 'Support Vector Regressor', icon: '🧲', color: 'bg-orange-100', 
         description: "Uses kernel functions to transform data into higher dimensions, making it suitable for complex, non-linear relationships, like market volatility." },
       { id: 'knn', name: 'K-Nearest Neighbors', icon: '📍', color: 'bg-yellow-100', 
-        description: "A non-parametric, instance-based learning algorithm that classifies based on proximity to nearest data points, useful for pattern-matching in price action." }
+        description: "A non-parametric, instance-based learning algorithm that classifies based on proximity to nearest data points, useful for pattern-matching in price action." },
+      { id: 'adaboost', name: 'AdaBoost', icon: '🎪', color: 'bg-orange-100', 
+        description: "Adaptive boosting that focuses on correcting misclassified samples. Combines weak learners into a strong predictor." }
     ],
     dl: [
       { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, 
@@ -541,14 +549,16 @@ const MLPlayground = () => {
         description: "A regularization technique that randomly sets input units to 0 at a fractional rate (e.g., 0.2 = 20%). It helps prevent overfitting and promotes robustness." },
       { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, 
         description: "Long Short-Term Memory, specialized for time-series data. It can learn long-term dependencies, making it ideal for sequences like stock prices." },
+      { id: 'gru', name: 'GRU Layer', icon: '🔃', params: { units: 50 }, 
+        description: "Gated Recurrent Unit - similar to LSTM but with fewer parameters. Faster training while still capturing temporal patterns effectively." },
       { id: 'conv1d', name: 'Conv1D Layer', icon: '🌊', params: { filters: 32, kernelSize: 3 }, 
-        description: "A Convolutional Neural Network (CNN) layer for sequence data. It detects local patterns (e.g., short-term price movements) by scanning the input with a fixed-size kernel." }
+        description: "A Convolutional Neural Network (CNN) layer for sequence data. It detects local patterns (e.g., short-term price movements) by scanning the input with a fixed-size kernel." },
+      { id: 'batchnorm', name: 'Batch Normalization', icon: '⚖️', params: {}, 
+        description: "Normalizes layer inputs to stabilize learning. Reduces internal covariate shift and often allows higher learning rates." }
     ]
   };
   
-  // --- Hyperparameter Handler ---
   const handleParamChange = (blockId, paramKey, value) => {
-      // Handle numeric conversion unless the key is 'activation'
       const finalValue = paramKey === 'activation' ? value : (parseFloat(value) || 1); 
 
       setModelBlocks(prevBlocks => 
@@ -567,7 +577,6 @@ const MLPlayground = () => {
       );
   };
 
-  // --- Helpers ---
   const computeCorrelation = (data, headers) => {
     const matrix = [];
     for (let i = 0; i < headers.length; i++) {
@@ -590,7 +599,6 @@ const MLPlayground = () => {
     return matrix;
   };
 
-  // Function to calculate Relative Strength Index (RSI)
   const calculateRSI = (prices, period = 14) => {
     const rsiArray = new Array(prices.length).fill(null);
     if (prices.length < period) return rsiArray;
@@ -598,7 +606,6 @@ const MLPlayground = () => {
     let avgGain = 0;
     let avgLoss = 0;
     
-    // Initial calculation for the first 'period'
     for (let i = 1; i <= period; i++) {
         const diff = prices[i] - prices[i - 1];
         if (diff > 0) avgGain += diff;
@@ -615,7 +622,6 @@ const MLPlayground = () => {
 
     rsiArray[period] = calculateRSIValue(avgGain, avgLoss);
 
-    // Subsequent calculations
     for (let i = period + 1; i < prices.length; i++) {
         const diff = prices[i] - prices[i - 1];
         let gain = diff > 0 ? diff : 0;
@@ -678,7 +684,7 @@ const MLPlayground = () => {
         row[header] = isNaN(val) ? val : parseFloat(val);
       });
       return row;
-    }).filter(row => Object.values(row).every(val => val !== null && val !== undefined)); // Filter incomplete rows
+    }).filter(row => Object.values(row).every(val => val !== null && val !== undefined));
     return { headers, data };
   };
 
@@ -688,7 +694,6 @@ const MLPlayground = () => {
     const text = await file.text();
     const parsed = parseCSV(text);
     
-    // We need enhanced data headers to compute correlation for all features
     const { data: enhancedData, headers: enhancedHeaders } = enhanceData(parsed.data, parsed.headers);
     const numericHeaders = enhancedHeaders.filter(h => typeof enhancedData[0][h] === 'number');
     
@@ -711,8 +716,6 @@ const MLPlayground = () => {
         rows: parsed.data.length,
         cols: parsed.headers.length
     });
-    // Ensure all preprocessing checkboxes are reflected in the initial correlation calculation
-    // Note: The main 'enhanceData' for training happens in trainModel, this is just for the preview
     setActiveTab('configure');
   };
 
@@ -727,31 +730,31 @@ const MLPlayground = () => {
     let returns = [];
 
     for (let i = 1; i < actualArray.length; i++) {
-        // Ensure values are numbers before calculation
         const prevPrice = actualArray[i-1] ? actualArray[i-1][0] : actualArray[i-1];
         const currentPrice = actualArray[i] ? actualArray[i][0] : actualArray[i];
         const predictedPrice = predArray[i] ? predArray[i][0] : predArray[i]; 
 
         if (isNaN(prevPrice) || isNaN(currentPrice) || isNaN(predictedPrice)) continue;
 
-        const rawReturn = (currentPrice - prevPrice) / prevPrice;
+        const rawReturn = Math.max(-0.5, Math.min(0.5, (currentPrice - prevPrice) / prevPrice));
         marketBalance = marketBalance * (1 + rawReturn);
 
-        // Simple strategy: buy (1) if predicted price > previous price, else sell (-1)
-        const signal = predictedPrice > prevPrice ? 1 : -1;
+        const signal = predictedPrice > currentPrice ? 1 : 0;
         const strategyReturn = signal * rawReturn;
+        
         strategyBalance = strategyBalance * (1 + strategyReturn);
-        returns.push(strategyReturn);
+        
+        if (signal !== 0) {
+            returns.push(strategyReturn);
+            if (strategyReturn > 0) wins++;
+            totalTrades++;
+        }
 
         if (strategyBalance > peak) peak = strategyBalance;
         const dd = (peak - strategyBalance) / peak;
         if (dd > maxDrawdown) maxDrawdown = dd;
 
-        if (strategyReturn > 0) wins++;
-        totalTrades++;
-
-        // Buy/Sell markers for chart
-        const action = signal === 1 ? 'Buy' : 'Sell';
+        const action = signal === 1 ? 'Buy' : 'Hold';
 
         equityCurve.push({
             t: i,
@@ -762,16 +765,18 @@ const MLPlayground = () => {
         });
     }
 
-    // Sharpe Ratio
-    const riskFreeRate = 0.02 / 252; // Daily risk-free rate (for simple calculation)
-    const meanReturn = returns.reduce((a,b)=>a+b,0) / returns.length;
-    const stdDev = Math.sqrt(returns.reduce((a,b)=>a+Math.pow(b-meanReturn,2),0) / returns.length);
-    const sharpe = stdDev === 0 ? 0 : (meanReturn - riskFreeRate) / stdDev * Math.sqrt(252); // Annualized
+    const riskFreeRate = 0.02 / 252;
+    let sharpe = 0;
+    if (returns.length > 0) {
+        const meanReturn = returns.reduce((a,b)=>a+b,0) / returns.length;
+        const stdDev = Math.sqrt(returns.reduce((a,b)=>a+Math.pow(b-meanReturn,2),0) / returns.length);
+        sharpe = stdDev === 0 ? 0 : (meanReturn - riskFreeRate) / stdDev * Math.sqrt(252);
+    }
 
     return {
         equityCurve,
         finalBalance: strategyBalance,
-        winRate: (wins / totalTrades) * 100,
+        winRate: totalTrades > 0 ? (wins / totalTrades) * 100 : 0,
         totalReturn: ((strategyBalance - 10000) / 10000) * 100,
         sharpe,
         maxDrawdown: maxDrawdown * 100
@@ -779,7 +784,6 @@ const MLPlayground = () => {
   };
 
   const downloadModel = async (model) => {
-    // The tfjs save method handles the download
     try {
         await model.save('downloads://my-trading-model');
         setTrainingLogs(prev => [...prev, "✅ Model exported successfully as my-trading-model.json!"]);
@@ -794,17 +798,14 @@ const MLPlayground = () => {
     setIsAutoTuning(true);
     setTrainingLogs(prev => [...prev, "🤖 Starting Auto-Tuner Grid Search..."]);
     
-    // Simple grid search simulation for a few learning rates
     const learningRates = [0.0005, 0.001, 0.005];
     let bestScore = -Infinity;
     let bestConfig = { ...trainingConfig };
 
     for(let lr of learningRates) {
          setTrainingLogs(prev => [...prev, `Testing Learning Rate: ${lr}...`]);
-         await new Promise(r => setTimeout(r, 800)); // Simulate time for a quick training run
+         await new Promise(r => setTimeout(r, 800));
          
-         // Mock score (in a real app, this would be a validation MSE or R2 from a quick run)
-         // We use random for the demo, but prefer lower LRs for better scores.
          const score = lr === 0.001 ? 0.9 + Math.random() * 0.1 : Math.random(); 
          
          if (score > bestScore) {
@@ -828,10 +829,8 @@ const MLPlayground = () => {
     setTrainingLogs([]);
 
     try {
-      // 1. Preprocessing and Feature Engineering
       const { data: processedData, headers: processedHeaders } = enhanceData(selectedDataset.data, selectedDataset.headers);
       
-      // Filter out non-numeric (Date column, etc.) and rows with nulls (due to indicator lag)
       const numericHeaders = processedHeaders.filter(h => typeof processedData[0][h] === 'number');
       const cleanData = processedData.filter(row => numericHeaders.every(h => row[h] !== null && !isNaN(row[h])));
       
@@ -842,11 +841,9 @@ const MLPlayground = () => {
       const features = cleanData.map(row => numericHeaders.slice(0, -1).map(h => row[h]));
       const targets = cleanData.map(row => row[numericHeaders[numericHeaders.length - 1]]);
       
-      // 2. Data Preparation
       const X = tf.tensor2d(features);
       const y = tf.tensor2d(targets, [targets.length, 1]);
 
-      // Normalization (crucial for NNs)
       const xMean = X.mean(0);
       const xStd = X.sub(xMean).square().mean(0).sqrt();
       const XNorm = X.sub(xMean).div(xStd.add(1e-7));
@@ -862,7 +859,6 @@ const MLPlayground = () => {
       
       const inputFeatureCount = numericHeaders.length - 1;
 
-      // 3. Model Building
       const model = tf.sequential();
       modelBlocks.forEach((block, idx) => {
         const inputShape = idx === 0 ? [inputFeatureCount] : undefined;
@@ -876,23 +872,24 @@ const MLPlayground = () => {
             model.add(tf.layers.dropout({ rate }));
         } else if (block.modelId === 'lstm') {
             const units = block.params?.units || 50;
-            // NOTE: For simplicity, LSTM is treated like a dense layer here but should technically handle sequences.
             model.add(tf.layers.lstm({ units, returnSequences: false, inputShape: inputShape }));
+        } else if (block.modelId === 'gru') {
+            const units = block.params?.units || 50;
+            model.add(tf.layers.gru({ units, returnSequences: false, inputShape: inputShape }));
         } else if (block.modelId === 'conv1d') {
             const filters = block.params?.filters || 32;
-            // NOTE: Conv1D is complex to implement without sequence data, so we simulate it with a Dense layer.
             model.add(tf.layers.dense({ units: filters, activation: 'relu', inputShape: inputShape }));
+        } else if (block.modelId === 'batchnorm') {
+            model.add(tf.layers.batchNormalization());
         } else {
-           // Fallback for ML models (Linear, RF, SVR, KNN) - simulated as a single dense layer
            model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: inputShape }));
         }
         setTrainingLogs(prev => [...prev, `Model Layer added: ${block.name} (Type: ${block.modelId})`]);
       });
-      model.add(tf.layers.dense({ units: 1 })); // Output layer for regression
+      model.add(tf.layers.dense({ units: 1 }));
       
       model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: 'meanSquaredError' });
 
-      // 4. Training
       const history = { loss: [], val_loss: [] };
       setTrainingLogs(prev => [...prev, `Starting training for ${trainingConfig.epochs} epochs...`]);
       
@@ -912,17 +909,13 @@ const MLPlayground = () => {
         }
       });
 
-      // 5. Prediction and Denormalization
       const predictions = model.predict(XTest);
       
-      // Denormalize predictions and actual values back to original price scale
       const predArray = await predictions.mul(yStd.add(1e-7)).add(yMean).array();
       const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
       
-      // 6. Backtesting
       const backtestResults = runBacktest(actualArray, predArray);
 
-      // Calculate simple metrics (MSE and R2 on normalized data for stability)
       const testLoss = await model.evaluate(XTest, yTest, { batchSize: trainingConfig.batchSize });
       const mse = testLoss.dataSync()[0];
       
@@ -939,7 +932,6 @@ const MLPlayground = () => {
         tfModel: model
       });
 
-      // Cleanup Tensors
       tf.dispose([X, y, XNorm, yNorm, XTrain, yTrain, XTest, yTest, predictions]);
       setActiveTab('results');
 
@@ -975,7 +967,6 @@ const MLPlayground = () => {
           </div>
 
           <div className="tab-content">
-            {/* UPLOAD TAB */}
             {activeTab === 'upload' && (
               <div>
                 <div onClick={() => fileInputRef.current?.click()} className="upload-zone">
@@ -985,11 +976,10 @@ const MLPlayground = () => {
                   <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
                 </div>
 
-                {/* FEATURE ENGINEERING */}
                 {selectedDataset && (
                   <div className="feature-panel">
                     <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Layers size={18} /> Feature Engineering (Preprocessing)</h4>
-                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Auto-generate technical indicators to improve model accuracy. (Requires re-upload or re-correlation check to update the view).</p>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Auto-generate technical indicators to improve model accuracy.</p>
                     <div className="checkbox-group">
                       <label className="checkbox-label">
                         <input type="checkbox" checked={preprocessing.sma} onChange={e => setPreprocessing({...preprocessing, sma: e.target.checked})} />
@@ -1009,10 +999,8 @@ const MLPlayground = () => {
               </div>
             )}
 
-            {/* CONFIGURE TAB */}
             {activeTab === 'configure' && (
               <div>
-                 {/* CORRELATION HEATMAP */}
                  {correlationMatrix && (
                   <div className="feature-panel">
                     <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><GitCommit size={18} /> Correlation Matrix (Features to Target)</h4>
@@ -1021,16 +1009,13 @@ const MLPlayground = () => {
                         maxWidth: '100%',
                         overflowX: 'auto'
                     }}>
-                        {/* Header Row */}
                         <div className="heatmap-cell" style={{ background: 'none', color: '#4b5563' }}></div>
                         {correlationMatrix.headers.map((h, i) => (
                            <div key={`col-h-${i}`} className="heatmap-cell" style={{ background: '#e5e7eb', fontWeight: 600 }}>{h}</div>
                         ))}
                         
-                        {/* Data Rows */}
                         {correlationMatrix.matrix.map((row, rowIndex) => (
                            <React.Fragment key={`row-${rowIndex}`}>
-                               {/* Row Header (Feature Name) */}
                                <div className="heatmap-cell" style={{ background: '#e5e7eb', fontWeight: 600 }}>{correlationMatrix.headers[rowIndex]}</div>
                                {row.map((val, colIndex) => (
                                  <div key={`cell-${rowIndex}-${colIndex}`} className="heatmap-cell" style={{ 
@@ -1068,7 +1053,6 @@ const MLPlayground = () => {
                   </div>
                 </div>
                 
-                {/* PIPELINE DISPLAY */}
                 {modelBlocks.length > 0 && (
                   <div className="pipeline-container">
                     <h3 className="section-title">Model Pipeline (Layers: {modelBlocks.length})</h3>
@@ -1080,10 +1064,8 @@ const MLPlayground = () => {
                               <div>
                                 <p style={{ fontWeight: 600 }}>{block.name}</p>
                                 
-                                {/* Hyperparameter Inputs */}
                                 {block.params && (
                                     <div className="param-container-group">
-                                        {/* Dynamic Numeric Inputs (Units, Rate, Filters, KernelSize) */}
                                         {Object.keys(block.params).filter(k => k !== 'activation').map(key => (
                                             <div key={key} className="param-container">
                                                 {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}:
@@ -1099,7 +1081,6 @@ const MLPlayground = () => {
                                             </div>
                                         ))}
 
-                                        {/* Activation Function Selector (for Dense only) */}
                                         {block.modelId === 'dense' && (
                                             <div className="param-container">
                                                 Activation:
@@ -1130,7 +1111,6 @@ const MLPlayground = () => {
               </div>
             )}
 
-            {/* TRAIN TAB */}
             {activeTab === 'train' && (
               <div>
                 <div className="grid-two-cols" style={{ marginBottom: 24 }}>
@@ -1163,7 +1143,6 @@ const MLPlayground = () => {
               </div>
             )}
 
-            {/* RESULTS TAB */}
             {activeTab === 'results' && results && (
               <div>
                 <div className="results-header">
@@ -1179,7 +1158,6 @@ const MLPlayground = () => {
                   <button onClick={() => downloadModel(results.tfModel)} className="download-btn"><Download size={16} /> Export TensorFlow.js Model</button>
                 </div>
 
-                {/* CHART WITH BUY/SELL MARKERS */}
                 <div className="chart-card">
                    <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Trade Execution on Price (Last 50 Data Points)</h4>
                    <ResponsiveContainer width="100%" height={400}>
@@ -1191,18 +1169,14 @@ const MLPlayground = () => {
                         <Legend />
                         <Line yAxisId="left" type="monotone" dataKey="Price" stroke="#4f46e5" dot={false} strokeWidth={2} name="Asset Price" />
                         
-                        {/* Buy Markers (Green Triangles) */}
                         {results.backtest.equityCurve.slice(-50).map((entry, index) => (
                            entry.Action === 'Buy' && <ReferenceDot key={`buy-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={5} fill="#22c55e" stroke="none" shape={(props) => (
                                <polygon points={`${props.cx},${props.cy-10} ${props.cx-6},${props.cy+4} ${props.cx+6},${props.cy+4}`} fill="#10b981" />
                            )} />
                         ))}
                         
-                        {/* Sell Markers (Red Inverted Triangles) */}
                         {results.backtest.equityCurve.slice(-50).map((entry, index) => (
-                           entry.Action === 'Sell' && <ReferenceDot key={`sell-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={5} fill="#ef4444" stroke="none" shape={(props) => (
-                               <polygon points={`${props.cx},${props.cy+10} ${props.cx-6},${props.cy-4} ${props.cx+6},${props.cy-4}`} fill="#ef4444" />
-                           )} />
+                           entry.Action === 'Hold' && <ReferenceDot key={`hold-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={3} fill="#94a3b8" stroke="none" />
                         ))}
                      </ComposedChart>
                    </ResponsiveContainer>
@@ -1215,7 +1189,7 @@ const MLPlayground = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="t" />
                         <YAxis />
-                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                        <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
                         <Legend />
                         <Line type="monotone" dataKey="Strategy" stroke="#7c3aed" strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="Market" stroke="#f59e0b" strokeWidth={2} dot={false} />
