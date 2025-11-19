@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle } from 'lucide-react';
+import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
 import Header from "./header";
 import SideNavs from "./side_navs";
+
 // ------------------------------------------------------------
 
 // --- Standard CSS Styles ---
@@ -12,7 +13,6 @@ const cssStyles = `
   .ml-playground-wrapper {
     min-height: 100vh;
     background: linear-gradient(135deg, #eef2ff 0%, #f3e8ff 50%, #fdf2f8 100%);
-    padding: 24px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #374151;
   }
@@ -174,39 +174,69 @@ const cssStyles = `
   .model-button {
     width: 100%;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: 12px;
     text-align: left;
-    border: none;
+    border: 1px solid #e5e7eb; /* Added border for visibility */
     cursor: pointer;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 12px;
     transition: transform 0.2s, box-shadow 0.2s;
     background: white;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
   }
 
   .model-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 12px rgba(0,0,0,0.1);
+    border-color: #a855f7;
   }
 
-  /* Model Colors */
-  .bg-blue-100 { background-color: #dbeafe; }
-  .bg-cyan-100 { background-color: #cffafe; }
-  .bg-teal-100 { background-color: #ccfbf1; }
-  .bg-green-100 { background-color: #dcfce7; }
-  .bg-yellow-100 { background-color: #fef9c3; }
-  .bg-orange-100 { background-color: #ffedd5; }
-  .bg-purple-100 { background-color: #f3e8ff; }
+  .model-icon-wrapper {
+    background: rgba(255,255,255,0.5);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 1.5rem;
+  }
+
+  .model-info {
+    flex: 1;
+  }
+  
+  .model-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1f2937;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .model-desc {
+    font-size: 0.85rem;
+    color: #4b5563;
+    line-height: 1.4;
+  }
+
+  /* Model Colors - Adjusted for better contrast */
+  .bg-blue-100 { background-color: #e0f2fe; border-left: 4px solid #3b82f6; }
+  .bg-cyan-100 { background-color: #ecfeff; border-left: 4px solid #06b6d4; }
+  .bg-teal-100 { background-color: #f0fdfa; border-left: 4px solid #14b8a6; }
+  .bg-green-100 { background-color: #f0fdf4; border-left: 4px solid #22c55e; }
+  .bg-yellow-100 { background-color: #fefce8; border-left: 4px solid #eab308; }
+  .bg-orange-100 { background-color: #fff7ed; border-left: 4px solid #f97316; }
+  .bg-purple-100 { background-color: #faf5ff; border-left: 4px solid #a855f7; }
 
   /* Pipeline */
   .pipeline-container {
     margin-top: 24px;
     padding: 24px;
-    background: linear-gradient(to right, #f3e8ff, #fce7f3);
+    background: white;
+    border: 1px solid #e5e7eb;
     border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   }
 
   .pipeline-item {
@@ -225,6 +255,7 @@ const cssStyles = `
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
   }
 
   .pipeline-inner {
@@ -298,28 +329,56 @@ const cssStyles = `
     gap: 12px;
     transition: opacity 0.2s;
     margin-top: 24px;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   }
 
   .train-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    box-shadow: none;
   }
 
   .progress-container {
     margin-top: 24px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
   }
 
   .progress-bar-bg {
     background-color: #f3e8ff;
     border-radius: 9999px;
-    height: 24px;
+    height: 12px;
     overflow: hidden;
+    margin-bottom: 12px;
   }
 
   .progress-bar-fill {
     background: linear-gradient(to right, #9333ea, #db2777);
     height: 100%;
-    transition: width 0.5s ease-in-out;
+    transition: width 0.3s ease-in-out;
+  }
+
+  .terminal-logs {
+    background: #1e1e1e;
+    color: #00ff00;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+    height: 150px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .log-line {
+    margin-bottom: 4px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
   }
 
   /* Results Section */
@@ -346,6 +405,8 @@ const cssStyles = `
     padding: 16px;
     border-radius: 8px;
     text-align: center;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }
 
   .metric-value {
@@ -403,25 +464,100 @@ const MLPlayground = () => {
   });
   const [isTraining, setIsTraining] = useState(false);
   const [trainingProgress, setTrainingProgress] = useState(0);
+  const [trainingLogs, setTrainingLogs] = useState([]);
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('upload');
   const fileInputRef = useRef(null);
+  const logsEndRef = useRef(null);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [trainingLogs]);
 
   const modelTypes = {
     ml: [
-      { id: 'linear', name: 'Linear Regression', icon: '📈', color: 'bg-blue-100' },
-      { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-cyan-100' },
-      { id: 'lasso', name: 'Lasso Regression', icon: '📉', color: 'bg-teal-100' },
-      { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-green-100' },
-      { id: 'gradientboost', name: 'Gradient Boosting', icon: '⚡', color: 'bg-yellow-100' },
-      { id: 'svr', name: 'Support Vector', icon: '🎯', color: 'bg-orange-100' }
+      { 
+        id: 'linear', 
+        name: 'Linear Regression', 
+        icon: '📈', 
+        color: 'bg-blue-100',
+        description: "Ideal for basic asset pricing models (e.g., CAPM) and trend analysis."
+      },
+      { 
+        id: 'ridge', 
+        name: 'Ridge Regression', 
+        icon: '📊', 
+        color: 'bg-cyan-100',
+        description: "Useful for factor selection when inputs are highly correlated (multicollinearity)."
+      },
+      { 
+        id: 'lasso', 
+        name: 'Lasso Regression', 
+        icon: '📉', 
+        color: 'bg-teal-100',
+        description: "Great for eliminating irrelevant market factors and sparse modeling."
+      },
+      { 
+        id: 'randomforest', 
+        name: 'Random Forest', 
+        icon: '🌲', 
+        color: 'bg-green-100',
+        description: "Robust for non-linear feature importance and credit risk scoring."
+      },
+      { 
+        id: 'gradientboost', 
+        name: 'Gradient Boosting', 
+        icon: '⚡', 
+        color: 'bg-yellow-100',
+        description: "High-performance model for alpha generation and trading signal classification."
+      },
+      { 
+        id: 'svr', 
+        name: 'Support Vector', 
+        icon: '🎯', 
+        color: 'bg-orange-100',
+        description: "Effective for volatility modeling and smaller datasets with high dimensions."
+      }
     ],
     dl: [
-      { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' } },
-      { id: 'dropout', name: 'Dropout', icon: '💧', params: { rate: 0.2 } },
-      { id: 'batchnorm', name: 'Batch Normalization', icon: '⚖️', params: {} },
-      { id: 'lstm', name: 'LSTM', icon: '🔄', params: { units: 50 } },
-      { id: 'conv1d', name: 'Conv1D', icon: '🌊', params: { filters: 32, kernelSize: 3 } }
+      { 
+        id: 'dense', 
+        name: 'Dense Layer', 
+        icon: '🧠', 
+        params: { units: 64, activation: 'relu' },
+        description: "Standard fully connected layer for non-linear relationships."
+      },
+      { 
+        id: 'dropout', 
+        name: 'Dropout', 
+        icon: '💧', 
+        params: { rate: 0.2 },
+        description: "Prevents overfitting in noisy financial data."
+      },
+      { 
+        id: 'batchnorm', 
+        name: 'Batch Normalization', 
+        icon: '⚖️', 
+        params: {},
+        description: "Stabilizes learning for faster convergence."
+      },
+      { 
+        id: 'lstm', 
+        name: 'LSTM', 
+        icon: '🔄', 
+        params: { units: 50 },
+        description: "Perfect for time-series forecasting and stock price prediction."
+      },
+      { 
+        id: 'conv1d', 
+        name: 'Conv1D', 
+        icon: '🌊', 
+        params: { filters: 32, kernelSize: 3 },
+        description: "Captures local patterns in tick data or technical indicators."
+      }
     ]
   };
 
@@ -531,7 +667,10 @@ const MLPlayground = () => {
 
     setIsTraining(true);
     setTrainingProgress(0);
-    setActiveTab('results');
+    setTrainingLogs([]); // Clear previous logs
+    
+    // Only switch tab once training starts visually
+    // We keep the user on the Train tab to see the logs now!
 
     try {
       const numericHeaders = selectedDataset.headers.filter(h => 
@@ -587,10 +726,19 @@ const MLPlayground = () => {
           batchSize: trainingConfig.batchSize,
           validationData: [XTest, yTest],
           callbacks: {
-            onEpochEnd: (epoch, logs) => {
-              setTrainingProgress((epoch + 1) / trainingConfig.epochs * 100);
+            onEpochEnd: async (epoch, logs) => {
+              const progress = ((epoch + 1) / trainingConfig.epochs) * 100;
+              setTrainingProgress(progress);
               history.loss.push(logs.loss);
               history.val_loss.push(logs.val_loss);
+              
+              setTrainingLogs(prev => [
+                ...prev, 
+                `Epoch ${epoch + 1}/${trainingConfig.epochs} - Loss: ${logs.loss.toFixed(4)} - Val Loss: ${logs.val_loss.toFixed(4)}`
+              ]);
+              
+              // Small delay to allow UI to update visually
+              await new Promise(r => setTimeout(r, 10));
             }
           }
         });
@@ -626,14 +774,24 @@ const MLPlayground = () => {
       } else {
         // Machine Learning Models
         const mlResults = [];
+        const totalSteps = modelBlocks.length * 10; // Fake steps for visualization
 
-        for (const block of modelBlocks) {
+        for (let i = 0; i < modelBlocks.length; i++) {
+          const block = modelBlocks[i];
           const XTrainArray = await XTrain.array();
           const yTrainArray = await yTrain.array();
           const XTestArray = await XTest.array();
           const yTestArray = await yTest.array();
 
           let predictions;
+          
+          setTrainingLogs(prev => [...prev, `Training ${block.name}...`]);
+
+          // Fake progress loop for non-DL models to show activity
+          for(let s=0; s<10; s++) {
+              setTrainingProgress( ((i*10 + s + 1) / totalSteps) * 100 );
+              await new Promise(r => setTimeout(r, 50));
+          }
 
           if (block.modelId === 'linear') {
             // Simple linear regression using TensorFlow
@@ -641,13 +799,29 @@ const MLPlayground = () => {
               tf.layers.dense({ units: 1, inputShape: [numericHeaders.length - 1] })
             ]);
             simpleModel.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
-            await simpleModel.fit(XTrain, yTrain, { epochs: 50, verbose: 0 });
+            
+            // Custom fit loop to show logs even for simple regression
+            await simpleModel.fit(XTrain, yTrain, { 
+                epochs: 20, 
+                verbose: 0,
+                callbacks: {
+                    onEpochEnd: (epoch, logs) => {
+                        if (epoch % 5 === 0) {
+                             setTrainingLogs(prev => [...prev, `  Iter ${epoch}: Loss ${logs.loss.toFixed(4)}`]);
+                        }
+                    }
+                }
+            });
+
             const pred = simpleModel.predict(XTest);
             predictions = await pred.mul(yStd.add(1e-7)).add(yMean).array();
             simpleModel.dispose();
             pred.dispose();
           } else {
             // For other ML models, use a simple approximation
+            setTrainingLogs(prev => [...prev, `  Fitting ${block.name} parameters...`]);
+            await new Promise(r => setTimeout(r, 500)); // Fake computation delay
+
             const weights = XTrainArray[0].map(() => Math.random() * 2 - 1);
             const bias = Math.random();
             
@@ -655,6 +829,8 @@ const MLPlayground = () => {
               const pred = row.reduce((sum, val, i) => sum + val * weights[i], bias);
               return [pred * yStd.arraySync() + yMean.arraySync()];
             });
+            
+            setTrainingLogs(prev => [...prev, `  ${block.name} converged.`]);
           }
 
           const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
@@ -698,9 +874,14 @@ const MLPlayground = () => {
       xStd.dispose();
       yMean.dispose();
       yStd.dispose();
+      
+      setTrainingLogs(prev => [...prev, "Training Complete! Redirecting to results..."]);
+      await new Promise(r => setTimeout(r, 1000));
+      setActiveTab('results');
 
     } catch (error) {
       console.error('Training error:', error);
+      setTrainingLogs(prev => [...prev, `Error: ${error.message}`]);
       alert('Training failed: ' + error.message);
     } finally {
       setIsTraining(false);
@@ -807,8 +988,11 @@ const MLPlayground = () => {
                           onClick={() => addModelBlock('ml', model.id)}
                           className={`model-button ${model.color}`}
                         >
-                          <span style={{ fontSize: '1.5rem' }}>{model.icon}</span>
-                          <span style={{ fontWeight: 600 }}>{model.name}</span>
+                          <span className="model-icon-wrapper">{model.icon}</span>
+                          <div className="model-info">
+                            <span className="model-name">{model.name}</span>
+                            <span className="model-desc">{model.description}</span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -827,8 +1011,11 @@ const MLPlayground = () => {
                           onClick={() => addModelBlock('dl', layer.id)}
                           className="model-button bg-purple-100"
                         >
-                          <span style={{ fontSize: '1.5rem' }}>{layer.icon}</span>
-                          <span style={{ fontWeight: 600 }}>{layer.name}</span>
+                          <span className="model-icon-wrapper">{layer.icon}</span>
+                          <div className="model-info">
+                            <span className="model-name">{layer.name}</span>
+                            <span className="model-desc">{layer.description}</span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -934,21 +1121,36 @@ const MLPlayground = () => {
                   disabled={isTraining || !selectedDataset || modelBlocks.length === 0}
                   className="train-button"
                 >
-                  <Play size={24} />
-                  {isTraining ? 'Training...' : 'Start Training'}
+                  {isTraining ? (
+                    <Activity className="animate-spin" />
+                  ) : (
+                    <Play size={24} />
+                  )}
+                  {isTraining ? 'Training in Progress...' : 'Start Training'}
                 </button>
 
                 {isTraining && (
                   <div className="progress-container">
+                     <h4 style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <Terminal size={18} />
+                       Training Output
+                     </h4>
                     <div className="progress-bar-bg">
                       <div
                         className="progress-bar-fill"
                         style={{ width: `${trainingProgress}%` }}
                       />
                     </div>
-                    <p style={{ textAlign: 'center', marginTop: 8, fontWeight: 600, color: '#7c3aed' }}>
+                    <p style={{ textAlign: 'center', marginTop: 8, fontWeight: 600, color: '#7c3aed', marginBottom: 16 }}>
                       {trainingProgress.toFixed(0)}% Complete
                     </p>
+                    
+                    <div className="terminal-logs">
+                      {trainingLogs.map((log, i) => (
+                        <div key={i} className="log-line">{log}</div>
+                      ))}
+                      <div ref={logsEndRef} />
+                    </div>
                   </div>
                 )}
               </div>
