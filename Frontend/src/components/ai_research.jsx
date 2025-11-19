@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Download, Plus, Trash2, Settings, BarChart3, Brain, TrendingUp, AlertCircle } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import * as tf from 'tensorflow';
 import Header from "./header";
 import SideNavs from "./side_navs";
+import * as tf from "@tensorflow/tfjs";
 
 
 const MLPlayground = () => {
