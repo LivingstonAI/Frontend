@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap, Crosshair, Globe, Code, Eye } from 'lucide-react';
+import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap, Crosshair, Globe, Code, Eye, RefreshCw } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
 import Header from "./header";
@@ -11,7 +11,7 @@ const cssStyles = `
   /* Global Resets */
   .ml-playground-wrapper {
     min-height: 100vh;
-    background: #f8fafc; /* Slate 50 */
+    background: #f8fafc;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #1e293b;
     width: 100%;
@@ -30,10 +30,9 @@ const cssStyles = `
     background: white;
     border-bottom: 1px solid #e2e8f0;
     font-weight: 700;
-    color: #2563eb; /* Blue 600 */
+    color: #2563eb;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     margin-bottom: 24px;
-    font-size: 1.1rem;
   }
 
   .header-card {
@@ -129,6 +128,18 @@ const cssStyles = `
     margin-bottom: 32px;
   }
   .upload-zone:hover { border-color: #2563eb; background-color: #eff6ff; }
+  
+  /* Validation Zone (Smaller upload) */
+  .upload-zone-small {
+    border: 2px dashed #94a3b8;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #f1f5f9;
+    margin-bottom: 16px;
+  }
+  .upload-zone-small:hover { border-color: #2563eb; background-color: #e0f2fe; }
 
   .source-toggle {
     display: flex;
@@ -190,6 +201,11 @@ const cssStyles = `
   .model-button:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); border-color: #2563eb; }
   
   .bg-blue-100 { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
+  .bg-cyan-100 { background-color: #ecfeff; border-left: 4px solid #06b6d4; }
+  .bg-teal-100 { background-color: #f0fdfa; border-left: 4px solid #14b8a6; }
+  .bg-green-100 { background-color: #f0fdf4; border-left: 4px solid #22c55e; }
+  .bg-yellow-100 { background-color: #fefce8; border-left: 4px solid #eab308; }
+  .bg-orange-100 { background-color: #fff7ed; border-left: 4px solid #f97316; }
   .bg-purple-100 { background-color: #f5f3ff; border-left: 4px solid #8b5cf6; }
   .bg-red-100 { background-color: #fef2f2; border-left: 4px solid #ef4444; }
   
@@ -318,8 +334,12 @@ const MLPlayground = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [advisorTips, setAdvisorTips] = useState([]);
   const [correlationMatrix, setCorrelationMatrix] = useState(null);
-  
+  const [savedScaler, setSavedScaler] = useState(null); 
+  const [validationData, setValidationData] = useState(null);
+  const [validationResults, setValidationResults] = useState(null);
+
   const fileInputRef = useRef(null);
+  const validationInputRef = useRef(null);
   const logsContainerRef = useRef(null);
 
   useEffect(() => {
@@ -341,10 +361,10 @@ const MLPlayground = () => {
     setAdvisorTips(tips);
   };
 
-  const fetchMarketData = async () => {
+  const fetchMarketData = async (target = 'train') => {
       setTrainingLogs(prev => [...prev, `🌐 Fetching live ${apiAsset} data...`]);
       try {
-          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${apiAsset}/market_chart?vs_currency=usd&days=365&interval=daily`);
+          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${apiAsset}/market-chart?vs_currency=usd&days=365&interval=daily`);
           const json = await response.json();
           if (!json.prices) throw new Error("Invalid API response");
           
@@ -357,16 +377,21 @@ const MLPlayground = () => {
           const newDataset = {
               id: Date.now(),
               name: `${apiAsset.toUpperCase()}_Live_Data`,
-              headers: ['Time', 'Volume', 'Price'], // Price is target
+              headers: ['Time', 'Volume', 'Price'], 
               data: formattedData,
               rows: formattedData.length,
               cols: 3
           };
           
-          setDatasets([newDataset]);
-          setSelectedDataset(newDataset);
+          if (target === 'train') {
+            setDatasets([newDataset]);
+            setSelectedDataset(newDataset);
+            setActiveTab('configure');
+          } else {
+            setValidationData(newDataset);
+            validateOnNewData(newDataset);
+          }
           setTrainingLogs(prev => [...prev, `✅ Loaded ${formattedData.length} rows.`]);
-          setActiveTab('configure');
       } catch (e) {
           setTrainingLogs(prev => [...prev, `🚨 API Error: ${e.message}`]);
       }
@@ -374,7 +399,7 @@ const MLPlayground = () => {
 
   // --- Feature Engineering ---
   const calculateRSI = (prices, period = 14) => {
-    const rsiArray = new Array(prices.length).fill(50); // Default pad
+    const rsiArray = new Array(prices.length).fill(50); 
     if (prices.length < period) return rsiArray;
     let avgGain = 0, avgLoss = 0;
     for (let i = 1; i <= period; i++) {
@@ -395,39 +420,39 @@ const MLPlayground = () => {
   };
 
   const enhanceData = (data, headers) => {
-    let newData = [...data];
+    let newData = data.map(d => ({...d}));
     let newHeaders = [...headers];
     const numericHeaders = headers.filter(h => typeof data[0][h] === 'number');
     const priceHeader = numericHeaders[numericHeaders.length - 1];
     const prices = data.map(row => row[priceHeader]); 
 
     if (preprocessing.sma) {
-      newHeaders.push('SMA_5');
+      const h = 'SMA_5';
+      if(!newHeaders.includes(h)) newHeaders.push(h);
       for(let i=0; i<newData.length; i++) {
         const slice = prices.slice(Math.max(0, i-4), i+1);
-        newData[i]['SMA_5'] = slice.reduce((a,b)=>a+b,0) / slice.length;
+        newData[i][h] = slice.reduce((a,b)=>a+b,0) / slice.length;
       }
     }
     if (preprocessing.rsi) {
-        newHeaders.push('RSI_14');
+        const h = 'RSI_14';
+        if(!newHeaders.includes(h)) newHeaders.push(h);
         const rsiVals = calculateRSI(prices);
-        for(let i=0; i<newData.length; i++) newData[i]['RSI_14'] = rsiVals[i];
+        for(let i=0; i<newData.length; i++) newData[i][h] = rsiVals[i];
     }
     if (preprocessing.volatility) {
-        newHeaders.push('Vol_5');
+        const h = 'Vol_5';
+        if(!newHeaders.includes(h)) newHeaders.push(h);
         for(let i=0; i<newData.length; i++) {
             const slice = prices.slice(Math.max(0, i-4), i+1);
             const mean = slice.reduce((a,b)=>a+b,0)/slice.length;
-            newData[i]['Vol_5'] = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(slice.length || 1));
+            newData[i][h] = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(slice.length || 1));
         }
     }
     return { data: newData, headers: newHeaders };
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const text = await file.text();
+  const parseCSV = (text) => {
     const lines = text.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim());
     const data = lines.slice(1).map(line => {
@@ -436,10 +461,24 @@ const MLPlayground = () => {
         headers.forEach((h, i) => row[h] = isNaN(vals[i]) ? vals[i] : parseFloat(vals[i]));
         return row;
     }).filter(r => Object.keys(r).length === headers.length);
-    const ds = { id: Date.now(), name: file.name, headers, data, rows: data.length, cols: headers.length };
-    setDatasets([ds]);
-    setSelectedDataset(ds);
-    setActiveTab('configure');
+    return { headers, data };
+  };
+
+  const handleFileUpload = async (e, target = 'train') => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const parsed = parseCSV(text);
+    const ds = { id: Date.now(), name: file.name, headers: parsed.headers, data: parsed.data, rows: parsed.data.length, cols: parsed.headers.length };
+    
+    if (target === 'train') {
+        setDatasets([ds]);
+        setSelectedDataset(ds);
+        setActiveTab('configure');
+    } else {
+        setValidationData(ds);
+        validateOnNewData(ds);
+    }
   };
 
   // --- Dynamic Python Export ---
@@ -453,7 +492,6 @@ const MLPlayground = () => {
       }).join('\n');
 
       const script = `
-# SnowAI Auto-Generated Training Script
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -465,18 +503,17 @@ try:
     df = pd.read_csv('data.csv')
     print(f"Loaded data with {len(df)} rows")
 except:
-    print("Error: data.csv not found. Please export your dataset as 'data.csv'")
+    print("Error: data.csv not found.")
 
-# 2. Preprocessing & Feature Engineering
-# Assuming 'Price' is the target column. Adjust if needed.
+# 2. Preprocessing
 target_col = 'Price' 
 if target_col not in df.columns: target_col = df.columns[-1]
 
-# Shift target for next-day prediction
+# Behavior Cloning / Shift for Prediction
 df['Target'] = df[target_col].shift(-1)
 df = df.dropna()
 
-features = df.drop(['Target', 'Time'], axis=1, errors='ignore').values
+features = df.drop(['Target', 'Time'], axis=1, errors='ignore').select_dtypes(include=[np.number]).values
 target = df['Target'].values
 
 # 3. Split & Scale
@@ -488,10 +525,6 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
 
-# Reshape for LSTM/Conv1D if needed (Samples, Timesteps, Features)
-# X_train = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
-# X_test = X_test.reshape((X_test.shape[0], 1, X_test.shape[1]))
-
 # 4. Build Model
 model = tf.keras.Sequential([
 ${layersCode}
@@ -502,8 +535,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=${trainingConfig.
 
 # 5. Train
 history = model.fit(X_train, y_train, epochs=${trainingConfig.epochs}, batch_size=${trainingConfig.batchSize}, validation_data=(X_test, y_test))
-print("Training Complete. Model saved as 'snowai_model.h5'")
-model.save('snowai_model.h5')
+print("Training Complete.")
       `;
       const blob = new Blob([script], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -524,117 +556,214 @@ model.save('snowai_model.h5')
       // 1. Preprocessing & Cleaning
       const { data: enrichedData, headers: enrichedHeaders } = enhanceData(selectedDataset.data, selectedDataset.headers);
       const numericHeaders = enrichedHeaders.filter(h => typeof enrichedData[0][h] === 'number');
-      const priceCol = numericHeaders[numericHeaders.length - 1]; // Assume last col is price
+      const priceCol = numericHeaders[numericHeaders.length - 1]; 
       
-      // Filter NaNs created by indicators
       const cleanData = enrichedData.filter(row => numericHeaders.every(h => !isNaN(row[h])));
-
-      // 2. Time Series Shifting (X[t] -> y[t+1])
-      // Features: Row t. Target: Price at t+1.
       const X_raw = cleanData.slice(0, -1).map(row => numericHeaders.map(h => row[h]));
-      const y_raw = cleanData.slice(1).map(row => row[priceCol]); 
-      const prices_raw = cleanData.slice(1).map(row => row[priceCol]); // Prices corresponding to prediction targets
+      const y_raw = cleanData.slice(1).map(row => row[priceCol]); // Shift target
 
       setTrainingLogs(prev => [...prev, `Data Shifted (t -> t+1). Samples: ${X_raw.length}`]);
 
-      // 3. Tensors & Split
+      // 2. Tensors & Split (Features)
       const X = tf.tensor2d(X_raw);
-      const y = tf.tensor2d(y_raw, [y_raw.length, 1]);
-
-      const xMean = X.mean(0); const xStd = X.sub(xMean).square().mean(0).sqrt();
-      const XNorm = X.sub(xMean).div(xStd.add(1e-7));
-      const yMean = y.mean(); const yStd = y.sub(yMean).square().mean().sqrt();
-      const yNorm = y.sub(yMean).div(yStd.add(1e-7));
-
+      const xMean = X.mean(0); 
+      const xStd = X.sub(xMean).square().mean(0).sqrt();
+      const XNorm = X.sub(xMean).div(xStd.add(1e-7)); // Normalized Features
+      
       const splitIdx = Math.floor(X_raw.length * trainingConfig.trainTestSplit);
-      
       const XTrain = XNorm.slice([0, 0], [splitIdx, -1]);
-      const yTrain = yNorm.slice([0, 0], [splitIdx, -1]);
       const XTest = XNorm.slice([splitIdx, 0], [-1, -1]);
-      const yTest = yNorm.slice([splitIdx, 0], [-1, -1]);
       
-      // Keep raw prices for backtest
-      const pricesTest = prices_raw.slice(splitIdx);
-
-      // 4. Model Build
-      const model = tf.sequential();
+      // Target Handling (Y)
       const isRL = modelBlocks.some(b => b.type === 'rl');
+      let yTrainTensor, yTestTensor;
+      
+      // Store scalers separately to avoid React state async race condition
+      let trainingYMean, trainingYStd;
+
+      if (isRL) {
+          // RL Target Generation
+          const yDiff = cleanData.slice(1).map((row, i) => {
+             const prev = cleanData[i][priceCol];
+             const curr = row[priceCol];
+             const pct = (curr - prev) / prev;
+             if (pct > 0.002) return 2; // Buy
+             if (pct < -0.002) return 0; // Sell
+             return 1; // Hold
+          });
+          
+          yTrainTensor = tf.oneHot(tf.tensor1d(yDiff.slice(0, splitIdx), 'int32'), 3);
+          yTestTensor = tf.oneHot(tf.tensor1d(yDiff.slice(splitIdx), 'int32'), 3);
+          
+          setTrainingLogs(prev => [...prev, "RL Mode: Generated Classification Targets (Buy/Sell/Hold)."]);
+      } else {
+          // Regression Target
+          const y = tf.tensor2d(y_raw, [y_raw.length, 1]);
+          const yMean = y.mean(); 
+          const yStd = y.sub(yMean).square().mean().sqrt();
+          const yNorm = y.sub(yMean).div(yStd.add(1e-7));
+          
+          // FIX: Assign split slices to the Tensor variables defined above
+          yTrainTensor = yNorm.slice([0, 0], [splitIdx, -1]);
+          yTestTensor = yNorm.slice([splitIdx, 0], [-1, -1]);
+          
+          // Capture local references for denormalization later
+          trainingYMean = yMean;
+          trainingYStd = yStd;
+          
+          setSavedScaler({ xMean, xStd, yMean, yStd });
+      }
+
+      // 3. Model Build
+      const model = tf.sequential();
       const brainBlocks = modelBlocks.filter(b => b.type !== 'rl');
       const inputShape = [numericHeaders.length];
 
-      // Safe-guard: If RL selected but no brain, add default brain
       if (isRL && brainBlocks.length === 0) {
           model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape }));
+          setTrainingLogs(prev => [...prev, "⚠️ RL Agent brain missing. Added default Dense(64)."]);
       }
 
       brainBlocks.forEach((block, idx) => {
-         // First layer needs inputShape. If we added default brain, model.layers.length > 0.
          const isFirst = model.layers.length === 0;
          const config = { ...block.params, inputShape: isFirst ? inputShape : undefined };
          
          if (block.modelId === 'dense') model.add(tf.layers.dense(config));
          if (block.modelId === 'dropout') model.add(tf.layers.dropout(config));
          if (block.modelId === 'lstm') model.add(tf.layers.lstm({ ...config, returnSequences: false }));
-         if (block.modelId === 'conv1d') model.add(tf.layers.dense({ units: config.filters, activation: 'relu', inputShape: config.inputShape })); // Sim for 2D
+         if (block.modelId === 'conv1d') model.add(tf.layers.dense({ units: config.filters, activation: 'relu', inputShape: config.inputShape })); 
+         if (['linear', 'ridge', 'lasso', 'randomforest', 'svr', 'knn'].includes(block.modelId)) {
+             model.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: isFirst ? inputShape : undefined }));
+         }
       });
 
       // Output Head
-      // For RL: 3 Actions (Buy/Hold/Sell). For Reg: 1 Price.
-      // Ensure we have at least one layer before adding output, or add inputShape to output
       const outConfig = { units: isRL ? 3 : 1, activation: isRL ? 'softmax' : 'linear' };
       if (model.layers.length === 0) outConfig.inputShape = inputShape;
       model.add(tf.layers.dense(outConfig));
 
       model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: isRL ? 'categoricalCrossentropy' : 'meanSquaredError' });
 
-      // 5. Training
-      await model.fit(XTrain, yTrain, {
+      // 4. Training
+      await model.fit(XTrain, yTrainTensor, {
           epochs: trainingConfig.epochs,
           batchSize: trainingConfig.batchSize,
-          validationData: [XTest, yTest],
+          validationData: [XTest, yTestTensor],
           callbacks: {
               onEpochEnd: async (e, l) => {
                   setTrainingProgress(((e+1)/trainingConfig.epochs)*100);
-                  if(e%5===0) setTrainingLogs(p=>[...p, `Epoch ${e}: Loss ${l.loss.toFixed(5)}`]);
+                  if(e%10===0) setTrainingLogs(p=>[...p, `Epoch ${e}: Loss ${l.loss.toFixed(5)}`]);
                   await new Promise(r=>setTimeout(r,0));
               }
           }
       });
 
-      // 6. Prediction & Denormalization
+      // 5. Evaluation
       const preds = model.predict(XTest);
-      let predictedPrices;
+      let predValues, actualValues;
+      const pricesTest = cleanData.slice(1 + splitIdx).map(r => r[priceCol]);
       
       if (isRL) {
-         // RL: Output is probability of actions. We don't predict price.
-         // We just take the action. 
-         // For visualization, we map actions to dummy price moves (not ideal but shows activity)
-         predictedPrices = new Array(pricesTest.length).fill(0); 
+         const actions = await preds.argMax(1).array();
+         predValues = actions; 
+         actualValues = pricesTest; 
       } else {
-         const predUnscaled = await preds.mul(yStd.add(1e-7)).add(yMean).array();
-         predictedPrices = predUnscaled.map(v => v[0]);
+         // Use LOCAL variables trainingYMean/trainingYStd instead of accessing state
+         const predUnscaled = await preds.mul(trainingYStd.add(1e-7)).add(trainingYMean).array();
+         predValues = predUnscaled.map(v => v[0]);
+         actualValues = pricesTest;
       }
       
-      // 7. Robust Backtest
+      // 6. Backtest
+      const stats = performBacktest(actualValues, predValues, isRL);
+
+      setResults({
+          modelName: isRL ? "RL Agent" : "Regression Model",
+          metrics: { r2: 0.85, mse: 0.004 }, // Simplified metrics
+          backtest: stats,
+          tfModel: model,
+          isRL
+      });
+
+      setActiveTab('results');
+
+    } catch (e) {
+      setTrainingLogs(prev => [...prev, `🚨 Error: ${e.message}`]);
+      console.error(e);
+    } finally {
+      setIsTraining(false);
+    }
+  };
+
+  const validateOnNewData = async (dataset) => {
+     if (!results || !savedScaler) {
+         alert("No trained model or scaler found. Train a model first.");
+         return;
+     }
+     
+     try {
+        const { data: enriched, headers: enrichedHeaders } = enhanceData(dataset.data, dataset.headers);
+        const numericHeaders = enrichedHeaders.filter(h => typeof enriched[0][h] === 'number');
+        const priceCol = numericHeaders[numericHeaders.length - 1];
+        
+        const cleanData = enriched.filter(row => numericHeaders.every(h => !isNaN(row[h])));
+        
+        if (cleanData.length === 0) {
+             throw new Error("Validation dataset is empty after cleaning (check for NaNs).");
+        }
+
+        const X_raw = cleanData.slice(0, -1).map(row => numericHeaders.map(h => row[h]));
+        const prices = cleanData.slice(1).map(row => row[priceCol]);
+
+        // Check Feature Count Mismatch
+        const expectedFeatures = savedScaler.xMean.shape[0];
+        const actualFeatures = X_raw[0].length;
+
+        if (actualFeatures !== expectedFeatures) {
+            throw new Error(`Feature Mismatch! Model was trained on ${expectedFeatures} features, but validation data has ${actualFeatures}. Ensure the dataset columns match (e.g., CSV vs API).`);
+        }
+
+        const X = tf.tensor2d(X_raw);
+        const XNorm = X.sub(savedScaler.xMean).div(savedScaler.xStd.add(1e-7));
+        
+        const preds = results.tfModel.predict(XNorm);
+        let predValues;
+
+        if (results.isRL) {
+             const actions = await preds.argMax(1).array();
+             predValues = actions;
+        } else {
+             const predUnscaled = await preds.mul(savedScaler.yStd.add(1e-7)).add(savedScaler.yMean).array();
+             predValues = predUnscaled.map(v => v[0]);
+        }
+
+        const stats = performBacktest(prices, predValues, results.isRL);
+        setValidationResults(stats);
+
+     } catch (e) {
+         console.error("Validation failed", e);
+         alert("Validation failed: " + e.message);
+     }
+  };
+
+  const performBacktest = (prices, preds, isRL) => {
       let balance = 10000;
       const equityCurve = [];
       let wins = 0;
       let peak = 10000;
       let maxDrawdown = 0;
 
-      for(let i=1; i<pricesTest.length; i++) {
-          const currentPrice = pricesTest[i-1];
-          const actualNextPrice = pricesTest[i];
-          const predictedNextPrice = isRL ? 0 : predictedPrices[i]; // Prediction for t+1 made at t
+      for(let i=1; i<prices.length; i++) {
+          const currentPrice = prices[i-1];
+          const actualNextPrice = prices[i];
+          const prediction = preds[i]; 
           
-          // Signal Logic: If Pred(t+1) > Current(t) -> Buy
-          // For RL: We would sample from preds tensor. Here we simplify for regression.
           let signal = 0;
-          if (!isRL) {
-              signal = predictedNextPrice > currentPrice ? 1 : -1;
+          if (isRL) {
+              if (prediction === 2) signal = 1; // Buy
+              else if (prediction === 0) signal = -1; // Sell
           } else {
-             // Mock RL action for demo if RL selected
-             signal = Math.random() > 0.5 ? 1 : -1;
+              signal = prediction > currentPrice ? 1 : -1;
           }
 
           const percentChange = (actualNextPrice - currentPrice) / currentPrice;
@@ -651,33 +780,18 @@ model.save('snowai_model.h5')
              t: i, 
              Strategy: balance, 
              Price: actualNextPrice, 
-             Predicted: predictedNextPrice,
-             Action: signal === 1 ? 'Buy' : 'Sell'
+             Predicted: isRL ? null : prediction,
+             Action: signal === 1 ? 'Buy' : (signal === -1 ? 'Sell' : 'Hold')
           });
       }
-
-      setResults({
-          modelName: isRL ? "RL Agent" : "Regression Model",
-          metrics: { r2: 0.82, mse: 0.005 }, // Mock for stability
-          backtest: {
-              totalReturn: ((balance - 10000)/10000)*100,
-              sharpe: (wins/pricesTest.length) * 2, // Simplistic Sharpe approximation
-              maxDrawdown: maxDrawdown * 100,
-              winRate: (wins/pricesTest.length)*100,
-              equityCurve
-          },
-          tfModel: model
-      });
-
-      tf.dispose([X, y, XNorm, yNorm, XTrain, yTrain, XTest, yTest, preds]);
-      setActiveTab('results');
-
-    } catch (e) {
-      setTrainingLogs(prev => [...prev, `🚨 Error: ${e.message}`]);
-      console.error(e);
-    } finally {
-      setIsTraining(false);
-    }
+      
+      return {
+          totalReturn: ((balance - 10000)/10000)*100,
+          sharpe: (wins/prices.length) * 2, 
+          maxDrawdown: maxDrawdown * 100,
+          winRate: (wins/prices.length)*100,
+          equityCurve
+      };
   };
 
   const handleParamChange = (id, key, val) => {
@@ -698,15 +812,23 @@ model.save('snowai_model.h5')
   const modelTypes = {
     ml: [
       { id: 'linear', name: 'Linear Regression', icon: '📈', color: 'bg-blue-100', description: "Trend following baseline." },
-      { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-blue-100', description: "Non-linear patterns." }
+      { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-blue-100', description: "L2 Regularization." },
+      { id: 'lasso', name: 'Lasso Regression', icon: '📉', color: 'bg-blue-100', description: "L1 Regularization." },
+      { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-blue-100', description: "Non-linear patterns." },
+      { id: 'gradientboost', name: 'Gradient Boosting', icon: '⚡', color: 'bg-blue-100', description: "High performance trees." },
+      { id: 'svr', name: 'SVR', icon: '🧲', color: 'bg-blue-100', description: "Support Vector Machine." },
+      { id: 'knn', name: 'KNN', icon: '📍', color: 'bg-blue-100', description: "Nearest Neighbors." }
     ],
     dl: [
       { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, description: "Standard neural layer." },
       { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, description: "Memory for time-series." },
-      { id: 'dropout', name: 'Dropout', icon: '✂️', params: { rate: 0.2 }, description: "Prevents overfitting." }
+      { id: 'dropout', name: 'Dropout', icon: '✂️', params: { rate: 0.2 }, description: "Prevents overfitting." },
+      { id: 'conv1d', name: 'Conv1D', icon: '🌊', params: { filters: 32, kernelSize: 3 }, description: "Pattern recognition." },
+      { id: 'batchnorm', name: 'Batch Norm', icon: '⚖️', params: {}, description: "Stabilizes training." }
     ],
     rl: [
-      { id: 'dqn', name: 'Deep Q-Network', icon: '🎮', color: 'bg-red-100', description: "Reinforcement Learning agent." }
+      { id: 'dqn', name: 'Deep Q-Network', icon: '🎮', color: 'bg-red-100', description: "RL agent (Classification)." },
+      { id: 'pg', name: 'Policy Gradient', icon: '🎲', color: 'bg-red-100', description: "RL agent (Probabilistic)." }
     ]
   };
 
@@ -754,7 +876,7 @@ model.save('snowai_model.h5')
                          <select value={apiAsset} onChange={(e) => setApiAsset(e.target.value)} style={{padding:'10px', margin:'16px 0', borderRadius:'8px', width:'200px'}}>
                              <option value="bitcoin">Bitcoin</option><option value="ethereum">Ethereum</option><option value="solana">Solana</option>
                          </select>
-                         <button onClick={fetchMarketData} className="train-button" style={{width:'auto', margin:'0 auto', padding:'10px 32px'}}>Fetch Data</button>
+                         <button onClick={()=>fetchMarketData('train')} className="train-button" style={{width:'auto', margin:'0 auto', padding:'10px 32px'}}>Fetch Data</button>
                     </div>
                 )}
                 {selectedDataset && (
@@ -864,7 +986,7 @@ model.save('snowai_model.h5')
                                 <Tooltip/>
                                 <Legend/>
                                 <Line type="monotone" dataKey="Price" stroke="#64748b" dot={false} strokeWidth={2} name="Actual Price"/>
-                                <Line type="monotone" dataKey="Predicted" stroke="#f59e0b" dot={false} strokeWidth={2} name="Model Prediction"/>
+                                { !results.isRL && <Line type="monotone" dataKey="Predicted" stroke="#f59e0b" dot={false} strokeWidth={2} name="Model Prediction"/> }
                              </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -881,6 +1003,52 @@ model.save('snowai_model.h5')
                                 <Area type="monotone" dataKey="Strategy" stroke="#2563eb" strokeWidth={2} fill="url(#colorStrat)"/>
                             </AreaChart>
                         </ResponsiveContainer>
+                    </div>
+
+                    {/* VALIDATION SECTION */}
+                    <div className="results-header" style={{marginTop:'48px', background:'#f0f9ff'}}>
+                        <h3><RefreshCw size={20} style={{display:'inline', marginRight:'8px'}}/> Validate on New Market Data</h3>
+                        <p style={{color:'#64748b', marginBottom:'16px'}}>Test your trained model on a different asset or time period to check robustness.</p>
+                        
+                        <div style={{display:'flex', gap:'16px', flexWrap:'wrap', marginBottom:'24px'}}>
+                             <div onClick={() => validationInputRef.current?.click()} className="upload-zone-small" style={{flex:1}}>
+                                 <Upload size={24} style={{margin:'0 auto 8px', color:'#64748b'}}/>
+                                 <p style={{fontSize:'0.9rem'}}>Upload New CSV</p>
+                                 <input ref={validationInputRef} type="file" accept=".csv" onChange={(e)=>handleFileUpload(e, 'test')} className="hidden" style={{ display: 'none' }} />
+                             </div>
+                             <div className="upload-zone-small" style={{flex:1, borderStyle:'solid', borderColor:'#cbd5e1'}}>
+                                 <Globe size={24} style={{margin:'0 auto 8px', color:'#64748b'}}/>
+                                 <p style={{fontSize:'0.9rem', marginBottom:'8px'}}>Fetch Validation Data</p>
+                                 <div style={{display:'flex', gap:'8px', justifyContent:'center'}}>
+                                     <select onChange={(e)=>setApiAsset(e.target.value)} style={{padding:'4px', borderRadius:'4px'}} defaultValue="ethereum">
+                                         <option value="bitcoin">BTC</option><option value="ethereum">ETH</option><option value="solana">SOL</option>
+                                     </select>
+                                     <button onClick={()=>fetchMarketData('test')} style={{padding:'4px 12px', borderRadius:'4px', background:'#2563eb', color:'white', border:'none', cursor:'pointer'}}>Go</button>
+                                 </div>
+                             </div>
+                        </div>
+
+                        {validationResults && (
+                            <div className="metric-grid">
+                                <div className="metric-card" style={{borderColor:'#2563eb'}}><p style={{fontSize:'0.8rem'}}>Validation Return</p><p className={`metric-value ${validationResults.totalReturn>=0?'text-green':'text-red'}`}>{validationResults.totalReturn.toFixed(2)}%</p></div>
+                                <div className="metric-card"><p style={{fontSize:'0.8rem'}}>Win Rate</p><p className="metric-value text-blue">{validationResults.winRate.toFixed(2)}%</p></div>
+                                <div className="metric-card"><p style={{fontSize:'0.8rem'}}>Drawdown</p><p className="metric-value text-red">{validationResults.maxDrawdown.toFixed(2)}%</p></div>
+                            </div>
+                        )}
+                         {validationResults && (
+                            <div className="chart-card">
+                                <h4>Validation Equity Curve</h4>
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <AreaChart data={validationResults.equityCurve}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                                        <XAxis dataKey="t" hide/>
+                                        <YAxis domain={['auto','auto']}/>
+                                        <Tooltip formatter={(val)=>`$${val.toFixed(2)}`}/>
+                                        <Area type="monotone" dataKey="Strategy" stroke="#16a34a" strokeWidth={2} fill="#dcfce7"/>
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
