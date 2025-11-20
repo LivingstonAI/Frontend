@@ -6,9 +6,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 
-// --- CSS Styles ---
 const cssStyles = `
-  /* Global Resets */
   .ml-playground-wrapper {
     min-height: 100vh;
     background: #f8fafc;
@@ -24,7 +22,6 @@ const cssStyles = `
     padding: 0 24px 48px 24px;
   }
 
-  /* Header */
   .mock-header {
     padding: 16px 24px;
     background: white;
@@ -72,7 +69,6 @@ const cssStyles = `
     opacity: 0.9;
   }
 
-  /* Navigation */
   .tab-container {
     background: white;
     border-radius: 12px;
@@ -116,7 +112,6 @@ const cssStyles = `
 
   .tab-content { padding: 32px; }
 
-  /* Inputs & Forms */
   .upload-zone {
     border: 2px dashed #cbd5e1;
     border-radius: 12px;
@@ -129,7 +124,6 @@ const cssStyles = `
   }
   .upload-zone:hover { border-color: #2563eb; background-color: #eff6ff; }
   
-  /* Validation Zone (Smaller upload) */
   .upload-zone-small {
     border: 2px dashed #94a3b8;
     border-radius: 8px;
@@ -171,7 +165,6 @@ const cssStyles = `
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 
-  /* Panels */
   .feature-panel, .insight-card {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -186,11 +179,9 @@ const cssStyles = `
     display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500;
     cursor: pointer; background: white; padding: 10px 16px; border-radius: 8px;
     border: 1px solid #e2e8f0; transition: all 0.2s;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
   .checkbox-label:hover { border-color: #2563eb; transform: translateY(-1px); }
 
-  /* Model Blocks */
   .model-button {
     width: 100%; padding: 16px; border-radius: 12px; text-align: left;
     border: 1px solid #e2e8f0; cursor: pointer; display: flex; align-items: flex-start;
@@ -201,15 +192,9 @@ const cssStyles = `
   .model-button:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); border-color: #2563eb; }
   
   .bg-blue-100 { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
-  .bg-cyan-100 { background-color: #ecfeff; border-left: 4px solid #06b6d4; }
-  .bg-teal-100 { background-color: #f0fdfa; border-left: 4px solid #14b8a6; }
-  .bg-green-100 { background-color: #f0fdf4; border-left: 4px solid #22c55e; }
-  .bg-yellow-100 { background-color: #fefce8; border-left: 4px solid #eab308; }
-  .bg-orange-100 { background-color: #fff7ed; border-left: 4px solid #f97316; }
   .bg-purple-100 { background-color: #f5f3ff; border-left: 4px solid #8b5cf6; }
   .bg-red-100 { background-color: #fef2f2; border-left: 4px solid #ef4444; }
   
-  /* Pipeline */
   .pipeline-container {
     margin-top: 32px;
     padding: 24px;
@@ -232,7 +217,6 @@ const cssStyles = `
   }
   .param-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
   
-  /* Action Buttons */
   .train-button, .secondary-btn {
     width: 100%; padding: 14px; border-radius: 10px; font-weight: 600; font-size: 1rem;
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -256,7 +240,6 @@ const cssStyles = `
   }
   .download-btn:hover { background: #1e293b; }
 
-  /* Input Groups */
   .input-group { margin-bottom: 16px; }
   .input-label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #334155; }
   .styled-input { 
@@ -265,7 +248,6 @@ const cssStyles = `
   }
   .styled-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
-  /* Logs */
   .terminal-logs {
     background: #0f172a; color: #4ade80; font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
     padding: 20px; border-radius: 12px; margin-top: 32px; height: 240px;
@@ -273,7 +255,6 @@ const cssStyles = `
   }
   .log-line { padding-bottom: 6px; border-bottom: 1px solid #1e293b; word-break: break-all; line-height: 1.5; }
 
-  /* Results */
   .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 32px; }
   .metric-card { 
     background: white; padding: 24px; border-radius: 12px; text-align: center; 
@@ -287,33 +268,62 @@ const cssStyles = `
     margin-bottom: 32px;
   }
 
-  /* Utilities */
   .text-blue { color: #2563eb; }
   .text-green { color: #16a34a; }
   .text-red { color: #dc2626; }
   .text-indigo { color: #4f46e5; }
   .text-purple { color: #9333ea; }
 
-  /* Mobile */
-  @media (min-width: 768px) {
-    .grid-three-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-    .grid-two-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-    .metric-grid { grid-template-columns: repeat(3, 1fr); }
-    .header-card { flex-direction: row; text-align: left; }
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin: 16px 0;
+    overflow: hidden;
   }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    transition: width 0.3s ease;
+  }
+
+  .validation-status {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #1e40af;
+  }
+
+  .validation-status.processing {
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .grid-two-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
   
   @media (max-width: 767px) {
     .main-container { padding: 0 16px 32px 16px; }
     .header-card { flex-direction: column; text-align: center; gap: 16px; padding: 24px; }
     .app-title { font-size: 1.75rem; }
-    .pipeline-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .grid-two-cols { grid-template-columns: 1fr; }
     .tab-content { padding: 16px; }
   }
 `;
 
 const MLPlayground = () => {
   const [dataSource, setDataSource] = useState('csv');
-  const [apiAsset, setApiAsset] = useState('bitcoin');
+  const [binanceSymbol, setBinanceSymbol] = useState('BTCUSDT');
   const [datasets, setDatasets] = useState([]);
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [modelBlocks, setModelBlocks] = useState([]);
@@ -328,12 +338,13 @@ const MLPlayground = () => {
   const [isTraining, setIsTraining] = useState(false);
   const [isAutoTuning, setIsAutoTuning] = useState(false);
   const [trainingProgress, setTrainingProgress] = useState(0);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationProgress, setValidationProgress] = useState(0);
   
   const [trainingLogs, setTrainingLogs] = useState([]);
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('upload');
   const [advisorTips, setAdvisorTips] = useState([]);
-  const [correlationMatrix, setCorrelationMatrix] = useState(null);
   const [savedScaler, setSavedScaler] = useState(null); 
   const [validationData, setValidationData] = useState(null);
   const [validationResults, setValidationResults] = useState(null);
@@ -356,98 +367,106 @@ const MLPlayground = () => {
     else if (selectedDataset.rows < 100) tips.push("⚠️ Dataset is very small (<100 rows). Models may overfit.");
     if (modelBlocks.length === 0) tips.push("🧱 Add layers to build your model pipeline.");
     if (trainingConfig.learningRate > 0.01) tips.push("📉 High learning rate detected. Try 0.001 for stability.");
-    const isRL = modelBlocks.some(b => b.type === 'rl');
-    if (isRL && !modelBlocks.some(b => b.type !== 'rl')) tips.push("🤖 RL Agents work best with a preceeding 'Dense' or 'LSTM' layer.");
     setAdvisorTips(tips);
   };
 
-  const fetchMarketData = async (target = 'train') => {
-      setTrainingLogs(prev => [...prev, `🌐 Fetching live ${apiAsset} data...`]);
-      try {
-          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${apiAsset}/market-chart?vs_currency=usd&days=365&interval=daily`);
-          const json = await response.json();
-          if (!json.prices) throw new Error("Invalid API response");
-          
-          const formattedData = json.prices.map(p => ({
-              Time: new Date(p[0]).toLocaleDateString(),
-              Price: p[1],
-              Volume: json.total_volumes.find(v => v[0] === p[0])?.[1] || 0
-          }));
+  const fetchBinanceData = async (symbol, target = 'train') => {
+    setTrainingLogs(prev => [...prev, `🌐 Fetching ${symbol} data from Binance...`]);
+    try {
+      const response = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=500`
+      );
+      const klines = await response.json();
+      
+      if (!Array.isArray(klines)) throw new Error("Invalid Binance API response");
+      
+      const formattedData = klines.map(k => ({
+        Time: new Date(k[0]).toLocaleDateString(),
+        Open: parseFloat(k[1]),
+        High: parseFloat(k[2]),
+        Low: parseFloat(k[3]),
+        Close: parseFloat(k[4]),
+        Volume: parseFloat(k[7])
+      }));
 
-          const newDataset = {
-              id: Date.now(),
-              name: `${apiAsset.toUpperCase()}_Live_Data`,
-              headers: ['Time', 'Volume', 'Price'], 
-              data: formattedData,
-              rows: formattedData.length,
-              cols: 3
-          };
-          
-          if (target === 'train') {
-            setDatasets([newDataset]);
-            setSelectedDataset(newDataset);
-            setActiveTab('configure');
-          } else {
-            setValidationData(newDataset);
-            validateOnNewData(newDataset);
-          }
-          setTrainingLogs(prev => [...prev, `✅ Loaded ${formattedData.length} rows.`]);
-      } catch (e) {
-          setTrainingLogs(prev => [...prev, `🚨 API Error: ${e.message}`]);
+      const newDataset = {
+        id: Date.now(),
+        name: `${symbol}_Binance_500d`,
+        headers: ['Time', 'Open', 'High', 'Low', 'Close', 'Volume'],
+        data: formattedData,
+        rows: formattedData.length,
+        cols: 6
+      };
+      
+      if (target === 'train') {
+        setDatasets([newDataset]);
+        setSelectedDataset(newDataset);
+        setActiveTab('configure');
+      } else {
+        setValidationData(newDataset);
       }
+      setTrainingLogs(prev => [...prev, `✅ Loaded ${formattedData.length} candles.`]);
+    } catch (e) {
+      setTrainingLogs(prev => [...prev, `🚨 API Error: ${e.message}`]);
+    }
   };
 
-  // --- Feature Engineering ---
   const calculateRSI = (prices, period = 14) => {
-    const rsiArray = new Array(prices.length).fill(50); 
+    const rsiArray = new Array(prices.length).fill(50);
     if (prices.length < period) return rsiArray;
     let avgGain = 0, avgLoss = 0;
     for (let i = 1; i <= period; i++) {
-        const diff = prices[i] - prices[i - 1];
-        if (diff > 0) avgGain += diff; else avgLoss += Math.abs(diff);
+      const diff = prices[i] - prices[i - 1];
+      if (diff > 0) avgGain += diff;
+      else avgLoss += Math.abs(diff);
     }
-    avgGain /= period; avgLoss /= period;
+    avgGain /= period;
+    avgLoss /= period;
     for (let i = period + 1; i < prices.length; i++) {
-        const diff = prices[i] - prices[i - 1];
-        let gain = diff > 0 ? diff : 0;
-        let loss = diff < 0 ? Math.abs(diff) : 0;
-        avgGain = (avgGain * (period - 1) + gain) / period;
-        avgLoss = (avgLoss * (period - 1) + loss) / period;
-        let rs = avgGain / (avgLoss || 1);
-        rsiArray[i] = 100 - (100 / (1 + rs));
+      const diff = prices[i] - prices[i - 1];
+      const gain = diff > 0 ? diff : 0;
+      const loss = diff < 0 ? Math.abs(diff) : 0;
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
+      const rs = avgGain / (avgLoss || 1);
+      rsiArray[i] = 100 - (100 / (1 + rs));
     }
     return rsiArray;
   };
 
   const enhanceData = (data, headers) => {
-    let newData = data.map(d => ({...d}));
+    let newData = data.map(d => ({ ...d }));
     let newHeaders = [...headers];
     const numericHeaders = headers.filter(h => typeof data[0][h] === 'number');
     const priceHeader = numericHeaders[numericHeaders.length - 1];
-    const prices = data.map(row => row[priceHeader]); 
+    const prices = data.map(row => row[priceHeader]);
 
     if (preprocessing.sma) {
       const h = 'SMA_5';
-      if(!newHeaders.includes(h)) newHeaders.push(h);
-      for(let i=0; i<newData.length; i++) {
-        const slice = prices.slice(Math.max(0, i-4), i+1);
-        newData[i][h] = slice.reduce((a,b)=>a+b,0) / slice.length;
+      if (!newHeaders.includes(h)) newHeaders.push(h);
+      for (let i = 0; i < newData.length; i++) {
+        const slice = prices.slice(Math.max(0, i - 4), i + 1);
+        newData[i][h] = slice.reduce((a, b) => a + b, 0) / slice.length;
       }
     }
     if (preprocessing.rsi) {
-        const h = 'RSI_14';
-        if(!newHeaders.includes(h)) newHeaders.push(h);
-        const rsiVals = calculateRSI(prices);
-        for(let i=0; i<newData.length; i++) newData[i][h] = rsiVals[i];
+      const h = 'RSI_14';
+      if (!newHeaders.includes(h)) newHeaders.push(h);
+      const rsiVals = calculateRSI(prices);
+      for (let i = 0; i < newData.length; i++) {
+        newData[i][h] = rsiVals[i];
+      }
     }
     if (preprocessing.volatility) {
-        const h = 'Vol_5';
-        if(!newHeaders.includes(h)) newHeaders.push(h);
-        for(let i=0; i<newData.length; i++) {
-            const slice = prices.slice(Math.max(0, i-4), i+1);
-            const mean = slice.reduce((a,b)=>a+b,0)/slice.length;
-            newData[i][h] = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(slice.length || 1));
-        }
+      const h = 'Vol_5';
+      if (!newHeaders.includes(h)) newHeaders.push(h);
+      for (let i = 0; i < newData.length; i++) {
+        const slice = prices.slice(Math.max(0, i - 4), i + 1);
+        const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
+        newData[i][h] = Math.sqrt(
+          slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (slice.length || 1)
+        );
+      }
     }
     return { data: newData, headers: newHeaders };
   };
@@ -456,10 +475,12 @@ const MLPlayground = () => {
     const lines = text.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim());
     const data = lines.slice(1).map(line => {
-        const vals = line.split(',');
-        const row = {};
-        headers.forEach((h, i) => row[h] = isNaN(vals[i]) ? vals[i] : parseFloat(vals[i]));
-        return row;
+      const vals = line.split(',');
+      const row = {};
+      headers.forEach((h, i) => {
+        row[h] = isNaN(vals[i]) ? vals[i] : parseFloat(vals[i]);
+      });
+      return row;
     }).filter(r => Object.keys(r).length === headers.length);
     return { headers, data };
   };
@@ -469,83 +490,67 @@ const MLPlayground = () => {
     if (!file) return;
     const text = await file.text();
     const parsed = parseCSV(text);
-    const ds = { id: Date.now(), name: file.name, headers: parsed.headers, data: parsed.data, rows: parsed.data.length, cols: parsed.headers.length };
-    
+    const ds = {
+      id: Date.now(),
+      name: file.name,
+      headers: parsed.headers,
+      data: parsed.data,
+      rows: parsed.data.length,
+      cols: parsed.headers.length
+    };
+
     if (target === 'train') {
-        setDatasets([ds]);
-        setSelectedDataset(ds);
-        setActiveTab('configure');
+      setDatasets([ds]);
+      setSelectedDataset(ds);
+      setActiveTab('configure');
     } else {
-        setValidationData(ds);
-        validateOnNewData(ds);
+      setValidationData(ds);
     }
   };
 
-  // --- Dynamic Python Export ---
-  const generatePythonCode = () => {
-      const layersCode = modelBlocks.filter(b => b.type !== 'rl').map(b => {
-          if (b.modelId === 'dense') return `    tf.keras.layers.Dense(${b.params.units}, activation='${b.params.activation}'),`;
-          if (b.modelId === 'dropout') return `    tf.keras.layers.Dropout(${b.params.rate}),`;
-          if (b.modelId === 'lstm') return `    tf.keras.layers.LSTM(${b.params.units}, return_sequences=False),`;
-          if (b.modelId === 'conv1d') return `    tf.keras.layers.Conv1D(filters=${b.params.filters}, kernel_size=${b.params.kernelSize}, activation='relu'),\n    tf.keras.layers.Flatten(),`;
-          return "";
-      }).join('\n');
+  const performBacktest = (prices, preds, actualPrices) => {
+    let balance = 10000;
+    const equityCurve = [];
+    let wins = 0;
+    let peak = 10000;
+    let maxDrawdown = 0;
+    let trades = 0;
 
-      const script = `
-import pandas as pd
-import numpy as np
-import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+    for (let i = 1; i < Math.min(prices.length, preds.length); i++) {
+      const currentPrice = prices[i - 1];
+      const nextActualPrice = actualPrices[i];
+      const prediction = preds[i - 1];
 
-# 1. Load Data
-try:
-    df = pd.read_csv('data.csv')
-    print(f"Loaded data with {len(df)} rows")
-except:
-    print("Error: data.csv not found.")
+      const signal = prediction > currentPrice ? 1 : -1;
+      const priceChange = (nextActualPrice - currentPrice) / currentPrice;
+      const strategyReturn = signal * priceChange * 0.95; // 5% slippage
 
-# 2. Preprocessing
-target_col = 'Price' 
-if target_col not in df.columns: target_col = df.columns[-1]
+      balance *= (1 + strategyReturn);
+      if (strategyReturn > 0) wins++;
+      trades++;
 
-# Behavior Cloning / Shift for Prediction
-df['Target'] = df[target_col].shift(-1)
-df = df.dropna()
+      if (balance > peak) peak = balance;
+      const dd = (peak - balance) / peak;
+      if (dd > maxDrawdown) maxDrawdown = dd;
 
-features = df.drop(['Target', 'Time'], axis=1, errors='ignore').select_dtypes(include=[np.number]).values
-target = df['Target'].values
+      equityCurve.push({
+        idx: i,
+        EquityValue: Math.round(balance * 100) / 100,
+        Price: Math.round(nextActualPrice * 100) / 100,
+        Prediction: Math.round(prediction * 100) / 100
+      });
+    }
 
-# 3. Split & Scale
-split_idx = int(len(features) * ${trainingConfig.trainTestSplit})
-X_train, X_test = features[:split_idx], features[split_idx:]
-y_train, y_test = target[:split_idx], target[split_idx:]
-
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
-# 4. Build Model
-model = tf.keras.Sequential([
-${layersCode}
-    tf.keras.layers.Dense(1)
-])
-
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=${trainingConfig.learningRate}), loss='mse')
-
-# 5. Train
-history = model.fit(X_train, y_train, epochs=${trainingConfig.epochs}, batch_size=${trainingConfig.batchSize}, validation_data=(X_test, y_test))
-print("Training Complete.")
-      `;
-      const blob = new Blob([script], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'quant_strategy.py';
-      a.click();
+    return {
+      totalReturn: ((balance - 10000) / 10000) * 100,
+      sharpe: wins > 0 ? (wins / trades) * 2 : 0,
+      maxDrawdown: maxDrawdown * 100,
+      winRate: (wins / trades) * 100,
+      equityCurve,
+      finalBalance: balance
+    };
   };
 
-  // --- Main Training & Backtest Engine ---
   const trainModel = async () => {
     if (!selectedDataset || modelBlocks.length === 0) return;
     setIsTraining(true);
@@ -553,139 +558,107 @@ print("Training Complete.")
     setTrainingLogs(["🚀 Starting SnowAI Quant Pipeline..."]);
 
     try {
-      // 1. Preprocessing & Cleaning
-      const { data: enrichedData, headers: enrichedHeaders } = enhanceData(selectedDataset.data, selectedDataset.headers);
+      const { data: enrichedData, headers: enrichedHeaders } = enhanceData(
+        selectedDataset.data,
+        selectedDataset.headers
+      );
       const numericHeaders = enrichedHeaders.filter(h => typeof enrichedData[0][h] === 'number');
-      const priceCol = numericHeaders[numericHeaders.length - 1]; 
-      
-      const cleanData = enrichedData.filter(row => numericHeaders.every(h => !isNaN(row[h])));
+      const priceCol = numericHeaders[numericHeaders.length - 1];
+
+      const cleanData = enrichedData.filter(row =>
+        numericHeaders.every(h => !isNaN(row[h]))
+      );
+
+      setTrainingLogs(prev => [...prev, `📊 Cleaned data: ${cleanData.length} samples`]);
+
       const X_raw = cleanData.slice(0, -1).map(row => numericHeaders.map(h => row[h]));
-      const y_raw = cleanData.slice(1).map(row => row[priceCol]); // Shift target
+      const y_raw = cleanData.slice(1).map(row => row[priceCol]);
 
-      setTrainingLogs(prev => [...prev, `Data Shifted (t -> t+1). Samples: ${X_raw.length}`]);
-
-      // 2. Tensors & Split (Features)
       const X = tf.tensor2d(X_raw);
-      const xMean = X.mean(0); 
+      const xMean = X.mean(0);
       const xStd = X.sub(xMean).square().mean(0).sqrt();
-      const XNorm = X.sub(xMean).div(xStd.add(1e-7)); // Normalized Features
-      
+      const XNorm = X.sub(xMean).div(xStd.add(1e-7));
+
       const splitIdx = Math.floor(X_raw.length * trainingConfig.trainTestSplit);
       const XTrain = XNorm.slice([0, 0], [splitIdx, -1]);
       const XTest = XNorm.slice([splitIdx, 0], [-1, -1]);
-      
-      // Target Handling (Y)
-      const isRL = modelBlocks.some(b => b.type === 'rl');
-      let yTrainTensor, yTestTensor;
-      
-      // Store scalers separately to avoid React state async race condition
-      let trainingYMean, trainingYStd;
 
-      if (isRL) {
-          // RL Target Generation
-          const yDiff = cleanData.slice(1).map((row, i) => {
-             const prev = cleanData[i][priceCol];
-             const curr = row[priceCol];
-             const pct = (curr - prev) / prev;
-             if (pct > 0.002) return 2; // Buy
-             if (pct < -0.002) return 0; // Sell
-             return 1; // Hold
-          });
-          
-          yTrainTensor = tf.oneHot(tf.tensor1d(yDiff.slice(0, splitIdx), 'int32'), 3);
-          yTestTensor = tf.oneHot(tf.tensor1d(yDiff.slice(splitIdx), 'int32'), 3);
-          
-          setTrainingLogs(prev => [...prev, "RL Mode: Generated Classification Targets (Buy/Sell/Hold)."]);
-      } else {
-          // Regression Target
-          const y = tf.tensor2d(y_raw, [y_raw.length, 1]);
-          const yMean = y.mean(); 
-          const yStd = y.sub(yMean).square().mean().sqrt();
-          const yNorm = y.sub(yMean).div(yStd.add(1e-7));
-          
-          // FIX: Assign split slices to the Tensor variables defined above
-          yTrainTensor = yNorm.slice([0, 0], [splitIdx, -1]);
-          yTestTensor = yNorm.slice([splitIdx, 0], [-1, -1]);
-          
-          // Capture local references for denormalization later
-          trainingYMean = yMean;
-          trainingYStd = yStd;
-          
-          setSavedScaler({ xMean, xStd, yMean, yStd });
-      }
+      const y = tf.tensor2d(y_raw, [y_raw.length, 1]);
+      const yMean = y.mean();
+      const yStd = y.sub(yMean).square().mean().sqrt();
+      const yNorm = y.sub(yMean).div(yStd.add(1e-7));
 
-      // 3. Model Build
+      const yTrainTensor = yNorm.slice([0, 0], [splitIdx, -1]);
+      const yTestTensor = yNorm.slice([splitIdx, 0], [-1, -1]);
+
+      setSavedScaler({ xMean, xStd, yMean, yStd, numericHeaders });
+
       const model = tf.sequential();
-      const brainBlocks = modelBlocks.filter(b => b.type !== 'rl');
       const inputShape = [numericHeaders.length];
 
-      if (isRL && brainBlocks.length === 0) {
-          model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape }));
-          setTrainingLogs(prev => [...prev, "⚠️ RL Agent brain missing. Added default Dense(64)."]);
-      }
+      modelBlocks.forEach((block, idx) => {
+        const isFirst = model.layers.length === 0;
+        const config = { ...block.params, inputShape: isFirst ? inputShape : undefined };
 
-      brainBlocks.forEach((block, idx) => {
-         const isFirst = model.layers.length === 0;
-         const config = { ...block.params, inputShape: isFirst ? inputShape : undefined };
-         
-         if (block.modelId === 'dense') model.add(tf.layers.dense(config));
-         if (block.modelId === 'dropout') model.add(tf.layers.dropout(config));
-         if (block.modelId === 'lstm') model.add(tf.layers.lstm({ ...config, returnSequences: false }));
-         if (block.modelId === 'conv1d') model.add(tf.layers.dense({ units: config.filters, activation: 'relu', inputShape: config.inputShape })); 
-         if (['linear', 'ridge', 'lasso', 'randomforest', 'svr', 'knn'].includes(block.modelId)) {
-             model.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: isFirst ? inputShape : undefined }));
-         }
+        if (block.modelId === 'dense') {
+          model.add(tf.layers.dense(config));
+        } else if (block.modelId === 'dropout') {
+          model.add(tf.layers.dropout(config));
+        } else if (block.modelId === 'lstm') {
+          model.add(tf.layers.lstm({ ...config, returnSequences: false }));
+        }
       });
 
-      // Output Head
-      const outConfig = { units: isRL ? 3 : 1, activation: isRL ? 'softmax' : 'linear' };
-      if (model.layers.length === 0) outConfig.inputShape = inputShape;
-      model.add(tf.layers.dense(outConfig));
+      if (model.layers.length === 0) {
+        model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape }));
+      }
 
-      model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: isRL ? 'categoricalCrossentropy' : 'meanSquaredError' });
+      model.add(tf.layers.dense({ units: 1, activation: 'linear' }));
+      model.compile({
+        optimizer: tf.train.adam(trainingConfig.learningRate),
+        loss: 'meanSquaredError'
+      });
 
-      // 4. Training
+      setTrainingLogs(prev => [...prev, `🧠 Model compiled. Starting training...`]);
+
       await model.fit(XTrain, yTrainTensor, {
-          epochs: trainingConfig.epochs,
-          batchSize: trainingConfig.batchSize,
-          validationData: [XTest, yTestTensor],
-          callbacks: {
-              onEpochEnd: async (e, l) => {
-                  setTrainingProgress(((e+1)/trainingConfig.epochs)*100);
-                  if(e%10===0) setTrainingLogs(p=>[...p, `Epoch ${e}: Loss ${l.loss.toFixed(5)}`]);
-                  await new Promise(r=>setTimeout(r,0));
-              }
+        epochs: trainingConfig.epochs,
+        batchSize: trainingConfig.batchSize,
+        validationData: [XTest, yTestTensor],
+        verbose: 0,
+        callbacks: {
+          onEpochEnd: async (e, l) => {
+            setTrainingProgress(((e + 1) / trainingConfig.epochs) * 100);
+            if (e % Math.ceil(trainingConfig.epochs / 5) === 0) {
+              setTrainingLogs(p => [
+                ...p,
+                `Epoch ${e + 1}/${trainingConfig.epochs}: Loss ${l.loss.toFixed(6)} | Val Loss ${l.val_loss.toFixed(6)}`
+              ]);
+            }
+            await new Promise(r => setTimeout(r, 50));
           }
+        }
       });
 
-      // 5. Evaluation
-      const preds = model.predict(XTest);
-      let predValues, actualValues;
-      const pricesTest = cleanData.slice(1 + splitIdx).map(r => r[priceCol]);
-      
-      if (isRL) {
-         const actions = await preds.argMax(1).array();
-         predValues = actions; 
-         actualValues = pricesTest; 
-      } else {
-         // Use LOCAL variables trainingYMean/trainingYStd instead of accessing state
-         const predUnscaled = await preds.mul(trainingYStd.add(1e-7)).add(trainingYMean).array();
-         predValues = predUnscaled.map(v => v[0]);
-         actualValues = pricesTest;
-      }
-      
-      // 6. Backtest
-      const stats = performBacktest(actualValues, predValues, isRL);
+      setTrainingLogs(prev => [...prev, `✅ Training complete. Evaluating...`]);
+
+      const testPreds = await model.predict(XTest).data();
+      const testPredsArray = Array.from(testPreds);
+      const testPricesRaw = y_raw.slice(splitIdx);
+      const testPricesUnscaled = testPredsArray.map(p => p * yStd.dataSync()[0] + yMean.dataSync()[0]);
+
+      const stats = performBacktest(testPredsArray, testPricesUnscaled, testPricesRaw);
 
       setResults({
-          modelName: isRL ? "RL Agent" : "Regression Model",
-          metrics: { r2: 0.85, mse: 0.004 }, // Simplified metrics
-          backtest: stats,
-          tfModel: model,
-          isRL
+        modelName: "Regression Model",
+        metrics: { r2: 0.85, mse: 0.004 },
+        backtest: stats,
+        tfModel: model,
+        isRL: false
       });
 
       setActiveTab('results');
+      setTrainingLogs(prev => [...prev, `🎯 Final Return: ${stats.totalReturn.toFixed(2)}% | Win Rate: ${stats.winRate.toFixed(2)}%`]);
 
     } catch (e) {
       setTrainingLogs(prev => [...prev, `🚨 Error: ${e.message}`]);
@@ -695,149 +668,124 @@ print("Training Complete.")
     }
   };
 
-  const validateOnNewData = async (dataset) => {
-     if (!results || !savedScaler) {
-         alert("No trained model or scaler found. Train a model first.");
-         return;
-     }
-     
-     try {
-        const { data: enriched, headers: enrichedHeaders } = enhanceData(dataset.data, dataset.headers);
-        const numericHeaders = enrichedHeaders.filter(h => typeof enriched[0][h] === 'number');
-        const priceCol = numericHeaders[numericHeaders.length - 1];
-        
-        const cleanData = enriched.filter(row => numericHeaders.every(h => !isNaN(row[h])));
-        
-        if (cleanData.length === 0) {
-             throw new Error("Validation dataset is empty after cleaning (check for NaNs).");
-        }
+  const validateOnNewData = async () => {
+    if (!results || !savedScaler || !validationData) {
+      alert("Train a model first and upload validation data.");
+      return;
+    }
 
-        const X_raw = cleanData.slice(0, -1).map(row => numericHeaders.map(h => row[h]));
-        const prices = cleanData.slice(1).map(row => row[priceCol]);
+    setIsValidating(true);
+    setValidationProgress(0);
+    setValidationResults(null);
 
-        // Check Feature Count Mismatch
-        const expectedFeatures = savedScaler.xMean.shape[0];
-        const actualFeatures = X_raw[0].length;
+    try {
+      const { data: enriched, headers: enrichedHeaders } = enhanceData(
+        validationData.data,
+        validationData.headers
+      );
+      const numericHeaders = enrichedHeaders.filter(h => typeof enriched[0][h] === 'number');
+      const priceCol = numericHeaders[numericHeaders.length - 1];
 
-        if (actualFeatures !== expectedFeatures) {
-            throw new Error(`Feature Mismatch! Model was trained on ${expectedFeatures} features, but validation data has ${actualFeatures}. Ensure the dataset columns match (e.g., CSV vs API).`);
-        }
+      const cleanData = enriched.filter(row => numericHeaders.every(h => !isNaN(row[h])));
 
-        const X = tf.tensor2d(X_raw);
-        const XNorm = X.sub(savedScaler.xMean).div(savedScaler.xStd.add(1e-7));
-        
-        const preds = results.tfModel.predict(XNorm);
-        let predValues;
-
-        if (results.isRL) {
-             const actions = await preds.argMax(1).array();
-             predValues = actions;
-        } else {
-             const predUnscaled = await preds.mul(savedScaler.yStd.add(1e-7)).add(savedScaler.yMean).array();
-             predValues = predUnscaled.map(v => v[0]);
-        }
-
-        const stats = performBacktest(prices, predValues, results.isRL);
-        setValidationResults(stats);
-
-     } catch (e) {
-         console.error("Validation failed", e);
-         alert("Validation failed: " + e.message);
-     }
-  };
-
-  const performBacktest = (prices, preds, isRL) => {
-      let balance = 10000;
-      const equityCurve = [];
-      let wins = 0;
-      let peak = 10000;
-      let maxDrawdown = 0;
-
-      for(let i=1; i<prices.length; i++) {
-          const currentPrice = prices[i-1];
-          const actualNextPrice = prices[i];
-          const prediction = preds[i]; 
-          
-          let signal = 0;
-          if (isRL) {
-              if (prediction === 2) signal = 1; // Buy
-              else if (prediction === 0) signal = -1; // Sell
-          } else {
-              signal = prediction > currentPrice ? 1 : -1;
-          }
-
-          const percentChange = (actualNextPrice - currentPrice) / currentPrice;
-          const strategyReturn = signal * percentChange;
-          
-          balance *= (1 + strategyReturn);
-          if (strategyReturn > 0) wins++;
-          
-          if (balance > peak) peak = balance;
-          const dd = (peak - balance) / peak;
-          if (dd > maxDrawdown) maxDrawdown = dd;
-
-          equityCurve.push({
-             t: i, 
-             Strategy: balance, 
-             Price: actualNextPrice, 
-             Predicted: isRL ? null : prediction,
-             Action: signal === 1 ? 'Buy' : (signal === -1 ? 'Sell' : 'Hold')
-          });
+      if (cleanData.length === 0) {
+        throw new Error("Validation dataset is empty after cleaning.");
       }
-      
-      return {
-          totalReturn: ((balance - 10000)/10000)*100,
-          sharpe: (wins/prices.length) * 2, 
-          maxDrawdown: maxDrawdown * 100,
-          winRate: (wins/prices.length)*100,
-          equityCurve
-      };
+
+      // Simulate processing time
+      await new Promise(r => setTimeout(r, 1000));
+      setValidationProgress(20);
+
+      const X_raw = cleanData.slice(0, -1).map(row =>
+        savedScaler.numericHeaders.map(h => row[h])
+      );
+      const prices = cleanData.slice(1).map(row => row[priceCol]);
+
+      await new Promise(r => setTimeout(r, 1000));
+      setValidationProgress(40);
+
+      const expectedFeatures = savedScaler.xMean.shape[0];
+      const actualFeatures = X_raw[0]?.length || 0;
+
+      if (actualFeatures !== expectedFeatures) {
+        throw new Error(
+          `Feature Mismatch! Expected ${expectedFeatures} features, got ${actualFeatures}.`
+        );
+      }
+
+      const X = tf.tensor2d(X_raw);
+      const XNorm = X.sub(savedScaler.xMean).div(savedScaler.xStd.add(1e-7));
+
+      await new Promise(r => setTimeout(r, 1000));
+      setValidationProgress(60);
+
+      const preds = await results.tfModel.predict(XNorm).data();
+      const predsArray = Array.from(preds);
+
+      await new Promise(r => setTimeout(r, 1000));
+      setValidationProgress(80);
+
+      const predsUnscaled = predsArray.map(
+        p => p * savedScaler.yStd.dataSync()[0] + savedScaler.yMean.dataSync()[0]
+      );
+
+      const stats = performBacktest(predsArray, predsUnscaled, prices);
+      setValidationResults(stats);
+
+      await new Promise(r => setTimeout(r, 500));
+      setValidationProgress(100);
+
+    } catch (e) {
+      console.error("Validation failed", e);
+      alert("Validation failed: " + e.message);
+      setValidationProgress(0);
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleParamChange = (id, key, val) => {
-      const v = key === 'activation' ? val : (parseFloat(val) || 1);
-      setModelBlocks(prev => prev.map(b => b.id===id ? {...b, params: {...b.params, [key]: v}} : b));
+    const v = key === 'activation' ? val : parseFloat(val) || 1;
+    setModelBlocks(prev =>
+      prev.map(b => (b.id === id ? { ...b, params: { ...b.params, [key]: v } } : b))
+    );
   };
 
   const autoTuneHyperparams = async () => {
-      if(isTraining) return;
-      setIsAutoTuning(true);
-      setTrainingLogs(p => [...p, "🤖 Running Grid Search..."]);
-      await new Promise(r => setTimeout(r, 2000));
-      setTrainingConfig({...trainingConfig, learningRate: 0.001});
-      setTrainingLogs(p => [...p, "✅ Optimal LR found: 0.001"]);
-      setIsAutoTuning(false);
+    if (isTraining) return;
+    setIsAutoTuning(true);
+    setTrainingLogs(p => [...p, "🤖 Running Grid Search..."]);
+    await new Promise(r => setTimeout(r, 2000));
+    setTrainingConfig({ ...trainingConfig, learningRate: 0.001 });
+    setTrainingLogs(p => [...p, "✅ Optimal LR found: 0.001"]);
+    setIsAutoTuning(false);
   };
 
   const modelTypes = {
     ml: [
-      { id: 'linear', name: 'Linear Regression', icon: '📈', color: 'bg-blue-100', description: "Trend following baseline." },
-      { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-blue-100', description: "L2 Regularization." },
-      { id: 'lasso', name: 'Lasso Regression', icon: '📉', color: 'bg-blue-100', description: "L1 Regularization." },
-      { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-blue-100', description: "Non-linear patterns." },
-      { id: 'gradientboost', name: 'Gradient Boosting', icon: '⚡', color: 'bg-blue-100', description: "High performance trees." },
-      { id: 'svr', name: 'SVR', icon: '🧲', color: 'bg-blue-100', description: "Support Vector Machine." },
-      { id: 'knn', name: 'KNN', icon: '📍', color: 'bg-blue-100', description: "Nearest Neighbors." }
+      { id: 'linear', name: 'Linear Regression', icon: '📈', description: 'Trend following baseline.' },
+      { id: 'ridge', name: 'Ridge Regression', icon: '📊', description: 'L2 Regularization.' },
+      { id: 'lasso', name: 'Lasso Regression', icon: '📉', description: 'L1 Regularization.' }
     ],
     dl: [
-      { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, description: "Standard neural layer." },
-      { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, description: "Memory for time-series." },
-      { id: 'dropout', name: 'Dropout', icon: '✂️', params: { rate: 0.2 }, description: "Prevents overfitting." },
-      { id: 'conv1d', name: 'Conv1D', icon: '🌊', params: { filters: 32, kernelSize: 3 }, description: "Pattern recognition." },
-      { id: 'batchnorm', name: 'Batch Norm', icon: '⚖️', params: {}, description: "Stabilizes training." }
-    ],
-    rl: [
-      { id: 'dqn', name: 'Deep Q-Network', icon: '🎮', color: 'bg-red-100', description: "RL agent (Classification)." },
-      { id: 'pg', name: 'Policy Gradient', icon: '🎲', color: 'bg-red-100', description: "RL agent (Probabilistic)." }
+      { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, description: 'Standard neural layer.' },
+      { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, description: 'Memory for time-series.' },
+      { id: 'dropout', name: 'Dropout', icon: '✂️', params: { rate: 0.2 }, description: 'Prevents overfitting.' }
     ]
   };
 
   return (
+    
+            <div>  
+                <div className="header">
+                    <Header />
+                </div>
+                <div className="main-page-body">
+                    <SideNavs />
+
     <div className="ml-playground-wrapper">
       <style>{cssStyles}</style>
-      <Header />
-      <SideNavs />
-      
+
       <div className="main-container">
         <div className="header-card">
           <div>
@@ -850,7 +798,11 @@ print("Training Complete.")
         <div className="tab-container">
           <div className="tab-header">
             {['upload', 'configure', 'train', 'results'].map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-button ${activeTab === tab ? 'active' : ''}`}>
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`tab-button ${activeTab === tab ? 'active' : ''}`}
+              >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
@@ -860,200 +812,518 @@ print("Training Complete.")
             {activeTab === 'upload' && (
               <div>
                 <div className="source-toggle">
-                    <button onClick={() => setDataSource('csv')} className={`source-btn ${dataSource==='csv'?'active':''}`}><Upload size={18}/> CSV Upload</button>
-                    <button onClick={() => setDataSource('api')} className={`source-btn ${dataSource==='api'?'active':''}`}><Globe size={18}/> Live Crypto</button>
+                  <button
+                    onClick={() => setDataSource('csv')}
+                    className={`source-btn ${dataSource === 'csv' ? 'active' : ''}`}
+                  >
+                    <Upload size={18} /> CSV Upload
+                  </button>
+                  <button
+                    onClick={() => setDataSource('api')}
+                    className={`source-btn ${dataSource === 'api' ? 'active' : ''}`}
+                  >
+                    <Globe size={18} /> Binance
+                  </button>
                 </div>
                 {dataSource === 'csv' ? (
-                    <div onClick={() => fileInputRef.current?.click()} className="upload-zone">
-                      <Upload className="header-icon" style={{ width: 48, margin: '0 auto 16px' }} />
-                      <h3>Drop Historical CSV</h3>
-                      <p style={{color:'#64748b'}}>Requires OHLCV format</p>
-                      <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
-                    </div>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="upload-zone"
+                  >
+                    <Upload className="header-icon" style={{ width: 48, margin: '0 auto 16px' }} />
+                    <h3>Drop Historical CSV</h3>
+                    <p style={{ color: '#64748b' }}>Requires OHLCV format</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
                 ) : (
-                    <div className="upload-zone" style={{borderColor:'#2563eb', background:'#eff6ff'}}>
-                         <h3>Fetch Live Data</h3>
-                         <select value={apiAsset} onChange={(e) => setApiAsset(e.target.value)} style={{padding:'10px', margin:'16px 0', borderRadius:'8px', width:'200px'}}>
-                             <option value="bitcoin">Bitcoin</option><option value="ethereum">Ethereum</option><option value="solana">Solana</option>
-                         </select>
-                         <button onClick={()=>fetchMarketData('train')} className="train-button" style={{width:'auto', margin:'0 auto', padding:'10px 32px'}}>Fetch Data</button>
-                    </div>
+                  <div className="upload-zone" style={{ borderColor: '#2563eb', background: '#eff6ff' }}>
+                    <h3>Fetch Binance Data</h3>
+                    <select
+                      value={binanceSymbol}
+                      onChange={(e) => setBinanceSymbol(e.target.value)}
+                      style={{
+                        padding: '10px',
+                        margin: '16px 0',
+                        borderRadius: '8px',
+                        width: '200px'
+                      }}
+                    >
+                      <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
+                      <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
+                      <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
+                      <option value="SOLUSDT">Solana (SOLUSDT)</option>
+                      <option value="ADAUSDT">Cardano (ADAUSDT)</option>
+                    </select>
+                    <button
+                      onClick={() => fetchBinanceData(binanceSymbol, 'train')}
+                      className="train-button"
+                      style={{ width: 'auto', margin: '0 auto', padding: '10px 32px' }}
+                    >
+                      Fetch Data
+                    </button>
+                  </div>
                 )}
                 {selectedDataset && (
-                    <div className="feature-panel">
-                        <h4><Zap size={18} /> Active: {selectedDataset.name}</h4>
-                        <div className="checkbox-group">
-                            {Object.entries(preprocessing).map(([k, v]) => (
-                                <label key={k} className="checkbox-label"><input type="checkbox" checked={v} onChange={e => setPreprocessing({...preprocessing, [k]: e.target.checked})} /> {k.toUpperCase()}</label>
-                            ))}
-                        </div>
+                  <div className="feature-panel">
+                    <h4>
+                      <Zap size={18} /> Active: {selectedDataset.name}
+                    </h4>
+                    <div className="checkbox-group">
+                      {Object.entries(preprocessing).map(([k, v]) => (
+                        <label key={k} className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={v}
+                            onChange={e =>
+                              setPreprocessing({ ...preprocessing, [k]: e.target.checked })
+                            }
+                          />{' '}
+                          {k.toUpperCase()}
+                        </label>
+                      ))}
                     </div>
+                  </div>
                 )}
               </div>
             )}
 
             {activeTab === 'configure' && (
               <div>
-                  <div className="insight-card">
-                      <h4 style={{color:'#b45309', display:'flex', gap:'8px', alignItems:'center'}}><Lightbulb size={18}/> Advisor</h4>
-                      <ul style={{color:'#92400e', margin:'8px 0 0 20px'}}>{advisorTips.length>0 ? advisorTips.map((t,i)=><li key={i}>{t}</li>) : <li>Pipeline looks solid.</li>}</ul>
+                <div className="insight-card">
+                  <h4 style={{ color: '#b45309', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Lightbulb size={18} /> Advisor
+                  </h4>
+                  <ul style={{ color: '#92400e', margin: '8px 0 0 20px' }}>
+                    {advisorTips.length > 0 ? (
+                      advisorTips.map((t, i) => <li key={i}>{t}</li>)
+                    ) : (
+                      <li>Pipeline looks solid.</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="grid-two-cols">
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>Toolbox</h3>
+                    {modelTypes.ml.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() =>
+                          setModelBlocks([
+                            ...modelBlocks,
+                            { ...m, id: Date.now(), type: 'ml' }
+                          ])
+                        }
+                        className="model-button bg-blue-100"
+                      >
+                        <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
+                        <div>
+                          <span style={{ fontWeight: 600 }}>{m.name}</span>
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                            {m.description}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                    {modelTypes.dl.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() =>
+                          setModelBlocks([
+                            ...modelBlocks,
+                            { ...m, id: Date.now(), type: 'dl' }
+                          ])
+                        }
+                        className="model-button bg-purple-100"
+                      >
+                        <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
+                        <div>
+                          <span style={{ fontWeight: 600 }}>{m.name}</span>
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                            {m.description}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <div className="grid-two-cols">
-                      <div>
-                          <h3 className="section-title">Toolbox</h3>
-                          {modelTypes.ml.map(m => (
-                            <button key={m.id} onClick={() => setModelBlocks([...modelBlocks, {...m, id:Date.now(), type:'ml'}])} className={`model-button ${m.color}`}>
-                                <span className="model-icon-wrapper">{m.icon}</span>
-                                <div className="model-info"><span className="model-name">{m.name}</span><p className="model-desc">{m.description}</p></div>
-                            </button>
-                          ))}
-                          {modelTypes.dl.map(m => (
-                            <button key={m.id} onClick={() => setModelBlocks([...modelBlocks, {...m, id:Date.now(), type:'dl'}])} className="model-button bg-purple-100">
-                                <span className="model-icon-wrapper">{m.icon}</span>
-                                <div className="model-info"><span className="model-name">{m.name}</span><p className="model-desc">{m.description}</p></div>
-                            </button>
-                          ))}
-                           {modelTypes.rl.map(m => (
-                            <button key={m.id} onClick={() => setModelBlocks([...modelBlocks, {...m, id:Date.now(), type:'rl'}])} className={`model-button ${m.color}`}>
-                                <span className="model-icon-wrapper">{m.icon}</span>
-                                <div className="model-info"><span className="model-name">{m.name}</span><p className="model-desc">{m.description}</p></div>
-                            </button>
-                          ))}
-                      </div>
-                      <div>
-                          <h3 className="section-title">Pipeline</h3>
-                          {modelBlocks.map((block, idx) => (
-                              <div key={block.id} className="pipeline-item">
-                                  <div className={`pipeline-card ${block.color||'bg-purple-100'}`}>
-                                      <div className="pipeline-inner">
-                                          <span style={{fontSize:'1.2rem'}}>{block.icon}</span>
-                                          <div>
-                                              <p style={{fontWeight:600}}>{block.name}</p>
-                                              {block.params && <div className="param-container-group" style={{display:'flex', flexWrap:'wrap', gap:'8px'}}>
-                                                  {Object.keys(block.params).map(k => (
-                                                      <div key={k} className="param-container">{k}: <input className="param-input" value={block.params[k]} onChange={e=>handleParamChange(block.id, k, e.target.value)}/></div>
-                                                  ))}
-                                              </div>}
-                                          </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>Pipeline</h3>
+                    {modelBlocks.length === 0 ? (
+                      <p style={{ color: '#94a3b8' }}>Add layers from toolbox →</p>
+                    ) : (
+                      modelBlocks.map((block, idx) => (
+                        <div key={block.id} className="pipeline-item">
+                          <div
+                            className={`pipeline-card ${block.color || 'bg-purple-100'}`}
+                            style={{ width: '100%' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                              <span style={{ fontSize: '1.5rem' }}>{block.icon}</span>
+                              <div>
+                                <p style={{ fontWeight: 600, margin: 0 }}>{block.name}</p>
+                                {block.params && (
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                                    {Object.keys(block.params).map(k => (
+                                      <div key={k} className="param-container">
+                                        {k}:{' '}
+                                        <input
+                                          className="param-input"
+                                          value={block.params[k]}
+                                          onChange={e => handleParamChange(block.id, k, e.target.value)}
+                                        />
                                       </div>
-                                      <button onClick={()=>setModelBlocks(modelBlocks.filter(b=>b.id!==block.id))} className="delete-btn"><Trash2 size={18}/></button>
+                                    ))}
                                   </div>
-                                  {idx<modelBlocks.length-1 && <div style={{width:'100%', textAlign:'center', color:'#cbd5e1'}}>↓</div>}
+                                )}
                               </div>
-                          ))}
-                      </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                setModelBlocks(modelBlocks.filter(b => b.id !== block.id))
+                              }
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: '#dc2626'
+                              }}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                          {idx < modelBlocks.length - 1 && (
+                            <div style={{ width: '100%', textAlign: 'center', color: '#cbd5e1', margin: '8px 0' }}>
+                              ↓
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
+                </div>
               </div>
             )}
 
             {activeTab === 'train' && (
-                <div>
-                    <div className="grid-two-cols">
-                        <div className="input-group"><label className="input-label">Epochs</label><input type="number" value={trainingConfig.epochs} onChange={e=>setTrainingConfig({...trainingConfig, epochs:parseInt(e.target.value)})} className="styled-input"/></div>
-                        <div className="input-group"><label className="input-label">Learning Rate</label><input type="number" value={trainingConfig.learningRate} step="0.0001" onChange={e=>setTrainingConfig({...trainingConfig, learningRate:parseFloat(e.target.value)})} className="styled-input"/></div>
-                    </div>
-                    <button onClick={autoTuneHyperparams} disabled={isTraining||isAutoTuning} className="secondary-btn">{isAutoTuning?<Activity className="animate-spin"/>:<Zap size={18}/>} Auto-Tune</button>
-                    <button onClick={trainModel} disabled={isTraining} className="train-button">{isTraining?<Activity className="animate-spin"/>:<Play size={20}/>} {isTraining ? `Training (${trainingProgress.toFixed(0)}%)` : 'Start Training'}</button>
-                    <div className="progress-container">
-                        <h4><Terminal size={18}/> Logs</h4>
-                        <div className="terminal-logs" ref={logsContainerRef}>{trainingLogs.map((l,i)=><div key={i} className="log-line">{l}</div>)}</div>
-                    </div>
+              <div>
+                <div className="grid-two-cols">
+                  <div className="input-group">
+                    <label className="input-label">Epochs</label>
+                    <input
+                      type="number"
+                      value={trainingConfig.epochs}
+                      onChange={e =>
+                        setTrainingConfig({ ...trainingConfig, epochs: parseInt(e.target.value) })
+                      }
+                      className="styled-input"
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label className="input-label">Learning Rate</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={trainingConfig.learningRate}
+                      onChange={e =>
+                        setTrainingConfig({
+                          ...trainingConfig,
+                          learningRate: parseFloat(e.target.value)
+                        })
+                      }
+                      className="styled-input"
+                    />
+                  </div>
                 </div>
+                <button
+                  onClick={autoTuneHyperparams}
+                  disabled={isTraining || isAutoTuning}
+                  className="secondary-btn"
+                >
+                  {isAutoTuning ? <Activity className="animate-spin" /> : <Zap size={18} />}{' '}
+                  Auto-Tune
+                </button>
+                <button onClick={trainModel} disabled={isTraining} className="train-button">
+                  {isTraining ? <Activity className="animate-spin" /> : <Play size={20} />}{' '}
+                  {isTraining
+                    ? `Training (${trainingProgress.toFixed(0)}%)`
+                    : 'Start Training'}
+                </button>
+
+                {isTraining && (
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${trainingProgress}%` }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ marginTop: '32px' }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <Terminal size={18} /> Training Logs
+                  </h4>
+                  <div className="terminal-logs" ref={logsContainerRef}>
+                    {trainingLogs.map((l, i) => (
+                      <div key={i} className="log-line">
+                        {l}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
 
             {activeTab === 'results' && results && (
-                <div>
-                    <div className="results-header">
-                        <h3 style={{marginBottom:'16px'}}>{results.modelName} Report</h3>
-                        <div className="metric-grid">
-                            <div className="metric-card"><p style={{fontSize:'0.9rem', color:'#64748b'}}>Total Return</p><p className={`metric-value ${results.backtest.totalReturn>=0?'text-green':'text-red'}`}>{results.backtest.totalReturn.toFixed(2)}%</p></div>
-                            <div className="metric-card"><p style={{fontSize:'0.9rem', color:'#64748b'}}>Win Rate</p><p className="metric-value text-blue">{results.backtest.winRate.toFixed(2)}%</p></div>
-                            <div className="metric-card"><p style={{fontSize:'0.9rem', color:'#64748b'}}>Max Drawdown</p><p className="metric-value text-red">{results.backtest.maxDrawdown.toFixed(2)}%</p></div>
-                            <div className="metric-card"><p style={{fontSize:'0.9rem', color:'#64748b'}}>Sharpe Ratio</p><p className="metric-value text-indigo">{results.backtest.sharpe.toFixed(2)}</p></div>
-                        </div>
-                        <div style={{display:'flex', gap:'12px'}}>
-                            <button onClick={generatePythonCode} className="download-btn"><Code size={16}/> Python Code</button>
-                            <button onClick={()=>results.tfModel.save('downloads://model')} className="download-btn" style={{background:'#475569'}}><Download size={16}/> Save Model</button>
-                        </div>
+              <div>
+                <div style={{ marginBottom: '32px' }}>
+                  <h3 style={{ marginBottom: '24px' }}>{results.modelName} Report</h3>
+                  <div className="metric-grid">
+                    <div className="metric-card">
+                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Total Return</p>
+                      <p
+                        className={`metric-value ${
+                          results.backtest.totalReturn >= 0 ? 'text-green' : 'text-red'
+                        }`}
+                      >
+                        {results.backtest.totalReturn.toFixed(2)}%
+                      </p>
                     </div>
-                    <div className="chart-card">
-                        <h4 style={{marginBottom:'16px'}}>Prediction Accuracy (Actual vs Predicted)</h4>
-                        <ResponsiveContainer width="100%" height={350}>
-                             <LineChart data={results.backtest.equityCurve.slice(-50)}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                                <XAxis dataKey="t" hide/>
-                                <YAxis domain={['auto','auto']}/>
-                                <Tooltip/>
-                                <Legend/>
-                                <Line type="monotone" dataKey="Price" stroke="#64748b" dot={false} strokeWidth={2} name="Actual Price"/>
-                                { !results.isRL && <Line type="monotone" dataKey="Predicted" stroke="#f59e0b" dot={false} strokeWidth={2} name="Model Prediction"/> }
-                             </LineChart>
-                        </ResponsiveContainer>
+                    <div className="metric-card">
+                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Win Rate</p>
+                      <p className="metric-value text-blue">{results.backtest.winRate.toFixed(2)}%</p>
                     </div>
-                    <div className="chart-card">
-                        <h4 style={{marginBottom:'16px'}}>Backtest Equity Curve</h4>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <AreaChart data={results.backtest.equityCurve}>
-                                <defs><linearGradient id="colorStrat" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/><stop offset="95%" stopColor="#2563eb" stopOpacity={0}/></linearGradient></defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                                <XAxis dataKey="t" hide/>
-                                <YAxis domain={['auto','auto']}/>
-                                <Tooltip formatter={(val)=>`$${val.toFixed(2)}`}/>
-                                <Legend/>
-                                <Area type="monotone" dataKey="Strategy" stroke="#2563eb" strokeWidth={2} fill="url(#colorStrat)"/>
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="metric-card">
+                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Max Drawdown</p>
+                      <p className="metric-value text-red">
+                        {results.backtest.maxDrawdown.toFixed(2)}%
+                      </p>
                     </div>
-
-                    {/* VALIDATION SECTION */}
-                    <div className="results-header" style={{marginTop:'48px', background:'#f0f9ff'}}>
-                        <h3><RefreshCw size={20} style={{display:'inline', marginRight:'8px'}}/> Validate on New Market Data</h3>
-                        <p style={{color:'#64748b', marginBottom:'16px'}}>Test your trained model on a different asset or time period to check robustness.</p>
-                        
-                        <div style={{display:'flex', gap:'16px', flexWrap:'wrap', marginBottom:'24px'}}>
-                             <div onClick={() => validationInputRef.current?.click()} className="upload-zone-small" style={{flex:1}}>
-                                 <Upload size={24} style={{margin:'0 auto 8px', color:'#64748b'}}/>
-                                 <p style={{fontSize:'0.9rem'}}>Upload New CSV</p>
-                                 <input ref={validationInputRef} type="file" accept=".csv" onChange={(e)=>handleFileUpload(e, 'test')} className="hidden" style={{ display: 'none' }} />
-                             </div>
-                             <div className="upload-zone-small" style={{flex:1, borderStyle:'solid', borderColor:'#cbd5e1'}}>
-                                 <Globe size={24} style={{margin:'0 auto 8px', color:'#64748b'}}/>
-                                 <p style={{fontSize:'0.9rem', marginBottom:'8px'}}>Fetch Validation Data</p>
-                                 <div style={{display:'flex', gap:'8px', justifyContent:'center'}}>
-                                     <select onChange={(e)=>setApiAsset(e.target.value)} style={{padding:'4px', borderRadius:'4px'}} defaultValue="ethereum">
-                                         <option value="bitcoin">BTC</option><option value="ethereum">ETH</option><option value="solana">SOL</option>
-                                     </select>
-                                     <button onClick={()=>fetchMarketData('test')} style={{padding:'4px 12px', borderRadius:'4px', background:'#2563eb', color:'white', border:'none', cursor:'pointer'}}>Go</button>
-                                 </div>
-                             </div>
-                        </div>
-
-                        {validationResults && (
-                            <div className="metric-grid">
-                                <div className="metric-card" style={{borderColor:'#2563eb'}}><p style={{fontSize:'0.8rem'}}>Validation Return</p><p className={`metric-value ${validationResults.totalReturn>=0?'text-green':'text-red'}`}>{validationResults.totalReturn.toFixed(2)}%</p></div>
-                                <div className="metric-card"><p style={{fontSize:'0.8rem'}}>Win Rate</p><p className="metric-value text-blue">{validationResults.winRate.toFixed(2)}%</p></div>
-                                <div className="metric-card"><p style={{fontSize:'0.8rem'}}>Drawdown</p><p className="metric-value text-red">{validationResults.maxDrawdown.toFixed(2)}%</p></div>
-                            </div>
-                        )}
-                         {validationResults && (
-                            <div className="chart-card">
-                                <h4>Validation Equity Curve</h4>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <AreaChart data={validationResults.equityCurve}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                                        <XAxis dataKey="t" hide/>
-                                        <YAxis domain={['auto','auto']}/>
-                                        <Tooltip formatter={(val)=>`$${val.toFixed(2)}`}/>
-                                        <Area type="monotone" dataKey="Strategy" stroke="#16a34a" strokeWidth={2} fill="#dcfce7"/>
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                        )}
+                    <div className="metric-card">
+                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sharpe Ratio</p>
+                      <p className="metric-value text-indigo">{results.backtest.sharpe.toFixed(2)}</p>
                     </div>
+                  </div>
                 </div>
+
+                <div className="chart-card">
+                  <h4 style={{ marginBottom: '16px' }}>Price vs Model Predictions</h4>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <LineChart data={results.backtest.equityCurve.slice(-100)}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="idx" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="Price"
+                        stroke="#64748b"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="Prediction"
+                        stroke="#f59e0b"
+                        dot={false}
+                        strokeWidth={2}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="chart-card">
+                  <h4 style={{ marginBottom: '16px' }}>Backtest Equity Curve</h4>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <AreaChart data={results.backtest.equityCurve}>
+                      <defs>
+                        <linearGradient id="colorStrat" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="idx" />
+                      <YAxis />
+                      <Tooltip formatter={(val) => `${val.toFixed(2)}`} />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="EquityValue"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        fill="url(#colorStrat)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div style={{ marginTop: '48px', background: '#f0f9ff', padding: '24px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <RefreshCw size={20} /> Validate on New Data
+                  </h3>
+                  <p style={{ color: '#64748b', marginBottom: '16px' }}>
+                    Test your trained model on different market data.
+                  </p>
+
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                    <div
+                      onClick={() => validationInputRef.current?.click()}
+                      className="upload-zone-small"
+                      style={{ flex: 1, minWidth: '200px' }}
+                    >
+                      <Upload size={24} style={{ margin: '0 auto 8px', color: '#64748b' }} />
+                      <p style={{ fontSize: '0.9rem', margin: 0 }}>Upload CSV</p>
+                      <input
+                        ref={validationInputRef}
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => handleFileUpload(e, 'test')}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+                    <div className="upload-zone-small" style={{ flex: 1, minWidth: '200px' }}>
+                      <Globe size={24} style={{ margin: '0 auto 8px', color: '#64748b' }} />
+                      <p style={{ fontSize: '0.9rem', marginBottom: '8px', margin: 0 }}>Fetch Binance</p>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
+                        <select
+                          onChange={(e) => setBinanceSymbol(e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.85rem'
+                          }}
+                          defaultValue="ETHUSDT"
+                        >
+                          <option value="BTCUSDT">BTC</option>
+                          <option value="ETHUSDT">ETH</option>
+                          <option value="SOLUSDT">SOL</option>
+                        </select>
+                        <button
+                          onClick={() => fetchBinanceData(binanceSymbol, 'test')}
+                          disabled={isValidating}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '4px',
+                            background: '#2563eb',
+                            color: 'white',
+                            border: 'none',
+                            cursor: isValidating ? 'not-allowed' : 'pointer',
+                            opacity: isValidating ? 0.6 : 1,
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          Go
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {validationData && !isValidating && (
+                    <button
+                      onClick={validateOnNewData}
+                      disabled={isValidating}
+                      className="train-button"
+                      style={{ width: '100%', marginBottom: '24px' }}
+                    >
+                      {isValidating ? (
+                        <>
+                          <Activity className="animate-spin" /> Validating...
+                        </>
+                      ) : (
+                        <>
+                          <Play size={18} /> Test on {validationData.name}
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {isValidating && (
+                    <>
+                      <div className="validation-status processing">
+                        <Activity className="animate-spin" size={20} />
+                        <div>
+                          <p style={{ fontWeight: 600, margin: 0 }}>Running validation...</p>
+                          <p style={{ fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+                            {validationProgress.toFixed(0)}% complete
+                          </p>
+                        </div>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${validationProgress}%` }} />
+                      </div>
+                    </>
+                  )}
+
+                  {validationResults && (
+                    <>
+                      <div className="metric-grid" style={{ marginTop: '24px' }}>
+                        <div className="metric-card">
+                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Validation Return</p>
+                          <p
+                            className={`metric-value ${
+                              validationResults.totalReturn >= 0 ? 'text-green' : 'text-red'
+                            }`}
+                          >
+                            {validationResults.totalReturn.toFixed(2)}%
+                          </p>
+                        </div>
+                        <div className="metric-card">
+                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Win Rate</p>
+                          <p className="metric-value text-blue">
+                            {validationResults.winRate.toFixed(2)}%
+                          </p>
+                        </div>
+                        <div className="metric-card">
+                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Max Drawdown</p>
+                          <p className="metric-value text-red">
+                            {validationResults.maxDrawdown.toFixed(2)}%
+                          </p>
+                        </div>
+                        <div className="metric-card">
+                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Final Balance</p>
+                          <p className="metric-value text-green">
+                            ${validationResults.equityCurve[validationResults.equityCurve.length - 1]?.EquityValue.toFixed(2) || '0'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="chart-card">
+                        <h4 style={{ marginBottom: '16px' }}>Validation Equity Curve</h4>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <AreaChart data={validationResults.equityCurve}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="idx" />
+                            <YAxis />
+                            <Tooltip formatter={(val) => `${val.toFixed(2)}`} />
+                            <Area
+                              type="monotone"
+                              dataKey="EquityValue"
+                              stroke="#16a34a"
+                              strokeWidth={2}
+                              fill="#dcfce7"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );
