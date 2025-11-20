@@ -6,8 +6,8 @@ import Cookies from 'js-cookie';
 export default function AICouncil() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
-    const [availableCurrencies, setAvailableCurrencies] = useState([]);
-    const [selectedCurrencies, setSelectedCurrencies] = useState([]);
+    const [availableAssets, setAvailableAssets] = useState({});
+    const [selectedAssets, setSelectedAssets] = useState([]);
     const [watchedAssets, setWatchedAssets] = useState([]);
     const [traderAnalyses, setTraderAnalyses] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -16,14 +16,28 @@ export default function AICouncil() {
     const [selectedAssetForAnalysis, setSelectedAssetForAnalysis] = useState('');
     const [runningAnalysis, setRunningAnalysis] = useState(false);
 
-    const currencyPairs = [
-        'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD',
-        'NZDUSD', 'EURJPY', 'GBPJPY', 'EURGBP', 'AUDJPY', 'EURAUD',
-        'USDCNH', 'GBPAUD', 'EURCHF', 'AUDCAD', 'GBPCAD', 'EURCAD'
-    ];
+    const assetCategories = {
+        'Forex Pairs': [
+            'EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD',
+            'NZDUSD', 'EURJPY', 'GBPJPY', 'EURGBP', 'AUDJPY', 'EURAUD',
+            'USDCNH', 'GBPAUD', 'EURCHF', 'AUDCAD', 'GBPCAD', 'EURCAD'
+        ],
+        'US Stocks': [
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'JPMC',
+            'BRK.B', 'JNJ', 'V', 'WMT', 'PG', 'DIS', 'NFLX', 'ADBE'
+        ],
+        'Indices': [
+            'SPY', 'QQQ', 'IWM', 'DIA', 'VTI', 'EEM', 'FXI', 'FTSE', 
+            'DAX', 'CAC40', 'NIKKEI', 'HSI'
+        ],
+        'Commodities': [
+            'XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD', 'CRUDEOIL', 'NATGAS',
+            'COPPER', 'WHEAT', 'CORN', 'SOYBEANS'
+        ]
+    };
 
     useEffect(() => {
-        setAvailableCurrencies(currencyPairs);
+        setAvailableAssets(assetCategories);
         fetchWatchedAssets();
         fetchTraderAnalyses();
     }, []);
@@ -67,21 +81,21 @@ export default function AICouncil() {
         }
     };
 
-    const addCurrencyToWatch = async (currency) => {
+    const addAssetToWatch = async (asset) => {
         try {
             const response = await fetch(`${baseUrl}/api/add-trading-asset-to-watch/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ asset: currency })
+                body: JSON.stringify({ asset: asset })
             });
             
             if (response.ok) {
                 fetchWatchedAssets();
-                setSelectedCurrencies([]);
+                setSelectedAssets([]);
             } else {
-                setError('Failed to add currency to watch list');
+                setError('Failed to add asset to watch list');
             }
         } catch (error) {
             setError('Network error occurred');
@@ -194,13 +208,22 @@ export default function AICouncil() {
             color: '#1e40af',
             marginBottom: '16px'
         },
-        currencyGrid: {
+        categoryTitle: {
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151',
+            marginTop: '20px',
+            marginBottom: '12px',
+            paddingBottom: '8px',
+            borderBottom: '2px solid #e5e7eb'
+        },
+        assetGrid: {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
             gap: '8px',
-            marginBottom: '20px'
+            marginBottom: '8px'
         },
-        currencyButton: {
+        assetButton: {
             padding: '8px 12px',
             fontSize: '12px',
             borderRadius: '6px',
@@ -211,7 +234,7 @@ export default function AICouncil() {
             transition: 'all 0.2s ease',
             textAlign: 'center'
         },
-        currencyButtonSelected: {
+        assetButtonSelected: {
             backgroundColor: '#1e40af',
             color: 'white',
             borderColor: '#1e40af'
@@ -445,12 +468,12 @@ export default function AICouncil() {
                 min-width: unset !important;
             }
             
-            .currency-grid {
+            .asset-grid {
                 grid-template-columns: repeat(3, 1fr) !important;
                 gap: 6px !important;
             }
             
-            .currency-button {
+            .asset-button {
                 padding: 6px 8px !important;
                 font-size: 11px !important;
             }
@@ -539,11 +562,11 @@ export default function AICouncil() {
                 border-radius: 8px !important;
             }
             
-            .currency-grid {
+            .asset-grid {
                 grid-template-columns: repeat(2, 1fr) !important;
             }
             
-            .currency-button {
+            .asset-button {
                 font-size: 10px !important;
                 padding: 4px 6px !important;
             }
@@ -580,54 +603,59 @@ export default function AICouncil() {
                         </div>
                     )}
 
-                    {/* Currency Selection Section */}
+                    {/* Asset Selection Section */}
                     <div className="card" style={styles.card}>
-                        <h6 style={styles.cardTitle}>Select Currency Pairs to Analyze</h6>
+                        <h6 style={styles.cardTitle}>Select Assets to Analyze</h6>
                         
-                        <div className="currency-grid" style={styles.currencyGrid}>
-                            {availableCurrencies.map(currency => (
-                                <button
-                                    key={currency}
-                                    className="currency-button"
-                                    onClick={() => {
-                                        if (selectedCurrencies.includes(currency)) {
-                                            setSelectedCurrencies(prev => prev.filter(c => c !== currency));
-                                        } else {
-                                            setSelectedCurrencies(prev => [...prev, currency]);
-                                        }
-                                    }}
-                                    style={{
-                                        ...styles.currencyButton,
-                                        ...(selectedCurrencies.includes(currency) ? styles.currencyButtonSelected : {})
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!selectedCurrencies.includes(currency)) {
-                                            e.target.style.backgroundColor = '#eff6ff';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!selectedCurrencies.includes(currency)) {
-                                            e.target.style.backgroundColor = 'white';
-                                        }
-                                    }}
-                                >
-                                    {currency}
-                                </button>
-                            ))}
-                        </div>
+                        {Object.entries(availableAssets).map(([category, assets]) => (
+                            <div key={category}>
+                                <div style={styles.categoryTitle}>{category}</div>
+                                <div className="asset-grid" style={styles.assetGrid}>
+                                    {assets.map(asset => (
+                                        <button
+                                            key={asset}
+                                            className="asset-button"
+                                            onClick={() => {
+                                                if (selectedAssets.includes(asset)) {
+                                                    setSelectedAssets(prev => prev.filter(a => a !== asset));
+                                                } else {
+                                                    setSelectedAssets(prev => [...prev, asset]);
+                                                }
+                                            }}
+                                            style={{
+                                                ...styles.assetButton,
+                                                ...(selectedAssets.includes(asset) ? styles.assetButtonSelected : {})
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!selectedAssets.includes(asset)) {
+                                                    e.target.style.backgroundColor = '#eff6ff';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!selectedAssets.includes(asset)) {
+                                                    e.target.style.backgroundColor = 'white';
+                                                }
+                                            }}
+                                        >
+                                            {asset}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
 
-                        {selectedCurrencies.length > 0 && (
+                        {selectedAssets.length > 0 && (
                             <div className="add-buttons-container" style={styles.addButtonsContainer}>
-                                {selectedCurrencies.map(currency => (
+                                {selectedAssets.map(asset => (
                                     <button
-                                        key={`add-${currency}`}
+                                        key={`add-${asset}`}
                                         className="add-button"
-                                        onClick={() => addCurrencyToWatch(currency)}
+                                        onClick={() => addAssetToWatch(asset)}
                                         style={styles.addButton}
                                         onMouseEnter={(e) => e.target.style.backgroundColor = '#047857'}
                                         onMouseLeave={(e) => e.target.style.backgroundColor = '#059669'}
                                     >
-                                        Add {currency} to Watch
+                                        Add {asset} to Watch
                                     </button>
                                 ))}
                             </div>
@@ -639,7 +667,7 @@ export default function AICouncil() {
                         <h6 style={styles.cardTitle}>Watched Assets</h6>
                         
                         {watchedAssets.length === 0 ? (
-                            <p style={styles.emptyState}>No assets being watched. Select currencies above to start analyzing.</p>
+                            <p style={styles.emptyState}>No assets being watched. Select assets above to start analyzing.</p>
                         ) : (
                             <div className="watched-assets-grid" style={styles.watchedAssetsGrid}>
                                 {watchedAssets.map(asset => (
