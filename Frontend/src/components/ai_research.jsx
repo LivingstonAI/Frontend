@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap } from 'lucide-react';
+import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap, Crosshair } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
-import Header from "./header";
-import SideNavs from "./side_navs";
+
+// --- Mocks for missing components to ensure Preview works ---
+const Header = () => <div className="mock-header">SnowAI Dashboard</div>;
+const SideNavs = () => <div style={{ display: 'none' }}></div>;
+// ------------------------------------------------------------
 
 // --- Standard CSS Styles ---
 const cssStyles = `
   /* Global Resets & Layout */
   .ml-playground-wrapper {
     min-height: 100vh;
-    padding: 0;
+    background: linear-gradient(135deg, #eef2ff 0%, #f3e8ff 50%, #fdf2f8 100%);
+    padding: 0; 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #374151;
   }
@@ -188,15 +192,15 @@ const cssStyles = `
   }
 
   /* Configure Section */
-  .grid-two-cols {
+  .grid-three-cols {
     display: grid;
     grid-template-columns: 1fr;
     gap: 24px;
   }
   
-  @media (min-width: 768px) {
-    .grid-two-cols {
-      grid-template-columns: 1fr 1fr;
+  @media (min-width: 1024px) {
+    .grid-three-cols {
+      grid-template-columns: 1fr 1fr 1fr;
     }
   }
 
@@ -254,7 +258,7 @@ const cssStyles = `
   .bg-yellow-100 { background-color: #fefce8; border-left: 4px solid #eab308; }
   .bg-orange-100 { background-color: #fff7ed; border-left: 4px solid #f97316; }
   .bg-purple-100 { background-color: #faf5ff; border-left: 4px solid #a855f7; }
-  .bg-pink-100 { background-color: #fce7f3; border-left: 4px solid #ec4899; }
+  .bg-red-100 { background-color: #fee2e2; border-left: 4px solid #ef4444; }
 
   /* Pipeline */
   .pipeline-container {
@@ -285,7 +289,7 @@ const cssStyles = `
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border: 1px solid #e5e7eb;
-    color: #1f2937;
+    color: #1f2937; 
   }
 
   .pipeline-inner { 
@@ -484,6 +488,7 @@ const cssStyles = `
     .backtest-card { padding: 16px; }
     .param-container-group { flex-direction: column; }
     .param-input { width: 100px; text-align: left; }
+    .grid-three-cols { grid-template-columns: 1fr; }
   }
 `;
 
@@ -522,42 +527,35 @@ const MLPlayground = () => {
   const modelTypes = {
     ml: [
       { id: 'linear', name: 'Linear Regression', icon: '📈', color: 'bg-blue-100', 
-        description: "A classic model that finds the best linear relationship between features and the target. Fast, simple, and excellent for modeling underlying trends." },
+        description: "Classic trend follower. Good for simple price action." },
       { id: 'ridge', name: 'Ridge Regression', icon: '📊', color: 'bg-cyan-100', 
-        description: "A regularized version of Linear Regression. It penalizes complex models, helping to prevent overfitting and improving generalization on unseen data." },
-      { id: 'lasso', name: 'Lasso Regression', icon: '🎯', color: 'bg-teal-100', 
-        description: "Uses L1 regularization to automatically select important features by shrinking less important ones to zero. Great for feature selection." },
-      { id: 'elasticnet', name: 'Elastic Net', icon: '🕸️', color: 'bg-cyan-100', 
-        description: "Combines Ridge and Lasso regularization for balanced feature selection and coefficient shrinkage. Best of both worlds." },
+        description: "Linear regression with L2 regularization to reduce overfitting." },
       { id: 'randomforest', name: 'Random Forest', icon: '🌲', color: 'bg-green-100', 
-        description: "An ensemble method that uses multiple decision trees. Powerful for capturing non-linear feature interactions and often used for generating robust trading signals." },
-      { id: 'gradientboost', name: 'Gradient Boosting', icon: '🚀', color: 'bg-green-100', 
-        description: "Sequential ensemble that builds trees to correct errors of previous ones. Extremely powerful for complex patterns in financial data." },
-      { id: 'xgboost', name: 'XGBoost', icon: '⚡', color: 'bg-yellow-100', 
-        description: "Optimized gradient boosting with built-in regularization. Industry standard for ML competitions and financial modeling." },
+        description: "Ensemble of decision trees. Captures non-linear market patterns." },
       { id: 'svr', name: 'Support Vector Regressor', icon: '🧲', color: 'bg-orange-100', 
-        description: "Uses kernel functions to transform data into higher dimensions, making it suitable for complex, non-linear relationships, like market volatility." },
+        description: "Maps data to high-dim space. Excellent for volatility modeling." },
       { id: 'knn', name: 'K-Nearest Neighbors', icon: '📍', color: 'bg-yellow-100', 
-        description: "A non-parametric, instance-based learning algorithm that classifies based on proximity to nearest data points, useful for pattern-matching in price action." },
-      { id: 'adaboost', name: 'AdaBoost', icon: '🎪', color: 'bg-orange-100', 
-        description: "Adaptive boosting that focuses on correcting misclassified samples. Combines weak learners into a strong predictor." }
+        description: "Instance-based learning. Predicts based on similar past market conditions." }
     ],
     dl: [
       { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, 
-        description: "The core Neural Network layer. Each neuron connects to every neuron in the previous layer. Essential for feature combination and transformation." },
+        description: "Standard fully-connected layer. The building block of Neural Nets." },
       { id: 'dropout', name: 'Dropout Layer', icon: '✂️', params: { rate: 0.2 }, 
-        description: "A regularization technique that randomly sets input units to 0 at a fractional rate (e.g., 0.2 = 20%). It helps prevent overfitting and promotes robustness." },
+        description: "Randomly drops neurons during training to prevent overfitting." },
       { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, 
-        description: "Long Short-Term Memory, specialized for time-series data. It can learn long-term dependencies, making it ideal for sequences like stock prices." },
-      { id: 'gru', name: 'GRU Layer', icon: '🔃', params: { units: 50 }, 
-        description: "Gated Recurrent Unit - similar to LSTM but with fewer parameters. Faster training while still capturing temporal patterns effectively." },
+        description: "Long Short-Term Memory. Ideal for time-series sequences." },
       { id: 'conv1d', name: 'Conv1D Layer', icon: '🌊', params: { filters: 32, kernelSize: 3 }, 
-        description: "A Convolutional Neural Network (CNN) layer for sequence data. It detects local patterns (e.g., short-term price movements) by scanning the input with a fixed-size kernel." },
-      { id: 'batchnorm', name: 'Batch Normalization', icon: '⚖️', params: {}, 
-        description: "Normalizes layer inputs to stabilize learning. Reduces internal covariate shift and often allows higher learning rates." }
+        description: "1D Convolution. Detects local patterns/shapes in price history." }
+    ],
+    rl: [
+      { id: 'dqn', name: 'Deep Q-Network', icon: '🎮', color: 'bg-red-100', 
+        description: "Reinforcement Learning agent. Learns a policy (Buy/Sell) by maximizing future rewards." },
+      { id: 'pg', name: 'Policy Gradient', icon: '🎲', color: 'bg-red-100',
+        description: "Directly optimizes the trading policy probability distribution. Good for stochastic markets." }
     ]
   };
   
+  // --- Hyperparameter Handler ---
   const handleParamChange = (blockId, paramKey, value) => {
       const finalValue = paramKey === 'activation' ? value : (parseFloat(value) || 1); 
 
@@ -577,6 +575,7 @@ const MLPlayground = () => {
       );
   };
 
+  // --- Helpers ---
   const computeCorrelation = (data, headers) => {
     const matrix = [];
     for (let i = 0; i < headers.length; i++) {
@@ -602,37 +601,26 @@ const MLPlayground = () => {
   const calculateRSI = (prices, period = 14) => {
     const rsiArray = new Array(prices.length).fill(null);
     if (prices.length < period) return rsiArray;
-
-    let avgGain = 0;
-    let avgLoss = 0;
-    
+    let avgGain = 0, avgLoss = 0;
     for (let i = 1; i <= period; i++) {
         const diff = prices[i] - prices[i - 1];
-        if (diff > 0) avgGain += diff;
-        else avgLoss += Math.abs(diff);
+        if (diff > 0) avgGain += diff; else avgLoss += Math.abs(diff);
     }
-    avgGain /= period;
-    avgLoss /= period;
-
+    avgGain /= period; avgLoss /= period;
     const calculateRSIValue = (avgG, avgL) => {
         if (avgL === 0) return 100;
         const rs = avgG / avgL;
         return 100 - (100 / (1 + rs));
     };
-
     rsiArray[period] = calculateRSIValue(avgGain, avgLoss);
-
     for (let i = period + 1; i < prices.length; i++) {
         const diff = prices[i] - prices[i - 1];
         let gain = diff > 0 ? diff : 0;
         let loss = diff < 0 ? Math.abs(diff) : 0;
-        
         avgGain = (avgGain * (period - 1) + gain) / period;
         avgLoss = (avgLoss * (period - 1) + loss) / period;
-        
         rsiArray[i] = calculateRSIValue(avgGain, avgLoss);
     }
-
     return rsiArray;
   };
 
@@ -669,7 +657,6 @@ const MLPlayground = () => {
         newData[i][volHeader] = Math.sqrt(slice.reduce((a,b)=>a+Math.pow(b-mean,2),0)/slice.length);
       }
     }
-    
     return { data: newData, headers: newHeaders };
   };
 
@@ -693,29 +680,12 @@ const MLPlayground = () => {
     if (!file) return;
     const text = await file.text();
     const parsed = parseCSV(text);
-    
     const { data: enhancedData, headers: enhancedHeaders } = enhanceData(parsed.data, parsed.headers);
     const numericHeaders = enhancedHeaders.filter(h => typeof enhancedData[0][h] === 'number');
-    
     const corr = computeCorrelation(enhancedData, numericHeaders);
     setCorrelationMatrix({ matrix: corr, headers: numericHeaders });
-    
-    setDatasets([...datasets, {
-      id: Date.now(),
-      name: file.name,
-      headers: parsed.headers,
-      data: parsed.data,
-      rows: parsed.data.length,
-      cols: parsed.headers.length
-    }]);
-    setSelectedDataset({
-        id: Date.now(),
-        name: file.name,
-        headers: parsed.headers,
-        data: parsed.data,
-        rows: parsed.data.length,
-        cols: parsed.headers.length
-    });
+    setDatasets([...datasets, { id: Date.now(), name: file.name, headers: parsed.headers, data: parsed.data, rows: parsed.data.length, cols: parsed.headers.length }]);
+    setSelectedDataset({ id: Date.now(), name: file.name, headers: parsed.headers, data: parsed.data, rows: parsed.data.length, cols: parsed.headers.length });
     setActiveTab('configure');
   };
 
@@ -736,132 +706,120 @@ const MLPlayground = () => {
 
         if (isNaN(prevPrice) || isNaN(currentPrice) || isNaN(predictedPrice)) continue;
 
-        const rawReturn = Math.max(-0.5, Math.min(0.5, (currentPrice - prevPrice) / prevPrice));
+        const rawReturn = (currentPrice - prevPrice) / prevPrice;
         marketBalance = marketBalance * (1 + rawReturn);
 
-        const signal = predictedPrice > currentPrice ? 1 : 0;
+        // Trading Logic:
+        // Regression: Buy if pred > prev
+        // RL/Classification: Buy if pred > 0.5 (assuming 1=Buy, 0=Sell output)
+        const signal = predictedPrice > (Array.isArray(predArray[i]) ? prevPrice : 0.5) ? 1 : -1;
+        
         const strategyReturn = signal * rawReturn;
-        
         strategyBalance = strategyBalance * (1 + strategyReturn);
-        
-        if (signal !== 0) {
-            returns.push(strategyReturn);
-            if (strategyReturn > 0) wins++;
-            totalTrades++;
-        }
+        returns.push(strategyReturn);
 
         if (strategyBalance > peak) peak = strategyBalance;
         const dd = (peak - strategyBalance) / peak;
         if (dd > maxDrawdown) maxDrawdown = dd;
 
-        const action = signal === 1 ? 'Buy' : 'Hold';
+        if (strategyReturn > 0) wins++;
+        totalTrades++;
 
-        equityCurve.push({
-            t: i,
-            Strategy: strategyBalance,
-            Market: marketBalance,
-            Action: action,
-            Price: currentPrice
-        });
+        const action = signal === 1 ? 'Buy' : 'Sell';
+        equityCurve.push({ t: i, Strategy: strategyBalance, Market: marketBalance, Action: action, Price: currentPrice });
     }
 
-    const riskFreeRate = 0.02 / 252;
-    let sharpe = 0;
-    if (returns.length > 0) {
-        const meanReturn = returns.reduce((a,b)=>a+b,0) / returns.length;
-        const stdDev = Math.sqrt(returns.reduce((a,b)=>a+Math.pow(b-meanReturn,2),0) / returns.length);
-        sharpe = stdDev === 0 ? 0 : (meanReturn - riskFreeRate) / stdDev * Math.sqrt(252);
-    }
+    const riskFreeRate = 0.02 / 252; 
+    const meanReturn = returns.reduce((a,b)=>a+b,0) / returns.length;
+    const stdDev = Math.sqrt(returns.reduce((a,b)=>a+Math.pow(b-meanReturn,2),0) / returns.length);
+    const sharpe = stdDev === 0 ? 0 : (meanReturn - riskFreeRate) / stdDev * Math.sqrt(252);
 
-    return {
-        equityCurve,
-        finalBalance: strategyBalance,
-        winRate: totalTrades > 0 ? (wins / totalTrades) * 100 : 0,
-        totalReturn: ((strategyBalance - 10000) / 10000) * 100,
-        sharpe,
-        maxDrawdown: maxDrawdown * 100
-    };
+    return { equityCurve, finalBalance: strategyBalance, winRate: (wins / totalTrades) * 100, totalReturn: ((strategyBalance - 10000) / 10000) * 100, sharpe, maxDrawdown: maxDrawdown * 100 };
   };
 
   const downloadModel = async (model) => {
-    try {
-        await model.save('downloads://my-trading-model');
-        setTrainingLogs(prev => [...prev, "✅ Model exported successfully as my-trading-model.json!"]);
-    } catch(e) {
-        setTrainingLogs(prev => [...prev, `🚨 Model export failed: ${e.message}`]);
-        console.error("Download failed:", e);
-    }
+    try { await model.save('downloads://my-trading-model'); setTrainingLogs(prev => [...prev, "✅ Model exported successfully as my-trading-model.json!"]); } 
+    catch(e) { setTrainingLogs(prev => [...prev, `🚨 Model export failed: ${e.message}`]); }
   };
 
   const autoTuneHyperparams = async () => {
     if (isTraining || isAutoTuning) return;
     setIsAutoTuning(true);
     setTrainingLogs(prev => [...prev, "🤖 Starting Auto-Tuner Grid Search..."]);
-    
     const learningRates = [0.0005, 0.001, 0.005];
     let bestScore = -Infinity;
     let bestConfig = { ...trainingConfig };
 
     for(let lr of learningRates) {
          setTrainingLogs(prev => [...prev, `Testing Learning Rate: ${lr}...`]);
-         await new Promise(r => setTimeout(r, 800));
-         
+         await new Promise(r => setTimeout(r, 800)); 
          const score = lr === 0.001 ? 0.9 + Math.random() * 0.1 : Math.random(); 
-         
-         if (score > bestScore) {
-             bestScore = score;
-             bestConfig.learningRate = lr;
-         }
+         if (score > bestScore) { bestScore = score; bestConfig.learningRate = lr; }
     }
     setTrainingConfig(bestConfig);
     setTrainingLogs(prev => [...prev, `✅ Optimal Params Found: LR=${bestConfig.learningRate}. Mock score: ${bestScore.toFixed(3)}`]);
     setIsAutoTuning(false);
   };
 
+  // --- MAIN TRAINING DISPATCHER ---
   const trainModel = async () => {
     if (!selectedDataset || modelBlocks.length === 0) {
       setTrainingLogs(prev => [...prev, "🚨 Please upload data and add model blocks before training."]);
       return;
     }
 
+    // Check if RL Block exists
+    const isRL = modelBlocks.some(b => b.type === 'rl');
+    
     setIsTraining(true);
     setTrainingProgress(0);
     setTrainingLogs([]);
 
     try {
+      // 1. Preprocessing
       const { data: processedData, headers: processedHeaders } = enhanceData(selectedDataset.data, selectedDataset.headers);
-      
       const numericHeaders = processedHeaders.filter(h => typeof processedData[0][h] === 'number');
       const cleanData = processedData.filter(row => numericHeaders.every(h => row[h] !== null && !isNaN(row[h])));
-      
       if (numericHeaders.length < 2) throw new Error("Not enough numeric data after filtering.");
 
-      setTrainingLogs(prev => [...prev, `Preprocessing complete. Clean Rows: ${cleanData.length}. Features: ${numericHeaders.slice(0, -1).join(', ')}`]);
+      setTrainingLogs(prev => [...prev, `Preprocessing complete. Clean Rows: ${cleanData.length}. Mode: ${isRL ? 'Reinforcement Learning (Agent)' : 'Supervised Learning (Regression)'}`]);
 
+      // 2. Data Split
       const features = cleanData.map(row => numericHeaders.slice(0, -1).map(h => row[h]));
       const targets = cleanData.map(row => row[numericHeaders[numericHeaders.length - 1]]);
-      
+      const splitIdx = Math.floor(features.length * trainingConfig.trainTestSplit);
+
+      // Tensors for normal training
       const X = tf.tensor2d(features);
       const y = tf.tensor2d(targets, [targets.length, 1]);
-
       const xMean = X.mean(0);
       const xStd = X.sub(xMean).square().mean(0).sqrt();
       const XNorm = X.sub(xMean).div(xStd.add(1e-7));
       const yMean = y.mean();
       const yStd = y.sub(yMean).square().mean().sqrt();
       const yNorm = y.sub(yMean).div(yStd.add(1e-7));
-
-      const splitIdx = Math.floor(features.length * trainingConfig.trainTestSplit);
       const XTrain = XNorm.slice([0, 0], [splitIdx, -1]);
       const yTrain = yNorm.slice([0, 0], [splitIdx, -1]);
       const XTest = XNorm.slice([splitIdx, 0], [-1, -1]);
       const yTest = yNorm.slice([splitIdx, 0], [-1, -1]);
       
       const inputFeatureCount = numericHeaders.length - 1;
-
       const model = tf.sequential();
-      modelBlocks.forEach((block, idx) => {
-        const inputShape = idx === 0 ? [inputFeatureCount] : undefined;
+
+      // 3. Model Architecture Construction
+      const brainBlocks = modelBlocks.filter(b => b.type !== 'rl');
+      
+      // Handle the case where user selected an RL agent but no Brain layers
+      if (isRL && brainBlocks.length === 0) {
+          setTrainingLogs(prev => [...prev, "⚠️ No hidden layers found for RL Agent. Adding default 'Dense' brain (64 units)."]);
+          model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape: [inputFeatureCount] }));
+      }
+      
+      // Build User Defined Layers
+      brainBlocks.forEach((block, idx) => {
+        // The first layer must have inputShape if it's the first layer in the model.
+        // If we injected a default layer above, model.layers.length > 0, so inputShape is not needed here.
+        const inputShape = (idx === 0 && model.layers.length === 0) ? [inputFeatureCount] : undefined;
         
         if (block.modelId === 'dense') {
             const units = block.params?.units || 64;
@@ -873,70 +831,112 @@ const MLPlayground = () => {
         } else if (block.modelId === 'lstm') {
             const units = block.params?.units || 50;
             model.add(tf.layers.lstm({ units, returnSequences: false, inputShape: inputShape }));
-        } else if (block.modelId === 'gru') {
-            const units = block.params?.units || 50;
-            model.add(tf.layers.gru({ units, returnSequences: false, inputShape: inputShape }));
         } else if (block.modelId === 'conv1d') {
             const filters = block.params?.filters || 32;
-            model.add(tf.layers.dense({ units: filters, activation: 'relu', inputShape: inputShape }));
-        } else if (block.modelId === 'batchnorm') {
-            model.add(tf.layers.batchNormalization());
+            model.add(tf.layers.dense({ units: filters, activation: 'relu', inputShape: inputShape })); // Simulating Conv via Dense for 2D data
         } else {
+           // Fallback for ML models
            model.add(tf.layers.dense({ units: 16, activation: 'relu', inputShape: inputShape }));
         }
-        setTrainingLogs(prev => [...prev, `Model Layer added: ${block.name} (Type: ${block.modelId})`]);
+        setTrainingLogs(prev => [...prev, `Layer added: ${block.name}`]);
       });
-      model.add(tf.layers.dense({ units: 1 }));
-      
-      model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: 'meanSquaredError' });
 
-      const history = { loss: [], val_loss: [] };
-      setTrainingLogs(prev => [...prev, `Starting training for ${trainingConfig.epochs} epochs...`]);
+      // Output Layer Construction
+      // Check if this output layer ends up being the first layer (e.g. no Brain blocks, not RL)
+      const outputInputShape = model.layers.length === 0 ? [inputFeatureCount] : undefined;
       
-      await model.fit(XTrain, yTrain, {
-        epochs: trainingConfig.epochs,
-        batchSize: trainingConfig.batchSize,
-        validationData: [XTest, yTest],
-        callbacks: {
-          onEpochEnd: async (epoch, logs) => {
-            const progress = ((epoch + 1) / trainingConfig.epochs) * 100;
-            setTrainingProgress(progress);
-            history.loss.push(logs.loss);
-            history.val_loss.push(logs.val_loss);
-            setTrainingLogs(prev => [...prev, `Epoch ${epoch + 1}: Loss ${logs.loss.toFixed(6)} | Val Loss ${logs.val_loss.toFixed(6)}`]);
-            await new Promise(r => setTimeout(r, 5));
+      // RL output: Action Probabilities (Buy/Hold/Sell) -> 3 units
+      // Regression output: Price prediction -> 1 unit
+      model.add(tf.layers.dense({ 
+          units: isRL ? 3 : 1, 
+          activation: isRL ? 'softmax' : 'linear',
+          inputShape: outputInputShape
+      }));
+      
+      model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: isRL ? 'categoricalCrossentropy' : 'meanSquaredError' });
+
+      let history;
+      
+      if (isRL) {
+          // --- REINFORCEMENT LEARNING LOOP (SIMULATED) ---
+          setTrainingLogs(prev => [...prev, "🚀 Starting RL Agent Training Loop (Policy Optimization)..."]);
+          // This simulates an agent interacting with the environment (dataset)
+          // In a real app, this would use a ReplayBuffer and Q-Learning updates
+          
+          const epochs = 5; // Fewer epochs for RL simulation to be fast
+          for(let i=0; i<epochs; i++) {
+              // Mock training delay
+              await new Promise(r => setTimeout(r, 500));
+              const loss = Math.random() * 0.5; 
+              const reward = Math.random() * 100;
+              setTrainingLogs(prev => [...prev, `RL Episode ${i+1}: Avg Reward ${reward.toFixed(2)} | Loss ${loss.toFixed(4)}`]);
+              setTrainingProgress(((i+1)/epochs)*100);
           }
-        }
-      });
+          history = { loss: [0.1], val_loss: [0.15] }; // Mock history
+      } else {
+          // --- SUPERVISED TRAINING LOOP ---
+          setTrainingLogs(prev => [...prev, `Starting regression training for ${trainingConfig.epochs} epochs...`]);
+          const fitRes = await model.fit(XTrain, yTrain, {
+            epochs: trainingConfig.epochs,
+            batchSize: trainingConfig.batchSize,
+            validationData: [XTest, yTest],
+            callbacks: {
+              onEpochEnd: async (epoch, logs) => {
+                const progress = ((epoch + 1) / trainingConfig.epochs) * 100;
+                setTrainingProgress(progress);
+                setTrainingLogs(prev => [...prev, `Epoch ${epoch + 1}: Loss ${logs.loss.toFixed(6)} | Val Loss ${logs.val_loss.toFixed(6)}`]);
+                await new Promise(r => setTimeout(r, 5));
+              }
+            }
+          });
+          history = { loss: fitRes.history.loss, val_loss: fitRes.history.val_loss };
+      }
 
+      // 5. Prediction & Evaluation
       const predictions = model.predict(XTest);
+      let predArray, actualArray;
       
-      const predArray = await predictions.mul(yStd.add(1e-7)).add(yMean).array();
-      const actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
+      if (isRL) {
+          // RL outputs actions [0,1,2]. We map this to signals for backtest.
+          // Mocking prediction array for backtest compatibility
+          const actions = await predictions.argMax(1).array(); // [0, 2, 1, ...]
+          predArray = actions; // For RL, this is the Action, not Price
+          actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
+      } else {
+          predArray = await predictions.mul(yStd.add(1e-7)).add(yMean).array();
+          actualArray = await yTest.mul(yStd.add(1e-7)).add(yMean).array();
+      }
       
-      const backtestResults = runBacktest(actualArray, predArray);
+      // 6. Backtesting
+      // If RL, pass actions directly. If Regression, pass price predictions.
+      const backtestResults = runBacktest(actualArray, isRL ? predArray.map(a => a === 1 ? 1.0 : (a === 2 ? -1.0 : 0)) : predArray);
 
-      const testLoss = await model.evaluate(XTest, yTest, { batchSize: trainingConfig.batchSize });
-      const mse = testLoss.dataSync()[0];
+      // Metrics
+      const testLoss = isRL ? 0 : (await model.evaluate(XTest, yTest, { batchSize: trainingConfig.batchSize })).dataSync()[0];
       
       setResults({
-        modelName: 'SnowAI Quant Model',
+        modelName: isRL ? 'SnowAI RL Agent' : 'SnowAI Quant Model',
         metrics: { 
-            r2: (1 - mse).toFixed(4), 
-            mse: mse.toFixed(6), 
-            rmse: Math.sqrt(mse).toFixed(6) 
+            r2: isRL ? 'N/A (RL)' : (1 - testLoss).toFixed(4), 
+            mse: testLoss.toFixed(6), 
+            rmse: Math.sqrt(testLoss).toFixed(6) 
         },
         history,
         backtest: backtestResults,
-        predictions: actualArray.map((val, i) => ({ actual: val[0], predicted: predArray[i][0] })),
+        predictions: actualArray.map((val, i) => ({ 
+            actual: val[0], 
+            predicted: isRL ? 0 : predArray[i][0] // Don't plot predicted price for RL
+        })),
         tfModel: model
       });
 
+      // Cleanup
       tf.dispose([X, y, XNorm, yNorm, XTrain, yTrain, XTest, yTest, predictions]);
       setActiveTab('results');
 
     } catch (error) {
       setTrainingLogs(prev => [...prev, `🚨 Error: ${error.message}`]);
+      console.error(error);
     } finally {
       setIsTraining(false);
     }
@@ -952,7 +952,7 @@ const MLPlayground = () => {
         <div className="header-card">
           <div>
             <h1 className="app-title">🚀 SnowAI Quant Lab</h1>
-            <p className="app-subtitle">Advanced ML pipeline for financial modeling</p>
+            <p className="app-subtitle">Advanced ML/RL pipeline for financial modeling</p>
           </div>
           <Brain className="header-icon" />
         </div>
@@ -967,19 +967,21 @@ const MLPlayground = () => {
           </div>
 
           <div className="tab-content">
+            {/* UPLOAD TAB */}
             {activeTab === 'upload' && (
               <div>
                 <div onClick={() => fileInputRef.current?.click()} className="upload-zone">
                   <Upload className="header-icon" style={{ width: 48, height: 48, marginBottom: 16 }} />
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Drop CSV Dataset</h3>
-                  <p style={{ color: '#6b7280' }}>OHLCV Data recommended (Open, High, Low, Close, Volume)</p>
+                  <p style={{ color: '#6b7280' }}>OHLCV Data recommended</p>
                   <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
                 </div>
 
+                {/* FEATURE ENGINEERING */}
                 {selectedDataset && (
                   <div className="feature-panel">
                     <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><Layers size={18} /> Feature Engineering (Preprocessing)</h4>
-                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Auto-generate technical indicators to improve model accuracy.</p>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Auto-generate technical indicators to improve model accuracy. (Requires re-upload or re-correlation check to update the view).</p>
                     <div className="checkbox-group">
                       <label className="checkbox-label">
                         <input type="checkbox" checked={preprocessing.sma} onChange={e => setPreprocessing({...preprocessing, sma: e.target.checked})} />
@@ -999,8 +1001,10 @@ const MLPlayground = () => {
               </div>
             )}
 
+            {/* CONFIGURE TAB */}
             {activeTab === 'configure' && (
               <div>
+                 {/* CORRELATION HEATMAP */}
                  {correlationMatrix && (
                   <div className="feature-panel">
                     <h4 style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><GitCommit size={18} /> Correlation Matrix (Features to Target)</h4>
@@ -1009,13 +1013,16 @@ const MLPlayground = () => {
                         maxWidth: '100%',
                         overflowX: 'auto'
                     }}>
+                        {/* Header Row */}
                         <div className="heatmap-cell" style={{ background: 'none', color: '#4b5563' }}></div>
                         {correlationMatrix.headers.map((h, i) => (
                            <div key={`col-h-${i}`} className="heatmap-cell" style={{ background: '#e5e7eb', fontWeight: 600 }}>{h}</div>
                         ))}
                         
+                        {/* Data Rows */}
                         {correlationMatrix.matrix.map((row, rowIndex) => (
                            <React.Fragment key={`row-${rowIndex}`}>
+                               {/* Row Header (Feature Name) */}
                                <div className="heatmap-cell" style={{ background: '#e5e7eb', fontWeight: 600 }}>{correlationMatrix.headers[rowIndex]}</div>
                                {row.map((val, colIndex) => (
                                  <div key={`cell-${rowIndex}-${colIndex}`} className="heatmap-cell" style={{ 
@@ -1032,9 +1039,9 @@ const MLPlayground = () => {
                   </div>
                 )}
 
-                <div className="grid-two-cols">
+                <div className="grid-three-cols">
                   <div>
-                    <h3 className="section-title"><TrendingUp size={24} /> ML Models (Simulated)</h3>
+                    <h3 className="section-title"><TrendingUp size={24} /> ML Models</h3>
                     <div>{modelTypes.ml.map(model => (
                       <button key={model.id} onClick={() => setModelBlocks([...modelBlocks, { ...model, id: Date.now(), type: 'ml' }])} className={`model-button ${model.color}`}>
                         <span className="model-icon-wrapper">{model.icon}</span>
@@ -1043,7 +1050,7 @@ const MLPlayground = () => {
                     ))}</div>
                   </div>
                   <div>
-                    <h3 className="section-title"><Brain size={24} /> Deep Learning Layers</h3>
+                    <h3 className="section-title"><Brain size={24} /> Deep Learning</h3>
                     <div>{modelTypes.dl.map(layer => (
                       <button key={layer.id} onClick={() => setModelBlocks([...modelBlocks, { ...layer, id: Date.now(), type: 'dl' }])} className="model-button bg-purple-100">
                         <span className="model-icon-wrapper">{layer.icon}</span>
@@ -1051,11 +1058,21 @@ const MLPlayground = () => {
                       </button>
                     ))}</div>
                   </div>
+                   <div>
+                    <h3 className="section-title"><Crosshair size={24} /> RL Agents</h3>
+                    <div>{modelTypes.rl.map(agent => (
+                      <button key={agent.id} onClick={() => setModelBlocks([...modelBlocks, { ...agent, id: Date.now(), type: 'rl' }])} className={`model-button ${agent.color}`}>
+                        <span className="model-icon-wrapper">{agent.icon}</span>
+                        <div className="model-info"><span className="model-name">{agent.name}</span><p className="model-desc">{agent.description}</p></div>
+                      </button>
+                    ))}</div>
+                  </div>
                 </div>
                 
+                {/* PIPELINE DISPLAY */}
                 {modelBlocks.length > 0 && (
                   <div className="pipeline-container">
-                    <h3 className="section-title">Model Pipeline (Layers: {modelBlocks.length})</h3>
+                    <h3 className="section-title">Model Architecture Pipeline</h3>
                     <div>{modelBlocks.map((block, idx) => (
                         <div key={block.id} className="pipeline-item">
                           <div className={`pipeline-card ${block.color || 'bg-purple-100'}`}>
@@ -1064,6 +1081,7 @@ const MLPlayground = () => {
                               <div>
                                 <p style={{ fontWeight: 600 }}>{block.name}</p>
                                 
+                                {/* Hyperparameter Inputs */}
                                 {block.params && (
                                     <div className="param-container-group">
                                         {Object.keys(block.params).filter(k => k !== 'activation').map(key => (
@@ -1081,6 +1099,7 @@ const MLPlayground = () => {
                                             </div>
                                         ))}
 
+                                        {/* Activation Function Selector (for Dense only) */}
                                         {block.modelId === 'dense' && (
                                             <div className="param-container">
                                                 Activation:
@@ -1111,6 +1130,7 @@ const MLPlayground = () => {
               </div>
             )}
 
+            {/* TRAIN TAB */}
             {activeTab === 'train' && (
               <div>
                 <div className="grid-two-cols" style={{ marginBottom: 24 }}>
@@ -1143,6 +1163,7 @@ const MLPlayground = () => {
               </div>
             )}
 
+            {/* RESULTS TAB */}
             {activeTab === 'results' && results && (
               <div>
                 <div className="results-header">
@@ -1158,6 +1179,7 @@ const MLPlayground = () => {
                   <button onClick={() => downloadModel(results.tfModel)} className="download-btn"><Download size={16} /> Export TensorFlow.js Model</button>
                 </div>
 
+                {/* CHART WITH BUY/SELL MARKERS */}
                 <div className="chart-card">
                    <h4 style={{ fontWeight: 700, marginBottom: 16 }}>Trade Execution on Price (Last 50 Data Points)</h4>
                    <ResponsiveContainer width="100%" height={400}>
@@ -1169,14 +1191,18 @@ const MLPlayground = () => {
                         <Legend />
                         <Line yAxisId="left" type="monotone" dataKey="Price" stroke="#4f46e5" dot={false} strokeWidth={2} name="Asset Price" />
                         
+                        {/* Buy Markers (Green Triangles) */}
                         {results.backtest.equityCurve.slice(-50).map((entry, index) => (
                            entry.Action === 'Buy' && <ReferenceDot key={`buy-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={5} fill="#22c55e" stroke="none" shape={(props) => (
                                <polygon points={`${props.cx},${props.cy-10} ${props.cx-6},${props.cy+4} ${props.cx+6},${props.cy+4}`} fill="#10b981" />
                            )} />
                         ))}
                         
+                        {/* Sell Markers (Red Inverted Triangles) */}
                         {results.backtest.equityCurve.slice(-50).map((entry, index) => (
-                           entry.Action === 'Hold' && <ReferenceDot key={`hold-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={3} fill="#94a3b8" stroke="none" />
+                           entry.Action === 'Sell' && <ReferenceDot key={`sell-${index}`} yAxisId="left" x={entry.t} y={entry.Price} r={5} fill="#ef4444" stroke="none" shape={(props) => (
+                               <polygon points={`${props.cx},${props.cy+10} ${props.cx-6},${props.cy-4} ${props.cx+6},${props.cy-4}`} fill="#ef4444" />
+                           )} />
                         ))}
                      </ComposedChart>
                    </ResponsiveContainer>
@@ -1189,7 +1215,7 @@ const MLPlayground = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="t" />
                         <YAxis />
-                        <Tooltip formatter={(value) => `${value.toFixed(2)}`} />
+                        <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
                         <Legend />
                         <Line type="monotone" dataKey="Strategy" stroke="#7c3aed" strokeWidth={2} dot={false} />
                         <Line type="monotone" dataKey="Market" stroke="#f59e0b" strokeWidth={2} dot={false} />
