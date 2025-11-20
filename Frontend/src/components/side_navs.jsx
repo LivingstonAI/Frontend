@@ -95,6 +95,8 @@ import lovesong from '../TXT - 0X1=LOVESONG (I Know I Love You) feat. Seori Lyri
 import everythings_good from "../Phil Good - Everything's Good (Official Music Video).mp3";
 import coffee_date from '../Coffee Date.mp3';
 import kdrama_study from '../kdrama-study.mp3';
+import kambulat_ona from '../Kambulat  Она.mp3';
+
 
 
 export default function SideNavs() {
@@ -245,8 +247,8 @@ export default function SideNavs() {
         { name: "TXT - Lovesong 🎧", file: lovesong },
         { name: "Everything's Good 🏖️🏄", file: everythings_good },
         { name: "Coffee Date ☕🦫", file: coffee_date },
-        { name: "K-Drama Study Motivation 🇰🇷 (1)", file: kdrama_study }
-
+        { name: "K-Drama Study Motivation 🇰🇷 (1)", file: kdrama_study },
+        { name: "Kambulat Ona 🎸", file: kambulat_ona }
   ];
 
   // Enhanced touch navigation function
