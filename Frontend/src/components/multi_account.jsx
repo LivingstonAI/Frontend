@@ -557,6 +557,8 @@ export default function MultiAccountAnalytics() {
             </div>
             <div className="main-page-body">
                 <SideNavs />
+                
+
                 <div className="main-body-info">
                     <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5><br />
                     
