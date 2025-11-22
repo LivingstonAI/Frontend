@@ -2,9 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap, Crosshair, Globe, Code, Eye, RefreshCw } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
-import Header from "./header";
-import SideNavs from "./side_navs";
-
 
 const cssStyles = `
   .ml-playground-wrapper {
@@ -308,6 +305,103 @@ const cssStyles = `
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
+  }
+
+  .architecture-viz {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid #334155;
+  }
+
+  .layer-block {
+    background: rgba(37, 99, 235, 0.1);
+    border: 2px solid #2563eb;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+    text-align: center;
+    color: #2563eb;
+    font-weight: 600;
+    font-size: 0.9rem;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .layer-block.active {
+    background: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.6);
+  }
+
+  .layer-block.backward {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+
+  .forward-indicator, .backward-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: none;
+  }
+
+  .forward-indicator {
+    background: #16a34a;
+    animation: pulse-green 0.8s infinite;
+  }
+
+  .backward-indicator {
+    background: #ef4444;
+    animation: pulse-red 0.8s infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+    50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+  }
+
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  }
+
+  .python-code-section {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 32px;
+  }
+
+  .code-editor {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    min-height: 200px;
+    overflow: auto;
+  }
+
+  .code-output {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    color: #4ade80;
+    font-size: 0.85rem;
+    min-height: 100px;
+    overflow: auto;
+    margin-top: 12px;
   }
 
   .grid-two-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
@@ -775,14 +869,6 @@ const MLPlayground = () => {
   };
 
   return (
-    
-            <div>  
-                <div className="header">
-                    <Header />
-                </div>
-                <div className="main-page-body">
-                    <SideNavs />
-
     <div className="ml-playground-wrapper">
       <style>{cssStyles}</style>
 
@@ -1322,8 +1408,6 @@ const MLPlayground = () => {
             )}
           </div>
         </div>
-      </div>
-      </div>
       </div>
     </div>
   );
