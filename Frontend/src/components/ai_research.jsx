@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap, Crosshair, Globe, Code, Eye, RefreshCw } from 'lucide-react';
 import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
+import Header from "./header";
+import SideNavs from "./side_navs";
 
 const cssStyles = `
   .ml-playground-wrapper {
@@ -17,16 +19,6 @@ const cssStyles = `
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 24px 48px 24px;
-  }
-
-  .mock-header {
-    padding: 16px 24px;
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-    font-weight: 700;
-    color: #2563eb;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    margin-bottom: 24px;
   }
 
   .header-card {
@@ -191,14 +183,6 @@ const cssStyles = `
   .bg-blue-100 { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
   .bg-purple-100 { background-color: #f5f3ff; border-left: 4px solid #8b5cf6; }
   .bg-red-100 { background-color: #fef2f2; border-left: 4px solid #ef4444; }
-  
-  .pipeline-container {
-    margin-top: 32px;
-    padding: 24px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-  }
 
   .pipeline-item { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
   .pipeline-card {
@@ -229,13 +213,6 @@ const cssStyles = `
 
   .secondary-btn { background: white; border: 1px solid #cbd5e1; color: #475569; }
   .secondary-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
-  
-  .download-btn {
-    display: inline-flex; align-items: center; gap: 8px; background: #0f172a; color: white;
-    padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; 
-    border: none; cursor: pointer; transition: background 0.2s;
-  }
-  .download-btn:hover { background: #1e293b; }
 
   .input-group { margin-bottom: 16px; }
   .input-label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #334155; }
@@ -269,7 +246,6 @@ const cssStyles = `
   .text-green { color: #16a34a; }
   .text-red { color: #dc2626; }
   .text-indigo { color: #4f46e5; }
-  .text-purple { color: #9333ea; }
 
   .progress-bar {
     width: 100%;
@@ -317,12 +293,12 @@ const cssStyles = `
 
   .layer-block {
     background: rgba(37, 99, 235, 0.1);
-    border: 2px solid #2563eb;
+    border: 2px solid #334155;
     border-radius: 8px;
     padding: 12px;
     margin: 8px 0;
     text-align: center;
-    color: #2563eb;
+    color: #64748b;
     font-weight: 600;
     font-size: 0.9rem;
     position: relative;
@@ -331,6 +307,8 @@ const cssStyles = `
 
   .layer-block.active {
     background: rgba(37, 99, 235, 0.3);
+    border-color: #2563eb;
+    color: #2563eb;
     box-shadow: 0 0 16px rgba(37, 99, 235, 0.6);
   }
 
@@ -412,6 +390,7 @@ const cssStyles = `
     .app-title { font-size: 1.75rem; }
     .grid-two-cols { grid-template-columns: 1fr; }
     .tab-content { padding: 16px; }
+    .metric-grid { grid-template-columns: 1fr; }
   }
 `;
 
@@ -434,6 +413,8 @@ const MLPlayground = () => {
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
   const [validationProgress, setValidationProgress] = useState(0);
+  const [trainingPhase, setTrainingPhase] = useState('idle');
+  const [activeLayers, setActiveLayers] = useState([]);
   
   const [trainingLogs, setTrainingLogs] = useState([]);
   const [results, setResults] = useState(null);
@@ -442,6 +423,14 @@ const MLPlayground = () => {
   const [savedScaler, setSavedScaler] = useState(null); 
   const [validationData, setValidationData] = useState(null);
   const [validationResults, setValidationResults] = useState(null);
+  const [pythonCode, setPythonCode] = useState(`# Example: Generate predictions
+import numpy as np
+
+prices = np.random.randn(100).cumsum() + 100
+print(f"Generated {len(prices)} price points")
+print(f"Mean: {prices.mean():.2f}, Std: {prices.std():.2f}")`);
+  const [pythonOutput, setPythonOutput] = useState('');
+  const [isRunningPython, setIsRunningPython] = useState(false);
 
   const fileInputRef = useRef(null);
   const validationInputRef = useRef(null);
@@ -617,7 +606,7 @@ const MLPlayground = () => {
 
       const signal = prediction > currentPrice ? 1 : -1;
       const priceChange = (nextActualPrice - currentPrice) / currentPrice;
-      const strategyReturn = signal * priceChange * 0.95; // 5% slippage
+      const strategyReturn = signal * priceChange * 0.95;
 
       balance *= (1 + strategyReturn);
       if (strategyReturn > 0) wins++;
@@ -729,6 +718,13 @@ const MLPlayground = () => {
                 `Epoch ${e + 1}/${trainingConfig.epochs}: Loss ${l.loss.toFixed(6)} | Val Loss ${l.val_loss.toFixed(6)}`
               ]);
             }
+            // Animate layer activations
+            setTrainingPhase('forward');
+            setActiveLayers(modelBlocks.map((_, i) => i));
+            await new Promise(r => setTimeout(r, 300));
+            setTrainingPhase('backward');
+            await new Promise(r => setTimeout(r, 300));
+            setTrainingPhase('idle');
             await new Promise(r => setTimeout(r, 50));
           }
         }
@@ -759,6 +755,7 @@ const MLPlayground = () => {
       console.error(e);
     } finally {
       setIsTraining(false);
+      setTrainingPhase('idle');
     }
   };
 
@@ -786,7 +783,6 @@ const MLPlayground = () => {
         throw new Error("Validation dataset is empty after cleaning.");
       }
 
-      // Simulate processing time
       await new Promise(r => setTimeout(r, 1000));
       setValidationProgress(20);
 
@@ -838,6 +834,36 @@ const MLPlayground = () => {
     }
   };
 
+  const runPythonCode = async () => {
+    setIsRunningPython(true);
+    setPythonOutput('⚙️ Executing code...\n');
+    
+    try {
+      const output = [];
+      const originalLog = console.log;
+      console.log = (...args) => output.push(args.join(' '));
+      
+      const np = {
+        random: { randn: (n) => Array(n).fill(0).map(() => Math.random() - 0.5) },
+        cumsum: (arr) => {
+          let sum = 0;
+          return arr.map(v => (sum += v));
+        }
+      };
+      
+      await new Promise(r => setTimeout(r, 1000));
+      
+      eval(pythonCode);
+      
+      console.log = originalLog;
+      setPythonOutput(output.join('\n') || '✅ Execution complete!');
+    } catch (e) {
+      setPythonOutput(`❌ Error: ${e.message}`);
+    }
+    
+    setIsRunningPython(false);
+  };
+
   const handleParamChange = (id, key, val) => {
     const v = key === 'activation' ? val : parseFloat(val) || 1;
     setModelBlocks(prev =>
@@ -865,10 +891,21 @@ const MLPlayground = () => {
       { id: 'dense', name: 'Dense Layer', icon: '🧠', params: { units: 64, activation: 'relu' }, description: 'Standard neural layer.' },
       { id: 'lstm', name: 'LSTM Layer', icon: '🔄', params: { units: 50 }, description: 'Memory for time-series.' },
       { id: 'dropout', name: 'Dropout', icon: '✂️', params: { rate: 0.2 }, description: 'Prevents overfitting.' }
+    ],
+    rl: [
+      { id: 'dqn', name: 'Deep Q-Network', icon: '🎮', params: { qLayers: 2 }, description: 'RL agent (Q-Learning).' },
+      { id: 'pg', name: 'Policy Gradient', icon: '🎲', params: { entropy: 0.01 }, description: 'RL agent (Policy).' }
     ]
   };
 
-  return (
+  const renderArchitecture = () => {
+    return (
+      <div>
+                  <div className="header">
+                      <Header />
+                  </div>
+                  <div className="main-page-body">
+                      <SideNavs />
     <div className="ml-playground-wrapper">
       <style>{cssStyles}</style>
 
@@ -993,6 +1030,9 @@ const MLPlayground = () => {
                     )}
                   </ul>
                 </div>
+
+                {renderArchitecture()}
+
                 <div className="grid-two-cols">
                   <div>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>Toolbox</h3>
@@ -1026,6 +1066,26 @@ const MLPlayground = () => {
                           ])
                         }
                         className="model-button bg-purple-100"
+                      >
+                        <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
+                        <div>
+                          <span style={{ fontWeight: 600 }}>{m.name}</span>
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                            {m.description}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                    {modelTypes.rl.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() =>
+                          setModelBlocks([
+                            ...modelBlocks,
+                            { ...m, id: Date.now(), type: 'rl' }
+                          ])
+                        }
+                        className="model-button bg-red-100"
                       >
                         <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
                         <div>
@@ -1161,6 +1221,44 @@ const MLPlayground = () => {
                     ))}
                   </div>
                 </div>
+
+                {modelBlocks.length > 0 && (
+                  <div className="python-code-section">
+                    <h4 style={{ color: '#e2e8f0', marginTop: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <Code size={18} /> Python Code Executor
+                    </h4>
+                    <textarea
+                      value={pythonCode}
+                      onChange={(e) => setPythonCode(e.target.value)}
+                      className="code-editor"
+                      placeholder="Write Python code here..."
+                      style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+                    />
+                    <button
+                      onClick={runPythonCode}
+                      disabled={isRunningPython}
+                      style={{
+                        background: '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        cursor: isRunningPython ? 'not-allowed' : 'pointer',
+                        marginTop: '12px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      {isRunningPython ? <Activity className="animate-spin" /> : <Play size={18} />}
+                      {isRunningPython ? 'Running...' : 'Execute'}
+                    </button>
+                    <div className="code-output">
+                      {pythonOutput || '$ Run code to see output...'}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1410,7 +1508,61 @@ const MLPlayground = () => {
         </div>
       </div>
     </div>
+    </div>
+    </div>
   );
+}
 };
 
+
 export default MLPlayground;
+  //     <div className="architecture-viz">
+  //       <h4 style={{ color: '#93c5fd', marginTop: 0, marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+  //         <Layers size={18} /> Network Architecture
+  //       </h4>
+  //       <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '16px' }}>
+  //         {modelBlocks.length} layers • {selectedDataset ? `${selectedDataset.cols} input features` : '0 inputs'} • 1 output
+  //       </div>
+        
+  //       <div className="layer-block" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: '#22c55e', color: '#22c55e' }}>
+  //         📥 Input Layer
+  //         {trainingPhase === 'forward' && <div className="forward-indicator" />}
+  //       </div>
+
+  //       {modelBlocks.map((block, idx) => (
+  //         <div key={block.id}>
+  //           <div
+  //             className={`layer-block ${activeLayers.includes(idx) ? (trainingPhase === 'forward' ? 'active' : 'backward') : ''}`}
+  //             style={{
+  //               borderColor: activeLayers.includes(idx) ? (trainingPhase === 'forward' ? '#2563eb' : '#ef4444') : '#334155',
+  //               color: activeLayers.includes(idx) ? (trainingPhase === 'forward' ? '#2563eb' : '#ef4444') : '#64748b'
+  //             }}
+  //           >
+  //             {block.icon} {block.name}
+  //             {block.params && (
+  //               <div style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>
+  //                 {Object.entries(block.params).map(([k, v]) => `${k}=${v}`).join(', ')}
+  //               </div>
+  //             )}
+  //             {activeLayers.includes(idx) && (trainingPhase === 'forward' ? <div className="forward-indicator" /> : <div className="backward-indicator" />)}
+  //           </div>
+  //           {idx < modelBlocks.length - 1 && <div style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '4px 0' }}>↓</div>}
+  //         </div>
+  //       ))}
+
+  //       <div style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '4px 0' }}>↓</div>
+
+  //       <div className="layer-block" style={{ background: 'rgba(139, 92, 246, 0.1)', borderColor: '#8b5cf6', color: '#8b5cf6' }}>
+  //         📤 Output Layer (1 neuron)
+  //         {trainingPhase === 'forward' && <div className="forward-indicator" />}
+  //       </div>
+
+  //       <div style={{ marginTop: '16px', fontSize: '0.8rem', color: '#94a3b8' }}>
+  //         {trainingPhase === 'forward' && '🟢 Forward Propagation →'}
+  //         {trainingPhase === 'backward' && '🔴 Backpropagation ←'}
+  //         {trainingPhase === 'idle' && '⚫ Ready'}
+  //       </div>
+  //     </div>
+  //   );
+  // };
+
