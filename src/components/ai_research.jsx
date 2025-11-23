@@ -60,10 +60,8 @@ const cssStyles = `
 
   /* --- MOBILE RESPONSIVENESS REFINED --- */
   @media (max-width: 768px) { 
-    .container { padding: 12px; }
     
     /* Compact Header */
-    .header { padding: 16px; flex-direction: column; align-items: flex-start; gap: 12px; }
     .title h1 { font-size: 1.4rem; }
     .title p { font-size: 0.9rem; }
     
@@ -97,7 +95,6 @@ const cssStyles = `
     .terminal { font-size: 0.75rem; padding: 12px; }
     
     /* Buttons */
-    .btn { width: 100%; padding: 12px; font-size: 0.95rem; }
     .py-controls { flex-direction: column; align-items: stretch; }
     
     /* Charts */
