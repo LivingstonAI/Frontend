@@ -567,6 +567,12 @@ print("✅ Model Architecture Ready")`;
 
   // --- RENDER ---
   return (
+    <div>
+        <div className="header">
+            <Header />
+        </div>
+        <div className="main-page-body">
+            <SideNavs />
     <div className="app-wrapper">
       <style>{cssStyles}</style>
       <div className="container">
@@ -755,6 +761,8 @@ print("✅ Model Architecture Ready")`;
           )}
         </div>
       </div>
+    </div>
+    </div>
     </div>
   );
 };
