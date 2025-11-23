@@ -2,14 +2,12 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Trash2, Brain, Activity, Zap, Globe, Code, RefreshCw, Layers, Terminal, Save, Download, Cpu, Gamepad2, LayoutTemplate, AlertTriangle, Eye } from 'lucide-react';
+import { Upload, Play, Trash2, Brain, Activity, Zap, Globe, Code, RefreshCw, Layers, Terminal, Save, Download, Cpu, AlertTriangle, Eye } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
 
-
 // --- CSS STYLES ---
 const cssStyles = `
-  
   .title h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
   .title p { margin: 4px 0 0; color: #64748b; }
   
@@ -47,11 +45,12 @@ const cssStyles = `
   .metric-val { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
   .text-green { color: #16a34a; } .text-red { color: #dc2626; } .text-blue { color: #2563eb; }
 
-  .python-editor { background: #1e1e1e; color: #d4d4d4; border: 1px solid #333; border-radius: 8px; padding: 16px; font-family: monospace; min-height: 500px; width: 100%; margin-bottom: 16px; resize: vertical; font-size: 14px; line-height: 1.5; box-sizing: border-box; }
+  /* Python Editor - Reduced Height */
+  .python-editor { background: #1e1e1e; color: #d4d4d4; border: 1px solid #333; border-radius: 8px; padding: 16px; font-family: monospace; min-height: 300px; width: 100%; margin-bottom: 16px; resize: vertical; font-size: 14px; line-height: 1.5; box-sizing: border-box; }
+  
   .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: #334155; font-weight: 600; font-size: 1.1rem; }
   .select-input { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; }
 
-  .game-canvas { background: #000; border: 2px solid #333; border-radius: 8px; margin-top: 16px; display: block; margin-left: auto; margin-right: auto; max-width: 100%; }
   .py-controls { display: flex; justify-content: space-between; margin-top: 12px; align-items: center; flex-wrap: wrap; gap: 12px; }
 
   /* Animations for NN Viz */
@@ -62,7 +61,7 @@ const cssStyles = `
   .neuron.active { fill: #fff; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)); }
 
   /* Mobile Responsiveness */
-  @media (max-width: 1024px) { .python-editor { min-height: 350px; } }
+  @media (max-width: 1024px) { .python-editor { min-height: 300px; } }
   @media (max-width: 768px) { 
     .grid-2 { grid-template-columns: 1fr; } 
     .metric-grid { grid-template-columns: 1fr 1fr; }
@@ -70,209 +69,8 @@ const cssStyles = `
     .app-title { font-size: 1.5rem; }
     .py-controls { flex-direction: column; align-items: stretch; }
     .btn { width: 100%; }
-    .game-canvas { width: 100% !important; height: auto !important; aspect-ratio: 1/1; }
   }
 `;
-
-// --- GAME SCRIPTS ---
-const GAME_SCRIPTS = {
-  default: `import numpy as np
-
-# --- Neural Network from Scratch ---
-print("🚀 Training a simple Neural Net using pure NumPy...")
-
-X = np.array([[0,0], [0,1], [1,0], [1,1]])
-y = np.array([[0], [1], [1], [0]])
-
-w1 = np.random.randn(2, 4)
-w2 = np.random.randn(4, 1)
-
-def sigmoid(x): return 1 / (1 + np.exp(-x))
-def d_sigmoid(x): return x * (1 - x)
-
-for i in range(1500):
-    l1 = sigmoid(np.dot(X, w1))
-    l2 = sigmoid(np.dot(l1, w2))
-    l2_e = y - l2
-    l2_d = l2_e * d_sigmoid(l2)
-    l1_e = l2_d.dot(w2.T)
-    l1_d = l1_e * d_sigmoid(l1)
-    w2 += l1.T.dot(l2_d)
-    w1 += X.T.dot(l1_d)
-
-print(f"✨ Final Loss: {np.mean(np.abs(l2_e)):.4f}")
-print("Predictions:\\n", l2.T)`,
-
-  tictactoe: `# --- Graphical Tic Tac Toe ---
-from js import document, window
-import math
-
-canvas = document.getElementById("game-canvas")
-ctx = canvas.getContext("2d")
-W, H = canvas.width, canvas.height
-
-board = [' ']*9
-current = 'X'
-
-def draw_board():
-    ctx.fillStyle = "#1e293b"
-    ctx.fillRect(0, 0, W, H)
-    ctx.strokeStyle = "#cbd5e1"
-    ctx.lineWidth = 4
-    
-    # Grid
-    ctx.beginPath()
-    for i in range(1,3):
-        ctx.moveTo(i*W/3, 10)
-        ctx.lineTo(i*W/3, H-10)
-        ctx.moveTo(10, i*H/3)
-        ctx.lineTo(W-10, i*H/3)
-    ctx.stroke()
-    
-    # Marks
-    ctx.font = "60px Arial"
-    ctx.textAlign = "center"
-    ctx.textBaseline = "middle"
-    for i in range(9):
-        val = board[i]
-        x = (i % 3) * (W/3) + (W/6)
-        y = (i // 3) * (H/3) + (H/6)
-        if val == 'X': ctx.fillStyle = "#f59e0b"
-        elif val == 'O': ctx.fillStyle = "#3b82f6"
-        else: continue
-        ctx.fillText(val, x, y)
-
-def check_win():
-    wins = [(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)]
-    for a,b,c in wins:
-        if board[a] == board[b] == board[c] and board[a] != ' ':
-            return board[a]
-    if ' ' not in board: return 'Draw'
-    return None
-
-# Game Loop
-print("⭕❌ Graphical Tic-Tac-Toe")
-print("Look at the canvas below!")
-
-while True:
-    draw_board()
-    winner = check_win()
-    if winner:
-        print(f"Game Over! Result: {winner}")
-        break
-        
-    try:
-        # Using prompt because we need blocking input
-        move = input(f"Player {current} (0-8): ") 
-        if not move: break
-        idx = int(move)
-        if 0 <= idx <= 8 and board[idx] == ' ':
-            board[idx] = current
-            current = 'O' if current == 'X' else 'X'
-        else:
-            print("⚠️ Invalid move!")
-    except:
-        break
-        
-draw_board()
-`,
-
-  snake: `# --- Graphical Snake Game ---
-# CONTROL WITH ARROW KEYS ON YOUR KEYBOARD!
-# Click the Canvas to focus first.
-
-import js
-from js import document, window
-from pyodide.ffi import create_proxy
-import random
-import math
-
-canvas = document.getElementById("game-canvas")
-ctx = canvas.getContext("2d")
-W, H = canvas.width, canvas.height
-GRID = 15
-COLS = int(W // GRID)
-ROWS = int(H // GRID)
-
-snake = [(10, 10)]
-dx, dy = 0, 0
-food = (5, 5)
-score = 0
-game_over = False
-
-def draw():
-    # Background
-    ctx.fillStyle = "#0f172a"
-    ctx.fillRect(0, 0, W, H)
-    
-    # Snake
-    ctx.fillStyle = "#4ade80"
-    for x, y in snake:
-        ctx.fillRect(x*GRID, y*GRID, GRID-1, GRID-1)
-        
-    # Food
-    ctx.fillStyle = "#ef4444"
-    ctx.beginPath()
-    ctx.arc(food[0]*GRID + GRID/2, food[1]*GRID + GRID/2, GRID/2 - 2, 0, 2*math.pi)
-    ctx.fill()
-    
-    # Score
-    ctx.fillStyle = "white"
-    ctx.font = "16px Arial"
-    ctx.fillText(f"Score: {score}", 10, 20)
-    
-    if game_over:
-        ctx.fillStyle = "rgba(0,0,0,0.7)"
-        ctx.fillRect(0,0,W,H)
-        ctx.fillStyle = "white"
-        ctx.font = "30px Arial"
-        ctx.fillText("GAME OVER", 60, 150)
-
-def update():
-    global snake, food, score, game_over
-    if game_over: return
-    
-    head_x, head_y = snake[0]
-    new_x = head_x + dx
-    new_y = head_y + dy
-    
-    # Bounds
-    if new_x < 0 or new_x >= COLS or new_y < 0 or new_y >= ROWS or (new_x, new_y) in snake:
-        game_over = True
-        return
-        
-    snake.insert(0, (new_x, new_y))
-    
-    if (new_x, new_y) == food:
-        score += 1
-        food = (random.randint(0, COLS-1), random.randint(0, ROWS-1))
-    else:
-        snake.pop()
-
-# Input Handler (Arrow Keys)
-def key_handler(event):
-    global dx, dy
-    key = event.key
-    if key == "ArrowUp" and dy == 0: dx, dy = 0, -1
-    elif key == "ArrowDown" and dy == 0: dx, dy = 0, 1
-    elif key == "ArrowLeft" and dx == 0: dx, dy = -1, 0
-    elif key == "ArrowRight" and dx == 0: dx, dy = 1, 0
-
-# Create proxies to prevent garbage collection
-key_proxy = create_proxy(key_handler)
-window.addEventListener("keydown", key_proxy)
-
-# Game Loop using interval
-def game_loop():
-    update()
-    draw()
-
-loop_proxy = create_proxy(game_loop)
-print("🐍 Snake Started! Use Arrow Keys.")
-# Start loop (approx 10fps)
-interval_id = window.setInterval(loop_proxy, 100)
-`
-};
 
 // --- VISUALIZER COMPONENT ---
 const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
@@ -365,7 +163,7 @@ const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
     );
 };
 
-const App = () => {
+const MLPlayground = () => {
   // --- STATE ---
   const [activeTab, setActiveTab] = useState('upload');
   const [datasets, setDatasets] = useState([]);
@@ -387,7 +185,18 @@ const App = () => {
   const [pyodide, setPyodide] = useState(null);
   const [pyOutput, setPyOutput] = useState("Initializing environment...");
   const [isPyRunning, setIsPyRunning] = useState(false);
-  const [pyCode, setPyCode] = useState(GAME_SCRIPTS.default);
+  const [pyCode, setPyCode] = useState(
+`import numpy as np
+
+print("🚀 Python Environment Ready!")
+print("You can write any Python code here.")
+print(f"NumPy Version: {np.__version__}")
+
+# Example: Simple calculation
+arr = np.array([1, 2, 3, 4, 5])
+print(f"Array mean: {np.mean(arr)}")
+`
+  );
 
   const fileInputRef = useRef(null);
   const validationFileRef = useRef(null);
@@ -418,7 +227,7 @@ const App = () => {
             });
             await py.loadPackage("numpy");
             setPyodide(py);
-            setPyOutput("✅ Python Ready (with Numpy & Interactive Input)");
+            setPyOutput("✅ Python Ready (with Numpy)");
           } catch (e) { setPyOutput(`❌ Init Fail: ${e.message}`); }
         };
         document.body.appendChild(script);
@@ -434,24 +243,12 @@ const App = () => {
     setModelBlocks(newBlocks);
   };
 
-  const loadGameScript = (key) => {
-    // Clean up existing intervals
-    let id = window.setInterval(function() {}, 0);
-    while (id--) { window.clearInterval(id); }
-    id = window.setTimeout(function() {}, 0);
-    while (id--) { window.clearTimeout(id); }
-
-    setPyCode(GAME_SCRIPTS[key]);
-    setPyOutput(`Loaded ${key}. Click Run! (See Canvas below for Graphics)`);
-  };
-
   const runPython = async () => {
     if (!pyodide) return;
     setIsPyRunning(true);
     setPyOutput("Running...");
     try {
       pyodide.setStdout({ batched: (msg) => {
-          // Ensure msg is a string to prevent React Object errors
           const safeMsg = typeof msg === 'string' ? msg : String(msg);
           setPyOutput(prev => (prev === "Running..." ? "" : prev) + safeMsg + "\n") 
       }});
@@ -662,12 +459,12 @@ print("✅ Model Architecture Ready")`;
 
   // --- RENDER ---
   return (
-      <div>
-          <div className="header">
-              <Header />
-          </div>
-          <div className="main-page-body">
-              <SideNavs />
+    <div>
+        <div className="header">
+            <Header />
+        </div>
+        <div className="main-page-body">
+            <SideNavs />
     <div className="app-wrapper">
       <style>{cssStyles}</style>
       <div className="container">
@@ -766,15 +563,10 @@ print("✅ Model Architecture Ready")`;
 
                 <div className="card">
                     <h3 style={{display:'flex', alignItems:'center', gap: 8, justifyContent:'space-between'}}>
-                        <span style={{display:'flex', gap:8}}><Code color="#eab308" /> Python Arcade</span>
-                        <div className="py-controls">
-                           <button className="btn btn-ghost" onClick={() => loadGameScript('guess')}><Gamepad2 size={16}/> Guess</button>
-                           <button className="btn btn-ghost" onClick={() => loadGameScript('tictactoe')}><LayoutTemplate size={16}/> Tic-Tac-Toe</button>
-                           <button className="btn btn-ghost" onClick={() => loadGameScript('snake')}><Gamepad2 size={16}/> Snake</button>
-                        </div>
+                        <span style={{display:'flex', gap:8}}><Code color="#eab308" /> Python Sandbox</span>
                     </h3>
+                    <p style={{fontSize:'0.9rem', color:'#64748b', marginBottom: 12}}>Execute custom Python code directly in the browser.</p>
                     <textarea className="python-editor" value={pyCode} onChange={e => setPyCode(e.target.value)} spellCheck="false" />
-                    <canvas id="game-canvas" width="300" height="300" className="game-canvas" />
                     <div style={{display:'flex', justifyContent: 'space-between', marginTop: 16}}>
                         <button className="btn btn-primary" style={{background: '#eab308', color: 'black'}} onClick={runPython} disabled={!pyodide || isPyRunning}>
                             {isPyRunning ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />} Run Code
