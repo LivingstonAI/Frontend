@@ -20,12 +20,9 @@ const cssStyles = `
   .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
   
   .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; justify-content: center; white-space: nowrap; }
   .btn-primary { background: #2563eb; color: white; }
   .btn-primary:hover { background: #1d4ed8; }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
-  .btn-outline:hover { border-color: #2563eb; color: #2563eb; }
   .btn-ghost { background: transparent; color: #64748b; padding: 6px 12px; font-size: 0.9rem; }
   .btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
 
