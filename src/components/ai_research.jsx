@@ -1,6 +1,5 @@
 import Header from "./header";
 import SideNavs from "./side_navs";
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Trash2, Brain, Activity, Zap, Globe, Code, RefreshCw, Layers, Terminal, Save, Download, Cpu, AlertTriangle, Eye } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -8,20 +7,19 @@ import * as tf from "@tensorflow/tfjs";
 
 // --- CSS STYLES ---
 const cssStyles = `
-  .app-wrapper { min-height: 100vh; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding-bottom: 40px; }
-  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-  .header { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  /* Base Styles (Desktop First) */
+  
   .title h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
   .title p { margin: 4px 0 0; color: #64748b; }
   
-  .tabs { display: flex; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; flex-wrap: wrap; }
-  .tab { flex: 1; padding: 16px; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; border-bottom: 3px solid transparent; min-width: 80px; }
+  .tabs { display: flex; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; }
+  .tab { flex: 1; padding: 16px; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; border-bottom: 3px solid transparent; min-width: 80px; white-space: nowrap; }
   .tab:hover { background: #f1f5f9; }
   .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
   
   .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-  .btn-primary { background: #2563eb; color: white; }
-  .btn-primary:hover { background: #1d4ed8; }
+  
+
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-ghost { background: transparent; color: #64748b; padding: 6px 12px; font-size: 0.9rem; }
   .btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
@@ -60,15 +58,50 @@ const cssStyles = `
   .synapse.active-bwd { stroke: #ef4444; stroke-width: 2; stroke-opacity: 1; }
   .neuron.active { fill: #fff; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)); }
 
-  /* Mobile Responsiveness */
-  @media (max-width: 1024px) { .python-editor { min-height: 300px; } }
+  /* --- MOBILE RESPONSIVENESS REFINED --- */
   @media (max-width: 768px) { 
-    .grid-2 { grid-template-columns: 1fr; } 
-    .metric-grid { grid-template-columns: 1fr 1fr; }
-    .header { flex-direction: column; text-align: center; gap: 16px; }
-    .app-title { font-size: 1.5rem; }
+    .container { padding: 12px; }
+    
+    /* Compact Header */
+    .header { padding: 16px; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .title h1 { font-size: 1.4rem; }
+    .title p { font-size: 0.9rem; }
+    
+    /* Scrollable Tabs (Native App Feel) */
+    .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { padding: 12px 20px; font-size: 0.9rem; flex: 0 0 auto; }
+
+    /* Compact Cards & Fonts */
+    .card { padding: 16px; margin-bottom: 16px; }
+    .section-header { font-size: 1rem; margin-bottom: 12px; }
+    
+    /* Layout Stacking */
+    .grid-2 { grid-template-columns: 1fr; gap: 16px; }
+    
+    /* Metrics Grid */
+    .metric-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric-box { padding: 12px; }
+    .metric-val { font-size: 1.2rem; }
+    
+    /* Pipeline Items Stacking */
+    .pipeline-node { flex-direction: column; align-items: stretch; padding: 12px; }
+    .pipeline-inputs { justify-content: space-between; margin-top: 8px; }
+    
+    /* Upload & Controls */
+    .upload-box { padding: 24px; }
+    .select-input { width: 100%; margin-bottom: 12px; }
+    
+    /* Editor & Terminal */
+    .python-editor { min-height: 350px; font-size: 12px; }
+    .terminal { font-size: 0.75rem; padding: 12px; }
+    
+    /* Buttons */
+    .btn { width: 100%; padding: 12px; font-size: 0.95rem; }
     .py-controls { flex-direction: column; align-items: stretch; }
-    .btn { width: 100%; }
+    
+    /* Charts */
+    .recharts-wrapper { font-size: 10px; }
   }
 `;
 
@@ -465,11 +498,12 @@ print("✅ Model Architecture Ready")`;
   // --- RENDER ---
   return (
     <div>
+                
         <div className="header">
-            <Header />
-        </div>
+             <Header />
+          </div>
         <div className="main-page-body">
-            <SideNavs />
+              <SideNavs />
     <div className="app-wrapper">
       <style>{cssStyles}</style>
       <div className="container">
