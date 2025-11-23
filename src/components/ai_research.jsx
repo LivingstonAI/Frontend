@@ -8,7 +8,6 @@ import SideNavs from "./side_navs";
 
 // --- CSS STYLES ---
 const cssStyles = `
-  .app-wrapper { min-height: 100vh; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding-bottom: 40px; }
   .title h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
   .title p { margin: 4px 0 0; color: #64748b; }
   
