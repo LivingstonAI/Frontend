@@ -9,9 +9,7 @@ import * as tf from "@tensorflow/tfjs";
 
 // --- CSS STYLES ---
 const cssStyles = `
-  .app-wrapper { min-height: 100vh; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding-bottom: 40px; }
-  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-  .header { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  
   .title h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
   .title p { margin: 4px 0 0; color: #64748b; }
   
@@ -21,7 +19,6 @@ const cssStyles = `
   .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
   
   .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; justify-content: center; white-space: nowrap; }
   .btn-primary { background: #2563eb; color: white; }
   .btn-primary:hover { background: #1d4ed8; }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -858,4 +855,4 @@ print("✅ Model Architecture Ready")`;
   );
 };
 
-export default App;
+export default MLPlayground;
