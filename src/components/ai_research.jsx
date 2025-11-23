@@ -8,6 +8,9 @@ import * as tf from "@tensorflow/tfjs";
 
 // --- CSS STYLES ---
 const cssStyles = `
+  .app-wrapper { min-height: 100vh; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding-bottom: 40px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  .header { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
   .title h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
   .title p { margin: 4px 0 0; color: #64748b; }
   
@@ -17,6 +20,7 @@ const cssStyles = `
   .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
   
   .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; justify-content: center; white-space: nowrap; }
   .btn-primary { background: #2563eb; color: white; }
   .btn-primary:hover { background: #1d4ed8; }
   .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -45,7 +49,6 @@ const cssStyles = `
   .metric-val { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
   .text-green { color: #16a34a; } .text-red { color: #dc2626; } .text-blue { color: #2563eb; }
 
-  /* Python Editor - Reduced Height */
   .python-editor { background: #1e1e1e; color: #d4d4d4; border: 1px solid #333; border-radius: 8px; padding: 16px; font-family: monospace; min-height: 300px; width: 100%; margin-bottom: 16px; resize: vertical; font-size: 14px; line-height: 1.5; box-sizing: border-box; }
   
   .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: #334155; font-weight: 600; font-size: 1.1rem; }
@@ -81,7 +84,7 @@ const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
     const totalColumns = layers.length + 2; 
     const intervalWidth = totalColumns > 1 ? H_RANGE / (totalColumns - 1) : H_RANGE; 
 
-    // INCREASED LIMIT: Show more neurons
+    // Limit visual neurons per layer
     const getVisualUnits = (count) => Math.min(count, 20);
     
     const nodes = [];
@@ -113,11 +116,14 @@ const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
         }
     });
 
-    // Output Layer
+    // Output Layer (Always draw this, regardless of previous layer type)
     const finalLayerIdx = layers.length + 1;
-    if (layers.length > 0 && layers[layers.length - 1].type !== 'dense') {
-        nodes.push({ id: `L${finalLayerIdx}-N0`, x: getLayerX(finalLayerIdx), y: canvasHeight / 2, layer: finalLayerIdx });
-    }
+    nodes.push({ 
+        id: `L${finalLayerIdx}-N0`, 
+        x: getLayerX(finalLayerIdx), 
+        y: canvasHeight / 2, 
+        layer: finalLayerIdx 
+    });
 
     nodes.forEach(node => {
         if(node.layer > 0) {
@@ -320,6 +326,7 @@ def build_model(input_shape):
     model.add(layers.Input(shape=input_shape))
 ${modelBlocks.map(b => {
     if(b.type==='dense') return `    model.add(layers.Dense(${b.params.units}, activation='${b.params.activation}'))`;
+    if(b.type==='simpleRNN') return `    model.add(layers.SimpleRNN(${b.params.units}, return_sequences=False))`;
     if(b.type==='lstm') return `    model.add(layers.LSTM(${b.params.units}, return_sequences=False))`;
     if(b.type==='dropout') return `    model.add(layers.Dropout(${b.params.rate}))`;
     if(b.type==='conv1d') return `    model.add(layers.Conv1D(filters=${b.params.filters}, kernel_size=${b.params.kernel_size}, activation='relu'))`;
@@ -418,6 +425,7 @@ print("✅ Model Architecture Ready")`;
         if(b.type === 'dense') model.add(tf.layers.dense(config));
         if(b.type === 'dropout') model.add(tf.layers.dropout(config));
         if(b.type === 'lstm') { if(i===0) model.add(tf.layers.reshape({targetShape: [windowSize, 1], inputShape: [windowSize]})); model.add(tf.layers.lstm(config)); }
+        if(b.type === 'simpleRNN') { if(i===0) model.add(tf.layers.reshape({targetShape: [windowSize, 1], inputShape: [windowSize]})); model.add(tf.layers.simpleRNN(config)); }
         if(b.type === 'conv1d') { if(i===0) model.add(tf.layers.reshape({targetShape: [windowSize, 1], inputShape: [windowSize]})); model.add(tf.layers.conv1d(config)); model.add(tf.layers.flatten()); }
         if(b.type === 'dqn') { model.add(tf.layers.dense({units: 64, activation: 'relu'})); model.add(tf.layers.dense({units: 32, activation: 'relu'})); }
       });
@@ -510,11 +518,14 @@ print("✅ Model Architecture Ready")`;
                 <div style={{marginBottom: 16}}>
                     <small style={{color:'#64748b', fontWeight:600}}>CORE</small>
                     <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dense', name: 'Dense Layer', params: {units: 32, activation: 'relu'}}])}><Layers size={20} color="#2563eb" /> <div><strong>Dense</strong></div></div>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dense', name: 'Linear Regression', params: {units: 1, activation: 'linear'}}])}><Activity size={20} color="#2563eb" /> <div><strong>Linear Reg</strong></div></div>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dense', name: 'ELU Dense', params: {units: 32, activation: 'elu'}}])}><Layers size={20} color="#2563eb" /> <div><strong>ELU Dense</strong></div></div>
                     <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dropout', name: 'Dropout', params: {rate: 0.2}}])}><Trash2 size={20} color="#ef4444" /> <div><strong>Dropout</strong></div></div>
                 </div>
                 <div style={{marginBottom: 16}}>
                     <small style={{color:'#64748b', fontWeight:600}}>TIME SERIES</small>
                     <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'lstm', name: 'LSTM Layer', params: {units: 50}}])}><Activity size={20} color="#8b5cf6" /> <div><strong>LSTM</strong></div></div>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'simpleRNN', name: 'Simple RNN', params: {units: 32}}])}><Activity size={20} color="#8b5cf6" /> <div><strong>Simple RNN</strong></div></div>
                     <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'conv1d', name: 'Conv1D', params: {filters: 32, kernel_size: 2}}])}><Activity size={20} color="#ec4899" /> <div><strong>Conv1D</strong></div></div>
                 </div>
                 <div>
