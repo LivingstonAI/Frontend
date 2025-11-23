@@ -1,558 +1,425 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Plus, Trash2, BarChart3, Brain, TrendingUp, AlertCircle, Terminal, Activity, DollarSign, TrendingDown, Lightbulb, Download, Settings, Layers, GitCommit, Zap, Crosshair, Globe, Code, Eye, RefreshCw } from 'lucide-react';
-import { LineChart, Line, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart, ReferenceDot } from 'recharts';
+import { Upload, Play, Trash2, Brain, Activity, Zap, Globe, Code, RefreshCw, Layers, Terminal, Save, Download, Cpu, Gamepad2, LayoutTemplate, AlertTriangle, Eye } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
 
+// --- CSS STYLES ---
 const cssStyles = `
-  .ml-playground-wrapper {
-    min-height: 100vh;
-    background: #f8fafc;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #1e293b;
-    width: 100%;
-    overflow-x: hidden;
-  }
-
-  .main-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 24px 48px 24px;
-  }
-
-  .header-card {
-    background: white;
-    border-radius: 12px;
-    padding: 32px;
-    margin-bottom: 32px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(to right, #ffffff, #f0f9ff);
-  }
-
-  .app-title {
-    font-size: 2.25rem;
-    font-weight: 800;
-    margin: 0;
-    color: #0f172a;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-  }
-
-  .app-subtitle {
-    color: #64748b;
-    margin-top: 8px;
-    font-size: 1.1rem;
-    font-weight: 400;
-  }
-
-  .header-icon {
-    width: 64px;
-    height: 64px;
-    color: #2563eb;
-    flex-shrink: 0;
-    opacity: 0.9;
-  }
-
-  .tab-container {
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-    margin-bottom: 32px;
-    overflow: hidden;
-  }
-
-  .tab-header {
-    display: flex;
-    border-bottom: 1px solid #e2e8f0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    background: #f8fafc;
-  }
-  .tab-header::-webkit-scrollbar { display: none; }
-
-  .tab-button {
-    flex: 1;
-    padding: 18px 24px;
-    font-weight: 600;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.95rem;
-    color: #64748b;
-    border-bottom: 3px solid transparent;
-    white-space: nowrap;
-    min-width: 120px;
-  }
-
-  .tab-button:hover { background-color: #f1f5f9; color: #334155; }
-  .tab-button.active { 
-    color: #2563eb; 
-    border-bottom-color: #2563eb; 
-    background-color: white;
-  }
-
-  .tab-content { padding: 32px; }
-
-  .upload-zone {
-    border: 2px dashed #cbd5e1;
-    border-radius: 12px;
-    padding: 48px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    background-color: #f8fafc;
-    margin-bottom: 32px;
-  }
-  .upload-zone:hover { border-color: #2563eb; background-color: #eff6ff; }
+  .app-wrapper { min-height: 100vh; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding-bottom: 40px; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  .header { background: white; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  .title h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
+  .title p { margin: 4px 0 0; color: #64748b; }
   
-  .upload-zone-small {
-    border: 2px dashed #94a3b8;
-    border-radius: 8px;
-    padding: 24px;
-    text-align: center;
-    cursor: pointer;
-    background-color: #f1f5f9;
-    margin-bottom: 16px;
-  }
-  .upload-zone-small:hover { border-color: #2563eb; background-color: #e0f2fe; }
-
-  .source-toggle {
-    display: flex;
-    background: #f1f5f9;
-    padding: 4px;
-    border-radius: 10px;
-    margin-bottom: 32px;
-    width: fit-content;
-  }
+  .tabs { display: flex; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 24px; }
+  .tab { flex: 1; padding: 16px; border: none; background: none; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; border-bottom: 3px solid transparent; }
+  .tab:hover { background: #f1f5f9; }
+  .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
   
-  .source-btn {
-    padding: 8px 24px;
-    border-radius: 8px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-    color: #64748b;
-    background: transparent;
-    font-size: 0.95rem;
-  }
+  .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; justify-content: center; }
+  .btn-primary { background: #2563eb; color: white; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
+  .btn-outline:hover { border-color: #2563eb; color: #2563eb; }
+  .btn-ghost { background: transparent; color: #64748b; padding: 6px 12px; font-size: 0.9rem; }
+  .btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
+
+  .upload-box { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; background: #f8fafc; transition: 0.2s; }
+  .upload-box:hover { border-color: #2563eb; background: #eff6ff; }
   
-  .source-btn.active {
-    background: white;
-    color: #2563eb;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-
-  .feature-panel, .insight-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 32px;
-  }
-  .insight-card { background: #fffbeb; border-color: #fcd34d; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .model-item { border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; background: white; transition: 0.2s; }
+  .model-item:hover { border-color: #2563eb; transform: translateY(-2px); }
   
-  .checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
-  .checkbox-label {
-    display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500;
-    cursor: pointer; background: white; padding: 10px 16px; border-radius: 8px;
-    border: 1px solid #e2e8f0; transition: all 0.2s;
-  }
-  .checkbox-label:hover { border-color: #2563eb; transform: translateY(-1px); }
-
-  .model-button {
-    width: 100%; padding: 16px; border-radius: 12px; text-align: left;
-    border: 1px solid #e2e8f0; cursor: pointer; display: flex; align-items: flex-start;
-    gap: 16px; margin-bottom: 16px; transition: transform 0.2s, box-shadow 0.2s;
-    background: white; position: relative; overflow: hidden; color: #1e293b;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
-  .model-button:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); border-color: #2563eb; }
+  .pipeline-node { background: white; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .pipeline-inputs { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .pipeline-input-group { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #64748b; }
+  .mini-input { width: 70px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; }
   
-  .bg-blue-100 { background-color: #eff6ff; border-left: 4px solid #3b82f6; }
-  .bg-purple-100 { background-color: #f5f3ff; border-left: 4px solid #8b5cf6; }
-  .bg-red-100 { background-color: #fef2f2; border-left: 4px solid #ef4444; }
-
-  .pipeline-item { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-  .pipeline-card {
-    flex: 1; min-width: 240px; padding: 16px; border-radius: 10px; background: white;
-    display: flex; align-items: center; justify-content: space-between;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; color: #1e293b;
-  }
+  .terminal { background: #0f172a; color: #4ade80; padding: 16px; border-radius: 8px; font-family: monospace; height: 200px; overflow-y: auto; font-size: 0.85rem; scroll-behavior: smooth; }
+  .viz-box { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; color: white; text-align: center; margin-top: 20px; overflow: hidden; position: relative; }
   
-  .param-container { display: flex; align-items: center; font-size: 0.85rem; font-weight: 500; color: #64748b; }
-  .param-input { 
-    width: 70px; padding: 6px 8px; border-radius: 6px; border: 1px solid #cbd5e1; 
-    font-size: 0.85rem; margin-left: 8px; text-align: right; color: #334155; outline: none;
-  }
-  .param-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
-  
-  .train-button, .secondary-btn {
-    width: 100%; padding: 14px; border-radius: 10px; font-weight: 600; font-size: 1rem;
-    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    gap: 10px; transition: all 0.2s; margin-top: 24px;
-  }
-  .train-button { 
-    background: #2563eb; 
-    color: white; 
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); 
-  }
-  .train-button:hover { background: #1d4ed8; transform: translateY(-1px); }
-  .train-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .metric-box { background: #f8fafc; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
+  .metric-val { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+  .text-green { color: #16a34a; } .text-red { color: #dc2626; } .text-blue { color: #2563eb; }
 
-  .secondary-btn { background: white; border: 1px solid #cbd5e1; color: #475569; }
-  .secondary-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+  .python-editor { background: #1e1e1e; color: #d4d4d4; border: 1px solid #333; border-radius: 8px; padding: 16px; font-family: monospace; min-height: 500px; width: 100%; margin-bottom: 16px; resize: vertical; font-size: 14px; line-height: 1.5; }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: #334155; font-weight: 600; font-size: 1.1rem; }
+  .select-input { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; cursor: pointer; }
 
-  .input-group { margin-bottom: 16px; }
-  .input-label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #334155; }
-  .styled-input { 
-    width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; 
-    font-size: 1rem; box-sizing: border-box; transition: border-color 0.2s;
-  }
-  .styled-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  /* Animations for NN Viz */
+  .neuron { transition: fill 0.3s; }
+  .synapse { transition: stroke 0.3s, stroke-width 0.3s; stroke-opacity: 0.4; }
+  .synapse.active-fwd { stroke: #4ade80; stroke-width: 2; stroke-opacity: 1; }
+  .synapse.active-bwd { stroke: #ef4444; stroke-width: 2; stroke-opacity: 1; }
+  .neuron.active { fill: #fff; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)); }
 
-  .terminal-logs {
-    background: #0f172a; color: #4ade80; font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    padding: 20px; border-radius: 12px; margin-top: 32px; height: 240px;
-    overflow-y: auto; font-size: 0.85rem; scroll-behavior: smooth; border: 1px solid #334155;
-  }
-  .log-line { padding-bottom: 6px; border-bottom: 1px solid #1e293b; word-break: break-all; line-height: 1.5; }
-
-  .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 32px; }
-  .metric-card { 
-    background: white; padding: 24px; border-radius: 12px; text-align: center; 
-    border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-  .metric-value { font-size: 1.75rem; font-weight: 700; margin-top: 8px; letter-spacing: -0.02em; }
-  
-  .chart-card {
-    background: white; padding: 24px; border-radius: 12px;
-    border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    margin-bottom: 32px;
-  }
-
-  .text-blue { color: #2563eb; }
-  .text-green { color: #16a34a; }
-  .text-red { color: #dc2626; }
-  .text-indigo { color: #4f46e5; }
-
-  .progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #e2e8f0;
-    border-radius: 4px;
-    margin: 16px 0;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #2563eb, #1d4ed8);
-    transition: width 0.3s ease;
-  }
-
-  .validation-status {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #1e40af;
-  }
-
-  .validation-status.processing {
-    animation: pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-
-  .architecture-viz {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    border: 1px solid #334155;
-  }
-
-  .layer-block {
-    background: rgba(37, 99, 235, 0.1);
-    border: 2px solid #334155;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 8px 0;
-    text-align: center;
-    color: #64748b;
-    font-weight: 600;
-    font-size: 0.9rem;
-    position: relative;
-    transition: all 0.3s;
-  }
-
-  .layer-block.active {
-    background: rgba(37, 99, 235, 0.3);
-    border-color: #2563eb;
-    color: #2563eb;
-    box-shadow: 0 0 16px rgba(37, 99, 235, 0.6);
-  }
-
-  .layer-block.backward {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
-    color: #ef4444;
-  }
-
-  .forward-indicator, .backward-indicator {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    animation: none;
-  }
-
-  .forward-indicator {
-    background: #16a34a;
-    animation: pulse-green 0.8s infinite;
-  }
-
-  .backward-indicator {
-    background: #ef4444;
-    animation: pulse-red 0.8s infinite;
-  }
-
-  @keyframes pulse-green {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-    50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
-  }
-
-  @keyframes pulse-red {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-  }
-
-  .python-code-section {
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 24px;
-    margin-top: 32px;
-  }
-
-  .code-editor {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 12px;
-    font-family: 'Menlo', 'Monaco', monospace;
-    color: #e2e8f0;
-    font-size: 0.85rem;
-    min-height: 200px;
-    overflow: auto;
-  }
-
-  .code-output {
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 12px;
-    font-family: 'Menlo', 'Monaco', monospace;
-    color: #4ade80;
-    font-size: 0.85rem;
-    min-height: 100px;
-    overflow: auto;
-    margin-top: 12px;
-  }
-
-  .grid-two-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-  
-  @media (max-width: 767px) {
-    .main-container { padding: 0 16px 32px 16px; }
-    .header-card { flex-direction: column; text-align: center; gap: 16px; padding: 24px; }
-    .app-title { font-size: 1.75rem; }
-    .grid-two-cols { grid-template-columns: 1fr; }
-    .tab-content { padding: 16px; }
-    .metric-grid { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 1024px) { .python-editor { min-height: 350px; } }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .metric-grid { grid-template-columns: 1fr 1fr; } }
 `;
 
+// --- GAME SCRIPTS ---
+const GAME_SCRIPTS = {
+  default: `import numpy as np
+
+# --- Neural Network from Scratch ---
+print("🚀 Training a simple Neural Net using pure NumPy...")
+
+X = np.array([[0,0], [0,1], [1,0], [1,1]])
+y = np.array([[0], [1], [1], [0]])
+
+w1 = np.random.randn(2, 4)
+w2 = np.random.randn(4, 1)
+
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+def d_sigmoid(x): return x * (1 - x)
+
+for i in range(1500):
+    l1 = sigmoid(np.dot(X, w1))
+    l2 = sigmoid(np.dot(l1, w2))
+    l2_e = y - l2
+    l2_d = l2_e * d_sigmoid(l2)
+    l1_e = l2_d.dot(w2.T)
+    l1_d = l1_e * d_sigmoid(l1)
+    w2 += l1.T.dot(l2_d)
+    w1 += X.T.dot(l1_d)
+
+print(f"✨ Final Loss: {np.mean(np.abs(l2_e)):.4f}")
+print("Predictions:\\n", l2.T)`,
+
+  guess: `# --- Interactive Guessing Game ---
+import random
+
+print("🎮 Welcome to Guess the Number!")
+print("I am thinking of a number between 1 and 100...")
+
+secret = random.randint(1, 100)
+attempts = 0
+
+while True:
+    # Input uses browser prompt. If you cancel, the loop breaks.
+    guess_str = input(f"Attempt {attempts+1} - Enter guess: ")
+    
+    if not guess_str: break 
+    
+    try:
+        guess = int(guess_str)
+        attempts += 1
+        
+        if guess < secret:
+            print(f"❌ Too low! ({guess})")
+        elif guess > secret:
+            print(f"❌ Too high! ({guess})")
+        else:
+            print(f"🎉 CORRECT! The number was {secret}.")
+            break
+    except:
+        print("⚠️ Please enter a valid number.")
+        
+print("Game Over.")`,
+
+  tictactoe: `# --- Tic Tac Toe ---
+board = [' ' for _ in range(9)]
+
+def print_board():
+    print(f" {board[0]} | {board[1]} | {board[2]} ")
+    print("-----------")
+    print(f" {board[3]} | {board[4]} | {board[5]} ")
+    print("-----------")
+    print(f" {board[6]} | {board[7]} | {board[8]} ")
+
+def is_winner(p):
+    win_cond = [(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)]
+    return any(board[a]==board[b]==board[c]==p for a,b,c in win_cond)
+
+current = 'X'
+print("⭕❌ Tic-Tac-Toe")
+print("Positions are 0-8 (0 is top-left)")
+
+for turn in range(9):
+    print_board()
+    try:
+        # Input uses browser prompt. Enter the position (0-8)
+        move = input(f"Player {current}, enter pos (0-8): ")
+        if not move: break
+        idx = int(move)
+        if 0 <= idx <= 8 and board[idx] == ' ':
+            board[idx] = current
+            if is_winner(current):
+                print_board()
+                print(f"🎉 Player {current} Wins!")
+                break
+            current = 'O' if current == 'X' else 'X'
+        else:
+            print("⚠️ Invalid spot or position taken!")
+    except:
+        print("⚠️ Invalid input!")
+else:
+    print("Draw!")`,
+
+  snake: `# --- ASCII Snake ---
+# Input direction when prompted: w, a, s, d
+import random
+
+W, H = 10, 10
+snake = [(5,5)]
+food = (2,2)
+score = 0
+
+def print_grid():
+    grid = [['.' for _ in range(W)] for _ in range(H)]
+    grid[food[1]][food[0]] = '🍎'
+    for x,y in snake:
+        if 0<=x<W and 0<=y<H: grid[y][x] = '🟩'
+    print("\\n" * 2)
+    for row in grid:
+        print(" ".join(row))
+    print(f"Score: {score} | Pos: {snake[0]}")
+
+print("🐍 Snake Game (Text Mode)")
+print("Controls: w (up), s (down), a (left), d (right)")
+
+while True:
+    print_grid()
+    # Input uses browser prompt. Enter w, a, s, or d
+    move = input("Move (w/a/s/d): ").lower()
+    if not move: break
+    
+    head_x, head_y = snake[0]
+    if move == 'w': head_y -= 1
+    elif move == 's': head_y += 1
+    elif move == 'a': head_x -= 1
+    elif move == 'd': head_x += 1
+    
+    new_head = (head_x, head_y)
+    
+    if new_head in snake or head_x < 0 or head_x >= W or head_y < 0 or head_y >= H:
+        print("💀 Game Over!")
+        break
+        
+    snake.insert(0, new_head)
+    
+    if new_head == food:
+        score += 1
+        food = (random.randint(0,W-1), random.randint(0,H-1))
+    else:
+        snake.pop() # Remove tail`
+};
+
+// --- VISUALIZER COMPONENT ---
+const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
+    // FIX: Centering the visualization
+    const canvasWidth = 600;
+    const canvasHeight = 300;
+    const H_MARGIN = 50; // Margin on both sides
+    const H_RANGE = canvasWidth - 2 * H_MARGIN; // 500
+    
+    // Total columns to draw: Input (1) + Hidden (layers.length) + Output (1)
+    const totalColumns = layers.length + 2; 
+    
+    // Width of the interval between columns
+    const intervalWidth = totalColumns > 1 ? H_RANGE / (totalColumns - 1) : H_RANGE; 
+
+    // Helper to limit visual neurons per layer
+    const getVisualUnits = (count) => Math.min(count, 8);
+    
+    const nodes = [];
+    const links = [];
+
+    // Function to calculate X position for a layer index (0=Input, N+1=Output)
+    const getLayerX = (lIdx) => H_MARGIN + lIdx * intervalWidth; 
+
+    // Input Layer (lIdx = 0)
+    const inputCount = 5;
+    for(let i=0; i<inputCount; i++) {
+        nodes.push({ id: `L0-N${i}`, x: getLayerX(0), y: (canvasHeight/(inputCount+1))*(i+1), layer: 0 });
+    }
+
+    // Hidden & Output Layers (lIdx = 1 to layers.length + 1)
+    layers.forEach((layer, lIdx) => {
+        const actualIdx = lIdx + 1; // 1, 2, 3...
+        const unitCount = layer.params.units || 1; 
+        const vizCount = getVisualUnits(unitCount);
+        const isOutput = actualIdx === layers.length + 1;
+
+        for(let i=0; i<vizCount; i++) {
+            nodes.push({ 
+                id: `L${actualIdx}-N${i}`, 
+                x: getLayerX(actualIdx), 
+                y: (canvasHeight/(vizCount+1))*(i+1),
+                layer: actualIdx
+            });
+        }
+    });
+
+    // Output Layer (If not explicitly defined in blocks, the last block will be treated as output)
+    const finalLayerIdx = layers.length + 1;
+    if (layers.length > 0 && layers[layers.length - 1].type !== 'dense') {
+        // Add a final explicit output node if the last block isn't already a final dense layer
+        nodes.push({ 
+            id: `L${finalLayerIdx}-N0`, 
+            x: getLayerX(finalLayerIdx), 
+            y: canvasHeight / 2, 
+            layer: finalLayerIdx,
+        });
+    }
+
+    // Generate Links
+    nodes.forEach(node => {
+        if(node.layer > 0) {
+            const prevLayerNodes = nodes.filter(n => n.layer === node.layer - 1);
+            prevLayerNodes.forEach(prev => {
+                links.push({
+                    source: prev,
+                    target: node,
+                    layerIdx: node.layer - 1 // Link belongs to the gap BEFORE this layer
+                });
+            });
+        }
+    });
+
+    return (
+        <div className="viz-box">
+            <h4 style={{color:'white', margin:0, marginBottom:12, display:'flex', alignItems:'center', gap:8, justifyContent:'center'}}>
+                <Eye size={16}/> Neural Network State
+                {activePhase === 'forward' && <span style={{fontSize:'0.8rem', color:'#4ade80'}}>● Forward Prop</span>}
+                {activePhase === 'backward' && <span style={{fontSize:'0.8rem', color:'#ef4444'}}>● Back Prop</span>}
+            </h4>
+            <svg width="100%" height="300" viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}>
+                {/* Links */}
+                {links.map((link, i) => (
+                    <line 
+                        key={i}
+                        x1={link.source.x} y1={link.source.y}
+                        x2={link.target.x} y2={link.target.y}
+                        className={`synapse ${
+                            activeLayerIdx === link.layerIdx 
+                                ? (activePhase === 'forward' ? 'active-fwd' : 'active-bwd') 
+                                : ''
+                        }`}
+                        stroke="#475569"
+                        strokeWidth="1"
+                    />
+                ))}
+                {/* Nodes */}
+                {nodes.map(node => (
+                    <circle 
+                        key={node.id}
+                        cx={node.x} cy={node.y} r="8"
+                        className={`neuron ${activeLayerIdx === node.layer-1 || activeLayerIdx === node.layer ? 'active' : ''}`}
+                        fill={node.layer === 0 ? '#22c55e' : (node.layer === finalLayerIdx ? '#ef4444' : '#3b82f6')}
+                        stroke="white"
+                        strokeWidth="2"
+                    />
+                ))}
+            </svg>
+            <div style={{display:'flex', justifyContent:'space-between', color:'#94a3b8', fontSize:'0.8rem', padding:'0 40px'}}>
+                <span>Input</span>
+                {layers.slice(0, layers.length > 0 ? layers.length - 1 : 0).map((l, i) => <span key={i}>Hidden {i + 1}</span>)}
+                <span>Output</span>
+            </div>
+        </div>
+    );
+};
+
 const MLPlayground = () => {
-  const [dataSource, setDataSource] = useState('csv');
-  const [binanceSymbol, setBinanceSymbol] = useState('BTCUSDT');
+  // --- STATE ---
+  const [activeTab, setActiveTab] = useState('upload');
   const [datasets, setDatasets] = useState([]);
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const [validationDataset, setValidationDataset] = useState(null);
   const [modelBlocks, setModelBlocks] = useState([]);
-  const [trainingConfig, setTrainingConfig] = useState({
-    epochs: 50,
-    batchSize: 32,
-    learningRate: 0.001,
-    trainTestSplit: 0.8
-  });
-  const [preprocessing, setPreprocessing] = useState({ sma: true, rsi: true, volatility: false });
+  const [trainingConfig, setTrainingConfig] = useState({ epochs: 50, learningRate: 0.001, split: 0.8 });
+  const [cryptoSymbol, setCryptoSymbol] = useState("BTCUSDT");
   
   const [isTraining, setIsTraining] = useState(false);
-  const [isAutoTuning, setIsAutoTuning] = useState(false);
-  const [trainingProgress, setTrainingProgress] = useState(0);
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationProgress, setValidationProgress] = useState(0);
-  const [trainingPhase, setTrainingPhase] = useState('idle');
-  const [activeLayers, setActiveLayers] = useState([]);
-  
-  const [trainingLogs, setTrainingLogs] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState([]);
   const [results, setResults] = useState(null);
-  const [activeTab, setActiveTab] = useState('upload');
-  const [advisorTips, setAdvisorTips] = useState([]);
-  const [savedScaler, setSavedScaler] = useState(null); 
-  const [validationData, setValidationData] = useState(null);
-  const [validationResults, setValidationResults] = useState(null);
-  const [pythonCode, setPythonCode] = useState(`# Example: Generate predictions
-import numpy as np
+  const [trainedModel, setTrainedModel] = useState(null);
+  
+  // Viz State
+  const [activePhase, setActivePhase] = useState('idle');
+  const [activeLayerIdx, setActiveLayerIdx] = useState(-1);
 
-prices = np.random.randn(100).cumsum() + 100
-print(f"Generated {len(prices)} price points")
-print(f"Mean: {prices.mean():.2f}, Std: {prices.std():.2f}")`);
-  const [pythonOutput, setPythonOutput] = useState('');
-  const [isRunningPython, setIsRunningPython] = useState(false);
+  // Python State
+  const [pyodide, setPyodide] = useState(null);
+  const [pyOutput, setPyOutput] = useState("Initializing environment...");
+  const [isPyRunning, setIsPyRunning] = useState(false);
+  const [pyCode, setPyCode] = useState(GAME_SCRIPTS.default);
 
   const fileInputRef = useRef(null);
-  const validationInputRef = useRef(null);
+  const validationFileRef = useRef(null);
   const logsContainerRef = useRef(null);
 
+  // --- EFFECTS ---
   useEffect(() => {
-    if (logsContainerRef.current) logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
-  }, [trainingLogs]);
+    if (logsContainerRef.current) {
+        const { scrollHeight, clientHeight } = logsContainerRef.current;
+        logsContainerRef.current.scrollTop = scrollHeight - clientHeight;
+    }
+  }, [logs]);
 
   useEffect(() => {
-    generateAdvisorTips();
-  }, [modelBlocks, trainingConfig, selectedDataset]);
+    return () => { if(trainedModel) trainedModel.dispose(); }
+  }, [trainedModel]);
 
-  const generateAdvisorTips = () => {
-    const tips = [];
-    if (!selectedDataset) tips.push("📂 Upload or fetch data to begin.");
-    else if (selectedDataset.rows < 100) tips.push("⚠️ Dataset is very small (<100 rows). Models may overfit.");
-    if (modelBlocks.length === 0) tips.push("🧱 Add layers to build your model pipeline.");
-    if (trainingConfig.learningRate > 0.01) tips.push("📉 High learning rate detected. Try 0.001 for stability.");
-    setAdvisorTips(tips);
+  // Load Pyodide with Fixed Input Handler
+  useEffect(() => {
+    const loadPy = async () => {
+      if (window.pyodide) { setPyodide(window.pyodide); setPyOutput("Ready (Cached)"); return; }
+      try {
+        setPyOutput("⏳ Loading Python Kernel (WASM)...");
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js";
+        script.async = true;
+        script.onload = async () => {
+          try {
+            const py = await window.loadPyodide({
+                // FIX: Ensure that canceling the browser prompt doesn't cause an EOFError.
+                // It returns null, which Python interprets as end-of-file. We return "" instead.
+                stdin: () => window.prompt("Python Input (Appears in a separate browser window/dialog):") || "" 
+            });
+            await py.loadPackage("numpy");
+            setPyodide(py);
+            setPyOutput("✅ Python Ready (with Numpy & Interactive Input)");
+          } catch (e) { setPyOutput(`❌ Init Fail: ${e.message}`); }
+        };
+        document.body.appendChild(script);
+      } catch (e) { setPyOutput(`❌ Loader Error: ${e.message}`); }
+    };
+    loadPy();
+  }, []);
+
+  // --- HELPER FUNCTIONS ---
+  const updateModelParam = (index, key, value) => {
+    const newBlocks = [...modelBlocks];
+    newBlocks[index].params[key] = parseFloat(value) || 0;
+    setModelBlocks(newBlocks);
   };
 
-  const fetchBinanceData = async (symbol, target = 'train') => {
-    setTrainingLogs(prev => [...prev, `🌐 Fetching ${symbol} data from Binance...`]);
+  const loadGameScript = (key) => {
+    setPyCode(GAME_SCRIPTS[key]);
+    setPyOutput(`Loaded ${key}. Click Run, and when prompted for input, use the browser's dialog box!`);
+  };
+
+  const runPython = async () => {
+    if (!pyodide) return;
+    setIsPyRunning(true);
+    setPyOutput("Running...");
     try {
-      const response = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=500`
-      );
-      const klines = await response.json();
-      
-      if (!Array.isArray(klines)) throw new Error("Invalid Binance API response");
-      
-      const formattedData = klines.map(k => ({
-        Time: new Date(k[0]).toLocaleDateString(),
-        Open: parseFloat(k[1]),
-        High: parseFloat(k[2]),
-        Low: parseFloat(k[3]),
-        Close: parseFloat(k[4]),
-        Volume: parseFloat(k[7])
-      }));
-
-      const newDataset = {
-        id: Date.now(),
-        name: `${symbol}_Binance_500d`,
-        headers: ['Time', 'Open', 'High', 'Low', 'Close', 'Volume'],
-        data: formattedData,
-        rows: formattedData.length,
-        cols: 6
-      };
-      
-      if (target === 'train') {
-        setDatasets([newDataset]);
-        setSelectedDataset(newDataset);
-        setActiveTab('configure');
-      } else {
-        setValidationData(newDataset);
-      }
-      setTrainingLogs(prev => [...prev, `✅ Loaded ${formattedData.length} candles.`]);
-    } catch (e) {
-      setTrainingLogs(prev => [...prev, `🚨 API Error: ${e.message}`]);
-    }
-  };
-
-  const calculateRSI = (prices, period = 14) => {
-    const rsiArray = new Array(prices.length).fill(50);
-    if (prices.length < period) return rsiArray;
-    let avgGain = 0, avgLoss = 0;
-    for (let i = 1; i <= period; i++) {
-      const diff = prices[i] - prices[i - 1];
-      if (diff > 0) avgGain += diff;
-      else avgLoss += Math.abs(diff);
-    }
-    avgGain /= period;
-    avgLoss /= period;
-    for (let i = period + 1; i < prices.length; i++) {
-      const diff = prices[i] - prices[i - 1];
-      const gain = diff > 0 ? diff : 0;
-      const loss = diff < 0 ? Math.abs(diff) : 0;
-      avgGain = (avgGain * (period - 1) + gain) / period;
-      avgLoss = (avgLoss * (period - 1) + loss) / period;
-      const rs = avgGain / (avgLoss || 1);
-      rsiArray[i] = 100 - (100 / (1 + rs));
-    }
-    return rsiArray;
-  };
-
-  const enhanceData = (data, headers) => {
-    let newData = data.map(d => ({ ...d }));
-    let newHeaders = [...headers];
-    const numericHeaders = headers.filter(h => typeof data[0][h] === 'number');
-    const priceHeader = numericHeaders[numericHeaders.length - 1];
-    const prices = data.map(row => row[priceHeader]);
-
-    if (preprocessing.sma) {
-      const h = 'SMA_5';
-      if (!newHeaders.includes(h)) newHeaders.push(h);
-      for (let i = 0; i < newData.length; i++) {
-        const slice = prices.slice(Math.max(0, i - 4), i + 1);
-        newData[i][h] = slice.reduce((a, b) => a + b, 0) / slice.length;
-      }
-    }
-    if (preprocessing.rsi) {
-      const h = 'RSI_14';
-      if (!newHeaders.includes(h)) newHeaders.push(h);
-      const rsiVals = calculateRSI(prices);
-      for (let i = 0; i < newData.length; i++) {
-        newData[i][h] = rsiVals[i];
-      }
-    }
-    if (preprocessing.volatility) {
-      const h = 'Vol_5';
-      if (!newHeaders.includes(h)) newHeaders.push(h);
-      for (let i = 0; i < newData.length; i++) {
-        const slice = prices.slice(Math.max(0, i - 4), i + 1);
-        const mean = slice.reduce((a, b) => a + b, 0) / slice.length;
-        newData[i][h] = Math.sqrt(
-          slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (slice.length || 1)
-        );
-      }
-    }
-    return { data: newData, headers: newHeaders };
+      // Direct output to the state
+      pyodide.setStdout({ batched: (msg) => setPyOutput(prev => (prev === "Running..." ? "" : prev) + msg + "\n") });
+      // Run the code
+      await pyodide.runPythonAsync(pyCode);
+    } catch (e) { setPyOutput(`❌ Error:\n${e}`); }
+    setIsPyRunning(false);
   };
 
   const parseCSV = (text) => {
@@ -561,1002 +428,506 @@ print(f"Mean: {prices.mean():.2f}, Std: {prices.std():.2f}")`);
     const data = lines.slice(1).map(line => {
       const vals = line.split(',');
       const row = {};
-      headers.forEach((h, i) => {
-        row[h] = isNaN(vals[i]) ? vals[i] : parseFloat(vals[i]);
-      });
+      headers.forEach((h, i) => row[h] = parseFloat(vals[i]) || 0);
       return row;
-    }).filter(r => Object.keys(r).length === headers.length);
+    });
     return { headers, data };
   };
 
-  const handleFileUpload = async (e, target = 'train') => {
+  const handleFileUpload = async (e, isValidation = false) => {
     const file = e.target.files[0];
     if (!file) return;
     const text = await file.text();
-    const parsed = parseCSV(text);
-    const ds = {
-      id: Date.now(),
-      name: file.name,
-      headers: parsed.headers,
-      data: parsed.data,
-      rows: parsed.data.length,
-      cols: parsed.headers.length
-    };
-
-    if (target === 'train') {
+    const { headers, data } = parseCSV(text);
+    const ds = { id: Date.now(), name: file.name, headers, data };
+    
+    if (isValidation) {
+      setValidationDataset(ds);
+      setLogs(p => [...p, `📂 Loaded Validation CSV: ${file.name}`]);
+    } else {
       setDatasets([ds]);
       setSelectedDataset(ds);
       setActiveTab('configure');
-    } else {
-      setValidationData(ds);
+      setLogs(p => [...p, `📂 Loaded Training CSV: ${file.name} (${data.length} rows)`]);
     }
   };
 
-  const performBacktest = (prices, preds, actualPrices) => {
-    let balance = 10000;
-    const equityCurve = [];
-    let wins = 0;
-    let peak = 10000;
-    let maxDrawdown = 0;
-    let trades = 0;
+  const fetchBinance = async (isValidation = false) => {
+    setLogs(p => [...p, `🌐 Fetching ${cryptoSymbol} for ${isValidation ? 'Validation' : 'Training'}...`]);
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${cryptoSymbol}&interval=1d&limit=365`);
+      const json = await res.json();
+      if(!Array.isArray(json)) throw new Error("Invalid API Response");
+      
+      const data = json.map(k => ({
+        Open: parseFloat(k[1]),
+        High: parseFloat(k[2]),
+        Low: parseFloat(k[3]),
+        Close: parseFloat(k[4]),
+        Volume: parseFloat(k[7])
+      }));
+      const ds = { id: Date.now(), name: `${cryptoSymbol}_${isValidation?'Test':'Train'}`, headers: Object.keys(data[0]), data };
+      
+      if (isValidation) {
+        setValidationDataset(ds);
+        setLogs(p => [...p, "✅ Validation Data loaded."]);
+      } else {
+        setDatasets([ds]);
+        setSelectedDataset(ds);
+        setActiveTab('configure');
+        setLogs(p => [...p, "✅ Training Data loaded."]);
+      }
+    } catch (e) { setLogs(p => [...p, `❌ API Error: ${e.message}`]); }
+  };
 
-    for (let i = 1; i < Math.min(prices.length, preds.length); i++) {
-      const currentPrice = prices[i - 1];
-      const nextActualPrice = actualPrices[i];
-      const prediction = preds[i - 1];
+  // --- DOWNLOAD FUNCTIONS ---
+  const downloadModel = async () => {
+    if(!trainedModel) { alert("No model trained yet!"); return; }
+    await trainedModel.save('downloads://snowai-model');
+  };
 
-      const signal = prediction > currentPrice ? 1 : -1;
-      const priceChange = (nextActualPrice - currentPrice) / currentPrice;
-      const strategyReturn = signal * priceChange * 0.95;
+  const downloadCode = () => {
+    const pyScript = `
+import tensorflow as tf
+from tensorflow.keras import layers, models
 
-      balance *= (1 + strategyReturn);
-      if (strategyReturn > 0) wins++;
-      trades++;
+# Auto-Generated by SnowAI Quant Lab
+def build_model(input_shape):
+    model = models.Sequential()
+    model.add(layers.Input(shape=input_shape))
+    
+${modelBlocks.map(b => {
+    if(b.type==='dense') return `    model.add(layers.Dense(${b.params.units}, activation='${b.params.activation}'))`;
+    if(b.type==='lstm') return `    model.add(layers.LSTM(${b.params.units}, return_sequences=${b.params.return_sequences ? 'True' : 'False'}))`;
+    if(b.type==='dropout') return `    model.add(layers.Dropout(${b.params.rate}))`;
+    if(b.type==='conv1d') return `    model.add(layers.Conv1D(filters=${b.params.filters}, kernel_size=${b.params.kernel_size}, activation='relu'))`;
+    return '';
+}).join('\n')}
+    model.add(layers.Dense(1))
+    
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=${trainingConfig.learningRate}),
+                  loss='mse')
+    return model
 
-      if (balance > peak) peak = balance;
-      const dd = (peak - balance) / peak;
-      if (dd > maxDrawdown) maxDrawdown = dd;
+print("✅ Model Architecture Ready")
+`;
+    const blob = new Blob([pyScript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'snowai_model_arch.py';
+    a.click();
+  };
 
-      equityCurve.push({
-        idx: i,
-        EquityValue: Math.round(balance * 100) / 100,
-        Price: Math.round(nextActualPrice * 100) / 100,
-        Prediction: Math.round(prediction * 100) / 100
-      });
-    }
+  // --- BACKTEST ENGINE ---
+  const runPrediction = (model, dataset, windowSize, min, max) => {
+      const priceCol = dataset.headers.find(h => h.toLowerCase().includes('close')) || dataset.headers[dataset.headers.length-1];
+      const rawData = dataset.data.map(r => r[priceCol]);
+      
+      // Normalize using Training Scale
+      const tensorData = tf.tensor1d(rawData);
+      const normalized = tensorData.sub(min).div(max.sub(min));
+      const values = normalized.dataSync();
+      
+      const X_arr = [];
+      for(let i = windowSize; i < values.length; i++) {
+        X_arr.push(values.slice(i-windowSize, i));
+      }
+      const X = tf.tensor2d(X_arr);
+      
+      const preds = model.predict(X).dataSync();
+      const actuals = rawData.slice(windowSize);
+      
+      const minVal = min.dataSync()[0];
+      const maxVal = max.dataSync()[0];
+      const unscale = (n) => n * (maxVal - minVal) + minVal;
 
-    return {
-      totalReturn: ((balance - 10000) / 10000) * 100,
-      sharpe: wins > 0 ? (wins / trades) * 2 : 0,
-      maxDrawdown: maxDrawdown * 100,
-      winRate: (wins / trades) * 100,
-      equityCurve,
-      finalBalance: balance
-    };
+      const resultData = [];
+      let balance = 10000;
+      let wins = 0;
+      let maxBal = 10000;
+      let minBal = 10000;
+      let tradeCount = 0;
+      const fee = 0.001; 
+
+      for(let i=0; i<preds.length; i++) {
+        const predPrice = unscale(preds[i]);
+        const actualPrice = actuals[i];
+        const prevPrice = rawData[windowSize + i - 1];
+
+        if (!isFinite(predPrice) || !isFinite(actualPrice) || !prevPrice) continue;
+
+        const predMove = (predPrice - prevPrice) / prevPrice;
+        let signal = 0;
+        if (predMove > 0.005) signal = 1;
+        else if (predMove < -0.005) signal = -1;
+
+        const actualMove = (actualPrice - prevPrice) / prevPrice;
+        
+        let pnl = 0;
+        if (signal !== 0) {
+            pnl = balance * signal * actualMove;
+            pnl -= balance * fee;
+            tradeCount++;
+            if (pnl > 0) wins++;
+        }
+        
+        balance += pnl;
+        if(balance > maxBal) maxBal = balance;
+        if(balance < minBal) minBal = balance;
+
+        resultData.push({
+          idx: i,
+          Actual: Math.round(actualPrice),
+          Predicted: Math.round(predPrice),
+          Equity: Math.round(balance)
+        });
+      }
+      
+      const totalReturn = ((balance - 10000) / 10000) * 100;
+      const winRate = tradeCount > 0 ? (wins / tradeCount) * 100 : 0;
+      const maxDrawdown = ((maxBal - minBal) / maxBal) * 100;
+      
+      return { totalReturn, winRate, maxDrawdown, chartData: resultData };
   };
 
   const trainModel = async () => {
-    if (!selectedDataset || modelBlocks.length === 0) return;
+    if (!selectedDataset || modelBlocks.length === 0) {
+      alert("Please select a dataset and add model layers.");
+      return;
+    }
+    
     setIsTraining(true);
-    setTrainingProgress(0);
-    setTrainingLogs(["🚀 Starting SnowAI Quant Pipeline..."]);
+    setProgress(0);
+    setLogs(p => [...p, "🚀 Starting Training..."]);
 
     try {
-      const { data: enrichedData, headers: enrichedHeaders } = enhanceData(
-        selectedDataset.data,
-        selectedDataset.headers
-      );
-      const numericHeaders = enrichedHeaders.filter(h => typeof enrichedData[0][h] === 'number');
-      const priceCol = numericHeaders[numericHeaders.length - 1];
+      const priceCol = selectedDataset.headers.find(h => h.toLowerCase().includes('close')) || selectedDataset.headers[selectedDataset.headers.length-1];
+      const rawData = selectedDataset.data.map(r => r[priceCol]);
+      
+      const tensorData = tf.tensor1d(rawData);
+      const min = tensorData.min();
+      const max = tensorData.max();
+      const normalized = tensorData.sub(min).div(max.sub(min));
+      const values = normalized.dataSync();
 
-      const cleanData = enrichedData.filter(row =>
-        numericHeaders.every(h => !isNaN(row[h]))
-      );
-
-      setTrainingLogs(prev => [...prev, `📊 Cleaned data: ${cleanData.length} samples`]);
-
-      const X_raw = cleanData.slice(0, -1).map(row => numericHeaders.map(h => row[h]));
-      const y_raw = cleanData.slice(1).map(row => row[priceCol]);
-
-      const X = tf.tensor2d(X_raw);
-      const xMean = X.mean(0);
-      const xStd = X.sub(xMean).square().mean(0).sqrt();
-      const XNorm = X.sub(xMean).div(xStd.add(1e-7));
-
-      const splitIdx = Math.floor(X_raw.length * trainingConfig.trainTestSplit);
-      const XTrain = XNorm.slice([0, 0], [splitIdx, -1]);
-      const XTest = XNorm.slice([splitIdx, 0], [-1, -1]);
-
-      const y = tf.tensor2d(y_raw, [y_raw.length, 1]);
-      const yMean = y.mean();
-      const yStd = y.sub(yMean).square().mean().sqrt();
-      const yNorm = y.sub(yMean).div(yStd.add(1e-7));
-
-      const yTrainTensor = yNorm.slice([0, 0], [splitIdx, -1]);
-      const yTestTensor = yNorm.slice([splitIdx, 0], [-1, -1]);
-
-      setSavedScaler({ xMean, xStd, yMean, yStd, numericHeaders });
-
-      const model = tf.sequential();
-      const inputShape = [numericHeaders.length];
-
-      modelBlocks.forEach((block, idx) => {
-        const isFirst = model.layers.length === 0;
-        const config = { ...block.params, inputShape: isFirst ? inputShape : undefined };
-
-        if (block.modelId === 'dense') {
-          model.add(tf.layers.dense(config));
-        } else if (block.modelId === 'dropout') {
-          model.add(tf.layers.dropout(config));
-        } else if (block.modelId === 'lstm') {
-          model.add(tf.layers.lstm({ ...config, returnSequences: false }));
-        }
-      });
-
-      if (model.layers.length === 0) {
-        model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape }));
+      const windowSize = 5;
+      const X_arr = [];
+      const y_arr = [];
+      
+      for(let i = windowSize; i < values.length; i++) {
+        X_arr.push(values.slice(i-windowSize, i));
+        y_arr.push(values[i]);
       }
 
-      model.add(tf.layers.dense({ units: 1, activation: 'linear' }));
-      model.compile({
-        optimizer: tf.train.adam(trainingConfig.learningRate),
-        loss: 'meanSquaredError'
+      const X = tf.tensor2d(X_arr);
+      const y = tf.tensor2d(y_arr, [y_arr.length, 1]);
+
+      const splitIdx = Math.floor(X_arr.length * trainingConfig.split);
+      const X_train = X.slice([0,0], [splitIdx, -1]);
+      const y_train = y.slice([0,0], [splitIdx, -1]);
+      const X_test = X.slice([splitIdx, 0], [-1, -1]);
+
+      const model = tf.sequential();
+      
+      modelBlocks.forEach((b, i) => {
+        const config = { ...b.params, inputShape: i === 0 ? [windowSize] : undefined };
+        
+        // --- LAYER CONSTRUCTION ---
+        if(b.type === 'dense') model.add(tf.layers.dense(config));
+        if(b.type === 'dropout') model.add(tf.layers.dropout(config));
+        if(b.type === 'lstm') {
+           if(i===0) model.add(tf.layers.reshape({targetShape: [windowSize, 1], inputShape: [windowSize]}));
+           model.add(tf.layers.lstm(config));
+        }
+        if(b.type === 'conv1d') {
+           if(i===0) model.add(tf.layers.reshape({targetShape: [windowSize, 1], inputShape: [windowSize]}));
+           model.add(tf.layers.conv1d(config));
+           model.add(tf.layers.flatten());
+        }
+        // Reinforcement Learning Placeholders (Architectural only for this demo)
+        if(b.type === 'dqn') {
+            model.add(tf.layers.dense({units: 64, activation: 'relu'}));
+            model.add(tf.layers.dense({units: 32, activation: 'relu'}));
+        }
       });
+      model.add(tf.layers.dense({ units: 1 }));
+      
+      model.compile({ optimizer: tf.train.adam(trainingConfig.learningRate), loss: 'meanSquaredError' });
 
-      setTrainingLogs(prev => [...prev, `🧠 Model compiled. Starting training...`]);
-
-      await model.fit(XTrain, yTrainTensor, {
+      await model.fit(X_train, y_train, {
         epochs: trainingConfig.epochs,
-        batchSize: trainingConfig.batchSize,
-        validationData: [XTest, yTestTensor],
-        verbose: 0,
         callbacks: {
-          onEpochEnd: async (e, l) => {
-            setTrainingProgress(((e + 1) / trainingConfig.epochs) * 100);
-            if (e % Math.ceil(trainingConfig.epochs / 5) === 0) {
-              setTrainingLogs(p => [
-                ...p,
-                `Epoch ${e + 1}/${trainingConfig.epochs}: Loss ${l.loss.toFixed(6)} | Val Loss ${l.val_loss.toFixed(6)}`
-              ]);
+          onEpochEnd: async (epoch, logs) => {
+            setProgress(Math.round(((epoch + 1) / trainingConfig.epochs) * 100));
+            // Animation Logic
+            if (epoch % 2 === 0) { // Faster updates
+              setLogs(p => [...p, `Ep ${epoch+1}: Loss ${logs.loss.toFixed(5)}`]);
+              
+              // Trigger Forward
+              setActivePhase('forward');
+              for(let i=0; i<=modelBlocks.length; i++) {
+                  setActiveLayerIdx(i);
+                  await new Promise(r => setTimeout(r, 50));
+              }
+              // Trigger Backward
+              setActivePhase('backward');
+              for(let i=modelBlocks.length; i>=0; i--) {
+                  setActiveLayerIdx(i);
+                  await new Promise(r => setTimeout(r, 50));
+              }
+              setActivePhase('idle');
+              setActiveLayerIdx(-1);
             }
-            // Animate layer activations
-            setTrainingPhase('forward');
-            setActiveLayers(modelBlocks.map((_, i) => i));
-            await new Promise(r => setTimeout(r, 300));
-            setTrainingPhase('backward');
-            await new Promise(r => setTimeout(r, 300));
-            setTrainingPhase('idle');
-            await new Promise(r => setTimeout(r, 50));
           }
         }
       });
 
-      setTrainingLogs(prev => [...prev, `✅ Training complete. Evaluating...`]);
-
-      const testPreds = await model.predict(XTest).data();
-      const testPredsArray = Array.from(testPreds);
-      const testPricesRaw = y_raw.slice(splitIdx);
-      const testPricesUnscaled = testPredsArray.map(p => p * yStd.dataSync()[0] + yMean.dataSync()[0]);
-
-      const stats = performBacktest(testPredsArray, testPricesUnscaled, testPricesRaw);
-
-      setResults({
-        modelName: "Regression Model",
-        metrics: { r2: 0.85, mse: 0.004 },
-        backtest: stats,
-        tfModel: model,
-        isRL: false
-      });
-
+      const resultsStats = runPrediction(model, 
+        {...selectedDataset, data: selectedDataset.data.slice(splitIdx + windowSize)}, 
+        windowSize, min, max
+      );
+      
+      setTrainedModel(model);
+      setResults({ ...resultsStats, minTensor: min, maxTensor: max, windowSize });
+      setLogs(p => [...p, "✅ Training Complete!"]);
       setActiveTab('results');
-      setTrainingLogs(prev => [...prev, `🎯 Final Return: ${stats.totalReturn.toFixed(2)}% | Win Rate: ${stats.winRate.toFixed(2)}%`]);
 
     } catch (e) {
-      setTrainingLogs(prev => [...prev, `🚨 Error: ${e.message}`]);
       console.error(e);
+      setLogs(p => [...p, `❌ Error: ${e.message}`]);
     } finally {
       setIsTraining(false);
-      setTrainingPhase('idle');
     }
   };
 
-  const validateOnNewData = async () => {
-    if (!results || !savedScaler || !validationData) {
-      alert("Train a model first and upload validation data.");
-      return;
-    }
-
-    setIsValidating(true);
-    setValidationProgress(0);
-    setValidationResults(null);
-
+  const validateModel = async () => {
+    if(!validationDataset || !trainedModel || !results) return;
+    setLogs(p => [...p, `🔎 Validating on ${validationDataset.name}...`]);
     try {
-      const { data: enriched, headers: enrichedHeaders } = enhanceData(
-        validationData.data,
-        validationData.headers
-      );
-      const numericHeaders = enrichedHeaders.filter(h => typeof enriched[0][h] === 'number');
-      const priceCol = numericHeaders[numericHeaders.length - 1];
-
-      const cleanData = enriched.filter(row => numericHeaders.every(h => !isNaN(row[h])));
-
-      if (cleanData.length === 0) {
-        throw new Error("Validation dataset is empty after cleaning.");
-      }
-
-      await new Promise(r => setTimeout(r, 1000));
-      setValidationProgress(20);
-
-      const X_raw = cleanData.slice(0, -1).map(row =>
-        savedScaler.numericHeaders.map(h => row[h])
-      );
-      const prices = cleanData.slice(1).map(row => row[priceCol]);
-
-      await new Promise(r => setTimeout(r, 1000));
-      setValidationProgress(40);
-
-      const expectedFeatures = savedScaler.xMean.shape[0];
-      const actualFeatures = X_raw[0]?.length || 0;
-
-      if (actualFeatures !== expectedFeatures) {
-        throw new Error(
-          `Feature Mismatch! Expected ${expectedFeatures} features, got ${actualFeatures}.`
-        );
-      }
-
-      const X = tf.tensor2d(X_raw);
-      const XNorm = X.sub(savedScaler.xMean).div(savedScaler.xStd.add(1e-7));
-
-      await new Promise(r => setTimeout(r, 1000));
-      setValidationProgress(60);
-
-      const preds = await results.tfModel.predict(XNorm).data();
-      const predsArray = Array.from(preds);
-
-      await new Promise(r => setTimeout(r, 1000));
-      setValidationProgress(80);
-
-      const predsUnscaled = predsArray.map(
-        p => p * savedScaler.yStd.dataSync()[0] + savedScaler.yMean.dataSync()[0]
-      );
-
-      const stats = performBacktest(predsArray, predsUnscaled, prices);
-      setValidationResults(stats);
-
-      await new Promise(r => setTimeout(r, 500));
-      setValidationProgress(100);
-
-    } catch (e) {
-      console.error("Validation failed", e);
-      alert("Validation failed: " + e.message);
-      setValidationProgress(0);
-    } finally {
-      setIsValidating(false);
+      const stats = runPrediction(trainedModel, validationDataset, results.windowSize, results.minTensor, results.maxTensor);
+      setResults(prev => ({ ...prev, validationStats: stats }));
+      setLogs(p => [...p, `✅ Validation Result: Return ${stats.totalReturn.toFixed(2)}%`]);
+    } catch(e) {
+      setLogs(p => [...p, `❌ Validation Error: ${e.message}`]);
     }
   };
 
-  const runPythonCode = async () => {
-    setIsRunningPython(true);
-    setPythonOutput('⚙️ Executing code...\n');
-    
-    try {
-      const output = [];
-      const originalLog = console.log;
-      console.log = (...args) => output.push(args.join(' '));
-      
-      const np = {
-        random: { randn: (n) => Array(n).fill(0).map(() => Math.random() - 0.5) },
-        cumsum: (arr) => {
-          let sum = 0;
-          return arr.map(v => (sum += v));
-        }
-      };
-      
-      await new Promise(r => setTimeout(r, 1000));
-      
-      eval(pythonCode);
-      
-      console.log = originalLog;
-      setPythonOutput(output.join('\n') || '✅ Execution complete!');
-    } catch (e) {
-      setPythonOutput(`❌ Error: ${e.message}`);
-    }
-    
-    setIsRunningPython(false);
-  };
-
-  const handleParamChange = (id, key, val) => {
-    const v = key === 'activation' ? val : parseFloat(val) || 1;
-    setModelBlocks(prev =>
-      prev.map(b => (b.id === id ? { ...b, params: { ...b.params, [key]: v } } : b))
-    );
-  };
-
-  const autoTuneHyperparams = async () => {
-    if (isTraining) return;
-    setIsAutoTuning(true);
-    setTrainingLogs(p => [...p, "🤖 Running Grid Search..."]);
-    await new Promise(r => setTimeout(r, 2000));
-    setTrainingConfig({ ...trainingConfig, learningRate: 0.001 });
-    setTrainingLogs(p => [...p, "✅ Optimal LR found: 0.001"]);
-    setIsAutoTuning(false);
-  };
-
-  const modelTypes = {
-    ml: [
-      { id: 'linear', name: 'Linear Regression', icon: '📈', description: 'Trend following baseline.' },
-      { id: 'ridge', name: 'Ridge Regression', icon: '📊', description: 'L2 Regularization.' },
-      { id: 'lasso', name: 'Lasso Regression', icon: '📉', description: 'L1 Regularization.' }
-    ],
-    dl: [
-      { id: 'dense', name: 'Dense Layer', icon: '🧠', modelId: 'dense', params: { units: 64, activation: 'relu' }, description: 'Standard neural layer.' },
-      { id: 'lstm', name: 'LSTM Layer', icon: '🔄', modelId: 'lstm', params: { units: 50 }, description: 'Memory for time-series.' },
-      { id: 'dropout', name: 'Dropout', icon: '✂️', modelId: 'dropout', params: { rate: 0.2 }, description: 'Prevents overfitting.' }
-    ],
-    rl: [
-      { id: 'dqn', name: 'Deep Q-Network', icon: '🎮', description: 'RL agent (Q-Learning).' },
-      { id: 'pg', name: 'Policy Gradient', icon: '🎲', description: 'RL agent (Policy).' }
-    ]
-  };
-
-  const RenderNetworkViz = () => {
-    return (
-      <div className="architecture-viz">
-        <h4 style={{ color: '#93c5fd', marginTop: 0, marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Layers size={18} /> Network Architecture
-        </h4>
-        <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '16px' }}>
-          {modelBlocks.length} layers • {selectedDataset ? `${selectedDataset.cols} input features` : '0 inputs'} • 1 output
-        </div>
-        
-        <div className="layer-block" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: '#22c55e', color: '#22c55e' }}>
-          📥 Input Layer
-          {trainingPhase === 'forward' && <div className="forward-indicator" />}
-        </div>
-
-        {modelBlocks.map((block, idx) => (
-          <div key={block.id}>
-            <div
-              className={`layer-block ${activeLayers.includes(idx) ? (trainingPhase === 'forward' ? 'active' : 'backward') : ''}`}
-              style={{
-                borderColor: activeLayers.includes(idx) ? (trainingPhase === 'forward' ? '#2563eb' : '#ef4444') : '#334155',
-                color: activeLayers.includes(idx) ? (trainingPhase === 'forward' ? '#2563eb' : '#ef4444') : '#64748b'
-              }}
-            >
-              {block.icon} {block.name}
-              {block.params && (
-                <div style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>
-                  {Object.entries(block.params).map(([k, v]) => `${k}=${v}`).join(', ')}
-                </div>
-              )}
-              {activeLayers.includes(idx) && (trainingPhase === 'forward' ? <div className="forward-indicator" /> : <div className="backward-indicator" />)}
-            </div>
-            {idx < modelBlocks.length - 1 && <div style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '4px 0' }}>↓</div>}
-          </div>
-        ))}
-
-        <div style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '4px 0' }}>↓</div>
-
-        <div className="layer-block" style={{ background: 'rgba(139, 92, 246, 0.1)', borderColor: '#8b5cf6', color: '#8b5cf6' }}>
-          📤 Output Layer (1 neuron)
-          {trainingPhase === 'forward' && <div className="forward-indicator" />}
-        </div>
-
-        <div style={{ marginTop: '16px', fontSize: '0.8rem', color: '#94a3b8' }}>
-          {trainingPhase === 'forward' && '🟢 Forward Propagation →'}
-          {trainingPhase === 'backward' && '🔴 Backpropagation ←'}
-          {trainingPhase === 'idle' && '⚫ Ready'}
-        </div>
-      </div>
-    );
-  };
-
+  // --- RENDER ---
   return (
     <div>
-                <div className="header">
-                    <Header />
-                </div>
-                <div className="main-page-body">
-                    <SideNavs />
-    <div className="ml-playground-wrapper">
+        <div className="header">
+            <Header />
+        </div>
+        <div className="main-page-body">
+            <SideNavs />
+    <div className="app-wrapper">
       <style>{cssStyles}</style>
-
-      <div className="main-container">
-        <div className="header-card">
+      <div className="container">
+        <div className="header">
           <div>
-            <h1 className="app-title">SnowAI Quant Lab</h1>
-            <p className="app-subtitle">Professional-grade ML backtesting engine</p>
+            <div className="title"><h1>SnowAI Quant Lab</h1><p>Interactive Machine Learning Environment</p></div>
           </div>
-          <Brain className="header-icon" />
+          <Brain size={48} color="#2563eb" />
         </div>
 
-        <div className="tab-container">
-          <div className="tab-header">
-            {['upload', 'configure', 'train', 'results'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`tab-button ${activeTab === tab ? 'active' : ''}`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
+        <div className="tabs">
+          {['upload', 'configure', 'train', 'results'].map(t => (
+            <button key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>{t.toUpperCase()}</button>
+          ))}
+        </div>
 
-          <div className="tab-content">
-            {activeTab === 'upload' && (
-              <div>
-                <div className="source-toggle">
-                  <button
-                    onClick={() => setDataSource('csv')}
-                    className={`source-btn ${dataSource === 'csv' ? 'active' : ''}`}
-                  >
-                    <Upload size={18} /> CSV Upload
-                  </button>
-                  <button
-                    onClick={() => setDataSource('api')}
-                    className={`source-btn ${dataSource === 'api' ? 'active' : ''}`}
-                  >
-                    <Globe size={18} /> Binance
-                  </button>
+        <div className="content">
+          {/* UPLOAD */}
+          {activeTab === 'upload' && (
+            <div className="card">
+               <div className="upload-box" onClick={() => fileInputRef.current.click()}>
+                 <Upload size={40} color="#94a3b8" style={{marginBottom: 16}} />
+                 <h3>Click to Upload CSV</h3>
+                 <p style={{color: '#94a3b8'}}>Format: Date, Open, High, Low, Close, Volume</p>
+                 <input ref={fileInputRef} type="file" accept=".csv" style={{display:'none'}} onChange={(e) => handleFileUpload(e, false)} />
+               </div>
+               <div style={{textAlign: 'center', margin: '20px 0', color: '#94a3b8'}}>OR</div>
+               <div style={{display:'flex', justifyContent: 'center', gap: 12}}>
+                 <select className="select-input" value={cryptoSymbol} onChange={(e) => setCryptoSymbol(e.target.value)}>
+                    <option value="BTCUSDT">BTC/USDT</option>
+                    <option value="ETHUSDT">ETH/USDT</option>
+                    <option value="SOLUSDT">SOL/USDT</option>
+                    <option value="ADAUSDT">ADA/USDT</option>
+                 </select>
+                 <button className="btn btn-primary" onClick={() => fetchBinance(false)}>
+                   <Globe size={18} /> Fetch Training Data
+                 </button>
+               </div>
+            </div>
+          )}
+
+          {/* CONFIGURE */}
+          {activeTab === 'configure' && (
+            <div className="grid-2">
+              <div className="card">
+                <div className="section-header"><Zap size={20} /> Toolbox</div>
+                <div style={{marginBottom: 16}}>
+                    <small style={{color:'#64748b', fontWeight:600}}>CORE LAYERS</small>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dense', name: 'Dense Layer', params: {units: 32, activation: 'relu'}}])}><Layers size={20} color="#2563eb" /> <div><strong>Dense</strong></div></div>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dropout', name: 'Dropout', params: {rate: 0.2}}])}><Trash2 size={20} color="#ef4444" /> <div><strong>Dropout</strong></div></div>
                 </div>
-                {dataSource === 'csv' ? (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="upload-zone"
-                  >
-                    <Upload className="header-icon" style={{ width: 48, margin: '0 auto 16px' }} />
-                    <h3>Drop Historical CSV</h3>
-                    <p style={{ color: '#64748b' }}>Requires OHLCV format</p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileUpload}
-                      style={{ display: 'none' }}
-                    />
-                  </div>
-                ) : (
-                  <div className="upload-zone" style={{ borderColor: '#2563eb', background: '#eff6ff' }}>
-                    <h3>Fetch Binance Data</h3>
-                    <select
-                      value={binanceSymbol}
-                      onChange={(e) => setBinanceSymbol(e.target.value)}
-                      style={{
-                        padding: '10px',
-                        margin: '16px 0',
-                        borderRadius: '8px',
-                        width: '200px'
-                      }}
-                    >
-                      <option value="BTCUSDT">Bitcoin (BTCUSDT)</option>
-                      <option value="ETHUSDT">Ethereum (ETHUSDT)</option>
-                      <option value="BNBUSDT">Binance Coin (BNBUSDT)</option>
-                      <option value="SOLUSDT">Solana (SOLUSDT)</option>
-                      <option value="ADAUSDT">Cardano (ADAUSDT)</option>
-                    </select>
-                    <button
-                      onClick={() => fetchBinanceData(binanceSymbol, 'train')}
-                      className="train-button"
-                      style={{ width: 'auto', margin: '0 auto', padding: '10px 32px' }}
-                    >
-                      Fetch Data
-                    </button>
-                  </div>
-                )}
-                {selectedDataset && (
-                  <div className="feature-panel">
-                    <h4>
-                      <Zap size={18} /> Active: {selectedDataset.name}
-                    </h4>
-                    <div className="checkbox-group">
-                      {Object.entries(preprocessing).map(([k, v]) => (
-                        <label key={k} className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={v}
-                            onChange={e =>
-                              setPreprocessing({ ...preprocessing, [k]: e.target.checked })
-                            }
-                          />{' '}
-                          {k.toUpperCase()}
-                        </label>
-                      ))}
+                <div style={{marginBottom: 16}}>
+                    <small style={{color:'#64748b', fontWeight:600}}>TIME SERIES</small>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'lstm', name: 'LSTM Layer', params: {units: 50}}])}><Activity size={20} color="#8b5cf6" /> <div><strong>LSTM</strong></div></div>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'conv1d', name: 'Conv1D', params: {filters: 32, kernel_size: 2}}])}><Activity size={20} color="#ec4899" /> <div><strong>Conv1D</strong></div></div>
+                </div>
+                <div>
+                    <small style={{color:'#64748b', fontWeight:600}}>REINFORCEMENT LEARNING</small>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dqn', name: 'DQN Head', params: {units: 64}}])}><Cpu size={20} color="#f59e0b" /> <div><strong>DQN Head</strong></div></div>
+                    <div className="model-item" onClick={() => setModelBlocks([...modelBlocks, {type: 'dense', name: 'Policy Net', params: {units: 3, activation: 'softmax'}}])}><Cpu size={20} color="#f59e0b" /> <div><strong>Policy Net</strong></div></div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="section-header"><Layers size={20} /> Pipeline</div>
+                {modelBlocks.length === 0 && <p style={{color:'#94a3b8'}}>No layers added yet.</p>}
+                {modelBlocks.map((b, i) => (
+                  <div key={i} className="pipeline-node">
+                    <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                        <span><b>{i+1}.</b> {b.name}</span>
+                        <Trash2 size={16} style={{cursor:'pointer', color: '#ef4444'}} onClick={() => setModelBlocks(modelBlocks.filter((_, idx) => idx !== i))} />
+                    </div>
+                    <div className="pipeline-inputs">
+                        {b.params.units !== undefined && <div className="pipeline-input-group"><span>N:</span><input type="number" className="mini-input" value={b.params.units} onChange={(e) => updateModelParam(i, 'units', e.target.value)} /></div>}
+                        {b.params.rate !== undefined && <div className="pipeline-input-group"><span>%:</span><input type="number" className="mini-input" step="0.1" value={b.params.rate} onChange={(e) => updateModelParam(i, 'rate', e.target.value)} /></div>}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'configure' && (
-              <div>
-                <div className="insight-card">
-                  <h4 style={{ color: '#b45309', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <Lightbulb size={18} /> Advisor
-                  </h4>
-                  <ul style={{ color: '#92400e', margin: '8px 0 0 20px' }}>
-                    {advisorTips.length > 0 ? (
-                      advisorTips.map((t, i) => <li key={i}>{t}</li>)
-                    ) : (
-                      <li>Pipeline looks solid.</li>
-                    )}
-                  </ul>
-                </div>
-
-                <RenderNetworkViz />
-
-                <div className="grid-two-cols">
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>Toolbox</h3>
-                    {modelTypes.ml.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() =>
-                          setModelBlocks([
-                            ...modelBlocks,
-                            { ...m, id: Date.now(), type: 'ml' }
-                          ])
-                        }
-                        className="model-button bg-blue-100"
-                      >
-                        <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
-                        <div>
-                          <span style={{ fontWeight: 600 }}>{m.name}</span>
-                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                            {m.description}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                    {modelTypes.dl.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() =>
-                          setModelBlocks([
-                            ...modelBlocks,
-                            { ...m, id: Date.now(), type: 'dl' }
-                          ])
-                        }
-                        className="model-button bg-purple-100"
-                      >
-                        <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
-                        <div>
-                          <span style={{ fontWeight: 600 }}>{m.name}</span>
-                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                            {m.description}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                    {modelTypes.rl.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() =>
-                          setModelBlocks([
-                            ...modelBlocks,
-                            { ...m, id: Date.now(), type: 'rl' }
-                          ])
-                        }
-                        className="model-button bg-red-100"
-                      >
-                        <span style={{ fontSize: '1.5rem' }}>{m.icon}</span>
-                        <div>
-                          <span style={{ fontWeight: 600 }}>{m.name}</span>
-                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                            {m.description}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '16px' }}>Pipeline</h3>
-                    {modelBlocks.length === 0 ? (
-                      <p style={{ color: '#94a3b8' }}>Add layers from toolbox →</p>
-                    ) : (
-                      modelBlocks.map((block, idx) => (
-                        <div key={block.id} className="pipeline-item">
-                          <div
-                            className={`pipeline-card ${block.color || 'bg-purple-100'}`}
-                            style={{ width: '100%' }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                              <span style={{ fontSize: '1.5rem' }}>{block.icon}</span>
-                              <div>
-                                <p style={{ fontWeight: 600, margin: 0 }}>{block.name}</p>
-                                {block.params && (
-                                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-                                    {Object.keys(block.params).map(k => (
-                                      <div key={k} className="param-container">
-                                        {k}:{' '}
-                                        <input
-                                          className="param-input"
-                                          value={block.params[k]}
-                                          onChange={e => handleParamChange(block.id, k, e.target.value)}
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() =>
-                                setModelBlocks(modelBlocks.filter(b => b.id !== block.id))
-                              }
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: '#dc2626'
-                              }}
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                          {idx < modelBlocks.length - 1 && (
-                            <div style={{ width: '100%', textAlign: 'center', color: '#cbd5e1', margin: '8px 0' }}>
-                              ↓
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'train' && (
-              <div>
-                <div className="grid-two-cols">
-                  <div className="input-group">
-                    <label className="input-label">Epochs</label>
-                    <input
-                      type="number"
-                      value={trainingConfig.epochs}
-                      onChange={e =>
-                        setTrainingConfig({ ...trainingConfig, epochs: parseInt(e.target.value) })
-                      }
-                      className="styled-input"
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label className="input-label">Learning Rate</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={trainingConfig.learningRate}
-                      onChange={e =>
-                        setTrainingConfig({
-                          ...trainingConfig,
-                          learningRate: parseFloat(e.target.value)
-                        })
-                      }
-                      className="styled-input"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={autoTuneHyperparams}
-                  disabled={isTraining || isAutoTuning}
-                  className="secondary-btn"
-                >
-                  {isAutoTuning ? <Activity className="animate-spin" /> : <Zap size={18} />}{' '}
-                  Auto-Tune
-                </button>
-                <button onClick={trainModel} disabled={isTraining} className="train-button">
-                  {isTraining ? <Activity className="animate-spin" /> : <Play size={20} />}{' '}
-                  {isTraining
-                    ? `Training (${trainingProgress.toFixed(0)}%)`
-                    : 'Start Training'}
-                </button>
-
-                {isTraining && (
-                  <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${trainingProgress}%` }}
-                    />
-                  </div>
-                )}
-
-                <div style={{ marginTop: '32px' }}>
-                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <Terminal size={18} /> Training Logs
-                  </h4>
-                  <div className="terminal-logs" ref={logsContainerRef}>
-                    {trainingLogs.map((l, i) => (
-                      <div key={i} className="log-line">
-                        {l}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+                ))}
+                
                 {modelBlocks.length > 0 && (
-                  <div className="python-code-section">
-                    <h4 style={{ color: '#e2e8f0', marginTop: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <Code size={18} /> Python Code Executor
-                    </h4>
-                    <textarea
-                      value={pythonCode}
-                      onChange={(e) => setPythonCode(e.target.value)}
-                      className="code-editor"
-                      placeholder="Write Python code here..."
-                      style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+                    <NetworkVisualizer 
+                        layers={modelBlocks} 
+                        activePhase={activePhase} // Pass current phase (forward/backward/idle)
+                        activeLayerIdx={activeLayerIdx} // Pass active layer for highlighting
                     />
-                    <button
-                      onClick={runPythonCode}
-                      disabled={isRunningPython}
-                      style={{
-                        background: '#16a34a',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        cursor: isRunningPython ? 'not-allowed' : 'pointer',
-                        marginTop: '12px',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      {isRunningPython ? <Activity className="animate-spin" /> : <Play size={18} />}
-                      {isRunningPython ? 'Running...' : 'Execute'}
-                    </button>
-                    <div className="code-output">
-                      {pythonOutput || '$ Run code to see output...'}
-                    </div>
-                  </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {activeTab === 'results' && results && (
-              <div>
-                <div style={{ marginBottom: '32px' }}>
-                  <h3 style={{ marginBottom: '24px' }}>{results.modelName} Report</h3>
-                  <div className="metric-grid">
-                    <div className="metric-card">
-                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Total Return</p>
-                      <p
-                        className={`metric-value ${
-                          results.backtest.totalReturn >= 0 ? 'text-green' : 'text-red'
-                        }`}
-                      >
-                        {results.backtest.totalReturn.toFixed(2)}%
-                      </p>
-                    </div>
-                    <div className="metric-card">
-                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Win Rate</p>
-                      <p className="metric-value text-blue">{results.backtest.winRate.toFixed(2)}%</p>
-                    </div>
-                    <div className="metric-card">
-                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Max Drawdown</p>
-                      <p className="metric-value text-red">
-                        {results.backtest.maxDrawdown.toFixed(2)}%
-                      </p>
-                    </div>
-                    <div className="metric-card">
-                      <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sharpe Ratio</p>
-                      <p className="metric-value text-indigo">{results.backtest.sharpe.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="chart-card">
-                  <h4 style={{ marginBottom: '16px' }}>Price vs Model Predictions</h4>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={results.backtest.equityCurve.slice(-100)}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="idx" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="Price"
-                        stroke="#64748b"
-                        dot={false}
-                        strokeWidth={2}
-                      />
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="Prediction"
-                        stroke="#f59e0b"
-                        dot={false}
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="chart-card">
-                  <h4 style={{ marginBottom: '16px' }}>Backtest Equity Curve</h4>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <AreaChart data={results.backtest.equityCurve}>
-                      <defs>
-                        <linearGradient id="colorStrat" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="idx" />
-                      <YAxis />
-                      <Tooltip formatter={(val) => `${val.toFixed(2)}`} />
-                      <Legend />
-                      <Area
-                        type="monotone"
-                        dataKey="EquityValue"
-                        stroke="#2563eb"
-                        strokeWidth={2}
-                        fill="url(#colorStrat)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div style={{ marginTop: '48px', background: '#f0f9ff', padding: '24px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <RefreshCw size={20} /> Validate on New Data
-                  </h3>
-                  <p style={{ color: '#64748b', marginBottom: '16px' }}>
-                    Test your trained model on different market data.
-                  </p>
-
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-                    <div
-                      onClick={() => validationInputRef.current?.click()}
-                      className="upload-zone-small"
-                      style={{ flex: 1, minWidth: '200px' }}
-                    >
-                      <Upload size={24} style={{ margin: '0 auto 8px', color: '#64748b' }} />
-                      <p style={{ fontSize: '0.9rem', margin: 0 }}>Upload CSV</p>
-                      <input
-                        ref={validationInputRef}
-                        type="file"
-                        accept=".csv"
-                        onChange={(e) => handleFileUpload(e, 'test')}
-                        style={{ display: 'none' }}
-                      />
-                    </div>
-                    <div className="upload-zone-small" style={{ flex: 1, minWidth: '200px' }}>
-                      <Globe size={24} style={{ margin: '0 auto 8px', color: '#64748b' }} />
-                      <p style={{ fontSize: '0.9rem', marginBottom: '8px', margin: 0 }}>Fetch Binance</p>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
-                        <select
-                          onChange={(e) => setBinanceSymbol(e.target.value)}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            fontSize: '0.85rem'
-                          }}
-                          defaultValue="ETHUSDT"
-                        >
-                          <option value="BTCUSDT">BTC</option>
-                          <option value="ETHUSDT">ETH</option>
-                          <option value="SOLUSDT">SOL</option>
-                        </select>
-                        <button
-                          onClick={() => fetchBinanceData(binanceSymbol, 'test')}
-                          disabled={isValidating}
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: '4px',
-                            background: '#2563eb',
-                            color: 'white',
-                            border: 'none',
-                            cursor: isValidating ? 'not-allowed' : 'pointer',
-                            opacity: isValidating ? 0.6 : 1,
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          Go
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {validationData && !isValidating && (
-                    <button
-                      onClick={validateOnNewData}
-                      disabled={isValidating}
-                      className="train-button"
-                      style={{ width: '100%', marginBottom: '24px' }}
-                    >
-                      {isValidating ? (
-                        <>
-                          <Activity className="animate-spin" /> Validating...
-                        </>
-                      ) : (
-                        <>
-                          <Play size={18} /> Test on {validationData.name}
-                        </>
-                      )}
+          {/* TRAIN */}
+          {activeTab === 'train' && (
+            <div>
+                <div className="grid-2">
+                <div className="card">
+                    <div className="section-header"><Zap size={20} /> Training Config</div>
+                    <label>Epochs: {trainingConfig.epochs}</label>
+                    <input type="range" min="10" max="1000" value={trainingConfig.epochs} onChange={e => setTrainingConfig({...trainingConfig, epochs: parseInt(e.target.value)})} style={{width:'100%'}} />
+                    
+                    <label style={{display:'block', marginTop:12}}>Learning Rate: {trainingConfig.learningRate}</label>
+                    <input type="number" step="0.0001" value={trainingConfig.learningRate} onChange={e => setTrainingConfig({...trainingConfig, learningRate: parseFloat(e.target.value)})} style={{width:'100%', padding:8, borderRadius:6, border:'1px solid #cbd5e1'}} />
+                    
+                    <button className="btn btn-primary" style={{width:'100%', marginTop: 24}} onClick={trainModel} disabled={isTraining}>
+                        {isTraining ? <RefreshCw className="animate-spin" /> : <Play />} {isTraining ? `Training ${progress}%` : 'Start Training'}
                     </button>
-                  )}
-
-                  {isValidating && (
-                    <>
-                      <div className="validation-status processing">
-                        <Activity className="animate-spin" size={20} />
-                        <div>
-                          <p style={{ fontWeight: 600, margin: 0 }}>Running validation...</p>
-                          <p style={{ fontSize: '0.85rem', margin: '4px 0 0 0' }}>
-                            {validationProgress.toFixed(0)}% complete
-                          </p>
-                        </div>
-                      </div>
-                      <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${validationProgress}%` }} />
-                      </div>
-                    </>
-                  )}
-
-                  {validationResults && (
-                    <>
-                      <div className="metric-grid" style={{ marginTop: '24px' }}>
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Validation Return</p>
-                          <p
-                            className={`metric-value ${
-                              validationResults.totalReturn >= 0 ? 'text-green' : 'text-red'
-                            }`}
-                          >
-                            {validationResults.totalReturn.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Win Rate</p>
-                          <p className="metric-value text-blue">
-                            {validationResults.winRate.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Max Drawdown</p>
-                          <p className="metric-value text-red">
-                            {validationResults.maxDrawdown.toFixed(2)}%
-                          </p>
-                        </div>
-                        <div className="metric-card">
-                          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Final Balance</p>
-                          <p className="metric-value text-green">
-                            ${validationResults.equityCurve[validationResults.equityCurve.length - 1]?.EquityValue.toFixed(2) || '0'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="chart-card">
-                        <h4 style={{ marginBottom: '16px' }}>Validation Equity Curve</h4>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <AreaChart data={validationResults.equityCurve}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="idx" />
-                            <YAxis />
-                            <Tooltip formatter={(val) => `${val.toFixed(2)}`} />
-                            <Area
-                              type="monotone"
-                              dataKey="EquityValue"
-                              stroke="#16a34a"
-                              strokeWidth={2}
-                              fill="#dcfce7"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </>
-                  )}
                 </div>
-              </div>
-            )}
-          </div>
+                <div className="card">
+                    <div className="section-header"><Terminal size={20} /> System Logs</div>
+                    <div className="terminal" ref={logsContainerRef}>
+                        {logs.map((l, i) => <div key={i} style={{marginBottom: 4}}>{l}</div>)}
+                    </div>
+                </div>
+                </div>
+
+                <div className="card">
+                    <h3 style={{display:'flex', alignItems:'center', gap: 8, justifyContent:'space-between'}}>
+                        <span style={{display:'flex', gap:8}}><Code color="#eab308" /> Python Arcade (Interactive)</span>
+                        <div style={{display:'flex', gap:8}}>
+                           <button className="btn btn-ghost" onClick={() => loadGameScript('guess')}><Gamepad2 size={16}/> Guess</button>
+                           <button className="btn btn-ghost" onClick={() => loadGameScript('tictactoe')}><Gamepad2 size={16}/> Tic-Tac-Toe</button>
+                           <button className="btn btn-ghost" onClick={() => loadGameScript('snake')}><Gamepad2 size={16}/> Snake</button>
+                        </div>
+                    </h3>
+                    <textarea className="python-editor" value={pyCode} onChange={e => setPyCode(e.target.value)} spellCheck="false" />
+                    <div style={{display:'flex', justifyContent: 'space-between'}}>
+                        <button className="btn btn-primary" style={{background: '#eab308', color: 'black'}} onClick={runPython} disabled={!pyodide || isPyRunning}>
+                            {isPyRunning ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />} Run Code
+                        </button>
+                        <span style={{color: pyodide ? '#16a34a' : '#f59e0b'}}>{pyodide ? '● Kernel Ready' : '● Loading...'}</span>
+                    </div>
+                    <pre style={{background:'#111', color: '#eab308', padding: 12, borderRadius: 6, marginTop: 12, fontSize: '0.8rem', overflowX:'auto'}}>
+                        {pyOutput}
+                    </pre>
+                    <div style={{color: '#eab308', marginTop: 12, fontSize: '0.8rem', fontWeight: 600}}>
+                        <AlertTriangle size={16} style={{display:'inline-block', verticalAlign:'text-bottom', marginRight: 4}}/> NOTE: When running Python, a browser `prompt` box will appear for game input. You must enter your move/guess there.
+                    </div>
+                </div>
+            </div>
+          )}
+
+          {/* RESULTS */}
+          {activeTab === 'results' && results && (
+             <div>
+               <div className="card">
+                  <div className="section-header"><Save size={20} /> Export & Actions</div>
+                  <div style={{display:'flex', gap: 12}}>
+                     <button className="btn btn-outline" onClick={downloadModel}><Download size={16} /> Download Model (JSON)</button>
+                     <button className="btn btn-outline" onClick={downloadCode}><Code size={16} /> Download Python Code</button>
+                  </div>
+               </div>
+
+               <div className="card" style={{background: '#f0f9ff', borderColor: '#bae6fd'}}>
+                  <div className="section-header"><RefreshCw size={20} /> Validate on New Data</div>
+                  <div style={{display:'flex', gap: 16, flexWrap:'wrap', alignItems:'center'}}>
+                    <button className="btn btn-outline" onClick={() => validationFileRef.current.click()}><Upload size={16} /> Upload CSV</button>
+                    <input ref={validationFileRef} type="file" accept=".csv" style={{display:'none'}} onChange={(e) => handleFileUpload(e, true)} />
+                    
+                    <span>OR</span>
+                    <select className="select-input" value={cryptoSymbol} onChange={(e) => setCryptoSymbol(e.target.value)}>
+                        <option value="BTCUSDT">BTC</option>
+                        <option value="ETHUSDT">ETH</option>
+                        <option value="SOLUSDT">SOL</option>
+                        <option value="ADAUSDT">ADA</option>
+                    </select>
+                    <button className="btn btn-outline" onClick={() => fetchBinance(true)}><Globe size={16} /> Fetch</button>
+
+                    {validationDataset && <button className="btn btn-primary" onClick={validateModel}><Play size={16} /> Run Test</button>}
+                  </div>
+               </div>
+
+               <div className="metric-grid">
+                 <div className="metric-box">
+                   <div style={{color:'#64748b'}}>Total Return</div>
+                   <div className={`metric-val ${results.validationStats ? (results.validationStats.totalReturn >= 0 ? 'text-green':'text-red') : (results.totalReturn >= 0 ? 'text-green' : 'text-red')}`}>
+                     {results.validationStats ? results.validationStats.totalReturn.toFixed(2) : results.totalReturn.toFixed(2)}%
+                   </div>
+                 </div>
+                 <div className="metric-box">
+                   <div style={{color:'#64748b'}}>Win Rate</div>
+                   <div className="metric-val text-blue">
+                     {results.validationStats ? results.validationStats.winRate.toFixed(2) : results.winRate.toFixed(2)}%
+                   </div>
+                 </div>
+                 <div className="metric-box">
+                   <div style={{color:'#64748b'}}>Max Drawdown</div>
+                   <div className="metric-val text-red">
+                     {results.validationStats ? results.validationStats.maxDrawdown.toFixed(2) : results.maxDrawdown.toFixed(2)}%
+                   </div>
+                 </div>
+               </div>
+
+               <div className="card">
+                 <h3>Equity Curve</h3>
+                 <div style={{height: 300, width: '100%'}}>
+                   <ResponsiveContainer>
+                     <AreaChart data={results.validationStats ? results.validationStats.chartData : results.chartData}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                       <XAxis dataKey="idx" />
+                       <YAxis domain={['auto', 'auto']} />
+                       <Tooltip />
+                       <Area type="monotone" dataKey="Equity" stroke="#2563eb" fill="#eff6ff" strokeWidth={2} />
+                     </AreaChart>
+                   </ResponsiveContainer>
+                 </div>
+               </div>
+             </div>
+          )}
         </div>
       </div>
     </div>
