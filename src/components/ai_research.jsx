@@ -1,7 +1,7 @@
 import Header from "./header";
 import SideNavs from "./side_navs";
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Play, Trash2, Brain, Activity, Zap, Globe, Code, RefreshCw, Layers, Terminal, Save, Download, Cpu, AlertTriangle, Eye } from 'lucide-react';
+import { Upload, Play, Trash2, Brain, Activity, Zap, Globe, Code, RefreshCw, Layers, Terminal, Save, Download, Cpu, AlertTriangle, Eye, ChevronRight, ChevronLeft, Square, Pause } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import * as tf from "@tensorflow/tfjs";
 
@@ -18,11 +18,10 @@ const cssStyles = `
   .tab.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
   
   .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-  
-
-  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+ 
   .btn-ghost { background: transparent; color: #64748b; padding: 6px 12px; font-size: 0.9rem; }
   .btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
+  .btn-xs { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; }
 
   .upload-box { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; background: #f8fafc; transition: 0.2s; }
   .upload-box:hover { border-color: #2563eb; background: #eff6ff; }
@@ -39,6 +38,8 @@ const cssStyles = `
   .terminal { background: #0f172a; color: #4ade80; padding: 16px; border-radius: 8px; font-family: monospace; height: 200px; overflow-y: auto; font-size: 0.85rem; scroll-behavior: smooth; }
   .viz-box { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; border-radius: 12px; color: white; text-align: center; margin-top: 20px; overflow: hidden; position: relative; }
   
+  .viz-labels { display: flex; justify-content: space-between; color: #94a3b8; font-size: 0.8rem; padding: 0 40px; margin-top: 8px; }
+
   .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
   .metric-box { background: #f8fafc; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
   .metric-val { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
@@ -57,53 +58,47 @@ const cssStyles = `
   .synapse.active-fwd { stroke: #4ade80; stroke-width: 2; stroke-opacity: 1; }
   .synapse.active-bwd { stroke: #ef4444; stroke-width: 2; stroke-opacity: 1; }
   .neuron.active { fill: #fff; filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)); }
+  
+  .loop-active { background: rgba(255, 255, 255, 0.1); border-color: #3b82f6 !important; color: #3b82f6 !important; }
 
   /* --- MOBILE RESPONSIVENESS REFINED --- */
   @media (max-width: 768px) { 
-    
-    /* Compact Header */
     .title h1 { font-size: 1.4rem; }
     .title p { font-size: 0.9rem; }
     
-    /* Scrollable Tabs (Native App Feel) */
     .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { padding: 12px 20px; font-size: 0.9rem; flex: 0 0 auto; }
 
-    /* Compact Cards & Fonts */
     .card { padding: 16px; margin-bottom: 16px; }
     .section-header { font-size: 1rem; margin-bottom: 12px; }
     
-    /* Layout Stacking */
     .grid-2 { grid-template-columns: 1fr; gap: 16px; }
     
-    /* Metrics Grid */
     .metric-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
     .metric-box { padding: 12px; }
     .metric-val { font-size: 1.2rem; }
     
-    /* Pipeline Items Stacking */
     .pipeline-node { flex-direction: column; align-items: stretch; padding: 12px; }
     .pipeline-inputs { justify-content: space-between; margin-top: 8px; }
     
-    /* Upload & Controls */
     .upload-box { padding: 24px; }
     .select-input { width: 100%; margin-bottom: 12px; }
     
-    /* Editor & Terminal */
     .python-editor { min-height: 350px; font-size: 12px; }
     .terminal { font-size: 0.75rem; padding: 12px; }
     
-    /* Buttons */
     .py-controls { flex-direction: column; align-items: stretch; }
-    
-    /* Charts */
     .recharts-wrapper { font-size: 10px; }
+
+    /* Visualizer Mobile Tweak */
+    .viz-labels { padding: 0 10px; font-size: 0.7rem; }
+    .viz-box { padding: 16px 8px; }
   }
 `;
 
 // --- VISUALIZER COMPONENT ---
-const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
+const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx, onAnimate, isAuto, onToggleAuto }) => {
     const canvasWidth = 600;
     const canvasHeight = 300;
     const H_MARGIN = 60; 
@@ -129,8 +124,6 @@ const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
         const actualIdx = lIdx + 1;
         const unitCount = layer.params.units || 1; 
         const vizCount = getVisualUnits(unitCount);
-        
-        // Dynamic Height Spacing
         const spacing = canvasHeight / (vizCount + 1);
 
         for(let i=0; i<vizCount; i++) {
@@ -163,11 +156,26 @@ const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
 
     return (
         <div className="viz-box">
-            <h4 style={{color:'white', margin:0, marginBottom:12, display:'flex', alignItems:'center', gap:8, justifyContent:'center'}}>
-                <Eye size={16}/> Neural Network State
-                {activePhase === 'forward' && <span style={{fontSize:'0.8rem', color:'#4ade80'}}>● Forward Prop</span>}
-                {activePhase === 'backward' && <span style={{fontSize:'0.8rem', color:'#ef4444'}}>● Back Prop</span>}
-            </h4>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+                <h4 style={{color:'white', margin:0, display:'flex', alignItems:'center', gap:8}}>
+                    <Eye size={16}/> State
+                    {activePhase === 'forward' && <span style={{fontSize:'0.8rem', color:'#4ade80'}}>● Fwd</span>}
+                    {activePhase === 'backward' && <span style={{fontSize:'0.8rem', color:'#ef4444'}}>● Bwd</span>}
+                </h4>
+                <div style={{display:'flex', gap:4}}>
+                    <button className={`btn btn-ghost btn-xs ${isAuto ? 'loop-active' : ''}`} style={{color:'#60a5fa', border:'1px solid #60a5fa'}} onClick={onToggleAuto}>
+                        {isAuto ? <Square size={14} fill="currentColor"/> : <RefreshCw size={14}/>} 
+                        {isAuto ? ' Stop' : ' Loop'}
+                    </button>
+                    <button className="btn btn-ghost btn-xs" style={{color:'#4ade80', border:'1px solid #4ade80'}} onClick={() => onAnimate('forward')}>
+                        <ChevronRight size={14}/> Fwd
+                    </button>
+                    <button className="btn btn-ghost btn-xs" style={{color:'#ef4444', border:'1px solid #ef4444'}} onClick={() => onAnimate('backward')}>
+                        <ChevronLeft size={14}/> Bwd
+                    </button>
+                </div>
+            </div>
+            
             <svg width="100%" height="300" viewBox={`0 0 ${canvasWidth} ${canvasHeight}`} preserveAspectRatio="xMidYMid meet">
                 {links.map((link, i) => (
                     <line key={i} x1={link.source.x} y1={link.source.y} x2={link.target.x} y2={link.target.y}
@@ -181,8 +189,9 @@ const NetworkVisualizer = ({ layers, activePhase, activeLayerIdx }) => {
                         stroke="white" strokeWidth="1.5" />
                 ))}
             </svg>
-            {/* Neuron Count Display */}
-            <div style={{display:'flex', justifyContent:'space-between', color:'#94a3b8', fontSize:'0.8rem', padding:'0 40px'}}>
+            
+            {/* FIXED: Better Mobile Layout for Labels */}
+            <div className="viz-labels">
                 <div style={{textAlign:'center'}}>Input<br/><small>(5)</small></div>
                 {layers.map((l, i) => (
                     <div key={i} style={{textAlign:'center'}}>
@@ -211,8 +220,12 @@ const MLPlayground = () => {
   const [logs, setLogs] = useState([]);
   const [results, setResults] = useState(null);
   const [trainedModel, setTrainedModel] = useState(null);
+  
+  // Viz State
   const [vizActiveLayer, setVizActiveLayer] = useState(-1);
   const [activePhase, setActivePhase] = useState('idle');
+  const [isAutoAnimating, setIsAutoAnimating] = useState(false);
+  const autoAnimRef = useRef(false);
 
   // Python State
   const [pyodide, setPyodide] = useState(null);
@@ -371,6 +384,64 @@ print("✅ Model Architecture Ready")`;
     a.click();
   };
 
+  // --- ANIMATION LOGIC ---
+  const handleManualAnimation = async (phase) => {
+    if (isTraining || isAutoAnimating) return; 
+    setActivePhase(phase);
+    if (phase === 'forward') {
+        for(let i=0; i<=modelBlocks.length; i++) { 
+            setVizActiveLayer(i); await new Promise(r => setTimeout(r, 200)); 
+        }
+    } else {
+        for(let i=modelBlocks.length; i>=0; i--) { 
+            setVizActiveLayer(i); await new Promise(r => setTimeout(r, 200)); 
+        }
+    }
+    setActivePhase('idle'); 
+    setVizActiveLayer(-1);
+  };
+
+  const toggleAutoAnimation = () => {
+    if (isAutoAnimating) {
+        setIsAutoAnimating(false);
+        autoAnimRef.current = false;
+    } else {
+        setIsAutoAnimating(true);
+        autoAnimRef.current = true;
+        runAutoAnimationLoop();
+    }
+  };
+
+  const runAutoAnimationLoop = async () => {
+    if (isTraining) return;
+    
+    while (autoAnimRef.current) {
+        // Forward
+        setActivePhase('forward');
+        for(let i=0; i<=modelBlocks.length; i++) { 
+            if(!autoAnimRef.current) break;
+            setVizActiveLayer(i); await new Promise(r => setTimeout(r, 200)); 
+        }
+        if(!autoAnimRef.current) break;
+        
+        await new Promise(r => setTimeout(r, 500)); // Pause at output
+
+        // Backward
+        setActivePhase('backward');
+        for(let i=modelBlocks.length; i>=0; i--) { 
+            if(!autoAnimRef.current) break;
+            setVizActiveLayer(i); await new Promise(r => setTimeout(r, 200)); 
+        }
+        
+        setActivePhase('idle'); 
+        setVizActiveLayer(-1);
+        await new Promise(r => setTimeout(r, 500)); // Pause at input
+    }
+    // Cleanup
+    setActivePhase('idle');
+    setVizActiveLayer(-1);
+  };
+
   const runPrediction = (model, dataset, windowSize, min, max) => {
       const priceCol = dataset.headers.find(h => h.toLowerCase().includes('close')) || dataset.headers[dataset.headers.length-1];
       const rawData = dataset.data.map(r => r[priceCol]);
@@ -426,7 +497,9 @@ print("✅ Model Architecture Ready")`;
 
   const trainModel = async () => {
     if (!selectedDataset || modelBlocks.length === 0) { alert("Please select a dataset and add model layers."); return; }
+    if (isAutoAnimating) toggleAutoAnimation(); // Stop auto-viz if running
     setIsTraining(true); setProgress(0); setLogs(p => [...p, "🚀 Starting Training..."]);
+    
     try {
       const priceCol = selectedDataset.headers.find(h => h.toLowerCase().includes('close')) || selectedDataset.headers[selectedDataset.headers.length-1];
       const rawData = selectedDataset.data.map(r => r[priceCol]);
@@ -494,13 +567,6 @@ print("✅ Model Architecture Ready")`;
 
   // --- RENDER ---
   return (
-    <div>
-                
-        <div className="header">
-             <Header />
-          </div>
-        <div className="main-page-body">
-              <SideNavs />
     <div className="app-wrapper">
       <style>{cssStyles}</style>
       <div className="container">
@@ -578,7 +644,16 @@ print("✅ Model Architecture Ready")`;
                     </div>
                   </div>
                 ))}
-                {modelBlocks.length > 0 && <NetworkVisualizer layers={modelBlocks} activePhase={activePhase} activeLayerIdx={vizActiveLayer} />}
+                {modelBlocks.length > 0 && 
+                    <NetworkVisualizer 
+                        layers={modelBlocks} 
+                        activePhase={activePhase} 
+                        activeLayerIdx={vizActiveLayer} 
+                        onAnimate={handleManualAnimation} 
+                        isAuto={isAutoAnimating}
+                        onToggleAuto={toggleAutoAnimation}
+                    />
+                }
               </div>
             </div>
           )}
@@ -680,8 +755,6 @@ print("✅ Model Architecture Ready")`;
           )}
         </div>
       </div>
-    </div>
-    </div>
     </div>
   );
 };
