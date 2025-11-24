@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import * as tf from '@tensorflow/tfjs'; // NEW: TensorFlow.js Import
+import * as tf from '@tensorflow/tfjs';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -17,9 +17,11 @@ export default function EconomicStrengthIndex() {
     const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState('30d');
 
-    // --- NEW: AI/ML State ---
+    // --- AI/ML State ---
     const [aiInsights, setAiInsights] = useState([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisProgress, setAnalysisProgress] = useState(0);
+    const [analysisStatus, setAnalysisStatus] = useState('');
     
     // --- Asset Definitions ---
     const currencies = [
@@ -70,17 +72,17 @@ export default function EconomicStrengthIndex() {
         { symbol: 'ZW=F', name: 'Wheat', displayName: 'Wheat', color: '#d97706' }
     ];
 
-    // All available assets for volume tracking
     const volumeAssets = [
         ...forexPairs.map(fp => ({ ...fp, type: 'forex', id: fp.pair })),
         ...stockIndices.map(si => ({ ...si, type: 'stock', id: si.symbol, name: si.displayName })),
         ...commodities.map(cm => ({ ...cm, type: 'commodity', id: cm.symbol, name: cm.displayName }))
     ];
 
+    // --- Data Fetching ---
     const fetchEconomicStrengthData = async () => {
         setLoading(true);
-        // Reset AI insights when new data is fetched to ensure accuracy
-        setAiInsights([]); 
+        setAiInsights([]); // Reset AI when new data comes in
+        setAnalysisProgress(0);
         try {
             const response = await fetch(`${baseUrl}/api/economic-strength-index/`, {
                 method: 'POST',
@@ -99,8 +101,6 @@ export default function EconomicStrengthIndex() {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('API Response:', data);
-                
                 if (data.chart_data && data.chart_data.length > 0) {
                     setEconomicData(data.chart_data);
                 }
@@ -119,16 +119,22 @@ export default function EconomicStrengthIndex() {
         }
     }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]);
 
-    // --- NEW: TensorFlow.js ML Engine ---
+    // --- Asynchronous Chunked ML Analysis ---
     const runMLAnalysis = async () => {
         if (!economicData || economicData.length < 5) return;
+        
         setIsAnalyzing(true);
+        setAnalysisProgress(0);
+        setAnalysisStatus('Preparing data...');
+        setAiInsights([]);
 
-        // 1. Identify all active keys in the dataset currently being viewed
+        // Allow UI to render the "Analyzing" state before starting CPU heavy work
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 1. Identify Keys
         const activeKeys = [];
         const prettyNames = {};
 
-        // Helper to check if key exists in data and add to tracking
         const addKey = (key, name) => {
             const sample = economicData.find(d => d[key] !== undefined && d[key] !== null);
             if (sample) {
@@ -137,55 +143,67 @@ export default function EconomicStrengthIndex() {
             }
         };
 
-        // Map current selections to their data keys
         selectedCurrencies.forEach(c => addKey(c, `${c} ESI`));
-        
         selectedForexPairs.forEach(f => {
             const pairName = forexPairs.find(p => p.pair === f)?.name || f;
             addKey(`${f}_price`, pairName);
         });
-        
         selectedStockIndices.forEach(s => {
             const stockName = stockIndices.find(i => i.symbol === s)?.displayName || s;
             addKey(`${s}_index`, stockName);
         });
-        
         selectedCommodities.forEach(c => {
             const comName = commodities.find(i => i.symbol === c)?.displayName || c;
             addKey(`${c}_commodity`, comName);
         });
-        
         selectedVolumeAssets.forEach(v => {
             const volName = volumeAssets.find(a => a.id === v)?.name || v;
             addKey(`${v}_volume_ratio`, `${volName} Volume`);
         });
 
-        // 2. Perform Pairwise Analysis using TensorFlow
+        // 2. Generate List of Pairs to Process
+        const pairsToProcess = [];
+        for (let i = 0; i < activeKeys.length; i++) {
+            for (let j = i + 1; j < activeKeys.length; j++) {
+                pairsToProcess.push({ keyA: activeKeys[i], keyB: activeKeys[j] });
+            }
+        }
+
+        const totalPairs = pairsToProcess.length;
         const findings = [];
+        const batchSize = 5; // Process 5 pairs at a time to keep UI responsive
 
-        // Use tf.tidy to automatically clean up intermediate tensors
-        tf.tidy(() => {
-            for (let i = 0; i < activeKeys.length; i++) {
-                for (let j = i + 1; j < activeKeys.length; j++) {
-                    const keyA = activeKeys[i];
-                    const keyB = activeKeys[j];
+        // 3. Process Batches Asynchronously
+        for (let i = 0; i < totalPairs; i += batchSize) {
+            // Calculate Progress
+            const currentProgress = Math.round((i / totalPairs) * 100);
+            setAnalysisProgress(currentProgress);
+            setAnalysisStatus(`Analyzing pair ${i + 1} of ${totalPairs}...`);
+            
+            // Yield control to the main thread so React can render the progress bar
+            await new Promise(resolve => setTimeout(resolve, 10));
 
-                    // Filter data to ensure both values exist for every point (handle nulls)
+            // Run TensorFlow operations synchronously within the batch
+            tf.tidy(() => {
+                const end = Math.min(i + batchSize, totalPairs);
+                for (let j = i; j < end; j++) {
+                    const { keyA, keyB } = pairsToProcess[j];
+                    
+                    // Filter clean data
                     const values = economicData.filter(row => 
                         row[keyA] !== null && row[keyA] !== undefined && 
                         row[keyB] !== null && row[keyB] !== undefined
                     );
 
-                    if (values.length < 10) continue; // Need sufficient data points
+                    if (values.length < 10) return;
 
                     const inputA = values.map(v => v[keyA]);
                     const inputB = values.map(v => v[keyB]);
 
-                    // Create Tensors
                     const tensorA = tf.tensor1d(inputA);
                     const tensorB = tf.tensor1d(inputB);
 
-                    // Normalize Data (Z-Score Normalization) to compare different scales (e.g. Price vs ESI)
+                    // Z-Score Normalization
                     const meanA = tensorA.mean();
                     const stdA = tensorA.sub(meanA).square().mean().sqrt();
                     const normA = tensorA.sub(meanA).div(stdA);
@@ -194,8 +212,7 @@ export default function EconomicStrengthIndex() {
                     const stdB = tensorB.sub(meanB).square().mean().sqrt();
                     const normB = tensorB.sub(meanB).div(stdB);
 
-                    // Calculate Pearson Correlation Coefficient
-                    // r = mean(normA * normB)
+                    // Pearson Correlation
                     const correlationTensor = normA.mul(normB).mean();
                     const correlation = correlationTensor.dataSync()[0];
 
@@ -205,10 +222,13 @@ export default function EconomicStrengthIndex() {
                         type: 'correlation'
                     });
                 }
-            }
-        });
+            });
+        }
 
-        // 3. Translate Findings to Layman's Terms
+        // 4. Finalize Results
+        setAnalysisProgress(100);
+        setAnalysisStatus('Finalizing insights...');
+        
         const insights = findings.map(f => {
             const [item1, item2] = f.pair;
             const score = f.score;
@@ -222,7 +242,7 @@ export default function EconomicStrengthIndex() {
                 styleClass = 'insight-positive-strong';
             } else if (score > 0.5) {
                 term = "Positive Trend";
-                description = `There is a noticeable relationship where ${item1} and ${item2} tend to move in the same direction over this period.`;
+                description = `There is a noticeable relationship where ${item1} and ${item2} tend to move in the same direction.`;
                 styleClass = 'insight-positive';
             } else if (score < -0.8) {
                 term = "Strong Inverse Relationship";
@@ -233,7 +253,7 @@ export default function EconomicStrengthIndex() {
                 description = `Generally, ${item1} and ${item2} move in opposite directions.`;
                 styleClass = 'insight-negative';
             } else {
-                return null; // Ignore statistically insignificant noise
+                return null;
             }
 
             return {
@@ -244,9 +264,8 @@ export default function EconomicStrengthIndex() {
                 score: score.toFixed(2),
                 styleClass
             };
-        }).filter(Boolean); // Remove nulls
+        }).filter(Boolean);
 
-        // Sort by magnitude (strongest first)
         insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
 
         setAiInsights(insights);
@@ -254,40 +273,11 @@ export default function EconomicStrengthIndex() {
     };
 
     // --- Toggle Handlers ---
-    const handleCurrencyToggle = (currencyCode) => {
-        setSelectedCurrencies(prev => {
-            if (prev.includes(currencyCode)) return prev.filter(c => c !== currencyCode);
-            return [...prev, currencyCode];
-        });
-    };
-
-    const handleForexToggle = (forexPair) => {
-        setSelectedForexPairs(prev => {
-            if (prev.includes(forexPair)) return prev.filter(f => f !== forexPair);
-            return [...prev, forexPair];
-        });
-    };
-
-    const handleStockIndexToggle = (stockSymbol) => {
-        setSelectedStockIndices(prev => {
-            if (prev.includes(stockSymbol)) return prev.filter(s => s !== stockSymbol);
-            return [...prev, stockSymbol];
-        });
-    };
-
-    const handleCommodityToggle = (commoditySymbol) => {
-        setSelectedCommodities(prev => {
-            if (prev.includes(commoditySymbol)) return prev.filter(c => c !== commoditySymbol);
-            return [...prev, commoditySymbol];
-        });
-    };
-
-    const handleVolumeAssetToggle = (assetId) => {
-        setSelectedVolumeAssets(prev => {
-            if (prev.includes(assetId)) return prev.filter(a => a !== assetId);
-            return [...prev, assetId];
-        });
-    };
+    const handleCurrencyToggle = (c) => setSelectedCurrencies(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]);
+    const handleForexToggle = (f) => setSelectedForexPairs(p => p.includes(f) ? p.filter(x => x !== f) : [...p, f]);
+    const handleStockIndexToggle = (s) => setSelectedStockIndices(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
+    const handleCommodityToggle = (c) => setSelectedCommodities(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]);
+    const handleVolumeAssetToggle = (v) => setSelectedVolumeAssets(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
 
     // --- CSV Download Functions ---
     const convertToCSV = (data, headers) => {
@@ -320,65 +310,51 @@ export default function EconomicStrengthIndex() {
 
     const handleDownloadESIData = (currencyCode) => {
         if (!economicData || economicData.length === 0) return;
-        const esiData = economicData
-            .filter(row => row[currencyCode] !== undefined && row[currencyCode] !== null)
-            .map(row => ({ Date: row.date, ESI_Score: row[currencyCode].toFixed(2) }));
+        const esiData = economicData.filter(row => row[currencyCode] != null).map(row => ({ Date: row.date, ESI_Score: row[currencyCode].toFixed(2) }));
         if (esiData.length === 0) return;
-        const csv = convertToCSV(esiData, ['Date', 'ESI_Score']);
-        downloadCSV(csv, `${currencyCode}_ESI_${dateRange}.csv`);
+        downloadCSV(convertToCSV(esiData, ['Date', 'ESI_Score']), `${currencyCode}_ESI_${dateRange}.csv`);
     };
 
     const handleDownloadForexData = (forexPair) => {
         if (!economicData || economicData.length === 0) return;
         const priceKey = `${forexPair}_price`;
-        const forexData = economicData
-            .filter(row => row[priceKey] !== undefined && row[priceKey] !== null)
-            .map(row => ({ Date: row.date, Price: row[priceKey].toFixed(4) }));
+        const forexData = economicData.filter(row => row[priceKey] != null).map(row => ({ Date: row.date, Price: row[priceKey].toFixed(4) }));
         if (forexData.length === 0) return;
-        const csv = convertToCSV(forexData, ['Date', 'Price']);
-        downloadCSV(csv, `${forexPair}_Price_${dateRange}.csv`);
+        downloadCSV(convertToCSV(forexData, ['Date', 'Price']), `${forexPair}_Price_${dateRange}.csv`);
     };
 
     const handleDownloadStockIndexData = (stockSymbol) => {
         if (!economicData || economicData.length === 0) return;
         const indexKey = `${stockSymbol}_index`;
-        const stockData = economicData
-            .filter(row => row[indexKey] !== undefined && row[indexKey] !== null)
-            .map(row => ({ Date: row.date, Index_Value: row[indexKey].toFixed(2) }));
+        const stockData = economicData.filter(row => row[indexKey] != null).map(row => ({ Date: row.date, Index_Value: row[indexKey].toFixed(2) }));
         if (stockData.length === 0) return;
-        const csv = convertToCSV(stockData, ['Date', 'Index_Value']);
-        downloadCSV(csv, `${stockSymbol}_Index_${dateRange}.csv`);
+        downloadCSV(convertToCSV(stockData, ['Date', 'Index_Value']), `${stockSymbol}_Index_${dateRange}.csv`);
     };
 
     const handleDownloadCommodityData = (commoditySymbol) => {
         if (!economicData || economicData.length === 0) return;
         const commodityKey = `${commoditySymbol}_commodity`;
-        const commodityData = economicData
-            .filter(row => row[commodityKey] !== undefined && row[commodityKey] !== null)
-            .map(row => ({ Date: row.date, Price: row[commodityKey].toFixed(2) }));
+        const commodityData = economicData.filter(row => row[commodityKey] != null).map(row => ({ Date: row.date, Price: row[commodityKey].toFixed(2) }));
         if (commodityData.length === 0) return;
-        const csv = convertToCSV(commodityData, ['Date', 'Price']);
-        downloadCSV(csv, `${commoditySymbol}_Price_${dateRange}.csv`);
+        downloadCSV(convertToCSV(commodityData, ['Date', 'Price']), `${commoditySymbol}_Price_${dateRange}.csv`);
     };
 
     const handleDownloadVolumeData = (assetId) => {
         if (!economicData || economicData.length === 0) return;
         const volumeKey = `${assetId}_volume_ratio`;
-        const volumeData = economicData
-            .filter(row => row[volumeKey] !== undefined && row[volumeKey] !== null)
-            .map(row => ({ Date: row.date, Relative_Volume: row[volumeKey].toFixed(2) }));
+        const volumeData = economicData.filter(row => row[volumeKey] != null).map(row => ({ Date: row.date, Relative_Volume: row[volumeKey].toFixed(2) }));
         if (volumeData.length === 0) return;
-        const csv = convertToCSV(volumeData, ['Date', 'Relative_Volume']);
-        downloadCSV(csv, `${assetId}_RelativeVolume_${dateRange}.csv`);
+        downloadCSV(convertToCSV(volumeData, ['Date', 'Relative_Volume']), `${assetId}_RelativeVolume_${dateRange}.csv`);
     };
 
     const handleDownloadAllData = () => {
-        selectedCurrencies.forEach((c, i) => setTimeout(() => handleDownloadESIData(c), 100 * i));
-        selectedForexPairs.forEach((f, i) => setTimeout(() => handleDownloadForexData(f), 100 * (selectedCurrencies.length + i)));
-        // ... (Simplified loop logic for brevity, works same as before)
-        selectedStockIndices.forEach((s, i) => setTimeout(() => handleDownloadStockIndexData(s), 300 + (100 * i)));
-        selectedCommodities.forEach((c, i) => setTimeout(() => handleDownloadCommodityData(c), 600 + (100 * i)));
-        selectedVolumeAssets.forEach((v, i) => setTimeout(() => handleDownloadVolumeData(v), 900 + (100 * i)));
+        let delay = 0;
+        const step = 100;
+        selectedCurrencies.forEach(c => setTimeout(() => handleDownloadESIData(c), delay += step));
+        selectedForexPairs.forEach(f => setTimeout(() => handleDownloadForexData(f), delay += step));
+        selectedStockIndices.forEach(s => setTimeout(() => handleDownloadStockIndexData(s), delay += step));
+        selectedCommodities.forEach(c => setTimeout(() => handleDownloadCommodityData(c), delay += step));
+        selectedVolumeAssets.forEach(v => setTimeout(() => handleDownloadVolumeData(v), delay += step));
     };
 
     // --- Tooltip & Axis ---
@@ -392,7 +368,6 @@ export default function EconomicStrengthIndex() {
                         const isStockIndex = entry.dataKey.includes('_index');
                         const isCommodity = entry.dataKey.includes('_commodity');
                         const isVolume = entry.dataKey.includes('_volume_ratio');
-                        
                         let displayName, formattedValue;
                         
                         if (isVolume) {
@@ -417,7 +392,6 @@ export default function EconomicStrengthIndex() {
                             displayName = `${entry.dataKey} ESI`;
                             formattedValue = entry.value?.toFixed(2) || 'N/A';
                         }
-                        
                         return (
                             <p key={index} style={{ color: entry.color }} className="esi-tooltip-entry">
                                 {`${displayName}: ${formattedValue}`}
@@ -432,35 +406,20 @@ export default function EconomicStrengthIndex() {
 
     const getYAxisDomains = () => {
         if (!economicData || economicData.length === 0) return { esi: [0, 100], forex: [0, 1], stock: [0, 1000], volume: [0, 5], commodity: [0, 1000] };
-
         let minForex = Infinity, maxForex = -Infinity;
         let minStock = Infinity, maxStock = -Infinity;
         let minVolume = Infinity, maxVolume = -Infinity;
         let minCommodity = Infinity, maxCommodity = -Infinity;
-
         let hasForex = false, hasStock = false, hasVolume = false, hasCommodity = false;
 
         economicData.forEach(point => {
-            selectedForexPairs.forEach(pair => {
-                const val = point[`${pair}_price`];
-                if (val) { minForex = Math.min(minForex, val); maxForex = Math.max(maxForex, val); hasForex = true; }
-            });
-            selectedStockIndices.forEach(sym => {
-                const val = point[`${sym}_index`];
-                if (val) { minStock = Math.min(minStock, val); maxStock = Math.max(maxStock, val); hasStock = true; }
-            });
-            selectedCommodities.forEach(sym => {
-                const val = point[`${sym}_commodity`];
-                if (val) { minCommodity = Math.min(minCommodity, val); maxCommodity = Math.max(maxCommodity, val); hasCommodity = true; }
-            });
-            selectedVolumeAssets.forEach(id => {
-                const val = point[`${id}_volume_ratio`];
-                if (val) { minVolume = Math.min(minVolume, val); maxVolume = Math.max(maxVolume, val); hasVolume = true; }
-            });
+            selectedForexPairs.forEach(pair => { const val = point[`${pair}_price`]; if (val) { minForex = Math.min(minForex, val); maxForex = Math.max(maxForex, val); hasForex = true; } });
+            selectedStockIndices.forEach(sym => { const val = point[`${sym}_index`]; if (val) { minStock = Math.min(minStock, val); maxStock = Math.max(maxStock, val); hasStock = true; } });
+            selectedCommodities.forEach(sym => { const val = point[`${sym}_commodity`]; if (val) { minCommodity = Math.min(minCommodity, val); maxCommodity = Math.max(maxCommodity, val); hasCommodity = true; } });
+            selectedVolumeAssets.forEach(id => { const val = point[`${id}_volume_ratio`]; if (val) { minVolume = Math.min(minVolume, val); maxVolume = Math.max(maxVolume, val); hasVolume = true; } });
         });
 
         const pad = (min, max) => (max - min) * 0.05;
-
         return {
             esi: [0, 100],
             forex: hasForex ? [minForex - pad(minForex, maxForex), maxForex + pad(minForex, maxForex)] : [0, 1],
@@ -478,9 +437,7 @@ export default function EconomicStrengthIndex() {
 
     return (
         <div>
-            <div className="header">
-                <Header />
-            </div>
+            <div className="header"><Header /></div>
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
@@ -565,18 +522,28 @@ export default function EconomicStrengthIndex() {
                         </div>
                     </div>
 
-                    {/* --- NEW: AI / ML ANALYSIS SECTION --- */}
+                    {/* --- NEW: AI / ML ANALYSIS SECTION (BLUE/WHITE THEME) --- */}
                     <div className="ai-analysis-container">
                         <div className="ai-header">
-                            <h6>🤖 AI Relationship Analyzer (Powered by TensorFlow.js)</h6>
+                            <div className="ai-title-group">
+                                <h6>🤖 TensorFlow.js AI Relationship Analyzer</h6>
+                                {isAnalyzing && <span className="ai-status-text">{analysisStatus}</span>}
+                            </div>
                             <button 
                                 onClick={runMLAnalysis} 
                                 disabled={isAnalyzing || economicData.length === 0}
-                                className={`ai-analyze-btn ${isAnalyzing ? 'pulsing' : ''}`}
+                                className="ai-analyze-btn"
                             >
-                                {isAnalyzing ? 'Training Models & Analyzing...' : 'Analyze Relationships'}
+                                {isAnalyzing ? 'Processing...' : 'Analyze Relationships'}
                             </button>
                         </div>
+
+                        {/* Progress Bar */}
+                        {isAnalyzing && (
+                            <div className="ai-progress-track">
+                                <div className="ai-progress-fill" style={{width: `${analysisProgress}%`}}></div>
+                            </div>
+                        )}
 
                         {aiInsights.length > 0 && (
                             <div className="ai-results-grid">
@@ -584,7 +551,7 @@ export default function EconomicStrengthIndex() {
                                     <div key={insight.id} className={`ai-card ${insight.styleClass}`}>
                                         <div className="ai-card-header">
                                             <span className="ai-pair-title">{insight.title}</span>
-                                            <span className="ai-score-badge">Correlation: {insight.score}</span>
+                                            <span className="ai-score-badge">Corr: {insight.score}</span>
                                         </div>
                                         <div className="ai-card-body">
                                             <strong>{insight.term}</strong>
@@ -595,7 +562,7 @@ export default function EconomicStrengthIndex() {
                             </div>
                         )}
                         {aiInsights.length === 0 && !isAnalyzing && economicData.length > 0 && (
-                            <p className="ai-hint">Select your assets above and click "Analyze Relationships" to uncover hidden statistical correlations between them.</p>
+                            <p className="ai-hint">Select your assets above and click "Analyze Relationships" to perform real-time statistical regression.</p>
                         )}
                     </div>
 
@@ -623,61 +590,29 @@ export default function EconomicStrengthIndex() {
                                 <LineChart data={economicData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                     <XAxis dataKey="date" stroke="#374151" tick={{ fontSize: 12 }} />
-                                    
-                                    {/* Left Y-Axis for ESI */}
                                     <YAxis yAxisId="esi" stroke="#374151" tick={{ fontSize: 12 }} domain={domains.esi} label={{ value: 'ESI Score', angle: -90, position: 'insideLeft' }} />
                                     
-                                    {/* Right Y-Axes */}
-                                    {hasForexData && (
-                                        <YAxis yAxisId="forex" orientation="right" stroke="#6b7280" tick={{ fontSize: 12 }} domain={domains.forex} tickFormatter={(v) => v.toFixed(4)} label={{ value: 'Forex Price', angle: 90, position: 'insideRight' }} />
-                                    )}
-                                    {hasStockData && (
-                                        <YAxis yAxisId="stock" orientation="right" stroke="#8b5cf6" tick={{ fontSize: 12 }} domain={domains.stock} tickFormatter={(v) => v.toFixed(0)} label={{ value: 'Stock Index', angle: 90, position: 'outside', offset: 40 }} />
-                                    )}
-                                    {hasVolumeData && (
-                                        <YAxis yAxisId="volume" orientation="right" stroke="#f97316" tick={{ fontSize: 12 }} domain={domains.volume} tickFormatter={(v) => v.toFixed(1) + 'x'} label={{ value: 'Rel Volume', angle: 90, position: 'outside', offset: 80 }} />
-                                    )}
-                                    {hasCommodityData && (
-                                        <YAxis yAxisId="commodity" orientation="right" stroke="#fbbf24" tick={{ fontSize: 12 }} domain={domains.commodity} tickFormatter={(v) => '$' + v.toFixed(0)} label={{ value: 'Commodity', angle: 90, position: 'outside', offset: 120 }} />
-                                    )}
+                                    {hasForexData && <YAxis yAxisId="forex" orientation="right" stroke="#6b7280" tick={{ fontSize: 12 }} domain={domains.forex} tickFormatter={(v) => v.toFixed(4)} label={{ value: 'Forex Price', angle: 90, position: 'insideRight' }} />}
+                                    {hasStockData && <YAxis yAxisId="stock" orientation="right" stroke="#8b5cf6" tick={{ fontSize: 12 }} domain={domains.stock} tickFormatter={(v) => v.toFixed(0)} label={{ value: 'Stock Index', angle: 90, position: 'outside', offset: 40 }} />}
+                                    {hasVolumeData && <YAxis yAxisId="volume" orientation="right" stroke="#f97316" tick={{ fontSize: 12 }} domain={domains.volume} tickFormatter={(v) => v.toFixed(1) + 'x'} label={{ value: 'Rel Volume', angle: 90, position: 'outside', offset: 80 }} />}
+                                    {hasCommodityData && <YAxis yAxisId="commodity" orientation="right" stroke="#fbbf24" tick={{ fontSize: 12 }} domain={domains.commodity} tickFormatter={(v) => '$' + v.toFixed(0)} label={{ value: 'Commodity', angle: 90, position: 'outside', offset: 120 }} />}
 
                                     <Tooltip content={<CustomTooltip />} />
                                     <Legend />
                                     
-                                    {/* ESI Lines */}
-                                    {selectedCurrencies.map(currencyCode => (
-                                        <Line key={currencyCode} yAxisId="esi" type="monotone" dataKey={currencyCode} stroke={currencies.find(c => c.code === currencyCode)?.color || '#6b7280'} strokeWidth={2} dot={false} connectNulls={true} name={`${currencyCode} ESI`} />
-                                    ))}
-                                    
-                                    {/* Forex Lines */}
-                                    {selectedForexPairs.map(forexPair => (
-                                        <Line key={`${forexPair}_price`} yAxisId="forex" type="monotone" dataKey={`${forexPair}_price`} stroke={forexPairs.find(f => f.pair === forexPair)?.color || '#6b7280'} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={true} name={forexPairs.find(f => f.pair === forexPair)?.name || forexPair} />
-                                    ))}
-
-                                    {/* Stock Index Lines */}
-                                    {selectedStockIndices.map(stockSymbol => (
-                                        <Line key={`${stockSymbol}_index`} yAxisId="stock" type="monotone" dataKey={`${stockSymbol}_index`} stroke={stockIndices.find(s => s.symbol === stockSymbol)?.color || '#8b5cf6'} strokeWidth={2} strokeDasharray="10 5" dot={false} connectNulls={true} name={stockIndices.find(s => s.symbol === stockSymbol)?.displayName || stockSymbol} />
-                                    ))}
-
-                                    {/* Commodity Lines */}
-                                    {selectedCommodities.map(commoditySymbol => (
-                                        <Line key={`${commoditySymbol}_commodity`} yAxisId="commodity" type="monotone" dataKey={`${commoditySymbol}_commodity`} stroke={commodities.find(c => c.symbol === commoditySymbol)?.color || '#fbbf24'} strokeWidth={2} strokeDasharray="8 4" dot={false} connectNulls={true} name={commodities.find(c => c.symbol === commoditySymbol)?.displayName || commoditySymbol} />
-                                    ))}
-
-                                    {/* Volume Lines */}
-                                    {selectedVolumeAssets.map(assetId => (
-                                        <Line key={`${assetId}_volume_ratio`} yAxisId="volume" type="monotone" dataKey={`${assetId}_volume_ratio`} stroke={volumeAssets.find(a => a.id === assetId)?.color || '#f97316'} strokeWidth={2} strokeDasharray="2 2" dot={false} connectNulls={true} name={`${volumeAssets.find(a => a.id === assetId)?.name || assetId} Volume`} />
-                                    ))}
+                                    {selectedCurrencies.map(c => <Line key={c} yAxisId="esi" type="monotone" dataKey={c} stroke={currencies.find(i => i.code === c)?.color || '#6b7280'} strokeWidth={2} dot={false} connectNulls={true} name={`${c} ESI`} />)}
+                                    {selectedForexPairs.map(f => <Line key={`${f}_price`} yAxisId="forex" type="monotone" dataKey={`${f}_price`} stroke={forexPairs.find(i => i.pair === f)?.color || '#6b7280'} strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={true} name={forexPairs.find(i => i.pair === f)?.name || f} />)}
+                                    {selectedStockIndices.map(s => <Line key={`${s}_index`} yAxisId="stock" type="monotone" dataKey={`${s}_index`} stroke={stockIndices.find(i => i.symbol === s)?.color || '#8b5cf6'} strokeWidth={2} strokeDasharray="10 5" dot={false} connectNulls={true} name={stockIndices.find(i => i.symbol === s)?.displayName || s} />)}
+                                    {selectedCommodities.map(c => <Line key={`${c}_commodity`} yAxisId="commodity" type="monotone" dataKey={`${c}_commodity`} stroke={commodities.find(i => i.symbol === c)?.color || '#fbbf24'} strokeWidth={2} strokeDasharray="8 4" dot={false} connectNulls={true} name={commodities.find(i => i.symbol === c)?.displayName || c} />)}
+                                    {selectedVolumeAssets.map(v => <Line key={`${v}_volume_ratio`} yAxisId="volume" type="monotone" dataKey={`${v}_volume_ratio`} stroke={volumeAssets.find(i => i.id === v)?.color || '#f97316'} strokeWidth={2} strokeDasharray="2 2" dot={false} connectNulls={true} name={`${volumeAssets.find(i => i.id === v)?.name || v} Volume`} />)}
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="esi-no-data">
-                                <p>Select currencies, forex pairs, stock indices, and/or volume assets to view data</p>
-                            </div>
+                            <div className="esi-no-data"><p>Select currencies, forex pairs, stock indices, and/or volume assets to view data</p></div>
                         )}
                     </div>
 
-                    {/* Legend Info (Simplified for display) */}
+                    {/* Legend Info */}
                     {(hasForexData || hasStockData || hasVolumeData || hasCommodityData) && (
                         <div className="esi-legend-info">
                             <div className="legend-item"><div className="legend-line solid"></div><span>ESI Scores (Left Axis)</span></div>
@@ -705,8 +640,6 @@ export default function EconomicStrengthIndex() {
                 .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark { background-color: currentColor; border-color: currentColor; }
                 .esi-currency-checkbox input[type="checkbox"]:checked + .esi-checkmark::after { content: '✓'; color: white; font-size: 12px; font-weight: bold; }
                 .esi-select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background-color: white; }
-                
-                /* Asset Specific Checkmarks */
                 .forex-checkmark { border-radius: 50%; }
                 .stock-checkmark { border-radius: 2px; transform: rotate(45deg); }
                 .commodity-checkmark { border-radius: 50%; }
@@ -717,8 +650,6 @@ export default function EconomicStrengthIndex() {
                 .esi-loading, .esi-no-data { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #6b7280; }
                 .esi-spinner { width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
                 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                
-                /* Tooltip */
                 .esi-tooltip { background: rgba(15, 23, 42, 0.95); border: 1px solid #334155; border-radius: 6px; padding: 12px; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
                 .esi-tooltip-label { margin: 0 0 8px 0; font-weight: 600; color: #e2e8f0; }
                 .esi-tooltip-entry { margin: 4px 0; font-size: 14px; }
@@ -729,15 +660,15 @@ export default function EconomicStrengthIndex() {
                 .download-all-btn { background: #10b981; color: white; border-color: #059669; font-weight: 600; padding: 10px 20px; }
                 .download-all-btn:hover { background: #059669; transform: translateY(-1px); }
 
-                /* NEW: AI Analysis Styles */
+                /* NEW: AI Analysis Styles (Blue/White Theme) */
                 .ai-analysis-container {
-                    background: #0f172a;
-                    color: white;
+                    background: #eff6ff; /* Light Blue Background */
+                    color: #1e293b;
                     padding: 20px;
                     border-radius: 12px;
                     margin: 20px 0;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                    border: 1px solid #334155;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                    border: 1px solid #bfdbfe; /* Light Blue Border */
                 }
 
                 .ai-header {
@@ -745,16 +676,17 @@ export default function EconomicStrengthIndex() {
                     justify-content: space-between;
                     align-items: center;
                     margin-bottom: 20px;
-                    border-bottom: 1px solid #334155;
+                    border-bottom: 1px solid #dbeafe;
                     padding-bottom: 15px;
                     flex-wrap: wrap;
                     gap: 10px;
                 }
 
-                .ai-header h6 { margin: 0; font-size: 1.1rem; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+                .ai-title-group h6 { margin: 0; font-size: 1.1rem; color: #1e40af; display: flex; align-items: center; gap: 8px; }
+                .ai-status-text { font-size: 0.85rem; color: #64748b; margin-left: 10px; font-style: italic; }
 
                 .ai-analyze-btn {
-                    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+                    background: #2563eb; /* Solid Blue */
                     color: white;
                     border: none;
                     padding: 8px 20px;
@@ -762,36 +694,58 @@ export default function EconomicStrengthIndex() {
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.2s;
-                    box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+                    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
                 }
 
-                .ai-analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
-                .ai-analyze-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-                .pulsing { animation: pulse 2s infinite; }
-                @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); } 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); } }
+                .ai-analyze-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+                .ai-analyze-btn:disabled { background: #93c5fd; cursor: not-allowed; box-shadow: none; }
+
+                .ai-progress-track {
+                    width: 100%;
+                    height: 6px;
+                    background: #e2e8f0;
+                    border-radius: 3px;
+                    margin-bottom: 20px;
+                    overflow: hidden;
+                }
+                
+                .ai-progress-fill {
+                    height: 100%;
+                    background: #3b82f6;
+                    transition: width 0.1s linear;
+                }
 
                 .ai-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
                 
-                .ai-card { background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 15px; border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.2s; }
-                .ai-card:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.08); }
+                .ai-card { 
+                    background: white; 
+                    border-radius: 8px; 
+                    padding: 15px; 
+                    border: 1px solid #e2e8f0; 
+                    transition: transform 0.2s, box-shadow 0.2s; 
+                }
+                .ai-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
                 
                 .ai-card-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-start; }
-                .ai-pair-title { font-weight: 700; font-size: 0.9rem; color: #f1f5f9; }
-                .ai-score-badge { background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 12px; font-family: monospace; font-size: 0.8rem; white-space: nowrap; }
+                .ai-pair-title { font-weight: 700; font-size: 0.9rem; color: #1e3a8a; } /* Dark Blue Text */
+                .ai-score-badge { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-family: monospace; font-size: 0.8rem; white-space: nowrap; }
                 
-                .ai-card-body p { font-size: 0.85rem; color: #cbd5e1; margin: 5px 0 0 0; line-height: 1.4; }
+                .ai-card-body p { font-size: 0.85rem; color: #475569; margin: 5px 0 0 0; line-height: 1.4; }
                 .ai-card-body strong { display: block; font-size: 0.9rem; margin-bottom: 4px; }
                 
-                .insight-positive-strong { border-left: 4px solid #4ade80; }
-                .insight-positive-strong strong { color: #4ade80; }
-                .insight-positive { border-left: 4px solid #86efac; }
-                .insight-positive strong { color: #86efac; }
-                .insight-negative-strong { border-left: 4px solid #f87171; }
-                .insight-negative-strong strong { color: #f87171; }
-                .insight-negative { border-left: 4px solid #fca5a5; }
-                .insight-negative strong { color: #fca5a5; }
+                .insight-positive-strong { border-left: 4px solid #22c55e; background: #f0fdf4; }
+                .insight-positive-strong strong { color: #16a34a; }
                 
-                .ai-hint { text-align: center; color: #94a3b8; font-style: italic; margin: 20px 0; }
+                .insight-positive { border-left: 4px solid #86efac; }
+                .insight-positive strong { color: #15803d; }
+                
+                .insight-negative-strong { border-left: 4px solid #ef4444; background: #fef2f2; }
+                .insight-negative-strong strong { color: #b91c1c; }
+                
+                .insight-negative { border-left: 4px solid #fca5a5; }
+                .insight-negative strong { color: #b91c1c; }
+                
+                .ai-hint { text-align: center; color: #64748b; font-style: italic; margin: 20px 0; }
 
                 /* Legend Lines */
                 .esi-legend-info { display: flex; justify-content: center; gap: 20px; margin: 15px 0; flex-wrap: wrap; }
