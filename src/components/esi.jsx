@@ -122,215 +122,186 @@ export default function EconomicStrengthIndex() {
         }
     }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]);
 
-    // --- Asynchronous Chunked ML Analysis ---
     const runMLAnalysis = async () => {
-        if (!economicData || economicData.length < 5) {
-            setAnalysisError('Not enough data points for analysis. Need at least 5 data points.');
+    if (!economicData || economicData.length < 5) {
+        setAnalysisError('Not enough data points for analysis. Need at least 5 data points.');
+        return;
+    }
+    
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    setAnalysisStatus('Preparing data...');
+    setAiInsights([]);
+    setAnalysisError('');
+
+    try {
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const activeKeys = [];
+        const prettyNames = {};
+        const keyTypes = {};
+
+        const addKey = (key, name, type = 'esi') => {
+            const sample = economicData.find(d => d[key] !== undefined && d[key] !== null);
+            if (sample !== undefined) {
+                activeKeys.push(key);
+                prettyNames[key] = name;
+                keyTypes[key] = type;
+            }
+        };
+
+        selectedCurrencies.forEach(c => addKey(c, `${c} ESI`, 'esi'));
+        selectedForexPairs.forEach(f => {
+            const pairName = forexPairs.find(p => p.pair === f)?.name || f;
+            addKey(`${f}_price`, pairName, 'forex');
+        });
+        selectedStockIndices.forEach(s => {
+            const stockName = stockIndices.find(i => i.symbol === s)?.displayName || s;
+            addKey(`${s}_index`, stockName, 'stock');
+        });
+        selectedCommodities.forEach(c => {
+            const comName = commodities.find(i => i.symbol === c)?.displayName || c;
+            addKey(`${c}_commodity`, comName, 'commodity');
+        });
+        selectedVolumeAssets.forEach(v => {
+            const volName = volumeAssets.find(a => a.id === v)?.name || v;
+            addKey(`${v}_volume_ratio`, `${volName} Volume`, 'volume');
+        });
+
+        if (activeKeys.length < 2) {
+            setAnalysisError('Need at least 2 different data series to calculate correlations.');
+            setIsAnalyzing(false);
             return;
         }
-        
-        setIsAnalyzing(true);
-        setAnalysisProgress(0);
-        setAnalysisStatus('Preparing data...');
-        setAiInsights([]);
-        setAnalysisError('');
 
-        try {
-            // Allow UI to render the "Analyzing" state before starting CPU heavy work
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // 1. Identify Keys - Build comprehensive list of ALL available data
-            const activeKeys = [];
-            const prettyNames = {};
-            const keyTypes = {};
-
-            const addKey = (key, name, type = 'esi') => {
-                const sample = economicData.find(d => d[key] !== undefined && d[key] !== null);
-                if (sample !== undefined) {
-                    activeKeys.push(key);
-                    prettyNames[key] = name;
-                    keyTypes[key] = type;
-                    console.log(`Added key: ${key} (${name})`);
-                }
-            };
-
-            // Add all selected currencies
-            selectedCurrencies.forEach(c => addKey(c, `${c} ESI`, 'esi'));
-            
-            // Add all selected forex pairs
-            selectedForexPairs.forEach(f => {
-                const pairName = forexPairs.find(p => p.pair === f)?.name || f;
-                addKey(`${f}_price`, pairName, 'forex');
-            });
-            
-            // Add all selected stock indices
-            selectedStockIndices.forEach(s => {
-                const stockName = stockIndices.find(i => i.symbol === s)?.displayName || s;
-                addKey(`${s}_index`, stockName, 'stock');
-            });
-            
-            // Add all selected commodities
-            selectedCommodities.forEach(c => {
-                const comName = commodities.find(i => i.symbol === c)?.displayName || c;
-                addKey(`${c}_commodity`, comName, 'commodity');
-            });
-            
-            // Add all selected volume assets
-            selectedVolumeAssets.forEach(v => {
-                const volName = volumeAssets.find(a => a.id === v)?.name || v;
-                addKey(`${v}_volume_ratio`, `${volName} Volume`, 'volume');
-            });
-
-            if (activeKeys.length < 2) {
-                setAnalysisError('Need at least 2 different data series to calculate correlations.');
-                setIsAnalyzing(false);
-                return;
+        const pairsToProcess = [];
+        for (let i = 0; i < activeKeys.length; i++) {
+            for (let j = i + 1; j < activeKeys.length; j++) {
+                pairsToProcess.push({ keyA: activeKeys[i], keyB: activeKeys[j] });
             }
-
-            console.log(`Total active keys: ${activeKeys.length}`, activeKeys);
-
-            // 2. Generate List of Pairs to Process
-            const pairsToProcess = [];
-            for (let i = 0; i < activeKeys.length; i++) {
-                for (let j = i + 1; j < activeKeys.length; j++) {
-                    pairsToProcess.push({ keyA: activeKeys[i], keyB: activeKeys[j] });
-                }
-            }
-
-            const totalPairs = pairsToProcess.length;
-            console.log(`Total pairs to process: ${totalPairs}`);
-
-            if (totalPairs === 0) {
-                setAnalysisError('No pairs to compare. Select more data series.');
-                setIsAnalyzing(false);
-                return;
-            }
-
-            const findings = [];
-            const batchSize = 5;
-
-            // 3. Process Batches Asynchronously
-            for (let i = 0; i < totalPairs; i += batchSize) {
-                const currentProgress = Math.round((i / totalPairs) * 100);
-                setAnalysisProgress(currentProgress);
-                setAnalysisStatus(`Analyzing pair ${i + 1} of ${totalPairs}...`);
-                
-                await new Promise(resolve => setTimeout(resolve, 10));
-
-                const end = Math.min(i + batchSize, totalPairs);
-                
-                // Process each pair in this batch
-                for (let j = i; j < end; j++) {
-                    const { keyA, keyB } = pairsToProcess[j];
-                    
-                    try {
-                        // Filter clean data - only rows where both values exist
-                        const values = economicData.filter(row => 
-                            row[keyA] !== null && row[keyA] !== undefined && 
-                            row[keyB] !== null && row[keyB] !== undefined
-                        );
-
-                        if (values.length < 10) {
-                            console.warn(`Skipping pair ${prettyNames[keyA]} vs ${prettyNames[keyB]}: insufficient data (${values.length} points)`);
-                            continue;
-                        }
-
-                        const inputA = values.map(v => v[keyA]);
-                        const inputB = values.map(v => v[keyB]);
-
-                        // Use tf.tidy to auto-dispose tensors
-                        const correlation = tf.tidy(() => {
-                            const tensorA = tf.tensor1d(inputA);
-                            const tensorB = tf.tensor1d(inputB);
-
-                            // Z-Score Normalization
-                            const meanA = tensorA.mean();
-                            const stdA = tensorA.sub(meanA).square().mean().sqrt();
-                            const normA = tensorA.sub(meanA).div(stdA.add(1e-8)); // Add epsilon to prevent division by zero
-
-                            const meanB = tensorB.mean();
-                            const stdB = tensorB.sub(meanB).square().mean().sqrt();
-                            const normB = tensorB.sub(meanB).div(stdB.add(1e-8));
-
-                            // Pearson Correlation
-                            const correlationTensor = normA.mul(normB).mean();
-                            const correlationValue = correlationTensor.dataSync()[0];
-
-                            return correlationValue;
-                        });
-
-                        findings.push({
-                            pair: [prettyNames[keyA], prettyNames[keyB]],
-                            score: correlation,
-                            type: 'correlation'
-                        });
-
-                        console.log(`Processed: ${prettyNames[keyA]} vs ${prettyNames[keyB]} = ${correlation.toFixed(3)}`);
-                    } catch (pairError) {
-                        console.error(`Error processing pair ${keyA} vs ${keyB}:`, pairError);
-                        setAnalysisError(`Error in correlation calculation: ${pairError.message}`);
-                    }
-                }
-            }
-
-            if (findings.length === 0) {
-                setAnalysisError('No correlations found. Check your data for completeness.');
-                setIsAnalyzing(false);
-                return;
-            }
-
-            // 4. Finalize Results
-            setAnalysisProgress(100);
-            setAnalysisStatus('Finalizing insights...');
-            
-            const insights = findings.map(f => {
-                const [item1, item2] = f.pair;
-                const score = f.score;
-                let description = '';
-                let styleClass = '';
-                let term = '';
-
-                if (score > 0.8) {
-                    term = "Strong Positive Correlation";
-                    description = `Data indicates ${item1} and ${item2} move in near-perfect lockstep. When one rises, the other almost always follows.`;
-                    styleClass = 'insight-positive-strong';
-                } else if (score > 0.5) {
-                    term = "Positive Trend";
-                    description = `There is a noticeable relationship where ${item1} and ${item2} tend to move in the same direction.`;
-                    styleClass = 'insight-positive';
-                } else if (score < -0.8) {
-                    term = "Strong Inverse Relationship";
-                    description = `${item1} acts as a mirror to ${item2}. Usually, when one strengthens, the other weakens drastically.`;
-                    styleClass = 'insight-negative-strong';
-                } else if (score < -0.5) {
-                    term = "Inverse Trend";
-                    description = `Generally, ${item1} and ${item2} move in opposite directions.`;
-                    styleClass = 'insight-negative';
-                } else {
-                    return null;
-                }
-
-                return {
-                    id: `${item1}-${item2}`,
-                    title: `${item1} vs ${item2}`,
-                    term,
-                    description,
-                    score: score.toFixed(2),
-                    styleClass
-                };
-            }).filter(Boolean);
-
-            insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
-
-            setAiInsights(insights);
-            setAnalysisStatus('');
-        } catch (error) {
-            console.error('ML Analysis error:', error);
-            setAnalysisError(`Analysis failed: ${error.message}`);
-        } finally {
-            setIsAnalyzing(false);
         }
-    };
+
+        const totalPairs = pairsToProcess.length;
+
+        if (totalPairs === 0) {
+            setAnalysisError('No pairs to compare. Select more data series.');
+            setIsAnalyzing(false);
+            return;
+        }
+
+        const findings = [];
+        const batchSize = 5;
+
+        for (let i = 0; i < totalPairs; i += batchSize) {
+            const currentProgress = Math.round((i / totalPairs) * 100);
+            setAnalysisProgress(currentProgress);
+            setAnalysisStatus(`Analyzing pair ${i + 1} of ${totalPairs}...`);
+            
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            const end = Math.min(i + batchSize, totalPairs);
+            
+            for (let j = i; j < end; j++) {
+                const { keyA, keyB } = pairsToProcess[j];
+                
+                try {
+                    const values = economicData.filter(row => 
+                        row[keyA] !== null && row[keyA] !== undefined && 
+                        row[keyB] !== null && row[keyB] !== undefined
+                    );
+
+                    if (values.length < 10) {
+                        continue;
+                    }
+
+                    const inputA = values.map(v => v[keyA]);
+                    const inputB = values.map(v => v[keyB]);
+
+                    const correlation = tf.tidy(() => {
+                        const tensorA = tf.tensor1d(inputA);
+                        const tensorB = tf.tensor1d(inputB);
+
+                        const meanA = tensorA.mean();
+                        const stdA = tensorA.sub(meanA).square().mean().sqrt();
+                        const normA = tensorA.sub(meanA).div(stdA.add(1e-8));
+
+                        const meanB = tensorB.mean();
+                        const stdB = tensorB.sub(meanB).square().mean().sqrt();
+                        const normB = tensorB.sub(meanB).div(stdB.add(1e-8));
+
+                        const correlationTensor = normA.mul(normB).mean();
+                        const correlationValue = correlationTensor.dataSync()[0];
+
+                        return correlationValue;
+                    });
+
+                    findings.push({
+                        pair: [prettyNames[keyA], prettyNames[keyB]],
+                        score: correlation,
+                        type: 'correlation'
+                    });
+                } catch (pairError) {
+                    setAnalysisError(`Error in correlation calculation: ${pairError.message}`);
+                }
+            }
+        }
+
+        if (findings.length === 0) {
+            setAnalysisError('No correlations found. Check your data for completeness.');
+            setIsAnalyzing(false);
+            return;
+        }
+
+        setAnalysisProgress(100);
+        setAnalysisStatus('Finalizing insights...');
+        
+        const insights = findings.map(f => {
+            const [item1, item2] = f.pair;
+            const score = f.score;
+            let description = '';
+            let styleClass = '';
+            let term = '';
+
+            if (score > 0.8) {
+                term = "Strong Positive Correlation";
+                description = `Data indicates ${item1} and ${item2} move in near-perfect lockstep. When one rises, the other almost always follows.`;
+                styleClass = 'insight-positive-strong';
+            } else if (score > 0.5) {
+                term = "Positive Trend";
+                description = `There is a noticeable relationship where ${item1} and ${item2} tend to move in the same direction.`;
+                styleClass = 'insight-positive';
+            } else if (score < -0.8) {
+                term = "Strong Inverse Relationship";
+                description = `${item1} acts as a mirror to ${item2}. Usually, when one strengthens, the other weakens drastically.`;
+                styleClass = 'insight-negative-strong';
+            } else if (score < -0.5) {
+                term = "Inverse Trend";
+                description = `Generally, ${item1} and ${item2} move in opposite directions.`;
+                styleClass = 'insight-negative';
+            } else {
+                return null;
+            }
+
+            return {
+                id: `${item1}-${item2}`,
+                title: `${item1} vs ${item2}`,
+                term,
+                description,
+                score: score.toFixed(2),
+                styleClass
+            };
+        }).filter(Boolean);
+
+        insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+
+        setAiInsights(insights);
+        setAnalysisStatus('');
+    } catch (error) {
+        setAnalysisError(`Analysis failed: ${error.message}`);
+    } finally {
+        setIsAnalyzing(false);
+    }
+};
 
     // --- Toggle Handlers ---
     const handleCurrencyToggle = (c) => setSelectedCurrencies(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]);
