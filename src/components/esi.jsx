@@ -22,6 +22,7 @@ export default function EconomicStrengthIndex() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisProgress, setAnalysisProgress] = useState(0);
     const [analysisStatus, setAnalysisStatus] = useState('');
+    const [analysisError, setAnalysisError] = useState('');
     
     // --- Asset Definitions ---
     const currencies = [
@@ -81,8 +82,9 @@ export default function EconomicStrengthIndex() {
     // --- Data Fetching ---
     const fetchEconomicStrengthData = async () => {
         setLoading(true);
-        setAiInsights([]); // Reset AI when new data comes in
+        setAiInsights([]);
         setAnalysisProgress(0);
+        setAnalysisError('');
         try {
             const response = await fetch(`${baseUrl}/api/economic-strength-index/`, {
                 method: 'POST',
@@ -107,6 +109,7 @@ export default function EconomicStrengthIndex() {
             }
         } catch (error) {
             console.error('Error fetching economic strength data:', error);
+            setAnalysisError(`Failed to fetch data: ${error.message}`);
         }
         setLoading(false);
     };
@@ -121,155 +124,212 @@ export default function EconomicStrengthIndex() {
 
     // --- Asynchronous Chunked ML Analysis ---
     const runMLAnalysis = async () => {
-        if (!economicData || economicData.length < 5) return;
+        if (!economicData || economicData.length < 5) {
+            setAnalysisError('Not enough data points for analysis. Need at least 5 data points.');
+            return;
+        }
         
         setIsAnalyzing(true);
         setAnalysisProgress(0);
         setAnalysisStatus('Preparing data...');
         setAiInsights([]);
+        setAnalysisError('');
 
-        // Allow UI to render the "Analyzing" state before starting CPU heavy work
-        await new Promise(resolve => setTimeout(resolve, 100));
+        try {
+            // Allow UI to render the "Analyzing" state before starting CPU heavy work
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-        // 1. Identify Keys
-        const activeKeys = [];
-        const prettyNames = {};
+            // 1. Identify Keys - Build comprehensive list of ALL available data
+            const activeKeys = [];
+            const prettyNames = {};
+            const keyTypes = {};
 
-        const addKey = (key, name) => {
-            const sample = economicData.find(d => d[key] !== undefined && d[key] !== null);
-            if (sample) {
-                activeKeys.push(key);
-                prettyNames[key] = name;
-            }
-        };
+            const addKey = (key, name, type = 'esi') => {
+                const sample = economicData.find(d => d[key] !== undefined && d[key] !== null);
+                if (sample !== undefined) {
+                    activeKeys.push(key);
+                    prettyNames[key] = name;
+                    keyTypes[key] = type;
+                    console.log(`Added key: ${key} (${name})`);
+                }
+            };
 
-        selectedCurrencies.forEach(c => addKey(c, `${c} ESI`));
-        selectedForexPairs.forEach(f => {
-            const pairName = forexPairs.find(p => p.pair === f)?.name || f;
-            addKey(`${f}_price`, pairName);
-        });
-        selectedStockIndices.forEach(s => {
-            const stockName = stockIndices.find(i => i.symbol === s)?.displayName || s;
-            addKey(`${s}_index`, stockName);
-        });
-        selectedCommodities.forEach(c => {
-            const comName = commodities.find(i => i.symbol === c)?.displayName || c;
-            addKey(`${c}_commodity`, comName);
-        });
-        selectedVolumeAssets.forEach(v => {
-            const volName = volumeAssets.find(a => a.id === v)?.name || v;
-            addKey(`${v}_volume_ratio`, `${volName} Volume`);
-        });
-
-        // 2. Generate List of Pairs to Process
-        const pairsToProcess = [];
-        for (let i = 0; i < activeKeys.length; i++) {
-            for (let j = i + 1; j < activeKeys.length; j++) {
-                pairsToProcess.push({ keyA: activeKeys[i], keyB: activeKeys[j] });
-            }
-        }
-
-        const totalPairs = pairsToProcess.length;
-        const findings = [];
-        const batchSize = 5; // Process 5 pairs at a time to keep UI responsive
-
-        // 3. Process Batches Asynchronously
-        for (let i = 0; i < totalPairs; i += batchSize) {
-            // Calculate Progress
-            const currentProgress = Math.round((i / totalPairs) * 100);
-            setAnalysisProgress(currentProgress);
-            setAnalysisStatus(`Analyzing pair ${i + 1} of ${totalPairs}...`);
+            // Add all selected currencies
+            selectedCurrencies.forEach(c => addKey(c, `${c} ESI`, 'esi'));
             
-            // Yield control to the main thread so React can render the progress bar
-            await new Promise(resolve => setTimeout(resolve, 10));
+            // Add all selected forex pairs
+            selectedForexPairs.forEach(f => {
+                const pairName = forexPairs.find(p => p.pair === f)?.name || f;
+                addKey(`${f}_price`, pairName, 'forex');
+            });
+            
+            // Add all selected stock indices
+            selectedStockIndices.forEach(s => {
+                const stockName = stockIndices.find(i => i.symbol === s)?.displayName || s;
+                addKey(`${s}_index`, stockName, 'stock');
+            });
+            
+            // Add all selected commodities
+            selectedCommodities.forEach(c => {
+                const comName = commodities.find(i => i.symbol === c)?.displayName || c;
+                addKey(`${c}_commodity`, comName, 'commodity');
+            });
+            
+            // Add all selected volume assets
+            selectedVolumeAssets.forEach(v => {
+                const volName = volumeAssets.find(a => a.id === v)?.name || v;
+                addKey(`${v}_volume_ratio`, `${volName} Volume`, 'volume');
+            });
 
-            // Run TensorFlow operations synchronously within the batch
-            tf.tidy(() => {
+            if (activeKeys.length < 2) {
+                setAnalysisError('Need at least 2 different data series to calculate correlations.');
+                setIsAnalyzing(false);
+                return;
+            }
+
+            console.log(`Total active keys: ${activeKeys.length}`, activeKeys);
+
+            // 2. Generate List of Pairs to Process
+            const pairsToProcess = [];
+            for (let i = 0; i < activeKeys.length; i++) {
+                for (let j = i + 1; j < activeKeys.length; j++) {
+                    pairsToProcess.push({ keyA: activeKeys[i], keyB: activeKeys[j] });
+                }
+            }
+
+            const totalPairs = pairsToProcess.length;
+            console.log(`Total pairs to process: ${totalPairs}`);
+
+            if (totalPairs === 0) {
+                setAnalysisError('No pairs to compare. Select more data series.');
+                setIsAnalyzing(false);
+                return;
+            }
+
+            const findings = [];
+            const batchSize = 5;
+
+            // 3. Process Batches Asynchronously
+            for (let i = 0; i < totalPairs; i += batchSize) {
+                const currentProgress = Math.round((i / totalPairs) * 100);
+                setAnalysisProgress(currentProgress);
+                setAnalysisStatus(`Analyzing pair ${i + 1} of ${totalPairs}...`);
+                
+                await new Promise(resolve => setTimeout(resolve, 10));
+
                 const end = Math.min(i + batchSize, totalPairs);
+                
+                // Process each pair in this batch
                 for (let j = i; j < end; j++) {
                     const { keyA, keyB } = pairsToProcess[j];
                     
-                    // Filter clean data
-                    const values = economicData.filter(row => 
-                        row[keyA] !== null && row[keyA] !== undefined && 
-                        row[keyB] !== null && row[keyB] !== undefined
-                    );
+                    try {
+                        // Filter clean data - only rows where both values exist
+                        const values = economicData.filter(row => 
+                            row[keyA] !== null && row[keyA] !== undefined && 
+                            row[keyB] !== null && row[keyB] !== undefined
+                        );
 
-                    if (values.length < 10) return;
+                        if (values.length < 10) {
+                            console.warn(`Skipping pair ${prettyNames[keyA]} vs ${prettyNames[keyB]}: insufficient data (${values.length} points)`);
+                            continue;
+                        }
 
-                    const inputA = values.map(v => v[keyA]);
-                    const inputB = values.map(v => v[keyB]);
+                        const inputA = values.map(v => v[keyA]);
+                        const inputB = values.map(v => v[keyB]);
 
-                    const tensorA = tf.tensor1d(inputA);
-                    const tensorB = tf.tensor1d(inputB);
+                        // Use tf.tidy to auto-dispose tensors
+                        const correlation = tf.tidy(() => {
+                            const tensorA = tf.tensor1d(inputA);
+                            const tensorB = tf.tensor1d(inputB);
 
-                    // Z-Score Normalization
-                    const meanA = tensorA.mean();
-                    const stdA = tensorA.sub(meanA).square().mean().sqrt();
-                    const normA = tensorA.sub(meanA).div(stdA);
+                            // Z-Score Normalization
+                            const meanA = tensorA.mean();
+                            const stdA = tensorA.sub(meanA).square().mean().sqrt();
+                            const normA = tensorA.sub(meanA).div(stdA.add(1e-8)); // Add epsilon to prevent division by zero
 
-                    const meanB = tensorB.mean();
-                    const stdB = tensorB.sub(meanB).square().mean().sqrt();
-                    const normB = tensorB.sub(meanB).div(stdB);
+                            const meanB = tensorB.mean();
+                            const stdB = tensorB.sub(meanB).square().mean().sqrt();
+                            const normB = tensorB.sub(meanB).div(stdB.add(1e-8));
 
-                    // Pearson Correlation
-                    const correlationTensor = normA.mul(normB).mean();
-                    const correlation = correlationTensor.dataSync()[0];
+                            // Pearson Correlation
+                            const correlationTensor = normA.mul(normB).mean();
+                            const correlationValue = correlationTensor.dataSync()[0];
 
-                    findings.push({
-                        pair: [prettyNames[keyA], prettyNames[keyB]],
-                        score: correlation,
-                        type: 'correlation'
-                    });
+                            return correlationValue;
+                        });
+
+                        findings.push({
+                            pair: [prettyNames[keyA], prettyNames[keyB]],
+                            score: correlation,
+                            type: 'correlation'
+                        });
+
+                        console.log(`Processed: ${prettyNames[keyA]} vs ${prettyNames[keyB]} = ${correlation.toFixed(3)}`);
+                    } catch (pairError) {
+                        console.error(`Error processing pair ${keyA} vs ${keyB}:`, pairError);
+                        setAnalysisError(`Error in correlation calculation: ${pairError.message}`);
+                    }
                 }
-            });
-        }
-
-        // 4. Finalize Results
-        setAnalysisProgress(100);
-        setAnalysisStatus('Finalizing insights...');
-        
-        const insights = findings.map(f => {
-            const [item1, item2] = f.pair;
-            const score = f.score;
-            let description = '';
-            let styleClass = '';
-            let term = '';
-
-            if (score > 0.8) {
-                term = "Strong Positive Correlation";
-                description = `Data indicates ${item1} and ${item2} move in near-perfect lockstep. When one rises, the other almost always follows.`;
-                styleClass = 'insight-positive-strong';
-            } else if (score > 0.5) {
-                term = "Positive Trend";
-                description = `There is a noticeable relationship where ${item1} and ${item2} tend to move in the same direction.`;
-                styleClass = 'insight-positive';
-            } else if (score < -0.8) {
-                term = "Strong Inverse Relationship";
-                description = `${item1} acts as a mirror to ${item2}. Usually, when one strengthens, the other weakens drastically.`;
-                styleClass = 'insight-negative-strong';
-            } else if (score < -0.5) {
-                term = "Inverse Trend";
-                description = `Generally, ${item1} and ${item2} move in opposite directions.`;
-                styleClass = 'insight-negative';
-            } else {
-                return null;
             }
 
-            return {
-                id: `${item1}-${item2}`,
-                title: `${item1} vs ${item2}`,
-                term,
-                description,
-                score: score.toFixed(2),
-                styleClass
-            };
-        }).filter(Boolean);
+            if (findings.length === 0) {
+                setAnalysisError('No correlations found. Check your data for completeness.');
+                setIsAnalyzing(false);
+                return;
+            }
 
-        insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+            // 4. Finalize Results
+            setAnalysisProgress(100);
+            setAnalysisStatus('Finalizing insights...');
+            
+            const insights = findings.map(f => {
+                const [item1, item2] = f.pair;
+                const score = f.score;
+                let description = '';
+                let styleClass = '';
+                let term = '';
 
-        setAiInsights(insights);
-        setIsAnalyzing(false);
+                if (score > 0.8) {
+                    term = "Strong Positive Correlation";
+                    description = `Data indicates ${item1} and ${item2} move in near-perfect lockstep. When one rises, the other almost always follows.`;
+                    styleClass = 'insight-positive-strong';
+                } else if (score > 0.5) {
+                    term = "Positive Trend";
+                    description = `There is a noticeable relationship where ${item1} and ${item2} tend to move in the same direction.`;
+                    styleClass = 'insight-positive';
+                } else if (score < -0.8) {
+                    term = "Strong Inverse Relationship";
+                    description = `${item1} acts as a mirror to ${item2}. Usually, when one strengthens, the other weakens drastically.`;
+                    styleClass = 'insight-negative-strong';
+                } else if (score < -0.5) {
+                    term = "Inverse Trend";
+                    description = `Generally, ${item1} and ${item2} move in opposite directions.`;
+                    styleClass = 'insight-negative';
+                } else {
+                    return null;
+                }
+
+                return {
+                    id: `${item1}-${item2}`,
+                    title: `${item1} vs ${item2}`,
+                    term,
+                    description,
+                    score: score.toFixed(2),
+                    styleClass
+                };
+            }).filter(Boolean);
+
+            insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+
+            setAiInsights(insights);
+            setAnalysisStatus('');
+        } catch (error) {
+            console.error('ML Analysis error:', error);
+            setAnalysisError(`Analysis failed: ${error.message}`);
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     // --- Toggle Handlers ---
@@ -522,7 +582,7 @@ export default function EconomicStrengthIndex() {
                         </div>
                     </div>
 
-                    {/* --- NEW: AI / ML ANALYSIS SECTION (BLUE/WHITE THEME) --- */}
+                    {/* --- AI / ML ANALYSIS SECTION (BLUE/WHITE THEME) --- */}
                     <div className="ai-analysis-container">
                         <div className="ai-header">
                             <div className="ai-title-group">
@@ -545,6 +605,13 @@ export default function EconomicStrengthIndex() {
                             </div>
                         )}
 
+                        {/* Error Display */}
+                        {analysisError && (
+                            <div className="ai-error-message">
+                                <strong>⚠️ Analysis Error:</strong> {analysisError}
+                            </div>
+                        )}
+
                         {aiInsights.length > 0 && (
                             <div className="ai-results-grid">
                                 {aiInsights.map(insight => (
@@ -561,7 +628,7 @@ export default function EconomicStrengthIndex() {
                                 ))}
                             </div>
                         )}
-                        {aiInsights.length === 0 && !isAnalyzing && economicData.length > 0 && (
+                        {aiInsights.length === 0 && !isAnalyzing && !analysisError && economicData.length > 0 && (
                             <p className="ai-hint">Select your assets above and click "Analyze Relationships" to perform real-time statistical regression.</p>
                         )}
                     </div>
@@ -660,15 +727,15 @@ export default function EconomicStrengthIndex() {
                 .download-all-btn { background: #10b981; color: white; border-color: #059669; font-weight: 600; padding: 10px 20px; }
                 .download-all-btn:hover { background: #059669; transform: translateY(-1px); }
 
-                /* NEW: AI Analysis Styles (Blue/White Theme) */
+                /* AI Analysis Styles (Blue/White Theme) */
                 .ai-analysis-container {
-                    background: #eff6ff; /* Light Blue Background */
+                    background: #eff6ff;
                     color: #1e293b;
                     padding: 20px;
                     border-radius: 12px;
                     margin: 20px 0;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-                    border: 1px solid #bfdbfe; /* Light Blue Border */
+                    border: 1px solid #bfdbfe;
                 }
 
                 .ai-header {
@@ -686,7 +753,7 @@ export default function EconomicStrengthIndex() {
                 .ai-status-text { font-size: 0.85rem; color: #64748b; margin-left: 10px; font-style: italic; }
 
                 .ai-analyze-btn {
-                    background: #2563eb; /* Solid Blue */
+                    background: #2563eb;
                     color: white;
                     border: none;
                     padding: 8px 20px;
@@ -715,6 +782,16 @@ export default function EconomicStrengthIndex() {
                     transition: width 0.1s linear;
                 }
 
+                .ai-error-message {
+                    background: #fee2e2;
+                    border: 1px solid #fecaca;
+                    border-radius: 6px;
+                    padding: 12px;
+                    margin-bottom: 20px;
+                    color: #991b1b;
+                    font-size: 0.9rem;
+                }
+
                 .ai-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
                 
                 .ai-card { 
@@ -727,7 +804,7 @@ export default function EconomicStrengthIndex() {
                 .ai-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
                 
                 .ai-card-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-start; }
-                .ai-pair-title { font-weight: 700; font-size: 0.9rem; color: #1e3a8a; } /* Dark Blue Text */
+                .ai-pair-title { font-weight: 700; font-size: 0.9rem; color: #1e3a8a; }
                 .ai-score-badge { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-family: monospace; font-size: 0.8rem; white-space: nowrap; }
                 
                 .ai-card-body p { font-size: 0.85rem; color: #475569; margin: 5px 0 0 0; line-height: 1.4; }
