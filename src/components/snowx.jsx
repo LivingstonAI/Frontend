@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'https://esm.sh/ethers@6.13.2';
 import Header from "./header";
 import SideNavs from "./side_navs";
-
 // ----------------------------------------------------------------------------
 // 1. CSS STYLES (Standard CSS Definitions - Blue & White, Responsive)
 // ----------------------------------------------------------------------------
@@ -244,6 +243,7 @@ const cssStyles = `
 // ----------------------------------------------------------------------------
 // 2. CONTRACT CONFIGURATION
 // ----------------------------------------------------------------------------
+// !!! IMPORTANT: REPLACE THIS ADDRESS WITH YOUR DEPLOYED SEPOLIA CONTRACT ADDRESS !!!
 const CONTRACT_ADDRESS = "0xYourContractAddressHere";
 
 const MINIMAL_ABI = [
@@ -301,21 +301,17 @@ export default function SNOWXDashboard() {
       setStatus('Connecting via Browser Provider...');
       initializeEthers(window.ethereum);
     } 
-    // 2. Handle mobile deep linking for MetaMask (works outside of its internal browser)
+    // 2. Handle mobile deep linking for MetaMask 
     else if (isMobile()) {
-        setStatus('Redirecting to MetaMask mobile app...');
-        // Use a universal link or deep link to prompt connection
-        // Note: WalletConnect is the standard, but this simple deep-link works for MetaMask if it's installed.
+        setStatus('Attempting mobile wallet redirect...');
+        // Use a universal link to prompt connection
         const appUrl = encodeURIComponent(window.location.href);
         const metamaskUrl = `https://metamask.app.link/dapp/${appUrl}`;
         
         window.open(metamaskUrl, '_self');
         
-        // Note: For a more robust solution that handles *all* mobile wallets 
-        // and provides status feedback, a dedicated WalletConnect integration 
-        // library (like web3modal) is required. For this single-file component, 
-        // the deep link is the best simple alternative.
-        
+        // The mobile device will leave the browser, connect in MetaMask, and then return. 
+        // The useEffect hook below handles the return connection.
     }
     // 3. Fallback for no provider
     else {
@@ -324,7 +320,21 @@ export default function SNOWXDashboard() {
   };
 
   const fetchTokenData = async (_contract, _account) => {
+    // --- THIS IS THE FIX FOR THE 'LOADING...' ISSUE ---
+    if (CONTRACT_ADDRESS === "0xYourContractAddressHere") {
+        setTokenData({ name: 'Placeholder', symbol: 'QTT', balance: 'N/A' });
+        setStatus("!!! WARNING: Update CONTRACT_ADDRESS with your actual address !!!");
+        return;
+    }
+    // ----------------------------------------------------
+
     try {
+      // Check if the contract is initialized before fetching data
+      if (!_contract) {
+          setStatus("Contract not initialized. Try connecting wallet again.");
+          return;
+      }
+      
       const name = await _contract.name();
       const symbol = await _contract.symbol();
       const decimals = await _contract.decimals();
@@ -333,8 +343,8 @@ export default function SNOWXDashboard() {
 
       setTokenData({ name, symbol, balance: formattedBalance });
     } catch (err) {
-      console.error(err);
-      setStatus("Could not load token data. Check Contract Address.");
+      console.error("Error fetching token data:", err);
+      setStatus("Could not load token data. Check Contract Address or Network.");
     }
   };
 
@@ -355,7 +365,7 @@ export default function SNOWXDashboard() {
       const tx = await contract.transfer(recipient, amountInWei);
       setStatus(`Transaction Sent: ${tx.hash}`);
       await tx.wait();
-      setStatus('Transfer Confirmed!');
+      setStatus('Transfer Confirmed! Updating balance...');
       fetchTokenData(contract, account);
     } catch (err) {
       console.error(err);
@@ -381,7 +391,7 @@ export default function SNOWXDashboard() {
       const tx = await contract.mint(account, amountInWei);
       setStatus(`Mint Tx Sent: ${tx.hash}`);
       await tx.wait();
-      setStatus('Mint Confirmed!');
+      setStatus('Mint Confirmed! Updating balance...');
       fetchTokenData(contract, account);
     } catch (err) {
       console.error(err);
@@ -391,23 +401,42 @@ export default function SNOWXDashboard() {
     }
   };
 
-  // Check the URL for potential deep-link redirects on load
+  // Improved Mobile Connection/Reconnect Logic (Polling)
   useEffect(() => {
-    if (window.ethereum) {
-      // If the page loads with window.ethereum present (e.g., after being redirected back from MetaMask app)
-      // Attempt to connect automatically.
-      // This is a common pattern for handling mobile deep link return.
-      initializeEthers(window.ethereum);
+    let intervalId;
+
+    const attemptReconnect = () => {
+        // If we have window.ethereum and no account yet, try to initialize
+        if (window.ethereum && !account) {
+            console.log("Attempting reconnect...");
+            initializeEthers(window.ethereum);
+        } else if (account) {
+            // If already connected, stop polling
+            clearInterval(intervalId);
+        }
+    };
+
+    // Start polling if we are on mobile and don't have an account
+    if (isMobile() && !account) {
+        // Check every 2 seconds for a minute (30 checks)
+        intervalId = setInterval(attemptReconnect, 2000);
+        setTimeout(() => clearInterval(intervalId), 60000); // Stop after 60 seconds
+    } else if (window.ethereum && !account) {
+        // Desktop browsers can attempt a one-time connection on load
+        attemptReconnect();
     }
-  }, []);
+
+    // Cleanup interval on component unmount or when connected
+    return () => clearInterval(intervalId);
+  }, [account]);
 
 
   return (
-    <div>
+    <div>       
         <div className="header">
             <Header />
-        </div>
-        <div className="main-page-body">
+         </div>
+          <div className="main-page-body">
             <SideNavs />
     <div className="dashboard-container">
       {/* Injecting the CSS Styles */}
@@ -418,7 +447,7 @@ export default function SNOWXDashboard() {
         {/* Header */}
         <div className="card-header">
           <div>
-            <h1 className="header-title">SnowAI Crypto Dashboard</h1>
+            <h1 className="header-title">Crypto Trader Dashboard</h1>
             <p className="header-subtitle">Interaction Layer</p>
           </div>
           <div className="text-right">
@@ -439,7 +468,7 @@ export default function SNOWXDashboard() {
           
           {/* Status Bar */}
           {status && (
-            <div className={`status-bar ${status.includes('Failed') || status.includes('Error') ? 'status-error' : 'status-info'}`}>
+            <div className={`status-bar ${status.includes('Failed') || status.includes('Error') || status.includes('WARNING') ? 'status-error' : 'status-info'}`}>
               &gt; {status}
             </div>
           )}
