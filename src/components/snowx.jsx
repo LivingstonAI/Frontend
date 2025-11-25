@@ -3,70 +3,73 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'https://esm.sh/ethers@6.13.2';
 
 // ----------------------------------------------------------------------------
-// 1. CSS STYLES (Standard CSS Definitions)
+// 1. CSS STYLES (Standard CSS Definitions - Blue & White, Responsive)
 // ----------------------------------------------------------------------------
 const cssStyles = `
   /* Global Resets & Fonts */
   .dashboard-container {
     min-height: 100vh;
-    background-color: #0f172a; /* Slate 900 */
-    color: #ffffff;
-    padding: 2rem;
+    background-color: #f8f8ff; /* Ghost White / Light Background */
+    color: #1e3a8a; /* Dark Blue Text */
+    padding: 1rem; /* Reduced padding for mobile */
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     box-sizing: border-box;
   }
 
   /* Card Component */
   .dashboard-card {
-    max-width: 42rem; /* approx 672px */
+    max-width: 48rem; /* Slightly wider */
     margin: 0 auto;
-    background-color: #1e293b; /* Slate 800 */
-    border-radius: 0.75rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    border: 1px solid #334155; /* Slate 700 */
+    background-color: #ffffff; /* Pure White Card */
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e0e7ff; /* Light Blue Border */
     overflow: hidden;
   }
 
   /* Header */
   .card-header {
-    background-color: #020617; /* Slate 950 */
+    background-color: #eff6ff; /* Very Light Blue Header */
     padding: 1.5rem;
-    border-bottom: 1px solid #334155;
+    border-bottom: 1px solid #bfdbfe; /* Light Blue Separator */
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap; /* Responsive wrap */
+    gap: 1rem;
   }
 
   .header-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #60a5fa; /* Blue 400 */
+    color: #1e3a8a; /* Primary Blue */
     margin: 0;
   }
 
   .header-subtitle {
-    color: #94a3b8; /* Slate 400 */
+    color: #60a5fa; /* Accent Blue */
     font-size: 0.875rem;
     margin: 0;
   }
 
   /* Buttons */
   .btn-connect {
-    background-color: #2563eb; /* Blue 600 */
+    background-color: #3b82f6; /* Blue 500 */
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
-    font-weight: 500;
+    font-weight: 600;
     border: none;
     cursor: pointer;
     transition: background-color 0.2s;
+    white-space: nowrap; /* Prevent breaking on button */
   }
   .btn-connect:hover {
-    background-color: #3b82f6; /* Blue 500 */
+    background-color: #2563eb; /* Blue 600 */
   }
 
   .btn-transfer {
-    background-color: #4f46e5; /* Indigo 600 */
+    background-color: #3b82f6; /* Primary Action Blue */
     color: white;
     padding: 0.75rem;
     border-radius: 0.5rem;
@@ -74,10 +77,10 @@ const cssStyles = `
     border: none;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 10px 15px -3px rgba(49, 46, 129, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
   }
   .btn-transfer:hover {
-    background-color: #6366f1; /* Indigo 500 */
+    background-color: #2563eb; 
   }
   .btn-transfer:disabled {
     opacity: 0.5;
@@ -85,7 +88,7 @@ const cssStyles = `
   }
 
   .btn-mint {
-    background-color: #047857; /* Emerald 700 */
+    background-color: #10b981; /* Green Accent for Mint */
     color: white;
     padding: 0.75rem;
     border-radius: 0.5rem;
@@ -93,10 +96,10 @@ const cssStyles = `
     border: none;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 10px 15px -3px rgba(6, 78, 59, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
   }
   .btn-mint:hover {
-    background-color: #059669; /* Emerald 600 */
+    background-color: #059669;
   }
   .btn-mint:disabled {
     opacity: 0.5;
@@ -106,11 +109,11 @@ const cssStyles = `
   /* Badges */
   .badge-connected {
     font-size: 0.875rem;
-    color: #4ade80; /* Green 400 */
-    background-color: rgba(20, 83, 45, 0.3);
+    color: #10b981; /* Green Success */
+    background-color: #d1fae5; /* Very Light Green */
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
-    border: 1px solid #14532d;
+    border: 1px solid #a7f3d0;
   }
 
   /* Content Area */
@@ -129,33 +132,39 @@ const cssStyles = `
     font-family: monospace;
   }
   .status-error {
-    background-color: rgba(127, 29, 29, 0.5);
-    color: #fecaca; /* Red 200 */
-    border: 1px solid #7f1d1d;
+    background-color: #fee2e2; /* Light Red */
+    color: #ef4444; /* Error Red */
+    border: 1px solid #fca5a5;
   }
   .status-info {
-    background-color: rgba(30, 58, 138, 0.3);
-    color: #bfdbfe; /* Blue 200 */
-    border: 1px solid #1e3a8a;
+    background-color: #eff6ff; /* Light Blue */
+    color: #3b82f6; /* Info Blue */
+    border: 1px solid #bfdbfe;
   }
 
-  /* Metrics Grid */
+  /* Metrics Grid (Responsive) */
   .metric-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(1, 1fr); /* Single column on mobile */
     gap: 1rem;
+  }
+  @media (min-width: 640px) { /* Tablet and up */
+    .metric-grid {
+      grid-template-columns: repeat(3, 1fr); /* Three columns on larger screens */
+    }
   }
   
   .metric-card {
-    background-color: rgba(51, 65, 85, 0.5); /* Slate 700/50 */
+    background-color: #f7f9fc; /* Off-White for metrics */
     padding: 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #475569;
+    border-radius: 0.75rem;
+    border: 1px solid #e0e7ff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   }
   
   .metric-label {
     font-size: 0.75rem;
-    color: #94a3b8; /* Slate 400 */
+    color: #60a5fa; /* Accent Blue Label */
     text-transform: uppercase;
     letter-spacing: 0.05em;
     display: block;
@@ -165,14 +174,14 @@ const cssStyles = `
   .metric-value {
     font-size: 1.25rem;
     font-weight: 700;
-    color: white;
+    color: #1e3a8a; /* Dark Blue */
   }
-  .text-yellow { color: #facc15; }
-  .text-green { color: #4ade80; }
+  .text-yellow { color: #f59e0b; } /* Amber for Symbol */
+  .text-green { color: #10b981; } /* Emerald for Balance */
 
   /* Forms & Inputs */
   .execution-section {
-    border-top: 1px solid #334155;
+    border-top: 1px solid #e0e7ff;
     padding-top: 1.5rem;
   }
   
@@ -180,7 +189,7 @@ const cssStyles = `
     font-size: 1.125rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    color: #e2e8f0;
+    color: #1e3a8a;
   }
 
   .form-group {
@@ -190,36 +199,42 @@ const cssStyles = `
   .input-label {
     display: block;
     font-size: 0.875rem;
-    color: #94a3b8;
+    color: #60a5fa;
     margin-bottom: 0.25rem;
   }
 
   .input-field {
     width: 100%;
-    background-color: #0f172a;
-    border: 1px solid #475569;
+    background-color: #ffffff;
+    border: 1px solid #bfdbfe;
     border-radius: 0.5rem;
     padding: 0.75rem;
-    color: white;
+    color: #1e3a8a;
     font-family: monospace;
     outline: none;
-    box-sizing: border-box; /* Important for width: 100% */
+    box-sizing: border-box; 
   }
   .input-field:focus {
     border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
   }
 
   .action-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr); /* Single column on mobile */
     gap: 1rem;
     margin-top: 0.5rem;
+  }
+  @media (min-width: 640px) { /* Tablet and up */
+    .action-grid {
+      grid-template-columns: repeat(2, 1fr); /* Two columns on larger screens */
+    }
   }
 
   .helper-text {
     font-size: 0.75rem;
     text-align: center;
-    color: #64748b;
+    color: #93c5fd; /* Light Blue Hint */
     margin-top: 0.5rem;
   }
 `;
