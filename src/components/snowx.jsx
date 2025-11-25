@@ -256,6 +256,10 @@ const MINIMAL_ABI = [
 // ----------------------------------------------------------------------------
 // 3. MAIN COMPONENT
 // ----------------------------------------------------------------------------
+
+// Helper function to check if the user is on a mobile device
+const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 export default function SNOWXDashboard() {
   const [account, setAccount] = useState(null);
   const [provider, setProvider] = useState(null);
@@ -267,28 +271,53 @@ export default function SNOWXDashboard() {
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const _account = accounts[0];
-        setAccount(_account);
+  const initializeEthers = async (providerInstance) => {
+    try {
+      const _provider = new ethers.BrowserProvider(providerInstance);
+      // Request accounts to get the current account and trigger connection in the wallet
+      const accounts = await _provider.send("eth_requestAccounts", []);
+      const _account = accounts[0];
+      setAccount(_account);
 
-        const _provider = new ethers.BrowserProvider(window.ethereum);
-        const _signer = await _provider.getSigner();
-        const _contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_ABI, _signer);
+      const _signer = await _provider.getSigner();
+      const _contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_ABI, _signer);
+      
+      setProvider(_provider);
+      setContract(_contract);
+      setStatus('Wallet connected successfully.');
+      
+      fetchTokenData(_contract, _account);
+    } catch (error) {
+      console.error(error);
+      setStatus('Connection failed: ' + (error.message || 'Unknown error.'));
+    }
+  };
+
+  const connectWallet = async () => {
+    // 1. Check for standard Ethereum injection (Desktop or MetaMask mobile browser)
+    if (window.ethereum) {
+      setStatus('Connecting via Browser Provider...');
+      initializeEthers(window.ethereum);
+    } 
+    // 2. Handle mobile deep linking for MetaMask (works outside of its internal browser)
+    else if (isMobile()) {
+        setStatus('Redirecting to MetaMask mobile app...');
+        // Use a universal link or deep link to prompt connection
+        // Note: WalletConnect is the standard, but this simple deep-link works for MetaMask if it's installed.
+        const appUrl = encodeURIComponent(window.location.href);
+        const metamaskUrl = `https://metamask.app.link/dapp/${appUrl}`;
         
-        setProvider(_provider);
-        setContract(_contract);
-        setStatus('Wallet connected.');
+        window.open(metamaskUrl, '_self');
         
-        fetchTokenData(_contract, _account);
-      } catch (error) {
-        console.error(error);
-        setStatus('Error connecting wallet: ' + error.message);
-      }
-    } else {
-      setStatus('Please install MetaMask!');
+        // Note: For a more robust solution that handles *all* mobile wallets 
+        // and provides status feedback, a dedicated WalletConnect integration 
+        // library (like web3modal) is required. For this single-file component, 
+        // the deep link is the best simple alternative.
+        
+    }
+    // 3. Fallback for no provider
+    else {
+      setStatus('Please install MetaMask or use a DApp browser.');
     }
   };
 
@@ -313,6 +342,13 @@ export default function SNOWXDashboard() {
     setStatus('Initiating Transfer...');
 
     try {
+      // Amount must be greater than zero for a valid transaction
+      if (parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
+          setStatus('Transfer Failed: Invalid amount.');
+          setIsLoading(false);
+          return;
+      }
+      
       const amountInWei = ethers.parseUnits(amount, 18);
       const tx = await contract.transfer(recipient, amountInWei);
       setStatus(`Transaction Sent: ${tx.hash}`);
@@ -333,6 +369,12 @@ export default function SNOWXDashboard() {
     setStatus('Initiating Mint...');
 
     try {
+      if (parseFloat(amount) <= 0 || isNaN(parseFloat(amount))) {
+          setStatus('Mint Failed: Invalid amount.');
+          setIsLoading(false);
+          return;
+      }
+
       const amountInWei = ethers.parseUnits(amount, 18);
       const tx = await contract.mint(account, amountInWei);
       setStatus(`Mint Tx Sent: ${tx.hash}`);
@@ -346,6 +388,17 @@ export default function SNOWXDashboard() {
       setIsLoading(false);
     }
   };
+
+  // Check the URL for potential deep-link redirects on load
+  useEffect(() => {
+    if (window.ethereum) {
+      // If the page loads with window.ethereum present (e.g., after being redirected back from MetaMask app)
+      // Attempt to connect automatically.
+      // This is a common pattern for handling mobile deep link return.
+      initializeEthers(window.ethereum);
+    }
+  }, []);
+
 
   return (
     <div className="dashboard-container">
