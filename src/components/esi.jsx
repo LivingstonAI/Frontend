@@ -293,7 +293,7 @@ export default function EconomicStrengthIndex() {
         }).filter(Boolean);
 
         insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
-
+        console.log('Setting AI Insights:', insights);
         setAiInsights(insights);
         setAnalysisStatus('');
     } catch (error) {
