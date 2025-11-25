@@ -447,7 +447,7 @@ export default function SNOWXDashboard() {
         {/* Header */}
         <div className="card-header">
           <div>
-            <h1 className="header-title">Crypto Trader Dashboard</h1>
+            <h1 className="header-title">SnowAI Crypto Dashboard</h1>
             <p className="header-subtitle">Interaction Layer</p>
           </div>
           <div className="text-right">
