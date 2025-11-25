@@ -278,8 +278,14 @@ export default function EconomicStrengthIndex() {
                 term = "Inverse Trend";
                 description = `Generally, ${item1} and ${item2} move in opposite directions.`;
                 styleClass = 'insight-negative';
+            } else if (Math.abs(score) > 0.3) {
+                term = "Weak Correlation";
+                description = `${item1} and ${item2} show some relationship, though it's relatively weak.`;
+                styleClass = 'insight-neutral';
             } else {
-                return null;
+                term = "No Clear Relationship";
+                description = `${item1} and ${item2} appear to move independently with little to no correlation.`;
+                styleClass = 'insight-neutral';
             }
 
             return {
@@ -291,6 +297,7 @@ export default function EconomicStrengthIndex() {
                 styleClass
             };
         }).filter(Boolean);
+                
 
         insights.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
         console.log('Setting AI Insights:', insights);
@@ -804,6 +811,8 @@ export default function EconomicStrengthIndex() {
                 .legend-line.dotted { background: linear-gradient(to right, #8b5cf6 30%, transparent 30%); background-size: 6px 2px; }
                 .legend-line.volume-line { background: linear-gradient(to right, #f97316 20%, transparent 20%); background-size: 4px 2px; }
                 .legend-line.commodity-line { background: linear-gradient(to right, #fbbf24 40%, transparent 40%); background-size: 10px 2px; }
+                .insight-neutral { border-left: 4px solid #cbd5e1; background: #f8fafc; }
+                .insight-neutral strong { color: #64748b; }
 
                 @media (max-width: 768px) {
                     .esi-currency-grid { grid-template-columns: 1fr; }
