@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 // Using ESM import for ethers to ensure compatibility in the preview environment
 import { ethers } from 'https://esm.sh/ethers@6.13.2';
+import Header from "./header";
+import SideNavs from "./side_navs";
 
 // ----------------------------------------------------------------------------
 // 1. CSS STYLES (Standard CSS Definitions - Blue & White, Responsive)
@@ -401,6 +403,12 @@ export default function SNOWXDashboard() {
 
 
   return (
+    <div>
+        <div className="header">
+            <Header />
+        </div>
+        <div className="main-page-body">
+            <SideNavs />
     <div className="dashboard-container">
       {/* Injecting the CSS Styles */}
       <style>{cssStyles}</style>
@@ -410,7 +418,7 @@ export default function SNOWXDashboard() {
         {/* Header */}
         <div className="card-header">
           <div>
-            <h1 className="header-title">Crypto Trader Dashboard</h1>
+            <h1 className="header-title">SnowAI Crypto Dashboard</h1>
             <p className="header-subtitle">Interaction Layer</p>
           </div>
           <div className="text-right">
@@ -505,6 +513,8 @@ export default function SNOWXDashboard() {
           )}
         </div>
       </div>
+    </div>
+    </div>
     </div>
   );
 }
