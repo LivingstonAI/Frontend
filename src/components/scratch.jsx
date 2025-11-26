@@ -23,9 +23,6 @@ import 'blockly/javascript';
 Blockly.setLocale(locale);
 
 
-// Twilio Code = D4ZHZMPMHTD78W6L2U5SFQP9
-
-
 export default function ScratchInterFace () { 
 
     const myPlotRef = useRef(null);
@@ -874,6 +871,106 @@ return [`is_low_volume_backtest(data=dataset)`, Order.NONE];
 
 };
 
+
+pythonGenerator['forBlock']['is_stable_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+  return [`is_stable_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_stable_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+return [`is_stable_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_choppy_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+  
+  return [`is_choppy_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_choppy_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+return [`is_choppy_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_volatile_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+  return [`is_volatile_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_volatile_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+return [`is_volatile_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
     init: function() {
@@ -1595,6 +1692,51 @@ Blockly.Blocks['rsi_block'] = {
       this.setHelpUrl("");
     }
   };
+
+  // Blockly block definition for "Choppy" block
+  Blockly.Blocks['is_choppy_market'] = {
+    init: function() {
+      this.appendValueInput('NUM')
+          .setCheck('Number')
+          .appendField('is choppy market')
+    
+      this.setInputsInline(true);
+      this.setOutput(true, 'Number');
+      this.setColour(210);
+      this.setTooltip('Check if asset has a choppy market');
+      this.setHelpUrl('');
+    }
+  };
+
+  // Blockly block definition for "Stable Market" block
+  Blockly.Blocks['is_stable_market'] = {
+    init: function() {
+      this.appendValueInput('NUM')
+          .setCheck('Number')
+          .appendField('is stable market')
+    
+      this.setInputsInline(true);
+      this.setOutput(true, 'Number');
+      this.setColour(160);
+      this.setTooltip('Check if asset has a stable market');
+      this.setHelpUrl('');
+    }
+  };
+
+  // Blockly block definition for "Volatile Market" block
+  Blockly.Blocks['is_volatile_market'] = {
+    init: function() {
+      this.appendValueInput('NUM')
+          .setCheck('Number')
+          .appendField('is volatile market')
+    
+      this.setInputsInline(true);
+      this.setOutput(true, 'Number');
+      this.setColour(330);
+      this.setTooltip('Check if asset has a volatile market');
+      this.setHelpUrl('');
+    }
+  };
   
   
     const MY_TOOLBOX = {
@@ -1930,6 +2072,18 @@ Blockly.Blocks['rsi_block'] = {
             {
               "kind": "block",
               "type": "is_low_volume_backtest"
+            },
+            {
+              "kind": "block",
+              "type": "is_stable_market"
+            },
+            {
+              "kind": "block",
+              "type": "is_choppy_market"
+            },
+            {
+              "kind": "block",
+              "type": "is_volatile_market"
             },
           ]
         },
