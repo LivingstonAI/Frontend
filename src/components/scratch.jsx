@@ -1694,49 +1694,49 @@ Blockly.Blocks['rsi_block'] = {
   };
 
   // Blockly block definition for "Choppy" block
-  Blockly.Blocks['is_choppy_market'] = {
-    init: function() {
-      this.appendValueInput('NUM')
-          .setCheck('Number')
-          .appendField('is choppy market')
-    
-      this.setInputsInline(true);
-      this.setOutput(true, 'Number');
-      this.setColour(210);
-      this.setTooltip('Check if asset has a choppy market');
-      this.setHelpUrl('');
-    }
-  };
+Blockly.Blocks['is_choppy_market'] = {
+  init: function() {
+    this.appendValueInput('NUM')
+        .setCheck('Number')
+        .appendField('is choppy market')
+  
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
+    this.setColour(210);
+    this.setTooltip('Check if asset has a choppy market');
+    this.setHelpUrl('');
+  }
+};
 
-  // Blockly block definition for "Stable Market" block
-  Blockly.Blocks['is_stable_market'] = {
-    init: function() {
-      this.appendValueInput('NUM')
-          .setCheck('Number')
-          .appendField('is stable market')
-    
-      this.setInputsInline(true);
-      this.setOutput(true, 'Number');
-      this.setColour(160);
-      this.setTooltip('Check if asset has a stable market');
-      this.setHelpUrl('');
-    }
-  };
+// Blockly block definition for "Stable Market" block
+Blockly.Blocks['is_stable_market'] = {
+  init: function() {
+    this.appendValueInput('NUM')
+        .setCheck('Number')
+        .appendField('is stable market')
+  
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
+    this.setColour(160);
+    this.setTooltip('Check if asset has a stable market');
+    this.setHelpUrl('');
+  }
+};
 
-  // Blockly block definition for "Volatile Market" block
-  Blockly.Blocks['is_volatile_market'] = {
-    init: function() {
-      this.appendValueInput('NUM')
-          .setCheck('Number')
-          .appendField('is volatile market')
-    
-      this.setInputsInline(true);
-      this.setOutput(true, 'Number');
-      this.setColour(330);
-      this.setTooltip('Check if asset has a volatile market');
-      this.setHelpUrl('');
-    }
-  };
+// Blockly block definition for "Volatile Market" block
+Blockly.Blocks['is_volatile_market'] = {
+  init: function() {
+    this.appendValueInput('NUM')
+        .setCheck('Number')
+        .appendField('is volatile market')
+  
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
+    this.setColour(330);
+    this.setTooltip('Check if asset has a volatile market');
+    this.setHelpUrl('');
+  }
+};
   
   
     const MY_TOOLBOX = {
