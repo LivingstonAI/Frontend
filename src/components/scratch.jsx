@@ -1698,7 +1698,7 @@ Blockly.Blocks['is_choppy_market'] = {
   init: function() {
     this.appendValueInput('NUM')
         .setCheck('Number')
-        .appendField('is choppy market')
+        .appendField('choppy market')
   
     this.setInputsInline(true);
     this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
@@ -1713,7 +1713,7 @@ Blockly.Blocks['is_stable_market'] = {
   init: function() {
     this.appendValueInput('NUM')
         .setCheck('Number')
-        .appendField('is stable market')
+        .appendField('stable market')
   
     this.setInputsInline(true);
     this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
@@ -1728,7 +1728,7 @@ Blockly.Blocks['is_volatile_market'] = {
   init: function() {
     this.appendValueInput('NUM')
         .setCheck('Number')
-        .appendField('is volatile market')
+        .appendField('volatile market')
   
     this.setInputsInline(true);
     this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
