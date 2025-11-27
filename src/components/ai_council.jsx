@@ -26,7 +26,7 @@ export default function AICouncil() {
             'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'JPMC',
             'BRK.B', 'JNJ', 'V', 'WMT', 'PG', 'DIS', 'NFLX', 'ADBE',
             'BAC', 'C', 'GS', 'UNH', 'HD', 'KO', 'PEP', 'MCD', 'NKE',
-            'INTC', 'ORCL', 'CSCO', 'IBM', 'PYPL', 'CRM', 'BA', 'CAT',
+            'INTC', 'ORCL', 'IBM', 'PYPL', 'CRM', 'BA', 'CAT',
             'CVX', 'XOM',
             // Newly added
             'LLY',   // Eli Lilly & Company
