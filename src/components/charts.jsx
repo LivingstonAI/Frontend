@@ -596,8 +596,26 @@ export default function Charts() {
             { symbol: 'DIS', name: 'The Walt Disney Company', binanceSymbol: null, yfinanceSymbol: 'DIS' },
             { symbol: 'BABA', name: 'Alibaba Group Holding Ltd.', binanceSymbol: null, yfinanceSymbol: 'BABA' },
             { symbol: 'NKE', name: 'Nike Inc.', binanceSymbol: null, yfinanceSymbol: 'NKE' },
-            { symbol: 'INTC', name: 'Intel Corporation', binanceSymbol: null, yfinanceSymbol: 'INTC' }
+            { symbol: 'INTC', name: 'Intel Corporation', binanceSymbol: null, yfinanceSymbol: 'INTC' },
+
+            // Added stocks
+            { symbol: 'LLY', name: 'Eli Lilly and Company', binanceSymbol: null, yfinanceSymbol: 'LLY' },
+            { symbol: 'COR', name: 'Cencora Inc.', binanceSymbol: null, yfinanceSymbol: 'COR' },
+            { symbol: 'CSCO', name: 'Cisco Systems Inc.', binanceSymbol: null, yfinanceSymbol: 'CSCO' },
+            { symbol: 'ORCL', name: 'Oracle Corporation', binanceSymbol: null, yfinanceSymbol: 'ORCL' },
+            { symbol: 'IBM', name: 'International Business Machines Corporation', binanceSymbol: null, yfinanceSymbol: 'IBM' },
+            { symbol: 'CRM', name: 'Salesforce Inc.', binanceSymbol: null, yfinanceSymbol: 'CRM' },
+            { symbol: 'PYPL', name: 'PayPal Holdings Inc.', binanceSymbol: null, yfinanceSymbol: 'PYPL' },
+            { symbol: 'ADBE', name: 'Adobe Inc.', binanceSymbol: null, yfinanceSymbol: 'ADBE' },
+            { symbol: 'GS', name: 'Goldman Sachs Group Inc.', binanceSymbol: null, yfinanceSymbol: 'GS' },
+            { symbol: 'BAC', name: 'Bank of America Corporation', binanceSymbol: null, yfinanceSymbol: 'BAC' },
+            { symbol: 'C', name: 'Citigroup Inc.', binanceSymbol: null, yfinanceSymbol: 'C' },
+            { symbol: 'UNH', name: 'UnitedHealth Group Incorporated', binanceSymbol: null, yfinanceSymbol: 'UNH' },
+            { symbol: 'PEP', name: 'PepsiCo Inc.', binanceSymbol: null, yfinanceSymbol: 'PEP' },
+            { symbol: 'MCD', name: 'McDonald\'s Corporation', binanceSymbol: null, yfinanceSymbol: 'MCD' },
+            { symbol: 'CAT', name: 'Caterpillar Inc.', binanceSymbol: null, yfinanceSymbol: 'CAT' }
         ],
+
         'Commodities': [
             { symbol: 'XAUUSD', name: 'Gold', binanceSymbol: null, yfinanceSymbol: 'GC=F' },
             { symbol: 'XAGUSD', name: 'Silver', binanceSymbol: null, yfinanceSymbol: 'SI=F' },
