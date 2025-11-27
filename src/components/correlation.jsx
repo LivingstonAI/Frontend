@@ -73,7 +73,27 @@ const getAssetSymbol = (assetName) => {
         'Chevron': 'CVX',
         'Pfizer': 'PFE',
         'Coca-Cola': 'KO',
-        'Boeing': 'BA'
+        'Boeing': 'BA',
+
+        // Added stocks
+        'Eli Lilly': 'LLY',
+        'Cencora': 'COR',
+        'Cisco Systems': 'CSCO',
+        'Intel': 'INTC',
+        'Oracle': 'ORCL',
+        'IBM': 'IBM',
+        'Salesforce': 'CRM',
+        'PayPal': 'PYPL',
+        'Netflix': 'NFLX',
+        'Adobe': 'ADBE',
+        'Goldman Sachs': 'GS',
+        'Bank of America': 'BAC',
+        'Citigroup': 'C',
+        'UnitedHealth': 'UNH',
+        'PepsiCo': 'PEP',
+        'McDonald\'s': 'MCD',
+        'Nike': 'NKE',
+        'Caterpillar': 'CAT'
     };
     
     // Return mapped symbol or original name if no mapping exists
