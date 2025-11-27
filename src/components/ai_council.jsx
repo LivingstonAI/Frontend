@@ -24,7 +24,14 @@ export default function AICouncil() {
         ],
         'US Stocks': [
             'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'JPMC',
-            'BRK.B', 'JNJ', 'V', 'WMT', 'PG', 'DIS', 'NFLX', 'ADBE'
+            'BRK.B', 'JNJ', 'V', 'WMT', 'PG', 'DIS', 'NFLX', 'ADBE',
+            'BAC', 'C', 'GS', 'UNH', 'HD', 'KO', 'PEP', 'MCD', 'NKE',
+            'INTC', 'ORCL', 'CSCO', 'IBM', 'PYPL', 'CRM', 'BA', 'CAT',
+            'CVX', 'XOM',
+            // Newly added
+            'LLY',   // Eli Lilly & Company
+            'COR',   // Cencora
+            'CSCO'   // Cisco Systems (already reinforced here)
         ],
         'Indices': [
             'SPY', 'QQQ', 'IWM', 'DIA', 'VTI', 'EEM', 'FXI', 'FTSE', 
@@ -35,6 +42,7 @@ export default function AICouncil() {
             'COPPER', 'WHEAT', 'CORN', 'SOYBEANS'
         ]
     };
+
 
     useEffect(() => {
         setAvailableAssets(assetCategories);
