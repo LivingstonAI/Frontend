@@ -377,7 +377,7 @@ export default function VideoTranscription() {
     const [videoUrl, setVideoUrl] = useState('');
     const [currentVideoId, setCurrentVideoId] = useState('');
     const [player, setPlayer] = useState(null);
-    const [videoPlatform, setVideoPlatform] = useState('youtube'); // 'youtube' or 'bilibili'
+    const [videoPlatform, setVideoPlatform] = useState('youtube'); // 'youtube', 'bilibili', or 'supernova'
     
     // Extract transcript form state
     const [extractForm, setExtractForm] = useState({
@@ -483,12 +483,34 @@ export default function VideoTranscription() {
         return null;
     };
 
+    // Extract Supernova.to video ID from URL
+    const extractSupernovaId = (url) => {
+        if (!url) return null;
+        
+        // Handle supernova.to direct URLs
+        const supernovaMatch = url.match(/supernova\.to\/(?:watch\?v=|embed\/)?([a-zA-Z0-9_-]+)/);
+        if (supernovaMatch && supernovaMatch[1]) {
+            return supernovaMatch[1];
+        }
+        
+        // Handle direct video IDs (typically alphanumeric)
+        if (url.length >= 8 && !url.includes('/') && !url.includes('?') && !url.includes('.')) {
+            return url;
+        }
+        
+        return null;
+    };
+
     // Detect platform from URL
     const detectPlatform = (url) => {
         if (!url) return 'youtube';
         
         if (url.includes('bilibili.com') || url.includes('bilibili.tv') || url.startsWith('BV') || url.startsWith('av')) {
             return 'bilibili';
+        }
+        
+        if (url.includes('supernova.to')) {
+            return 'supernova';
         }
         
         return 'youtube';
@@ -533,6 +555,15 @@ export default function VideoTranscription() {
                 setError('Invalid Bilibili URL or Video ID. Use format: BV1xx411c7XD or https://bilibili.com/video/BV...');
                 setCurrentVideoId('');
             }
+        } else if (platform === 'supernova') {
+            const supernovaId = extractSupernovaId(videoUrl);
+            if (supernovaId) {
+                setCurrentVideoId(supernovaId);
+                setError('');
+            } else {
+                setError('Invalid Supernova.to URL or Video ID');
+                setCurrentVideoId('');
+            }
         }
     };
 
@@ -552,6 +583,13 @@ export default function VideoTranscription() {
             if (bilibiliInfo) {
                 setVideoUrl(url);
                 setCurrentVideoId(JSON.stringify(bilibiliInfo));
+                setShowVideoPlayerModal(true);
+            }
+        } else if (platform === 'supernova') {
+            const supernovaId = extractSupernovaId(url);
+            if (supernovaId) {
+                setVideoUrl(url);
+                setCurrentVideoId(supernovaId);
                 setShowVideoPlayerModal(true);
             }
         }
@@ -792,7 +830,7 @@ export default function VideoTranscription() {
                             style={{...snowaiTranscriptionStyles.button, backgroundColor: '#8b5cf6'}}
                             onClick={handleOpenVideoPlayer}
                         >
-                            🎬 Open YouTube Video Player
+                            🎬 Open Video Player
                         </button>
                     </div>
 
@@ -876,7 +914,6 @@ export default function VideoTranscription() {
                                                 placeholder="e.g., Jerome Powell"
                                             />
                                         </div>
-
                                         <div style={snowaiTranscriptionStyles.inputGroup}>
                                             <label style={snowaiTranscriptionStyles.label}>
                                                 Country Code
@@ -1178,13 +1215,13 @@ export default function VideoTranscription() {
                                 </button>
                                 
                                 <h2 style={{ marginBottom: '20px', color: '#1e293b' }}>
-                                    🎬 YouTube Video Player
+                                    🎬 Video Player
                                 </h2>
                                 
                                 <div style={{ marginBottom: '20px' }}>
                                     <div style={snowaiTranscriptionStyles.inputGroup}>
                                         <label style={snowaiTranscriptionStyles.label}>
-                                            YouTube or Bilibili URL / Video ID
+                                            YouTube, Bilibili, or Supernova.to URL / Video ID
                                         </label>
                                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                             <input
@@ -1192,7 +1229,7 @@ export default function VideoTranscription() {
                                                 style={{...snowaiTranscriptionStyles.input, flex: 1, minWidth: '250px'}}
                                                 value={videoUrl}
                                                 onChange={(e) => setVideoUrl(e.target.value)}
-                                                placeholder="YouTube: https://youtube.com/watch?v=... | Bilibili: https://bilibili.com/video/BV..."
+                                                placeholder="YouTube: https://youtube.com/watch?v=... | Bilibili: https://bilibili.com/video/BV... | Supernova: https://supernova.to/watch?v=..."
                                             />
                                             <button
                                                 style={snowaiTranscriptionStyles.button}
@@ -1202,7 +1239,7 @@ export default function VideoTranscription() {
                                             </button>
                                         </div>
                                         <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '5px' }}>
-                                            Supports: YouTube URLs/IDs • Bilibili URLs (BV/AV format)
+                                            Supports: YouTube URLs/IDs • Bilibili URLs (BV/AV format) • Supernova.to URLs/IDs
                                         </div>
                                     </div>
                                 </div>
@@ -1215,6 +1252,22 @@ export default function VideoTranscription() {
                                                 opts={youtubeOpts}
                                                 onReady={onPlayerReady}
                                                 style={snowaiTranscriptionStyles.videoIframe}
+                                            />
+                                        </div>
+                                    ) : videoPlatform === 'supernova' ? (
+                                        <div style={snowaiTranscriptionStyles.videoWrapper} className="video-wrapper-mobile">
+                                            <iframe
+                                                src={`https://supernova.to/embed/${currentVideoId}`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    border: 'none'
+                                                }}
+                                                scrolling="no"
+                                                allowFullScreen={true}
                                             />
                                         </div>
                                     ) : JSON.parse(currentVideoId).type === 'tv' ? (
@@ -1235,6 +1288,7 @@ export default function VideoTranscription() {
                                                     Due to platform restrictions, bilibili.tv videos cannot be embedded. 
                                                     Please use bilibili.com videos (BV/AV format) instead, or watch directly on Bilibili.tv.
                                                 </p>
+                                                
                                                 <a
                                                     href={`https://www.bilibili.tv/en/video/${JSON.parse(currentVideoId).tvid}`}
                                                     target="_blank"
@@ -1282,11 +1336,12 @@ export default function VideoTranscription() {
                                     }}>
                                         <div>
                                             <p style={{ fontSize: '48px', marginBottom: '10px' }}>📺</p>
-                                            <p>Enter a YouTube or Bilibili URL/ID to start watching</p>
+                                            <p>Enter a YouTube, Bilibili, or Supernova.to URL/ID to start watching</p>
                                             <div style={{ marginTop: '15px', fontSize: '14px', color: '#6b7280' }}>
                                                 <p style={{ margin: '5px 0' }}><strong>YouTube:</strong> https://youtube.com/watch?v=dQw4w9WgXcQ</p>
                                                 <p style={{ margin: '5px 0' }}><strong>Bilibili (CN):</strong> https://bilibili.com/video/BV1xx411c7XD</p>
                                                 <p style={{ margin: '5px 0' }}><strong>Bilibili (International):</strong> https://bilibili.tv/en/video/4786992439237120</p>
+                                                <p style={{ margin: '5px 0' }}><strong>Supernova.to:</strong> https://supernova.to/watch?v=videoId123</p>
                                             </div>
                                         </div>
                                     </div>

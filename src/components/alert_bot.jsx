@@ -353,6 +353,8 @@ export default function AlertBot() {
         'JNJ'     // Johnson & Johnson
     ]);
 
+    // 0818223955
+
     const [cryptos] = useState([
         'BTC-USD',   // Bitcoin
         'ETH-USD',   // Ethereum
