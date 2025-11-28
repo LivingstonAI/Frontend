@@ -347,7 +347,10 @@ export default function AlertBot() {
         'NVDA',   // Nvidia
         'JPM',    // JPMorgan
         'V',      // Visa
-        'WMT'     // Walmart
+        'WMT',     // Walmart
+        'COR',     // Cencora
+        'CSCO',    // Cisco Systems
+        'JNJ'     // Johnson & Johnson
     ]);
 
     const [cryptos] = useState([
