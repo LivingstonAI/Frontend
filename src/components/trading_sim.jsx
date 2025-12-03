@@ -217,7 +217,6 @@ const styles = {
     backgroundColor: THEME.bg,
     color: THEME.text,
     minHeight: '100vh',
-    display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
   },
@@ -239,12 +238,12 @@ const styles = {
     gap: '8px',
   },
   main: {
-    display: 'flex',
+//     display: 'flex',
     flex: 1,
     overflow: 'hidden',
   },
   sidebar: {
-    width: '300px',
+    width: '100%',
     backgroundColor: '#fff',
     borderRight: `1px solid ${THEME.border}`,
     padding: '20px',
@@ -336,7 +335,7 @@ const styles = {
     position: 'relative',
   },
   chartArea: {
-    height: '120px',
+    height: '200px',
     marginBottom: '12px',
     borderBottom: '1px dashed #334155',
     position: 'relative',
