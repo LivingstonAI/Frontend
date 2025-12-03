@@ -82,6 +82,7 @@ import MultiAccountAnalytics from './components/multi_account.jsx';
 import SnowAIVideos from './components/videos.jsx';
 import SnowAIStockScreener from './components/stocks.jsx';
 import MLPlayground from './components/ai_research';
+import SnowAITradingSim from './components/trading_sim.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -555,6 +556,12 @@ function App() {
             <Route path='/ml_playground' element={
               <ProtectedRoute>
                 <MLPlayground />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/trading_sim' element={
+              <ProtectedRoute>
+                <SnowAITradingSim />
               </ProtectedRoute>
             } />
             
