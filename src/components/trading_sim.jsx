@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -335,7 +335,7 @@ const EquityCurve = ({ equityData, color, width, height }) => {
 };
 
 // --- STATISTICS MODAL ---
-const StatisticsModal = ({ agents, onClose, btcPrice, startPrice }) => {
+const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
   // Calculate statistics
   const agentStats = agents.map(agent => {
     const wins = agent.history.filter(h => h.type === 'SELL' && h.pnl > 0).length;
@@ -549,7 +549,7 @@ const ModelInfoModal = ({ agent, onClose }) => {
     </div>
   );
 };
-// --- WEIGHTS DISPLAY COMPONENT (NEW) ---
+// --- WEIGHTS DISPLAY COMPONENT ---
 const WeightsDisplay = ({ weights, bias }) => {
   const w = weights || [0, 0, 0, 0];
   const b = bias || 0;
@@ -770,223 +770,6 @@ const mobileStyles = `
   }
 `;
 
-// --- SIMULATION LOGIC ---
-
-// Helper to calculate Simple Moving Average (SMA)
-const calculateSMA = (data, period) => {
-  if (data.length < period) return null;
-  const sliced = data.slice(-period);
-  const sum = sliced.reduce((acc, d) => acc + d.c, 0);
-  return sum / period;
-};
-
-// Helper to calculate Volatility (Standard Deviation)
-const calculateVolatility = (data, period) => {
-  if (data.length < period) return 0;
-  const sliced = data.slice(-period);
-  const sma = calculateSMA(data, period);
-  if (sma === null) return 0;
-
-  const variance = sliced.reduce((acc, d) => acc + Math.pow(d.c - sma, 2), 0) / period;
-  return Math.sqrt(variance);
-};
-
-// Helper to normalize a value between a min and max
-const normalize = (value, min, max) => {
-  if (min === max) return 0.5;
-  return (value - min) / (max - min);
-};
-
-// Main Agent Update Logic (Handles trading, training, and P&L calculation)
-const updateAgents = (currentCandle, allCandles) => {
-  setAgents(prevAgents => prevAgents.map(agent => {
-    if (!agent.isActive) return agent;
-    
-    // --- 1. SETUP ---
-    const currentPrice = currentCandle.c;
-    const { cash, shares, portfolioValue, history, brain, lr, id, candles: agentCandles, hasBoughtInitial, persistentMemory } = agent;
-
-    // Keep a subset of candles for mini-chart (last 30)
-    const newAgentCandles = [...agentCandles.slice(-29), currentCandle];
-    
-    let newCash = cash;
-    let newShares = shares;
-    let newHistory = [...history];
-    let newLogs = [...agent.logs.slice(-20)];
-    let action = 'WAIT';
-    let pnl = 0;
-    let lastBuyPrice = null;
-
-    // Find the last open trade price
-    for (let i = newHistory.length - 1; i >= 0; i--) {
-      if (newHistory[i].type === 'BUY') {
-        lastBuyPrice = newHistory[i].price;
-        break;
-      }
-    }
-
-    // --- 2. INPUT CALCULATION (for DQN agents) ---
-    let prediction = 0.5; 
-    let inputs = [0, 0, 0, 0];
-    let target = 0.5;
-    
-    if (brain && allCandles.length > 20) {
-      // SMA(20) and SMA(5)
-      const sma20 = calculateSMA(allCandles, 20);
-      const sma5 = calculateSMA(allCandles, 5);
-      
-      // Volatility (Stdev of last 10 prices)
-      const volatility10 = calculateVolatility(allCandles, 10);
-      
-      // Price change vs last close
-      const priceChange = (currentPrice - allCandles[allCandles.length - 2].c) / allCandles[allCandles.length - 2].c;
-
-      // Distance from SMA (Normalized)
-      const maxDist = allCandles.slice(-20).reduce((max, d) => Math.max(max, Math.abs(d.c - sma20) / sma20), 0.01);
-      const smaDist = normalize(currentPrice, sma20 * (1 - maxDist), sma20 * (1 + maxDist)) * 2 - 1; // Normalize to -1 to 1
-      
-      // Volatility (Normalized)
-      const maxVol = allCandles.slice(-20).reduce((max, d) => Math.max(max, calculateVolatility(allCandles.slice(0, allCandles.findIndex(c => c.t === d.t) + 1), 10)), 0.005);
-      const normVolatility = normalize(volatility10, 0, maxVol);
-      
-      // Price Change (Normalized)
-      const maxChange = allCandles.slice(-20).reduce((max, d, i) => i > 0 ? Math.max(max, Math.abs((d.c - allCandles[allCandles.length - 20 + i - 1].c) / allCandles[allCandles.length - 20 + i - 1].c)) : 0.01, 0.01);
-      const normPriceChange = normalize(priceChange, -maxChange, maxChange);
-
-      // Trend Indicator (SMA 5 vs SMA 20)
-      const trend = sma5 > sma20 ? 1 : -1;
-
-      inputs = [smaDist, normVolatility, normPriceChange, trend];
-      
-      // Get prediction from MicroNet
-      prediction = brain.predict(inputs); 
-    }
-
-    // --- 3. EXECUTE STRATEGY ---
-
-    // Stop Loss / Take Profit (Risk Management)
-    if (shares > 0 && lastBuyPrice) {
-      const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
-      
-      if (unrealizedPnlPct >= takeProfitPct) {
-        action = 'SELL_TP';
-        newLogs.push({msg: `Take Profit Hit! (+${unrealizedPnlPct.toFixed(2)}%)`, type:'success'});
-      } else if (unrealizedPnlPct <= -stopLossPct) {
-        action = 'SELL_SL';
-        newLogs.push({msg: `Stop Loss Hit! (-${stopLossPct.toFixed(2)}%)`, type:'danger'});
-      }
-    }
-
-    // Agent-specific logic (only if no risk management triggered a sale)
-    if (action === 'WAIT') {
-      if (id === 11) { // Buy & Hold
-        if (!hasBoughtInitial && currentPrice > 0) {
-          action = 'BUY_INITIAL';
-        }
-      } else if (id === 12) { // Dip-Buyer
-        if (!hasBoughtInitial && currentPrice > 0) {
-           // Initial purchase (less aggressive than B&H)
-           const buyAmount = cash * 0.2; 
-           newShares = buyAmount / currentPrice * (1 - COMMISSION);
-           newCash -= buyAmount;
-           newHistory.push({ type: 'BUY', price: currentPrice, amount: newShares, t: currentCandle.t });
-           newLogs.push({ msg: `Initial Dip-Buy: ${newShares.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
-           action = 'BUY_INITIAL';
-           agent.hasBoughtInitial = true;
-        } else if (allCandles.length >= 5) {
-          const sma5 = calculateSMA(allCandles, 5);
-          const dropPct = (sma5 - currentPrice) / sma5 * 100;
-          
-          if (shares === 0 && dropPct >= 2) {
-            action = 'BUY'; // Buy a dip
-          } else if (shares > 0 && unrealizedPnlPct >= 1) {
-            action = 'SELL'; // Take partial profit on rebound
-          }
-        }
-      } else if (brain) {
-        // DQN Agents (Snow-Alpha to Permafrost-Theta)
-        if (shares === 0) {
-          if (prediction >= 0.40) { // BUY threshold changed to 40%
-            action = 'BUY';
-          }
-        } else {
-          if (prediction <= 0.60) {
-             action = 'SELL';
-          }
-        }
-      }
-    }
-
-    // --- 4. EXECUTE TRADE ---
-    if (action.startsWith('BUY')) {
-      const cashToUse = cash * (id === 11 ? 1 : 0.95); // B&H uses all, others use 95%
-      const sharesToBuy = cashToUse / currentPrice * (1 - COMMISSION);
-      
-      newShares += sharesToBuy;
-      newCash -= cashToUse;
-      
-      newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
-      newLogs.push({ msg: `BUY: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
-      
-      // DQN Training on Buy: Reward if buy prediction was high (target 1)
-      if (brain) target = 1;
-      
-    } else if (action.startsWith('SELL')) {
-      const initialShares = shares;
-      let costBasis = 0;
-      let buyTrades = newHistory.filter(h => h.type === 'BUY');
-      
-      if (buyTrades.length > 0) {
-        // Simple Cost Basis: Total cash spent on all buys / total shares bought
-        const totalCost = buyTrades.reduce((sum, h) => sum + (h.amount * h.price) / (1 - COMMISSION), 0);
-        const totalSharesBought = buyTrades.reduce((sum, h) => sum + h.amount, 0);
-        costBasis = totalCost / totalSharesBought;
-      }
-      
-      const saleAmount = shares * currentPrice * (1 - COMMISSION);
-      pnl = (saleAmount - shares * costBasis);
-      
-      newCash += saleAmount;
-      newShares = 0;
-      
-      newHistory.push({ type: 'SELL', price: currentPrice, amount: initialShares, t: currentCandle.t, pnl: pnl });
-      newLogs.push({ msg: `SELL (${action.endsWith('SL') ? 'SL' : action.endsWith('TP') ? 'TP' : 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-
-      // DQN Training on Sell: Reward if sell prediction was low (target 0)
-      if (brain) target = 0;
-    }
-    
-    // --- 5. DQN TRAINING ---
-    let newLoss = agent.loss;
-    if (brain && action !== 'WAIT' && id !== 11 && id !== 12) {
-      const error = brain.train(inputs, target);
-      newLoss = error;
-      newLogs.push({ msg: `Trained (Target: ${target}, Loss: ${error.toFixed(4)})`, type: 'info' });
-    }
-
-    // --- 6. METRICS UPDATE ---
-    const finalPortfolioValue = newCash + newShares * currentPrice;
-    const newEquityCurve = [...agent.equityCurve, finalPortfolioValue];
-    
-    return {
-      ...agent,
-      cash: newCash,
-      shares: newShares,
-      portfolioValue: finalPortfolioValue,
-      prevValue: portfolioValue,
-      history: newHistory,
-      logs: newLogs,
-      loss: newLoss,
-      candles: newAgentCandles,
-      lastAction: action,
-      equityCurve: newEquityCurve,
-      // Update brain reference to ensure new weights/bias are used in next tick/render
-      brain: brain ? new MicroNet(brain.weights, brain.bias, lr) : null,
-    };
-  }));
-};
-
-
 // --- MAIN COMPONENT ---
 export default function SnowAITradingSim() {
 const [isRunning, setIsRunning] = useState(false);
@@ -1026,6 +809,31 @@ const [agents, setAgents] = useState(() => AGENT_TEMPLATES.map(createInitialAgen
 const wsRef = useRef(null);
 const candlesRef = useRef([]);
 const logRefs = useRef({});
+
+// Helper to calculate Simple Moving Average (SMA)
+const calculateSMA = (data, period) => {
+  if (data.length < period) return null;
+  const sliced = data.slice(-period);
+  const sum = sliced.reduce((acc, d) => acc + d.c, 0);
+  return sum / period;
+};
+
+// Helper to calculate Volatility (Standard Deviation)
+const calculateVolatility = (data, period) => {
+  if (data.length < period) return 0;
+  const sliced = data.slice(-period);
+  const sma = calculateSMA(data, period);
+  if (sma === null) return 0;
+
+  const variance = sliced.reduce((acc, d) => acc + Math.pow(d.c - sma, 2), 0) / period;
+  return Math.sqrt(variance);
+};
+
+// Helper to normalize a value between a min and max
+const normalize = (value, min, max) => {
+  if (min === max) return 0.5;
+  return (value - min) / (max - min);
+};
 
 // Auto-scroll logs to bottom
 useEffect(() => {
@@ -1116,11 +924,212 @@ if (dataSource === 'BINANCE') {
     if (wsRef.current) wsRef.current.close();
 }
 return () => { if (wsRef.current) wsRef.current.close(); };
-}, [dataSource]); // Re-run effect when data source changes
+}, [dataSource]); 
 
 // --- GAME LOOP ---
 useEffect(() => {
 if (!isRunning) return;
+
+// Main Agent Update Logic defined INSIDE the component to access setAgents
+const updateAgents = (currentCandle, allCandles) => {
+    setAgents(prevAgents => prevAgents.map(agent => {
+        if (!agent.isActive) return agent;
+        
+        // --- 1. SETUP ---
+        const currentPrice = currentCandle.c;
+        const { cash, shares, portfolioValue, history, brain, lr, id, candles: agentCandles, hasBoughtInitial, persistentMemory } = agent;
+
+        // Keep a subset of candles for mini-chart (last 30)
+        const newAgentCandles = [...agentCandles.slice(-29), currentCandle];
+        
+        let newCash = cash;
+        let newShares = shares;
+        let newHistory = [...history];
+        let newLogs = [...agent.logs.slice(-20)];
+        let action = 'WAIT';
+        let pnl = 0;
+        let lastBuyPrice = null;
+
+        // Find the last open trade price
+        for (let i = newHistory.length - 1; i >= 0; i--) {
+            if (newHistory[i].type === 'BUY') {
+                lastBuyPrice = newHistory[i].price;
+                break;
+            }
+        }
+
+        // --- 2. INPUT CALCULATION (for DQN agents) ---
+        let prediction = 0.5; 
+        let inputs = [0, 0, 0, 0];
+        let target = 0.5;
+        
+        if (brain && allCandles.length > 20) {
+            // SMA(20) and SMA(5)
+            const sma20 = calculateSMA(allCandles, 20);
+            const sma5 = calculateSMA(allCandles, 5);
+            
+            // Volatility (Stdev of last 10 prices)
+            const volatility10 = calculateVolatility(allCandles, 10);
+            
+            // Price change vs last close
+            const priceChange = (currentPrice - allCandles[allCandles.length - 2].c) / allCandles[allCandles.length - 2].c;
+
+            // Distance from SMA (Normalized)
+            const maxDist = allCandles.slice(-20).reduce((max, d) => Math.max(max, Math.abs(d.c - sma20) / sma20), 0.01);
+            const smaDist = normalize(currentPrice, sma20 * (1 - maxDist), sma20 * (1 + maxDist)) * 2 - 1; // Normalize to -1 to 1
+            
+            // Volatility (Normalized)
+            const maxVol = allCandles.slice(-20).reduce((max, d) => Math.max(max, calculateVolatility(allCandles.slice(0, allCandles.findIndex(c => c.t === d.t) + 1), 10)), 0.005);
+            const normVolatility = normalize(volatility10, 0, maxVol);
+            
+            // Price Change (Normalized)
+            const maxChange = allCandles.slice(-20).reduce((max, d, i) => i > 0 ? Math.max(max, Math.abs((d.c - allCandles[allCandles.length - 20 + i - 1].c) / allCandles[allCandles.length - 20 + i - 1].c)) : 0.01, 0.01);
+            const normPriceChange = normalize(priceChange, -maxChange, maxChange);
+
+            // Trend Indicator (SMA 5 vs SMA 20)
+            const trend = sma5 > sma20 ? 1 : -1;
+
+            inputs = [smaDist, normVolatility, normPriceChange, trend];
+            
+            // Get prediction from MicroNet
+            prediction = brain.predict(inputs); 
+        }
+
+        // --- 3. EXECUTE STRATEGY ---
+
+        // Stop Loss / Take Profit (Risk Management)
+        if (shares > 0 && lastBuyPrice) {
+            const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
+            
+            if (unrealizedPnlPct >= takeProfitPct) {
+                action = 'SELL_TP';
+                newLogs.push({msg: `Take Profit Hit! (+${unrealizedPnlPct.toFixed(2)}%)`, type:'success'});
+            } else if (unrealizedPnlPct <= -stopLossPct) {
+                action = 'SELL_SL';
+                newLogs.push({msg: `Stop Loss Hit! (-${stopLossPct.toFixed(2)}%)`, type:'danger'});
+            }
+        }
+
+        // Agent-specific logic (only if no risk management triggered a sale)
+        if (action === 'WAIT') {
+            if (id === 11) { // Buy & Hold
+                if (!hasBoughtInitial && currentPrice > 0) {
+                    action = 'BUY_INITIAL';
+                }
+            } else if (id === 12) { // Dip-Buyer
+                if (!hasBoughtInitial && currentPrice > 0) {
+                    // Initial purchase (less aggressive than B&H)
+                    const buyAmount = cash * 0.2; 
+                    newShares = buyAmount / currentPrice * (1 - COMMISSION);
+                    newCash -= buyAmount;
+                    newHistory.push({ type: 'BUY', price: currentPrice, amount: newShares, t: currentCandle.t });
+                    newLogs.push({ msg: `Initial Dip-Buy: ${newShares.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
+                    action = 'BUY_INITIAL';
+                    agent.hasBoughtInitial = true;
+                } else if (allCandles.length >= 5 && shares === 0) {
+                    const sma5 = calculateSMA(allCandles, 5);
+                    const dropPct = (sma5 - currentPrice) / sma5 * 100;
+                    
+                    if (dropPct >= 2) {
+                        action = 'BUY'; // Buy a dip
+                    }
+                } else if (shares > 0 && lastBuyPrice) {
+                     const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
+                     if (unrealizedPnlPct >= 1) { // Take partial profit on rebound
+                        action = 'SELL'; 
+                     }
+                }
+            } else if (brain) {
+                // DQN Agents (Snow-Alpha to Permafrost-Theta)
+                if (shares === 0) {
+                    if (prediction >= 0.40) { // BUY threshold is 40%
+                        action = 'BUY';
+                    }
+                } else {
+                    if (prediction <= 0.60) {
+                        action = 'SELL';
+                    }
+                }
+            }
+        }
+
+        // --- 4. EXECUTE TRADE ---
+        if (action.startsWith('BUY')) {
+            let cashToUse = cash;
+            if (id === 11) {
+              cashToUse = cash; // B&H uses all
+            } else if (id === 12 && action === 'BUY_INITIAL') {
+              cashToUse = cash * 0.2;
+            } else {
+              cashToUse = cash * 0.95; // DQN and Dip-Buyer uses 95%
+            }
+            
+            const sharesToBuy = cashToUse / currentPrice * (1 - COMMISSION);
+            
+            newShares += sharesToBuy;
+            newCash -= cashToUse;
+            
+            newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
+            newLogs.push({ msg: `BUY: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
+            
+            // DQN Training on Buy: Reward if buy prediction was high (target 1)
+            if (brain) target = 1;
+            
+        } else if (action.startsWith('SELL')) {
+            const initialShares = shares;
+            let costBasis = 0;
+            let buyTrades = newHistory.filter(h => h.type === 'BUY');
+            
+            if (buyTrades.length > 0) {
+                // Simple Cost Basis: Total cash spent on all buys / total shares bought
+                const totalCost = buyTrades.reduce((sum, h) => sum + (h.amount * h.price) / (1 - COMMISSION), 0);
+                const totalSharesBought = buyTrades.reduce((sum, h) => sum + h.amount, 0);
+                costBasis = totalCost / totalSharesBought;
+            }
+            
+            const saleAmount = shares * currentPrice * (1 - COMMISSION);
+            pnl = (saleAmount - shares * costBasis);
+            
+            newCash += saleAmount;
+            newShares = 0;
+            
+            newHistory.push({ type: 'SELL', price: currentPrice, amount: initialShares, t: currentCandle.t, pnl: pnl });
+            newLogs.push({ msg: `SELL (${action.endsWith('SL') ? 'SL' : action.endsWith('TP') ? 'TP' : 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+
+            // DQN Training on Sell: Reward if sell prediction was low (target 0)
+            if (brain) target = 0;
+        }
+        
+        // --- 5. DQN TRAINING ---
+        let newLoss = agent.loss;
+        if (brain && action !== 'WAIT' && id !== 11 && id !== 12) {
+            const error = brain.train(inputs, target);
+            newLoss = error;
+            newLogs.push({ msg: `Trained (Target: ${target}, Loss: ${error.toFixed(4)})`, type: 'info' });
+        }
+
+        // --- 6. METRICS UPDATE ---
+        const finalPortfolioValue = newCash + newShares * currentPrice;
+        const newEquityCurve = [...agent.equityCurve, finalPortfolioValue];
+        
+        return {
+            ...agent,
+            cash: newCash,
+            shares: newShares,
+            portfolioValue: finalPortfolioValue,
+            prevValue: portfolioValue,
+            history: newHistory,
+            logs: newLogs,
+            loss: newLoss,
+            candles: newAgentCandles,
+            lastAction: action,
+            equityCurve: newEquityCurve,
+            // Update brain reference to ensure new weights/bias are used in next tick/render
+            brain: brain ? new MicroNet(brain.weights, brain.bias, lr) : null,
+            hasBoughtInitial: id === 11 || id === 12 ? (action.startsWith('BUY') || hasBoughtInitial) : hasBoughtInitial
+        };
+    }));
+};
 
 const interval = setInterval(() => {
     let currentCandle = null;
@@ -1143,12 +1152,14 @@ const interval = setInterval(() => {
 
     if (currentCandle) {
         setCandles(candlesRef.current.slice(-100));
+        // Calling the locally defined updateAgents
         updateAgents(currentCandle, candlesRef.current);
     }
 
 }, speed); 
 return () => clearInterval(interval);
-}, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct]);
+}, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct, setAgents]); // Added setAgents as a dependency (even though it's stable, good practice)
+
 
 const toggleAgent = (id) => {
 setAgents(prev => prev.map(a => a.id === id ? {
@@ -1266,7 +1277,7 @@ disabled={candles.length === 0}
                      </div>
                      <div style={{textAlign:'right'}}>
                          <div style={{fontWeight:'700', color: agent.portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>{fmt(agent.portfolioValue)}</div>
-                      </div>
+                     </div>
                   </div>
 
                   <div style={styles.terminal} onClick={() => !agent.isActive && toggleAgent(agent.id)}>
@@ -1308,7 +1319,7 @@ disabled={candles.length === 0}
           </div>
         </div>
         {modelInfoAgent && <ModelInfoModal agent={modelInfoAgent} onClose={() => setModelInfoAgent(null)} />}
-        {showStatistics && <StatisticsModal agents={agents} onClose={() => setShowStatistics(false)} btcPrice={assetPrice} startPrice={startPrice} />}
+        {showStatistics && <StatisticsModal agents={agents} onClose={() => setShowStatistics(false)} assetPrice={assetPrice} startPrice={startPrice} />}
       </div>
     </div>
 </div>
