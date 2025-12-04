@@ -358,8 +358,8 @@ const styles = {
     backgroundColor: THEME.bg, 
     color: THEME.text, 
     minHeight: '100vh', 
-    display: 'flex', 
-    flexDirection: 'column' 
+//     display: 'flex', 
+//     flexDirection: 'column' 
   },
   header: { 
     backgroundColor: '#fff', 
@@ -372,13 +372,13 @@ const styles = {
     gap: '12px'
   },
   main: { 
-    display: 'flex', 
+//     display: 'flex', 
     flex: 1, 
     overflow: 'hidden',
     flexDirection: 'row'
   },
   sidebar: { 
-    width: '280px', 
+    width: '100%', 
     backgroundColor: '#fff', 
     borderRight: `1px solid ${THEME.border}`, 
     padding: '20px', 
