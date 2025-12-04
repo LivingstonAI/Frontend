@@ -714,7 +714,7 @@ export default function SnowAITradingSim() {
       }
 
       if (action === "HOLD") {
-          if (prediction > 0.65 && newCash > currentPrice * 0.01 && newShares === 0) action = "BUY";
+          if (prediction > 0.5 && newCash > currentPrice * 0.01 && newShares === 0) action = "BUY";
           else if (prediction < 0.35 && newShares > 0) action = "SELL";
       }
 
