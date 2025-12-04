@@ -95,6 +95,7 @@ import kdrama_study from '../kdrama-study.mp3';
 import kambulat_ona from '../Kambulat  Она.mp3';
 import killing_butterflies from '../LEWIS BLISSETT - KILLING BUTTERFLIES [Official Lyric Video].mp3';
 import lil_boo_thang from '../Paul Russell - Lil Boo Thang (Lyric Video) [MoCaWpRAkVA].mp3';
+import will_evelyn from '../will-and-evelyn_T44TfHQx.mp3';
 
 
 // Audio to be used for authentication
@@ -201,6 +202,7 @@ export default function Art() {
         "90": { name: "Kambulat Ona 🎸", file: kambulat_ona },
         "91": { name: "Killing Butterflies 🦋", file: killing_butterflies },
         "92": { name: "Lil Boo Thang 🏖️😎", file: lil_boo_thang },
+        "93": { name: "Will & Evelyn", file: will_evelyn },
       };
   
   // Music player states

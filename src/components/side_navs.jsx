@@ -98,6 +98,7 @@ import kdrama_study from '../kdrama-study.mp3';
 import kambulat_ona from '../Kambulat  Она.mp3';
 import killing_butterflies from '../LEWIS BLISSETT - KILLING BUTTERFLIES [Official Lyric Video].mp3';
 import lil_boo_thang from '../Paul Russell - Lil Boo Thang (Lyric Video) [MoCaWpRAkVA].mp3';
+import will_evelyn from '../will-and-evelyn_T44TfHQx.mp3';
 
 
 export default function SideNavs() {
@@ -251,7 +252,8 @@ export default function SideNavs() {
         { name: "K-Drama Study Motivation 🇰🇷 (1)", file: kdrama_study },
         { name: "Kambulat Ona 🎸", file: kambulat_ona },
         { name: "Killing Butterflies 🦋", file: killing_butterflies },
-        { name: "Lil Boo Thang 🏖️😎", file: lil_boo_thang }
+        { name: "Lil Boo Thang 🏖️😎", file: lil_boo_thang },
+        { name: "Will & Evelyn", file: will_evelyn }
   ];
 
   // Enhanced touch navigation function

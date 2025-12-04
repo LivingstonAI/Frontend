@@ -1047,3 +1047,5 @@ export default function SnowAITradingSim() {
     </>
   );
 }
+
+// Yo. Can you make it such that after running a simulation I get the data showing models with the highest win rates first like in ascending order (properly styled), and a similar thing for returns per model after a successful simulation. And also, put an 'Enable Persistent Memory' button per model, so I can enable the models to have persistent memory (you would need to deal with the code/ai logic for this of course).  And give me the full code with the updates below and not in the coding artifact where the code many times these days appears to not work or just disappear. Please work with the code I have given you and give me the full code below.
