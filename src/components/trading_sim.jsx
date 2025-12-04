@@ -71,10 +71,15 @@ class MicroNet {
 
 // --- CHART COMPONENTS ---
 
+/** Renders a full-width, detailed chart for the main view with Trade Overlays */
 const MainCandleChart = ({ data, agents, width, height }) => {
   const displayData = data.slice(-100); 
 
-  if (!displayData || displayData.length < 2) return <div style={{color: '#94a3b8', padding:'40px', textAlign:'center', fontSize:'14px'}}>Waiting for market data...</div>;
+  if (!displayData || displayData.length < 2) return (
+    <div style={{color: '#94a3b8', padding:'40px', textAlign:'center', fontSize:'14px'}}>
+        Waiting for market data...
+    </div>
+  );
 
   const maxPrice = Math.max(...displayData.map(d => d.h));
   const minPrice = Math.min(...displayData.map(d => d.l));
@@ -84,7 +89,7 @@ const MainCandleChart = ({ data, agents, width, height }) => {
 
   return (
     <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{overflow:'visible'}}>
-      {/* Grid */}
+      {/* Grid Lines & Labels */}
       {[...Array(5)].map((_, i) => {
         const price = minPrice + (range / 4) * i;
         const y = scaleY(price);
@@ -112,12 +117,44 @@ const MainCandleChart = ({ data, agents, width, height }) => {
           </g>
         );
       })}
+
+      {/* Agent Trade Markers Overlay */}
+      {agents.filter(a => a.isActive).map(agent => (
+        agent.history.slice(-10).map((t, i) => {
+          // Find the index of this trade in the current displayData
+          const globalIndex = data.findIndex(d => d.t === t.t);
+          if (globalIndex === -1 || globalIndex < data.length - 100) return null; // Skip if not visible
+          
+          const localIndex = globalIndex - (data.length - displayData.length);
+          const x = localIndex * (width / displayData.length) + (candleWidth / 2);
+          const y = scaleY(t.price);
+          
+          return (
+            <text 
+              key={`${agent.id}-${i}`} 
+              x={x} 
+              y={y + (t.type === 'BUY' ? 15 : -10)}
+              fontSize="14" 
+              fill={t.type === 'BUY' ? THEME.success : THEME.danger}
+              textAnchor="middle"
+              opacity="0.9"
+            >
+              {t.type === 'BUY' ? '▲' : '▼'}
+            </text>
+          );
+        })
+      ))}
     </svg>
   );
 };
 
+/** Renders a small chart for the agent card with latest trade marker */
 const MiniCandleChart = ({ data, trades, width, height }) => {
-  if (!data || data.length < 2) return <div style={{color: '#475569', fontSize:'10px', height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>Initializing...</div>;
+  if (!data || data.length < 2) return (
+    <div style={{color: '#475569', fontSize:'10px', height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+        Initializing...
+    </div>
+  );
 
   const maxPrice = Math.max(...data.map(d => d.h));
   const minPrice = Math.min(...data.map(d => d.l));
@@ -134,21 +171,81 @@ const MiniCandleChart = ({ data, trades, width, height }) => {
           <rect key={i} x={x} y={scaleY(Math.max(d.o, d.c))} width={candleWidth} height={Math.abs(scaleY(d.o) - scaleY(d.c)) || 1} fill={isGreen ? THEME.success : THEME.danger} opacity={0.8} />
         );
       })}
+      
+      {/* Latest Trade Marker */}
+      {trades.length > 0 && trades.slice(-1).map((t, i) => {
+         const y = scaleY(t.price);
+         const lastIndex = data.length - 1;
+         const x = lastIndex * (width / data.length);
+         return (
+           <text key={i} x={x} y={y + (t.type === 'BUY' ? 12 : -5)} fontSize="14" fill={t.type === 'BUY' ? THEME.success : THEME.danger} textAnchor="middle">
+             {t.type === 'BUY' ? '▲' : '▼'}
+           </text>
+         )
+      })}
     </svg>
   );
 };
 
 // --- STYLES ---
 const styles = {
-  app: { fontFamily: 'Inter, system-ui, sans-serif', backgroundColor: THEME.bg, color: THEME.text, minHeight: '100vh', display: 'flex', flexDirection: 'column' },
-  header: { backgroundColor: '#fff', borderBottom: `1px solid ${THEME.border}`, padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  main: { display: 'flex', flex: 1, overflow: 'hidden' },
-  sidebar: { width: '280px', backgroundColor: '#fff', borderRight: `1px solid ${THEME.border}`, padding: '20px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto' },
-  contentArea: { flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', backgroundColor: '#f1f5f9' },
-  chartContainer: { backgroundColor: THEME.terminalBg, color: THEME.terminalText, borderRadius: '12px', padding: '16px', height: '320px', border: `1px solid ${THEME.border}`, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' },
-  agentGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', paddingBottom: '40px' },
+  app: { 
+    fontFamily: 'Inter, system-ui, sans-serif', 
+    backgroundColor: THEME.bg, 
+    color: THEME.text, 
+    minHeight: '100vh', 
+    display: 'flex', 
+    flexDirection: 'column' 
+  },
+  header: { 
+    backgroundColor: '#fff', 
+    borderBottom: `1px solid ${THEME.border}`, 
+    padding: '12px 24px', 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
+  main: { 
+    display: 'flex', 
+    flex: 1, 
+    overflow: 'hidden' 
+  },
+  sidebar: { 
+    width: '280px', 
+    backgroundColor: '#fff', 
+    borderRight: `1px solid ${THEME.border}`, 
+    padding: '20px', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '24px', 
+    overflowY: 'auto' 
+  },
+  contentArea: { 
+    flex: 1, 
+    padding: '24px', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '24px', 
+    overflowY: 'auto', 
+    backgroundColor: '#f1f5f9' 
+  },
+  chartContainer: { 
+    backgroundColor: THEME.terminalBg, 
+    color: THEME.terminalText, 
+    borderRadius: '12px', 
+    padding: '16px', 
+    height: '320px', 
+    border: `1px solid ${THEME.border}`, 
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' 
+  },
+  agentGrid: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+    gap: '20px', 
+    paddingBottom: '40px' 
+  },
   
-  // Revised Card Styles for Visibility
+  // Card Styles
   card: { 
     backgroundColor: '#fff', 
     borderRadius: '12px', 
@@ -161,7 +258,14 @@ const styles = {
     position: 'relative',
     transition: 'transform 0.2s'
   },
-  cardHeader: { padding: '12px 16px', borderBottom: `1px solid ${THEME.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' },
+  cardHeader: { 
+    padding: '12px 16px', 
+    borderBottom: `1px solid ${THEME.border}`, 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    backgroundColor: '#fff' 
+  },
   terminal: { 
     flex: 1, 
     backgroundColor: THEME.terminalBg, 
@@ -174,7 +278,14 @@ const styles = {
     overflow: 'hidden', // Contain internals
     minHeight: 0 // Flexbox fix
   },
-  logArea: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', marginTop: '10px' },
+  logArea: { 
+    flex: 1, 
+    overflowY: 'auto', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    justifyContent: 'flex-end', 
+    marginTop: '10px' 
+  },
   cardFooter: { 
     padding: '12px', 
     backgroundColor: '#f8fafc', 
@@ -186,14 +297,64 @@ const styles = {
   },
   
   // UI Elements
-  btn: { padding: '8px 14px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' },
-  btnPrimary: { backgroundColor: THEME.primary, color: '#fff' },
-  btnSecondary: { backgroundColor: '#fff', border: `1px solid ${THEME.border}`, color: '#475569' },
-  input: { padding: '8px', borderRadius: '6px', border: `1px solid ${THEME.border}`, fontSize: '13px', width: '100%', boxSizing: 'border-box' },
-  label: { fontSize: '11px', fontWeight: '600', color: '#64748b', marginBottom: '4px', display:'block' },
+  btn: { 
+    padding: '8px 14px', 
+    borderRadius: '6px', 
+    border: 'none', 
+    fontWeight: '600', 
+    cursor: 'pointer', 
+    fontSize: '12px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: '6px' 
+  },
+  btnPrimary: { 
+    backgroundColor: THEME.primary, 
+    color: '#fff' 
+  },
+  btnSecondary: { 
+    backgroundColor: '#fff', 
+    border: `1px solid ${THEME.border}`, 
+    color: '#475569' 
+  },
+  input: { 
+    padding: '8px', 
+    borderRadius: '6px', 
+    border: `1px solid ${THEME.border}`, 
+    fontSize: '13px', 
+    width: '100%', 
+    boxSizing: 'border-box' 
+  },
+  label: { 
+    fontSize: '11px', 
+    fontWeight: '600', 
+    color: '#64748b', 
+    marginBottom: '4px', 
+    display:'block' 
+  },
   
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, backdropFilter: 'blur(4px)' },
-  modalContent: { width: '90%', maxWidth: '900px', maxHeight: '85vh', backgroundColor: '#fff', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }
+  modalOverlay: { 
+    position: 'fixed', 
+    top: 0, left: 0, right: 0, bottom: 0, 
+    backgroundColor: 'rgba(15, 23, 42, 0.75)', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    zIndex: 100, 
+    backdropFilter: 'blur(4px)' 
+  },
+  modalContent: { 
+    width: '90%', 
+    maxWidth: '900px', 
+    maxHeight: '85vh', 
+    backgroundColor: '#fff', 
+    borderRadius: '16px', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    overflow: 'hidden', 
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' 
+  }
 };
 
 // --- MAIN COMPONENT ---
@@ -615,7 +776,7 @@ export default function SnowAITradingSim() {
                          borderRadius:'6px', 
                          fontSize:'11px', 
                          wordBreak:'break-all',
-                         cursor:'pointer',
+                         cursor:'pointer', 
                          position:'relative'
                      }}
                      onClick={(e) => {
