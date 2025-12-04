@@ -985,7 +985,7 @@ export default function SnowAITradingSim() {
 
           // 4. DQN Decision (if no forced action)
           if (action === 'WAIT') {
-              if (confidence >= 0.65) { // Buy Signal (e.g., > 65% confidence)
+              if (confidence >= 0.4) { // Buy Signal (e.g., > 40% confidence)
                   if (newAgent.shares === 0) { // Only enter if not already in a position
                       action = 'BUY';
                       amount = newAgent.cash * 0.95 * (1 - COMMISSION) / currentPrice; // Use 95% of cash
