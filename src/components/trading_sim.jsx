@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-
-// --- DUMMY COMPONENTS (Required for original code to run) ---
-// Since the user provided the main component body but relied on external files, 
-// these stubs are necessary to make the code runnable and complete the file.
-
-const Header = () => <div style={{fontSize:'1.5rem', fontWeight:800}}>SnowAI Sim Header</div>;
-const SideNavs = () => <div style={{width:'200px', padding:'20px', borderRight:'1px solid #e2e8f0'}}>Navs</div>;
-
+import Header from "./header";
+import SideNavs from "./side_navs";
 // --- CONFIGURATION & HELPERS (from original context) ---
 
 const TICK_RATE_DEFAULT = 100;
