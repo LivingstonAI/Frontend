@@ -203,12 +203,15 @@ const styles = {
     padding: '12px 24px', 
     display: 'flex', 
     justifyContent: 'space-between', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '12px'
   },
   main: { 
     display: 'flex', 
     flex: 1, 
-    overflow: 'hidden' 
+    overflow: 'hidden',
+    flexDirection: 'row'
   },
   sidebar: { 
     width: '280px', 
@@ -218,7 +221,7 @@ const styles = {
     display: 'flex', 
     flexDirection: 'column', 
     gap: '24px', 
-    overflowY: 'auto' 
+    overflowY: 'auto'
   },
   contentArea: { 
     flex: 1, 
@@ -283,7 +286,7 @@ const styles = {
     overflowY: 'auto', 
     display: 'flex', 
     flexDirection: 'column', 
-    justifyContent: 'flex-end', 
+    justifyContent: 'flex-start', // Changed from flex-end
     marginTop: '10px' 
   },
   cardFooter: { 
@@ -357,6 +360,32 @@ const styles = {
   }
 };
 
+// Mobile styles
+const mobileStyles = `
+  @media (max-width: 768px) {
+    .main-wrapper {
+      flex-direction: column !important;
+    }
+    .sidebar {
+      width: 100% !important;
+      border-right: none !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      max-height: 300px;
+    }
+    .agent-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .header-controls {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .modal-content {
+      width: 95% !important;
+      max-height: 90vh !important;
+    }
+  }
+`;
+
 // --- MAIN COMPONENT ---
 
 export default function SnowAITradingSim() {
@@ -378,13 +407,13 @@ export default function SnowAITradingSim() {
   // Initialize Agents
   const createInitialAgentState = (template) => ({
     ...template,
-    isActive: false,
+    isActive: true, // Changed to true by default so all agents start trading
     cash: INITIAL_CASH,
     shares: 0,
     portfolioValue: INITIAL_CASH,
     prevValue: INITIAL_CASH,
     history: [], 
-    logs: [{msg: "System Initialized. Waiting...", type:'info'}],
+    logs: [{msg: "Agent Activated. Monitoring markets...", type:'info'}], // Changed initial message
     loss: 0,
     brain: new MicroNet(null, null, template.lr), 
     candles: [],
@@ -593,204 +622,205 @@ export default function SnowAITradingSim() {
 
   // --- RENDER ---
   return (
-    <div>
-        <div className="header">
-            <Header />
-        </div>
-        <div className="main-page-body">
-            <SideNavs />
-    <div style={styles.app}>
-      <header style={styles.header}>
-        <div style={{fontSize: '18px', fontWeight: '800', color: THEME.primary, display:'flex', alignItems:'center', gap:'8px'}}>
-          <span>❄️</span> SnowAI <span style={{color:'#94a3b8', fontWeight: 400}}>Training Sim v2.0</span>
-        </div>
-        <div style={{display:'flex', gap:'24px', alignItems:'center'}}>
-           <div style={{textAlign:'right'}}>
-              <div style={styles.label}>BTC PRICE</div>
-              <div style={{fontSize:'16px', fontWeight:'700', fontFamily:'monospace'}}>{fmt(btcPrice)}</div>
-           </div>
-           <button style={{...styles.btn, ...(isRunning ? {backgroundColor: THEME.danger, color:'white'} : styles.btnPrimary), width:'120px'}} onClick={() => setIsRunning(!isRunning)}>
-             {isRunning ? 'STOP' : 'START SIM'}
-           </button>
-        </div>
-      </header>
-
-      <div style={styles.main}>
-        {/* SIDEBAR */}
-        <div style={styles.sidebar}>
-          <div>
-            <div style={styles.label}>DATA SOURCE</div>
-            <div style={{display:'flex', gap:'8px'}}>
-                <button style={{...styles.btn, flex:1, ...(dataSource === 'BINANCE' ? styles.btnPrimary : styles.btnSecondary)}} onClick={() => {setDataSource('BINANCE'); resetSimulation();}}>Live</button>
-                <button style={{...styles.btn, flex:1, ...(dataSource === 'UPLOAD' ? styles.btnPrimary : styles.btnSecondary)}} onClick={() => document.getElementById('fileUpload').click()}>CSV</button>
-            </div>
-            <input type="file" id="fileUpload" hidden accept=".csv,.txt" onChange={handleFileUpload} />
+    <>
+      <style>{mobileStyles}</style>
+      <div>
+          <div className="header">
+              <Header />
           </div>
-
-          <div>
-            <div style={styles.label}>RISK SETTINGS</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
-                <div>
-                    <span style={{fontSize:'10px', color:'#64748b'}}>Take Profit %</span>
-                    <input type="number" style={styles.input} value={takeProfitPct} onChange={(e) => setTakeProfitPct(Number(e.target.value))} />
-                </div>
-                <div>
-                    <span style={{fontSize:'10px', color:'#64748b'}}>Stop Loss %</span>
-                    <input type="number" style={styles.input} value={stopLossPct} onChange={(e) => setStopLossPct(Number(e.target.value))} />
-                </div>
-            </div>
+          <div className="main-page-body">
+              <SideNavs />
+      <div style={styles.app}>
+        <header style={styles.header}>
+          <div style={{fontSize: '18px', fontWeight: '800', color: THEME.primary, display:'flex', alignItems:'center', gap:'8px'}}>
+            <span>❄️</span> SnowAI <span style={{color:'#94a3b8', fontWeight: 400}}>Training Sim v2.0</span>
           </div>
-          
-          <div>
-             <div style={styles.label}>SPEED ({speed}ms)</div>
-             <input type="range" min="20" max="1000" step="10" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} style={{width:'100%'}} />
+          <div className="header-controls" style={{display:'flex', gap:'24px', alignItems:'center'}}>
+             <div style={{textAlign:'right'}}>
+                <div style={styles.label}>BTC PRICE</div>
+                <div style={{fontSize:'16px', fontWeight:'700', fontFamily:'monospace'}}>{fmt(btcPrice)}</div>
+             </div>
+             <button style={{...styles.btn, ...(isRunning ? {backgroundColor: THEME.danger, color:'white'} : styles.btnPrimary), width:'120px'}} onClick={() => setIsRunning(!isRunning)}>
+               {isRunning ? 'STOP' : 'START SIM'}
+             </button>
           </div>
+        </header>
 
-          <div style={{marginTop:'auto', paddingTop:'20px', borderTop:`1px solid ${THEME.border}`}}>
-            <div style={{fontSize:'11px', color:'#94a3b8', marginBottom:'10px'}}>MODEL ROSTER</div>
-            {agents.map(a => (
-                <div key={a.id} style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px', fontSize:'12px'}}>
-                    <div style={{width:'8px', height:'8px', borderRadius:'50%', backgroundColor: a.color}}></div>
-                    <span style={{flex:1}}>{a.name}</span>
-                    <span style={{color: a.portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>{((a.portfolioValue - INITIAL_CASH)/INITIAL_CASH*100).toFixed(1)}%</span>
-                </div>
-            ))}
-          </div>
-        </div>
-
-        {/* MAIN CONTENT */}
-        <div style={styles.contentArea}>
-          <div style={styles.chartContainer}>
-              <MainCandleChart data={candles} agents={agents} width={800} height={300} />
-          </div>
-
-          <div style={styles.agentGrid}>
-            {agents.map(agent => (
-              <div key={agent.id} style={{...styles.card, opacity: agent.isActive ? 1 : 0.85}}>
-                <div style={styles.cardHeader}>
-                   <div>
-                       <div style={{fontWeight:'700', fontSize:'14px'}}>{agent.name}</div>
-                       <div style={{fontSize:'11px', color: agent.color}}>{agent.type}</div>
-                   </div>
-                   <div style={{textAlign:'right'}}>
-                       <div style={{fontWeight:'700', color: agent.portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>{fmt(agent.portfolioValue)}</div>
-                   </div>
-                </div>
-
-                <div style={styles.terminal} onClick={() => !agent.isActive && toggleAgent(agent.id)}>
-                   {!agent.isActive && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(0,0,0,0.1)', zIndex:2, cursor:'pointer'}}><span style={{backgroundColor: THEME.primary, color:'white', padding:'6px 12px', borderRadius:'20px', fontSize:'11px'}}>Click to Start</span></div>}
-                   
-                   <div style={{height: '80px', marginBottom: '8px', borderBottom: '1px dashed #334155'}}>
-                        <MiniCandleChart data={agent.candles} trades={agent.history} width={280} height={80} />
-                   </div>
-                   
-                   <div style={styles.logArea}>
-                      {agent.logs.map((log, i) => (
-                          <div key={i} style={{marginBottom:'2px', color: log.type === 'danger' ? '#f87171' : log.type === 'success' ? '#4ade80' : log.type === 'warning' ? '#fbbf24' : '#94a3b8'}}>
-                              {`> ${log.msg}`}
-                          </div>
-                      ))}
-                      <div ref={el => el?.scrollIntoView({behavior:'smooth'})} />
-                   </div>
-                </div>
-
-                <div style={styles.cardFooter}>
-                    <button style={{...styles.btnSecondary, flex:1}} onClick={() => toggleAgent(agent.id)}>
-                        {agent.isActive ? '⏸ PAUSE' : '▶ RESUME'}
-                    </button>
-                    <button style={{...styles.btnPrimary, flex:1}} onClick={() => setSelectedAgentId(agent.id)}>
-                        ANALYSIS
-                    </button>
-                </div>
+        <div className="main-wrapper" style={styles.main}>
+          {/* SIDEBAR */}
+          <div className="sidebar" style={styles.sidebar}>
+            <div>
+              <div style={styles.label}>DATA SOURCE</div>
+              <div style={{display:'flex', gap:'8px'}}>
+                  <button style={{...styles.btn, flex:1, ...(dataSource === 'BINANCE' ? styles.btnPrimary : styles.btnSecondary)}} onClick={() => {setDataSource('BINANCE'); resetSimulation();}}>Live</button>
+                  <button style={{...styles.btn, flex:1, ...(dataSource === 'UPLOAD' ? styles.btnPrimary : styles.btnSecondary)}} onClick={() => document.getElementById('fileUpload').click()}>CSV</button>
               </div>
+              <input type="file" id="fileUpload" hidden accept=".csv,.txt" onChange={handleFileUpload} />
+            </div>
+
+            <div>
+              <div style={styles.label}>RISK SETTINGS</div>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
+                  <div>
+                      <span style={{fontSize:'10px', color:'#64748b'}}>Take Profit %</span>
+                      <input type="number" style={styles.input} value={takeProfitPct} onChange={(e) => setTakeProfitPct(Number(e.target.value))} />
+                  </div>
+                  <div>
+                      <span style={{fontSize:'10px', color:'#64748b'}}>Stop Loss %</span>
+                      <input type="number" style={styles.input} value={stopLossPct} onChange={(e) => setStopLossPct(Number(e.target.value))} />
+                  </div>
+              </div>
+            </div>
+            
+            <div>
+               <div style={styles.label}>SPEED ({speed}ms)</div>
+               <input type="range" min="20" max="1000" step="10" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} style={{width:'100%'}} />
+            </div>
+
+            <div style={{marginTop:'auto', paddingTop:'20px', borderTop:`1px solid ${THEME.border}`}}>
+              <div style={{fontSize:'11px', color:'#94a3b8', marginBottom:'10px'}}>MODEL ROSTER</div>
+              {agents.map(a => (
+                  <div key={a.id} style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px', fontSize:'12px'}}>
+            <div style={{width:'8px', height:'8px', borderRadius:'50%', backgroundColor: a.color}}></div>
+            <span style={{flex:1}}>{a.name}</span>
+            <span style={{color: a.portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>{((a.portfolioValue - INITIAL_CASH)/INITIAL_CASH*100).toFixed(1)}%</span>
+            </div>
             ))}
-          </div>
+            </div>
+            </div>
+            {/* MAIN CONTENT */}
+      <div style={styles.contentArea}>
+        <div style={styles.chartContainer}>
+            <MainCandleChart data={candles} agents={agents} width={800} height={300} />
+        </div>
+
+        <div className="agent-grid" style={styles.agentGrid}>
+          {agents.map(agent => (
+            <div key={agent.id} style={{...styles.card, opacity: agent.isActive ? 1 : 0.85}}>
+              <div style={styles.cardHeader}>
+                 <div>
+                     <div style={{fontWeight:'700', fontSize:'14px'}}>{agent.name}</div>
+                     <div style={{fontSize:'11px', color: agent.color}}>{agent.type}</div>
+                 </div>
+                 <div style={{textAlign:'right'}}>
+                     <div style={{fontWeight:'700', color: agent.portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>{fmt(agent.portfolioValue)}</div>
+                 </div>
+              </div>
+
+              <div style={styles.terminal} onClick={() => !agent.isActive && toggleAgent(agent.id)}>
+                 {!agent.isActive && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(0,0,0,0.1)', zIndex:2, cursor:'pointer'}}><span style={{backgroundColor: THEME.primary, color:'white', padding:'6px 12px', borderRadius:'20px', fontSize:'11px'}}>Click to Start</span></div>}
+                 
+                 <div style={{height: '80px', marginBottom: '8px', borderBottom: '1px dashed #334155'}}>
+                      <MiniCandleChart data={agent.candles} trades={agent.history} width={280} height={80} />
+                 </div>
+                 
+                 <div style={styles.logArea}>
+                    {agent.logs.map((log, i) => (
+                        <div key={i} style={{marginBottom:'2px', color: log.type === 'danger' ? '#f87171' : log.type === 'success' ? '#4ade80' : log.type === 'warning' ? '#fbbf24' : '#94a3b8'}}>
+                            {`> ${log.msg}`}
+                        </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div style={styles.cardFooter}>
+                  <button style={{...styles.btnSecondary, flex:1}} onClick={() => toggleAgent(agent.id)}>
+                      {agent.isActive ? '⏸ PAUSE' : '▶ RESUME'}
+                  </button>
+                  <button style={{...styles.btnPrimary, flex:1}} onClick={() => setSelectedAgentId(agent.id)}>
+                      ANALYSIS
+                  </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+    </div>
 
-      {/* ANALYSIS MODAL */}
-      {selectedAgentId && (
-        <div style={styles.modalOverlay} onClick={() => setSelectedAgentId(null)}>
-           <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-              <div style={styles.cardHeader}>
-                  <h2 style={{margin:0, fontSize:'18px'}}>🧠 Neural Analysis: {getAgentDetail().name}</h2>
-                  <button onClick={() => setSelectedAgentId(null)} style={{border:'none', background:'none', fontSize:'20px', cursor:'pointer'}}>×</button>
-              </div>
-              
-              <div style={{padding:'24px', flex:1, overflowY:'auto'}}>
-                 {/* METRICS ROW */}
-                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'16px', marginBottom:'24px'}}>
-                    <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
-                        <div style={styles.label}>NET PROFIT</div>
-                        <div style={{fontSize:'20px', fontWeight:'700', color: getAgentDetail().portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>
-                            {fmt(getAgentDetail().portfolioValue - INITIAL_CASH)}
-                        </div>
-                    </div>
-                    
-                    <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
-                        <div style={styles.label}>BUY & HOLD BENCHMARK</div>
-                        {(() => {
-                            const bhVal = startPrice ? (INITIAL_CASH / startPrice) * btcPrice : INITIAL_CASH;
-                            const diff = getAgentDetail().portfolioValue - bhVal;
-                            return (
-                                <div>
-                                    <div style={{fontSize:'20px', fontWeight:'700', color:'#334155'}}>{fmt(bhVal)}</div>
-                                    <div style={{fontSize:'11px', color: diff >= 0 ? THEME.success : THEME.danger}}>
-                                        {diff > 0 ? `Beating B&H by ${fmt(diff)}` : `Losing to B&H by ${fmt(Math.abs(diff))}`}
-                                    </div>
-                                </div>
-                            )
-                        })()}
-                    </div>
+    {/* ANALYSIS MODAL */}
+    {selectedAgentId && (
+      <div style={styles.modalOverlay} onClick={() => setSelectedAgentId(null)}>
+         <div className="modal-content" style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.cardHeader}>
+                <h2 style={{margin:0, fontSize:'18px'}}>🧠 Neural Analysis: {getAgentDetail().name}</h2>
+                <button onClick={() => setSelectedAgentId(null)} style={{border:'none', background:'none', fontSize:'20px', cursor:'pointer'}}>×</button>
+            </div>
+            
+            <div style={{padding:'24px', flex:1, overflowY:'auto'}}>
+               {/* METRICS ROW */}
+               <div style={{display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap:'16px', marginBottom:'24px'}}>
+                  <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
+                      <div style={styles.label}>NET PROFIT</div>
+                      <div style={{fontSize:'20px', fontWeight:'700', color: getAgentDetail().portfolioValue >= INITIAL_CASH ? THEME.success : THEME.danger}}>
+                          {fmt(getAgentDetail().portfolioValue - INITIAL_CASH)}
+                      </div>
+                  </div>
+                  
+                  <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
+                      <div style={styles.label}>BUY & HOLD BENCHMARK</div>
+                      {(() => {
+                          const bhVal = startPrice ? (INITIAL_CASH / startPrice) * btcPrice : INITIAL_CASH;
+                          const diff = getAgentDetail().portfolioValue - bhVal;
+                          return (
+                              <div>
+                                  <div style={{fontSize:'20px', fontWeight:'700', color:'#334155'}}>{fmt(bhVal)}</div>
+                                  <div style={{fontSize:'11px', color: diff >= 0 ? THEME.success : THEME.danger}}>
+                                      {diff > 0 ? `Beating B&H by ${fmt(diff)}` : `Losing to B&H by ${fmt(Math.abs(diff))}`}
+                                  </div>
+                              </div>
+                          )
+                      })()}
+                  </div>
 
-                    <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
-                        <div style={styles.label}>UNREALIZED PnL</div>
-                        <div style={{fontSize:'20px', fontWeight:'700'}}>
-                            {fmt(getAgentDetail().shares * btcPrice)}
-                        </div>
-                        <div style={{fontSize:'11px', color:'#64748b'}}>Current Share Value</div>
-                    </div>
+                  <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
+                      <div style={styles.label}>UNREALIZED PnL</div>
+                      <div style={{fontSize:'20px', fontWeight:'700'}}>
+                          {fmt(getAgentDetail().shares * btcPrice)}
+                      </div>
+                      <div style={{fontSize:'11px', color:'#64748b'}}>Current Share Value</div>
+                  </div>
 
-                    <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
-                        <div style={styles.label}>WIN RATE</div>
-                        {(() => {
-                            const wins = getAgentDetail().history.filter(h => h.pnl > 0).length;
-                            const total = getAgentDetail().history.filter(h => h.type === 'SELL').length;
-                            return (
-                                <div style={{fontSize:'20px', fontWeight:'700', color: THEME.primary}}>
-                                    {total > 0 ? ((wins/total)*100).toFixed(0) : 0}%
-                                </div>
-                            )
-                        })()}
-                    </div>
-                 </div>
+                  <div style={{padding:'16px', backgroundColor:'#f8fafc', borderRadius:'8px', border:`1px solid ${THEME.border}`}}>
+                      <div style={styles.label}>WIN RATE</div>
+                      {(() => {
+                          const wins = getAgentDetail().history.filter(h => h.pnl > 0).length;
+                          const total = getAgentDetail().history.filter(h => h.type === 'SELL').length;
+                          return (
+                              <div style={{fontSize:'20px', fontWeight:'700', color: THEME.primary}}>
+                                  {total > 0 ? ((wins/total)*100).toFixed(0) : 0}%
+                              </div>
+                          )
+                      })()}
+                  </div>
+               </div>
 
-                 {/* MODEL WEIGHTS EXPORT */}
-                 <div style={{marginBottom:'24px'}}>
-                     <div style={styles.label}>MODEL WEIGHTS (COPY TO SAVE)</div>
-                     <div style={{
-                         padding:'12px', 
-                         backgroundColor: '#0f172a', 
-                         color:'#22d3ee', 
-                         fontFamily:'monospace', 
-                         borderRadius:'6px', 
-                         fontSize:'11px', 
-                         wordBreak:'break-all',
-                         cursor:'pointer', 
-                         position:'relative'
-                     }}
-                     onClick={(e) => {
-                         navigator.clipboard.writeText(getAgentDetail().brain.exportWeights());
-                         e.target.style.color = '#4ade80'; // flash green
-                         setTimeout(() => e.target.style.color = '#22d3ee', 500);
-                     }}
-                     >
-                         {getAgentDetail().brain.exportWeights()}
-                         <div style={{position:'absolute', right:'10px', top:'10px', color:'white', opacity:0.5}}>CLICK TO COPY</div>
-                     </div>
-                 </div>
+               {/* MODEL WEIGHTS EXPORT */}
+               <div style={{marginBottom:'24px'}}>
+                   <div style={styles.label}>MODEL WEIGHTS (COPY TO SAVE)</div>
+                   <div style={{
+                       padding:'12px', 
+                       backgroundColor: '#0f172a', 
+                       color:'#22d3ee', 
+                       fontFamily:'monospace', 
+                       borderRadius:'6px', 
+                       fontSize:'11px', 
+                       wordBreak:'break-all',
+                       cursor:'pointer', 
+                       position:'relative'
+                   }}
+                   onClick={(e) => {
+                       navigator.clipboard.writeText(getAgentDetail().brain.exportWeights());
+                       e.target.style.color = '#4ade80'; // flash green
+                       setTimeout(() => e.target.style.color = '#22d3ee', 500);
+                   }}
+                   >
+                       {getAgentDetail().brain.exportWeights()}
+                       <div style={{position:'absolute', right:'10px', top:'10px', color:'white', opacity:0.5}}>CLICK TO COPY</div>
+                   </div>
+               </div>
 
-                 <div style={styles.label}>RECENT TRADE LOG</div>
+               <div style={styles.label}>RECENT TRADE LOG</div>
+               <div style={{overflowX:'auto'}}>
                  <table style={{width:'100%', borderCollapse:'collapse', fontSize:'13px'}}>
                      <thead>
                          <tr style={{textAlign:'left', color:'#64748b', borderBottom:`1px solid ${THEME.border}`}}>
@@ -811,12 +841,13 @@ export default function SnowAITradingSim() {
                          ))}
                      </tbody>
                  </table>
-              </div>
-           </div>
-        </div>
-      )}
-    </div>
-    </div>
-    </div>
-  );
+               </div>
+            </div>
+         </div>
+      </div>
+    )}
+  </div>
+  </div>
+  </div>
+</>);
 }
