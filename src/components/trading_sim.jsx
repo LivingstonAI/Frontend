@@ -448,7 +448,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                         {agent.returns >= 0 ? '+' : ''}{agent.returns.toFixed(2)}%
                       </td>
                       <td style={{padding:'10px', fontWeight:'600'}}>{fmt(agent.portfolioValue)}</td>
-                      <td style={{padding:'10px', color: agent.returns >= 0 ? THEME.success : THEME.danger}>
+                      <td style={{padding:'10px', color: agent.returns >= 0 ? THEME.success : THEME.danger}}>
                         {fmt(agent.portfolioValue - INITIAL_CASH)}
                       </td>
                     </tr>
