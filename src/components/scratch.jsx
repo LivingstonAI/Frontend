@@ -884,7 +884,7 @@ pythonGenerator['forBlock']['is_stable_market'] = function(block, generator) {
       lookbackPeriod = '';
     }
 
-  return [`is_stable_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+  return [`is_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
@@ -900,7 +900,7 @@ javascriptGenerator['forBlock']['is_stable_market'] = function(block, generator)
       lookbackPeriod = '';
     }
 
-return [`is_stable_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+return [`is_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
@@ -917,7 +917,7 @@ pythonGenerator['forBlock']['is_choppy_market'] = function(block, generator) {
       lookbackPeriod = '';
     }
   
-  return [`is_choppy_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+  return [`is_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
@@ -933,7 +933,7 @@ javascriptGenerator['forBlock']['is_choppy_market'] = function(block, generator)
       lookbackPeriod = '';
     }
 
-return [`is_choppy_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+return [`is_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
@@ -950,7 +950,7 @@ pythonGenerator['forBlock']['is_volatile_market'] = function(block, generator) {
       lookbackPeriod = '';
     }
 
-  return [`is_volatile_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+  return [`is_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
@@ -966,7 +966,7 @@ javascriptGenerator['forBlock']['is_volatile_market'] = function(block, generato
       lookbackPeriod = '';
     }
 
-return [`is_volatile_market(asset=asset, lookback_period=${lookbackPeriod})`, Order.NONE];
+return [`is_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
