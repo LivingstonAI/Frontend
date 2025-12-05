@@ -59,15 +59,15 @@ export default function ScratchInterFace () {
     'USDJPY1H.csv','USDJPY4H.csv', 'USDJPY1D.csv']);
 
     
-    const [appleData, setAppleData] = useState(['AAPL1D.csv']);
+    const [appleData, setAppleData] = useState(['AAPL1D.csv', 'AAPL4H.csv', 'AAPL1H.csv']);
 
     const [btcData, setBtcData] = useState(['BTCUSD1D.csv']);
 
     const [ftseData, setFtseData] = useState(['FTSE1D.csv']);
 
-    const [spxData, setSpxData] = useState(['SPX1D.csv']);
+    const [spxData, setSpxData] = useState(['SPX1D.csv', 'SPX4H.csv', 'SPX1H.csv']);
 
-    const [ndxData, setNdxData] = useState(['NDX1D.csv']);
+    const [ndxData, setNdxData] = useState(['NDX1D.csv', 'NDX4H.csv', 'NDX1H.csv']);
 
     const [chosenDataSet, setChosenDataSet] = useState('');
 
