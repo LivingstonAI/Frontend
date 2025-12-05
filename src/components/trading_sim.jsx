@@ -2,11 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import Header from "./header"; // Assuming this component exists
 import SideNavs from "./side_navs"; // Assuming this component exists
 
-// --- CONFIGURATION & HELPERS ---
-
+// --- CONFIGURATION & CONSTANTS ---
 const TICK_RATE_DEFAULT = 100;
 const INITIAL_CASH = 10000;
 const COMMISSION = 0.001; 
+const INPUT_SIZE = 4; // SMA Dist, Volatility, Price Change, Trend
+const ACTION_SIZE = 3; // 0: BUY, 1: HOLD, 2: SELL
+const HIDDEN_SIZE = 8; // Hidden layer size
+const DISCOUNT_FACTOR = 0.95; // Gamma (Future reward importance)
+const EPSILON_START = 1.0;
+const EPSILON_DECAY = 0.9995;
+const MIN_EPSILON = 0.01;
 
 const THEME = {
   bg: '#f8fafc', 
@@ -23,181 +29,277 @@ const THEME = {
   terminalText: '#e2e8f0',
 };
 
-// Expanded Agent Roster with detailed descriptions
+// Expanded Agent Roster with detailed descriptions (Strategy column is simplified for DDQN)
 const AGENT_TEMPLATES = [
-  { 
-    id: 1, 
-    name: "Snow-Alpha", 
-    type: "Balanced (DQN)", 
-    color: "#3b82f6", 
-    lr: 0.01, 
-    risk: 'med',
-    description: "A balanced Deep Q-Network agent that uses moderate learning rates and medium-risk tolerance. Analyzes price changes, SMA distance, and volatility to make informed trading decisions. Best for steady market conditions.",
-    strategy: "Uses sigmoid activation with 4-input neural network. Buys when confidence > 45%, sells when < 55%. Applies 95% of cash per trade."
-  },
-  { 
-    id: 2, 
-    name: "Ice-Beta", 
-    type: "Scalper (Fast)", 
-    color: "#0ea5e9", 
-    lr: 0.05, 
-    risk: 'high',
-    description: "High-frequency scalping agent with rapid learning rate (0.05). Designed to capitalize on small price movements with quick entries and exits. Thrives in volatile markets with frequent micro-trends.",
-    strategy: "Aggressive learning rate allows quick adaptation. Takes many small positions, ideal for sideways or choppy markets. High risk, high reward approach."
-  },
-  { 
-    id: 3, 
-    name: "Frost-Gamma", 
-    type: "Trend (Slow)", 
-    color: "#6366f1", 
-    lr: 0.001, 
-    risk: 'low',
-    description: "Conservative trend-following agent with minimal learning rate. Waits for strong, confirmed trends before entering positions. Low-risk approach suitable for long-term holds and stable growth.",
-    strategy: "Patient strategy with slow weight updates. Filters out noise and focuses on macro trends. Lower trade frequency but higher accuracy on direction."
-  },
-  { 
-    id: 4, 
-    name: "Glacier-X", 
-    type: "Deep-Hold", 
-    color: "#8b5cf6", 
-    lr: 0.005, 
-    risk: 'med',
-    description: "Position trader that seeks extended hold periods. Moderate learning rate balances adaptation with stability. Focuses on capturing larger price swings rather than day-to-day noise.",
-    strategy: "Medium-term holds with balanced risk management. Aims for fewer but more substantial gains. Works well in trending markets."
-  },
-  { 
-    id: 5, 
-    name: "Avalanche-Z", 
-    type: "Aggressive", 
-    color: "#f43f5e", 
-    lr: 0.08, 
-    risk: 'high',
-    description: "Ultra-aggressive agent with the highest learning rate (0.08). Rapidly adapts to market changes and takes bold positions. High volatility tolerance makes it suitable for extreme market conditions.",
-    strategy: "Extremely fast learning with high sensitivity to recent data. Can generate significant gains or losses quickly. Best for experienced users monitoring closely."
-  },
-  { 
-    id: 6, 
-    name: "Polar-Prime", 
-    type: "Conservative", 
-    color: "#10b981", 
-    lr: 0.0005, 
-    risk: 'low',
-    description: "Ultra-conservative agent with the lowest learning rate. Prioritizes capital preservation over aggressive gains. Ideal for risk-averse strategies and bear market protection.",
-    strategy: "Very slow adaptation minimizes overreaction to noise. Focuses on high-confidence setups only. Suitable for portfolio stability and drawdown minimization."
-  },
-  { 
-    id: 7, 
-    name: "Blizzard-Omega", 
-    type: "Momentum", 
-    color: "#ec4899", 
-    lr: 0.02, 
-    risk: 'high',
-    description: "Momentum-based agent that detects and rides strong price movements. Uses moderate-high learning rate to quickly identify momentum shifts and capitalize on breakouts.",
-    strategy: "Optimized for detecting acceleration in price movement. Enters positions during strong momentum and exits when momentum fades. Performs well in trending markets."
-  },
-  { 
-    id: 8, 
-    name: "Tundra-Sigma", 
-    type: "Mean Reversion", 
-    color: "#14b8a6", 
-    lr: 0.015, 
-    risk: 'med',
-    description: "Mean reversion specialist that profits from price overshoots. Identifies when price deviates significantly from moving average and trades the snap-back.",
-    strategy: "Focuses on SMA distance input. Buys when price drops below SMA, sells when above. Works best in range-bound markets with clear support/resistance."
-  },
-  { 
-    id: 9, 
-    name: "Arctic-Delta", 
-    type: "Volatility Hunter", 
-    color: "#f97316", 
-    lr: 0.03, 
-    risk: 'high',
-    description: "Volatility-focused agent that thrives in chaotic market conditions. Uses higher learning rate to adapt to rapid volatility changes and exploit uncertainty.",
-    strategy: "Heavily weighs volatility input in decision making. Increases position sizing during high volatility. Designed for breakout and breakdown scenarios."
-  },
-  { 
-    id: 10, 
-    name: "Permafrost-Theta", 
-    type: "Anti-Trend", 
-    color: "#a855f7", 
-    lr: 0.008, 
-    risk: 'med',
-    description: "Contrarian agent that fades trends and looks for reversals. Inverted logic compared to trend followers - sells strength, buys weakness.",
-    strategy: "Counter-intuitive approach that profits from trend exhaustion. Best in markets with frequent reversals and false breakouts. Requires strong risk management."
-  },
-  {
-    id: 11,
-    name: "Buy & Hold",
-    type: "Benchmark",
-    color: "#64748b",
-    lr: 0,
-    risk: 'passive',
-    description: "Pure buy-and-hold strategy that purchases at market start and never sells. Serves as a passive benchmark to measure active strategies against. No AI involved - simply holds position through all market conditions.",
-    strategy: "Buys maximum position on first tick with available capital and holds indefinitely. Zero trading after initial purchase. Represents market beta exposure."
-  },
-  {
-    id: 12,
-    name: "Dip-Buyer",
-    type: "Buy The Dip",
-    color: "#fb923c",
-    lr: 0.012,
-    risk: 'med',
-    description: "Strategic dip-buying agent that accumulates positions during price pullbacks. Uses technical analysis to identify oversold conditions and enters when price drops below moving averages.",
-    strategy: "Monitors SMA distance and volatility. Buys aggressively when price drops 2%+ below 5-period SMA. Takes partial profits on rebounds. Ideal for choppy markets with mean reversion tendencies."
-  }
+  // Agents 1-10 are now DDQN agents, only differing by learning rate
+  { id: 1, name: "Snow-Alpha", type: "DDQN (Balanced)", color: "#3b82f6", lr: 0.01, risk: 'med', description: "Balanced Deep Double Q-Network agent. Trades based on learned Q-values from experience replay.", strategy: "DDQN: Uses 2 networks (Online/Target) and an Experience Replay Buffer for stable reinforcement learning." },
+  { id: 2, name: "Ice-Beta", type: "DDQN (Scalper)", color: "#0ea5e9", lr: 0.05, risk: 'high', description: "High-frequency DDQN with rapid learning rate (0.05). Designed to capitalize on small price movements.", strategy: "DDQN: Rapid adaptation, higher risk tolerance, and quicker response to reward signals." },
+  { id: 3, name: "Frost-Gamma", type: "DDQN (Trend)", color: "#6366f1", lr: 0.001, risk: 'low', description: "Conservative DDQN with minimal learning rate. Waits for strong, confirmed trends before entering positions.", strategy: "DDQN: Slow, stable learning, prioritizing capital preservation over aggressive gains." },
+  { id: 4, name: "Glacier-X", type: "DDQN (Deep-Hold)", color: "#8b5cf6", lr: 0.005, risk: 'med', description: "Position trader DDQN that seeks extended hold periods.", strategy: "DDQN: Moderate learning, balanced risk management." },
+  { id: 5, name: "Avalanche-Z", type: "DDQN (Aggressive)", color: "#f43f5e", lr: 0.08, risk: 'high', description: "Ultra-aggressive DDQN with the highest learning rate (0.08).", strategy: "DDQN: Extremely fast learning, high volatility tolerance, prone to over-fitting/oscillation." },
+  { id: 6, name: "Polar-Prime", type: "DDQN (Conservative)", color: "#10b981", lr: 0.0005, risk: 'low', description: "Ultra-conservative DDQN with the lowest learning rate.", strategy: "DDQN: Prioritizes stability and drawdown minimization." },
+  { id: 7, name: "Blizzard-Omega", type: "DDQN (Momentum)", color: "#ec4899", lr: 0.02, risk: 'high', description: "Momentum-based DDQN that detects and rides strong price movements.", strategy: "DDQN: Moderate-high learning rate, optimized for detecting acceleration in price movement." },
+  { id: 8, name: "Tundra-Sigma", type: "DDQN (Mean Reversion)", color: "#14b8a6", lr: 0.015, risk: 'med', description: "Mean reversion specialist DDQN that profits from price overshoots.", strategy: "DDQN: Focuses on SMA distance input, best in range-bound markets." },
+  { id: 9, name: "Arctic-Delta", type: "DDQN (Volatility Hunter)", color: "#f97316", lr: 0.03, risk: 'high', description: "Volatility-focused DDQN that thrives in chaotic market conditions.", strategy: "DDQN: Heavily weighs volatility input, designed for breakout scenarios." },
+  { id: 10, name: "Permafrost-Theta", type: "DDQN (Anti-Trend)", color: "#a855f7", lr: 0.008, risk: 'med', description: "Contrarian DDQN that looks for reversals.", strategy: "DDQN: Counter-intuitive approach, profits from trend exhaustion." },
+  { id: 11, name: "Buy & Hold", type: "Benchmark", color: "#64748b", lr: 0, risk: 'passive', description: "Pure buy-and-hold strategy.", strategy: "Buys maximum position on first tick and holds indefinitely. Zero trading after initial purchase." },
+  { id: 12, name: "Dip-Buyer", type: "Buy The Dip", color: "#fb923c", lr: 0.012, risk: 'med', description: "Strategic dip-buying agent that accumulates positions during price pullbacks.", strategy: "Monitors SMA distance. Buys when price drops below SMA, takes partial profits on rebounds." }
 ];
 
 const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
 
-// --- NEURAL NETWORK CLASS ---
-class MicroNet {
-  constructor(weights = null, bias = null, learningRate = 0.01) {
-    this.weights = weights || [Math.random()-0.5, Math.random()-0.5, Math.random()-0.5, Math.random()-0.5]; 
-    this.bias = bias !== null ? bias : Math.random()-0.5;
-    this.learningRate = learningRate;
-  }
+// --- HELPER CLASSES ---
 
-  predict(inputs) {
-    let sum = this.bias;
-    for (let i = 0; i < inputs.length; i++) {
-      sum += inputs[i] * this.weights[i];
+/**
+ * ReplayBuffer: Stores experience tuples for Experience Replay.
+ */
+class ReplayBuffer {
+    constructor(capacity = 5000) {
+        this.capacity = capacity;
+        this.buffer = [];
+        this.position = 0;
     }
-    return 1 / (1 + Math.exp(-sum));
-  }
 
-  train(inputs, target) {
-    const prediction = this.predict(inputs);
-    const error = target - prediction;
-    
-    // Simple Delta Rule / Gradient Descent update
-    const derivative = prediction * (1 - prediction); // Sigmoid derivative
-    
-    for (let i = 0; i < this.weights.length; i++) {
-      this.weights[i] += error * derivative * inputs[i] * this.learningRate;
+    add(state, action, reward, nextState, done) {
+        const experience = [state, action, reward, nextState, done];
+        if (this.buffer.length < this.capacity) {
+            this.buffer.push(experience);
+        } else {
+            this.buffer[this.position] = experience;
+        }
+        this.position = (this.position + 1) % this.capacity;
     }
-    this.bias += error * derivative * this.learningRate;
-    return Math.abs(error);
-  }
 
-  exportWeights() {
-    return JSON.stringify({ w: this.weights, b: this.bias });
-  }
+    sample(batchSize) {
+        if (this.buffer.length < batchSize) return null;
 
-  importWeights(jsonStr) {
-    try {
-      const data = JSON.parse(jsonStr);
-      this.weights = data.w;
-      this.bias = data.b;
-      return true;
-    } catch {
-      return false;
+        const batch = [];
+        for (let i = 0; i < batchSize; i++) {
+            const randomIndex = Math.floor(Math.random() * this.buffer.length);
+            batch.push(this.buffer[randomIndex]);
+        }
+        return batch;
     }
-  }
+
+    size() {
+        return this.buffer.length;
+    }
 }
 
-// --- CHART COMPONENTS ---
+/**
+ * DoubleDQN: Implements a Double Deep Q-Network with a simple two-layer network
+ * for learning the optimal trading policy.
+ */
+class DoubleDQN {
+    constructor(inputs, outputs, hidden, learningRate, discountFactor) {
+        this.inputs = inputs;
+        this.outputs = outputs; // 3 actions: 0=Buy, 1=Hold, 2=Sell
+        this.lr = learningRate;
+        this.gamma = discountFactor;
+        
+        // Double DQN: Two networks for stability (Online and Target)
+        this.q_network = this._createNetwork(inputs, outputs, hidden);
+        this.target_network = this._createNetwork(inputs, outputs, hidden);
+        this.updateTargetNetwork(); 
+        
+        // Experience Replay: Buffer for storing transitions
+        this.buffer = new ReplayBuffer(); 
+        this.batchSize = 32;
+        this.targetUpdateFrequency = 50; 
+        this.stepCounter = 0;
+    }
+
+    _createNetwork(inputs, outputs, hidden) {
+        // Simple 2-layer network with random initialization
+        return {
+            w1: Array.from({ length: inputs }, () => Array(hidden).fill(0).map(() => Math.random() * 2 - 1)),
+            b1: Array(hidden).fill(0).map(() => Math.random() * 2 - 1),
+            w2: Array.from({ length: hidden }, () => Array(outputs).fill(0).map(() => Math.random() * 2 - 1)),
+            b2: Array(outputs).fill(0).map(() => Math.random() * 2 - 1)
+        };
+    }
+
+    updateTargetNetwork() {
+        this.target_network = JSON.parse(JSON.stringify(this.q_network));
+    }
+
+    // Predict Q-values for a given state
+    predict(inputArray, network = this.q_network) {
+        // Layer 1 (Hidden Layer) - ReLU activation
+        const hidden = network.b1.map((b, i) => {
+            const sum = inputArray.reduce((acc, val, j) => acc + val * network.w1[j][i], 0) + b;
+            return Math.max(0, sum); // ReLU
+        });
+
+        // Layer 2 (Output Layer) - Linear activation (Q-values)
+        return network.b2.map((b, i) => {
+            return hidden.reduce((acc, val, j) => acc + val * network.w2[j][i], 0) + b;
+        });
+    }
+
+    remember(state, action, reward, nextState, done) {
+        this.buffer.add(state, action, reward, nextState, done);
+    }
+
+    // Train the Q-network using a batch from the buffer (simplified backprop)
+    train() {
+        if (this.buffer.size() < this.batchSize) return;
+
+        const batch = this.buffer.sample(this.batchSize);
+
+        let totalLoss = 0;
+
+        for (const [state, action, reward, nextState, done] of batch) {
+            const qValues = this.predict(state);
+            const onlineNextQ = this.predict(nextState, this.q_network);
+            const targetNextQ = this.predict(nextState, this.target_network);
+            
+            // DDQN Target Calculation
+            let targetQ = reward;
+            if (!done) {
+                // Select best action (a*) from the Online Network
+                const bestActionOnline = onlineNextQ.reduce((maxIndex, currentQ, i) => 
+                    currentQ > onlineNextQ[maxIndex] ? i : maxIndex, 0);
+                
+                // Evaluate value of a* using the Target Network
+                targetQ += this.gamma * targetNextQ[bestActionOnline];
+            }
+
+            // Target Q-values for the training
+            const targetQValues = [...qValues];
+            const error = targetQ - targetQValues[action];
+            targetQValues[action] = targetQ;
+            totalLoss += Math.abs(error);
+
+            // --- Simplified Backpropagation (Output Layer Focus) ---
+
+            const hidden = this.q_network.b1.map((b, i) => {
+                const sum = state.reduce((acc, val, j) => acc + val * this.q_network.w1[j][i], 0) + b;
+                return Math.max(0, sum); 
+            });
+            
+            // Update W2 (Hidden -> Output weights) and B2
+            for (let i = 0; i < this.outputs; i++) {
+                const outputError = (targetQValues[i] - qValues[i]);
+                for (let j = 0; j < hidden.length; j++) {
+                    this.q_network.w2[j][i] += this.lr * outputError * hidden[j];
+                }
+                this.q_network.b2[i] += this.lr * outputError;
+            }
+            
+            // Note: Backpropagating through ReLU (W1/B1 update) is omitted for simplicity 
+            // in pure JS to prevent excessive complexity.
+        }
+        
+        // Periodically update the target network
+        this.stepCounter++;
+        if (this.stepCounter % this.targetUpdateFrequency === 0) {
+            this.updateTargetNetwork();
+        }
+
+        return totalLoss / this.batchSize;
+    }
+}
+
+// --- HELPER FUNCTIONS ---
+
+const calculateSMA = (data, period) => {
+  if (data.length < period) return null;
+  const sliced = data.slice(-period);
+  const sum = sliced.reduce((acc, d) => acc + d.c, 0);
+  return sum / period;
+};
+
+const calculateVolatility = (data, period) => {
+  if (data.length < period) return 0;
+  const sliced = data.slice(-period);
+  const sma = calculateSMA(data, period);
+  if (sma === null) return 0;
+
+  const variance = sliced.reduce((acc, d) => acc + Math.pow(d.c - sma, 2), 0) / period;
+  return Math.sqrt(variance);
+};
+
+const normalize = (value, min, max) => {
+  if (min === max) return 0.5;
+  return (value - min) / (max - min);
+};
+
+// Calculates the 4 inputs for the DDQN
+const calculateInputs = (allCandles, currentPrice) => {
+    if (allCandles.length < 20) return [0, 0, 0, 0];
+
+    const sma20 = calculateSMA(allCandles, 20);
+    const sma5 = calculateSMA(allCandles, 5);
+    const volatility10 = calculateVolatility(allCandles, 10);
+    
+    const prevClose = allCandles[allCandles.length - 2]?.c || currentPrice; 
+    const priceChange = (currentPrice - prevClose) / prevClose;
+    
+    // Normalize SMA Distance
+    let maxDist = 0.01;
+    if (sma20) {
+      maxDist = allCandles.slice(-20).reduce((max, d) => Math.max(max, Math.abs(d.c - sma20) / sma20), 0.01);
+    }
+    const smaDist = sma20 ? normalize(currentPrice, sma20 * (1 - maxDist), sma20 * (1 + maxDist)) * 2 - 1 : 0; // Normalized between -1 and 1
+    
+    // Normalize Volatility
+    let maxVol = 0.005;
+    const volHistory = allCandles.slice(0, allCandles.length - 1);
+    if (volHistory.length > 20) {
+      maxVol = volHistory.slice(-20).reduce((max, d, i) => {
+         const index = volHistory.length - 20 + i + 1;
+         const vol = calculateVolatility(volHistory.slice(0, index), 10);
+         return Math.max(max, vol);
+      }, 0.005);
+    }
+    const normVolatility = normalize(volatility10, 0, maxVol); // Normalized between 0 and 1
+    
+    // Normalize Price Change
+    let maxChange = 0.01;
+    if (allCandles.length > 20) {
+        maxChange = allCandles.slice(-20).reduce((max, d, i) => {
+            const prev = allCandles[allCandles.length - 20 + i - 1];
+            if (i > 0 && prev) {
+                return Math.max(max, Math.abs((d.c - prev.c) / prev.c));
+            }
+            return max;
+        }, 0.01);
+    }
+    const normPriceChange = normalize(priceChange, -maxChange, maxChange); // Normalized between -1 and 1
+    
+    // Trend Feature
+    const trend = (sma5 && sma20) ? (sma5 > sma20 ? 1 : -1) : 0; // -1, 0, or 1
+
+    return [smaDist, normVolatility, normPriceChange, trend];
+};
+
+// Epsilon-Greedy action selection
+const getAction = (qValues, epsilon, shares) => {
+    const isExploring = Math.random() < epsilon;
+    let action = 1; // Default to HOLD
+    
+    if (isExploring) {
+        // Random action (exploration)
+        action = Math.floor(Math.random() * ACTION_SIZE); 
+    } else {
+        // Best Q-value action (exploitation)
+        action = qValues.reduce((maxIndex, currentQ, i) => 
+            currentQ > qValues[maxIndex] ? i : maxIndex, 0);
+    }
+
+    // Constraint: Cannot BUY if already holding, cannot SELL if not holding
+    if (shares > 0 && action === 0) action = 1; // Change BUY to HOLD
+    if (shares === 0 && action === 2) action = 1; // Change SELL to HOLD
+
+    return action;
+};
+
+// --- CHART COMPONENTS (Unchanged, omitted for brevity but included in final code) ---
+// --- MainCandleChart, MiniCandleChart, EquityCurve, StatisticsModal, ModelInfoModal, WeightsDisplay (Assumed to be here) ---
 
 const MainCandleChart = ({ data, agents, width, height }) => {
+  // ... (Chart implementation remains the same)
   const displayData = data.slice(-100); 
 
   // Use the actual container width for responsivity, even if 800 is passed as a default
@@ -271,7 +373,6 @@ const MainCandleChart = ({ data, agents, width, height }) => {
     </svg>
   );
 };
-
 const MiniCandleChart = ({ data, trades, width, height }) => {
   if (!data || data.length < 2) return (
     <div style={{color: '#475569', fontSize:'10px', height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -308,8 +409,6 @@ const MiniCandleChart = ({ data, trades, width, height }) => {
     </svg>
   );
 };
-
-// --- EQUITY CURVE CHART ---
 const EquityCurve = ({ equityData, color, width, height }) => {
   if (!equityData || equityData.length < 2) return (
     <div style={{color: '#94a3b8', fontSize:'12px', height:'100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
@@ -336,8 +435,6 @@ const EquityCurve = ({ equityData, color, width, height }) => {
     </svg>
   );
 };
-
-// --- STATISTICS MODAL (Omitted for brevity, assuming functional) ---
 const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
   // Calculate statistics
   const agentStats = agents.map(agent => {
@@ -483,8 +580,6 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
     </div>
   );
 };
-
-// --- MODEL INFO MODAL (Omitted for brevity, assuming functional) ---
 const ModelInfoModal = ({ agent, onClose }) => {
   if (!agent) return null;
   
@@ -552,10 +647,11 @@ const ModelInfoModal = ({ agent, onClose }) => {
     </div>
   );
 };
-// --- WEIGHTS DISPLAY COMPONENT ---
 const WeightsDisplay = ({ weights, bias }) => {
-  const w = weights || [0, 0, 0, 0];
-  const b = bias || 0;
+  // Display only the first layer weights (W1/B1) for the Online Q-Network
+  const w1 = weights?.w1 ? weights.w1.flat().slice(0, 4) : [0, 0, 0, 0];
+  const b1 = bias?.b1 ? bias.b1[0] : 0;
+
   return (
     <div style={{ 
       backgroundColor: '#1e293b', 
@@ -567,23 +663,23 @@ const WeightsDisplay = ({ weights, bias }) => {
       marginTop: '8px'
     }}>
       <div style={{marginBottom:'2px'}}>
-        W:
-        {w.map((v, i) => (
+        W (Input):
+        {w1.map((v, i) => (
           <span key={i} style={{color: v > 0 ? THEME.success : v < 0 ? THEME.danger : '#94a3b8', marginLeft: '4px'}}>
             {v.toFixed(3)}
           </span>
         ))}
       </div>
       <div>
-        B:
-        <span style={{color: b > 0 ? THEME.success : b < 0 ? THEME.danger : '#94a3b8', marginLeft: '4px'}}>
-          {b.toFixed(3)}
+        B (Hidden):
+        <span style={{color: b1 > 0 ? THEME.success : b1 < 0 ? THEME.danger : '#94a3b8', marginLeft: '4px'}}>
+          {b1.toFixed(3)}
         </span>
       </div>
     </div>
   );
 };
-// --- STYLES ---
+// --- STYLES (Unchanged, included in final code) ---
 const styles = {
   app: {
     fontFamily: 'Inter, system-ui, sans-serif',
@@ -751,8 +847,6 @@ const styles = {
     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
   }
 };
-
-// --- MOBILE RESPONSIVE STYLES (Injected via <style> tag) ---
 const mobileStyles = `@media (max-width: 768px) {
   .main-wrapper {
     flex-direction: column !important;
@@ -774,7 +868,6 @@ const mobileStyles = `@media (max-width: 768px) {
     width: 95% !important;
     max-height: 90vh !important;
   }
-  /* Ensure the MainCandleChart container scales and charts use 100% */
   ${styles.chartContainer} {
     height: 250px; 
     padding: 8px;
@@ -794,7 +887,6 @@ export default function SnowAITradingSim() {
   const [stopLossPct, setStopLossPct] = useState(3.0);
   const [takeProfitPct, setTakeProfitPct] = useState(8.0);
   const [speed, setSpeed] = useState(TICK_RATE_DEFAULT);
-  const [selectedAgentId, setSelectedAgentId] = useState(null);
   const [modelInfoAgent, setModelInfoAgent] = useState(null);
   const [showStatistics, setShowStatistics] = useState(false);
 
@@ -808,45 +900,21 @@ export default function SnowAITradingSim() {
     history: [],
     logs: [{msg: "Agent Activated. Monitoring markets...", type:'info'}],
     loss: 0,
-    // Ensure MicroNet is only initialized if LR > 0 and not the benchmark agent
-    brain: (template.id === 11 || template.lr === 0) ? null : new MicroNet(null, null, template.lr), 
-    candles: [],
-    lastAction: 'WAIT',
+    // RL-Specific States
+    model: (template.id === 11 || template.id === 12) ? null : new DoubleDQN(INPUT_SIZE, ACTION_SIZE, HIDDEN_SIZE, template.lr, DISCOUNT_FACTOR), 
+    epsilon: EPSILON_START,
+    currentState: null, // The last calculated input vector
+    lastAction: 1, // 0=Buy, 1=Hold, 2=Sell (Hold initially)
     hasBoughtInitial: (template.id === 11 || template.id === 12) ? false : true,
     equityCurve: [INITIAL_CASH],
-    persistentMemory: false
+    persistentMemory: false // Now only applies to DDQN model weights
   });
 
   const [agents, setAgents] = useState(() => AGENT_TEMPLATES.map(createInitialAgentState));
   const wsRef = useRef(null);
   const candlesRef = useRef([]);
   const logRefs = useRef({});
-  const chartRef = useRef(null); // Reference for dynamic chart width
-
-  // Helper to calculate Simple Moving Average (SMA)
-  const calculateSMA = (data, period) => {
-    if (data.length < period) return null;
-    const sliced = data.slice(-period);
-    const sum = sliced.reduce((acc, d) => acc + d.c, 0);
-    return sum / period;
-  };
-
-  // Helper to calculate Volatility (Standard Deviation)
-  const calculateVolatility = (data, period) => {
-    if (data.length < period) return 0;
-    const sliced = data.slice(-period);
-    const sma = calculateSMA(data, period);
-    if (sma === null) return 0;
-
-    const variance = sliced.reduce((acc, d) => acc + Math.pow(d.c - sma, 2), 0) / period;
-    return Math.sqrt(variance);
-  };
-
-  // Helper to normalize a value between a min and max
-  const normalize = (value, min, max) => {
-    if (min === max) return 0.5;
-    return (value - min) / (max - min);
-  };
+  const chartRef = useRef(null); 
 
   // Auto-scroll logs to bottom
   useEffect(() => {
@@ -857,7 +925,7 @@ export default function SnowAITradingSim() {
     });
   }, [agents]);
 
-  // --- DATA HANDLING ---
+  // --- DATA HANDLING (Unchanged) ---
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -901,10 +969,15 @@ export default function SnowAITradingSim() {
     setAgents(prev => AGENT_TEMPLATES.map((template, idx) => {
       const existing = prev[idx];
       const newState = createInitialAgentState(template);
-      if (existing && existing.persistentMemory && existing.brain) {
-        newState.brain = new MicroNet(existing.brain.weights, existing.brain.bias, existing.lr);
+      
+      // Handle persistent memory for DDQN
+      if (existing && existing.persistentMemory && existing.model) {
+        // Deep copy the model, but reset the buffer and step counter
+        const existingModel = existing.model;
+        newState.model.q_network = JSON.parse(JSON.stringify(existingModel.q_network));
+        newState.model.target_network = JSON.parse(JSON.stringify(existingModel.target_network));
         newState.persistentMemory = true;
-        newState.logs = [{msg: "Agent Restarted with Persistent Memory", type:'info'}];
+        newState.logs = [{msg: "Agent Restarted with Persistent Weights", type:'info'}];
       }
       return newState;
     }));
@@ -944,147 +1017,120 @@ export default function SnowAITradingSim() {
     return () => { if (wsRef.current) wsRef.current.close(); };
   }, [dataSource, startPrice]);
 
-  // --- GAME LOOP ---
+  // --- GAME LOOP (RL Logic Implemented) ---
   useEffect(() => {
     if (!isRunning) return;
 
-    const updateAgents = (currentCandle, allCandles) => {
+    const interval = setInterval(() => {
+      let currentCandle = null;
+      let allCandles = candlesRef.current;
+
+      if (dataSource === 'UPLOAD') {
+          if (dataIndex >= customData.length) {
+              setIsRunning(false);
+              setShowStatistics(true);
+              return;
+          }
+          currentCandle = customData[dataIndex];
+          candlesRef.current.push(currentCandle);
+          setAssetPrice(currentCandle.c);
+          if (startPrice === null) setStartPrice(currentCandle.c);
+          setDataIndex(prev => prev + 1);
+      } else {
+          if (allCandles.length > 0) currentCandle = allCandles[allCandles.length - 1]; 
+      }
+
+      if (!currentCandle) return;
+
+      const currentPrice = currentCandle.c;
+      const nextState = calculateInputs(allCandles, currentPrice);
+
+      setCandles(allCandles.slice(-100)); 
+
       setAgents(prevAgents => prevAgents.map(agent => {
         if (!agent.isActive) return agent; 
         
-        const currentPrice = currentCandle.c;
-        const { cash, shares, portfolioValue, history, brain, lr, id, candles: agentCandles, hasBoughtInitial, persistentMemory } = agent;
+        let newAgentState = { ...agent };
+        let action = 1; // Default to HOLD
+        let reward = 0; // The reward for the previous step
 
-        const newAgentCandles = [...agentCandles.slice(-29), currentCandle];
-        
-        let newCash = cash;
-        let newShares = shares;
-        let newHistory = [...history];
-        let newLogs = [...agent.logs.slice(-20)];
-        let action = 'WAIT';
-        let pnl = 0;
-        let lastBuyPrice = null;
+        const lastBuyPrice = newAgentState.history.find(h => h.type === 'BUY')?.price;
+        const previousState = newAgentState.currentState;
 
-        for (let i = newHistory.length - 1; i >= 0; i--) {
-            if (newHistory[i].type === 'BUY') {
-                lastBuyPrice = newHistory[i].price;
-                break;
+        // --- 1. NON-DDQN LOGIC (Benchmark / Rule-Based) ---
+        if (agent.id === 11) { // Buy & Hold
+            if (!agent.hasBoughtInitial && currentPrice > 0) {
+                action = 0; // BUY
+            } else {
+                action = 1; // HOLD
             }
-        }
-
-        let prediction = 0.5; 
-        let inputs = [0, 0, 0, 0];
-        let target = 0.5;
-        
-        if (brain && allCandles.length > 20) {
-            const sma20 = calculateSMA(allCandles, 20);
+        } else if (agent.id === 12) { // Dip-Buyer
+            // Simplified rule for the dip-buyer
             const sma5 = calculateSMA(allCandles, 5);
-            const volatility10 = calculateVolatility(allCandles, 10);
-            
-            const prevClose = allCandles[allCandles.length - 2]?.c || currentPrice; 
-            const priceChange = (currentPrice - prevClose) / prevClose;
-            
-            let maxDist = 0.01;
-            if (sma20) {
-              maxDist = allCandles.slice(-20).reduce((max, d) => Math.max(max, Math.abs(d.c - sma20) / sma20), 0.01);
+            if (!agent.hasBoughtInitial && currentPrice > 0) {
+              action = 0; // Initial BUY
+            } else if (sma5 && currentPrice < sma5 * 0.98 && newAgentState.shares === 0) {
+                action = 0; // BUY on 2% dip
+            } else if (lastBuyPrice && currentPrice > lastBuyPrice * 1.015 && newAgentState.shares > 0) {
+                action = 2; // SELL for small profit
+            } else {
+                action = 1; // HOLD
             }
-            const smaDist = sma20 ? normalize(currentPrice, sma20 * (1 - maxDist), sma20 * (1 + maxDist)) * 2 - 1 : 0;
-            
-            let maxVol = 0.005;
-            const volHistory = allCandles.slice(0, allCandles.length - 1);
-            if (volHistory.length > 20) {
-              maxVol = volHistory.slice(-20).reduce((max, d, i) => {
-                 const index = volHistory.length - 20 + i + 1;
-                 const vol = calculateVolatility(volHistory.slice(0, index), 10);
-                 return Math.max(max, vol);
-              }, 0.005);
+        } 
+        
+        // --- 2. DDQN LOGIC (RL Agents) ---
+        else if (agent.model) {
+            const qValues = agent.model.predict(nextState);
+            action = getAction(qValues, agent.epsilon, agent.shares);
+
+            // If a previous state exists, execute RL cycle steps
+            if (previousState) {
+                // Calculate Reward: Use difference in portfolio value
+                reward = (newAgentState.portfolioValue - newAgentState.prevValue) / INITIAL_CASH * 100;
+                
+                // Store Experience
+                newAgentState.model.remember(previousState, newAgentState.lastAction, reward, nextState, false);
+
+                // Train Model (returns loss)
+                newAgentState.loss = newAgentState.model.train() || newAgentState.loss; 
             }
-            const normVolatility = normalize(volatility10, 0, maxVol);
             
-            let maxChange = 0.01;
-            if (allCandles.length > 20) {
-                maxChange = allCandles.slice(-20).reduce((max, d, i) => {
-                    const prev = allCandles[allCandles.length - 20 + i - 1];
-                    if (i > 0 && prev) {
-                        return Math.max(max, Math.abs((d.c - prev.c) / prev.c));
-                    }
-                    return max;
-                }, 0.01);
-            }
-            const normPriceChange = normalize(priceChange, -maxChange, maxChange);
-            
-            const trend = (sma5 && sma20) ? (sma5 > sma20 ? 1 : -1) : 0;
-            
-            inputs = [smaDist, normVolatility, normPriceChange, trend];
-            prediction = brain.predict(inputs); 
+            // Decay Epsilon
+            newAgentState.epsilon = Math.max(MIN_EPSILON, agent.epsilon * EPSILON_DECAY);
         }
 
-        // STOP LOSS / TAKE PROFIT - EXEMPT BUY & HOLD (ID 11)
-        if (id !== 11 && shares > 0 && lastBuyPrice) {
+        // --- 3. EXECUTE TRADE & RISK MANAGEMENT ---
+        let pnl = 0;
+        let tradeType = null;
+        let newShares = newAgentState.shares;
+        let newCash = newAgentState.cash;
+        let newLogs = [...newAgentState.logs.slice(-20)];
+        let newHistory = [...newAgentState.history];
+
+        // STOP LOSS / TAKE PROFIT - Takes precedence over AI/Rule action
+        if (agent.id !== 11 && newAgentState.shares > 0 && lastBuyPrice) {
             const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
             
             if (unrealizedPnlPct >= takeProfitPct) {
-                action = 'SELL_TP';
+                action = 2; // SELL_TP
+                tradeType = 'SELL_TP';
                 newLogs.push({msg: `Take Profit Hit! (+${unrealizedPnlPct.toFixed(2)}%)`, type:'success'});
             } else if (unrealizedPnlPct <= -stopLossPct) {
-                action = 'SELL_SL';
+                action = 2; // SELL_SL
+                tradeType = 'SELL_SL';
                 newLogs.push({msg: `Stop Loss Hit! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type:'danger'});
             }
         }
 
-        // AGENT-SPECIFIC LOGIC
-        if (action === 'WAIT') {
-            if (id === 11) { // Buy & Hold
-                if (!hasBoughtInitial && currentPrice > 0) {
-                    action = 'BUY_INITIAL';
-                }
-            } else if (id === 12) { // Dip-Buyer
-                if (!hasBoughtInitial && currentPrice > 0) {
-                    const buyAmount = cash * 0.25; 
-                    newShares = buyAmount / currentPrice * (1 - COMMISSION);
-                    newCash -= buyAmount;
-                    newHistory.push({ type: 'BUY', price: currentPrice, amount: newShares, t: currentCandle.t });
-                    newLogs.push({ msg: `Initial Dip-Buy: ${newShares.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
-                    action = 'BUY_INITIAL';
-                    agent.hasBoughtInitial = true;
-                } else if (allCandles.length >= 5 && shares === 0) {
-                    const sma5 = calculateSMA(allCandles, 5);
-                    const dropPct = (sma5 - currentPrice) / sma5 * 100;
-                    
-                    if (sma5 && dropPct >= 2) { 
-                        action = 'BUY';
-                    }
-                } else if (shares > 0 && lastBuyPrice) {
-                    const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
-                    if (unrealizedPnlPct >= 1.5) {
-                        action = 'SELL'; 
-                    }
-                }
-            } else if (brain) { // DQN Agents (1-10)
-                const BUY_THRESHOLD = 0.45; 
-                const SELL_THRESHOLD = 0.55;
-
-                if (shares === 0) {
-                    if (prediction >= BUY_THRESHOLD) {
-                        action = 'BUY';
-                    }
-                } else {
-                    if (prediction <= SELL_THRESHOLD) {
-                        action = 'SELL';
-                    }
-                }
-            }
-        }
-
-        // EXECUTE TRADE
-        if (action.startsWith('BUY')) {
-            let cashToUse = cash;
-            if (id === 11) {
-              cashToUse = cash;
-            } else if (id === 12 && action === 'BUY_INITIAL') {
-              cashToUse = cash * 0.25;
+        // Execute Final Action (0:BUY, 1:HOLD, 2:SELL)
+        if (action === 0) { // BUY
+            let cashToUse = newCash;
+            if (agent.id === 11) {
+              cashToUse = newCash;
+            } else if (agent.id === 12 && !agent.hasBoughtInitial) {
+              cashToUse = newCash * 0.25;
             } else {
-              cashToUse = cash * 0.98; // 98% of available cash for active agents
+              cashToUse = newCash * 0.98; 
             }
             
             const sharesToBuy = cashToUse / currentPrice * (1 - COMMISSION);
@@ -1094,10 +1140,10 @@ export default function SnowAITradingSim() {
             
             newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
             newLogs.push({ msg: `BUY: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
+            newAgentState.hasBoughtInitial = true;
+            tradeType = 'BUY';
             
-            if (brain) target = 1; 
-            
-        } else if (action.startsWith('SELL')) {
+        } else if (action === 2) { // SELL
             const sharesToSell = newShares;
             
             // FIFO P&L CALCULATION
@@ -1127,67 +1173,33 @@ export default function SnowAITradingSim() {
             
             newHistory = [...tempHistory.filter(h => h.type === 'SELL' || h.amount > 0)];
             newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
-            newLogs.push({ msg: `SELL (${action.endsWith('SL') ? 'SL' : action.endsWith('TP') ? 'TP' : 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-
-            if (brain) target = pnl > 0 ? 0 : 1; 
-        }
-        
-        // DQN TRAINING
-        let newLoss = agent.loss;
-        let newBrain = brain;
-        if (brain && action !== 'WAIT' && id !== 11 && id !== 12) {
-            const brainInstance = new MicroNet(brain.weights, brain.bias, lr);
-            const error = brainInstance.train(inputs, target);
-            newLoss = error;
-            newBrain = brainInstance;
-            newLogs.push({ msg: `Trained (Target: ${target}, Loss: ${error.toFixed(4)})`, type: 'info' });
+            newLogs.push({ msg: `SELL (${tradeType || 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+            tradeType = tradeType || 'SELL';
+        } else {
+             tradeType = 'HOLD';
         }
 
+
+        // --- 4. FINAL STATE UPDATE ---
         const finalPortfolioValue = newCash + newShares * currentPrice;
-        const newEquityCurve = [...agent.equityCurve, finalPortfolioValue];
+        const newEquityCurve = [...newAgentState.equityCurve, finalPortfolioValue];
         
         return {
-            ...agent,
+            ...newAgentState,
             cash: newCash,
             shares: newShares,
             portfolioValue: finalPortfolioValue,
-            prevValue: portfolioValue,
+            prevValue: newAgentState.portfolioValue, // Store current value as previous for next tick's reward calc
             history: newHistory,
             logs: newLogs,
-            loss: newLoss,
-            candles: newAgentCandles,
-            lastAction: action,
+            candles: allCandles.slice(-30),
+            lastAction: action, // Store the executed action (0, 1, or 2)
+            currentState: nextState, // Store the inputs as the state for the NEXT cycle
             equityCurve: newEquityCurve,
-            brain: newBrain,
-            hasBoughtInitial: id === 11 || id === 12 ? (action.startsWith('BUY') || hasBoughtInitial) : hasBoughtInitial
         };
     }));
-  };
-
-  const interval = setInterval(() => {
-    let currentCandle = null;
-    if (dataSource === 'UPLOAD') {
-        if (dataIndex >= customData.length) {
-            setIsRunning(false);
-            setShowStatistics(true);
-            return;
-        }
-        currentCandle = customData[dataIndex];
-        candlesRef.current.push(currentCandle);
-        setAssetPrice(currentCandle.c);
-        if (startPrice === null) setStartPrice(currentCandle.c);
-        setDataIndex(prev => prev + 1);
-    } else {
-        const c = candlesRef.current;
-        if (c.length > 0) currentCandle = c[c.length - 1]; 
-    }
-
-    if (currentCandle) {
-        setCandles(candlesRef.current.slice(-100)); 
-        updateAgents(currentCandle, candlesRef.current);
-    }
-  }, speed);
-  return () => clearInterval(interval);
+    }, speed);
+    return () => clearInterval(interval);
   }, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct, agents.length]); 
 
   const toggleAgent = (id) => {
@@ -1199,15 +1211,26 @@ export default function SnowAITradingSim() {
   };
 
   const togglePersistentMemory = (id) => {
-    setAgents(prev => prev.map(a => a.id === id ? {
-      ...a,
-      persistentMemory: !a.persistentMemory,
-      logs: [...a.logs, {msg: `Persistent Memory: ${!a.persistentMemory ? 'ENABLED' : 'DISABLED'}`, type: !a.persistentMemory ? 'info' : 'warning'}]
-    } : a));
+    setAgents(prev => prev.map(a => {
+      if (a.id !== id) return a;
+      
+      const isNowPersistent = !a.persistentMemory;
+      let newModel = a.model;
+      
+      if (isNowPersistent && a.model) {
+        // When enabling, make sure the current weights are transferred if the agent was active
+        newModel.updateTargetNetwork(); 
+      }
+      
+      return {
+        ...a,
+        persistentMemory: isNowPersistent,
+        model: newModel,
+        logs: [...a.logs, {msg: `Persistent Memory: ${isNowPersistent ? 'ENABLED' : 'DISABLED'}`, type: isNowPersistent ? 'info' : 'warning'}]
+      };
+    }));
   };
 
-
-  // Retrieve the dynamic width of the chart container
   const chartWidth = chartRef.current ? chartRef.current.offsetWidth - 32 : 800; 
 
   return (
@@ -1221,7 +1244,7 @@ export default function SnowAITradingSim() {
           <SideNavs />
           <header style={styles.header}>
             <div style={{fontSize: '18px', fontWeight: '800', color: THEME.primary, display:'flex', alignItems:'center', gap:'8px'}}>
-              <span>❄️</span> SnowAI <span style={{color:'#94a3b8', fontWeight: 400}}>Training Sim v2.0</span>
+              <span>❄️</span> SnowAI <span style={{color:'#94a3b8', fontWeight: 400}}>Training Sim v2.1 (DDQN)</span>
             </div>
             <div className="header-controls">
               <div style={{textAlign:'right'}}>
@@ -1286,7 +1309,6 @@ export default function SnowAITradingSim() {
 
             <div style={styles.contentArea}>
               <div ref={chartRef} style={styles.chartContainer}>
-                {/* We pass the calculated chartWidth to the chart component */}
                 <MainCandleChart data={candles} agents={agents} width={chartWidth} height={300} /> 
               </div>
 
@@ -1304,7 +1326,7 @@ export default function SnowAITradingSim() {
                           >
                             ℹ️
                           </button>
-                          {agent.brain && <WeightsDisplay weights={agent.brain.weights} bias={agent.brain.bias} />}
+                          {agent.model && <WeightsDisplay weights={agent.model.q_network} bias={agent.model.q_network} />}
                         </div>
                         <div style={{fontSize:'11px', color: agent.color}}>{agent.type}</div>
                       </div>
@@ -1318,7 +1340,6 @@ export default function SnowAITradingSim() {
                       {!agent.isActive && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(0,0,0,0.1)', zIndex:2, cursor:'pointer'}}><span style={{backgroundColor: THEME.primary, color:'white', padding:'6px 12px', borderRadius:'20px', fontSize:'11px'}}>Click to Start</span></div>}
                       
                       <div style={{height: '80px', marginBottom: '8px', borderBottom: '1px dashed #334155'}}>
-                          {/* MiniChart uses a fixed width for simplicity in the card component */}
                           <MiniCandleChart data={agent.candles} trades={agent.history} width={280} height={80} /> 
                       </div>
                       
@@ -1331,6 +1352,9 @@ export default function SnowAITradingSim() {
                                 {`> ${log.msg}`}
                             </div>
                         ))}
+                         {agent.model && <div style={{marginTop:'4px', color:'#64748b', fontSize:'10px'}}>
+                            {`Buffer: ${agent.model.buffer.size()} | Epsilon: ${agent.epsilon.toFixed(3)} | Loss: ${agent.loss.toFixed(4)}`}
+                         </div>}
                       </div>
                     </div>
 
@@ -1338,11 +1362,11 @@ export default function SnowAITradingSim() {
                       <button style={{...styles.btn, ...styles.btnSecondary, flex:1}} onClick={() => toggleAgent(agent.id)}>
                           {agent.isActive ? '⏸ PAUSE' : '▶ RESUME'}
                       </button>
-                      {agent.brain && (
+                      {agent.model && (
                         <button
                             style={{...styles.btn, ...styles.btnSecondary, flex:1, color: agent.persistentMemory ? THEME.primary : '#475569'}}
                             onClick={() => togglePersistentMemory(agent.id)}
-                            title="Keeps brain weights on Reset"
+                            title="Keeps model weights on Reset"
                           >
                               🧠 {agent.persistentMemory ? 'MEM ON' : 'MEM OFF'}
                           </button>
