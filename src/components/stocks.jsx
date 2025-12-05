@@ -44,6 +44,8 @@ export default function SnowAIStockScreener() {
         { name: "Moderna", symbol: "MRNA", category: "Healthcare" },
         { name: "AbbVie", symbol: "ABBV", category: "Healthcare" },
         { name: "Eli Lilly", symbol: "LLY", category: "Healthcare" },
+        { name: "Biogen", symbol: "BIIB", category: "Healthcare" },
+        { name: "Cencora", symbol: "COR", category: "Healthcare" },
         
         // Semiconductor & Hardware
         { name: "Intel", symbol: "INTC", category: "Semiconductors" },
@@ -57,6 +59,7 @@ export default function SnowAIStockScreener() {
         { name: "Chevron", symbol: "CVX", category: "Energy" },
         { name: "ConocoPhillips", symbol: "COP", category: "Energy" },
         { name: "NextEra Energy", symbol: "NEE", category: "Energy" },
+        { name: "Devon Energy", symbol: "DVN", category: "Energy" },
         
         // Entertainment & Media
         { name: "Disney", symbol: "DIS", category: "Media" },
@@ -74,6 +77,7 @@ export default function SnowAIStockScreener() {
         { name: "General Motors", symbol: "GM", category: "Automotive" },
         { name: "Rivian", symbol: "RIVN", category: "Automotive" },
         { name: "Lucid", symbol: "LCID", category: "Automotive" },
+        { name: "NIO", symbol: "NIO", category: "Automotive" },
         
         // Aerospace & Defense
         { name: "Boeing", symbol: "BA", category: "Aerospace" },

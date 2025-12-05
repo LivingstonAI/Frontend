@@ -23,16 +23,16 @@ export default function AICouncil() {
             'USDCNH', 'GBPAUD', 'EURCHF', 'AUDCAD', 'GBPCAD', 'EURCAD'
         ],
         'US Stocks': [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META', 'JPMC',
-            'BRK.B', 'JNJ', 'V', 'WMT', 'PG', 'DIS', 'NFLX', 'ADBE',
-            'BAC', 'C', 'GS', 'UNH', 'HD', 'KO', 'PEP', 'MCD', 'NKE',
-            'INTC', 'ORCL', 'IBM', 'PYPL', 'CRM', 'BA', 'CAT',
-            'CVX', 'XOM',
-            // Newly added
-            'LLY',   // Eli Lilly & Company
-            'COR',   // Cencora
-            'CSCO'   // Cisco Systems (already reinforced here)
-        ],
+                'AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM',
+                'BRK.B','JNJ','V','WMT','PG','DIS','NFLX','ADBE',
+                'BAC','C','GS','UNH','HD','KO','PEP','MCD','NKE',
+                'INTC','ORCL','IBM','PYPL','CRM','BA','CAT',
+                'CVX','XOM','LLY','COR','CSCO','BIIB','DVN','NIO',
+                'WFC','MS','MA','AXP','TGT','SBUX','PFE','MRNA','ABBV',
+                'AMD','QCOM','AVGO','TXN','COP','NEE','CMCSA','WBD',
+                'NOW','F','GM','RIVN','LCID','LMT','SQ','SHOP','COIN'
+                ],
+
         'Indices': [
             'SPY', 'QQQ', 'IWM', 'DIA', 'VTI', 'EEM', 'FXI', 'FTSE', 
             'DAX', 'CAC40', 'NIKKEI', 'HSI'

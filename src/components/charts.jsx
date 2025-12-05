@@ -613,7 +613,10 @@ export default function Charts() {
             { symbol: 'UNH', name: 'UnitedHealth Group Incorporated', binanceSymbol: null, yfinanceSymbol: 'UNH' },
             { symbol: 'PEP', name: 'PepsiCo Inc.', binanceSymbol: null, yfinanceSymbol: 'PEP' },
             { symbol: 'MCD', name: 'McDonald\'s Corporation', binanceSymbol: null, yfinanceSymbol: 'MCD' },
-            { symbol: 'CAT', name: 'Caterpillar Inc.', binanceSymbol: null, yfinanceSymbol: 'CAT' }
+            { symbol: 'CAT', name: 'Caterpillar Inc.', binanceSymbol: null, yfinanceSymbol: 'CAT' },
+            { symbol: 'BIIB', name: 'Biogen Inc.', binanceSymbol: null, yfinanceSymbol: 'BIIB' },
+            { symbol: 'DVN', name: 'Devon Energy Corporation', binanceSymbol: null, yfinanceSymbol: 'DVN' },
+            { symbol: 'NIO', name: 'NIO Inc.', binanceSymbol: null, yfinanceSymbol: 'NIO' }
         ],
 
         'Commodities': [
