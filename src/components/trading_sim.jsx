@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Header from "./header";
-import SideNavs from "./side_navs";
+import React, { useState, useEffect, useRef } from 'react';
+import Header from "./header"; // Assuming this component exists
+import SideNavs from "./side_navs"; // Assuming this component exists
 
 // --- CONFIGURATION & HELPERS ---
 
@@ -200,6 +200,9 @@ class MicroNet {
 const MainCandleChart = ({ data, agents, width, height }) => {
   const displayData = data.slice(-100); 
 
+  // Use the actual container width for responsivity, even if 800 is passed as a default
+  const actualWidth = width; 
+
   if (!displayData || displayData.length < 2) return (
     <div style={{color: '#94a3b8', padding:'40px', textAlign:'center', fontSize:'14px'}}>
         Waiting for market data...
@@ -210,23 +213,23 @@ const MainCandleChart = ({ data, agents, width, height }) => {
   const minPrice = Math.min(...displayData.map(d => d.l));
   const range = maxPrice - minPrice || 1;
   const scaleY = (p) => height - ((p - minPrice) / range) * height;
-  const candleWidth = (width / displayData.length) * 0.7;
+  const candleWidth = (actualWidth / displayData.length) * 0.7;
 
   return (
-    <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{overflow:'visible'}}>
+    <svg width="100%" height="100%" viewBox={`0 0 ${actualWidth} ${height}`} style={{overflow:'visible', maxWidth: '100%'}}>
       {[...Array(5)].map((_, i) => {
         const price = minPrice + (range / 4) * i;
         const y = scaleY(price);
         return (
           <g key={i}>
-            <line x1="0" y1={y} x2={width} y2={y} stroke="#334155" strokeDasharray="2,2" strokeOpacity="0.3" />
-            <text x={width + 5} y={y + 3} fontSize="10" fill="#64748b">{price.toFixed(2)}</text>
+            <line x1="0" y1={y} x2={actualWidth} y2={y} stroke="#334155" strokeDasharray="2,2" strokeOpacity="0.3" />
+            <text x={actualWidth + 5} y={y + 3} fontSize="10" fill="#64748b">{price.toFixed(2)}</text>
           </g>
         );
       })}
 
       {displayData.map((d, i) => {
-        const x = i * (width / displayData.length);
+        const x = i * (actualWidth / displayData.length);
         const yOpen = scaleY(d.o);
         const yClose = scaleY(d.c);
         const yHigh = scaleY(d.h);
@@ -247,7 +250,7 @@ const MainCandleChart = ({ data, agents, width, height }) => {
           if (globalIndex === -1 || globalIndex < data.length - 100) return null;
           
           const localIndex = globalIndex - (data.length - displayData.length);
-          const x = localIndex * (width / displayData.length) + (candleWidth / 2);
+          const x = localIndex * (actualWidth / displayData.length) + (candleWidth / 2);
           const y = scaleY(t.price);
           
           return (
@@ -283,7 +286,7 @@ const MiniCandleChart = ({ data, trades, width, height }) => {
   const candleWidth = (width / data.length) * 0.8;
 
   return (
-    <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{overflow:'visible'}}>
+    <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{overflow:'visible', maxWidth: '100%'}}>
       {data.map((d, i) => {
         const x = i * (width / data.length);
         const isGreen = d.c >= d.o;
@@ -334,7 +337,7 @@ const EquityCurve = ({ equityData, color, width, height }) => {
   );
 };
 
-// --- STATISTICS MODAL ---
+// --- STATISTICS MODAL (Omitted for brevity, assuming functional) ---
 const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
   // Calculate statistics
   const agentStats = agents.map(agent => {
@@ -445,7 +448,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                         {agent.returns >= 0 ? '+' : ''}{agent.returns.toFixed(2)}%
                       </td>
                       <td style={{padding:'10px', fontWeight:'600'}}>{fmt(agent.portfolioValue)}</td>
-                      <td style={{padding:'10px', color: agent.returns >= 0 ? THEME.success : THEME.danger}}>
+                      <td style={{padding:'10px', color: agent.returns >= 0 ? THEME.success : THEME.danger}>
                         {fmt(agent.portfolioValue - INITIAL_CASH)}
                       </td>
                     </tr>
@@ -481,7 +484,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
   );
 };
 
-// --- MODEL INFO MODAL ---
+// --- MODEL INFO MODAL (Omitted for brevity, assuming functional) ---
 const ModelInfoModal = ({ agent, onClose }) => {
   if (!agent) return null;
   
@@ -602,8 +605,8 @@ const styles = {
     flex: 1,
     overflow: 'hidden',
     flexDirection: 'row',
-    display: 'flex', // Added display flex for main content area layout
-    height: 'calc(100vh - 60px)', // Adjust height
+    display: 'flex', 
+    height: 'calc(100vh - 60px)', 
   },
   sidebar: {
     width: '300px',
@@ -631,7 +634,8 @@ const styles = {
     padding: '16px',
     height: '320px',
     border: `1px solid ${THEME.border}`,
-    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+    position: 'relative', // Added for MainCandleChart scaling
   },
   agentGrid: {
     display: 'grid',
@@ -748,6 +752,7 @@ const styles = {
   }
 };
 
+// --- MOBILE RESPONSIVE STYLES (Injected via <style> tag) ---
 const mobileStyles = `@media (max-width: 768px) {
   .main-wrapper {
     flex-direction: column !important;
@@ -768,6 +773,11 @@ const mobileStyles = `@media (max-width: 768px) {
   .modal-content {
     width: 95% !important;
     max-height: 90vh !important;
+  }
+  /* Ensure the MainCandleChart container scales and charts use 100% */
+  ${styles.chartContainer} {
+    height: 250px; 
+    padding: 8px;
   }
 }`;
 
@@ -798,7 +808,8 @@ export default function SnowAITradingSim() {
     history: [],
     logs: [{msg: "Agent Activated. Monitoring markets...", type:'info'}],
     loss: 0,
-    brain: (template.id === 11 || template.lr === 0) ? null : new MicroNet(null, null, template.lr),
+    // Ensure MicroNet is only initialized if LR > 0 and not the benchmark agent
+    brain: (template.id === 11 || template.lr === 0) ? null : new MicroNet(null, null, template.lr), 
     candles: [],
     lastAction: 'WAIT',
     hasBoughtInitial: (template.id === 11 || template.id === 12) ? false : true,
@@ -810,6 +821,7 @@ export default function SnowAITradingSim() {
   const wsRef = useRef(null);
   const candlesRef = useRef([]);
   const logRefs = useRef({});
+  const chartRef = useRef(null); // Reference for dynamic chart width
 
   // Helper to calculate Simple Moving Average (SMA)
   const calculateSMA = (data, period) => {
@@ -901,7 +913,6 @@ export default function SnowAITradingSim() {
   useEffect(() => {
     if (dataSource === 'BINANCE') {
       setAssetName('BTC');
-      // Close previous connection if it exists
       if (wsRef.current) wsRef.current.close(); 
       wsRef.current = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1s');
       
@@ -909,21 +920,16 @@ export default function SnowAITradingSim() {
         const msg = JSON.parse(event.data);
         if (msg.e === 'kline') {
           const k = msg.k;
-          // Use k.t as the timestamp for comparison/identification
           const newCandle = { t: k.t, o: parseFloat(k.o), h: parseFloat(k.h), l: parseFloat(k.l), c: parseFloat(k.c) };
           const current = candlesRef.current;
           
-          // Check if it's an update to the last candle (k.x = true for last)
           if (k.x && current.length > 0 && current[current.length - 1].t === newCandle.t) {
             current[current.length - 1] = newCandle;
           } else if (k.x) {
-             // Candle closed and a new one might be starting. For 1s, we just push
              current.push(newCandle);
           } else if (current.length === 0 || current[current.length - 1].t !== newCandle.t) {
-             // New, incomplete candle
              current.push(newCandle);
           } else {
-             // Update incomplete candle
              current[current.length - 1] = newCandle;
           }
 
@@ -975,41 +981,40 @@ export default function SnowAITradingSim() {
             const sma5 = calculateSMA(allCandles, 5);
             const volatility10 = calculateVolatility(allCandles, 10);
             
-            // Fix index access and ensure data exists
             const prevClose = allCandles[allCandles.length - 2]?.c || currentPrice; 
             const priceChange = (currentPrice - prevClose) / prevClose;
             
-            // Normalize SMA Distance
             let maxDist = 0.01;
             if (sma20) {
               maxDist = allCandles.slice(-20).reduce((max, d) => Math.max(max, Math.abs(d.c - sma20) / sma20), 0.01);
             }
             const smaDist = sma20 ? normalize(currentPrice, sma20 * (1 - maxDist), sma20 * (1 + maxDist)) * 2 - 1 : 0;
             
-            // Normalize Volatility
+            let maxVol = 0.005;
             const volHistory = allCandles.slice(0, allCandles.length - 1);
-            const maxVol = volHistory.length > 20 ? volHistory.slice(-20).reduce((max, d, i) => {
+            if (volHistory.length > 20) {
+              maxVol = volHistory.slice(-20).reduce((max, d, i) => {
                  const index = volHistory.length - 20 + i + 1;
                  const vol = calculateVolatility(volHistory.slice(0, index), 10);
                  return Math.max(max, vol);
-            }, 0.005) : 0.005;
-
+              }, 0.005);
+            }
             const normVolatility = normalize(volatility10, 0, maxVol);
             
-            // Normalize Price Change
-            const maxChange = allCandles.length > 20 ? allCandles.slice(-20).reduce((max, d, i) => {
-                 const prev = allCandles[allCandles.length - 20 + i - 1];
-                 if (i > 0 && prev) {
-                   return Math.max(max, Math.abs((d.c - prev.c) / prev.c));
-                 }
-                 return max;
-            }, 0.01) : 0.01;
-
+            let maxChange = 0.01;
+            if (allCandles.length > 20) {
+                maxChange = allCandles.slice(-20).reduce((max, d, i) => {
+                    const prev = allCandles[allCandles.length - 20 + i - 1];
+                    if (i > 0 && prev) {
+                        return Math.max(max, Math.abs((d.c - prev.c) / prev.c));
+                    }
+                    return max;
+                }, 0.01);
+            }
             const normPriceChange = normalize(priceChange, -maxChange, maxChange);
             
             const trend = (sma5 && sma20) ? (sma5 > sma20 ? 1 : -1) : 0;
             
-            // Inputs: SMA Distance, Volatility, Price Change, Trend Direction (Normalized to [-1, 1] or [0, 1])
             inputs = [smaDist, normVolatility, normPriceChange, trend];
             prediction = brain.predict(inputs); 
         }
@@ -1035,7 +1040,6 @@ export default function SnowAITradingSim() {
                 }
             } else if (id === 12) { // Dip-Buyer
                 if (!hasBoughtInitial && currentPrice > 0) {
-                    // Initial 25% buy
                     const buyAmount = cash * 0.25; 
                     newShares = buyAmount / currentPrice * (1 - COMMISSION);
                     newCash -= buyAmount;
@@ -1044,26 +1048,19 @@ export default function SnowAITradingSim() {
                     action = 'BUY_INITIAL';
                     agent.hasBoughtInitial = true;
                 } else if (allCandles.length >= 5 && shares === 0) {
-                    // Main Dip-Buy logic
                     const sma5 = calculateSMA(allCandles, 5);
                     const dropPct = (sma5 - currentPrice) / sma5 * 100;
                     
-                    if (sma5 && dropPct >= 2) { // Buy when price drops 2% below 5-period SMA
+                    if (sma5 && dropPct >= 2) { 
                         action = 'BUY';
                     }
                 } else if (shares > 0 && lastBuyPrice) {
-                    // Take profit on rebound (Dip-Buyer)
                     const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
                     if (unrealizedPnlPct >= 1.5) {
                         action = 'SELL'; 
                     }
                 }
             } else if (brain) { // DQN Agents (1-10)
-                // Using 45% confidence for BUY and 55% for SELL as requested (0.5 is neutral)
-                const buyConfidence = 0.5 + (agent.lr * 10) * 0.05; // Base 0.5 + small factor based on LR
-                const sellConfidence = 0.5 - (agent.lr * 10) * 0.05; 
-                
-                // Use fixed confidence for simplicity as requested: 45% Buy, 55% Sell
                 const BUY_THRESHOLD = 0.45; 
                 const SELL_THRESHOLD = 0.55;
 
@@ -1098,16 +1095,15 @@ export default function SnowAITradingSim() {
             newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
             newLogs.push({ msg: `BUY: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
             
-            if (brain) target = 1; // Reward: Price went up after buy (Target high prediction)
+            if (brain) target = 1; 
             
         } else if (action.startsWith('SELL')) {
             const sharesToSell = newShares;
             
-            // IMPROVED P&L CALCULATION (FIFO)
+            // FIFO P&L CALCULATION
             let totalCost = 0;
             let remainingShares = sharesToSell;
             
-            // Calculate actual cost basis from buy history (FIFO method)
             let tempHistory = [];
             for (let i = 0; i < newHistory.length; i++) {
                 const item = newHistory[i];
@@ -1116,7 +1112,7 @@ export default function SnowAITradingSim() {
                     totalCost += sharesFromThisBuy * item.price / (1 - COMMISSION);
                     remainingShares -= sharesFromThisBuy;
                     if (sharesFromThisBuy < item.amount) {
-                      tempHistory.push({...item, amount: item.amount - sharesFromThisBuy}); // Partial sale, keep remainder
+                      tempHistory.push({...item, amount: item.amount - sharesFromThisBuy}); 
                     }
                 } else {
                     tempHistory.push(item);
@@ -1129,11 +1125,11 @@ export default function SnowAITradingSim() {
             newCash += saleAmount;
             newShares = 0;
             
-            newHistory = [...tempHistory.filter(h => h.type === 'SELL' || h.amount > 0)]; // Clean up previous history from full buys
+            newHistory = [...tempHistory.filter(h => h.type === 'SELL' || h.amount > 0)];
             newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
             newLogs.push({ msg: `SELL (${action.endsWith('SL') ? 'SL' : action.endsWith('TP') ? 'TP' : 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
 
-            if (brain) target = pnl > 0 ? 0 : 1; // Reward profitable sells (Target low prediction), Punish losing sells (Target high prediction - reverse logic for DQN selling)
+            if (brain) target = pnl > 0 ? 0 : 1; 
         }
         
         // DQN TRAINING
@@ -1183,18 +1179,16 @@ export default function SnowAITradingSim() {
         setDataIndex(prev => prev + 1);
     } else {
         const c = candlesRef.current;
-        // In live mode, we just take the last (potentially incomplete) candle
         if (c.length > 0) currentCandle = c[c.length - 1]; 
     }
 
     if (currentCandle) {
-        // Pass a snapshot of all candles for SMA/Volatility calculation, but only show the last 100
         setCandles(candlesRef.current.slice(-100)); 
         updateAgents(currentCandle, candlesRef.current);
     }
   }, speed);
   return () => clearInterval(interval);
-  }, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct, agents.length]); // Dependencies for useEffect
+  }, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct, agents.length]); 
 
   const toggleAgent = (id) => {
     setAgents(prev => prev.map(a => a.id === id ? {
@@ -1212,12 +1206,14 @@ export default function SnowAITradingSim() {
     } : a));
   };
 
-  // const getAgentDetail = () => agents.find(a => a.id === selectedAgentId); // Unused
+
+  // Retrieve the dynamic width of the chart container
+  const chartWidth = chartRef.current ? chartRef.current.offsetWidth - 32 : 800; 
 
   return (
     <>
       <style>{mobileStyles}</style>
-      <div style={styles.app}> {/* Changed outer div to use styles.app */}
+      <div style={styles.app}> 
         <div className="header">
           <Header />
         </div>
@@ -1227,7 +1223,7 @@ export default function SnowAITradingSim() {
             <div style={{fontSize: '18px', fontWeight: '800', color: THEME.primary, display:'flex', alignItems:'center', gap:'8px'}}>
               <span>❄️</span> SnowAI <span style={{color:'#94a3b8', fontWeight: 400}}>Training Sim v2.0</span>
             </div>
-            <div className="header-controls" style={{display:'flex', gap:'24px', alignItems:'center'}}>
+            <div className="header-controls">
               <div style={{textAlign:'right'}}>
                 <div style={styles.label}>{assetName} PRICE</div>
                 <div style={{fontSize:'16px', fontWeight:'700', fontFamily:'monospace'}}>{fmt(assetPrice)}</div>
@@ -1237,7 +1233,7 @@ export default function SnowAITradingSim() {
                 onClick={() => setShowStatistics(true)}
                 disabled={candles.length === 0}
               >
-                📊 STATISTICS
+                📊 STATS
               </button>
               <button 
                 style={{...styles.btn, ...(isRunning ? {backgroundColor: THEME.danger, color:'white'} : styles.btnPrimary), width:'120px'}} 
@@ -1289,8 +1285,9 @@ export default function SnowAITradingSim() {
             </div>
 
             <div style={styles.contentArea}>
-              <div style={styles.chartContainer}>
-                <MainCandleChart data={candles} agents={agents} width={800} height={300} />
+              <div ref={chartRef} style={styles.chartContainer}>
+                {/* We pass the calculated chartWidth to the chart component */}
+                <MainCandleChart data={candles} agents={agents} width={chartWidth} height={300} /> 
               </div>
 
               <div className="agent-grid" style={styles.agentGrid}>
@@ -1321,7 +1318,8 @@ export default function SnowAITradingSim() {
                       {!agent.isActive && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'rgba(0,0,0,0.1)', zIndex:2, cursor:'pointer'}}><span style={{backgroundColor: THEME.primary, color:'white', padding:'6px 12px', borderRadius:'20px', fontSize:'11px'}}>Click to Start</span></div>}
                       
                       <div style={{height: '80px', marginBottom: '8px', borderBottom: '1px dashed #334155'}}>
-                          <MiniCandleChart data={agent.candles} trades={agent.history} width={280} height={80} />
+                          {/* MiniChart uses a fixed width for simplicity in the card component */}
+                          <MiniCandleChart data={agent.candles} trades={agent.history} width={280} height={80} /> 
                       </div>
                       
                       <div 
