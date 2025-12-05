@@ -850,12 +850,14 @@ const styles = {
 const mobileStyles = `@media (max-width: 768px) {
   .main-wrapper {
     flex-direction: column !important;
+    height: auto !important;
   }
   .sidebar {
     width: 100% !important;
     border-right: none !important;
     border-bottom: 1px solid #e2e8f0 !important;
-    max-height: 300px;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
   .agent-grid {
     grid-template-columns: 1fr !important;
