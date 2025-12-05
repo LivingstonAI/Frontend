@@ -338,6 +338,7 @@ export default function AlertBot() {
     ]);
 
     const [stocks] = useState([      // NEW ARRAY
+        // Tech Giants
         'AAPL',   // Apple
         'MSFT',   // Microsoft
         'GOOGL',  // Google
@@ -345,13 +346,87 @@ export default function AlertBot() {
         'TSLA',   // Tesla
         'META',   // Meta
         'NVDA',   // Nvidia
+        'NFLX',   // Netflix
+
+        // Financial Services
         'JPM',    // JPMorgan
+        'BAC',    // Bank of America
+        'C',      // Citigroup
+        'GS',     // Goldman Sachs
+        'WFC',    // Wells Fargo
+        'MS',     // Morgan Stanley
         'V',      // Visa
-        'WMT',     // Walmart
-        'COR',     // Cencora
-        'CSCO',    // Cisco Systems
-        'JNJ'     // Johnson & Johnson
-    ]);
+        'MA',     // Mastercard
+        'AXP',    // American Express
+        'BRK.B',  // Berkshire Hathaway
+
+        // Consumer & Retail
+        'WMT',    // Walmart
+        'TGT',    // Target
+        'HD',     // Home Depot
+        'NKE',    // Nike
+        'SBUX',   // Starbucks
+        'MCD',    // McDonald's
+        'KO',     // Coca-Cola
+        'PEP',    // PepsiCo
+        'PG',     // Procter & Gamble
+
+        // Healthcare & Pharma
+        'JNJ',    // Johnson & Johnson
+        'PFE',    // Pfizer
+        'UNH',    // UnitedHealth
+        'MRNA',   // Moderna
+        'ABBV',   // AbbVie
+        'LLY',    // Eli Lilly
+        'BIIB',   // Biogen
+        'COR',    // Cencora
+
+        // Semiconductor & Hardware
+        'INTC',   // Intel
+        'AMD',    // AMD
+        'QCOM',   // Qualcomm
+        'AVGO',   // Broadcom
+        'TXN',    // Texas Instruments
+        'CSCO',   // Cisco Systems
+
+        // Energy
+        'XOM',    // ExxonMobil
+        'CVX',    // Chevron
+        'COP',    // ConocoPhillips
+        'NEE',    // NextEra Energy
+        'DVN',    // Devon Energy
+
+        // Entertainment & Media
+        'DIS',    // Disney
+        'CMCSA',  // Comcast
+        'WBD',    // Warner Bros Discovery
+
+        // Software & Cloud
+        'CRM',    // Salesforce
+        'ADBE',   // Adobe
+        'ORCL',   // Oracle
+        'NOW',    // ServiceNow
+        'IBM',    // IBM
+
+        // Automotive
+        'F',      // Ford
+        'GM',     // General Motors
+        'RIVN',   // Rivian
+        'LCID',   // Lucid
+        'NIO',    // NIO
+
+        // Aerospace & Defense
+        'BA',     // Boeing
+        'LMT',    // Lockheed Martin
+        'CAT',    // Caterpillar
+
+        // E-commerce & Fintech
+        'PYPL',   // PayPal
+        'SQ',     // Square (Block)
+        'SHOP',   // Shopify
+        'COIN'    // Coinbase
+        ]);
+
 
     // 0818223955
 
