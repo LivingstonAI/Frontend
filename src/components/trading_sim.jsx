@@ -901,7 +901,7 @@ const AGENT_TEMPLATES = [
   }
 ];
 
-const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+// const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
 
 // --- HELPER CLASSES ---
 
