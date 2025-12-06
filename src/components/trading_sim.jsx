@@ -1904,19 +1904,41 @@ export default function SnowAITradingSim() {
         // STRICT STOP LOSS / TAKE PROFIT CHECK (OVERRIDES AI DECISION)
         // This check happens FIRST and AI cannot override it
         let forcedSell = false;
+        let forcedCloseLong = false;
+        let forcedCloseShort = false;
+
         if (agent.id !== 11 && agent.shares > 0 && lastBuyPrice) {
           const unrealizedPnlPct = ((currentPrice - lastBuyPrice) / lastBuyPrice) * 100;
 
           if (unrealizedPnlPct >= takeProfitPct) {
             action = 2; // FORCE SELL
             forcedSell = true;
+            forcedCloseLong = true;
             tradeType = 'SELL_TP';
             newLogs.push({ msg: `✅ TAKE PROFIT TRIGGERED! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
           } else if (unrealizedPnlPct <= -stopLossPct) {
             action = 2; // FORCE SELL
             forcedSell = true;
+            forcedCloseLong = true;
             tradeType = 'SELL_SL';
             newLogs.push({ msg: `🛑 STOP LOSS TRIGGERED! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
+          }
+        }
+
+        // Check for forced short position closure (if you implement short tracking)
+        if (agent.id !== 11 && agent.shortShares > 0 && lastShortPrice) {
+          const unrealizedPnlPct = ((lastShortPrice - currentPrice) / lastShortPrice) * 100;
+
+          if (unrealizedPnlPct >= takeProfitPct) {
+            action = 4; // FORCE COVER SHORT
+            forcedCloseShort = true;
+            tradeType = 'COVER_TP';
+            newLogs.push({ msg: `✅ SHORT TAKE PROFIT! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
+          } else if (unrealizedPnlPct <= -stopLossPct) {
+            action = 4; // FORCE COVER SHORT
+            forcedCloseShort = true;
+            tradeType = 'COVER_SL';
+            newLogs.push({ msg: `🛑 SHORT STOP LOSS! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
           }
         }
 
