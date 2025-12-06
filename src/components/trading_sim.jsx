@@ -2051,11 +2051,12 @@ export default function SnowAITradingSim() {
             if (agentModel) {
               reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
             }
-        
-
-        } else {
-          tradeType = 'HOLD';
         }
+        // else {
+        //   tradeType = 'HOLD';
+        // }
+
+        } 
 
         // Calculate portfolio value correctly
         const longValue = newShares * currentPrice;
