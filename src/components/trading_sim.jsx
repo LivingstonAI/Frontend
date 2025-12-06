@@ -1463,13 +1463,14 @@ export default function SnowAITradingSim() {
       setAgents(prevAgents => prevAgents.map(agent => {
         if (!agent.isActive) return agent;
 
-        let newAgentState = { ...agent };
+        // Keep reference to the model to preserve training state
+        const agentModel = agent.model;
         let action = 1;
         let reward = 0;
 
         const nextState = calculateInputs(allCandles, currentPrice, agent);
-        const lastBuyPrice = newAgentState.history.find(h => h.type === 'BUY')?.price;
-        const previousState = newAgentState.currentState;
+        const lastBuyPrice = agent.history.find(h => h.type === 'BUY')?.price;
+        const previousState = agent.currentState;
 
         if (agent.id === 11) {
           if (!agent.hasBoughtInitial && currentPrice > 0) {
@@ -1481,35 +1482,38 @@ export default function SnowAITradingSim() {
           const sma5 = calculateSMA(allCandles, 5);
           if (!agent.hasBoughtInitial && currentPrice > 0) {
             action = 0;
-          } else if (sma5 && currentPrice < sma5 * 0.98 && newAgentState.shares === 0) {
+          } else if (sma5 && currentPrice < sma5 * 0.98 && agent.shares === 0) {
             action = 0;
-          } else if (lastBuyPrice && currentPrice > lastBuyPrice * 1.015 && newAgentState.shares > 0) {
+          } else if (lastBuyPrice && currentPrice > lastBuyPrice * 1.015 && agent.shares > 0) {
             action = 2;
           } else {
             action = 1;
           }
         }
-        else if (agent.model) {
-          const qValues = agent.model.predict(nextState);
+        else if (agentModel) {
+          const qValues = agentModel.predict(nextState);
           action = getAction(qValues, agent.epsilon, agent.shares);
 
           if (previousState) {
-            reward = calculateReward(agent, newAgentState.lastAction, 0, currentPrice, allCandles);
-            newAgentState.model.remember(previousState, newAgentState.lastAction, reward, nextState, false);
-            newAgentState.loss = newAgentState.model.train() || newAgentState.loss;
+            reward = calculateReward(agent, agent.lastAction, 0, currentPrice, allCandles);
+            agentModel.remember(previousState, agent.lastAction, reward, nextState, false);
+            const trainLoss = agentModel.train();
+            if (trainLoss !== undefined) {
+              agent.loss = trainLoss; // Update loss directly on agent reference
+            }
           }
 
-          newAgentState.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
+          agent.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
         }
 
         let pnl = 0;
         let tradeType = null;
-        let newShares = newAgentState.shares;
-        let newCash = newAgentState.cash;
-        let newLogs = [...newAgentState.logs.slice(-20)];
-        let newHistory = [...newAgentState.history];
+        let newShares = agent.shares;
+        let newCash = agent.cash;
+        let newLogs = [...agent.logs.slice(-20)];
+        let newHistory = [...agent.history];
 
-        if (agent.id !== 11 && newAgentState.shares > 0 && lastBuyPrice) {
+        if (agent.id !== 11 && agent.shares > 0 && lastBuyPrice) {
           const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
 
           if (unrealizedPnlPct >= takeProfitPct) {
@@ -1540,7 +1544,7 @@ export default function SnowAITradingSim() {
 
           newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
           newLogs.push({ msg: `BUY: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
-          newAgentState.hasBoughtInitial = true;
+          agent.hasBoughtInitial = true;
           tradeType = 'BUY';
 
         } else if (action === 2) {
@@ -1575,7 +1579,7 @@ export default function SnowAITradingSim() {
           newLogs.push({ msg: `SELL (${tradeType || 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
           tradeType = tradeType || 'SELL';
 
-          if (agent.model) {
+          if (agentModel) {
             reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
           }
         } else {
@@ -1583,14 +1587,16 @@ export default function SnowAITradingSim() {
         }
 
         const finalPortfolioValue = newCash + newShares * currentPrice;
-        const newEquityCurve = [...newAgentState.equityCurve, finalPortfolioValue];
+        const newEquityCurve = [...agent.equityCurve, finalPortfolioValue];
 
+        // Return updated agent with preserved model reference
         return {
-          ...newAgentState,
+          ...agent,
+          model: agentModel, // Preserve the actual model instance
           cash: newCash,
           shares: newShares,
           portfolioValue: finalPortfolioValue,
-          prevValue: newAgentState.portfolioValue,
+          prevValue: agent.portfolioValue,
           history: newHistory,
           logs: newLogs,
           candles: allCandles.slice(-30),
