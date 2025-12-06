@@ -851,9 +851,9 @@ const EquityCurve = ({ equityData, color, width, height }) => {
 
   return (
     <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
-      <line x1="0" y1={scaleY(CONFIG.INITIAL_CASH)} x2={width} y2={scaleY(CONFIG.INITIAL_CASH)} stroke="#64748b" strokeDasharray="2,2" opacity="0.5" />
+      <line x1="0" y1={scaleY(equityData[0])} x2={width} y2={scaleY(equityData[0])} stroke="#64748b" strokeDasharray="2,2" opacity="0.5" />
       <polyline points={points} fill="none" stroke={color} strokeWidth="2" />
-      <text x={width - 40} y={scaleY(CONFIG.INITIAL_CASH) - 5} fontSize="10" fill="#64748b">Start</text>
+      <text x={width - 40} y={scaleY(equityData[0]) - 5} fontSize="10" fill="#64748b">Start</text>
     </svg>
   );
 };
@@ -1259,7 +1259,8 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
     const losses = agent.history.filter(h => h.type === 'SELL' && h.pnl < 0).length;
     const totalTrades = wins + losses;
     const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
-    const returns = ((agent.portfolioValue - CONFIG.INITIAL_CASH) / CONFIG.INITIAL_CASH) * 100;
+    const startCap = agent.equityCurve?.[0] || CONFIG.INITIAL_CASH;
+    const returns = ((agent.portfolioValue - startCap) / startCap) * 100;
 
     return {
       ...agent,
@@ -1358,7 +1359,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                       </td>
                       <td style={{ padding: '10px', fontWeight: '600' }}>{fmt(agent.portfolioValue)}</td>
                       <td style={{ padding: '10px', color: agent.returns >= 0 ? THEME.success : THEME.danger }}>
-                        {fmt(agent.portfolioValue - CONFIG.INITIAL_CASH)}
+                        {fmt(agent.portfolioValue - (agent.equityCurve?.[0] || CONFIG.INITIAL_CASH))}
                       </td>
                     </tr>
                   ))}
@@ -1604,6 +1605,7 @@ export default function SnowAITradingSim() {
   const [candles, setCandles] = useState([]);
   const [stopLossPct, setStopLossPct] = useState(3.0);
   const [takeProfitPct, setTakeProfitPct] = useState(8.0);
+  const [initialCapital, setInitialCapital] = useState(10000);
   const [speed, setSpeed] = useState(CONFIG.TICK_RATE_DEFAULT);
   const [modelInfoAgent, setModelInfoAgent] = useState(null);
   const [showStatistics, setShowStatistics] = useState(false);
@@ -1611,10 +1613,10 @@ export default function SnowAITradingSim() {
   const createInitialAgentState = (template) => ({
     ...template,
     isActive: true,
-    cash: CONFIG.INITIAL_CASH,
+    cash: initialCapital,
     shares: 0,
-    portfolioValue: CONFIG.INITIAL_CASH,
-    prevValue: CONFIG.INITIAL_CASH,
+    portfolioValue: initialCapital,
+    prevValue: initialCapital,
     history: [],
     logs: [{ msg: "Agent Activated. Monitoring markets...", type: 'info' }],
     loss: 0,
@@ -1630,7 +1632,7 @@ export default function SnowAITradingSim() {
     currentState: null,
     lastAction: 1,
     hasBoughtInitial: (template.id === 11 || template.id === 12) ? false : true,
-    equityCurve: [CONFIG.INITIAL_CASH],
+    equityCurve: [initialCapital],
     persistentMemory: false
   });
 
@@ -1892,23 +1894,27 @@ export default function SnowAITradingSim() {
         let newLogs = [...agent.logs.slice(-20)];
         let newHistory = [...agent.history];
 
-        // STOP LOSS / TAKE PROFIT CHECK (BEFORE ACTION EXECUTION)
+        // STRICT STOP LOSS / TAKE PROFIT CHECK (OVERRIDES AI DECISION)
+        // This check happens FIRST and AI cannot override it
+        let forcedSell = false;
         if (agent.id !== 11 && agent.shares > 0 && lastBuyPrice) {
           const unrealizedPnlPct = ((currentPrice - lastBuyPrice) / lastBuyPrice) * 100;
 
           if (unrealizedPnlPct >= takeProfitPct) {
-            action = 2; // Force SELL
+            action = 2; // FORCE SELL
+            forcedSell = true;
             tradeType = 'SELL_TP';
-            newLogs.push({ msg: `✅ Take Profit Hit! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
+            newLogs.push({ msg: `✅ TAKE PROFIT TRIGGERED! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
           } else if (unrealizedPnlPct <= -stopLossPct) {
-            action = 2; // Force SELL
+            action = 2; // FORCE SELL
+            forcedSell = true;
             tradeType = 'SELL_SL';
-            newLogs.push({ msg: `🛑 Stop Loss Hit! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
+            newLogs.push({ msg: `🛑 STOP LOSS TRIGGERED! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
           }
         }
 
-        // Execute Action
-        if (action === 0) {
+        // Execute Action (FORCED SELLS go through, AI only decides if not forced)
+        if (action === 0 && !forcedSell) {
           let cashToUse = newCash;
           if (agent.id === 11) {
             cashToUse = newCash;
@@ -1928,7 +1934,7 @@ export default function SnowAITradingSim() {
           agent.hasBoughtInitial = true;
           tradeType = 'BUY';
 
-        } else if (action === 2) {
+        } else if (action === 2 || forcedSell) { // Execute ALL sells including forced ones
           const sharesToSell = newShares;
 
           let totalCost = 0;
@@ -2068,15 +2074,27 @@ export default function SnowAITradingSim() {
                 <input type="file" id="fileUpload" hidden accept=".csv,.txt" onChange={handleFileUpload} />
               </div>
               <div>
+                <div style={styles.label}>INITIAL CAPITAL</div>
+                <input 
+                  type="number" 
+                  style={styles.input} 
+                  value={initialCapital} 
+                  onChange={(e) => setInitialCapital(Number(e.target.value))}
+                  min="1000"
+                  step="1000"
+                />
+              </div>
+              
+              <div>
                 <div style={styles.label}>RISK SETTINGS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div>
                     <span style={{ fontSize: '10px', color: '#64748b' }}>Take Profit %</span>
-                    <input type="number" style={styles.input} value={takeProfitPct} onChange={(e) => setTakeProfitPct(Number(e.target.value))} />
+                    <input type="number" style={styles.input} value={takeProfitPct} onChange={(e) => setTakeProfitPct(Number(e.target.value))} step="0.5" min="0.5" />
                   </div>
                   <div>
                     <span style={{ fontSize: '10px', color: '#64748b' }}>Stop Loss %</span>
-                    <input type="number" style={styles.input} value={stopLossPct} onChange={(e) => setStopLossPct(Number(e.target.value))} />
+                    <input type="number" style={styles.input} value={stopLossPct} onChange={(e) => setStopLossPct(Number(e.target.value))} step="0.5" min="0.5" />
                   </div>
                 </div>
               </div>
@@ -2123,7 +2141,7 @@ export default function SnowAITradingSim() {
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: '700', color: agent.portfolioValue >= CONFIG.INITIAL_CASH ? THEME.success : THEME.danger }}>{fmt(agent.portfolioValue)}</div>
+                        <div style={{ fontWeight: '700', color: agent.portfolioValue >= initialCapital ? THEME.success : THEME.danger }}>{fmt(agent.portfolioValue)}</div>
                       </div>
                     </div>
 
