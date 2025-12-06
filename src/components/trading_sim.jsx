@@ -700,19 +700,24 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
   return Math.max(-10, Math.min(10, reward));
 };
 
-const getAction = (qValues, epsilon, shares) => {
+const getAction = (qValues, epsilon, shares, shortShares) => {
   const isExploring = Math.random() < epsilon;
   let action = 1;
 
   if (isExploring) {
+    // During exploration: can choose any action (0=BUY, 1=HOLD, 2=SELL/SHORT)
     action = Math.floor(Math.random() * CONFIG.ACTION_SIZE);
   } else {
+    // During exploitation: choose best Q-value
     action = qValues.reduce((maxIndex, currentQ, i) =>
       currentQ > qValues[maxIndex] ? i : maxIndex, 0);
   }
 
-  if (shares > 0 && action === 0) action = 1;
-  if (shares === 0 && action === 2) action = 1;
+  // Prevent impossible actions:
+  // Can't BUY if already holding short position
+  if (shortShares > 0 && action === 0) action = 1;
+  // Can't SHORT if already holding long position
+  if (shares > 0 && action === 2) action = 1;
 
   return action;
 };
@@ -1615,6 +1620,7 @@ export default function SnowAITradingSim() {
     isActive: true,
     cash: initialCapital,
     shares: 0,
+    shortShares: 0, // New: track short positions
     portfolioValue: initialCapital,
     prevValue: initialCapital,
     history: [],
@@ -1850,7 +1856,8 @@ export default function SnowAITradingSim() {
         let reward = 0;
 
         const nextState = calculateInputs(allCandles, currentPrice, agent);
-        const lastBuyPrice = agent.history.find(h => h.type === 'BUY')?.price;
+        const lastBuyPrice = agent.history.filter(h => h.type === 'BUY').slice(-1)[0]?.price;
+        const lastShortPrice = agent.history.filter(h => h.type === 'SHORT').slice(-1)[0]?.price;
         const previousState = agent.currentState;
 
         if (agent.id === 11) {
@@ -1930,11 +1937,106 @@ export default function SnowAITradingSim() {
           newCash -= cashToUse;
 
           newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
-          newLogs.push({ msg: `BUY: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
+          newLogs.push({ msg: `🟢 LONG: ${sharesToBuy.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'success' });
           agent.hasBoughtInitial = true;
           tradeType = 'BUY';
 
-        } else if (action === 2 || forcedSell) { // Execute ALL sells including forced ones
+        } else if (action === 2 && !forcedCloseLong && !forcedCloseShort) {
+          // SELL/SHORT
+          let cashToUse = newCash;
+          if (agent.id === 11) {
+            cashToUse = newCash;
+          } else if (agent.id === 12 && !agent.hasBoughtInitial) {
+            cashToUse = newCash * 0.25;
+          } else {
+            cashToUse = newCash * 0.98;
+          }
+
+          const sharesToShort = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
+
+          newShortShares += sharesToShort;
+          newCash += sharesToShort * currentPrice * (1 - CONFIG.COMMISSION); // Get cash from short
+
+          newHistory.push({ type: 'SHORT', price: currentPrice, amount: sharesToShort, t: currentCandle.t });
+          newLogs.push({ msg: `🔴 SHORT: ${sharesToShort.toFixed(4)} @ ${currentPrice.toFixed(2)}`, type: 'danger' });
+          agent.hasBoughtInitial = true;
+          tradeType = 'SHORT';
+
+        } else if (action === 3 || forcedCloseLong) {
+          // CLOSE LONG POSITION
+          const sharesToSell = newShares;
+
+          let totalCost = 0;
+          let remainingShares = sharesToSell;
+
+          let tempHistory = [];
+          for (let i = 0; i < newHistory.length; i++) {
+            const item = newHistory[i];
+            if (item.type === 'BUY') {
+              const sharesFromThisBuy = Math.min(remainingShares, item.amount);
+              totalCost += sharesFromThisBuy * item.price / (1 - CONFIG.COMMISSION);
+              remainingShares -= sharesFromThisBuy;
+              if (sharesFromThisBuy < item.amount) {
+                tempHistory.push({ ...item, amount: item.amount - sharesFromThisBuy });
+              }
+            } else {
+              tempHistory.push(item);
+            }
+          }
+
+          const saleAmount = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
+          pnl = saleAmount - totalCost;
+
+          newCash += saleAmount;
+          newShares = 0;
+
+          newHistory = [...tempHistory.filter(h => h.type === 'SHORT' || h.amount > 0)];
+          newHistory.push({ type: 'CLOSE_LONG', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
+          newLogs.push({ msg: `CLOSE LONG (${tradeType || 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+          tradeType = tradeType || 'CLOSE_LONG';
+
+          if (agentModel) {
+            reward = calculateReward(agent, 3, pnl, currentPrice, allCandles);
+          }
+
+        } else if (action === 4 || forcedCloseShort) {
+          // CLOSE SHORT POSITION
+          const sharesToCover = newShortShares;
+
+          let totalRevenue = 0;
+          let remainingShares = sharesToCover;
+
+          let tempHistory = [];
+          for (let i = 0; i < newHistory.length; i++) {
+            const item = newHistory[i];
+            if (item.type === 'SHORT') {
+              const sharesFromThisShort = Math.min(remainingShares, item.amount);
+              totalRevenue += sharesFromThisShort * item.price * (1 - CONFIG.COMMISSION);
+              remainingShares -= sharesFromThisShort;
+              if (sharesFromThisShort < item.amount) {
+                tempHistory.push({ ...item, amount: item.amount - sharesFromThisShort });
+              }
+            } else {
+              tempHistory.push(item);
+            }
+          }
+
+          const coverCost = sharesToCover * currentPrice / (1 - CONFIG.COMMISSION);
+          pnl = totalRevenue - coverCost;
+
+          newCash -= coverCost;
+          newShortShares = 0;
+
+          newHistory = [...tempHistory.filter(h => h.type === 'BUY' || h.amount > 0)];
+          newHistory.push({ type: 'CLOSE_SHORT', price: currentPrice, amount: sharesToCover, t: currentCandle.t, pnl: pnl });
+          newLogs.push({ msg: `COVER SHORT (${tradeType || 'AI'}): PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+          tradeType = tradeType || 'CLOSE_SHORT';
+
+          if (agentModel) {
+            reward = calculateReward(agent, 4, pnl, currentPrice, allCandles);
+          }
+
+        } else if (action === 2 && forcedCloseLong) { // Execute ALL sells including forced ones
           const sharesToSell = newShares;
 
           let totalCost = 0;
