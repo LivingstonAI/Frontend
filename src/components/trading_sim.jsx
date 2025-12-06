@@ -284,23 +284,32 @@ class DoubleDQN {
     this.batchSize = 32;
     this.targetUpdateFrequency = 50;
     this.stepCounter = 0;
+    
+    // Gradient clipping threshold
+    this.gradientClipValue = 1.0;
+    
+    // Learning rate decay
+    this.initialLr = learningRate;
+    this.minLr = learningRate * 0.1;
+    this.lrDecay = 0.9999;
   }
 
   _createNetwork(inputs, outputs, hidden1, hidden2) {
-    const xavier = (fanIn, fanOut) => {
-      const limit = Math.sqrt(6 / (fanIn + fanOut));
-      return Math.random() * 2 * limit - limit;
+    // He initialization for ReLU networks (better than Xavier for ReLU)
+    const heInit = (fanIn) => {
+      const std = Math.sqrt(2.0 / fanIn);
+      return (Math.random() * 2 - 1) * std;
     };
 
     return {
-      w1: Array.from({ length: inputs }, () =>
-        Array(hidden1).fill(0).map(() => xavier(inputs, hidden1))),
-      b1: Array(hidden1).fill(0),
-      w2: Array.from({ length: hidden1 }, () =>
-        Array(hidden2).fill(0).map(() => xavier(hidden1, hidden2))),
-      b2: Array(hidden2).fill(0),
-      w3: Array.from({ length: hidden2 }, () =>
-        Array(outputs).fill(0).map(() => xavier(hidden2, outputs))),
+      w1: Array.from({ length: inputs }, () => 
+        Array(hidden1).fill(0).map(() => heInit(inputs))),
+      b1: Array(hidden1).fill(0.01), // Small positive bias
+      w2: Array.from({ length: hidden1 }, () => 
+        Array(hidden2).fill(0).map(() => heInit(hidden1))),
+      b2: Array(hidden2).fill(0.01),
+      w3: Array.from({ length: hidden2 }, () => 
+        Array(outputs).fill(0).map(() => heInit(hidden2))),
       b3: Array(outputs).fill(0)
     };
   }
@@ -310,16 +319,19 @@ class DoubleDQN {
   }
 
   predict(inputArray, network = this.q_network) {
+    // Layer 1: Input -> Hidden1 (ReLU)
     const hidden1 = network.b1.map((b, i) => {
       const sum = inputArray.reduce((acc, val, j) => acc + val * network.w1[j][i], 0) + b;
       return Math.max(0, sum);
     });
 
+    // Layer 2: Hidden1 -> Hidden2 (ReLU)
     const hidden2 = network.b2.map((b, i) => {
       const sum = hidden1.reduce((acc, val, j) => acc + val * network.w2[j][i], 0) + b;
       return Math.max(0, sum);
     });
 
+    // Layer 3: Hidden2 -> Output (Linear)
     return network.b3.map((b, i) => {
       return hidden2.reduce((acc, val, j) => acc + val * network.w3[j][i], 0) + b;
     });
@@ -329,13 +341,34 @@ class DoubleDQN {
     this.buffer.add(state, action, reward, nextState, done);
   }
 
+  // Clip gradients to prevent explosion
+  _clipGradient(grad) {
+    const magnitude = Math.abs(grad);
+    if (magnitude > this.gradientClipValue) {
+      return (grad / magnitude) * this.gradientClipValue;
+    }
+    return grad;
+  }
+
+  // Check for NaN and replace with small value
+  _checkNaN(value, replacement = 0.001) {
+    if (isNaN(value) || !isFinite(value)) {
+      return replacement;
+    }
+    return value;
+  }
+
   train() {
     if (this.buffer.size() < this.batchSize) return;
 
     const batch = this.buffer.sample(this.batchSize);
     let totalLoss = 0;
 
+    // Learning rate decay
+    const currentLr = Math.max(this.minLr, this.lr * Math.pow(this.lrDecay, this.stepCounter));
+
     for (const [state, action, reward, nextState, done] of batch) {
+      // Forward pass to get current Q-values and intermediate activations
       const hidden1 = this.q_network.b1.map((b, i) => {
         const sum = state.reduce((acc, val, j) => acc + val * this.q_network.w1[j][i], 0) + b;
         return Math.max(0, sum);
@@ -350,6 +383,7 @@ class DoubleDQN {
         return hidden2.reduce((acc, val, j) => acc + val * this.q_network.w3[j][i], 0) + b;
       });
 
+      // DDQN target calculation
       const onlineNextQ = this.predict(nextState, this.q_network);
       const targetNextQ = this.predict(nextState, this.target_network);
 
@@ -360,47 +394,76 @@ class DoubleDQN {
         targetQ += this.gamma * targetNextQ[bestActionOnline];
       }
 
+      // Huber loss for more stable training (less sensitive to outliers)
       const error = targetQ - qValues[action];
-      totalLoss += Math.abs(error);
+      const delta = 1.0;
+      const huberLoss = Math.abs(error) <= delta 
+        ? 0.5 * error * error 
+        : delta * (Math.abs(error) - 0.5 * delta);
+      
+      totalLoss += huberLoss;
 
+      // === BACKPROPAGATION WITH GRADIENT CLIPPING ===
+
+      // Output layer gradients
       const outputGrads = Array(this.outputs).fill(0);
-      outputGrads[action] = error;
+      // Use sign for Huber loss derivative
+      outputGrads[action] = Math.abs(error) <= delta ? error : delta * Math.sign(error);
+      outputGrads[action] = this._clipGradient(outputGrads[action]);
 
+      // Update W3 (Hidden2 -> Output) and B3
       for (let i = 0; i < this.outputs; i++) {
         for (let j = 0; j < this.hidden2; j++) {
-          this.q_network.w3[j][i] += this.lr * outputGrads[i] * hidden2[j];
+          const weightGrad = this._clipGradient(outputGrads[i] * hidden2[j]);
+          const update = currentLr * weightGrad;
+          this.q_network.w3[j][i] = this._checkNaN(this.q_network.w3[j][i] + update);
         }
-        this.q_network.b3[i] += this.lr * outputGrads[i];
+        const biasUpdate = currentLr * outputGrads[i];
+        this.q_network.b3[i] = this._checkNaN(this.q_network.b3[i] + biasUpdate);
       }
 
+      // Backprop to Hidden2
       const hidden2Grads = Array(this.hidden2).fill(0);
       for (let j = 0; j < this.hidden2; j++) {
         for (let i = 0; i < this.outputs; i++) {
           hidden2Grads[j] += outputGrads[i] * this.q_network.w3[j][i];
         }
+        hidden2Grads[j] = this._clipGradient(hidden2Grads[j]);
+        // ReLU derivative
         if (hidden2[j] <= 0) hidden2Grads[j] = 0;
       }
 
+      // Update W2 (Hidden1 -> Hidden2) and B2
       for (let i = 0; i < this.hidden2; i++) {
         for (let j = 0; j < this.hidden1; j++) {
-          this.q_network.w2[j][i] += this.lr * hidden2Grads[i] * hidden1[j];
+          const weightGrad = this._clipGradient(hidden2Grads[i] * hidden1[j]);
+          const update = currentLr * weightGrad;
+          this.q_network.w2[j][i] = this._checkNaN(this.q_network.w2[j][i] + update);
         }
-        this.q_network.b2[i] += this.lr * hidden2Grads[i];
+        const biasUpdate = currentLr * hidden2Grads[i];
+        this.q_network.b2[i] = this._checkNaN(this.q_network.b2[i] + biasUpdate);
       }
 
+      // Backprop to Hidden1
       const hidden1Grads = Array(this.hidden1).fill(0);
       for (let j = 0; j < this.hidden1; j++) {
         for (let i = 0; i < this.hidden2; i++) {
           hidden1Grads[j] += hidden2Grads[i] * this.q_network.w2[j][i];
         }
+        hidden1Grads[j] = this._clipGradient(hidden1Grads[j]);
+        // ReLU derivative
         if (hidden1[j] <= 0) hidden1Grads[j] = 0;
       }
 
+      // Update W1 (Input -> Hidden1) and B1
       for (let i = 0; i < this.hidden1; i++) {
         for (let j = 0; j < this.inputs; j++) {
-          this.q_network.w1[j][i] += this.lr * hidden1Grads[i] * state[j];
+          const weightGrad = this._clipGradient(hidden1Grads[i] * state[j]);
+          const update = currentLr * weightGrad;
+          this.q_network.w1[j][i] = this._checkNaN(this.q_network.w1[j][i] + update);
         }
-        this.q_network.b1[i] += this.lr * hidden1Grads[i];
+        const biasUpdate = currentLr * hidden1Grads[i];
+        this.q_network.b1[i] = this._checkNaN(this.q_network.b1[i] + biasUpdate);
       }
     }
 
