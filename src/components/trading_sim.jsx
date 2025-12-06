@@ -1897,6 +1897,7 @@ export default function SnowAITradingSim() {
         let pnl = 0;
         let tradeType = null;
         let newShares = agent.shares;
+        let newShortShares = agent.shortShares; 
         let newCash = agent.cash;
         let newLogs = [...agent.logs.slice(-20)];
         let newHistory = [...agent.history];
@@ -2106,6 +2107,7 @@ export default function SnowAITradingSim() {
           model: agentModel, // Preserve the actual model instance
           cash: newCash,
           shares: newShares,
+          shortShares: newShortShares,
           portfolioValue: finalPortfolioValue,
           prevValue: agent.portfolioValue,
           history: newHistory,
