@@ -1348,52 +1348,92 @@ export default function SnowAITradingSim() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Stop everything first
+    setIsRunning(false);
+    
     const newAssetName = file.name.replace(/\.[^/.]+$/, "").toUpperCase();
     setAssetName(newAssetName);
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target.result;
-      const lines = text.trim().split('\n');
+      try {
+        const text = event.target.result;
+        const lines = text.trim().split('\n');
 
-      const parsed = lines.map((line, i) => {
-        if (i === 0 && isNaN(line.split(',')[0])) {
-          return null;
-        }
-        const parts = line.split(',');
-        if (parts.length >= 5) {
-          return { t: i, o: parseFloat(parts[1]), h: parseFloat(parts[2]), l: parseFloat(parts[3]), c: parseFloat(parts[4]) };
-        } else {
-          const val = parseFloat(parts[0]);
-          return { t: i, o: val, h: val, l: val, c: val };
-        }
-      }).filter(Boolean);
+        const parsed = lines.map((line, i) => {
+          if (i === 0 && isNaN(line.split(',')[0])) {
+            return null;
+          }
+          const parts = line.split(',');
+          if (parts.length >= 5) {
+            return { t: i, o: parseFloat(parts[1]), h: parseFloat(parts[2]), l: parseFloat(parts[3]), c: parseFloat(parts[4]) };
+          } else {
+            const val = parseFloat(parts[0]);
+            return { t: i, o: val, h: val, l: val, c: val };
+          }
+        }).filter(Boolean);
 
-      setCustomData(parsed);
-      setDataSource('UPLOAD');
-      resetSimulation();
+        if (parsed.length === 0) {
+          alert('No valid data found in CSV');
+          return;
+        }
+
+        setCustomData(parsed);
+        setDataSource('UPLOAD');
+        
+        // Reset after data is loaded
+        setTimeout(() => resetSimulation(), 100);
+        
+      } catch (error) {
+        console.error('Error parsing CSV:', error);
+        alert('Error parsing CSV file. Check console for details.');
+      }
     };
+    
+    reader.onerror = () => {
+      alert('Error reading file');
+    };
+    
     reader.readAsText(file);
+    
+    // Clear the file input so you can upload the same file again
+    e.target.value = '';
   };
 
   const resetSimulation = () => {
+    // Stop simulation first
     setIsRunning(false);
+    
+    // Clear WebSocket if exists
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    // Reset all state
     setDataIndex(0);
     setCandles([]);
     setAssetPrice(0);
     setStartPrice(null);
     candlesRef.current = [];
     setShowStatistics(false);
+    
+    // Reset agents with optional persistent memory
     setAgents(prev => AGENT_TEMPLATES.map((template, idx) => {
       const existing = prev[idx];
       const newState = createInitialAgentState(template);
 
       if (existing && existing.persistentMemory && existing.model) {
-        const existingModel = existing.model;
-        newState.model.q_network = JSON.parse(JSON.stringify(existingModel.q_network));
-        newState.model.target_network = JSON.parse(JSON.stringify(existingModel.target_network));
-        newState.persistentMemory = true;
-        newState.logs = [{ msg: "Agent Restarted with Persistent Weights", type: 'info' }];
+        try {
+          const existingModel = existing.model;
+          newState.model.q_network = JSON.parse(JSON.stringify(existingModel.q_network));
+          newState.model.target_network = JSON.parse(JSON.stringify(existingModel.target_network));
+          newState.persistentMemory = true;
+          newState.logs = [{ msg: "Agent Restarted with Persistent Weights", type: 'info' }];
+        } catch (error) {
+          console.error('Error preserving model weights:', error);
+          newState.logs = [{ msg: "Agent Restarted (weights reset due to error)", type: 'warning' }];
+        }
       }
       return newState;
     }));
@@ -1402,63 +1442,98 @@ export default function SnowAITradingSim() {
   useEffect(() => {
     if (dataSource === 'BINANCE') {
       setAssetName('BTC');
-      if (wsRef.current) wsRef.current.close();
-      wsRef.current = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1s');
+      
+      // Clean up existing WebSocket
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      
+      // Create new WebSocket
+      try {
+        wsRef.current = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1s');
 
-      wsRef.current.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.e === 'kline') {
-          const k = msg.k;
-          const newCandle = { t: k.t, o: parseFloat(k.o), h: parseFloat(k.h), l: parseFloat(k.l), c: parseFloat(k.c) };
-          const current = candlesRef.current;
+        wsRef.current.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.e === 'kline') {
+              const k = msg.k;
+              const newCandle = { t: k.t, o: parseFloat(k.o), h: parseFloat(k.h), l: parseFloat(k.l), c: parseFloat(k.c) };
+              const current = candlesRef.current;
 
-          if (k.x && current.length > 0 && current[current.length - 1].t === newCandle.t) {
-            current[current.length - 1] = newCandle;
-          } else if (k.x) {
-            current.push(newCandle);
-          } else if (current.length === 0 || current[current.length - 1].t !== newCandle.t) {
-            current.push(newCandle);
-          } else {
-            current[current.length - 1] = newCandle;
+              if (k.x && current.length > 0 && current[current.length - 1].t === newCandle.t) {
+                current[current.length - 1] = newCandle;
+              } else if (k.x) {
+                current.push(newCandle);
+              } else if (current.length === 0 || current[current.length - 1].t !== newCandle.t) {
+                current.push(newCandle);
+              } else {
+                current[current.length - 1] = newCandle;
+              }
+
+              candlesRef.current = current;
+              setAssetPrice(newCandle.c);
+              if (startPrice === null) setStartPrice(newCandle.c);
+            }
+          } catch (error) {
+            console.error('WebSocket message error:', error);
           }
+        };
 
-          candlesRef.current = current;
-          setAssetPrice(newCandle.c);
-          if (startPrice === null) setStartPrice(newCandle.c);
-        }
-      };
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+
+        wsRef.current.onclose = () => {
+          console.log('WebSocket closed');
+        };
+        
+      } catch (error) {
+        console.error('WebSocket creation error:', error);
+      }
     } else {
-      if (wsRef.current) wsRef.current.close();
+      // Close WebSocket when switching to UPLOAD mode
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     }
-    return () => { if (wsRef.current) wsRef.current.close(); };
-  }, [dataSource, startPrice]);
+    
+    return () => { 
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [dataSource]);
 
   useEffect(() => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
-      let currentCandle = null;
-      let allCandles = candlesRef.current;
+      try {
+        let currentCandle = null;
+        let allCandles = candlesRef.current;
 
-      if (dataSource === 'UPLOAD') {
-        if (dataIndex >= customData.length) {
-          setIsRunning(false);
-          setShowStatistics(true);
-          return;
+        if (dataSource === 'UPLOAD') {
+          if (dataIndex >= customData.length) {
+            setIsRunning(false);
+            setShowStatistics(true);
+            return;
+          }
+          currentCandle = customData[dataIndex];
+          candlesRef.current.push(currentCandle);
+          setAssetPrice(currentCandle.c);
+          if (startPrice === null) setStartPrice(currentCandle.c);
+          setDataIndex(prev => prev + 1);
+        } else {
+          if (allCandles.length > 0) currentCandle = allCandles[allCandles.length - 1];
         }
-        currentCandle = customData[dataIndex];
-        candlesRef.current.push(currentCandle);
-        setAssetPrice(currentCandle.c);
-        if (startPrice === null) setStartPrice(currentCandle.c);
-        setDataIndex(prev => prev + 1);
-      } else {
-        if (allCandles.length > 0) currentCandle = allCandles[allCandles.length - 1];
-      }
 
-      if (!currentCandle) return;
+        if (!currentCandle) return;
 
-      const currentPrice = currentCandle.c;
-      setCandles(allCandles.slice(-100));
+        const currentPrice = currentCandle.c;
+        setCandles(allCandles.slice(-100));
 
       setAgents(prevAgents => prevAgents.map(agent => {
         if (!agent.isActive) return agent;
@@ -1605,6 +1680,10 @@ export default function SnowAITradingSim() {
           equityCurve: newEquityCurve,
         };
       }));
+      } catch (error) {
+        console.error('Game loop error:', error);
+        setIsRunning(false);
+      }
     }, speed);
     return () => clearInterval(interval);
   }, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct]);
