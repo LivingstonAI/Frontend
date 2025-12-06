@@ -285,13 +285,16 @@ class DoubleDQN {
     this.targetUpdateFrequency = 50;
     this.stepCounter = 0;
     
-    // Gradient clipping threshold
-    this.gradientClipValue = 1.0;
+    // STRICTER gradient clipping
+    this.gradientClipValue = 0.5; // Reduced from 1.0
+    
+    // Weight clipping to prevent explosion
+    this.weightClipValue = 10.0; // Hard cap at ±10
     
     // Learning rate decay
     this.initialLr = learningRate;
-    this.minLr = learningRate * 0.1;
-    this.lrDecay = 0.9999;
+    this.minLr = learningRate * 0.01; // Even lower minimum
+    this.lrDecay = 0.9998; // Faster decay
   }
 
   _createNetwork(inputs, outputs, hidden1, hidden2) {
@@ -349,13 +352,20 @@ class DoubleDQN {
     }
     return grad;
   }
+  
+  // Clip weights to prevent explosion
+  _clipWeight(weight) {
+    if (weight > this.weightClipValue) return this.weightClipValue;
+    if (weight < -this.weightClipValue) return -this.weightClipValue;
+    return weight;
+  }
 
   // Check for NaN and replace with small value
   _checkNaN(value, replacement = 0.001) {
     if (isNaN(value) || !isFinite(value)) {
       return replacement;
     }
-    return value;
+    return this._clipWeight(value); // Also clip to prevent explosion
   }
 
   train() {
@@ -570,25 +580,32 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
   const lastBuyTrade = [...agent.history].reverse().find(h => h.type === 'BUY');
   const holdTime = lastBuyTrade ? allCandles.length - allCandles.findIndex(c => c.t === lastBuyTrade.t) : 0;
 
+  // Normalize PnL to percentage of initial cash for stability
+  const pnlPercent = pnl / CONFIG.INITIAL_CASH * 100;
+
   switch (rewardType) {
     case 'scalper':
       if (action === 2 && pnl > 0) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * (holdTime < 10 ? 1.5 : 1.0);
+        reward = pnlPercent * (holdTime < 10 ? 1.5 : 1.0);
+      } else if (action === 2 && pnl < 0) {
+        reward = pnlPercent * 2; // Stronger penalty for losses
       } else if (action === 0) {
-        reward = -0.2;
+        reward = -0.1;
       } else if (action === 1 && agent.shares > 0) {
-        reward = -0.05 * holdTime;
+        reward = -0.02 * holdTime; // Penalty for holding
       }
       break;
 
     case 'trend':
       if (action === 2 && pnl > 0) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * (1 + holdTime / 50);
+        reward = pnlPercent * (1 + holdTime / 50);
+      } else if (action === 2 && pnl < 0) {
+        reward = pnlPercent * 1.5;
       } else if (action === 1 && agent.shares > 0) {
         const unrealized = lastBuyTrade ? (currentPrice - lastBuyTrade.price) / lastBuyTrade.price : 0;
-        reward = unrealized > 0 ? 0.1 : -0.05;
+        reward = unrealized > 0 ? 0.05 : -0.03;
       } else if (action === 0) {
-        reward = -0.05;
+        reward = -0.03;
       }
       break;
 
@@ -601,8 +618,8 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
         } else {
           reward = -0.2;
         }
-      } else if (action === 2 && pnl > 0) {
-        reward = pnl / CONFIG.INITIAL_CASH * 100;
+      } else if (action === 2) {
+        reward = pnlPercent;
       }
       break;
 
@@ -610,28 +627,30 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
       if (action === 0) {
         const sma20 = calculateSMA(allCandles, 20);
         if (sma20 && currentPrice < sma20 * 0.98) {
-          reward = 0.2;
+          reward = 0.15;
         }
       } else if (action === 2 && pnl > 0 && holdTime < 20) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * 1.5;
+        reward = pnlPercent * 1.5;
+      } else if (action === 2 && pnl < 0) {
+        reward = pnlPercent * 1.5;
       }
       break;
 
     case 'aggressive':
       if (action === 2) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * 2;
+        reward = pnlPercent * 1.5; // Amplified but not crazy
       } else if (action === 0) {
-        reward = -0.1;
+        reward = -0.05;
       }
       break;
 
     case 'conservative':
       if (action === 2 && pnl < 0) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * 2;
+        reward = pnlPercent * 3; // Heavy penalty
       } else if (action === 2 && pnl > 0) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * 0.5;
+        reward = pnlPercent * 0.8;
       } else if (action === 1 && agent.shares > 0) {
-        reward = 0.02;
+        reward = 0.01;
       }
       break;
 
@@ -644,11 +663,11 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
 
       if (volatility > avgVol * 1.2) {
         if (action === 0 || (action === 2 && Math.abs(pnl) > CONFIG.INITIAL_CASH * 0.01)) {
-          reward = 0.2;
+          reward = 0.15;
         }
       }
       if (action === 2) {
-        reward += pnl / CONFIG.INITIAL_CASH * 100;
+        reward += pnlPercent;
       }
       break;
 
@@ -657,27 +676,28 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
         const sma5 = calculateSMA(allCandles, 5);
         const sma20 = calculateSMA(allCandles, 20);
         if (sma5 && sma20 && sma5 < sma20) {
-          reward = 0.15;
+          reward = 0.12;
         }
-      } else if (action === 2 && pnl > 0) {
-        reward = (pnl / CONFIG.INITIAL_CASH * 100) * 1.3;
+      } else if (action === 2) {
+        reward = pnlPercent * 1.2;
       }
       break;
 
     case 'balanced':
     default:
       if (action === 2) {
-        reward = pnl / CONFIG.INITIAL_CASH * 100;
+        reward = pnlPercent;
       } else if (action === 0) {
-        reward = -0.1;
+        reward = -0.05;
       } else if (action === 1 && agent.shares > 0) {
         const unrealized = lastBuyTrade ? (currentPrice - lastBuyTrade.price) / lastBuyTrade.price : 0;
-        reward = unrealized * 0.1;
+        reward = unrealized * 0.05;
       }
       break;
   }
 
-  return reward;
+  // Clip reward to prevent extreme values
+  return Math.max(-10, Math.min(10, reward));
 };
 
 const getAction = (qValues, epsilon, shares) => {
@@ -1872,20 +1892,22 @@ export default function SnowAITradingSim() {
         let newLogs = [...agent.logs.slice(-20)];
         let newHistory = [...agent.history];
 
+        // STOP LOSS / TAKE PROFIT CHECK (BEFORE ACTION EXECUTION)
         if (agent.id !== 11 && agent.shares > 0 && lastBuyPrice) {
-          const unrealizedPnlPct = (currentPrice - lastBuyPrice) / lastBuyPrice * 100;
+          const unrealizedPnlPct = ((currentPrice - lastBuyPrice) / lastBuyPrice) * 100;
 
           if (unrealizedPnlPct >= takeProfitPct) {
-            action = 2;
+            action = 2; // Force SELL
             tradeType = 'SELL_TP';
-            newLogs.push({ msg: `Take Profit Hit! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
+            newLogs.push({ msg: `✅ Take Profit Hit! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
           } else if (unrealizedPnlPct <= -stopLossPct) {
-            action = 2;
+            action = 2; // Force SELL
             tradeType = 'SELL_SL';
-            newLogs.push({ msg: `Stop Loss Hit! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
+            newLogs.push({ msg: `🛑 Stop Loss Hit! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
           }
         }
 
+        // Execute Action
         if (action === 0) {
           let cashToUse = newCash;
           if (agent.id === 11) {
