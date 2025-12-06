@@ -1907,36 +1907,64 @@ export default function SnowAITradingSim() {
         let forcedCloseShort = false;
 
         // Check long position stop loss / take profit
-        if (agent.id !== 11 && agent.shares > 0 && lastBuyPrice) {
-          const unrealizedPnlPct = ((currentPrice - lastBuyPrice) / lastBuyPrice) * 100;
+        if (agent.id !== 11 && agent.shares > 0) {
+          // Calculate average buy price from history
+          let totalCost = 0;
+          let totalShares = 0;
+          
+          for (const item of newHistory) {
+            if (item.type === 'BUY') {
+              totalCost += item.amount * item.price;
+              totalShares += item.amount;
+            }
+          }
+          
+          if (totalShares > 0) {
+            const avgBuyPrice = totalCost / totalShares;
+            const unrealizedPnlPct = ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100;
 
-          if (unrealizedPnlPct >= takeProfitPct) {
-            action = 2; // FORCE SELL
-            forcedCloseLong = true;
-            tradeType = 'SELL_TP';
-            newLogs.push({ msg: `✅ TAKE PROFIT TRIGGERED! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
-          } else if (unrealizedPnlPct <= -stopLossPct) {
-            action = 2; // FORCE SELL
-            forcedCloseLong = true;
-            tradeType = 'SELL_SL';
-            newLogs.push({ msg: `🛑 STOP LOSS TRIGGERED! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
+            if (unrealizedPnlPct >= takeProfitPct) {
+              action = 2; // FORCE CLOSE LONG
+              forcedCloseLong = true;
+              tradeType = 'SELL_TP';
+              newLogs.push({ msg: `✅ LONG TP! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
+            } else if (unrealizedPnlPct <= -stopLossPct) {
+              action = 2; // FORCE CLOSE LONG
+              forcedCloseLong = true;
+              tradeType = 'SELL_SL';
+              newLogs.push({ msg: `🛑 LONG SL! (${unrealizedPnlPct.toFixed(2)}%)`, type: 'danger' });
+            }
           }
         }
 
         // Check short position stop loss / take profit
-        if (agent.id !== 11 && agent.shortShares > 0 && lastShortPrice) {
-          const unrealizedPnlPct = ((lastShortPrice - currentPrice) / lastShortPrice) * 100; // Inverted for shorts
+        if (agent.id !== 11 && agent.shortShares > 0) {
+          // Calculate average short price from history
+          let totalRevenue = 0;
+          let totalShares = 0;
+          
+          for (const item of newHistory) {
+            if (item.type === 'SHORT') {
+              totalRevenue += item.amount * item.price;
+              totalShares += item.amount;
+            }
+          }
+          
+          if (totalShares > 0) {
+            const avgShortPrice = totalRevenue / totalShares;
+            const unrealizedPnlPct = ((avgShortPrice - currentPrice) / avgShortPrice) * 100; // Inverted for shorts
 
-          if (unrealizedPnlPct >= takeProfitPct) {
-            action = 4; // FORCE COVER
-            forcedCloseShort = true;
-            tradeType = 'COVER_TP';
-            newLogs.push({ msg: `✅ SHORT TAKE PROFIT! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
-          } else if (unrealizedPnlPct <= -stopLossPct) {
-            action = 4; // FORCE COVER
-            forcedCloseShort = true;
-            tradeType = 'COVER_SL';
-            newLogs.push({ msg: `🛑 SHORT STOP LOSS! (-${Math.abs(unrealizedPnlPct).toFixed(2)}%)`, type: 'danger' });
+            if (unrealizedPnlPct >= takeProfitPct) {
+              action = 4; // FORCE COVER SHORT
+              forcedCloseShort = true;
+              tradeType = 'COVER_TP';
+              newLogs.push({ msg: `✅ SHORT TP! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
+            } else if (unrealizedPnlPct <= -stopLossPct) {
+              action = 4; // FORCE COVER SHORT
+              forcedCloseShort = true;
+              tradeType = 'COVER_SL';
+              newLogs.push({ msg: `🛑 SHORT SL! (${unrealizedPnlPct.toFixed(2)}%)`, type: 'danger' });
+            }
           }
         }
 
