@@ -731,6 +731,8 @@ const THEME = {
   terminalText: '#e2e8f0',
 };
 
+const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+
 // Agent configurations with DISTINCT behaviors
 const AGENT_TEMPLATES = [
   { 
