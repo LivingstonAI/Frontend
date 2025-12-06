@@ -1989,70 +1989,69 @@ export default function SnowAITradingSim() {
           agent.hasBoughtInitial = true;
           tradeType = 'BUY';
 
-        } else if (action === 2 && agent.shares > 0) {
-          // ACTION 2: SELL (Close Long)
-          const sharesToSell = newShares;
-          
-          let totalCost = 0;
-          for (const item of newHistory) {
-            if (item.type === 'BUY') {
-              totalCost += item.amount * item.price / (1 - CONFIG.COMMISSION);
+          } else if ((action === 2 || forcedCloseLong) && agent.shares > 0) {
+          // ACTION 2: SELL (Close Long) - ONLY if forced by TP/SL
+          if (!forcedCloseLong && agent.id !== 11 && agent.id !== 12) {
+            // AI tried to close early - block it and HOLD instead
+            tradeType = 'HOLD';
+          } else {
+            // Proceed with close...
+            const sharesToSell = newShares;
+            
+            let totalCost = 0;
+            for (const item of newHistory) {
+              if (item.type === 'BUY') {
+                totalCost += item.amount * item.price / (1 - CONFIG.COMMISSION);
+              }
+            }
+
+            const saleAmount = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
+            pnl = saleAmount - totalCost;
+
+            newCash += saleAmount;
+            newShares = 0;
+
+            newHistory = newHistory.filter(h => h.type !== 'BUY');
+            newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
+            newLogs.push({ msg: `🔴 CLOSE LONG @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+            tradeType = tradeType || 'SELL';
+
+            if (agentModel) {
+              reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
             }
           }
 
-          const saleAmount = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
-          pnl = saleAmount - totalCost;
-
-          newCash += saleAmount;
-          newShares = 0;
-
-          newHistory = newHistory.filter(h => h.type !== 'BUY');
-          newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
-          newLogs.push({ msg: `🔴 CLOSE LONG @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-          tradeType = tradeType || 'SELL';
-
-          if (agentModel) {
-            reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
-          }
-
-        } else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
-          // ACTION 3: SHORT (Open Short Position)
-          let cashToUse = newCash * 0.98;
-          
-          const sharesToShort = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
-          newShortShares += sharesToShort;
-          // Don't actually give them cash - just track the short position
-
-          newHistory.push({ type: 'SHORT', price: currentPrice, amount: sharesToShort, t: currentCandle.t });
-          newLogs.push({ msg: `🔻 SHORT: ${sharesToShort.toFixed(4)} @ ${fmt(currentPrice)}`, type: 'warning' });
-          agent.hasBoughtInitial = true;
-          tradeType = 'SHORT';
-
-        } else if (action === 4 && agent.shortShares > 0) {
-          // ACTION 4: COVER (Close Short Position)
-          const sharesToCover = newShortShares;
-          
-          let totalRevenue = 0;
-          for (const item of newHistory) {
-            if (item.type === 'SHORT') {
-              totalRevenue += item.amount * item.price * (1 - CONFIG.COMMISSION);
+        } else if ((action === 4 || forcedCloseShort) && agent.shortShares > 0) {
+          // ACTION 4: COVER (Close Short Position) - ONLY if forced by TP/SL
+          if (!forcedCloseShort && agent.id !== 11 && agent.id !== 12) {
+            // AI tried to cover early - block it and HOLD instead
+            tradeType = 'HOLD';
+          } else {
+            // Proceed with cover...
+            const sharesToCover = newShortShares;
+            
+            let totalRevenue = 0;
+            for (const item of newHistory) {
+              if (item.type === 'SHORT') {
+                totalRevenue += item.amount * item.price * (1 - CONFIG.COMMISSION);
+              }
             }
-          }
 
-          const coverCost = sharesToCover * currentPrice / (1 - CONFIG.COMMISSION);
-          pnl = totalRevenue - coverCost;
+            const coverCost = sharesToCover * currentPrice / (1 - CONFIG.COMMISSION);
+            pnl = totalRevenue - coverCost;
 
-          newCash += pnl; // Add/subtract the profit/loss
-          newShortShares = 0;
+            newCash += pnl;
+            newShortShares = 0;
 
-          newHistory = newHistory.filter(h => h.type !== 'SHORT');
-          newHistory.push({ type: 'COVER', price: currentPrice, amount: sharesToCover, t: currentCandle.t, pnl: pnl });
-          newLogs.push({ msg: `🔺 COVER SHORT @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-          tradeType = tradeType || 'COVER';
+            newHistory = newHistory.filter(h => h.type !== 'SHORT');
+            newHistory.push({ type: 'COVER', price: currentPrice, amount: sharesToCover, t: currentCandle.t, pnl: pnl });
+            newLogs.push({ msg: `🔺 COVER SHORT @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+            tradeType = tradeType || 'COVER';
 
-          if (agentModel) {
-            reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
-          }
+            if (agentModel) {
+              reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
+            }
+        
 
         } else {
           tradeType = 'HOLD';
