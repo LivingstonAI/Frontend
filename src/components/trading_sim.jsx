@@ -776,8 +776,18 @@ const EquityCurve = ({ equityData, color, width, height }) => {
 };
 
 const WeightsDisplay = ({ weights, bias }) => {
-  const w1 = weights?.w1 ? weights.w1.flat().slice(0, 4) : [0, 0, 0, 0];
-  const b1 = bias?.b1 ? bias.b1[0] : 0;
+  // Safety check - don't render if weights aren't ready
+  if (!weights || !weights.w1 || !Array.isArray(weights.w1)) {
+    return null;
+  }
+
+  const w1 = weights.w1.flat().slice(0, 4);
+  const b1 = bias?.b1?.[0] ?? 0;
+
+  // Additional check for valid data
+  if (w1.length === 0 || w1.some(v => v === null || v === undefined)) {
+    return null;
+  }
 
   return (
     <div style={{
@@ -1811,7 +1821,7 @@ export default function SnowAITradingSim() {
                           >
                             ℹ️
                           </button>
-                          {agent.model && <WeightsDisplay weights={agent.model.q_network} bias={agent.model.q_network} />}
+                          {agent.model && agent.model.q_network && <WeightsDisplay weights={agent.model.q_network} bias={agent.model.q_network} />}
                         </div>
                         <div style={{ fontSize: '11px', color: agent.color }}>{agent.type}</div>
                       </div>
