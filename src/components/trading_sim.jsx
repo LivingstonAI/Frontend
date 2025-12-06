@@ -775,8 +775,9 @@ const EquityCurve = ({ equityData, color, width, height }) => {
   );
 };
 
-const WeightsDisplay = ({ weights, bias }) => {
-  // Safety check - don't render if weights aren't ready
+const WeightsDisplay = ({ weights, bias, agentId }) => {
+  const [showFullWeights, setShowFullWeights] = useState(false);
+  
   if (!weights || !weights.w1 || !Array.isArray(weights.w1)) {
     return null;
   }
@@ -784,34 +785,244 @@ const WeightsDisplay = ({ weights, bias }) => {
   const w1 = weights.w1.flat().slice(0, 4);
   const b1 = bias?.b1?.[0] ?? 0;
 
-  // Additional check for valid data
   if (w1.length === 0 || w1.some(v => v === null || v === undefined)) {
     return null;
   }
 
+  const copyWeights = () => {
+    const weightsData = {
+      w1: weights.w1,
+      b1: weights.b1,
+      w2: weights.w2,
+      b2: weights.b2,
+      w3: weights.w3,
+      b3: weights.b3
+    };
+    navigator.clipboard.writeText(JSON.stringify(weightsData, null, 2));
+    alert('Weights copied to clipboard! 📋');
+  };
+
   return (
-    <div style={{
-      backgroundColor: '#1e293b',
-      padding: '6px 12px',
-      borderRadius: '4px',
-      fontSize: '10px',
-      color: '#94a3b8',
-      fontFamily: '"JetBrains Mono", monospace',
-      marginTop: '8px'
-    }}>
-      <div style={{ marginBottom: '2px' }}>
-        W (Input):
-        {w1.map((v, i) => (
-          <span key={i} style={{ color: v > 0 ? THEME.success : v < 0 ? THEME.danger : '#94a3b8', marginLeft: '4px' }}>
-            {v.toFixed(3)}
-          </span>
-        ))}
+    <div style={{ display: 'inline-block' }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowFullWeights(true);
+        }}
+        style={{
+          backgroundColor: '#1e293b',
+          color: '#94a3b8',
+          border: 'none',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '10px',
+          cursor: 'pointer',
+          fontFamily: 'monospace'
+        }}
+        title="View full weights"
+      >
+        🧠 [{w1.map(v => v.toFixed(2)).join(',')}...]
+      </button>
+
+      {showFullWeights && (
+        <WeightsModal
+          weights={weights}
+          bias={bias}
+          agentId={agentId}
+          onClose={() => setShowFullWeights(false)}
+          onCopy={copyWeights}
+        />
+      )}
+    </div>
+  );
+};
+
+const WeightsModal = ({ weights, bias, agentId, onClose, onCopy }) => {
+  const [updateKey, setUpdateKey] = useState(0);
+
+  // Force re-render every 500ms to show live updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUpdateKey(prev => prev + 1);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderWeightMatrix = (matrix, label, colorize = true) => {
+    if (!matrix || !Array.isArray(matrix)) return null;
+
+    return (
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>
+          {label} ({matrix.length} × {matrix[0]?.length || 0})
+        </div>
+        <div style={{
+          backgroundColor: '#0f172a',
+          padding: '12px',
+          borderRadius: '8px',
+          maxHeight: '200px',
+          overflowY: 'auto',
+          fontFamily: 'monospace',
+          fontSize: '10px',
+          color: '#e2e8f0'
+        }}>
+          {matrix.map((row, i) => (
+            <div key={`${i}-${updateKey}`} style={{ marginBottom: '4px', whiteSpace: 'nowrap', overflowX: 'auto' }}>
+              {Array.isArray(row) ? (
+                row.map((val, j) => (
+                  <span
+                    key={j}
+                    style={{
+                      color: colorize ? (val > 0 ? '#4ade80' : val < 0 ? '#f87171' : '#94a3b8') : '#e2e8f0',
+                      marginRight: '8px',
+                      display: 'inline-block',
+                      minWidth: '60px'
+                    }}
+                  >
+                    {val.toFixed(4)}
+                  </span>
+                ))
+              ) : (
+                <span style={{ color: colorize ? (row > 0 ? '#4ade80' : row < 0 ? '#f87171' : '#94a3b8') : '#e2e8f0' }}>
+                  {row.toFixed(4)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      <div>
-        B (Hidden):
-        <span style={{ color: b1 > 0 ? THEME.success : b1 < 0 ? THEME.danger : '#94a3b8', marginLeft: '4px' }}>
-          {b1.toFixed(3)}
-        </span>
+    );
+  };
+
+  const getWeightStats = (matrix) => {
+    const flat = Array.isArray(matrix[0]) ? matrix.flat() : matrix;
+    const positive = flat.filter(v => v > 0).length;
+    const negative = flat.filter(v => v < 0).length;
+    const zero = flat.filter(v => v === 0).length;
+    const avg = flat.reduce((a, b) => a + b, 0) / flat.length;
+    const max = Math.max(...flat);
+    const min = Math.min(...flat);
+    
+    return { positive, negative, zero, avg, max, min, total: flat.length };
+  };
+
+  return (
+    <div 
+      style={styles.modalOverlay} 
+      onClick={onClose}
+    >
+      <div 
+        style={{ 
+          ...styles.modalContent, 
+          maxWidth: '800px',
+          maxHeight: '90vh'
+        }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={styles.cardHeader}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>
+              🧠 Neural Network Weights (Live)
+            </h2>
+            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+              Agent ID: {agentId} • Updates every 500ms
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={onCopy}
+              style={{
+                ...styles.btn,
+                ...styles.btnSecondary,
+                fontSize: '11px',
+                padding: '6px 10px'
+              }}
+            >
+              📋 Copy JSON
+            </button>
+            <button 
+              onClick={onClose} 
+              style={{ 
+                border: 'none', 
+                background: 'none', 
+                fontSize: '24px', 
+                cursor: 'pointer', 
+                color: '#64748b' 
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+          {/* Weight Statistics */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '12px', 
+            marginBottom: '24px' 
+          }}>
+            {['w1', 'w2', 'w3'].map(layer => {
+              const stats = getWeightStats(weights[layer]);
+              return (
+                <div 
+                  key={layer}
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${THEME.border}`
+                  }}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: '700', marginBottom: '8px', color: THEME.primary }}>
+                    Layer {layer.slice(1)} Statistics
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.6' }}>
+                    <div>Total: {stats.total}</div>
+                    <div style={{ color: THEME.success }}>Positive: {stats.positive}</div>
+                    <div style={{ color: THEME.danger }}>Negative: {stats.negative}</div>
+                    <div>Avg: {stats.avg.toFixed(4)}</div>
+                    <div>Range: [{stats.min.toFixed(3)}, {stats.max.toFixed(3)}]</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Layer 1: Input -> Hidden1 */}
+          {renderWeightMatrix(weights.w1, `W1: Input (${CONFIG.INPUT_SIZE}) → Hidden1`)}
+          {renderWeightMatrix([bias.b1], 'B1: Hidden1 Bias')}
+
+          {/* Layer 2: Hidden1 -> Hidden2 */}
+          {renderWeightMatrix(weights.w2, 'W2: Hidden1 → Hidden2')}
+          {renderWeightMatrix([bias.b2], 'B2: Hidden2 Bias')}
+
+          {/* Layer 3: Hidden2 -> Output */}
+          {renderWeightMatrix(weights.w3, `W3: Hidden2 → Output (${CONFIG.ACTION_SIZE})`)}
+          {renderWeightMatrix([bias.b3], 'B3: Output Bias')}
+
+          {/* Network Architecture Diagram */}
+          <div style={{
+            marginTop: '24px',
+            padding: '16px',
+            backgroundColor: '#fef3c7',
+            borderRadius: '8px',
+            border: '1px solid #fbbf24'
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
+              📐 Network Architecture
+            </div>
+            <div style={{ 
+              fontFamily: 'monospace', 
+              fontSize: '11px', 
+              color: '#78350f',
+              lineHeight: '1.8'
+            }}>
+              Input ({CONFIG.INPUT_SIZE}) → ReLU → Hidden1 ({weights.w1[0].length}) → ReLU → Hidden2 ({weights.w2[0].length}) → Linear → Output ({CONFIG.ACTION_SIZE})
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1821,7 +2032,7 @@ export default function SnowAITradingSim() {
                           >
                             ℹ️
                           </button>
-                          {agent.model && agent.model.q_network && <WeightsDisplay weights={agent.model.q_network} bias={agent.model.q_network} />}
+                          {agent.model && agent.model.q_network && <WeightsDisplay weights={agent.model.q_network} bias={agent.model.q_network} agentId={agent.id} />}
                         </div>
                         <div style={{ fontSize: '11px', color: agent.color }}>{agent.type}</div>
                       </div>
