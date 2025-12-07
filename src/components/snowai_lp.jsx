@@ -95,6 +95,8 @@ import killing_butterflies from '../LEWIS BLISSETT - KILLING BUTTERFLIES [Offici
 import lil_boo_thang from '../Paul Russell - Lil Boo Thang (Lyric Video) [MoCaWpRAkVA].mp3';
 import will_evelyn from '../will-and-evelyn_T44TfHQx.mp3';
 import no_batidao from '../NO BATIDÃO.mp3';
+import celebrate_alan from '../Celebrate - Alan Avry (prod. by d.higgs) (unofficial videos).mp3';
+
 
 
 export default function SnowAILandingPage() {
@@ -230,7 +232,9 @@ export default function SnowAILandingPage() {
       "91": { name: "Killing Butterflies 🦋", file: killing_butterflies },
       "92": { name: "Lil Boo Thang 🏖️😎", file: lil_boo_thang },
       "93": { name: "Will & Evelyn", file: will_evelyn },
-      "94": { name: "No Batidao 🇧🇷🕺", file: no_batidao }
+      "94": { name: "No Batidao 🇧🇷🕺", file: no_batidao },
+      "95": { name: "Celebrate - Alan Avry 🦜", file: celebrate_alan },
+      
     };
 
 
