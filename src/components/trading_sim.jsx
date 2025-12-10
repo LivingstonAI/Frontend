@@ -1407,6 +1407,8 @@ const styles = {
     backgroundColor: THEME.bg,
     color: THEME.text,
     minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column'
   },
   header: {
     backgroundColor: '#fff',
@@ -1420,10 +1422,9 @@ const styles = {
   },
   main: {
     flex: 1,
-    overflow: 'hidden',
-    flexDirection: 'row',
     display: 'flex',
-    height: 'calc(100vh - 60px)',
+    flexDirection: 'row',
+    minHeight: 0, // IMPORTANT: allows proper flexbox behavior
   },
   sidebar: {
     width: '300px',
@@ -1442,7 +1443,8 @@ const styles = {
     flexDirection: 'column',
     gap: '24px',
     overflowY: 'auto',
-    backgroundColor: '#f1f5f9'
+    backgroundColor: '#f1f5f9',
+    minHeight: 0 // IMPORTANT: prevents flex item from overflowing
   },
   chartContainer: {
     backgroundColor: THEME.terminalBg,
@@ -1453,6 +1455,7 @@ const styles = {
     border: `1px solid ${THEME.border}`,
     boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
     position: 'relative',
+    flexShrink: 0 // Prevents chart from shrinking
   },
   agentGrid: {
     display: 'grid',
@@ -1569,17 +1572,16 @@ const styles = {
   }
 };
 
-const mobileStyles = `@media (max-width: 768px) {
+const mobileStyles = `
+@media (max-width: 768px) {
   .main-wrapper {
     flex-direction: column !important;
-    height: auto !important;
   }
   .sidebar {
     width: 100% !important;
     border-right: none !important;
     border-bottom: 1px solid #e2e8f0 !important;
     max-height: none !important;
-    overflow-y: visible !important;
   }
   .agent-grid {
     grid-template-columns: 1fr !important;
@@ -1592,7 +1594,28 @@ const mobileStyles = `@media (max-width: 768px) {
     width: 95% !important;
     max-height: 90vh !important;
   }
-}`;
+}
+
+/* Desktop specific - no container scroll */
+@media (min-width: 769px) {
+  .app {
+    height: 100vh;
+    overflow: hidden;
+  }
+  .main-wrapper {
+    height: calc(100vh - 60px);
+    overflow: hidden;
+  }
+  .sidebar {
+    height: 100%;
+    overflow-y: auto;
+  }
+  .content-area {
+    height: 100%;
+    overflow-y: auto;
+  }
+}
+`;
 
 const API_BASE = 'https://backend-production-c0ab.up.railway.app';
 
@@ -1723,6 +1746,16 @@ export default function SnowAITradingSim() {
   if (!agent.model) {
     alert('This agent has no model to save!');
     return;
+  }
+
+  // CONFIRMATION DIALOG
+  const confirmed = window.confirm(
+    `💾 Are you sure you want to save weights for ${agent.name}?\n\n` +
+    `This will overwrite any existing saved weights for this agent.`
+  );
+  
+  if (!confirmed) {
+    return; // User cancelled
   }
 
   const weights = {
