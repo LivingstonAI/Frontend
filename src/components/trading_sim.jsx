@@ -1742,21 +1742,25 @@ export default function SnowAITradingSim() {
     </div>
   );
 };
-  const handleSaveWeights = async (agent) => {
+  // ============================================================================
+// FIX: Ensure unique agent names are saved
+// ============================================================================
+
+const handleSaveWeights = async (agent) => {
   if (!agent.model) {
     alert('This agent has no model to save!');
     return;
   }
 
-  // CONFIRMATION DIALOG
+  // ✅ CONFIRMATION DIALOG WITH AGENT NAME
   const confirmed = window.confirm(
-    `💾 Are you sure you want to save weights for ${agent.name}?\n\n` +
-    `This will overwrite any existing saved weights for this agent.`
+    `💾 Save weights for "${agent.name}"?\n\n` +
+    `Agent ID: ${agent.id}\n` +
+    `Type: ${agent.type}\n\n` +
+    `This will overwrite any existing weights for this specific agent.`
   );
   
-  if (!confirmed) {
-    return; // User cancelled
-  }
+  if (!confirmed) return;
 
   const weights = {
     w1: agent.model.q_network.w1,
@@ -1773,16 +1777,20 @@ export default function SnowAITradingSim() {
     hiddenSize2: agent.hiddenSize2,
     risk: agent.risk,
     rewardType: agent.rewardType,
-    stateFeatures: agent.stateFeatures
+    stateFeatures: agent.stateFeatures,
+    agentId: agent.id  // ✅ ADD AGENT ID FOR VERIFICATION
   };
 
+  // ✅ LOG THE EXACT AGENT NAME BEING SAVED
+  console.log(`💾 Saving weights for agent: "${agent.name}" (ID: ${agent.id})`);
+  
   const result = await saveWeightsToBackend(agent.name, weights, metadata);
   
   if (result.success) {
     alert(`✅ Weights saved for ${agent.name}!`);
     setAgents(prev => prev.map(a => 
       a.id === agent.id 
-        ? { ...a, logs: [...a.logs, { msg: `💾 Weights saved to backend`, type: 'info' }] }
+        ? { ...a, logs: [...a.logs, { msg: `💾 Weights saved: ${agent.name}`, type: 'info' }] }
         : a
     ));
   } else {
