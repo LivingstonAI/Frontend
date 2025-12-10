@@ -96,7 +96,7 @@ import lil_boo_thang from '../Paul Russell - Lil Boo Thang (Lyric Video) [MoCaWp
 import will_evelyn from '../will-and-evelyn_T44TfHQx.mp3';
 import no_batidao from '../NO BATIDÃO.mp3';
 import celebrate_alan from '../Celebrate - Alan Avry (prod. by d.higgs) (unofficial videos).mp3';
-
+import gods from "../NewJeans (뉴진스) 'GODS' Lyrics (Color Coded Lyrics)  League of Legends - Worlds 2023 Anthem.mp3";
 
 
 export default function SnowAILandingPage() {
@@ -234,7 +234,7 @@ export default function SnowAILandingPage() {
       "93": { name: "Will & Evelyn", file: will_evelyn },
       "94": { name: "No Batidao 🇧🇷🕺", file: no_batidao },
       "95": { name: "Celebrate - Alan Avry 🦜", file: celebrate_alan },
-      
+      "96": { name: "GODS - 뉴진스", file: gods },
     };
 
 
