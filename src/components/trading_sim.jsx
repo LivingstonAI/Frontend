@@ -198,7 +198,7 @@ const AGENT_TEMPLATES = [
     rewardType: 'none',
     stateFeatures: 'none',
     description: "Simple rule-based dip-buying strategy. Buys 2% below SMA5.",
-    strategy: "Monitors SMA distance. Buys when price drops 2% below SMA5, sells on 1.5% profit."
+    strategy: "Monitors SMA distance. Buys when price drops 2% below SMA5."
   }
 ];
 
@@ -2037,17 +2037,20 @@ export default function SnowAITradingSim() {
             action = 1;
           }
         } else if (agent.id === 12) {
-          const sma5 = calculateSMA(allCandles, 5);
-          if (!agent.hasBoughtInitial && currentPrice > 0) {
-            action = 0;
-          } else if (sma5 && currentPrice < sma5 * 0.98 && agent.shares === 0) {
-            action = 0;
-          } else if (lastBuyPrice && currentPrice > lastBuyPrice * 1.015 && agent.shares > 0) {
-            action = 2;
-          } else {
-            action = 1;
+            // DIP-BUYER: Rule-based strategy that buys dips
+            const sma5 = calculateSMA(allCandles, 5);
+            
+            if (!agent.hasBoughtInitial && currentPrice > 0) {
+              // First buy
+              action = 0;
+            } else if (sma5 && currentPrice < sma5 * 0.98 && agent.shares === 0 && agent.shortShares === 0) {
+              // Buy when price is 2% below SMA5 and no position open
+              action = 0;
+            } else {
+              // Otherwise hold - let TP/SL handle exits
+              action = 1;
+            }
           }
-        }
         else if (agentModel) {
           const qValues = agentModel.predict(nextState);
           action = getAction(qValues, agent.epsilon, agent.shares);
