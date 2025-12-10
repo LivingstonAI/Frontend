@@ -1594,7 +1594,7 @@ const mobileStyles = `@media (max-width: 768px) {
   }
 }`;
 
-const API_BASE = 'http://backend-production-c0ab.up.railway.app';
+const API_BASE = 'https://backend-production-c0ab.up.railway.app';
 
 const saveWeightsToBackend = async (agentName, weights, metadata) => {
   try {
