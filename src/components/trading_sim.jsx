@@ -1660,56 +1660,65 @@ export default function SnowAITradingSim() {
   const [showLoadWeightsModal, setShowLoadWeightsModal] = useState(null); // stores agent when showing modal
 
   const LoadWeightsModal = ({ agent, savedWeights, onLoad, onClose }) => {
-    return (
-      <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={{ ...styles.modalContent, maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
-          <div style={styles.cardHeader}>
-            <h2 style={{ margin: 0, fontSize: '18px' }}>📥 Load Weights for {agent.name}</h2>
-            <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
-          </div>
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div 
+        style={{ 
+          ...styles.modalContent, 
+          maxWidth: '600px',
+          maxHeight: '80vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={styles.cardHeader}>
+          <h2 style={{ margin: 0, fontSize: '18px' }}>📥 Load Weights for {agent.name}</h2>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
+        </div>
 
-          <div style={{ padding: '24px', maxHeight: '60vh', overflowY: 'auto' }}>
-            {savedWeights.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>
-                No saved weights found. Save some weights first!
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {savedWeights.map((w, idx) => (
-                  <div 
-                    key={idx}
-                    style={{
-                      padding: '16px',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: '8px',
-                      border: `1px solid ${THEME.border}`,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onClick={() => onLoad(agent, w.agent_name)}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                  >
-                    <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>
-                      {w.agent_name}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>
-                      Updated: {new Date(w.updated_at).toLocaleString()}
-                    </div>
-                    {w.metadata && (
-                      <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
-                        LR: {w.metadata.lr} | Risk: {w.metadata.risk}
-                      </div>
-                    )}
+        <div style={{ padding: '24px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+          {savedWeights.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>
+              No saved weights found. Save some weights first!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {savedWeights.map((w, idx) => (
+                <div 
+                  key={idx}
+                  style={{
+                    padding: '16px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    border: `1px solid ${THEME.border}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => onLoad(agent, w.agent_name)}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                >
+                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>
+                    {w.agent_name}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    Updated: {new Date(w.updated_at).toLocaleString()}
+                  </div>
+                  {w.metadata && (
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                      LR: {w.metadata.lr} | Risk: {w.metadata.risk}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
   const handleSaveWeights = async (agent) => {
   if (!agent.model) {
     alert('This agent has no model to save!');
