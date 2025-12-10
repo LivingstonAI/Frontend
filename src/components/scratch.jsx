@@ -970,6 +970,272 @@ return [`is_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, O
 
 };
 
+pythonGenerator['forBlock']['snow_alpha_buy'] = function(block, generator) {
+
+
+  return [`snow_alpha_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['snow_alpha_buy'] = function(block, generator) {
+
+return [`snow_alpha_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['snow_alpha_short'] = function(block, generator) {
+
+
+  return [`snow_alpha_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['snow_alpha_short'] = function(block, generator) {
+
+return [`snow_alpha_short(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['ice_beta_buy'] = function(block, generator) {
+
+
+  return [`ice_beta_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['ice_beta_buy'] = function(block, generator) {
+
+return [`ice_beta_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['ice_beta_short'] = function(block, generator) {
+
+
+  return [`ice_beta_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['ice_beta_short'] = function(block, generator) {
+
+return [`ice_beta_short(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['frost_gamma_buy'] = function(block, generator) {
+
+
+  return [`frost_gamma_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['frost_gamma_buy'] = function(block, generator) {
+
+return [`frost_gamma_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['frost_gamma_short'] = function(block, generator) {
+
+
+  return [`frost_gamma_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['frost_gamma_short'] = function(block, generator) {
+
+return [`frost_gamma_short(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['glacier_x_buy'] = function(block, generator) {
+
+
+  return [`glacier_x_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['glacier_x_buy'] = function(block, generator) {
+
+return [`glacier_x_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['glacier_x_short'] = function(block, generator) {
+
+
+  return [`glacier_x_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['glacier_x_short'] = function(block, generator) {
+
+return [`glacier_x_short(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['avalanche_z_buy'] = function(block, generator) {
+
+
+  return [`avalanche_z_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['avalanche_z_buy'] = function(block, generator) {
+
+return [`avalanche_z_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['avalanche_z_short'] = function(block, generator) {
+
+
+  return [`avalanche_z_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['avalanche_z_short'] = function(block, generator) {
+
+return [`avalanche_z_short(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['polar_prime_buy'] = function(block, generator) {
+
+
+  return [`polar_prime_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['polar_prime_buy'] = function(block, generator) {
+
+return [`polar_prime_buy(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['polar_prime_short'] = function(block, generator) {
+
+
+  return [`polar_prime_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['polar_prime_short'] = function(block, generator) {
+
+return [`polar_prime_short(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['blizzard_omega_buy'] = function(block, generator) {
+
+
+  return [`blizzard_omega_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['blizzard_omega_buy'] = function(block, generator) {
+
+return [`blizzard_omega_buy(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['blizzard_omega_short'] = function(block, generator) {
+
+
+  return [`blizzard_omega_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['blizzard_omega_short'] = function(block, generator) {
+
+return [`blizzard_omega_short(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['tundra_sigma_buy'] = function(block, generator) {
+
+
+  return [`tundra_sigma_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['tundra_sigma_buy'] = function(block, generator) {
+
+return [`tundra_sigma_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['tundra_sigma_short'] = function(block, generator) {
+
+
+  return [`tundra_sigma_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['tundra_sigma_short'] = function(block, generator) {
+
+return [`tundra_sigma_short(data=dataset)`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['arctic_delta_buy'] = function(block, generator) {
+
+
+  return [`arctic_delta_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['arctic_delta_buy'] = function(block, generator) {
+
+return [`arctic_delta_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['arctic_delta_short'] = function(block, generator) {
+
+
+  return [`arctic_delta_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['arctic_delta_short'] = function(block, generator) {
+
+return [`arctic_delta_short(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['permafrost_theta_buy'] = function(block, generator) {
+
+
+  return [`permafrost_theta_buy(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['permafrost_theta_buy'] = function(block, generator) {
+
+return [`permafrost_theta_buy(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['permafrost_theta_short'] = function(block, generator) {
+
+
+  return [`permafrost_theta_short(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['permafrost_theta_short'] = function(block, generator) {
+
+return [`permafrost_theta_short(data=dataset)`, Order.NONE];
+
+};
+
+
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -1737,7 +2003,250 @@ Blockly.Blocks['is_volatile_market'] = {
     this.setHelpUrl('');
   }
 };
+
+Blockly.Blocks['snow_alpha_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("snow alpha buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Snow-Alpha: Balanced Deep Double Q-Network");
+      this.setHelpUrl("");
+    }
+  };
   
+  Blockly.Blocks['snow_alpha_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("snow alpha short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Snow-Alpha: Balanced Deep Double Q-Network");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['ice_beta_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("ice beta buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Ice-Beta: High-frequency scalper");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['ice_beta_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("ice beta short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Ice-Beta: High-frequency scalper");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['frost_gamma_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("frost gamma buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Frost-Gamma: Conservative trend-following");
+      this.setHelpUrl("");
+    }
+  };
+
+    Blockly.Blocks['frost_gamma_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("frost gamma short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Frost-Gamma: Conservative trend-following");
+      this.setHelpUrl("");
+    }
+  };
+
+    Blockly.Blocks['glacier_x_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("glacier x buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Glacier-X: Position trader with momentum focus");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['glacier_x_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("glacier x short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Glacier-X: Position trader with momentum focus");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['avalanche_z_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("avalanche z buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Avalanche-Z: Ultra-aggressive high-risk trader");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['avalanche_z_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("avalanche z short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Avalanche-Z: Ultra-aggressive high-risk trader");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['polar_prime_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("polar prime buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Polar-Prime: Ultra-conservative capital preservation");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['polar_prime_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("polar prime short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Polar-Prime: Ultra-conservative capital preservation");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['blizzard_omega_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("blizzard omega buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Blizzard-Omega: Momentum specialist");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['blizzard_omega_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("blizzard omega short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Blizzard-Omega: Momentum specialist");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['tundra_sigma_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("tundra sigma buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Tundra-Sigma: Mean reversion specialist");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['tundra_sigma_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("tundra sigma short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Tundra-Sigma: Mean reversion specialist");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['arctic_delta_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("arctic delta buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Arctic-Delta: Volatility hunter");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['arctic_delta_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("arctic delta short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Arctic-Delta: Volatility hunter");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['permafrost_theta_buy'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("permafrost theta buy")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Permafrost-Theta: Contrarian trader");
+      this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['permafrost_theta_short'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("permafrost theta short")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Permafrost-Theta: Contrarian trader");
+      this.setHelpUrl("");
+    }
+  };
+
+
+
+
   
     const MY_TOOLBOX = {
       "kind": "categoryToolbox",
@@ -2085,6 +2594,7 @@ Blockly.Blocks['is_volatile_market'] = {
               "kind": "block",
               "type": "is_volatile_market"
             },
+            
           ]
         },
         {
@@ -2104,6 +2614,93 @@ Blockly.Blocks['is_volatile_market'] = {
               "kind": "block",
               "type": "asian_session" // Add the "Momentum" block here
             },      
+          ]
+        },
+        {
+          "kind": "category",
+          "name": "AI Models",
+          "contents": [
+            {
+              "kind": "block",
+              "type": "snow_alpha_buy"
+            },
+            
+            {
+              "kind": "block",
+              "type": "snow_alpha_short" 
+            },
+            {
+              "kind": "block",
+              "type": "ice_beta_buy"
+            },
+            {
+              "kind": "block",
+              "type": "ice_beta_short" 
+            },
+            {
+              "kind": "block",
+              "type": "frost_gamma_buy"
+            },
+            {
+              "kind": "block",
+              "type": "frost_gamma_short" 
+            },
+            {
+              "kind": "block",
+              "type": "glacier_x_buy"
+            },
+            {
+              "kind": "block",
+              "type": "glacier_x_short" 
+            },
+            {
+              "kind": "block",
+              "type": "avalanche_z_buy"
+            },
+            {
+              "kind": "block",
+              "type": "avalanche_z_short" 
+            },
+            {
+              "kind": "block",
+              "type": "polar_prime_buy"
+            },
+            {
+              "kind": "block",
+              "type": "polar_prime_short" 
+            },
+            {
+              "kind": "block",
+              "type": "blizzard_omega_buy"
+            },
+            {
+              "kind": "block",
+              "type": "blizzard_omega_short" 
+            },
+            {
+              "kind": "block",
+              "type": "tundra_sigma_buy"
+            },
+            {
+              "kind": "block",
+              "type": "tundra_sigma_short" 
+            },
+            {
+              "kind": "block",
+              "type": "arctic_delta_buy"
+            },
+            {
+              "kind": "block",
+              "type": "arctic_delta_short" 
+            },
+            {
+              "kind": "block",
+              "type": "permafrost_theta_buy"
+            },
+            {
+              "kind": "block",
+              "type": "permafrost_theta_short" 
+            },
           ]
         },
       ]
