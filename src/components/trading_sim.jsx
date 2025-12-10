@@ -1594,6 +1594,49 @@ const mobileStyles = `@media (max-width: 768px) {
   }
 }`;
 
+const API_BASE = 'http://backend-production-c0ab.up.railway.app';
+
+const saveWeightsToBackend = async (agentName, weights, metadata) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/snowai-trading-weights/save/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agent_name: agentName,
+        weights: weights,
+        metadata: metadata
+      })
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error saving weights:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+const loadWeightsFromBackend = async (agentName) => {
+  try {
+    const response = await fetch(`${API_BASE}/api/snowai-trading-weights/load/${encodeURIComponent(agentName)}/`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error loading weights:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+const listSavedWeights = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/api/snowai-trading-weights/list/`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error listing weights:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -1613,7 +1656,135 @@ export default function SnowAITradingSim() {
   const [speed, setSpeed] = useState(CONFIG.TICK_RATE_DEFAULT);
   const [modelInfoAgent, setModelInfoAgent] = useState(null);
   const [showStatistics, setShowStatistics] = useState(false);
+  const [savedWeightsList, setSavedWeightsList] = useState([]);
+  const [showLoadWeightsModal, setShowLoadWeightsModal] = useState(null); // stores agent when showing modal
 
+  const LoadWeightsModal = ({ agent, savedWeights, onLoad, onClose }) => {
+    return (
+      <div style={styles.modalOverlay} onClick={onClose}>
+        <div style={{ ...styles.modalContent, maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+          <div style={styles.cardHeader}>
+            <h2 style={{ margin: 0, fontSize: '18px' }}>📥 Load Weights for {agent.name}</h2>
+            <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
+          </div>
+
+          <div style={{ padding: '24px', maxHeight: '60vh', overflowY: 'auto' }}>
+            {savedWeights.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#64748b', padding: '40px' }}>
+                No saved weights found. Save some weights first!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {savedWeights.map((w, idx) => (
+                  <div 
+                    key={idx}
+                    style={{
+                      padding: '16px',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      border: `1px solid ${THEME.border}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onClick={() => onLoad(agent, w.agent_name)}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  >
+                    <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>
+                      {w.agent_name}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      Updated: {new Date(w.updated_at).toLocaleString()}
+                    </div>
+                    {w.metadata && (
+                      <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                        LR: {w.metadata.lr} | Risk: {w.metadata.risk}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  const handleSaveWeights = async (agent) => {
+  if (!agent.model) {
+    alert('This agent has no model to save!');
+    return;
+  }
+
+  const weights = {
+    w1: agent.model.q_network.w1,
+    b1: agent.model.q_network.b1,
+    w2: agent.model.q_network.w2,
+    b2: agent.model.q_network.b2,
+    w3: agent.model.q_network.w3,
+    b3: agent.model.q_network.b3
+  };
+
+  const metadata = {
+    lr: agent.lr,
+    hiddenSize: agent.hiddenSize,
+    hiddenSize2: agent.hiddenSize2,
+    risk: agent.risk,
+    rewardType: agent.rewardType,
+    stateFeatures: agent.stateFeatures
+  };
+
+  const result = await saveWeightsToBackend(agent.name, weights, metadata);
+  
+  if (result.success) {
+    alert(`✅ Weights saved for ${agent.name}!`);
+    setAgents(prev => prev.map(a => 
+      a.id === agent.id 
+        ? { ...a, logs: [...a.logs, { msg: `💾 Weights saved to backend`, type: 'info' }] }
+        : a
+    ));
+  } else {
+    alert(`❌ Failed to save weights: ${result.error}`);
+  }
+};
+
+  const handleLoadWeights = async (agent, agentName) => {
+    const result = await loadWeightsFromBackend(agentName);
+    
+    if (result.success && agent.model) {
+      try {
+        agent.model.q_network = result.weights;
+        agent.model.target_network = JSON.parse(JSON.stringify(result.weights));
+        
+        setAgents(prev => prev.map(a => 
+          a.id === agent.id 
+            ? { 
+                ...a, 
+                model: agent.model,
+                logs: [...a.logs, { msg: `📥 Weights loaded from backend`, type: 'success' }] 
+              }
+            : a
+        ));
+        
+        alert(`✅ Weights loaded for ${agentName}!`);
+        setShowLoadWeightsModal(null);
+      } catch (error) {
+        alert(`❌ Error applying weights: ${error.message}`);
+      }
+    } else {
+      alert(`❌ Failed to load weights: ${result.error}`);
+    }
+  };
+
+  const openLoadWeightsModal = async (agent) => {
+    const result = await listSavedWeights();
+    if (result.success) {
+      setSavedWeightsList(result.weights);
+      setShowLoadWeightsModal(agent);
+    } else {
+      alert(`❌ Failed to fetch saved weights: ${result.error}`);
+    }
+  };
   const createInitialAgentState = (template) => ({
     ...template,
     isActive: true,
@@ -2271,13 +2442,29 @@ export default function SnowAITradingSim() {
                         {agent.isActive ? '⏸ PAUSE' : '▶ RESUME'}
                       </button>
                       {agent.model && (
-                        <button
-                          style={{ ...styles.btn, ...styles.btnSecondary, flex: 1, color: agent.persistentMemory ? THEME.primary : '#475569' }}
-                          onClick={() => togglePersistentMemory(agent.id)}
-                          title="Keeps model weights on Reset"
-                        >
-                          🧠 {agent.persistentMemory ? 'MEM ON' : 'MEM OFF'}
-                        </button>
+                        <>
+                          <button
+                            style={{ ...styles.btn, ...styles.btnSecondary, flex: 1, color: agent.persistentMemory ? THEME.primary : '#475569' }}
+                            onClick={() => togglePersistentMemory(agent.id)}
+                            title="Keeps model weights on Reset"
+                          >
+                            🧠 {agent.persistentMemory ? 'MEM ON' : 'MEM OFF'}
+                          </button>
+                          <button
+                            style={{ ...styles.btn, ...styles.btnSecondary, fontSize: '11px', padding: '6px 10px' }}
+                            onClick={() => handleSaveWeights(agent)}
+                            title="Save weights to backend"
+                          >
+                            💾
+                          </button>
+                          <button
+                            style={{ ...styles.btn, ...styles.btnSecondary, fontSize: '11px', padding: '6px 10px' }}
+                            onClick={() => openLoadWeightsModal(agent)}
+                            title="Load weights from backend"
+                          >
+                            📥
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -2287,6 +2474,7 @@ export default function SnowAITradingSim() {
           </div>
           {modelInfoAgent && <ModelInfoModal agent={modelInfoAgent} onClose={() => setModelInfoAgent(null)} />}
           {showStatistics && <StatisticsModal agents={agents} onClose={() => setShowStatistics(false)} assetPrice={assetPrice} startPrice={startPrice} />}
+          {showLoadWeightsModal && <LoadWeightsModal agent={showLoadWeightsModal} savedWeights={savedWeightsList} onLoad={handleLoadWeights} onClose={() => setShowLoadWeightsModal(null)} />}
         </div>
       </div>
     </>

@@ -344,8 +344,32 @@ export default function Art() {
       secondary: "rgba(15, 72, 127, 0.4)",
       glow: "#1e90ff",
       shadowGlow: "#0f487f"
+    },
+
+    // ✨ New additions
+    charcoalBlack: {
+      name: "Charcoal Black",
+      primary: "rgba(30, 30, 30, 0.85)",   // softer than pure black
+      secondary: "rgba(15, 15, 15, 0.4)",
+      glow: "#2e2e2e",
+      shadowGlow: "#1a1a1a"
+    },
+    steelGrey: {
+      name: "Steel Grey",
+      primary: "rgba(112, 128, 144, 0.8)", // slate grey vibe
+      secondary: "rgba(47, 79, 79, 0.4)",
+      glow: "#708090",
+      shadowGlow: "#2f4f4f"
+    },
+    pearlWhite: {
+      name: "Pearl White",
+      primary: "rgba(245, 245, 245, 0.85)", // off-white, not blinding
+      secondary: "rgba(220, 220, 220, 0.4)",
+      glow: "#f5f5f5",
+      shadowGlow: "#dcdcdc"
     }
   };
+
 
   // [INSERT YOUR SONGS OBJECT HERE]
 
