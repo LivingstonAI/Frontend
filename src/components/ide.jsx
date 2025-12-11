@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Plus,
   Menu,
-  Sparkles
+  Sparkles,
+  Eye
 } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
@@ -26,7 +27,7 @@ const Header2 = ({ onMenuClick, isMobile }) => (
       {isMobile && (
         <Menu size={24} onClick={onMenuClick} style={{ cursor: 'pointer' }} />
       )}
-      <span>SnowAI IDE/Code Editor</span>
+      <span>SnowAI IDE / Code Editor</span>
     </div>
   </div>
 );
@@ -70,6 +71,8 @@ export default function SnowAIIDE() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const [htmlPreview, setHtmlPreview] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
   // Fetch API Key
@@ -230,44 +233,45 @@ for i in range(10):
   const handleRun = async () => {
     const file = files[activeTab];
     
+    if (file.name.endsWith('.html')) {
+      // HTML execution - open in preview
+      setLogs(prev => [...prev, `> Opening ${activeTab} in preview...`]);
+      
+      // Combine HTML with CSS and JS if they exist
+      let fullHTML = file.content;
+      
+      // Inject CSS if exists
+      if (files['styles.css']) {
+        fullHTML = fullHTML.replace('</head>', `<style>${files['styles.css'].content}</style></head>`);
+      }
+      
+      // Inject JS if exists
+      if (files['script.js']) {
+        fullHTML = fullHTML.replace('</body>', `<script>${files['script.js'].content}</script></body>`);
+      }
+      
+      setHtmlPreview(fullHTML);
+      setShowPreview(true);
+      setLogs(prev => [...prev, `> Preview opened ✓`]);
+      return;
+    }
+    
     if (file.name.endsWith('.py')) {
-      // Python execution
-      if (!pyodideReady) {
-        setLogs(prev => [...prev, `> Error: Python interpreter not ready yet. Please wait...`]);
-        return;
-      }
-      
-      setLogs(prev => [...prev, `> Running ${activeTab}...`]);
-      
-      try {
-        // Redirect stdout to capture print statements
-        await pyodideRef.current.runPythonAsync(`
-import sys
-from io import StringIO
-sys.stdout = StringIO()
-        `);
-        
-        // Run the user's code
-        await pyodideRef.current.runPythonAsync(file.content);
-        
-        // Get the output
-        const output = await pyodideRef.current.runPythonAsync(`
-sys.stdout.getvalue()
-        `);
-        
-        if (output) {
-          const outputLines = output.split('\n').filter(line => line.trim());
-          setLogs(prev => [...prev, ...outputLines.map(line => `  ${line}`)]);
-        }
-        
-        setLogs(prev => [...prev, `> Execution complete ✓`]);
-      } catch (error) {
-        setLogs(prev => [...prev, `> Python Error: ${error.message}`]);
-      }
-    } else if (file.name.endsWith('.js')) {
+      // Python execution - removed due to limitations
+      setLogs(prev => [...prev, `> Python execution has limitations in browser (no input(), limited libraries)`]);
+      setLogs(prev => [...prev, `> For full Python support, use: python ${file.name}`]);
+      setLogs(prev => [...prev, `> Tip: JavaScript works perfectly! Try converting to .js`]);
+      return;
+    }
+    
+    if (file.name.endsWith('.js')) {
       // JavaScript execution
       setLogs(prev => [...prev, `> Running ${activeTab}...`]);
       try {
+        // Clear previous output area
+        const outputArea = document.getElementById('js-output-area');
+        if (outputArea) outputArea.innerHTML = '';
+        
         // Capture console.log
         const originalLog = console.log;
         const capturedLogs = [];
@@ -290,7 +294,8 @@ sys.stdout.getvalue()
         setLogs(prev => [...prev, `> JavaScript Error: ${error.message}`]);
       }
     } else {
-      setLogs(prev => [...prev, `> Cannot execute ${file.language} files`]);
+      setLogs(prev => [...prev, `> Cannot execute ${file.language} files directly`]);
+      setLogs(prev => [...prev, `> Tip: Try running as .js or .html file`]);
     }
   };
 
@@ -370,10 +375,18 @@ sys.stdout.getvalue()
       const data = await response.json();
       const generatedCode = data.choices[0].message.content;
 
+      // Clean up code blocks (remove ```language and ```)
+      let cleanedCode = generatedCode;
+      
+      // Remove markdown code blocks
+      cleanedCode = cleanedCode.replace(/```[\w]*\n?/g, '');
+      cleanedCode = cleanedCode.replace(/```/g, '');
+      cleanedCode = cleanedCode.trim();
+
       // Update the current file with generated code
       setFiles({
         ...files,
-        [activeTab]: { ...files[activeTab], content: generatedCode },
+        [activeTab]: { ...files[activeTab], content: cleanedCode },
       });
 
       setLogs(prev => [...prev, `> AI: Code generated successfully ✓`]);
@@ -394,27 +407,93 @@ sys.stdout.getvalue()
 
       const newLogs = [...logs, `$ ${cmd}`];
       
-      // Simple Mock Command Processing
-      switch(cmd.toLowerCase()) {
+      // Parse command
+      const parts = cmd.split(' ');
+      const mainCmd = parts[0].toLowerCase();
+      const args = parts.slice(1);
+      
+      // Command Processing
+      switch(mainCmd) {
         case 'clear':
-            setLogs([]);
-            break;
+          setLogs([]);
+          break;
+          
         case 'ls':
-            setLogs([...newLogs, ...Object.keys(files).map(f => `  ${f}`)]);
-            break;
+          setLogs([...newLogs, ...Object.keys(files).map(f => `  ${f}`)]);
+          break;
+          
         case 'help':
-            setLogs([...newLogs, "Available commands: ls, clear, echo, help, python --version"]);
-            break;
-        case 'python --version':
-            setLogs([...newLogs, pyodideReady ? "Python 3.11.3 (Pyodide)" : "Python interpreter not loaded"]);
-            break;
+          setLogs([...newLogs, 
+            "Available commands:",
+            "  ls                    - list files",
+            "  clear                 - clear terminal",
+            "  cat <file>            - view file content",
+            "  node <file.js>        - run JavaScript file",
+            "  python <file.py>      - run Python file (limited)",
+            "  npm run dev           - start dev server (simulated)",
+            "  echo <text>           - print text",
+            "  help                  - show this help"
+          ]);
+          break;
+          
+        case 'cat':
+          if (args.length === 0) {
+            setLogs([...newLogs, "cat: missing file operand"]);
+          } else if (files[args[0]]) {
+            setLogs([...newLogs, ...files[args[0]].content.split('\n').map(line => `  ${line}`)]);
+          } else {
+            setLogs([...newLogs, `cat: ${args[0]}: No such file`]);
+          }
+          break;
+          
+        case 'node':
+          if (args.length === 0) {
+            setLogs([...newLogs, "node: missing file operand"]);
+          } else if (files[args[0]]) {
+            setActiveTab(args[0]);
+            setTimeout(() => handleRun(), 100);
+          } else {
+            setLogs([...newLogs, `node: ${args[0]}: No such file`]);
+          }
+          break;
+          
+        case 'python':
+        case 'python3':
+          if (args.length === 0) {
+            setLogs([...newLogs, "Python 3.11.3 (browser mode - limited)"]);
+          } else if (files[args[0]]) {
+            setLogs([...newLogs, `> Python has browser limitations (no input(), limited libs)`, `> Consider converting to JavaScript for full functionality`]);
+          } else {
+            setLogs([...newLogs, `python: can't open file '${args[0]}': No such file`]);
+          }
+          break;
+          
+        case 'npm':
+          if (args[0] === 'run' && args[1] === 'dev') {
+            setLogs([...newLogs, 
+              "> snow-ai-project@1.0.0 dev",
+              "> vite",
+              "",
+              "  VITE v5.0.0  ready in 420 ms",
+              "",
+              "  ➜  Local:   http://localhost:5173/",
+              "  ➜  Network: use --host to expose",
+              "",
+              "  Tip: Click RUN button to execute your code!"
+            ]);
+          } else {
+            setLogs([...newLogs, `npm: command not found: ${args.join(' ')}`]);
+          }
+          break;
+          
+        case 'echo':
+          setLogs([...newLogs, args.join(' ')]);
+          break;
+          
         default:
-            if (cmd.startsWith('echo ')) {
-                setLogs([...newLogs, cmd.substring(5)]);
-            } else {
-                setLogs([...newLogs, `command not found: ${cmd}`]);
-            }
+          setLogs([...newLogs, `command not found: ${mainCmd}`, `Type 'help' for available commands`]);
       }
+      
       setTermInput('');
     }
   };
@@ -677,6 +756,35 @@ sys.stdout.getvalue()
       display: "flex",
       gap: "10px",
       justifyContent: "flex-end"
+    },
+    previewFrame: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: "100%",
+      height: "100%",
+      border: "none",
+      backgroundColor: "white",
+      zIndex: showPreview ? 10 : -1,
+      display: showPreview ? "block" : "none"
+    },
+    previewHeader: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "40px",
+      backgroundColor: "#0078d4",
+      color: "white",
+      display: showPreview ? "flex" : "none",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "0 15px",
+      zIndex: 11,
+      fontSize: "14px",
+      fontWeight: "bold"
     }
   };
 
@@ -751,7 +859,7 @@ sys.stdout.getvalue()
               {/* File List */}
               <div style={{ marginTop: "10px", overflow: "auto", flex: 1 }}>
                 <div style={{...styles.fileExplorerItem(false), fontWeight: 'bold'}}>
-                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOWAI-PROJECT
+                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOW-AI-PROJECT
                 </div>
                 {Object.values(files).map((file) => (
                   <div
@@ -813,6 +921,20 @@ sys.stdout.getvalue()
 
         {/* C. Main Editor Area */}
         <div style={styles.editorArea}>
+          
+          {/* HTML Preview */}
+          <div style={styles.previewHeader}>
+            <span>Preview: {activeTab}</span>
+            <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowPreview(false)} />
+          </div>
+          {htmlPreview && (
+            <iframe
+              style={{...styles.previewFrame, top: showPreview ? '40px' : 0}}
+              srcDoc={htmlPreview}
+              title="HTML Preview"
+              sandbox="allow-scripts allow-modals"
+            />
+          )}
           
           {/* AI Panel Overlay */}
           <div style={styles.aiOverlay} onClick={() => setShowAiPanel(false)} />
@@ -888,6 +1010,27 @@ sys.stdout.getvalue()
               <Sparkles size={16} color="#0078d4" />
               {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>AI</span>}
             </div>
+            {activeFile?.name.endsWith('.html') && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 10px',
+                  cursor: 'pointer',
+                  borderRight: '1px solid #e1e4e8',
+                  backgroundColor: '#e6f0f5',
+                  gap: '5px'
+                }}
+                onClick={() => {
+                  handleRun();
+                }}
+                title="Preview HTML"
+              >
+                <Eye size={16} color="#0078d4" />
+                {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>Preview</span>}
+              </div>
+            )}
             {Object.values(files).map((file) => (
               <div
                 key={file.name}
@@ -902,14 +1045,17 @@ sys.stdout.getvalue()
           </div>
 
           {/* Code Input */}
-          <textarea
-            style={styles.codeEditorInput}
-            value={activeFile?.content || ''}
-            onChange={handleCodeChange}
-            spellCheck="false"
-            autoCapitalize="off"
-            autoComplete="off"
-          />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <textarea
+              style={{...styles.codeEditorInput, display: showPreview ? 'none' : 'block'}}
+              value={activeFile?.content || ''}
+              onChange={handleCodeChange}
+              spellCheck="false"
+              autoCapitalize="off"
+              autoComplete="off"
+            />
+            <div id="js-output-area" style={{ padding: '10px', display: 'none' }}></div>
+          </div>
 
           {/* D. Integrated Terminal */}
           <div style={styles.terminal}>
@@ -940,7 +1086,7 @@ sys.stdout.getvalue()
                 {/* Interactive Terminal Line */}
                 <div style={{ display: "flex", alignItems: "center", color: "#333" }}>
                   <span style={{ color: "#0078d4", marginRight: "0px" }}>➜</span>
-                  <span style={{ color: "#005a9e", marginRight: "0px", marginLeft: "4px" }}>snowai</span>
+                  <span style={{ color: "#005a9e", marginRight: "0px", marginLeft: "4px" }}>snow-ai</span>
                   <input 
                       type="text" 
                       style={styles.terminalInput}
