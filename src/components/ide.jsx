@@ -12,20 +12,27 @@ import {
   X,
   ChevronRight,
   ChevronDown,
-  Plus 
+  Plus,
+  Menu,
+  Sparkles
 } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
 // --- MOCK COMPONENTS (Updated for Horizontal Layout) ---
-const HeaderComponent = () => (
-  <div style={{ height: '60px', background: '#0078d4', borderBottom: '1px solid #005a9e', display: 'flex', alignItems: 'center', padding: '0 20px', color: 'white', fontWeight: 'bold' }}>
-    SnowAI IDE
+const Header2 = ({ onMenuClick, isMobile }) => (
+  <div style={{ height: '60px', background: '#0078d4', borderBottom: '1px solid #005a9e', display: 'flex', alignItems: 'center', padding: '0 20px', color: 'white', fontWeight: 'bold', justifyContent: 'space-between' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {isMobile && (
+        <Menu size={24} onClick={onMenuClick} style={{ cursor: 'pointer' }} />
+      )}
+      <span>SnowAI Header Placeholder</span>
+    </div>
   </div>
 );
 
 // SIDE NAVS IS NOW HORIZONTAL
-const SideNavBars = () => (
+const SideNavs2 = () => (
   <div style={{ 
     height: '40px',
     background: '#e6f0f5',
@@ -33,7 +40,9 @@ const SideNavBars = () => (
     display: 'flex', 
     alignItems: 'center', 
     padding: '0 20px', 
-    color: '#333'
+    color: '#333',
+    overflowX: 'auto',
+    whiteSpace: 'nowrap'
   }}>
     <div style={{fontWeight: 'bold', color: '#0078d4', marginRight: '20px', cursor: 'pointer'}}>Dashboard</div>
     <div style={{ color: '#005a9e', fontWeight: 'bold', marginRight: '20px', cursor: 'pointer' }}>IDE (Active)</div>
@@ -46,6 +55,7 @@ export default function SnowAIIDE() {
   const [activeTab, setActiveTab] = useState("script.js");
   const [terminalOpen, setTerminalOpen] = useState(true);
   const [sidebarMode, setSidebarMode] = useState("explorer"); 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [gitConnected, setGitConnected] = useState(false);
   const [logs, setLogs] = useState([
     "> SnowAI IDE initialized...",
@@ -55,6 +65,48 @@ export default function SnowAIIDE() {
   const terminalEndRef = useRef(null);
   const [pyodideReady, setPyodideReady] = useState(false);
   const pyodideRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+
+  // Fetch API Key
+  const fetchAPIKey = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/get_openai_key`);
+      if (!response.ok) throw new Error("Network response was not ok");
+      const { OPENAI_API_KEY } = await response.json();
+      setOPENAI_API_KEY(OPENAI_API_KEY);
+    } catch (error) {
+      console.error("Error fetching API key:", error);
+      setLogs(prev => [...prev, `> Error fetching API key: ${error.message}`]);
+    }
+  };
+
+  useEffect(() => {
+    fetchAPIKey();
+  }, []);
+
+  // Detect mobile/tablet
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+        setTerminalOpen(false);
+      } else {
+        setSidebarOpen(true);
+        setTerminalOpen(true);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load Pyodide for Python execution
   useEffect(() => {
@@ -162,6 +214,9 @@ for i in range(10):
   // Handlers
   const handleFileClick = (fileName) => {
     setActiveTab(fileName);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   };
 
   const handleCodeChange = (e) => {
@@ -269,6 +324,68 @@ sys.stdout.getvalue()
     setLogs([...logs, "> git add .", "> git commit -m 'Update via SnowAI'", "> git push origin main", "> Push successful 🚀"]);
   };
 
+  // AI Code Generation Handler
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      alert("Please enter a prompt for the AI");
+      return;
+    }
+
+    if (!OPENAI_API_KEY) {
+      setLogs(prev => [...prev, "> Error: API key not loaded yet"]);
+      return;
+    }
+
+    setAiLoading(true);
+    setLogs(prev => [...prev, `> AI: Generating code for "${aiPrompt.substring(0, 50)}..."`]);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful coding assistant. Generate clean, working code based on user requests. Only return the code without explanations unless specifically asked.'
+            },
+            {
+              role: 'user',
+              content: `Generate code for: ${aiPrompt}\n\nCurrent file type: ${activeFile.language}`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedCode = data.choices[0].message.content;
+
+      // Update the current file with generated code
+      setFiles({
+        ...files,
+        [activeTab]: { ...files[activeTab], content: generatedCode },
+      });
+
+      setLogs(prev => [...prev, `> AI: Code generated successfully ✓`]);
+      setShowAiPanel(false);
+      setAiPrompt("");
+    } catch (error) {
+      setLogs(prev => [...prev, `> AI Error: ${error.message}`]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // Terminal Input Handler
   const handleTerminalSubmit = (e) => {
     if (e.key === 'Enter') {
@@ -302,6 +419,10 @@ sys.stdout.getvalue()
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   // --- STYLES OBJECT ---
   const styles = {
     container: {
@@ -319,12 +440,13 @@ sys.stdout.getvalue()
       flexDirection: "row", 
       flex: 1,
       overflow: "hidden", 
+      position: "relative"
     },
     activityBar: {
-      width: "50px",
-      minWidth: "50px", 
+      width: isMobile ? "0" : "50px",
+      minWidth: isMobile ? "0" : "50px",
       backgroundColor: "#004e8c",
-      display: "flex",
+      display: isMobile ? "none" : "flex",
       flexDirection: "column",
       alignItems: "center",
       paddingTop: "10px",
@@ -338,13 +460,21 @@ sys.stdout.getvalue()
       borderLeft: isActive ? "2px solid white" : "2px solid transparent",
     }),
     sidebar: {
-      width: "250px",
-      minWidth: "200px",
-      maxWidth: "300px",
+      width: sidebarOpen ? (isMobile ? "80%" : "250px") : "0",
+      minWidth: sidebarOpen ? (isMobile ? "80%" : "200px") : "0",
+      maxWidth: sidebarOpen ? (isMobile ? "80%" : "300px") : "0",
       backgroundColor: "#f3f9fc",
       display: "flex",
       flexDirection: "column",
       borderRight: "1px solid #e1e4e8",
+      transition: "all 0.3s ease",
+      overflow: "hidden",
+      position: isMobile ? "absolute" : "relative",
+      left: 0,
+      top: 0,
+      bottom: 0,
+      zIndex: isMobile ? 1000 : "auto",
+      boxShadow: isMobile && sidebarOpen ? "2px 0 8px rgba(0,0,0,0.1)" : "none"
     },
     sidebarHeader: {
       padding: "10px 20px",
@@ -356,6 +486,7 @@ sys.stdout.getvalue()
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
+      flexShrink: 0
     },
     fileExplorerItem: (isActive) => ({
       display: "flex",
@@ -386,11 +517,11 @@ sys.stdout.getvalue()
     tab: (isActive) => ({
       display: "flex",
       alignItems: "center",
-      padding: "0 15px",
+      padding: isMobile ? "0 10px" : "0 15px",
       height: "100%",
       backgroundColor: isActive ? "#ffffff" : "#e6f0f5",
       color: isActive ? "#0078d4" : "#666666",
-      fontSize: "13px",
+      fontSize: isMobile ? "12px" : "13px",
       cursor: "pointer",
       borderTop: isActive ? "2px solid #0078d4" : "2px solid transparent",
       borderRight: "1px solid #e1e4e8",
@@ -403,18 +534,18 @@ sys.stdout.getvalue()
       color: "#1f1f1f",
       border: "none",
       resize: "none",
-      padding: "20px",
+      padding: isMobile ? "10px" : "20px",
       fontFamily: "'Fira Code', 'Consolas', monospace",
-      fontSize: "14px",
+      fontSize: isMobile ? "12px" : "14px",
       lineHeight: "1.5",
       outline: "none",
       whiteSpace: "pre",
-      minHeight: "300px",
+      minHeight: "200px",
     },
     terminal: {
-      height: terminalOpen ? "250px" : "35px",
-      minHeight: terminalOpen ? "250px" : "35px",
-      maxHeight: terminalOpen ? "250px" : "35px",
+      height: terminalOpen ? (isMobile ? "200px" : "250px") : "35px",
+      minHeight: terminalOpen ? (isMobile ? "200px" : "250px") : "35px",
+      maxHeight: terminalOpen ? (isMobile ? "200px" : "250px") : "35px",
       backgroundColor: "#f8f9fa",
       borderTop: "1px solid #e1e4e8",
       display: "flex",
@@ -428,7 +559,7 @@ sys.stdout.getvalue()
       padding: "5px 15px",
       backgroundColor: "#f0f4f8",
       borderBottom: "1px solid #e1e4e8",
-      fontSize: "12px",
+      fontSize: isMobile ? "10px" : "12px",
       textTransform: "uppercase",
       cursor: "pointer",
       color: "#555",
@@ -441,7 +572,7 @@ sys.stdout.getvalue()
       padding: "10px",
       overflowY: "auto",
       fontFamily: "'Consolas', monospace",
-      fontSize: "13px",
+      fontSize: isMobile ? "11px" : "13px",
       color: "#333333",
       display: "flex",
       flexDirection: "column",
@@ -451,6 +582,7 @@ sys.stdout.getvalue()
       display: "flex",
       flexDirection: "column",
       gap: "10px",
+      overflow: "auto"
     },
     buttonPrimary: {
       backgroundColor: "#0078d4",
@@ -469,14 +601,14 @@ sys.stdout.getvalue()
         backgroundColor: "#e1e4e8",
         color: "#333",
         border: "none",
-        padding: "8px 12px",
+        padding: isMobile ? "2px 6px" : "8px 12px",
         cursor: "pointer",
-        fontSize: "12px",
+        fontSize: isMobile ? "9px" : "12px",
         borderRadius: "2px",
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '8px'
+        gap: isMobile ? '4px' : '8px'
       },
     iconButton: {
       cursor: 'pointer',
@@ -489,10 +621,62 @@ sys.stdout.getvalue()
         border: 'none',
         color: '#333',
         fontFamily: "'Consolas', monospace",
-        fontSize: "13px",
+        fontSize: isMobile ? "11px" : "13px",
         outline: 'none',
         flex: 1,
         marginLeft: '8px'
+    },
+    mobileOverlay: {
+      display: isMobile && sidebarOpen ? "block" : "none",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.3)",
+      zIndex: 999
+    },
+    aiPanel: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      backgroundColor: "#ffffff",
+      border: "2px solid #0078d4",
+      borderRadius: "8px",
+      padding: "20px",
+      width: isMobile ? "90%" : "500px",
+      maxWidth: "90vw",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+      zIndex: 2000,
+      display: showAiPanel ? "flex" : "none",
+      flexDirection: "column",
+      gap: "15px"
+    },
+    aiOverlay: {
+      display: showAiPanel ? "block" : "none",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      zIndex: 1999
+    },
+    aiInput: {
+      width: "100%",
+      padding: "12px",
+      border: "1px solid #e1e4e8",
+      borderRadius: "4px",
+      fontSize: "14px",
+      fontFamily: "inherit",
+      resize: "vertical",
+      minHeight: "100px"
+    },
+    aiButtonGroup: {
+      display: "flex",
+      gap: "10px",
+      justifyContent: "flex-end"
     }
   };
 
@@ -506,20 +690,23 @@ sys.stdout.getvalue()
 
   return (
     <div>
-                <div className="header">
-                    <Header />
-                </div>
-                <div className="main-page-body">
-                    <SideNavs />
+        <div className="header">
+            <Header />
+        </div>
+        <div className="main-page-body">
+            <SideNavs />
     <div style={styles.container}>
       {/* 1. Header Area */}
-      <HeaderComponent />
+      <Header2 onMenuClick={toggleSidebar} isMobile={isMobile} />
 
       {/* 2. Top Navigation (SideNavs component moved here) */}
-      <SideNavBars /> 
+      <SideNavs2 /> 
 
       {/* 3. The IDE Core: Activity Bar, Sidebar, Editor Area (Flex Row) */}
       <div style={styles.ideCore}>
+        
+        {/* Mobile overlay */}
+        <div style={styles.mobileOverlay} onClick={toggleSidebar} />
         
         {/* A. Activity Bar */}
         <div style={styles.activityBar}>
@@ -540,19 +727,29 @@ sys.stdout.getvalue()
             <>
               <div style={styles.sidebarHeader}>
                 <span>EXPLORER</span>
-                <div 
-                  title="New File" 
-                  style={styles.iconButton} 
-                  onClick={handleNewFile}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <Plus size={16} />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div 
+                    title="New File" 
+                    style={styles.iconButton} 
+                    onClick={handleNewFile}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <Plus size={16} />
+                  </div>
+                  {isMobile && (
+                    <div 
+                      style={styles.iconButton} 
+                      onClick={toggleSidebar}
+                    >
+                      <X size={16} />
+                    </div>
+                  )}
                 </div>
               </div>
               
               {/* File List */}
-              <div style={{ marginTop: "10px" }}>
+              <div style={{ marginTop: "10px", overflow: "auto", flex: 1 }}>
                 <div style={{...styles.fileExplorerItem(false), fontWeight: 'bold'}}>
                    <ChevronDown size={14} style={{marginRight: 6}}/> SNOW-AI-PROJECT
                 </div>
@@ -574,7 +771,17 @@ sys.stdout.getvalue()
 
           {sidebarMode === "git" && (
             <>
-              <div style={styles.sidebarHeader}>SOURCE CONTROL</div>
+              <div style={styles.sidebarHeader}>
+                <span>SOURCE CONTROL</span>
+                {isMobile && (
+                  <div 
+                    style={styles.iconButton} 
+                    onClick={toggleSidebar}
+                  >
+                    <X size={16} />
+                  </div>
+                )}
+              </div>
               <div style={styles.gitPanel}>
                 {!gitConnected ? (
                   <div style={{textAlign: 'center', color: '#666', fontSize: '13px'}}>
@@ -606,8 +813,81 @@ sys.stdout.getvalue()
 
         {/* C. Main Editor Area */}
         <div style={styles.editorArea}>
+          
+          {/* AI Panel Overlay */}
+          <div style={styles.aiOverlay} onClick={() => setShowAiPanel(false)} />
+          
+          {/* AI Panel */}
+          <div style={styles.aiPanel}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3 style={{ margin: 0, color: '#0078d4', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={20} /> AI Code Generator
+              </h3>
+              <X size={20} style={{ cursor: 'pointer', color: '#666' }} onClick={() => setShowAiPanel(false)} />
+            </div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+              Describe what code you want and AI will generate it for you in the current file.
+            </p>
+            <textarea
+              style={styles.aiInput}
+              placeholder="E.g., Create a function that calculates factorial recursively..."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              disabled={aiLoading}
+            />
+            <div style={styles.aiButtonGroup}>
+              <button 
+                style={{...styles.buttonSecondary, padding: '8px 16px'}} 
+                onClick={() => setShowAiPanel(false)}
+                disabled={aiLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{...styles.buttonPrimary, padding: '8px 16px'}} 
+                onClick={handleAiGenerate}
+                disabled={aiLoading}
+              >
+                {aiLoading ? 'Generating...' : 'Generate Code'}
+              </button>
+            </div>
+          </div>
+
           {/* Tabs */}
           <div style={styles.tabBar}>
+            {isMobile && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 10px',
+                  cursor: 'pointer',
+                  borderRight: '1px solid #e1e4e8',
+                  backgroundColor: '#e6f0f5'
+                }}
+                onClick={toggleSidebar}
+              >
+                <Menu size={16} color="#0078d4" />
+              </div>
+            )}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 10px',
+                cursor: 'pointer',
+                borderRight: '1px solid #e1e4e8',
+                backgroundColor: '#e6f0f5',
+                gap: '5px'
+              }}
+              onClick={() => setShowAiPanel(true)}
+              title="AI Code Generator"
+            >
+              <Sparkles size={16} color="#0078d4" />
+              {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>AI</span>}
+            </div>
             {Object.values(files).map((file) => (
               <div
                 key={file.name}
@@ -616,7 +896,7 @@ sys.stdout.getvalue()
               >
                 <span style={{ marginRight: "8px", display: 'flex', alignItems: 'center' }}>{getFileIcon(file.name)}</span>
                 {file.name}
-                {activeTab === file.name && <X size={12} style={{ marginLeft: "10px" }} />}
+                {activeTab === file.name && !isMobile && <X size={12} style={{ marginLeft: "10px" }} />}
               </div>
             ))}
           </div>
@@ -637,13 +917,13 @@ sys.stdout.getvalue()
               style={styles.terminalHeader}
               onClick={() => setTerminalOpen(!terminalOpen)}
             >
-              <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
                   <Terminal size={12} />
                   <span>TERMINAL</span>
               </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                  <button style={{...styles.buttonSecondary, padding: '2px 8px', fontSize: '10px'}} onClick={(e) => { e.stopPropagation(); handleRun(); }}>
-                      <Play size={10} /> RUN
+              <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
+                  <button style={{...styles.buttonSecondary}} onClick={(e) => { e.stopPropagation(); handleRun(); }}>
+                      <Play size={isMobile ? 8 : 10} /> RUN
                   </button>
                   {terminalOpen ? <ChevronDown size={14}/> : <ChevronRight size={14} />}
               </div>
@@ -667,7 +947,7 @@ sys.stdout.getvalue()
                       value={termInput}
                       onChange={(e) => setTermInput(e.target.value)}
                       onKeyDown={handleTerminalSubmit}
-                      autoFocus
+                      autoFocus={!isMobile}
                   />
                 </div>
                 <div ref={terminalEndRef} />
@@ -691,6 +971,9 @@ sys.stdout.getvalue()
         }
         ::-webkit-scrollbar-thumb:hover {
           background: #a8a8a8; 
+        }
+        * {
+          box-sizing: border-box;
         }
       `}</style>
     </div>
