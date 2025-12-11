@@ -284,11 +284,13 @@ export default function SnowAIForwardTestingEngine() {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [availableModels, setAvailableModels] = useState([]);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [priceData, setPriceData] = useState([]);
   const [loadingChart, setLoadingChart] = useState(false);
+  const [editModel, setEditModel] = useState(null);
 
   const assetCategories = {
     'Forex Pairs': [
@@ -385,6 +387,43 @@ export default function SnowAIForwardTestingEngine() {
       setShowDetailModal(false);
     } catch (error) {
       console.error('Error deleting model:', error);
+    }
+  };
+
+  const handleEditModel = (model) => {
+    setEditModel({
+      id: model.id,
+      name: model.name,
+      asset: model.asset,
+      interval: model.interval,
+      model_code: model.model_code,
+      initial_equity: model.initial_equity,
+      num_positions: model.num_positions,
+      take_profit: model.take_profit,
+      take_profit_type: model.take_profit_type,
+      stop_loss: model.stop_loss,
+      stop_loss_type: model.stop_loss_type,
+      is_active: model.is_active
+    });
+    setShowDetailModal(false);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateModel = async () => {
+    try {
+      const response = await fetch(`${baseUrl}/api/snowai-models/${editModel.id}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editModel)
+      });
+      
+      if (response.ok) {
+        fetchModels();
+        setShowEditModal(false);
+        setEditModel(null);
+      }
+    } catch (error) {
+      console.error('Error updating model:', error);
     }
   };
 
@@ -765,6 +804,13 @@ export default function SnowAIForwardTestingEngine() {
 
           <div style={styles.actionButtons}>
             <button
+              style={{...styles.button, ...styles.buttonPrimary}}
+              onClick={() => handleEditModel(selectedModel)}
+            >
+              <Edit2 size={16} />
+              Edit Model
+            </button>
+            <button
               style={{...styles.button, ...styles.buttonDanger}}
               onClick={() => handleDeleteModel(selectedModel.id)}
             >
@@ -820,11 +866,10 @@ export default function SnowAIForwardTestingEngine() {
       )}
 
       {showAddModal && renderAddModal()}
+      {showEditModal && renderEditModal()}
       {showDetailModal && renderDetailModal()}
     </div>
     </div>
     </div>
   );
 }
-
-// maybe also enable me to edit existing models? like enabling me to edit the features I used to create them?
