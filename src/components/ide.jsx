@@ -17,6 +17,29 @@ import {
 import Header from "./header";
 import SideNavs from "./side_navs";
 
+// --- MOCK COMPONENTS (Updated for Horizontal Layout) ---
+const HeaderComponent = () => (
+  <div style={{ height: '60px', background: '#0078d4', borderBottom: '1px solid #005a9e', display: 'flex', alignItems: 'center', padding: '0 20px', color: 'white', fontWeight: 'bold' }}>
+    SnowAI IDE
+  </div>
+);
+
+// SIDE NAVS IS NOW HORIZONTAL
+const SideNavBars = () => (
+  <div style={{ 
+    height: '40px',
+    background: '#e6f0f5',
+    borderBottom: '1px solid #dbeafe', 
+    display: 'flex', 
+    alignItems: 'center', 
+    padding: '0 20px', 
+    color: '#333'
+  }}>
+    <div style={{fontWeight: 'bold', color: '#0078d4', marginRight: '20px', cursor: 'pointer'}}>Dashboard</div>
+    <div style={{ color: '#005a9e', fontWeight: 'bold', marginRight: '20px', cursor: 'pointer' }}>IDE (Active)</div>
+    <div style={{ cursor: 'pointer' }}>Settings</div>
+  </div>
+);
 // ----------------------------------------------------------------
 
 export default function SnowAIIDE() {
@@ -482,12 +505,18 @@ sys.stdout.getvalue()
   };
 
   return (
+    <div>
+                <div className="header">
+                    <Header />
+                </div>
+                <div className="main-page-body">
+                    <SideNavs />
     <div style={styles.container}>
       {/* 1. Header Area */}
-      <Header />
+      <HeaderComponent />
 
       {/* 2. Top Navigation (SideNavs component moved here) */}
-      <SideNavs /> 
+      <SideNavBars /> 
 
       {/* 3. The IDE Core: Activity Bar, Sidebar, Editor Area (Flex Row) */}
       <div style={styles.ideCore}>
@@ -664,6 +693,8 @@ sys.stdout.getvalue()
           background: #a8a8a8; 
         }
       `}</style>
+    </div>
+    </div>
     </div>
   );
 }
