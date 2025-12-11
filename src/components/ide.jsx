@@ -26,7 +26,7 @@ const Header2 = ({ onMenuClick, isMobile }) => (
       {isMobile && (
         <Menu size={24} onClick={onMenuClick} style={{ cursor: 'pointer' }} />
       )}
-      <span>SnowAI Header Placeholder</span>
+      <span>SnowAI IDE/Code Editor</span>
     </div>
   </div>
 );
@@ -751,7 +751,7 @@ sys.stdout.getvalue()
               {/* File List */}
               <div style={{ marginTop: "10px", overflow: "auto", flex: 1 }}>
                 <div style={{...styles.fileExplorerItem(false), fontWeight: 'bold'}}>
-                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOW-AI-PROJECT
+                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOWAI-PROJECT
                 </div>
                 {Object.values(files).map((file) => (
                   <div
@@ -940,7 +940,7 @@ sys.stdout.getvalue()
                 {/* Interactive Terminal Line */}
                 <div style={{ display: "flex", alignItems: "center", color: "#333" }}>
                   <span style={{ color: "#0078d4", marginRight: "0px" }}>➜</span>
-                  <span style={{ color: "#005a9e", marginRight: "0px", marginLeft: "4px" }}>snow-ai</span>
+                  <span style={{ color: "#005a9e", marginRight: "0px", marginLeft: "4px" }}>snowai</span>
                   <input 
                       type="text" 
                       style={styles.terminalInput}
