@@ -949,9 +949,9 @@ export default function SideNavs() {
         <Link to="/stock_screener" className="side-nav">
             <i className="bi bi-apple"></i>
         </Link>
-        <Link to="/ml_playground" className="side-nav">
+        {/* <Link to="/ml_playground" className="side-nav">
             <i className="bi bi-droplet-fill"></i>
-        </Link>
+        </Link> */}
         <Link to="/trading_sim" className="side-nav">
             <i className="bi bi-bullseye"></i>
         </Link>
