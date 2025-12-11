@@ -3001,6 +3001,62 @@ Blockly.Blocks['snow_alpha_buy'] = {
 
     // cleanedPythonCode = cleanedPythonCode.replace("\n", "");
 
+
+    const SaveModelForForwardTesting = async () => {
+        try {
+            setDownloadModel('Saving Model for Forward Testing...');
+            
+            // Generate magic number for model ID
+            const min = 1000000;
+            const max = 9999999;
+            const magicNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+            
+            // Clean the Python code (same logic as download)
+            let cleanedPythonCode = generatedCode.replace(/self\./g, "");
+            cleanedPythonCode = cleanedPythonCode.replace(/buy\(\)/g, "return_statement = 'buy'");
+            cleanedPythonCode = cleanedPythonCode.replace(/sell\(\)/g, "return_statement = 'sell'");
+            cleanedPythonCode = cleanedPythonCode.replace(/current_equity\s*=\s*equity\s*\n/g, "");
+            cleanedPythonCode = cleanedPythonCode.replace(/\(position\.size\)/g, "num_positions");
+            cleanedPythonCode = cleanedPythonCode.replace("set_take_profit(number=2, type_of_setting='PERCENTAGE')", "");
+            cleanedPythonCode = cleanedPythonCode.replace("set_stop_loss(number=1, type_of_setting='PERCENTAGE')", "");
+            
+            // Prepare request body
+            const requestBody = {
+                model_id: magicNumber.toString(),
+                cleaned_model_code: cleanedPythonCode,
+                notes: `Dataset: ${chosenDataSet}, Period: ${startYear}-${endYear}, Capital: ${initCapital}`
+            };
+            
+            // Send POST request to save model
+            const response = await fetch(`${baseUrl}/snowai-forward-testing/save-model/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                console.log('Server Response:', data);
+                setModelID(magicNumber);
+                alert(`Model saved successfully! Model ID: ${magicNumber}`);
+                setDownloadModel('Download Model');
+            } else {
+                console.error('Error:', data);
+                alert(`Error: ${data.message}`);
+                setDownloadModel('Download Model');
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error occurred while saving model for forward testing.');
+            setDownloadModel('Download Model');
+        }
+    };
+
+
   
 
       return (
@@ -3215,9 +3271,15 @@ Blockly.Blocks['snow_alpha_buy'] = {
             </div>
             </div><br /><br />
             <div className="model-performance">
-            <button className="btn btn-primary download-bot-file" onClick={SaveModel}>{downloadModel}</button><br /><br />
-            <p>Model ID: {modelID}</p>
-            </div>
+                  <button className="btn btn-primary download-bot-file" onClick={SaveModel}>
+                      {downloadModel}
+                  </button>
+                  <button className="btn btn-success save-forward-testing-button" onClick={SaveModelForForwardTesting}>
+                      Save for Forward Testing
+                  </button>
+                  <br /><br />
+                  <p>Model ID: {modelID}</p>
+              </div>
             {modelPerformance && (
                 
               <div className="model-performance">
