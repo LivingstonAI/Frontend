@@ -14,9 +14,9 @@ import {
   ChevronDown,
   Plus 
 } from "lucide-react";
-
 import Header from "./header";
 import SideNavs from "./side_navs";
+
 // ----------------------------------------------------------------
 
 export default function SnowAIIDE() {
@@ -26,10 +26,41 @@ export default function SnowAIIDE() {
   const [gitConnected, setGitConnected] = useState(false);
   const [logs, setLogs] = useState([
     "> SnowAI IDE initialized...",
-    "> Ready for input. (Type 'help' for commands)",
+    "> Loading Python interpreter...",
   ]);
   const [termInput, setTermInput] = useState("");
   const terminalEndRef = useRef(null);
+  const [pyodideReady, setPyodideReady] = useState(false);
+  const pyodideRef = useRef(null);
+
+  // Load Pyodide for Python execution
+  useEffect(() => {
+    const loadPyodide = async () => {
+      try {
+        if (!window.loadPyodide) {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+          script.async = true;
+          document.head.appendChild(script);
+          
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+          });
+        }
+        
+        pyodideRef.current = await window.loadPyodide({
+          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+        });
+        setPyodideReady(true);
+        setLogs(prev => [...prev, "> Python interpreter ready ✓"]);
+      } catch (error) {
+        setLogs(prev => [...prev, `> Error loading Python: ${error.message}`]);
+      }
+    };
+
+    loadPyodide();
+  }, []);
 
   // Auto-scroll terminal
   useEffect(() => {
@@ -49,6 +80,26 @@ function init() {
 }
 
 init();`,
+    },
+    "main.py": {
+      name: "main.py",
+      language: "python",
+      content: `# Python script example
+# Click RUN to execute
+
+def greet(name):
+    return f"Hello, {name}! Welcome to SnowAI IDE."
+
+def calculate_fibonacci(n):
+    if n <= 1:
+        return n
+    return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)
+
+# Main execution
+print(greet("Developer"))
+print("Fibonacci sequence:")
+for i in range(10):
+    print(f"F({i}) = {calculate_fibonacci(i)}")`,
     },
     "styles.css": {
       name: "styles.css",
@@ -98,9 +149,71 @@ init();`,
     });
   };
 
-  const handleRun = () => {
-    const newLogs = [...logs, `> Running ${activeTab}...`, `> Execution complete.`];
-    setLogs(newLogs);
+  const handleRun = async () => {
+    const file = files[activeTab];
+    
+    if (file.name.endsWith('.py')) {
+      // Python execution
+      if (!pyodideReady) {
+        setLogs(prev => [...prev, `> Error: Python interpreter not ready yet. Please wait...`]);
+        return;
+      }
+      
+      setLogs(prev => [...prev, `> Running ${activeTab}...`]);
+      
+      try {
+        // Redirect stdout to capture print statements
+        await pyodideRef.current.runPythonAsync(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+        `);
+        
+        // Run the user's code
+        await pyodideRef.current.runPythonAsync(file.content);
+        
+        // Get the output
+        const output = await pyodideRef.current.runPythonAsync(`
+sys.stdout.getvalue()
+        `);
+        
+        if (output) {
+          const outputLines = output.split('\n').filter(line => line.trim());
+          setLogs(prev => [...prev, ...outputLines.map(line => `  ${line}`)]);
+        }
+        
+        setLogs(prev => [...prev, `> Execution complete ✓`]);
+      } catch (error) {
+        setLogs(prev => [...prev, `> Python Error: ${error.message}`]);
+      }
+    } else if (file.name.endsWith('.js')) {
+      // JavaScript execution
+      setLogs(prev => [...prev, `> Running ${activeTab}...`]);
+      try {
+        // Capture console.log
+        const originalLog = console.log;
+        const capturedLogs = [];
+        console.log = (...args) => {
+          capturedLogs.push(args.join(' '));
+        };
+        
+        // Execute the code
+        eval(file.content);
+        
+        // Restore console.log
+        console.log = originalLog;
+        
+        if (capturedLogs.length > 0) {
+          setLogs(prev => [...prev, ...capturedLogs.map(line => `  ${line}`)]);
+        }
+        
+        setLogs(prev => [...prev, `> Execution complete ✓`]);
+      } catch (error) {
+        setLogs(prev => [...prev, `> JavaScript Error: ${error.message}`]);
+      }
+    } else {
+      setLogs(prev => [...prev, `> Cannot execute ${file.language} files`]);
+    }
   };
 
   const handleNewFile = () => {
@@ -150,7 +263,10 @@ init();`,
             setLogs([...newLogs, ...Object.keys(files).map(f => `  ${f}`)]);
             break;
         case 'help':
-            setLogs([...newLogs, "Available commands: ls, clear, echo, help"]);
+            setLogs([...newLogs, "Available commands: ls, clear, echo, help, python --version"]);
+            break;
+        case 'python --version':
+            setLogs([...newLogs, pyodideReady ? "Python 3.11.3 (Pyodide)" : "Python interpreter not loaded"]);
             break;
         default:
             if (cmd.startsWith('echo ')) {
@@ -175,11 +291,10 @@ init();`,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
       overflow: "hidden", 
     },
-    // This is the new container for the ActivityBar + Sidebar + EditorArea
     ideCore: {
       display: "flex",
       flexDirection: "row", 
-      flex: 1, // Takes up remaining vertical space
+      flex: 1,
       overflow: "hidden", 
     },
     activityBar: {
@@ -243,6 +358,7 @@ init();`,
       overflowX: "auto",
       borderBottom: "1px solid #e1e4e8",
       height: "35px",
+      flexShrink: 0,
     },
     tab: (isActive) => ({
       display: "flex",
@@ -270,14 +386,18 @@ init();`,
       lineHeight: "1.5",
       outline: "none",
       whiteSpace: "pre",
+      minHeight: "300px",
     },
     terminal: {
-      height: terminalOpen ? "200px" : "30px",
+      height: terminalOpen ? "250px" : "35px",
+      minHeight: terminalOpen ? "250px" : "35px",
+      maxHeight: terminalOpen ? "250px" : "35px",
       backgroundColor: "#f8f9fa",
       borderTop: "1px solid #e1e4e8",
       display: "flex",
       flexDirection: "column",
       transition: "height 0.2s ease",
+      flexShrink: 0,
     },
     terminalHeader: {
       display: "flex",
@@ -289,8 +409,9 @@ init();`,
       textTransform: "uppercase",
       cursor: "pointer",
       color: "#555",
-      height: "30px",
+      height: "35px",
       alignItems: "center",
+      flexShrink: 0,
     },
     terminalBody: {
       flex: 1,
@@ -354,6 +475,7 @@ init();`,
 
   const getFileIcon = (filename) => {
     if (filename.endsWith("js")) return <FileCode size={14} color="#f0ad4e" />;
+    if (filename.endsWith("py")) return <FileCode size={14} color="#3776ab" />;
     if (filename.endsWith("css")) return <FileType size={14} color="#0078d4" />;
     if (filename.endsWith("html")) return <FileCode size={14} color="#d9534f" />;
     return <FileJson size={14} color="#5bc0de" />;
