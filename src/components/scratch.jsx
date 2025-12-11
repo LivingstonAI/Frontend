@@ -3273,7 +3273,7 @@ Blockly.Blocks['snow_alpha_buy'] = {
             <div className="model-performance">
                   <button className="btn btn-primary download-bot-file" onClick={SaveModel}>
                       {downloadModel}
-                  </button>
+                  </button><br /><br />
                   <button className="btn btn-success save-forward-testing-button" onClick={SaveModelForForwardTesting}>
                       Save for Forward Testing
                   </button>
