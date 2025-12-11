@@ -786,6 +786,7 @@ export default function SideNavs() {
         {/* <Link to="/ml_playground" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-droplet-fill"></i></p></button></Link> */}
         <Link to="/trading_sim" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bullseye"></i></p></button></Link>
         <Link to="/forward_test" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-arrow-bar-right"></i></p></button></Link>
+        <Link to="/ide" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-code-slash"></i></p></button></Link>
 
       </div>
 
@@ -957,6 +958,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/forward_test" className="side-nav">
             <i className="bi bi-arrow-bar-right"></i>
+        </Link>
+        <Link to="/ide" className="side-nav">
+            <i className="bi bi-code-slash"></i>
         </Link>
       </div>
       <br />

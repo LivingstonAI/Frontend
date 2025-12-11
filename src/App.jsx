@@ -84,6 +84,7 @@ import SnowAIStockScreener from './components/stocks.jsx';
 import MLPlayground from './components/ai_research';
 import SnowAITradingSim from './components/trading_sim.jsx';
 import SnowAIForwardTestingEngine from './components/forward_test.jsx';
+import SnowAIIDE from './components/ide.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -571,6 +572,13 @@ function App() {
                 <SnowAIForwardTestingEngine />
               </ProtectedRoute>
             } />
+
+            <Route path='/ide' element={
+              <ProtectedRoute>
+                <SnowAIIDE />
+              </ProtectedRoute>
+            } />
+            
             
 
 
