@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Plus, X, Edit2, Trash2, Activity, DollarSign, Percent, BarChart3 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer, ComposedChart, Bar, Scatter } from 'recharts';
+import { TrendingUp, TrendingDown, Plus, X, Edit2, Trash2, Activity, DollarSign, Percent, BarChart3, CandlestickChart } from 'lucide-react';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -287,6 +287,8 @@ export default function SnowAIForwardTestingEngine() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [availableModels, setAvailableModels] = useState([]);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [priceData, setPriceData] = useState([]);
+  const [loadingChart, setLoadingChart] = useState(false);
 
   const assetCategories = {
     'Forex Pairs': [
@@ -388,12 +390,21 @@ export default function SnowAIForwardTestingEngine() {
 
   const handleViewDetails = async (model) => {
     try {
+      setLoadingChart(true);
       const response = await fetch(`${baseUrl}/api/snowai-models/${model.id}/`);
       const data = await response.json();
       setSelectedModel(data);
+      
+      // Fetch price data with positions
+      const priceResponse = await fetch(`${baseUrl}/api/snowai-chart-data-with-positions/${model.id}/`);
+      const priceChartData = await priceResponse.json();
+      setPriceData(priceChartData);
+      
       setShowDetailModal(true);
+      setLoadingChart(false);
     } catch (error) {
       console.error('Error fetching model details:', error);
+      setLoadingChart(false);
     }
   };
 
@@ -768,11 +779,11 @@ export default function SnowAIForwardTestingEngine() {
 
   return (
     <div>
-       <div className="header">
-           <Header />
+        <div className="header">
+            <Header />
         </div>
         <div className="main-page-body">
-           <SideNavs />
+            <SideNavs />
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>SnowAI Forward Testing Engine 🚀</h1>
