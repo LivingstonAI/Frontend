@@ -681,6 +681,199 @@ export default function SnowAIForwardTestingEngine() {
     </div>
   );
 
+    const renderEditModal = () => {
+    if (!editModel) return null;
+
+    return (
+      <div style={styles.modal} onClick={() => setShowEditModal(false)}>
+        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div style={styles.modalHeader}>
+            <h2 style={styles.modalTitle}>Edit Model: {editModel.name}</h2>
+            <button style={styles.closeButton} onClick={() => setShowEditModal(false)}>
+              <X size={24} />
+            </button>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Model Name</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={editModel.name}
+              onChange={(e) => setEditModel({...editModel, name: e.target.value})}
+              placeholder="My Trading Strategy"
+            />
+          </div>
+
+          <div style={styles.categorySection}>
+            <label style={styles.label}>Select Asset</label>
+            {Object.entries(assetCategories).map(([category, assets]) => (
+              <div key={category} style={styles.categorySection}>
+                <div style={styles.categoryTitle}>{category}</div>
+                <div style={styles.assetGrid}>
+                  {assets.map(asset => (
+                    <button
+                      key={asset}
+                      style={{
+                        ...styles.assetButton,
+                        ...(editModel.asset === asset ? styles.assetButtonSelected : {})
+                      }}
+                      onClick={() => setEditModel({...editModel, asset})}
+                    >
+                      {asset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Interval</label>
+            <select
+              style={styles.select}
+              value={editModel.interval}
+              onChange={(e) => setEditModel({...editModel, interval: e.target.value})}
+            >
+              <option value="5m">5 Minutes</option>
+              <option value="15m">15 Minutes</option>
+              <option value="1h">1 Hour</option>
+              <option value="4h">4 Hours</option>
+              <option value="1d">1 Day</option>
+              <option value="1wk">1 Week</option>
+            </select>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Select Model Code from Available Models</label>
+            <select
+              style={styles.select}
+              onChange={(e) => {
+                const selected = availableModels.find(m => m.model_id === e.target.value);
+                if (selected) {
+                  setEditModel({...editModel, model_code: selected.cleaned_model_code});
+                }
+              }}
+            >
+              <option value="">-- Select a model to replace current code --</option>
+              {availableModels.map(model => (
+                <option key={model.model_id} value={model.model_id}>
+                  {model.model_id} - {new Date(model.created_at).toLocaleDateString()}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Model Code (Python)</label>
+            <textarea
+              style={styles.textarea}
+              value={editModel.model_code}
+              onChange={(e) => setEditModel({...editModel, model_code: e.target.value})}
+              placeholder="# Your trading strategy code here..."
+            />
+          </div>
+
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Initial Equity ($)</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={editModel.initial_equity}
+                onChange={(e) => setEditModel({...editModel, initial_equity: parseFloat(e.target.value)})}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Max Positions</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={editModel.num_positions}
+                onChange={(e) => setEditModel({...editModel, num_positions: parseInt(e.target.value)})}
+              />
+            </div>
+          </div>
+
+          <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Take Profit</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={editModel.take_profit}
+                onChange={(e) => setEditModel({...editModel, take_profit: parseFloat(e.target.value)})}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Type</label>
+              <select
+                style={styles.select}
+                value={editModel.take_profit_type}
+                onChange={(e) => setEditModel({...editModel, take_profit_type: e.target.value})}
+              >
+                <option value="PERCENTAGE">%</option>
+                <option value="NUMBER">$</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Stop Loss</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={editModel.stop_loss}
+                onChange={(e) => setEditModel({...editModel, stop_loss: parseFloat(e.target.value)})}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Type</label>
+              <select
+                style={styles.select}
+                value={editModel.stop_loss_type}
+                onChange={(e) => setEditModel({...editModel, stop_loss_type: e.target.value})}
+              >
+                <option value="PERCENTAGE">%</option>
+                <option value="NUMBER">$</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={{...styles.label, display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <input
+                type="checkbox"
+                checked={editModel.is_active}
+                onChange={(e) => setEditModel({...editModel, is_active: e.target.checked})}
+                style={{width: 'auto', margin: 0}}
+              />
+              Model Active (Enable/Disable Trading)
+            </label>
+          </div>
+
+          <div style={styles.actionButtons}>
+            <button
+              style={{...styles.button, ...styles.buttonPrimary}}
+              onClick={handleUpdateModel}
+            >
+              <Edit2 size={16} />
+              Update Model
+            </button>
+            <button
+              style={{...styles.button, ...styles.buttonSecondary}}
+              onClick={() => setShowEditModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDetailModal = () => {
     if (!selectedModel) return null;
 
