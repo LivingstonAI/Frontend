@@ -711,11 +711,32 @@ const getAction = (qValues, epsilon, shares, shortShares) => {
       currentQ > qValues[maxIndex] ? i : maxIndex, 0);
   }
 
-  // Prevent impossible actions:
-  if (shares > 0 && (action === 0 || action === 3)) action = 1; // Can't open new position while holding
-  if (shortShares > 0 && (action === 0 || action === 3)) action = 1; // Can't open new position while short
-  if (shares === 0 && action === 2) action = 1; // Can't close long if no position
-  if (shortShares === 0 && action === 4) action = 1; // Can't cover if no short
+  // ================================================================
+  // ONLY PREVENT TRULY IMPOSSIBLE ACTIONS
+  // Let AI make mistakes and learn from them!
+  // ================================================================
+  
+  // Can't sell if no long position
+  if (shares === 0 && action === 2) {
+    action = 1; // HOLD instead
+  }
+  
+  // Can't cover if no short position
+  if (shortShares === 0 && action === 4) {
+    action = 1; // HOLD instead
+  }
+  
+  // Can't open new position while holding another
+  // (but this is less restrictive - agents can choose between actions)
+  if (shares > 0 && (action === 0 || action === 3)) {
+    // Instead of forcing HOLD, let them close their position
+    action = 2; // SELL to close long
+  }
+  
+  if (shortShares > 0 && (action === 0 || action === 3)) {
+    // Instead of forcing HOLD, let them close their position
+    action = 4; // COVER to close short
+  }
 
   return action;
 };
@@ -2039,6 +2060,7 @@ const handleSaveWeights = async (agent) => {
     };
   }, [dataSource]);
 
+
   useEffect(() => {
     if (!isRunning) return;
 
@@ -2072,136 +2094,73 @@ const handleSaveWeights = async (agent) => {
 
         // Keep reference to the model to preserve training state
         const agentModel = agent.model;
-        let action = 1;
+        let action = 1; // Default HOLD
         let reward = 0;
 
         const nextState = calculateInputs(allCandles, currentPrice, agent);
-        const lastBuyPrice = agent.history.filter(h => h.type === 'BUY').slice(-1)[0]?.price;
-        const lastShortPrice = agent.history.filter(h => h.type === 'SHORT').slice(-1)[0]?.price;
         const previousState = agent.currentState;
 
+        // ================================================================
+        // AGENT ACTION SELECTION (NO CONSTRAINTS!)
+        // ================================================================
+
         if (agent.id === 11) {
+          // Buy & Hold: Buy once at start
           if (!agent.hasBoughtInitial && currentPrice > 0) {
-            action = 0;
+            action = 0; // BUY
           } else {
-            action = 1;
+            action = 1; // HOLD forever
           }
         } else if (agent.id === 12) {
-            // DIP-BUYER: Rule-based strategy that buys dips
-            const sma5 = calculateSMA(allCandles, 5);
-            
-            if (!agent.hasBoughtInitial && currentPrice > 0) {
-              // First buy
-              action = 0;
-            } else if (sma5 && currentPrice < sma5 * 0.98 && agent.shares === 0 && agent.shortShares === 0) {
-              // Buy when price is 2% below SMA5 and no position open
-              action = 0;
-            } else {
-              // Otherwise hold - let TP/SL handle exits
-              action = 1;
-            }
+          // Dip-Buyer: Rule-based strategy
+          const sma5 = calculateSMA(allCandles, 5);
+          
+          if (!agent.hasBoughtInitial && currentPrice > 0) {
+            action = 0; // First buy
+          } else if (sma5 && currentPrice < sma5 * 0.98 && agent.shares === 0 && agent.shortShares === 0) {
+            action = 0; // Buy dip
+          } else {
+            action = 1; // Hold
           }
-        else if (agentModel) {
+        } else if (agentModel) {
+          // AI AGENTS - FULL FREEDOM!
           const qValues = agentModel.predict(nextState);
-          action = getAction(qValues, agent.epsilon, agent.shares);
+          action = getAction(qValues, agent.epsilon, agent.shares, agent.shortShares);
 
+          // Train the model
           if (previousState) {
             reward = calculateReward(agent, agent.lastAction, 0, currentPrice, allCandles);
             agentModel.remember(previousState, agent.lastAction, reward, nextState, false);
             const trainLoss = agentModel.train();
             if (trainLoss !== undefined) {
-              agent.loss = trainLoss; // Update loss directly on agent reference
+              agent.loss = trainLoss;
             }
           }
 
           agent.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
         }
 
+        // ================================================================
+        // EXECUTE ACTIONS (NO TP/SL OVERRIDES!)
+        // ================================================================
+
         let pnl = 0;
         let tradeType = null;
         let newShares = agent.shares;
-        let newShortShares = agent.shortShares; 
+        let newShortShares = agent.shortShares;
         let newCash = agent.cash;
         let newLogs = [...agent.logs.slice(-20)];
         let newHistory = [...agent.history];
 
-        // STRICT STOP LOSS / TAKE PROFIT CHECK (OVERRIDES AI DECISION)
-        let forcedSell = false;
-        let forcedCloseLong = false;
-        let forcedCloseShort = false;
-
-        // Check long position stop loss / take profit
-        if (agent.id !== 11 && agent.shares > 0) {
-          // Calculate average buy price from history
-          let totalCost = 0;
-          let totalShares = 0;
-          
-          for (const item of newHistory) {
-            if (item.type === 'BUY') {
-              totalCost += item.amount * item.price;
-              totalShares += item.amount;
-            }
-          }
-          
-          if (totalShares > 0) {
-            const avgBuyPrice = totalCost / totalShares;
-            const unrealizedPnlPct = ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100;
-
-            if (unrealizedPnlPct >= takeProfitPct) {
-              action = 2; // FORCE CLOSE LONG
-              forcedCloseLong = true;
-              tradeType = 'SELL_TP';
-              newLogs.push({ msg: `✅ LONG TP! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
-            } else if (unrealizedPnlPct <= -stopLossPct) {
-              action = 2; // FORCE CLOSE LONG
-              forcedCloseLong = true;
-              tradeType = 'SELL_SL';
-              newLogs.push({ msg: `🛑 LONG SL! (${unrealizedPnlPct.toFixed(2)}%)`, type: 'danger' });
-            }
-          }
-        }
-
-        // Check short position stop loss / take profit
-        if (agent.id !== 11 && agent.shortShares > 0) {
-          // Calculate average short price from history
-          let totalRevenue = 0;
-          let totalShares = 0;
-          
-          for (const item of newHistory) {
-            if (item.type === 'SHORT') {
-              totalRevenue += item.amount * item.price;
-              totalShares += item.amount;
-            }
-          }
-          
-          if (totalShares > 0) {
-            const avgShortPrice = totalRevenue / totalShares;
-            const unrealizedPnlPct = ((avgShortPrice - currentPrice) / avgShortPrice) * 100; // Inverted for shorts
-
-            if (unrealizedPnlPct >= takeProfitPct) {
-              action = 4; // FORCE COVER SHORT
-              forcedCloseShort = true;
-              tradeType = 'COVER_TP';
-              newLogs.push({ msg: `✅ SHORT TP! (+${unrealizedPnlPct.toFixed(2)}%)`, type: 'success' });
-            } else if (unrealizedPnlPct <= -stopLossPct) {
-              action = 4; // FORCE COVER SHORT
-              forcedCloseShort = true;
-              tradeType = 'COVER_SL';
-              newLogs.push({ msg: `🛑 SHORT SL! (${unrealizedPnlPct.toFixed(2)}%)`, type: 'danger' });
-            }
-          }
-        }
-
-        // Execute Actions
+        // ACTION 0: BUY (Open Long)
         if (action === 0 && agent.shares === 0 && agent.shortShares === 0) {
-          // ACTION 0: BUY (Open Long)
           let cashToUse = newCash;
           if (agent.id === 11) {
-            cashToUse = newCash;
+            cashToUse = newCash; // Buy & Hold uses all cash
           } else if (agent.id === 12 && !agent.hasBoughtInitial) {
-            cashToUse = newCash * 0.25;
+            cashToUse = newCash * 0.25; // Dip buyer starts with 25%
           } else {
-            cashToUse = newCash * 0.98;
+            cashToUse = newCash * 0.98; // AI agents use 98%
           }
 
           const sharesToBuy = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
@@ -2213,77 +2172,86 @@ const handleSaveWeights = async (agent) => {
           agent.hasBoughtInitial = true;
           tradeType = 'BUY';
 
-          } else if ((action === 2 || forcedCloseLong) && agent.shares > 0) {
-          // ACTION 2: SELL (Close Long) - ONLY if forced by TP/SL
-          if (!forcedCloseLong && agent.id !== 11 && agent.id !== 12) {
-            // AI tried to close early - block it and HOLD instead
-            tradeType = 'HOLD';
-          } else {
-            // Proceed with close...
-            const sharesToSell = newShares;
-            
-            let totalCost = 0;
-            for (const item of newHistory) {
-              if (item.type === 'BUY') {
-                totalCost += item.amount * item.price / (1 - CONFIG.COMMISSION);
-              }
-            }
-
-            const saleAmount = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
-            pnl = saleAmount - totalCost;
-
-            newCash += saleAmount;
-            newShares = 0;
-
-            newHistory = newHistory.filter(h => h.type !== 'BUY');
-            newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
-            newLogs.push({ msg: `🔴 CLOSE LONG @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-            tradeType = tradeType || 'SELL';
-
-            if (agentModel) {
-              reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
+        // ACTION 2: SELL (Close Long) - NO BLOCKING!
+        } else if (action === 2 && agent.shares > 0) {
+          const sharesToSell = newShares;
+          
+          // Calculate total cost basis
+          let totalCost = 0;
+          for (const item of newHistory) {
+            if (item.type === 'BUY') {
+              totalCost += item.amount * item.price / (1 - CONFIG.COMMISSION);
             }
           }
 
-        } else if ((action === 4 || forcedCloseShort) && agent.shortShares > 0) {
-          // ACTION 4: COVER (Close Short Position) - ONLY if forced by TP/SL
-          if (!forcedCloseShort && agent.id !== 11 && agent.id !== 12) {
-            // AI tried to cover early - block it and HOLD instead
-            tradeType = 'HOLD';
-          } else {
-            // Proceed with cover...
-            const sharesToCover = newShortShares;
-            
-            let totalRevenue = 0;
-            for (const item of newHistory) {
-              if (item.type === 'SHORT') {
-                totalRevenue += item.amount * item.price * (1 - CONFIG.COMMISSION);
-              }
+          const saleAmount = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
+          pnl = saleAmount - totalCost;
+
+          newCash += saleAmount;
+          newShares = 0;
+
+          newHistory = newHistory.filter(h => h.type !== 'BUY');
+          newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
+          newLogs.push({ msg: `🔴 CLOSE LONG @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+          tradeType = 'SELL';
+
+          if (agentModel) {
+            reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
+          }
+
+        // ACTION 3: SHORT (Open Short Position)
+        } else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
+          const cashToUse = newCash * 0.98;
+          const sharesToShort = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
+          
+          newShortShares += sharesToShort;
+          // Cash increases from shorting
+          newCash += cashToUse;
+
+          newHistory.push({ type: 'SHORT', price: currentPrice, amount: sharesToShort, t: currentCandle.t });
+          newLogs.push({ msg: `🔻 SHORT: ${sharesToShort.toFixed(4)} @ ${fmt(currentPrice)}`, type: 'warning' });
+          tradeType = 'SHORT';
+
+        // ACTION 4: COVER (Close Short Position) - NO BLOCKING!
+        } else if (action === 4 && agent.shortShares > 0) {
+          const sharesToCover = newShortShares;
+          
+          // Calculate total revenue from shorting
+          let totalRevenue = 0;
+          for (const item of newHistory) {
+            if (item.type === 'SHORT') {
+              totalRevenue += item.amount * item.price * (1 - CONFIG.COMMISSION);
             }
+          }
 
-            const coverCost = sharesToCover * currentPrice / (1 - CONFIG.COMMISSION);
-            pnl = totalRevenue - coverCost;
+          const coverCost = sharesToCover * currentPrice / (1 - CONFIG.COMMISSION);
+          pnl = totalRevenue - coverCost;
 
-            newCash += pnl;
-            newShortShares = 0;
+          newCash -= coverCost; // Pay to cover
+          newCash += pnl; // Apply profit/loss
+          newShortShares = 0;
 
-            newHistory = newHistory.filter(h => h.type !== 'SHORT');
-            newHistory.push({ type: 'COVER', price: currentPrice, amount: sharesToCover, t: currentCandle.t, pnl: pnl });
-            newLogs.push({ msg: `🔺 COVER SHORT @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-            tradeType = tradeType || 'COVER';
+          newHistory = newHistory.filter(h => h.type !== 'SHORT');
+          newHistory.push({ type: 'COVER', price: currentPrice, amount: sharesToCover, t: currentCandle.t, pnl: pnl });
+          newLogs.push({ msg: `🔺 COVER SHORT @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
+          tradeType = 'COVER';
 
-            if (agentModel) {
-              reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
-            }
+          if (agentModel) {
+            reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
+          }
+
+        } else {
+          // ACTION 1: HOLD (or invalid action)
+          tradeType = 'HOLD';
         }
-        // else {
-        //   tradeType = 'HOLD';
-        // }
 
-        } 
+        // ================================================================
+        // CALCULATE PORTFOLIO VALUE
+        // ================================================================
 
-        // Calculate portfolio value correctly
         const longValue = newShares * currentPrice;
+        
+        // Calculate short P&L
         const shortPnL = newShortShares > 0 ? (() => {
           let totalRevenue = 0;
           for (const item of newHistory) {
@@ -2301,7 +2269,7 @@ const handleSaveWeights = async (agent) => {
         // Return updated agent with preserved model reference
         return {
           ...agent,
-          model: agentModel, // Preserve the actual model instance
+          model: agentModel,
           cash: newCash,
           shares: newShares,
           shortShares: newShortShares,
@@ -2321,7 +2289,8 @@ const handleSaveWeights = async (agent) => {
       }
     }, speed);
     return () => clearInterval(interval);
-  }, [isRunning, speed, dataSource, dataIndex, customData, startPrice, stopLossPct, takeProfitPct]);
+  }, [isRunning, speed, dataSource, dataIndex, customData, startPrice]);
+
 
   const toggleAgent = (id) => {
     setAgents(prev => prev.map(a => a.id === id ? {
