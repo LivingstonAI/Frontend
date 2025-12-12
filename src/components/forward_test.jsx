@@ -826,10 +826,10 @@ export default function SnowAIForwardTestingEngine() {
   return (
     <div>
         <div className="header">
-            <Header />
+              <Header />
         </div>
         <div className="main-page-body">
-            <SideNavs />
+              <SideNavs />
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>SnowAI Forward Testing Engine 🚀</h1>
@@ -870,6 +870,6 @@ export default function SnowAIForwardTestingEngine() {
       {showDetailModal && renderDetailModal()}
     </div>
     </div>
-    </div>
+      </div>
   );
 }
