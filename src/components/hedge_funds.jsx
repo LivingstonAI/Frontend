@@ -759,7 +759,7 @@ const handleUpdateResource = async (e) => {
             marginBottom: '15px'
         },
         fundDropdown: {
-            position: 'absolute',
+            // position: 'absolute',
             top: '100%',
             left: 0,
             right: 0,
