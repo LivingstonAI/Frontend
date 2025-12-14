@@ -2179,7 +2179,7 @@ const handleSaveWeights = async (agent) => {
           } else if (agent.id === 12 && !agent.hasBoughtInitial) {
             cashToUse = newCash * 0.25; // Dip buyer starts with 25%
           } else {
-            cashToUse = newCash * 0.1; // AI agents use 98%
+            cashToUse = newCash * 0.05; // AI agents use 98%
           }
 
           const sharesToBuy = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
@@ -2220,7 +2220,7 @@ const handleSaveWeights = async (agent) => {
 
         // ACTION 3: SHORT (Open Short Position)
         } else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
-          const cashToUse = newCash * 0.1;
+          const cashToUse = newCash * 0.05;
           const sharesToShort = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
           
           newShortShares += sharesToShort;
