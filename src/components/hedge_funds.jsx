@@ -846,6 +846,7 @@ const handleUpdateResource = async (e) => {
                 /* Mobile Layout */
                 <div style={styles.mobileContainer}>
                     {/* Mobile Fund Selector */}
+                    <div style={{ position: 'relative' }}>
                     <button 
                         style={styles.mobileFundSelector}
                         onClick={() => setShowFundSelector(!showFundSelector)}
@@ -853,33 +854,33 @@ const handleUpdateResource = async (e) => {
                         <span>{selectedFund ? selectedFund.name : 'Select a Hedge Fund'}</span>
                         <ChevronDown size={20} />
                     </button>
-                    
-                    {/* Dropdown List */}
-                    {showFundSelector && (
-                        <div style={styles.fundDropdown}>
-                            {hedgeFunds.map(fund => (
-                                <div
-                                    key={fund.id}
-                                    style={styles.fundDropdownItem}
-                                    onClick={() => {
-                                        setSelectedFund(fund);
-                                        setShowFundSelector(false);
-                                    }}
-                                >
-                                    {fund.logo_url && (
-                                        <img 
-                                            src={fund.logo_url} 
-                                            alt={fund.name}
-                                            style={styles.fundLogo}
-                                            onError={(e) => e.target.style.display = 'none'}
-                                        />
-                                    )}
-                                    <span style={{ fontWeight: selectedFund?.id === fund.id ? '600' : '400' }}>
-                                        {fund.name}
-                                    </span>
-                                </div>
-                            ))}
+                    {/* Dropdown List - Now positioned relative to the button wrapper */}
+                {showFundSelector && (
+                <div style={styles.fundDropdown}>
+                       {hedgeFunds.map(fund => (
+                        <div
+                            key={fund.id}
+                            style={styles.fundDropdownItem}
+                            onClick={() => {
+                                setSelectedFund(fund);
+                                setShowFundSelector(false);
+                            }}
+                        >
+                            {fund.logo_url && (
+                                <img 
+                                    src={fund.logo_url} 
+                                    alt={fund.name}
+                                    style={styles.fundLogo}
+                                    onError={(e) => e.target.style.display = 'none'}
+                                />
+                            )}
+                            <span style={{ fontWeight: selectedFund?.id === fund.id ? '600' : '400' }}>
+                                {fund.name}
+                            </span>
                         </div>
+                    ))}
+                    
+                    </div>
                     )}
                     
                     {/* Fund Details */}
@@ -1149,6 +1150,8 @@ const handleUpdateResource = async (e) => {
                         </div>
                     )}
                 </div>
+                </div>
+                
             ) : (
                 /* Desktop Layout */
                 <div style={styles.layout}>
