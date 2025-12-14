@@ -235,7 +235,7 @@ const normalize = (value, min, max) => {
 // ============================================================================
 
 class ReplayBuffer {
-  constructor(capacity = 5000) {
+  constructor(capacity = 10000) {
     this.capacity = capacity;
     this.buffer = [];
     this.position = 0;
@@ -267,6 +267,7 @@ class ReplayBuffer {
   }
 }
 
+
 class DoubleDQN {
   constructor(inputs, outputs, hidden1, hidden2, learningRate, discountFactor) {
     this.inputs = inputs;
@@ -282,37 +283,41 @@ class DoubleDQN {
 
     this.buffer = new ReplayBuffer();
     this.batchSize = 32;
-    this.targetUpdateFrequency = 50;
+    this.targetUpdateFrequency = 100; // ✅ Increased from 50
     this.stepCounter = 0;
     
-    // STRICTER gradient clipping
-    this.gradientClipValue = 0.5; // Reduced from 1.0
+    // ✅ MUCH STRICTER gradient clipping
+    this.gradientClipValue = 0.1; // Was 0.5 - now VERY strict
     
-    // Weight clipping to prevent explosion
-    this.weightClipValue = 10.0; // Hard cap at ±10
+    // ✅ Weight clipping to prevent explosion
+    this.weightClipValue = 5.0; // Was 10.0 - now stricter
     
-    // Learning rate decay
+    // ✅ Learning rate decay
     this.initialLr = learningRate;
-    this.minLr = learningRate * 0.01; // Even lower minimum
-    this.lrDecay = 0.9998; // Faster decay
+    this.minLr = learningRate * 0.001; // Very low minimum
+    this.lrDecay = 0.9999; // Slower decay
+    
+    // ✅ Training progress tracking
+    this.totalSteps = 0;
+    this.trainingProgress = 0; // Percentage 0-100
   }
 
   _createNetwork(inputs, outputs, hidden1, hidden2) {
-    // He initialization for ReLU networks (better than Xavier for ReLU)
-    const heInit = (fanIn) => {
-      const std = Math.sqrt(2.0 / fanIn);
-      return (Math.random() * 2 - 1) * std;
+    // Xavier/Glorot initialization (better than He for this architecture)
+    const xavierInit = (fanIn, fanOut) => {
+      const limit = Math.sqrt(6.0 / (fanIn + fanOut));
+      return (Math.random() * 2 - 1) * limit;
     };
 
     return {
       w1: Array.from({ length: inputs }, () => 
-        Array(hidden1).fill(0).map(() => heInit(inputs))),
-      b1: Array(hidden1).fill(0.01), // Small positive bias
+        Array(hidden1).fill(0).map(() => xavierInit(inputs, hidden1))),
+      b1: Array(hidden1).fill(0), // Zero init for biases
       w2: Array.from({ length: hidden1 }, () => 
-        Array(hidden2).fill(0).map(() => heInit(hidden1))),
-      b2: Array(hidden2).fill(0.01),
+        Array(hidden2).fill(0).map(() => xavierInit(hidden1, hidden2))),
+      b2: Array(hidden2).fill(0),
       w3: Array.from({ length: hidden2 }, () => 
-        Array(outputs).fill(0).map(() => heInit(hidden2))),
+        Array(outputs).fill(0).map(() => xavierInit(hidden2, outputs))),
       b3: Array(outputs).fill(0)
     };
   }
@@ -335,16 +340,18 @@ class DoubleDQN {
     });
 
     // Layer 3: Hidden2 -> Output (Linear)
-    return network.b3.map((b, i) => {
+    const output = network.b3.map((b, i) => {
       return hidden2.reduce((acc, val, j) => acc + val * network.w3[j][i], 0) + b;
     });
+    
+    // ✅ Clip output Q-values to prevent explosion
+    return output.map(q => Math.max(-100, Math.min(100, q)));
   }
 
   remember(state, action, reward, nextState, done) {
     this.buffer.add(state, action, reward, nextState, done);
   }
 
-  // Clip gradients to prevent explosion
   _clipGradient(grad) {
     const magnitude = Math.abs(grad);
     if (magnitude > this.gradientClipValue) {
@@ -353,19 +360,17 @@ class DoubleDQN {
     return grad;
   }
   
-  // Clip weights to prevent explosion
   _clipWeight(weight) {
     if (weight > this.weightClipValue) return this.weightClipValue;
     if (weight < -this.weightClipValue) return -this.weightClipValue;
     return weight;
   }
 
-  // Check for NaN and replace with small value
   _checkNaN(value, replacement = 0.001) {
     if (isNaN(value) || !isFinite(value)) {
       return replacement;
     }
-    return this._clipWeight(value); // Also clip to prevent explosion
+    return this._clipWeight(value);
   }
 
   train() {
@@ -374,11 +379,11 @@ class DoubleDQN {
     const batch = this.buffer.sample(this.batchSize);
     let totalLoss = 0;
 
-    // Learning rate decay
+    // ✅ Adaptive learning rate with slower decay
     const currentLr = Math.max(this.minLr, this.lr * Math.pow(this.lrDecay, this.stepCounter));
 
     for (const [state, action, reward, nextState, done] of batch) {
-      // Forward pass to get current Q-values and intermediate activations
+      // Forward pass
       const hidden1 = this.q_network.b1.map((b, i) => {
         const sum = state.reduce((acc, val, j) => acc + val * this.q_network.w1[j][i], 0) + b;
         return Math.max(0, sum);
@@ -404,7 +409,10 @@ class DoubleDQN {
         targetQ += this.gamma * targetNextQ[bestActionOnline];
       }
 
-      // Huber loss for more stable training (less sensitive to outliers)
+      // ✅ Clip target Q-value to prevent explosion
+      targetQ = Math.max(-100, Math.min(100, targetQ));
+
+      // Huber loss
       const error = targetQ - qValues[action];
       const delta = 1.0;
       const huberLoss = Math.abs(error) <= delta 
@@ -413,15 +421,12 @@ class DoubleDQN {
       
       totalLoss += huberLoss;
 
-      // === BACKPROPAGATION WITH GRADIENT CLIPPING ===
-
-      // Output layer gradients
+      // === BACKPROPAGATION ===
       const outputGrads = Array(this.outputs).fill(0);
-      // Use sign for Huber loss derivative
       outputGrads[action] = Math.abs(error) <= delta ? error : delta * Math.sign(error);
       outputGrads[action] = this._clipGradient(outputGrads[action]);
 
-      // Update W3 (Hidden2 -> Output) and B3
+      // Update W3 and B3
       for (let i = 0; i < this.outputs; i++) {
         for (let j = 0; j < this.hidden2; j++) {
           const weightGrad = this._clipGradient(outputGrads[i] * hidden2[j]);
@@ -439,11 +444,10 @@ class DoubleDQN {
           hidden2Grads[j] += outputGrads[i] * this.q_network.w3[j][i];
         }
         hidden2Grads[j] = this._clipGradient(hidden2Grads[j]);
-        // ReLU derivative
         if (hidden2[j] <= 0) hidden2Grads[j] = 0;
       }
 
-      // Update W2 (Hidden1 -> Hidden2) and B2
+      // Update W2 and B2
       for (let i = 0; i < this.hidden2; i++) {
         for (let j = 0; j < this.hidden1; j++) {
           const weightGrad = this._clipGradient(hidden2Grads[i] * hidden1[j]);
@@ -461,11 +465,10 @@ class DoubleDQN {
           hidden1Grads[j] += hidden2Grads[i] * this.q_network.w2[j][i];
         }
         hidden1Grads[j] = this._clipGradient(hidden1Grads[j]);
-        // ReLU derivative
         if (hidden1[j] <= 0) hidden1Grads[j] = 0;
       }
 
-      // Update W1 (Input -> Hidden1) and B1
+      // Update W1 and B1
       for (let i = 0; i < this.hidden1; i++) {
         for (let j = 0; j < this.inputs; j++) {
           const weightGrad = this._clipGradient(hidden1Grads[i] * state[j]);
@@ -478,13 +481,21 @@ class DoubleDQN {
     }
 
     this.stepCounter++;
+    this.totalSteps++;
+    
     if (this.stepCounter % this.targetUpdateFrequency === 0) {
       this.updateTargetNetwork();
     }
 
     return totalLoss / this.batchSize;
   }
+  
+  // ✅ Calculate training progress
+  updateTrainingProgress(currentStep, totalSteps) {
+    this.trainingProgress = Math.min(100, (currentStep / totalSteps) * 100);
+  }
 }
+
 
 // ============================================================================
 // TRADING LOGIC
@@ -580,32 +591,31 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
   const lastBuyTrade = [...agent.history].reverse().find(h => h.type === 'BUY');
   const holdTime = lastBuyTrade ? allCandles.length - allCandles.findIndex(c => c.t === lastBuyTrade.t) : 0;
 
-  // Normalize PnL to percentage of initial cash for stability
-  const pnlPercent = pnl / CONFIG.INITIAL_CASH * 100;
+  // ✅ CRITICAL: Normalize P&L to percentage, then scale down
+  const pnlPercent = (pnl / CONFIG.INITIAL_CAPITAL) * 100;
+  const scaledPnL = Math.max(-5, Math.min(5, pnlPercent)); // Cap at ±5%
 
   switch (rewardType) {
     case 'scalper':
       if (action === 2 && pnl > 0) {
-        reward = pnlPercent * (holdTime < 10 ? 1.5 : 1.0);
+        reward = scaledPnL * (holdTime < 10 ? 1.5 : 1.0);
       } else if (action === 2 && pnl < 0) {
-        reward = pnlPercent * 2; // Stronger penalty for losses
+        reward = scaledPnL * 1.5; // Penalty
       } else if (action === 0) {
-        reward = -0.1;
+        reward = -0.05; // Small penalty for opening
       } else if (action === 1 && agent.shares > 0) {
-        reward = -0.02 * holdTime; // Penalty for holding
+        reward = -0.01 * Math.min(holdTime, 20); // Penalize long holds
       }
       break;
 
     case 'trend':
       if (action === 2 && pnl > 0) {
-        reward = pnlPercent * (1 + holdTime / 50);
+        reward = scaledPnL * (1 + holdTime / 100);
       } else if (action === 2 && pnl < 0) {
-        reward = pnlPercent * 1.5;
+        reward = scaledPnL * 1.2;
       } else if (action === 1 && agent.shares > 0) {
         const unrealized = lastBuyTrade ? (currentPrice - lastBuyTrade.price) / lastBuyTrade.price : 0;
-        reward = unrealized > 0 ? 0.05 : -0.03;
-      } else if (action === 0) {
-        reward = -0.03;
+        reward = unrealized > 0 ? 0.02 : -0.01;
       }
       break;
 
@@ -614,12 +624,12 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
         const sma5 = calculateSMA(allCandles, 5);
         const sma20 = calculateSMA(allCandles, 20);
         if (sma5 && sma20 && sma5 > sma20) {
-          reward = 0.1;
+          reward = 0.05;
         } else {
-          reward = -0.2;
+          reward = -0.1;
         }
       } else if (action === 2) {
-        reward = pnlPercent;
+        reward = scaledPnL;
       }
       break;
 
@@ -627,30 +637,30 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
       if (action === 0) {
         const sma20 = calculateSMA(allCandles, 20);
         if (sma20 && currentPrice < sma20 * 0.98) {
-          reward = 0.15;
+          reward = 0.1;
         }
       } else if (action === 2 && pnl > 0 && holdTime < 20) {
-        reward = pnlPercent * 1.5;
+        reward = scaledPnL * 1.3;
       } else if (action === 2 && pnl < 0) {
-        reward = pnlPercent * 1.5;
+        reward = scaledPnL * 1.3;
       }
       break;
 
     case 'aggressive':
       if (action === 2) {
-        reward = pnlPercent * 1.5; // Amplified but not crazy
+        reward = scaledPnL * 1.2;
       } else if (action === 0) {
-        reward = -0.05;
+        reward = -0.02;
       }
       break;
 
     case 'conservative':
       if (action === 2 && pnl < 0) {
-        reward = pnlPercent * 3; // Heavy penalty
+        reward = scaledPnL * 2; // Heavy penalty
       } else if (action === 2 && pnl > 0) {
-        reward = pnlPercent * 0.8;
+        reward = scaledPnL * 0.8;
       } else if (action === 1 && agent.shares > 0) {
-        reward = 0.01;
+        reward = 0.005;
       }
       break;
 
@@ -663,11 +673,11 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
 
       if (volatility > avgVol * 1.2) {
         if (action === 0 || (action === 2 && Math.abs(pnl) > CONFIG.INITIAL_CASH * 0.01)) {
-          reward = 0.15;
+          reward = 0.1;
         }
       }
       if (action === 2) {
-        reward += pnlPercent;
+        reward += scaledPnL;
       }
       break;
 
@@ -676,29 +686,30 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
         const sma5 = calculateSMA(allCandles, 5);
         const sma20 = calculateSMA(allCandles, 20);
         if (sma5 && sma20 && sma5 < sma20) {
-          reward = 0.12;
+          reward = 0.08;
         }
       } else if (action === 2) {
-        reward = pnlPercent * 1.2;
+        reward = scaledPnL * 1.1;
       }
       break;
 
     case 'balanced':
     default:
       if (action === 2) {
-        reward = pnlPercent;
+        reward = scaledPnL;
       } else if (action === 0) {
-        reward = -0.05;
+        reward = -0.02;
       } else if (action === 1 && agent.shares > 0) {
         const unrealized = lastBuyTrade ? (currentPrice - lastBuyTrade.price) / lastBuyTrade.price : 0;
-        reward = unrealized * 0.05;
+        reward = unrealized * 0.02;
       }
       break;
   }
 
-  // Clip reward to prevent extreme values
-  return Math.max(-10, Math.min(10, reward));
+  // ✅ Final clipping
+  return Math.max(-5, Math.min(5, reward));
 };
+
 
 const getAction = (qValues, epsilon, shares, shortShares) => {
   const isExploring = Math.random() < epsilon;
@@ -2123,22 +2134,30 @@ const handleSaveWeights = async (agent) => {
             action = 1; // Hold
           }
         } else if (agentModel) {
-          // AI AGENTS - FULL FREEDOM!
-          const qValues = agentModel.predict(nextState);
-          action = getAction(qValues, agent.epsilon, agent.shares, agent.shortShares);
+            // AI AGENTS - FULL FREEDOM!
+            const qValues = agentModel.predict(nextState);
+            action = getAction(qValues, agent.epsilon, agent.shares, agent.shortShares);
 
-          // Train the model
-          if (previousState) {
-            reward = calculateReward(agent, agent.lastAction, 0, currentPrice, allCandles);
-            agentModel.remember(previousState, agent.lastAction, reward, nextState, false);
-            const trainLoss = agentModel.train();
-            if (trainLoss !== undefined) {
-              agent.loss = trainLoss;
+            // Train the model
+            if (previousState) {
+              reward = calculateReward(agent, agent.lastAction, 0, currentPrice, allCandles);
+              agentModel.remember(previousState, agent.lastAction, reward, nextState, false);
+              
+              // ✅✅✅ TRAINING AND PROGRESS UPDATE - ADD HERE ✅✅✅
+              const trainLoss = agentModel.train();
+              if (trainLoss !== undefined) {
+                agent.loss = trainLoss;
+                
+                // ✅ Update training progress bar
+                if (dataSource === 'UPLOAD' && customData.length > 0) {
+                  agentModel.updateTrainingProgress(dataIndex, customData.length);
+                }
+              }
+              // ✅✅✅ END OF TRAINING CODE ✅✅✅
             }
-          }
 
-          agent.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
-        }
+            agent.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
+          }
 
         // ================================================================
         // EXECUTE ACTIONS (NO TP/SL OVERRIDES!)
@@ -2160,7 +2179,7 @@ const handleSaveWeights = async (agent) => {
           } else if (agent.id === 12 && !agent.hasBoughtInitial) {
             cashToUse = newCash * 0.25; // Dip buyer starts with 25%
           } else {
-            cashToUse = newCash * 0.98; // AI agents use 98%
+            cashToUse = newCash * 0.1; // AI agents use 98%
           }
 
           const sharesToBuy = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
@@ -2201,7 +2220,7 @@ const handleSaveWeights = async (agent) => {
 
         // ACTION 3: SHORT (Open Short Position)
         } else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
-          const cashToUse = newCash * 0.98;
+          const cashToUse = newCash * 0.1;
           const sharesToShort = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
           
           newShortShares += sharesToShort;
@@ -2437,6 +2456,7 @@ const handleSaveWeights = async (agent) => {
                       </div>
                     </div>
 
+                  
                     <div style={styles.terminal} onClick={() => !agent.isActive && toggleAgent(agent.id)}>
                       {!agent.isActive && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.1)', zIndex: 2, cursor: 'pointer' }}><span style={{ backgroundColor: THEME.primary, color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '11px' }}>Click to Start</span></div>}
 
@@ -2458,6 +2478,26 @@ const handleSaveWeights = async (agent) => {
                         </div>}
                       </div>
                     </div>
+
+                    {agent.model && (
+                    <div style={{ padding: '8px 12px', backgroundColor: '#1e293b', borderTop: '1px solid #334155' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>Training Progress</span>
+                        <span style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                          {agent.model.trainingProgress.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div style={{ width: '100%', height: '4px', backgroundColor: '#334155', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${agent.model.trainingProgress}%`, 
+                          height: '100%', 
+                          backgroundColor: agent.color,
+                          transition: 'width 0.3s ease'
+                        }}></div>
+                      </div>
+                    </div>
+                  )}
+
 
                     <div style={styles.cardFooter}>
                       <button style={{ ...styles.btn, ...styles.btnSecondary, flex: 1 }} onClick={() => toggleAgent(agent.id)}>
