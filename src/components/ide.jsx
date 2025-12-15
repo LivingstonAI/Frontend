@@ -1004,11 +1004,11 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       justifyContent: "flex-end"
     },
     previewFrame: {
-      position: "absolute",
-      top: 0,
+      position: "fixed",  // Change from "absolute" to "fixed"
+      top: "100px",       // Account for header + nav bar
       left: 0,
       right: 0,
-      bottom: showPreview && terminalOpen ? (isMobile ? "200px" : "250px") : 0,
+      bottom: terminalOpen ? (isMobile ? "200px" : "250px") : 0,
       width: "100%",
       border: "none",
       backgroundColor: "white",
