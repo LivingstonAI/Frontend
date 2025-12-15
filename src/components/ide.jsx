@@ -77,7 +77,7 @@ export default function SnowAIIDE() {
   
   // Judge0 API Configuration
   const JUDGE0_API = 'https://judge0-ce.p.rapidapi.com';
-  const JUDGE0_API_KEY = 'YOUR_RAPIDAPI_KEY_HERE'; // Replace with your RapidAPI key
+  const JUDGE0_API_KEY = 'a45efb2fa6msh2847c3c7c705b65p1f0b3djsn1695f3457d18';
   
   // Language ID mapping for Judge0
   const languageIds = {
