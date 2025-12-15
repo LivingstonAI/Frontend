@@ -15,7 +15,8 @@ import {
   Plus,
   Menu,
   Sparkles,
-  Eye
+  Eye,
+  Loader
 } from "lucide-react";
 import Header from "./header";
 import SideNavs from "./side_navs";
@@ -60,12 +61,10 @@ export default function SnowAIIDE() {
   const [gitConnected, setGitConnected] = useState(false);
   const [logs, setLogs] = useState([
     "> SnowAI IDE initialized...",
-    "> Loading Python interpreter...",
+    "> Judge0 code execution engine ready",
   ]);
   const [termInput, setTermInput] = useState("");
   const terminalEndRef = useRef(null);
-  const [pyodideReady, setPyodideReady] = useState(false);
-  const pyodideRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
   const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
@@ -73,7 +72,34 @@ export default function SnowAIIDE() {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [htmlPreview, setHtmlPreview] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+  
+  // Judge0 API Configuration
+  const JUDGE0_API = 'https://judge0-ce.p.rapidapi.com';
+  const JUDGE0_API_KEY = 'YOUR_RAPIDAPI_KEY_HERE'; // Replace with your RapidAPI key
+  
+  // Language ID mapping for Judge0
+  const languageIds = {
+    'js': 63,         // Node.js
+    'javascript': 63,
+    'py': 71,         // Python 3
+    'python': 71,
+    'java': 62,       // Java
+    'cpp': 54,        // C++ (GCC)
+    'c': 50,          // C (GCC)
+    'cs': 51,         // C#
+    'go': 60,         // Go
+    'rust': 73,       // Rust
+    'rb': 72,         // Ruby
+    'ruby': 72,
+    'php': 68,        // PHP
+    'swift': 83,      // Swift
+    'kt': 78,         // Kotlin
+    'kotlin': 78,
+    'ts': 74,         // TypeScript
+    'typescript': 74,
+  };
 
   // Fetch API Key
   const fetchAPIKey = async () => {
@@ -111,35 +137,6 @@ export default function SnowAIIDE() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Load Pyodide for Python execution
-  useEffect(() => {
-    const loadPyodide = async () => {
-      try {
-        if (!window.loadPyodide) {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
-          script.async = true;
-          document.head.appendChild(script);
-          
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = reject;
-          });
-        }
-        
-        pyodideRef.current = await window.loadPyodide({
-          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
-        });
-        setPyodideReady(true);
-        setLogs(prev => [...prev, "> Python interpreter ready ✓"]);
-      } catch (error) {
-        setLogs(prev => [...prev, `> Error loading Python: ${error.message}`]);
-      }
-    };
-
-    loadPyodide();
-  }, []);
-
   // Auto-scroll terminal
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -150,20 +147,24 @@ export default function SnowAIIDE() {
     "script.js": {
       name: "script.js",
       language: "javascript",
-      content: `// Welcome to SnowAI IDE
-// Start coding your project here
+      content: `// Welcome to SnowAI IDE with Judge0
+// Click RUN to execute your code
 
-function init() {
-  console.log("SnowAI is active");
+function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-init();`,
+console.log("Fibonacci sequence:");
+for (let i = 0; i < 10; i++) {
+  console.log(\`F(\${i}) = \${fibonacci(i)}\`);
+}`,
     },
     "main.py": {
       name: "main.py",
       language: "python",
       content: `# Python script example
-# Click RUN to execute
+# Click RUN to execute with Judge0
 
 def greet(name):
     return f"Hello, {name}! Welcome to SnowAI IDE."
@@ -195,9 +196,47 @@ for i in range(10):
 <html>
 <head>
   <title>SnowAI Project</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.1);
+      padding: 30px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+    }
+    h1 { margin-top: 0; }
+    button {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { opacity: 0.8; }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div class="container">
+    <h1>Welcome to SnowAI IDE</h1>
+    <p>This is a live HTML preview with embedded styles and scripts!</p>
+    <button onclick="showMessage()">Click Me</button>
+    <div id="output"></div>
+  </div>
+  
+  <script>
+    function showMessage() {
+      document.getElementById('output').innerHTML = '<p style="margin-top: 20px; font-size: 18px;">🎉 JavaScript is working!</p>';
+    }
+  </script>
 </body>
 </html>`,
     },
@@ -213,6 +252,98 @@ for i in range(10):
   });
 
   const activeFile = files[activeTab];
+
+  // Get language ID for Judge0
+  const getLanguageId = (filename) => {
+    const ext = filename.split('.').pop().toLowerCase();
+    return languageIds[ext] || null;
+  };
+
+  // Execute code with Judge0
+  const executeWithJudge0 = async (code, languageId) => {
+    try {
+      setIsExecuting(true);
+      setLogs(prev => [...prev, `> Submitting code to Judge0...`]);
+
+      // Step 1: Submit code
+      const submitResponse = await fetch(`${JUDGE0_API}/submissions?base64_encoded=false&wait=false`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RapidAPI-Key': JUDGE0_API_KEY,
+          'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+        },
+        body: JSON.stringify({
+          source_code: code,
+          language_id: languageId,
+          stdin: '',
+        })
+      });
+
+      if (!submitResponse.ok) {
+        throw new Error(`Judge0 submission failed: ${submitResponse.status}`);
+      }
+
+      const { token } = await submitResponse.json();
+      setLogs(prev => [...prev, `> Code submitted, waiting for results...`]);
+
+      // Step 2: Poll for results
+      let attempts = 0;
+      const maxAttempts = 20;
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        
+        const resultResponse = await fetch(`${JUDGE0_API}/submissions/${token}?base64_encoded=false`, {
+          headers: {
+            'X-RapidAPI-Key': JUDGE0_API_KEY,
+            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+          }
+        });
+
+        if (!resultResponse.ok) {
+          throw new Error(`Failed to get results: ${resultResponse.status}`);
+        }
+
+        const result = await resultResponse.json();
+        
+        // Status: 1 = In Queue, 2 = Processing, 3 = Accepted
+        if (result.status.id > 2) {
+          // Execution complete
+          setLogs(prev => [...prev, `> Execution complete (${result.status.description})`]);
+          
+          if (result.stdout) {
+            const outputLines = result.stdout.trim().split('\n');
+            setLogs(prev => [...prev, '> Output:', ...outputLines.map(line => `  ${line}`)]);
+          }
+          
+          if (result.stderr) {
+            const errorLines = result.stderr.trim().split('\n');
+            setLogs(prev => [...prev, '> Errors:', ...errorLines.map(line => `  ${line}`)]);
+          }
+          
+          if (result.compile_output) {
+            const compileLines = result.compile_output.trim().split('\n');
+            setLogs(prev => [...prev, '> Compile output:', ...compileLines.map(line => `  ${line}`)]);
+          }
+          
+          setLogs(prev => [...prev, `> Time: ${result.time}s | Memory: ${result.memory}KB`]);
+          break;
+        }
+        
+        attempts++;
+        if (attempts >= maxAttempts) {
+          setLogs(prev => [...prev, `> Execution timeout - taking too long`]);
+        }
+      }
+      
+    } catch (error) {
+      setLogs(prev => [...prev, `> Judge0 Error: ${error.message}`]);
+      setLogs(prev => [...prev, `> Tip: Make sure you have a valid RapidAPI key for Judge0`]);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   // Handlers
   const handleFileClick = (fileName) => {
@@ -246,7 +377,7 @@ for i in range(10):
       }
       
       // Inject JS if exists
-      if (files['script.js']) {
+      if (files['script.js'] && !file.content.includes('<script>')) {
         fullHTML = fullHTML.replace('</body>', `<script>${files['script.js'].content}</script></body>`);
       }
       
@@ -256,33 +387,23 @@ for i in range(10):
       return;
     }
     
-    if (file.name.endsWith('.py')) {
-      // Python execution - removed due to limitations
-      setLogs(prev => [...prev, `> Python execution has limitations in browser (no input(), limited libraries)`]);
-      setLogs(prev => [...prev, `> For full Python support, use: python ${file.name}`]);
-      setLogs(prev => [...prev, `> Tip: JavaScript works perfectly! Try converting to .js`]);
-      return;
-    }
+    // Check if we can execute with Judge0
+    const languageId = getLanguageId(file.name);
     
-    if (file.name.endsWith('.js')) {
-      // JavaScript execution
-      setLogs(prev => [...prev, `> Running ${activeTab}...`]);
+    if (languageId) {
+      setLogs(prev => [...prev, `> Running ${activeTab} with Judge0...`]);
+      await executeWithJudge0(file.content, languageId);
+    } else if (file.name.endsWith('.js')) {
+      // Fallback to browser JavaScript execution
+      setLogs(prev => [...prev, `> Running ${activeTab} in browser...`]);
       try {
-        // Clear previous output area
-        const outputArea = document.getElementById('js-output-area');
-        if (outputArea) outputArea.innerHTML = '';
-        
-        // Capture console.log
         const originalLog = console.log;
         const capturedLogs = [];
         console.log = (...args) => {
           capturedLogs.push(args.join(' '));
         };
         
-        // Execute the code
         eval(file.content);
-        
-        // Restore console.log
         console.log = originalLog;
         
         if (capturedLogs.length > 0) {
@@ -294,8 +415,8 @@ for i in range(10):
         setLogs(prev => [...prev, `> JavaScript Error: ${error.message}`]);
       }
     } else {
-      setLogs(prev => [...prev, `> Cannot execute ${file.language} files directly`]);
-      setLogs(prev => [...prev, `> Tip: Try running as .js or .html file`]);
+      setLogs(prev => [...prev, `> Cannot execute ${file.language} files`]);
+      setLogs(prev => [...prev, `> Supported: .js, .py, .java, .cpp, .c, .go, .rust, .rb, .php`]);
     }
   };
 
@@ -312,7 +433,7 @@ for i in range(10):
         [fileName]: {
           name: fileName,
           language: ext || 'text',
-          content: `// New file: ${fileName}`
+          content: `// New file: ${fileName}\n\n`
         }
       }));
       setActiveTab(fileName);
@@ -375,15 +496,12 @@ for i in range(10):
       const data = await response.json();
       const generatedCode = data.choices[0].message.content;
 
-      // Clean up code blocks (remove ```language and ```)
+      // Clean up code blocks
       let cleanedCode = generatedCode;
-      
-      // Remove markdown code blocks
       cleanedCode = cleanedCode.replace(/```[\w]*\n?/g, '');
       cleanedCode = cleanedCode.replace(/```/g, '');
       cleanedCode = cleanedCode.trim();
 
-      // Update the current file with generated code
       setFiles({
         ...files,
         [activeTab]: { ...files[activeTab], content: cleanedCode },
@@ -407,12 +525,10 @@ for i in range(10):
 
       const newLogs = [...logs, `$ ${cmd}`];
       
-      // Parse command
       const parts = cmd.split(' ');
       const mainCmd = parts[0].toLowerCase();
       const args = parts.slice(1);
       
-      // Command Processing
       switch(mainCmd) {
         case 'clear':
           setLogs([]);
@@ -428,11 +544,29 @@ for i in range(10):
             "  ls                    - list files",
             "  clear                 - clear terminal",
             "  cat <file>            - view file content",
-            "  node <file.js>        - run JavaScript file",
-            "  python <file.py>      - run Python file (limited)",
-            "  npm run dev           - start dev server (simulated)",
+            "  run <file>            - execute file with Judge0",
+            "  languages             - show supported languages",
             "  echo <text>           - print text",
             "  help                  - show this help"
+          ]);
+          break;
+          
+        case 'languages':
+          setLogs([...newLogs,
+            "Supported languages (via Judge0):",
+            "  JavaScript (.js) - Node.js",
+            "  Python (.py) - Python 3",
+            "  Java (.java)",
+            "  C++ (.cpp)",
+            "  C (.c)",
+            "  C# (.cs)",
+            "  Go (.go)",
+            "  Rust (.rust)",
+            "  Ruby (.rb)",
+            "  PHP (.php)",
+            "  Swift (.swift)",
+            "  Kotlin (.kt)",
+            "  TypeScript (.ts)"
           ]);
           break;
           
@@ -446,43 +580,14 @@ for i in range(10):
           }
           break;
           
-        case 'node':
+        case 'run':
           if (args.length === 0) {
-            setLogs([...newLogs, "node: missing file operand"]);
+            setLogs([...newLogs, "run: missing file operand"]);
           } else if (files[args[0]]) {
             setActiveTab(args[0]);
             setTimeout(() => handleRun(), 100);
           } else {
-            setLogs([...newLogs, `node: ${args[0]}: No such file`]);
-          }
-          break;
-          
-        case 'python':
-        case 'python3':
-          if (args.length === 0) {
-            setLogs([...newLogs, "Python 3.11.3 (browser mode - limited)"]);
-          } else if (files[args[0]]) {
-            setLogs([...newLogs, `> Python has browser limitations (no input(), limited libs)`, `> Consider converting to JavaScript for full functionality`]);
-          } else {
-            setLogs([...newLogs, `python: can't open file '${args[0]}': No such file`]);
-          }
-          break;
-          
-        case 'npm':
-          if (args[0] === 'run' && args[1] === 'dev') {
-            setLogs([...newLogs, 
-              "> snow-ai-project@1.0.0 dev",
-              "> vite",
-              "",
-              "  VITE v5.0.0  ready in 420 ms",
-              "",
-              "  ➜  Local:   http://localhost:5173/",
-              "  ➜  Network: use --host to expose",
-              "",
-              "  Tip: Click RUN button to execute your code!"
-            ]);
-          } else {
-            setLogs([...newLogs, `npm: command not found: ${args.join(' ')}`]);
+            setLogs([...newLogs, `run: ${args[0]}: No such file`]);
           }
           break;
           
@@ -674,7 +779,9 @@ for i in range(10):
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '8px'
+      gap: '8px',
+      opacity: isExecuting ? 0.6 : 1,
+      pointerEvents: isExecuting ? 'none' : 'auto'
     },
     buttonSecondary: {
         backgroundColor: "#e1e4e8",
@@ -793,6 +900,8 @@ for i in range(10):
     if (filename.endsWith("py")) return <FileCode size={14} color="#3776ab" />;
     if (filename.endsWith("css")) return <FileType size={14} color="#0078d4" />;
     if (filename.endsWith("html")) return <FileCode size={14} color="#d9534f" />;
+    if (filename.endsWith("java")) return <FileCode size={14} color="#007396" />;
+    if (filename.endsWith("cpp") || filename.endsWith("c")) return <FileCode size={14} color="#00599c" />;
     return <FileJson size={14} color="#5bc0de" />;
   };
 
@@ -807,10 +916,10 @@ for i in range(10):
       {/* 1. Header Area */}
       <Header2 onMenuClick={toggleSidebar} isMobile={isMobile} />
 
-      {/* 2. Top Navigation (SideNavs component moved here) */}
+      {/* 2. Top Navigation */}
       <SideNavs2 /> 
 
-      {/* 3. The IDE Core: Activity Bar, Sidebar, Editor Area (Flex Row) */}
+      {/* 3. The IDE Core */}
       <div style={styles.ideCore}>
         
         {/* Mobile overlay */}
@@ -829,7 +938,7 @@ for i in range(10):
           </div>
         </div>
 
-        {/* B. Sidebar (Explorer or Git) */}
+        {/* B. Sidebar */}
         <div style={styles.sidebar}>
           {sidebarMode === "explorer" && (
             <>
@@ -856,7 +965,6 @@ for i in range(10):
                 </div>
               </div>
               
-              {/* File List */}
               <div style={{ marginTop: "10px", overflow: "auto", flex: 1 }}>
                 <div style={{...styles.fileExplorerItem(false), fontWeight: 'bold'}}>
                    <ChevronDown size={14} style={{marginRight: 6}}/> SNOW-AI-PROJECT
@@ -1068,8 +1176,16 @@ for i in range(10):
                   <span>TERMINAL</span>
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
-                  <button style={{...styles.buttonSecondary}} onClick={(e) => { e.stopPropagation(); handleRun(); }}>
-                      <Play size={isMobile ? 8 : 10} /> RUN
+                  <button 
+                    style={{...styles.buttonSecondary}} 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleRun(); 
+                    }}
+                    disabled={isExecuting}
+                  >
+                      {isExecuting ? <Loader size={isMobile ? 8 : 10} className="spin" /> : <Play size={isMobile ? 8 : 10} />}
+                      {isExecuting ? 'RUNNING' : 'RUN'}
                   </button>
                   {terminalOpen ? <ChevronDown size={14}/> : <ChevronRight size={14} />}
               </div>
@@ -1120,6 +1236,13 @@ for i in range(10):
         }
         * {
           box-sizing: border-box;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </div>
