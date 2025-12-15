@@ -1008,13 +1008,13 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       top: 0,
       left: 0,
       right: 0,
-      bottom: showPreview && terminalOpen ? "250px" : (showPreview ? 0 : "100%"),
+      bottom: showPreview && terminalOpen ? (isMobile ? "200px" : "250px") : 0,
       width: "100%",
       border: "none",
       backgroundColor: "white",
       zIndex: showPreview ? 10 : -1,
       display: showPreview ? "block" : "none",
-      transition: "bottom 0.3s ease"
+      transition: "bottom 0.2s ease"
     },
     previewHeader: {
       position: "absolute",
