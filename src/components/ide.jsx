@@ -1004,11 +1004,11 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       justifyContent: "flex-end"
     },
     previewFrame: {
-      position: "fixed",  // Change from "absolute" to "fixed"
-      top: "100px",       // Account for header + nav bar
+      position: "absolute",
+      top: "35px",        // Height of the tab bar
       left: 0,
       right: 0,
-      bottom: terminalOpen ? (isMobile ? "200px" : "250px") : 0,
+      bottom: showPreview && terminalOpen ? (isMobile ? "200px" : "250px") : 0,
       width: "100%",
       border: "none",
       backgroundColor: "white",
@@ -1018,10 +1018,10 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
     },
     previewHeader: {
       position: "absolute",
-      top: 0,
+      top: 0,              // Starts at the very top
       left: 0,
       right: 0,
-      height: "40px",
+      height: "35px",      // Match the tab bar height
       backgroundColor: "#0078d4",
       color: "white",
       display: showPreview ? "flex" : "none",
