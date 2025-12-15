@@ -125,7 +125,7 @@ export default function SnowAIIDE() {
       setIsMobile(mobile);
       if (mobile) {
         setSidebarOpen(false);
-        setTerminalOpen(false);
+        // Don't auto-close terminal on mobile anymore
       } else {
         setSidebarOpen(true);
         setTerminalOpen(true);
@@ -1071,8 +1071,8 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
           <div style={styles.activityIcon(sidebarMode === "git")} onClick={() => setSidebarMode("git")}>
             <Github size={24} />
           </div>
-          <div style={styles.activityIcon(false)}>
-              <Settings size={24} />
+          <div style={styles.activityIcon(sidebarMode === "settings")} onClick={() => setSidebarMode("settings")}>
+            <Settings size={24} />
           </div>
         </div>
 
@@ -1105,7 +1105,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
               
               <div style={{ marginTop: "10px", overflow: "auto", flex: 1 }}>
                 <div style={{...styles.fileExplorerItem(false), fontWeight: 'bold'}}>
-                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOWAI-PROJECT
+                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOW-AI-PROJECT
                 </div>
                 {Object.values(files).map((file) => (
                   <div
@@ -1160,6 +1160,33 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
                       </button>
                   </>
                 )}
+              </div>
+            </>
+          )}
+
+          {sidebarMode === "settings" && (
+            <>
+              <div style={styles.sidebarHeader}>
+                <span>SETTINGS</span>
+                {isMobile && (
+                  <div 
+                    style={styles.iconButton} 
+                    onClick={toggleSidebar}
+                  >
+                    <X size={16} />
+                  </div>
+                )}
+              </div>
+              <div style={styles.gitPanel}>
+                <div style={{fontSize: '13px', color: '#666'}}>
+                  <h3 style={{color: '#0078d4', fontSize: '14px', marginTop: 0}}>IDE Settings</h3>
+                  <p>Font Size: 14px</p>
+                  <p>Theme: Light</p>
+                  <p>Auto-save: Enabled</p>
+                  <div style={{marginTop: '20px', padding: '10px', backgroundColor: '#e6f0f5', borderRadius: '4px'}}>
+                    <strong>Judge0 Status:</strong> ✓ Connected
+                  </div>
+                </div>
               </div>
             </>
           )}
