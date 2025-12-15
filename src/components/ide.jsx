@@ -772,6 +772,8 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       alignItems: "center",
       paddingTop: "10px",
       borderRight: "1px solid #003d6e",
+      overflowY: "auto",
+      overflowX: "hidden"
     },
     activityIcon: (isActive) => ({
       color: isActive ? "#ffffff" : "#a8d1ff",
@@ -1006,13 +1008,13 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       top: 0,
       left: 0,
       right: 0,
-      bottom: 0,
+      bottom: showPreview && terminalOpen ? "250px" : (showPreview ? 0 : "100%"),
       width: "100%",
-      height: "100%",
       border: "none",
       backgroundColor: "white",
       zIndex: showPreview ? 10 : -1,
-      display: showPreview ? "block" : "none"
+      display: showPreview ? "block" : "none",
+      transition: "bottom 0.3s ease"
     },
     previewHeader: {
       position: "absolute",
@@ -1029,6 +1031,25 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       zIndex: 11,
       fontSize: "14px",
       fontWeight: "bold"
+    },
+    terminalToggleButton: {
+      position: "absolute",
+      bottom: terminalOpen ? (isMobile ? "200px" : "250px") : "0",
+      right: "20px",
+      zIndex: showPreview ? 12 : 5,
+      backgroundColor: "#0078d4",
+      color: "white",
+      border: "none",
+      padding: "8px 16px",
+      borderRadius: "4px 4px 0 0",
+      cursor: "pointer",
+      fontSize: "12px",
+      fontWeight: "bold",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      boxShadow: "0 -2px 10px rgba(0,0,0,0.2)",
+      transition: "bottom 0.3s ease"
     }
   };
 
@@ -1209,6 +1230,15 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
             />
           )}
           
+          {/* Terminal Toggle Button - Always Visible */}
+          <button 
+            style={styles.terminalToggleButton}
+            onClick={() => setTerminalOpen(!terminalOpen)}
+          >
+            <Terminal size={14} />
+            {terminalOpen ? 'Close Terminal' : 'View Terminal'}
+          </button>
+          
           {/* AI Panel Overlay */}
           <div style={styles.aiOverlay} onClick={() => setShowAiPanel(false)} />
           
@@ -1352,7 +1382,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
           </div>
 
           {/* D. Integrated Terminal */}
-          <div style={styles.terminal}>
+          <div style={{...styles.terminal, zIndex: showPreview ? 12 : "auto"}}>
             <div
               style={styles.terminalHeader}
               onClick={() => setTerminalOpen(!terminalOpen)}
