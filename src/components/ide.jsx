@@ -249,6 +249,105 @@ for i in range(10):
   "main": "script.js"
 }`,
     },
+    "App.jsx": {
+      name: "App.jsx",
+      language: "jsx",
+      content: `// React Component Example
+// Click RUN or Preview to see it in action!
+
+function Counter() {
+  const [count, setCount] = React.useState(0);
+  const [name, setName] = React.useState('Developer');
+
+  return (
+    <div style={{
+      maxWidth: '600px',
+      margin: '50px auto',
+      padding: '30px',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      borderRadius: '15px',
+      color: 'white',
+      fontFamily: 'Arial, sans-serif',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+    }}>
+      <h1 style={{ marginTop: 0 }}>🚀 React in SnowAI IDE</h1>
+      <p>Welcome, <strong>{name}</strong>!</p>
+      
+      <div style={{
+        background: 'rgba(255,255,255,0.2)',
+        padding: '20px',
+        borderRadius: '10px',
+        marginTop: '20px'
+      }}>
+        <h2>Counter: {count}</h2>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+          <button 
+            onClick={() => setCount(count - 1)}
+            style={{
+              padding: '10px 20px',
+              background: '#ff6b6b',
+              border: 'none',
+              borderRadius: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            -
+          </button>
+          <button 
+            onClick={() => setCount(0)}
+            style={{
+              padding: '10px 20px',
+              background: '#4ecdc4',
+              border: 'none',
+              borderRadius: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Reset
+          </button>
+          <button 
+            onClick={() => setCount(count + 1)}
+            style={{
+              padding: '10px 20px',
+              background: '#51cf66',
+              border: 'none',
+              borderRadius: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <input 
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name"
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '5px',
+            border: 'none',
+            fontSize: '16px'
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Render the component
+ReactDOM.render(<Counter />, document.getElementById('root'));`,
+    },
   });
 
   const activeFile = files[activeTab];
@@ -363,6 +462,44 @@ for i in range(10):
 
   const handleRun = async () => {
     const file = files[activeTab];
+    
+    // React/JSX Component Execution
+    if (file.name.endsWith('.jsx')) {
+      setLogs(prev => [...prev, `> Opening ${activeTab} in React preview...`]);
+      
+      const reactHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>React App - ${file.name}</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    ${file.content}
+  </script>
+</body>
+</html>`;
+      
+      setHtmlPreview(reactHTML);
+      setShowPreview(true);
+      setLogs(prev => [...prev, `> React preview opened ✓`]);
+      return;
+    }
     
     if (file.name.endsWith('.html')) {
       // HTML execution - open in preview
@@ -897,6 +1034,7 @@ for i in range(10):
 
   const getFileIcon = (filename) => {
     if (filename.endsWith("js")) return <FileCode size={14} color="#f0ad4e" />;
+    if (filename.endsWith("jsx")) return <FileCode size={14} color="#61dafb" />;
     if (filename.endsWith("py")) return <FileCode size={14} color="#3776ab" />;
     if (filename.endsWith("css")) return <FileType size={14} color="#0078d4" />;
     if (filename.endsWith("html")) return <FileCode size={14} color="#d9534f" />;
@@ -1137,6 +1275,27 @@ for i in range(10):
               >
                 <Eye size={16} color="#0078d4" />
                 {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>Preview</span>}
+              </div>
+            )}
+            {activeFile?.name.endsWith('.jsx') && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 10px',
+                  cursor: 'pointer',
+                  borderRight: '1px solid #e1e4e8',
+                  backgroundColor: '#e6f0f5',
+                  gap: '5px'
+                }}
+                onClick={() => {
+                  handleRun();
+                }}
+                title="Preview React Component"
+              >
+                <Eye size={16} color="#61dafb" />
+                {!isMobile && <span style={{ fontSize: '12px', color: '#61dafb', fontWeight: 'bold' }}>React Preview</span>}
               </div>
             )}
             {Object.values(files).map((file) => (
