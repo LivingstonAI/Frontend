@@ -93,7 +93,8 @@ const getAssetSymbol = (assetName) => {
         'PepsiCo': 'PEP',
         'McDonald\'s': 'MCD',
         'Nike': 'NKE',
-        'Caterpillar': 'CAT'
+        'Caterpillar': 'CAT',
+        'FedEX': 'FDX'
     };
     
     // Return mapped symbol or original name if no mapping exists
