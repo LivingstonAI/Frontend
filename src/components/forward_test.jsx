@@ -559,6 +559,7 @@ export default function SnowAIForwardTestingEngine() {
             <option value="5m">5 Minutes</option>
             <option value="15m">15 Minutes</option>
             <option value="1h">1 Hour</option>
+            <option value="4h">4 Hours</option>
             <option value="1d">1 Day</option>
             <option value="1wk">1 Week</option>
           </select>
