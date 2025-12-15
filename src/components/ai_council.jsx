@@ -30,7 +30,7 @@ export default function AICouncil() {
                 'CVX','XOM','LLY','COR','CSCO','BIIB','DVN','NIO',
                 'WFC','MS','MA','AXP','TGT','SBUX','PFE','MRNA','ABBV',
                 'AMD','QCOM','AVGO','TXN','COP','NEE','CMCSA','WBD',
-                'NOW','F','GM','RIVN','LCID','LMT','SQ','SHOP','COIN'
+                'NOW','F','GM','RIVN','LCID','LMT','SQ','SHOP','COIN', 'FDX'
                 ],
 
         'Indices': [
