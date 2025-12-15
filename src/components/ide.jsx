@@ -1005,7 +1005,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
     },
     previewFrame: {
       position: "absolute",
-      top: "35px",        // Height of the tab bar
+      top: "55px",        // Height of the tab bar
       left: 0,
       right: 0,
       bottom: showPreview && terminalOpen ? (isMobile ? "200px" : "250px") : 0,
