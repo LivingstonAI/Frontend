@@ -36,6 +36,7 @@ export default function SnowAIStockScreener() {
         { name: "McDonald's", symbol: "MCD", category: "Retail" },
         { name: "Coca-Cola", symbol: "KO", category: "Retail" },
         { name: "PepsiCo", symbol: "PEP", category: "Retail" },
+        { name: "FedEx", symbol: "FDX", category: "Retail" },
         
         // Healthcare & Pharma
         { name: "Johnson & Johnson", symbol: "JNJ", category: "Healthcare" },
