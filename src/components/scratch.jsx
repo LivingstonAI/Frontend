@@ -872,7 +872,7 @@ return [`is_low_volume_backtest(data=dataset)`, Order.NONE];
 };
 
 
-pythonGenerator['forBlock']['is_stable_market'] = function(block, generator) {
+pythonGenerator['forBlock']['is_bullish_stable_market'] = function(block, generator) {
 
   let ChildBlockLen = block['childBlocks_'].length;
     let lookbackPeriod;
@@ -884,11 +884,11 @@ pythonGenerator['forBlock']['is_stable_market'] = function(block, generator) {
       lookbackPeriod = '';
     }
 
-  return [`is_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+  return [`is_bullish_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
-javascriptGenerator['forBlock']['is_stable_market'] = function(block, generator) {
+javascriptGenerator['forBlock']['is_bullish_stable_market'] = function(block, generator) {
 
   let ChildBlockLen = block['childBlocks_'].length;
     let lookbackPeriod;
@@ -900,12 +900,12 @@ javascriptGenerator['forBlock']['is_stable_market'] = function(block, generator)
       lookbackPeriod = '';
     }
 
-return [`is_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+return [`is_bullish_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
 
-pythonGenerator['forBlock']['is_choppy_market'] = function(block, generator) {
+pythonGenerator['forBlock']['is_bullish_choppy_market'] = function(block, generator) {
 
   let ChildBlockLen = block['childBlocks_'].length;
     let lookbackPeriod;
@@ -917,11 +917,11 @@ pythonGenerator['forBlock']['is_choppy_market'] = function(block, generator) {
       lookbackPeriod = '';
     }
   
-  return [`is_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+  return [`is_bullish_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
-javascriptGenerator['forBlock']['is_choppy_market'] = function(block, generator) {
+javascriptGenerator['forBlock']['is_bullish_choppy_market'] = function(block, generator) {
 
   let ChildBlockLen = block['childBlocks_'].length;
     let lookbackPeriod;
@@ -933,12 +933,12 @@ javascriptGenerator['forBlock']['is_choppy_market'] = function(block, generator)
       lookbackPeriod = '';
     }
 
-return [`is_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+return [`is_bullish_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
 
-pythonGenerator['forBlock']['is_volatile_market'] = function(block, generator) {
+pythonGenerator['forBlock']['is_bullish_volatile_market'] = function(block, generator) {
 
   let ChildBlockLen = block['childBlocks_'].length;
     let lookbackPeriod;
@@ -950,11 +950,11 @@ pythonGenerator['forBlock']['is_volatile_market'] = function(block, generator) {
       lookbackPeriod = '';
     }
 
-  return [`is_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+  return [`is_bullish_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
-javascriptGenerator['forBlock']['is_volatile_market'] = function(block, generator) {
+javascriptGenerator['forBlock']['is_bullish_volatile_market'] = function(block, generator) {
 
   let ChildBlockLen = block['childBlocks_'].length;
     let lookbackPeriod;
@@ -966,7 +966,105 @@ javascriptGenerator['forBlock']['is_volatile_market'] = function(block, generato
       lookbackPeriod = '';
     }
 
-return [`is_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+return [`is_bullish_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['is_bearish_stable_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+  return [`is_bearish_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_stable_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+return [`is_bearish_stable_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_bearish_choppy_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+  
+  return [`is_bearish_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_choppy_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+return [`is_bearish_choppy_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+
+pythonGenerator['forBlock']['is_bearish_volatile_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+  return [`is_bearish_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_volatile_market'] = function(block, generator) {
+
+  let ChildBlockLen = block['childBlocks_'].length;
+    let lookbackPeriod;
+
+    if (ChildBlockLen > 0) {
+      lookbackPeriod = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+    }    
+    else {
+      lookbackPeriod = '';
+    }
+
+return [`is_bearish_volatile_market(data=dataset, lookback_period=${lookbackPeriod})`, Order.NONE];
 
 };
 
@@ -1960,49 +2058,96 @@ Blockly.Blocks['rsi_block'] = {
   };
 
   // Blockly block definition for "Choppy" block
-Blockly.Blocks['is_choppy_market'] = {
+Blockly.Blocks['is_bullish_choppy_market'] = {
   init: function() {
     this.appendValueInput('NUM')
         .setCheck('Number')
-        .appendField('choppy market')
+        .appendField('bullish choppy market')
   
     this.setInputsInline(true);
     this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
     this.setColour(210);
-    this.setTooltip('Check if asset has a choppy market');
+    this.setTooltip('Check if asset has a bullish choppy market');
     this.setHelpUrl('');
   }
 };
 
 // Blockly block definition for "Stable Market" block
-Blockly.Blocks['is_stable_market'] = {
+Blockly.Blocks['is_bullish_stable_market'] = {
   init: function() {
     this.appendValueInput('NUM')
         .setCheck('Number')
-        .appendField('stable market')
+        .appendField('bullish stable market')
   
     this.setInputsInline(true);
     this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
     this.setColour(160);
-    this.setTooltip('Check if asset has a stable market');
+    this.setTooltip('Check if asset has a bullish stable market');
     this.setHelpUrl('');
   }
 };
 
 // Blockly block definition for "Volatile Market" block
-Blockly.Blocks['is_volatile_market'] = {
+Blockly.Blocks['is_bullish_volatile_market'] = {
   init: function() {
     this.appendValueInput('NUM')
         .setCheck('Number')
-        .appendField('volatile market')
+        .appendField('bullish volatile market')
   
     this.setInputsInline(true);
     this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
     this.setColour(330);
-    this.setTooltip('Check if asset has a volatile market');
+    this.setTooltip('Check if asset has a bullish volatile market');
     this.setHelpUrl('');
   }
 };
+
+
+  // Blockly block definition for "Choppy" block
+Blockly.Blocks['is_bearish_choppy_market'] = {
+  init: function() {
+    this.appendValueInput('NUM')
+        .setCheck('Number')
+        .appendField('bearish choppy market')
+  
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
+    this.setColour(210);
+    this.setTooltip('Check if asset has a bearish choppy market');
+    this.setHelpUrl('');
+  }
+};
+
+// Blockly block definition for "Stable Market" block
+Blockly.Blocks['is_bearish_stable_market'] = {
+  init: function() {
+    this.appendValueInput('NUM')
+        .setCheck('Number')
+        .appendField('bearish stable market')
+  
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
+    this.setColour(160);
+    this.setTooltip('Check if asset has a bearish stable market');
+    this.setHelpUrl('');
+  }
+};
+
+// Blockly block definition for "Volatile Market" block
+Blockly.Blocks['is_bearish_volatile_market'] = {
+  init: function() {
+    this.appendValueInput('NUM')
+        .setCheck('Number')
+        .appendField('bearish volatile market')
+  
+    this.setInputsInline(true);
+    this.setOutput(true, 'Boolean');  // Changed from 'Number' to 'Boolean'
+    this.setColour(330);
+    this.setTooltip('Check if asset has a bearish volatile market');
+    this.setHelpUrl('');
+  }
+};
+
 
 Blockly.Blocks['snow_alpha_buy'] = {
     init: function() {
@@ -2472,7 +2617,7 @@ Blockly.Blocks['snow_alpha_buy'] = {
         },
         {
           "kind": "category",
-          "name": "Other",
+          "name": "SMT Techniques",
           "contents": [
             {
               "kind": "block",
@@ -2584,15 +2729,28 @@ Blockly.Blocks['snow_alpha_buy'] = {
             },
             {
               "kind": "block",
-              "type": "is_stable_market"
+              "type": "is_bullish_stable_market"
             },
             {
               "kind": "block",
-              "type": "is_choppy_market"
+              "type": "is_bullish_choppy_market"
             },
             {
               "kind": "block",
-              "type": "is_volatile_market"
+              "type": "is_bullish_volatile_market"
+            },
+
+            {
+              "kind": "block",
+              "type": "is_bearish_stable_market"
+            },
+            {
+              "kind": "block",
+              "type": "is_bearish_choppy_market"
+            },
+            {
+              "kind": "block",
+              "type": "is_bearish_volatile_market"
             },
             
           ]
