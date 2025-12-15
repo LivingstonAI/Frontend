@@ -1105,7 +1105,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
               
               <div style={{ marginTop: "10px", overflow: "auto", flex: 1 }}>
                 <div style={{...styles.fileExplorerItem(false), fontWeight: 'bold'}}>
-                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOW-AI-PROJECT
+                   <ChevronDown size={14} style={{marginRight: 6}}/> SNOWAI-PROJECT
                 </div>
                 {Object.values(files).map((file) => (
                   <div
