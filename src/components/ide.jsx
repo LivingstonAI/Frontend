@@ -643,6 +643,105 @@ Current code in the file:
 ${activeFile.content}
 \`\`\`
 
+React Code example usage:
+// React Component Example
+// Click RUN or Preview to see it in action!
+
+function Counter() {
+  const [count, setCount] = React.useState(0);
+  const [name, setName] = React.useState('Developer');
+
+  return (
+    <div style={{
+      maxWidth: '600px',
+      margin: '50px auto',
+      padding: '30px',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      borderRadius: '15px',
+      color: 'white',
+      fontFamily: 'Arial, sans-serif',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+    }}>
+      <h1 style={{ marginTop: 0 }}>🚀 React in SnowAI IDE</h1>
+      <p>Welcome, <strong>{name}</strong>!</p>
+      
+      <div style={{
+        background: 'rgba(255,255,255,0.2)',
+        padding: '20px',
+        borderRadius: '10px',
+        marginTop: '20px'
+      }}>
+        <h2>Counter: {count}</h2>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+          <button 
+            onClick={() => setCount(count - 1)}
+            style={{
+              padding: '10px 20px',
+              background: '#ff6b6b',
+              border: 'none',
+              borderRadius: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            -
+          </button>
+          <button 
+            onClick={() => setCount(0)}
+            style={{
+              padding: '10px 20px',
+              background: '#4ecdc4',
+              border: 'none',
+              borderRadius: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Reset
+          </button>
+          <button 
+            onClick={() => setCount(count + 1)}
+            style={{
+              padding: '10px 20px',
+              background: '#51cf66',
+              border: 'none',
+              borderRadius: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '20px' }}>
+        <input 
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Enter your name"
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '5px',
+            border: 'none',
+            fontSize: '16px'
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Render the component
+ReactDOM.render(<Counter />, document.getElementById('root'));
+
+Make sure to code react components in this format!
+
 User request: ${aiPrompt}
 
 Please generate or modify the code based on the request.`
