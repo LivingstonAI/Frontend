@@ -740,7 +740,7 @@ function Counter() {
 // Render the component
 ReactDOM.render(<Counter />, document.getElementById('root'));
 
-Make sure to code react components in this format!
+Make sure to code react components in this format! Use it only as an example!
 
 User request: ${aiPrompt}
 
