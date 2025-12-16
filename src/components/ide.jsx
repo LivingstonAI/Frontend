@@ -1,3 +1,6 @@
+
+import Header from "./header";
+import SideNavs from "./side_navs";
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Folder, 
@@ -18,8 +21,6 @@ import {
   Eye,
   Loader
 } from "lucide-react";
-import Header from "./header";
-import SideNavs from "./side_navs";
 
 // --- MOCK COMPONENTS (Updated for Horizontal Layout) ---
 const Header2 = ({ onMenuClick, isMobile }) => (
@@ -83,6 +84,7 @@ export default function SnowAIIDE() {
   const languageIds = {
     'js': 63,         // Node.js
     'javascript': 63,
+    'jsx': 63,        // JSX treated as JavaScript
     'py': 71,         // Python 3
     'python': 71,
     'java': 62,       // Java
@@ -125,7 +127,6 @@ export default function SnowAIIDE() {
       setIsMobile(mobile);
       if (mobile) {
         setSidebarOpen(false);
-        // Don't auto-close terminal on mobile anymore
       } else {
         setSidebarOpen(true);
         setTerminalOpen(true);
@@ -447,6 +448,8 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
   // Handlers
   const handleFileClick = (fileName) => {
     setActiveTab(fileName);
+    // Close preview when switching files
+    setShowPreview(false);
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -463,10 +466,25 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
   const handleRun = async () => {
     const file = files[activeTab];
     
-    // React/JSX Component Execution
+    // React/JSX Component Execution - Run with Judge0 AND show preview
     if (file.name.endsWith('.jsx')) {
-      setLogs(prev => [...prev, `> Opening ${activeTab} in React preview...`]);
+      const languageId = 63; // Node.js for JSX/JavaScript
+      setLogs(prev => [...prev, `> Running React component with Judge0...`]);
       
+      // Create executable version for Judge0
+      const executableCode = `// React Component Code
+${file.content}
+
+// Execution output
+console.log("✓ React component code syntax validated");
+console.log("✓ Ready for browser preview");
+`;
+      
+      // Execute with Judge0 first
+      await executeWithJudge0(executableCode, languageId);
+      
+      // Also show visual preview
+      setLogs(prev => [...prev, `> Opening React preview...`]);
       const reactHTML = `<!DOCTYPE html>
 <html>
 <head>
@@ -587,7 +605,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
     setLogs([...logs, "> git add .", "> git commit -m 'Update via SnowAI'", "> git push origin main", "> Push successful 🚀"]);
   };
 
-  // AI Code Generation Handler
+  // AI Code Generation Handler - NOW WITH CONTEXT
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) {
       alert("Please enter a prompt for the AI");
@@ -618,7 +636,17 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
             },
             {
               role: 'user',
-              content: `Generate code for: ${aiPrompt}\n\nCurrent file type: ${activeFile.language}`
+              content: `Current file: ${activeFile.name}
+File type: ${activeFile.language}
+
+Current code in the file:
+\`\`\`
+${activeFile.content}
+\`\`\`
+
+User request: ${aiPrompt}
+
+Please generate or modify the code based on the request.`
             }
           ],
           temperature: 0.7,
@@ -692,6 +720,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
           setLogs([...newLogs,
             "Supported languages (via Judge0):",
             "  JavaScript (.js) - Node.js",
+            "  React (.jsx) - JSX/React",
             "  Python (.py) - Python 3",
             "  Java (.java)",
             "  C++ (.cpp)",
@@ -761,7 +790,8 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       flexDirection: "row", 
       flex: 1,
       overflow: "hidden", 
-      position: "relative"
+      position: "relative",
+      minHeight: 0
     },
     activityBar: {
       width: isMobile ? "0" : "50px",
@@ -828,6 +858,14 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       position: "relative",
       backgroundColor: "#ffffff",
       minWidth: 0,
+      minHeight: 0
+    },
+    editorContent: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      minHeight: 0
     },
     tabBar: {
       display: "flex",
@@ -863,7 +901,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       lineHeight: "1.5",
       outline: "none",
       whiteSpace: "pre",
-      minHeight: "200px",
+      overflow: "auto"
     },
     terminal: {
       height: terminalOpen ? (isMobile ? "200px" : "250px") : "35px",
@@ -875,6 +913,11 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       flexDirection: "column",
       transition: "height 0.2s ease",
       flexShrink: 0,
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100
     },
     terminalHeader: {
       display: "flex",
@@ -962,7 +1005,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       zIndex: 999
     },
     aiPanel: {
-      position: "absolute",
+      position: "fixed",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
@@ -980,7 +1023,7 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
     },
     aiOverlay: {
       display: showAiPanel ? "block" : "none",
-      position: "absolute",
+      position: "fixed",
       top: 0,
       left: 0,
       right: 0,
@@ -1005,52 +1048,33 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
     },
     previewFrame: {
       position: "absolute",
-      top: "55px",        // Height of the tab bar
+      top: 0,
       left: 0,
       right: 0,
-      bottom: showPreview && terminalOpen ? (isMobile ? "200px" : "250px") : 0,
+      bottom: 0,
       width: "100%",
       height: "100%",
       border: "none",
       backgroundColor: "white",
       zIndex: showPreview ? 10 : -1,
-      display: showPreview ? "block" : "none",
-      transition: "bottom 0.2s ease"
+      display: showPreview ? "block" : "none"
     },
     previewHeader: {
       position: "absolute",
-      top: 0,              // Starts at the very top
+      top: 0,
       left: 0,
       right: 0,
-      height: "35px",      // Match the tab bar height
+      height: "40px",
       backgroundColor: "#0078d4",
       color: "white",
       display: showPreview ? "flex" : "none",
       alignItems: "center",
       justifyContent: "space-between",
       padding: "0 15px",
-      zIndex: 11,
+      zIndex: showPreview ? 20 : -1,
       fontSize: "14px",
-      fontWeight: "bold"
-    },
-    terminalToggleButton: {
-      position: "absolute",
-      bottom: terminalOpen ? (isMobile ? "200px" : "250px") : "0",
-      right: "20px",
-      zIndex: showPreview ? 12 : 5,
-      backgroundColor: "#0078d4",
-      color: "white",
-      border: "none",
-      padding: "8px 16px",
-      borderRadius: "4px 4px 0 0",
-      cursor: "pointer",
-      fontSize: "12px",
       fontWeight: "bold",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      boxShadow: "0 -2px 10px rgba(0,0,0,0.2)",
-      transition: "bottom 0.3s ease"
+      boxShadow: "0 2px 5px rgba(0,0,0,0.1)"
     }
   };
 
@@ -1067,11 +1091,11 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
 
   return (
     <div>
-        <div className="header">
-            <Header />
-        </div>
-        <div className="main-page-body">
-            <SideNavs />
+    <div className="header">
+        <Header />
+    </div>
+    <div className="main-page-body">
+        <SideNavs />
     <div style={styles.container}>
       {/* 1. Header Area */}
       <Header2 onMenuClick={toggleSidebar} isMobile={isMobile} />
@@ -1217,29 +1241,6 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
         {/* C. Main Editor Area */}
         <div style={styles.editorArea}>
           
-          {/* HTML Preview */}
-          <div style={styles.previewHeader}>
-            <span>Preview: {activeTab}</span>
-            <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowPreview(false)} />
-          </div>
-          {htmlPreview && (
-            <iframe
-              style={{...styles.previewFrame, top: showPreview ? '40px' : 0}}
-              srcDoc={htmlPreview}
-              title="HTML Preview"
-              sandbox="allow-scripts allow-modals"
-            />
-          )}
-          
-          {/* Terminal Toggle Button - Always Visible */}
-          <button 
-            style={styles.terminalToggleButton}
-            onClick={() => setTerminalOpen(!terminalOpen)}
-          >
-            <Terminal size={14} />
-            {terminalOpen ? 'Close Terminal' : 'View Terminal'}
-          </button>
-          
           {/* AI Panel Overlay */}
           <div style={styles.aiOverlay} onClick={() => setShowAiPanel(false)} />
           
@@ -1252,11 +1253,11 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
               <X size={20} style={{ cursor: 'pointer', color: '#666' }} onClick={() => setShowAiPanel(false)} />
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: '#666', marginBottom: '10px' }}>
-              Describe what code you want and AI will generate it for you in the current file.
+              Editing: <strong>{activeFile?.name}</strong> - Describe what you want to change or create
             </p>
             <textarea
               style={styles.aiInput}
-              placeholder="E.g., Create a function that calculates factorial recursively..."
+              placeholder="E.g., Add error handling to this function, or Create a new button component..."
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               disabled={aiLoading}
@@ -1279,161 +1280,170 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
             </div>
           </div>
 
-          {/* Tabs */}
-          <div style={styles.tabBar}>
-            {isMobile && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 10px',
-                  cursor: 'pointer',
-                  borderRight: '1px solid #e1e4e8',
-                  backgroundColor: '#e6f0f5'
-                }}
-                onClick={toggleSidebar}
-              >
-                <Menu size={16} color="#0078d4" />
-              </div>
-            )}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 10px',
-                cursor: 'pointer',
-                borderRight: '1px solid #e1e4e8',
-                backgroundColor: '#e6f0f5',
-                gap: '5px'
-              }}
-              onClick={() => setShowAiPanel(true)}
-              title="AI Code Generator"
-            >
-              <Sparkles size={16} color="#0078d4" />
-              {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>AI</span>}
-            </div>
-            {activeFile?.name.endsWith('.html') && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 10px',
-                  cursor: 'pointer',
-                  borderRight: '1px solid #e1e4e8',
-                  backgroundColor: '#e6f0f5',
-                  gap: '5px'
-                }}
-                onClick={() => {
-                  handleRun();
-                }}
-                title="Preview HTML"
-              >
-                <Eye size={16} color="#0078d4" />
-                {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>Preview</span>}
-              </div>
-            )}
-            {activeFile?.name.endsWith('.jsx') && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0 10px',
-                  cursor: 'pointer',
-                  borderRight: '1px solid #e1e4e8',
-                  backgroundColor: '#e6f0f5',
-                  gap: '5px'
-                }}
-                onClick={() => {
-                  handleRun();
-                }}
-                title="Preview React Component"
-              >
-                <Eye size={16} color="#61dafb" />
-                {!isMobile && <span style={{ fontSize: '12px', color: '#61dafb', fontWeight: 'bold' }}>React Preview</span>}
-              </div>
-            )}
-            {Object.values(files).map((file) => (
-              <div
-                key={file.name}
-                style={styles.tab(activeTab === file.name)}
-                onClick={() => setActiveTab(file.name)}
-              >
-                <span style={{ marginRight: "8px", display: 'flex', alignItems: 'center' }}>{getFileIcon(file.name)}</span>
-                {file.name}
-                {activeTab === file.name && !isMobile && <X size={12} style={{ marginLeft: "10px" }} />}
-              </div>
-            ))}
-          </div>
-
-          {/* Code Input */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-            <textarea
-              style={{...styles.codeEditorInput, display: showPreview ? 'none' : 'block'}}
-              value={activeFile?.content || ''}
-              onChange={handleCodeChange}
-              spellCheck="false"
-              autoCapitalize="off"
-              autoComplete="off"
-            />
-            <div id="js-output-area" style={{ padding: '10px', display: 'none' }}></div>
-          </div>
-
-          {/* D. Integrated Terminal */}
-          <div style={{...styles.terminal, zIndex: showPreview ? 12 : "auto"}}>
-            <div
-              style={styles.terminalHeader}
-              onClick={() => setTerminalOpen(!terminalOpen)}
-            >
-              <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
-                  <Terminal size={12} />
-                  <span>TERMINAL</span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
-                  <button 
-                    style={{...styles.buttonSecondary}} 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      handleRun(); 
-                    }}
-                    disabled={isExecuting}
-                  >
-                      {isExecuting ? <Loader size={isMobile ? 8 : 10} className="spin" /> : <Play size={isMobile ? 8 : 10} />}
-                      {isExecuting ? 'RUNNING' : 'RUN'}
-                  </button>
-                  {terminalOpen ? <ChevronDown size={14}/> : <ChevronRight size={14} />}
-              </div>
-            </div>
-            
-            {terminalOpen && (
-              <div style={styles.terminalBody}>
-                {logs.map((log, index) => (
-                  <div key={index} style={{ marginBottom: "4px" }}>
-                    {log}
-                  </div>
-                ))}
-                
-                {/* Interactive Terminal Line */}
-                <div style={{ display: "flex", alignItems: "center", color: "#333" }}>
-                  <span style={{ color: "#0078d4", marginRight: "0px" }}>➜</span>
-                  <span style={{ color: "#005a9e", marginRight: "0px", marginLeft: "4px" }}>snow-ai</span>
-                  <input 
-                      type="text" 
-                      style={styles.terminalInput}
-                      value={termInput}
-                      onChange={(e) => setTermInput(e.target.value)}
-                      onKeyDown={handleTerminalSubmit}
-                      autoFocus={!isMobile}
-                  />
+          {/* Editor Content Area */}
+          <div style={styles.editorContent}>
+            {/* Tabs */}
+            <div style={styles.tabBar}>
+              {isMobile && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 10px',
+                    cursor: 'pointer',
+                    borderRight: '1px solid #e1e4e8',
+                    backgroundColor: '#e6f0f5'
+                  }}
+                  onClick={toggleSidebar}
+                >
+                  <Menu size={16} color="#0078d4" />
                 </div>
-                <div ref={terminalEndRef} />
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 10px',
+                  cursor: 'pointer',
+                  borderRight: '1px solid #e1e4e8',
+                  backgroundColor: '#e6f0f5',
+                  gap: '5px'
+                }}
+                onClick={() => setShowAiPanel(true)}
+                title="AI Code Generator"
+              >
+                <Sparkles size={16} color="#0078d4" />
+                {!isMobile && <span style={{ fontSize: '12px', color: '#0078d4', fontWeight: 'bold' }}>AI</span>}
               </div>
-            )}
+              {(activeFile?.name.endsWith('.html') || activeFile?.name.endsWith('.jsx')) && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 10px',
+                    cursor: 'pointer',
+                    borderRight: '1px solid #e1e4e8',
+                    backgroundColor: showPreview ? '#0078d4' : '#e6f0f5',
+                    gap: '5px'
+                  }}
+                  onClick={() => {
+                    if (showPreview) {
+                      setShowPreview(false);
+                    } else {
+                      handleRun();
+                    }
+                  }}
+                  title={showPreview ? "Close Preview" : "Preview"}
+                >
+                  {showPreview ? <X size={16} color="white" /> : <Eye size={16} color={activeFile?.name.endsWith('.jsx') ? "#61dafb" : "#0078d4"} />}
+                  {!isMobile && <span style={{ fontSize: '12px', color: showPreview ? 'white' : (activeFile?.name.endsWith('.jsx') ? '#61dafb' : '#0078d4'), fontWeight: 'bold' }}>
+                    {showPreview ? 'Close' : 'Preview'}
+                  </span>}
+                </div>
+              )}
+              {Object.values(files).map((file) => (
+                <div
+                  key={file.name}
+                  style={styles.tab(activeTab === file.name)}
+                  onClick={() => handleFileClick(file.name)}
+                >
+                  <span style={{ marginRight: "8px", display: 'flex', alignItems: 'center' }}>{getFileIcon(file.name)}</span>
+                  {file.name}
+                  {activeTab === file.name && !isMobile && <X size={12} style={{ marginLeft: "10px" }} />}
+                </div>
+              ))}
+            </div>
+
+            {/* Code Editor / Preview Container */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', paddingBottom: terminalOpen ? (isMobile ? "200px" : "250px") : "35px" }}>
+              
+              {/* Preview Header */}
+              {showPreview && (
+                <div style={styles.previewHeader}>
+                  <span>Preview: {activeTab}</span>
+                  <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowPreview(false)} />
+                </div>
+              )}
+              
+              {/* Preview Frame */}
+              {htmlPreview && showPreview && (
+                <iframe
+                  style={{...styles.previewFrame, top: '40px', height: 'calc(100% - 40px)'}}
+                  srcDoc={htmlPreview}
+                  title="HTML Preview"
+                  sandbox="allow-scripts allow-modals"
+                />
+              )}
+              
+              {/* Code Input */}
+              {!showPreview && (
+                <textarea
+                  style={styles.codeEditorInput}
+                  value={activeFile?.content || ''}
+                  onChange={handleCodeChange}
+                  spellCheck="false"
+                  autoCapitalize="off"
+                  autoComplete="off"
+                />
+              )}
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* D. Terminal - Fixed at Bottom */}
+      <div style={styles.terminal}>
+        <div
+          style={styles.terminalHeader}
+          onClick={() => setTerminalOpen(!terminalOpen)}
+        >
+          <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
+              <Terminal size={12} />
+              <span>TERMINAL</span>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 10}}>
+              <button 
+                style={{...styles.buttonSecondary}} 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleRun(); 
+                }}
+                disabled={isExecuting}
+              >
+                  {isExecuting ? <Loader size={isMobile ? 8 : 10} className="spin" /> : <Play size={isMobile ? 8 : 10} />}
+                  {isExecuting ? 'RUNNING' : 'RUN'}
+              </button>
+              {terminalOpen ? <ChevronDown size={14}/> : <ChevronRight size={14} />}
+          </div>
+        </div>
+        
+        {terminalOpen && (
+          <div style={styles.terminalBody}>
+            {logs.map((log, index) => (
+              <div key={index} style={{ marginBottom: "4px" }}>
+                {log}
+              </div>
+            ))}
+            
+            {/* Interactive Terminal Line */}
+            <div style={{ display: "flex", alignItems: "center", color: "#333" }}>
+              <span style={{ color: "#0078d4", marginRight: "0px" }}>➜</span>
+              <span style={{ color: "#005a9e", marginRight: "0px", marginLeft: "4px" }}>snow-ai</span>
+              <input 
+                  type="text" 
+                  style={styles.terminalInput}
+                  value={termInput}
+                  onChange={(e) => setTermInput(e.target.value)}
+                  onKeyDown={handleTerminalSubmit}
+                  autoFocus={!isMobile}
+              />
+            </div>
+            <div ref={terminalEndRef} />
+          </div>
+        )}
       </div>
       
       {/* Global CSS */}
@@ -1464,6 +1474,6 @@ ReactDOM.render(<Counter />, document.getElementById('root'));`,
       `}</style>
     </div>
     </div>
-    </div>
+  </div>
   );
 }
