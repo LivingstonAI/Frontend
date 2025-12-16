@@ -1,4 +1,3 @@
-
 import Header from "./header";
 import SideNavs from "./side_navs";
 import React, { useState, useEffect, useRef } from "react";
@@ -913,7 +912,7 @@ Please generate or modify the code based on the request.`
       flexDirection: "column",
       transition: "height 0.2s ease",
       flexShrink: 0,
-      position: "absolute",
+      // position: "absolute",
       bottom: 0,
       left: 0,
       right: 0,
@@ -1358,7 +1357,7 @@ Please generate or modify the code based on the request.`
             </div>
 
             {/* Code Editor / Preview Container */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', paddingBottom: terminalOpen ? (isMobile ? "200px" : "250px") : "35px" }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', paddingBottom: terminalOpen ? (isMobile ? "20px" : "25px") : "35px" }}>
               
               {/* Preview Header */}
               {showPreview && (
