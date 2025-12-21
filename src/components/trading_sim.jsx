@@ -1372,10 +1372,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                     <th style={{ padding: '10px' }}>Actions</th> {/* ✅ ADD THIS */}
                   </tr>
                 </thead>
-                // ============================================================================
-// REPLACE the entire Win Rate Rankings table body section
-// ============================================================================
-    
+                
     <tbody>
       {sortedByWinRate.map((agent, index) => (
         <tr key={agent.id} style={{ borderBottom: `1px solid ${THEME.border}`, backgroundColor: index < 3 ? '#fef3c7' : 'transparent' }}>
