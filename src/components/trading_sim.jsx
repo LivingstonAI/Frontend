@@ -2178,7 +2178,8 @@ const handleSaveWeights = async (agent) => {
         let newLogs = [...agent.logs.slice(-20)];
         let newHistory = [...agent.history];
 
-        // ✅ REPLACE THE ENTIRE ACTION 0 BLOCK:
+        
+// ✅ REPLACE THE ENTIRE ACTION 0 BLOCK:
 // ACTION 0: BUY (Open Long) - IMPROVED SIZING
 if (action === 0 && agent.shares === 0 && agent.shortShares === 0) {
   let cashToUse = newCash;
@@ -2224,7 +2225,7 @@ else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
     type: 'warning' 
   });
   tradeType = 'SHORT';
-}
+
         // ACTION 4: COVER (Close Short Position) - NO BLOCKING!
         } else if (action === 4 && agent.shortShares > 0) {
           const sharesToCover = newShortShares;
