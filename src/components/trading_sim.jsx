@@ -1948,7 +1948,11 @@ const handleSaveWeights = async (agent) => {
     persistentMemory: false
   });
 
-  const [agents, setAgents] = useState(() => AGENT_TEMPLATES.map(createInitialAgentState));
+  
+  // NEW (✅):
+  const [agents, setAgents] = useState(() => 
+    AGENT_TEMPLATES.map(template => createInitialAgentState(template, CONFIG.INITIAL_CASH))
+  );
   const wsRef = useRef(null);
   const candlesRef = useRef([]);
   const logRefs = useRef({});
