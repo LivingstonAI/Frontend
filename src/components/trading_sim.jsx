@@ -1922,33 +1922,47 @@ const handleSaveWeights = async (agent) => {
       alert(`❌ Failed to fetch saved weights: ${result.error}`);
     }
   };
-  const createInitialAgentState = (template) => ({
-    ...template,
-    isActive: true,
-    cash: capital,  // ✅ uses parameter
-    shares: 0,
-    shortShares: 0, // New: track short positions
-    portfolioValue: initialCapital,
-    prevValue: initialCapital,
-    history: [],
-    logs: [{ msg: "Agent Activated. Monitoring markets...", type: 'info' }],
-    loss: 0,
-    model: (template.id === 11 || template.id === 12) ? null : new DoubleDQN(
-      CONFIG.INPUT_SIZE,
-      CONFIG.ACTION_SIZE,
-      template.hiddenSize || CONFIG.HIDDEN_SIZE,
-      template.hiddenSize2 || CONFIG.HIDDEN_SIZE_2,
-      template.lr,
-      CONFIG.DISCOUNT_FACTOR
-    ),
-    epsilon: CONFIG.EPSILON_START,
-    currentState: null,
-    lastAction: 1,
-    hasBoughtInitial: (template.id === 11 || template.id === 12) ? false : true,
-    equityCurve: [initialCapital],
-    persistentMemory: false
-  });
-
+ // ============================================================================
+// ✅ FIX: Accept capital as parameter to avoid hoisting issues
+// ============================================================================
+const createInitialAgentState = (template, capital) => ({
+  ...template,
+  
+  // Agent state
+  isActive: true,
+  
+  // Financial state
+  cash: capital,
+  shares: 0,
+  shortShares: 0,
+  portfolioValue: capital,
+  prevValue: capital,
+  
+  // Trading history
+  history: [],
+  logs: [{ msg: "Agent Activated. Monitoring markets...", type: 'info' }],
+  
+  // ML metrics
+  loss: 0,
+  epsilon: CONFIG.EPSILON_START,
+  currentState: null,
+  lastAction: 1,
+  
+  // Model initialization (skip for benchmark/rule-based agents)
+  model: (template.id === 11 || template.id === 12) ? null : new DoubleDQN(
+    CONFIG.INPUT_SIZE,
+    CONFIG.ACTION_SIZE,
+    template.hiddenSize || CONFIG.HIDDEN_SIZE,
+    template.hiddenSize2 || CONFIG.HIDDEN_SIZE_2,
+    template.lr,
+    CONFIG.DISCOUNT_FACTOR
+  ),
+  
+  // Special flags
+  hasBoughtInitial: (template.id === 11 || template.id === 12) ? false : true,
+  equityCurve: [capital],
+  persistentMemory: false
+});
   
   // NEW (✅):
   const [agents, setAgents] = useState(() => 
