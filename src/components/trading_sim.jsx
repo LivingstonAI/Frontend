@@ -722,47 +722,56 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
   return Math.max(-10, Math.min(10, reward));
 };
 
+// ============================================================================
+// REPLACE getAction() FUNCTION - More aggressive exploration
+// ============================================================================
+
 const getAction = (qValues, epsilon, shares, shortShares) => {
-  const isExploring = Math.random() < epsilon;
+  // ✅ BOOST: More exploration even when epsilon is low
+  const explorationBoost = 0.15; // Always 15% chance of random action
+  const effectiveEpsilon = Math.max(epsilon, explorationBoost);
+  
+  const isExploring = Math.random() < effectiveEpsilon;
   let action = 1; // Default HOLD
 
   if (isExploring) {
-    action = Math.floor(Math.random() * CONFIG.ACTION_SIZE);
+    // ✅ WEIGHTED random action - favor trading over holding
+    const actionWeights = [0.3, 0.2, 0.3, 0.1, 0.1]; // [BUY, HOLD, SELL, SHORT, COVER]
+    const rand = Math.random();
+    let cumulative = 0;
+    for (let i = 0; i < actionWeights.length; i++) {
+      cumulative += actionWeights[i];
+      if (rand < cumulative) {
+        action = i;
+        break;
+      }
+    }
   } else {
-    action = qValues.reduce((maxIndex, currentQ, i) =>
-      currentQ > qValues[maxIndex] ? i : maxIndex, 0);
+    // ✅ ADD NOISE to Q-values to prevent always choosing same action
+    const noisyQValues = qValues.map(q => q + (Math.random() - 0.5) * 0.1);
+    action = noisyQValues.reduce((maxIndex, currentQ, i) =>
+      currentQ > noisyQValues[maxIndex] ? i : maxIndex, 0);
   }
 
-  // ================================================================
-  // ONLY PREVENT TRULY IMPOSSIBLE ACTIONS
-  // Let AI make mistakes and learn from them!
-  // ================================================================
-  
-  // Can't sell if no long position
+  // Prevent impossible actions (keep existing logic)
   if (shares === 0 && action === 2) {
-    action = 1; // HOLD instead
+    action = Math.random() < 0.5 ? 0 : 1; // Try buying or hold
   }
   
-  // Can't cover if no short position
   if (shortShares === 0 && action === 4) {
-    action = 1; // HOLD instead
+    action = Math.random() < 0.5 ? 3 : 1; // Try shorting or hold
   }
   
-  // Can't open new position while holding another
-  // (but this is less restrictive - agents can choose between actions)
   if (shares > 0 && (action === 0 || action === 3)) {
-    // Instead of forcing HOLD, let them close their position
-    action = 2; // SELL to close long
+    action = Math.random() < 0.7 ? 2 : 1; // Likely close position
   }
   
   if (shortShares > 0 && (action === 0 || action === 3)) {
-    // Instead of forcing HOLD, let them close their position
-    action = 4; // COVER to close short
+    action = Math.random() < 0.7 ? 4 : 1; // Likely close short
   }
 
   return action;
 };
-
 
 // ============================================================================
 // CHART COMPONENTS
