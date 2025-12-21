@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -1806,10 +1806,14 @@ const createInitialAgentState = (template, capital) => ({
   persistentMemory: false
 });
   
-  // NEW (✅):
-  const [agents, setAgents] = useState(() => 
-    AGENT_TEMPLATES.map(template => createInitialAgentState(template, CONFIG.INITIAL_CASH))
-  );
+  const [agents, setAgents] = useState([]);
+
+  // Initialize on mount
+  useEffect(() => {
+    setAgents(AGENT_TEMPLATES.map(template => 
+      createInitialAgentState(template, CONFIG.INITIAL_CASH)
+    ));
+  }, []); // Run once on mount
 
 
   const LoadWeightsModal = ({ agent, savedWeights, onLoad, onClose }) => {
