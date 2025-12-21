@@ -11,13 +11,13 @@ const CONFIG = {
   INITIAL_CASH: 10000,
   COMMISSION: 0.001,
   INPUT_SIZE: 7,
-  ACTION_SIZE: 5, // Changed from 3 to 5!
+  ACTION_SIZE: 5,
   HIDDEN_SIZE: 32,
   HIDDEN_SIZE_2: 16,
   DISCOUNT_FACTOR: 0.95,
   EPSILON_START: 1.0,
-  EPSILON_DECAY: 0.9995,
-  MIN_EPSILON: 0.01,
+  EPSILON_DECAY: 0.9998, // ✅ SLOWER decay - was 0.9995
+  MIN_EPSILON: 0.05, // ✅ HIGHER minimum - was 0.01 (keeps exploring!)
 };
 
 const THEME = {
