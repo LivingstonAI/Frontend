@@ -1313,14 +1313,29 @@ const ModelInfoModal = ({ agent, onClose }) => {
   );
 };
 
+// ============================================================================
+// REPLACE StatisticsModal agentStats calculation
+// ============================================================================
+
 const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
   const agentStats = agents.map(agent => {
-    const wins = agent.history.filter(h => h.type === 'SELL' && h.pnl > 0).length;
-    const losses = agent.history.filter(h => h.type === 'SELL' && h.pnl < 0).length;
+    // ✅ FIX: Count both SELL and COVER as closing trades
+    const closingTrades = agent.history.filter(h => 
+      h.type === 'SELL' || h.type === 'COVER'
+    );
+    
+    const wins = closingTrades.filter(h => h.pnl > 0).length;
+    const losses = closingTrades.filter(h => h.pnl < 0).length;
     const totalTrades = wins + losses;
     const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
     const startCap = agent.equityCurve?.[0] || CONFIG.INITIAL_CASH;
     const returns = ((agent.portfolioValue - startCap) / startCap) * 100;
+
+    // ✅ ADD: Total number of all actions (including entries)
+    const totalActions = agent.history.length;
+    const entries = agent.history.filter(h => 
+      h.type === 'BUY' || h.type === 'SHORT'
+    ).length;
 
     return {
       ...agent,
@@ -1328,7 +1343,9 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
       returns,
       totalTrades,
       wins,
-      losses
+      losses,
+      totalActions,  // ✅ NEW
+      entries        // ✅ NEW
     };
   });
 
