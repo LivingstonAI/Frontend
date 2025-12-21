@@ -251,6 +251,38 @@ class DoubleDQN {
     this.trainingProgress = Math.min(100, (currentStep / totalSteps) * 100);
   }
 }
+class ReplayBuffer {
+  constructor(capacity = 10000) {
+    this.capacity = capacity;
+    this.buffer = [];
+    this.position = 0;
+  }
+
+  add(state, action, reward, nextState, done) {
+    const experience = [state, action, reward, nextState, done];
+    if (this.buffer.length < this.capacity) {
+      this.buffer.push(experience);
+    } else {
+      this.buffer[this.position] = experience;
+    }
+    this.position = (this.position + 1) % this.capacity;
+  }
+
+  sample(batchSize) {
+    if (this.buffer.length < batchSize) return null;
+
+    const batch = [];
+    for (let i = 0; i < batchSize; i++) {
+      const randomIndex = Math.floor(Math.random() * this.buffer.length);
+      batch.push(this.buffer[randomIndex]);
+    }
+    return batch;
+  }
+
+  size() {
+    return this.buffer.length;
+  }
+}
 
 
 const THEME = {
@@ -463,43 +495,6 @@ const normalize = (value, min, max) => {
   if (min === max) return 0.5;
   return (value - min) / (max - min);
 };
-
-// ============================================================================
-// MACHINE LEARNING CLASSES
-// ============================================================================
-
-class ReplayBuffer {
-  constructor(capacity = 10000) {
-    this.capacity = capacity;
-    this.buffer = [];
-    this.position = 0;
-  }
-
-  add(state, action, reward, nextState, done) {
-    const experience = [state, action, reward, nextState, done];
-    if (this.buffer.length < this.capacity) {
-      this.buffer.push(experience);
-    } else {
-      this.buffer[this.position] = experience;
-    }
-    this.position = (this.position + 1) % this.capacity;
-  }
-
-  sample(batchSize) {
-    if (this.buffer.length < batchSize) return null;
-
-    const batch = [];
-    for (let i = 0; i < batchSize; i++) {
-      const randomIndex = Math.floor(Math.random() * this.buffer.length);
-      batch.push(this.buffer[randomIndex]);
-    }
-    return batch;
-  }
-
-  size() {
-    return this.buffer.length;
-  }
-}
 
 
 // ============================================================================
