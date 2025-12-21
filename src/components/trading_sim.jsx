@@ -1365,7 +1365,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700', color: THEME.primary }}>🏆 Win Rate Rankings</h3>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
+               <thead>
                   <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: `2px solid ${THEME.border}` }}>
                     <th style={{ padding: '10px' }}>Rank</th>
                     <th style={{ padding: '10px' }}>Agent</th>
@@ -1373,38 +1373,46 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                     <th style={{ padding: '10px' }}>Wins</th>
                     <th style={{ padding: '10px' }}>Losses</th>
                     <th style={{ padding: '10px' }}>Total Trades</th>
+                    <th style={{ padding: '10px' }}>Actions</th> {/* ✅ ADD THIS */}
                   </tr>
                 </thead>
-                <tbody>
-                  {sortedByWinRate.map((agent, index) => (
-                    <th style={{ padding: '10px' }}>Actions</th>
-                      <td style={{ padding: '10px', color: '#64748b' }}>
-                        {agent.totalActions} ({agent.entries} entries)
-                      </td>
-                    <tr key={agent.id} style={{ borderBottom: `1px solid ${THEME.border}`, backgroundColor: index < 3 ? '#fef3c7' : 'transparent' }}>
-                      <td style={{ padding: '10px', fontWeight: '700' }}>
-                        {index === 0 && '🥇'}
-                        {index === 1 && '🥈'}
-                        {index === 2 && '🥉'}
-                        {index > 2 && `#${index + 1}`}
-                      </td>
-                  
-                      <td style={{ padding: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: agent.color }}></span>
-                          {agent.name}
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px', fontWeight: '700', fontSize: '15px', color: agent.winRate >= 60 ? THEME.success : agent.winRate >= 40 ? THEME.warning : THEME.danger }}>
-                        {agent.winRate.toFixed(1)}%
-                      </td>
-                      <td style={{ padding: '10px', color: THEME.success }}>{agent.wins}</td>
-                      <td style={{ padding: '10px', color: THEME.danger }}>{agent.losses}</td>
-                      <td style={{ padding: '10px' }}>{agent.totalTrades}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                // ============================================================================
+// REPLACE the entire Win Rate Rankings table body section
+// ============================================================================
+    
+    <tbody>
+      {sortedByWinRate.map((agent, index) => (
+        <tr key={agent.id} style={{ borderBottom: `1px solid ${THEME.border}`, backgroundColor: index < 3 ? '#fef3c7' : 'transparent' }}>
+          <td style={{ padding: '10px', fontWeight: '700' }}>
+            {index === 0 && '🥇'}
+            {index === 1 && '🥈'}
+            {index === 2 && '🥉'}
+            {index > 2 && `#${index + 1}`}
+          </td>
+          
+          <td style={{ padding: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: agent.color }}></span>
+              {agent.name}
+            </div>
+          </td>
+          
+          <td style={{ padding: '10px', fontWeight: '700', fontSize: '15px', color: agent.winRate >= 60 ? THEME.success : agent.winRate >= 40 ? THEME.warning : THEME.danger }}>
+            {agent.winRate.toFixed(1)}%
+          </td>
+          
+          <td style={{ padding: '10px', color: THEME.success }}>{agent.wins}</td>
+          <td style={{ padding: '10px', color: THEME.danger }}>{agent.losses}</td>
+          <td style={{ padding: '10px' }}>{agent.totalTrades}</td>
+          
+          {/* ✅ NEW COLUMN: Total Actions */}
+          <td style={{ padding: '10px', color: '#64748b' }}>
+            {agent.totalActions} ({agent.entries} entries)
+          </td>
+        </tr>
+      ))}
+    </tbody>              
+        </table>
             </div>
           </div>
 
