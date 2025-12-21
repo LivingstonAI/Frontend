@@ -2039,7 +2039,8 @@ const handleSaveWeights = async (agent) => {
     // Reset agents with optional persistent memory
     setAgents(prev => AGENT_TEMPLATES.map((template, idx) => {
       const existing = prev[idx];
-      const newState = createInitialAgentState(template);
+      const newState = createInitialAgentState(template, initialCapital);  // ✅
+
 
       if (existing && existing.persistentMemory && existing.model) {
         try {
