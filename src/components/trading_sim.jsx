@@ -1377,6 +1377,10 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                 </thead>
                 <tbody>
                   {sortedByWinRate.map((agent, index) => (
+                    <th style={{ padding: '10px' }}>Actions</th>
+                      <td style={{ padding: '10px', color: '#64748b' }}>
+                        {agent.totalActions} ({agent.entries} entries)
+                      </td>
                     <tr key={agent.id} style={{ borderBottom: `1px solid ${THEME.border}`, backgroundColor: index < 3 ? '#fef3c7' : 'transparent' }}>
                       <td style={{ padding: '10px', fontWeight: '700' }}>
                         {index === 0 && '🥇'}
@@ -1384,6 +1388,7 @@ const StatisticsModal = ({ agents, onClose, assetPrice, startPrice }) => {
                         {index === 2 && '🥉'}
                         {index > 2 && `#${index + 1}`}
                       </td>
+                  
                       <td style={{ padding: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: agent.color }}></span>
