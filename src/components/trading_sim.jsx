@@ -2549,14 +2549,13 @@ else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
                       </div>
                     </div>
 
-                  
-                    <div style={styles.terminal} onClick={() => !agent.isActive && toggleAgent(agent.id)}>
+                  <div style={styles.terminal} onClick={() => !agent.isActive && toggleAgent(agent.id)}>
                       {!agent.isActive && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.1)', zIndex: 2, cursor: 'pointer' }}><span style={{ backgroundColor: THEME.primary, color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '11px' }}>Click to Start</span></div>}
-
+                    
                       <div style={{ height: '80px', marginBottom: '8px', borderBottom: '1px dashed #334155' }}>
                         <MiniCandleChart data={agent.candles} trades={agent.history} width={280} height={80} />
                       </div>
-
+                    
                       <div
                         ref={el => logRefs.current[agent.id] = el}
                         style={styles.logArea}
@@ -2566,11 +2565,33 @@ else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
                             {`> ${log.msg}`}
                           </div>
                         ))}
-                        {agent.model && <div style={{ marginTop: '4px', color: '#64748b', fontSize: '10px' }}>
-                          {`Buffer: ${agent.model.buffer.size()} | ε: ${agent.epsilon.toFixed(3)} | Loss: ${agent.loss.toFixed(4)}`}
-                        </div>}
+                  
+                        
                       </div>
-                    </div>
+                    
+                      {/* ✅ ADD THIS NEW SECTION RIGHT HERE (after logs div, still inside terminal): */}
+                      <div style={{ 
+                        marginTop: '8px', 
+                        padding: '8px', 
+                        backgroundColor: '#1e293b', 
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        color: '#94a3b8',
+                        borderTop: '1px solid #334155'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span>📊 Closed: {agent.history.filter(h => h.type === 'SELL' || h.type === 'COVER').length}</span>
+                          <span>📈 Opened: {agent.history.filter(h => h.type === 'BUY' || h.type === 'SHORT').length}</span>
+                        </div>
+                        {agent.model && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                            <span>Buffer: {agent.model.buffer.size()}</span>
+                            <span>ε: {agent.epsilon.toFixed(3)}</span>
+                            <span>Loss: {agent.loss.toFixed(4)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div> {/* End of terminal div */}
 
                     {agent.model && (
                     <div style={{ padding: '8px 12px', backgroundColor: '#1e293b', borderTop: '1px solid #334155' }}>
