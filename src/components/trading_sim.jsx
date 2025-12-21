@@ -2180,31 +2180,43 @@ const handleSaveWeights = async (agent) => {
             action = 1; // Hold
           }
         } else if (agentModel) {
-            // AI AGENTS - FULL FREEDOM!
-            const qValues = agentModel.predict(nextState);
-            action = getAction(qValues, agent.epsilon, agent.shares, agent.shortShares);
-
-            // Train the model
-            if (previousState) {
-              reward = calculateReward(agent, agent.lastAction, 0, currentPrice, allCandles);
-              agentModel.remember(previousState, agent.lastAction, reward, nextState, false);
-              
-              // ✅✅✅ TRAINING AND PROGRESS UPDATE - ADD HERE ✅✅✅
-              const trainLoss = agentModel.train();
-              if (trainLoss !== undefined) {
-                agent.loss = trainLoss;
+              const qValues = agentModel.predict(nextState);
+              action = getAction(qValues, agent.epsilon, agent.shares, agent.shortShares);
+            
+              // ✅ NEW: Train after we know what action was taken and its result
+              if (previousState) {
+                // Calculate reward based on the action that was just executed
+                const stepReward = (tradeType === 'SELL' || tradeType === 'COVER') && pnl !== 0
+                  ? calculateReward(agent, agent.lastAction, pnl, currentPrice, allCandles)
+                  : calculateReward(agent, agent.lastAction, 0, currentPrice, allCandles);
                 
-                // ✅ Update training progress bar
+                // Store experience in replay buffer
+                agentModel.remember(previousState, agent.lastAction, stepReward, nextState, false);
+                
+                // ✅ Train multiple times per step if buffer is large enough
+                let totalLoss = 0;
+                const trainingIterations = agentModel.buffer.size() > 500 ? 2 : 1;
+                
+                for (let i = 0; i < trainingIterations; i++) {
+                  const trainLoss = agentModel.train();
+                  if (trainLoss !== undefined) {
+                    totalLoss += trainLoss;
+                  }
+                }
+                
+                // Update loss display (average if multiple iterations)
+                if (totalLoss > 0) {
+                  agent.loss = totalLoss / trainingIterations;
+                }
+                
+                // Update training progress bar
                 if (dataSource === 'UPLOAD' && customData.length > 0) {
                   agentModel.updateTrainingProgress(dataIndex, customData.length);
                 }
               }
-              // ✅✅✅ END OF TRAINING CODE ✅✅✅
+            
+              agent.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
             }
-
-            agent.epsilon = Math.max(CONFIG.MIN_EPSILON, agent.epsilon * CONFIG.EPSILON_DECAY);
-          }
-
         // ================================================================
         // EXECUTE ACTIONS (NO TP/SL OVERRIDES!)
         // ================================================================
@@ -2342,6 +2354,8 @@ else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
           // ACTION 1: HOLD (or invalid action)
           tradeType = 'HOLD';
         }
+
+        
 
         // ================================================================
         // CALCULATE PORTFOLIO VALUE
