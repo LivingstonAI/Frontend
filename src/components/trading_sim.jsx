@@ -591,31 +591,37 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
   const lastBuyTrade = [...agent.history].reverse().find(h => h.type === 'BUY');
   const holdTime = lastBuyTrade ? allCandles.length - allCandles.findIndex(c => c.t === lastBuyTrade.t) : 0;
 
-  // ✅ AMPLIFIED P&L scaling - was too conservative
+  // ✅ REPLACE THESE TWO LINES:
+  // OLD:
+  // const pnlPercent = (pnl / CONFIG.INITIAL_CAPITAL) * 100;
+  // const scaledPnL = Math.max(-5, Math.min(5, pnlPercent));
+  
+  // NEW:
   const pnlPercent = (pnl / CONFIG.INITIAL_CASH) * 100;
-  const scaledPnL = Math.max(-10, Math.min(10, pnlPercent * 2)); // ✅ 2x multiplier, ±10 range
+  const scaledPnL = Math.max(-10, Math.min(10, pnlPercent * 2)); // 2x multiplier, ±10 range
 
+  // ✅ THEN UPDATE ALL REWARD VALUES IN THE SWITCH STATEMENT:
   switch (rewardType) {
     case 'scalper':
       if (action === 2 && pnl > 0) {
-        reward = scaledPnL * (holdTime < 10 ? 2.0 : 1.0); // ✅ Bigger bonus
+        reward = scaledPnL * (holdTime < 10 ? 2.0 : 1.0); // CHANGE: was 1.5
       } else if (action === 2 && pnl < 0) {
         reward = scaledPnL * 1.5;
       } else if (action === 0) {
-        reward = -0.1; // ✅ Stronger penalty for opening
+        reward = -0.1; // CHANGE: was -0.05
       } else if (action === 1 && agent.shares > 0) {
-        reward = -0.02 * Math.min(holdTime, 20);
+        reward = -0.02 * Math.min(holdTime, 20); // CHANGE: was -0.01
       }
       break;
 
     case 'trend':
       if (action === 2 && pnl > 0) {
-        reward = scaledPnL * (1 + holdTime / 50); // ✅ Bigger hold bonus
+        reward = scaledPnL * (1 + holdTime / 50); // CHANGE: was holdTime / 100
       } else if (action === 2 && pnl < 0) {
-        reward = scaledPnL * 1.5;
+        reward = scaledPnL * 1.5; // CHANGE: was 1.2
       } else if (action === 1 && agent.shares > 0) {
         const unrealized = lastBuyTrade ? (currentPrice - lastBuyTrade.price) / lastBuyTrade.price : 0;
-        reward = unrealized > 0 ? 0.05 : -0.02; // ✅ Bigger rewards
+        reward = unrealized > 0 ? 0.05 : -0.02; // CHANGE: was 0.02, -0.01
       }
       break;
 
@@ -624,12 +630,12 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
         const sma5 = calculateSMA(allCandles, 5);
         const sma20 = calculateSMA(allCandles, 20);
         if (sma5 && sma20 && sma5 > sma20) {
-          reward = 0.1; // ✅ Was 0.05
+          reward = 0.1; // CHANGE: was 0.05
         } else {
-          reward = -0.2; // ✅ Stronger penalty
+          reward = -0.2; // CHANGE: was -0.1
         }
       } else if (action === 2) {
-        reward = scaledPnL * 1.5; // ✅ Amplify exit rewards
+        reward = scaledPnL * 1.5; // CHANGE: was scaledPnL (no multiplier)
       }
       break;
 
@@ -637,30 +643,30 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
       if (action === 0) {
         const sma20 = calculateSMA(allCandles, 20);
         if (sma20 && currentPrice < sma20 * 0.98) {
-          reward = 0.2; // ✅ Was 0.1
+          reward = 0.2; // CHANGE: was 0.1
         }
       } else if (action === 2 && pnl > 0 && holdTime < 20) {
-        reward = scaledPnL * 1.5;
+        reward = scaledPnL * 1.5; // CHANGE: was 1.3
       } else if (action === 2 && pnl < 0) {
-        reward = scaledPnL * 1.5;
+        reward = scaledPnL * 1.5; // CHANGE: was 1.3
       }
       break;
 
     case 'aggressive':
       if (action === 2) {
-        reward = scaledPnL * 2.0; // ✅ Was 1.2 - now VERY aggressive
+        reward = scaledPnL * 2.0; // CHANGE: was 1.2
       } else if (action === 0) {
-        reward = -0.05; // ✅ Bigger penalty
+        reward = -0.05; // CHANGE: was -0.02
       }
       break;
 
     case 'conservative':
       if (action === 2 && pnl < 0) {
-        reward = scaledPnL * 3; // ✅ HEAVY penalty for losses
+        reward = scaledPnL * 3; // CHANGE: was 2
       } else if (action === 2 && pnl > 0) {
-        reward = scaledPnL * 1.0;
+        reward = scaledPnL * 1.0; // CHANGE: was 0.8
       } else if (action === 1 && agent.shares > 0) {
-        reward = 0.01; // ✅ Reward holding
+        reward = 0.01; // CHANGE: was 0.005
       }
       break;
 
@@ -673,11 +679,11 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
 
       if (volatility > avgVol * 1.2) {
         if (action === 0 || (action === 2 && Math.abs(pnl) > CONFIG.INITIAL_CASH * 0.01)) {
-          reward = 0.2; // ✅ Was 0.1
+          reward = 0.2; // CHANGE: was 0.1
         }
       }
       if (action === 2) {
-        reward += scaledPnL * 1.5;
+        reward += scaledPnL * 1.5; // CHANGE: was scaledPnL
       }
       break;
 
@@ -686,28 +692,30 @@ const calculateReward = (agent, action, pnl, currentPrice, allCandles) => {
         const sma5 = calculateSMA(allCandles, 5);
         const sma20 = calculateSMA(allCandles, 20);
         if (sma5 && sma20 && sma5 < sma20) {
-          reward = 0.15; // ✅ Was 0.08
+          reward = 0.15; // CHANGE: was 0.08
         }
       } else if (action === 2) {
-        reward = scaledPnL * 1.5;
+        reward = scaledPnL * 1.5; // CHANGE: was 1.1
       }
       break;
 
     case 'balanced':
     default:
       if (action === 2) {
-        reward = scaledPnL * 1.5; // ✅ Was 1.0 - now amplified
+        reward = scaledPnL * 1.5; // CHANGE: was scaledPnL
       } else if (action === 0) {
-        reward = -0.05; // ✅ Was -0.02
+        reward = -0.05; // CHANGE: was -0.02
       } else if (action === 1 && agent.shares > 0) {
         const unrealized = lastBuyTrade ? (currentPrice - lastBuyTrade.price) / lastBuyTrade.price : 0;
-        reward = unrealized * 0.05; // ✅ Was 0.02
+        reward = unrealized * 0.05; // CHANGE: was 0.02
       }
       break;
   }
 
-  // ✅ WIDER clipping range
-  return Math.max(-10, Math.min(10, reward)); // Was ±5
+  // ✅ UPDATE FINAL CLIPPING:
+  // OLD: return Math.max(-5, Math.min(5, reward));
+  // NEW:
+  return Math.max(-10, Math.min(10, reward));
 };
 
 const getAction = (qValues, epsilon, shares, shortShares) => {
