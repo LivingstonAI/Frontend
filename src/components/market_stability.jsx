@@ -655,6 +655,7 @@ export default function MarketStabilityScore() {
                                     onChange={(e) => setPeriod(Number(e.target.value))}
                                     disabled={loading}
                                 >
+                                   <option value={20}>20 Days</option>
                                     <option value={30}>30 Days</option>
                                     <option value={60}>60 Days</option>
                                     <option value={90}>90 Days</option>
