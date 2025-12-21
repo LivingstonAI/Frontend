@@ -283,24 +283,25 @@ class DoubleDQN {
 
     this.buffer = new ReplayBuffer();
     this.batchSize = 32;
-    this.targetUpdateFrequency = 100; // ✅ Increased from 50
+    this.targetUpdateFrequency = 100;
     this.stepCounter = 0;
     
-    // ✅ MUCH STRICTER gradient clipping
-    this.gradientClipValue = 0.1; // Was 0.5 - now VERY strict
+    // ✅ RELAXED gradient clipping - was too strict
+    this.gradientClipValue = 1.0; // Was 0.1 - now much more lenient
     
-    // ✅ Weight clipping to prevent explosion
-    this.weightClipValue = 5.0; // Was 10.0 - now stricter
+    // ✅ Weight clipping
+    this.weightClipValue = 10.0; // Was 5.0 - allows larger weights
     
-    // ✅ Learning rate decay
+    // ✅ NO LEARNING RATE DECAY - keep it constant!
     this.initialLr = learningRate;
-    this.minLr = learningRate * 0.001; // Very low minimum
-    this.lrDecay = 0.9999; // Slower decay
+    this.minLr = learningRate; // ✅ SAME as initial - NO DECAY!
+    this.lrDecay = 1.0; // ✅ NO DECAY - was 0.9999
     
     // ✅ Training progress tracking
     this.totalSteps = 0;
-    this.trainingProgress = 0; // Percentage 0-100
+    this.trainingProgress = 0;
   }
+
 
   _createNetwork(inputs, outputs, hidden1, hidden2) {
     // Xavier/Glorot initialization (better than He for this architecture)
