@@ -490,6 +490,10 @@ class DoubleDQN {
 
     return totalLoss / this.batchSize;
   }
+  // ✅ Calculate training progress
+  updateTrainingProgress(currentStep, totalSteps) {
+    this.trainingProgress = Math.min(100, (currentStep / totalSteps) * 100);
+  }
 }
 
 
