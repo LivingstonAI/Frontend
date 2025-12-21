@@ -2178,66 +2178,53 @@ const handleSaveWeights = async (agent) => {
         let newLogs = [...agent.logs.slice(-20)];
         let newHistory = [...agent.history];
 
-        // ACTION 0: BUY (Open Long)
-        if (action === 0 && agent.shares === 0 && agent.shortShares === 0) {
-          let cashToUse = newCash;
-          if (agent.id === 11) {
-            cashToUse = newCash; // Buy & Hold uses all cash
-          } else if (agent.id === 12 && !agent.hasBoughtInitial) {
-            cashToUse = newCash * 0.25; // Dip buyer starts with 25%
-          } else {
-            cashToUse = newCash * 0.05; // AI agents use 98%
-          }
+        // ✅ REPLACE THE ENTIRE ACTION 0 BLOCK:
+// ACTION 0: BUY (Open Long) - IMPROVED SIZING
+if (action === 0 && agent.shares === 0 && agent.shortShares === 0) {
+  let cashToUse = newCash;
+  
+  if (agent.id === 11) {
+    cashToUse = newCash; // Buy & Hold uses all cash
+  } else if (agent.id === 12 && !agent.hasBoughtInitial) {
+    cashToUse = newCash * 0.25; // Dip buyer starts with 25%
+  } else {
+    // ✅ NEW DYNAMIC POSITION SIZING
+    const portfolioRisk = 0.10; // Risk 10% of portfolio per trade
+    cashToUse = agent.portfolioValue * portfolioRisk;
+    cashToUse = Math.min(cashToUse, newCash * 0.95); // Cap at 95% of cash
+  }
 
-          const sharesToBuy = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
-          newShares += sharesToBuy;
-          newCash -= cashToUse;
+  const sharesToBuy = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
+  newShares += sharesToBuy;
+  newCash -= cashToUse;
 
-          newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
-          newLogs.push({ msg: `🟢 LONG: ${sharesToBuy.toFixed(4)} @ ${fmt(currentPrice)}`, type: 'success' });
-          agent.hasBoughtInitial = true;
-          tradeType = 'BUY';
+  newHistory.push({ type: 'BUY', price: currentPrice, amount: sharesToBuy, t: currentCandle.t });
+  newLogs.push({ 
+    msg: `🟢 LONG: ${sharesToBuy.toFixed(4)} @ ${fmt(currentPrice)} (${(cashToUse/agent.portfolioValue*100).toFixed(1)}%)`, 
+    type: 'success' 
+  });
+  agent.hasBoughtInitial = true;
+  tradeType = 'BUY';
+}
 
-        // ACTION 2: SELL (Close Long) - NO BLOCKING!
-        } else if (action === 2 && agent.shares > 0) {
-          const sharesToSell = newShares;
-          
-          // Calculate total cost basis
-          let totalCost = 0;
-          for (const item of newHistory) {
-            if (item.type === 'BUY') {
-              totalCost += item.amount * item.price / (1 - CONFIG.COMMISSION);
-            }
-          }
+// ✅ REPLACE THE ENTIRE ACTION 3 BLOCK (SHORT):
+// ACTION 3: SHORT (Open Short Position) - IMPROVED SIZING
+else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
+  // ✅ NEW DYNAMIC POSITION SIZING for shorts
+  const portfolioRisk = 0.10;
+  const cashToUse = agent.portfolioValue * portfolioRisk;
+  const sharesToShort = Math.min(cashToUse, newCash * 0.95) / currentPrice * (1 - CONFIG.COMMISSION);
+  
+  newShortShares += sharesToShort;
+  newCash += cashToUse; // Credit from shorting
 
-          const saleAmount = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
-          pnl = saleAmount - totalCost;
-
-          newCash += saleAmount;
-          newShares = 0;
-
-          newHistory = newHistory.filter(h => h.type !== 'BUY');
-          newHistory.push({ type: 'SELL', price: currentPrice, amount: sharesToSell, t: currentCandle.t, pnl: pnl });
-          newLogs.push({ msg: `🔴 CLOSE LONG @ ${fmt(currentPrice)} | PnL ${fmt(pnl)}`, type: pnl >= 0 ? 'success' : 'danger' });
-          tradeType = 'SELL';
-
-          if (agentModel) {
-            reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
-          }
-
-        // ACTION 3: SHORT (Open Short Position)
-        } else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
-          const cashToUse = newCash * 0.05;
-          const sharesToShort = cashToUse / currentPrice * (1 - CONFIG.COMMISSION);
-          
-          newShortShares += sharesToShort;
-          // Cash increases from shorting
-          newCash += cashToUse;
-
-          newHistory.push({ type: 'SHORT', price: currentPrice, amount: sharesToShort, t: currentCandle.t });
-          newLogs.push({ msg: `🔻 SHORT: ${sharesToShort.toFixed(4)} @ ${fmt(currentPrice)}`, type: 'warning' });
-          tradeType = 'SHORT';
-
+  newHistory.push({ type: 'SHORT', price: currentPrice, amount: sharesToShort, t: currentCandle.t });
+  newLogs.push({ 
+    msg: `🔻 SHORT: ${sharesToShort.toFixed(4)} @ ${fmt(currentPrice)} (${(cashToUse/agent.portfolioValue*100).toFixed(1)}%)`, 
+    type: 'warning' 
+  });
+  tradeType = 'SHORT';
+}
         // ACTION 4: COVER (Close Short Position) - NO BLOCKING!
         } else if (action === 4 && agent.shortShares > 0) {
           const sharesToCover = newShortShares;
