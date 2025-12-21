@@ -1924,7 +1924,7 @@ const handleSaveWeights = async (agent) => {
   const createInitialAgentState = (template) => ({
     ...template,
     isActive: true,
-    cash: initialCapital,
+    cash: capital,  // ✅ uses parameter
     shares: 0,
     shortShares: 0, // New: track short positions
     portfolioValue: initialCapital,
