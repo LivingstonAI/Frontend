@@ -380,8 +380,8 @@ class DoubleDQN {
     const batch = this.buffer.sample(this.batchSize);
     let totalLoss = 0;
 
-    // ✅ Adaptive learning rate with slower decay
-    const currentLr = Math.max(this.minLr, this.lr * Math.pow(this.lrDecay, this.stepCounter));
+    // ✅ CONSTANT learning rate (no decay!)
+    const currentLr = this.lr; // Was: Math.max(this.minLr, this.lr * Math.pow(this.lrDecay, this.stepCounter))
 
     for (const [state, action, reward, nextState, done] of batch) {
       // Forward pass
@@ -410,8 +410,8 @@ class DoubleDQN {
         targetQ += this.gamma * targetNextQ[bestActionOnline];
       }
 
-      // ✅ Clip target Q-value to prevent explosion
-      targetQ = Math.max(-100, Math.min(100, targetQ));
+      // ✅ Less aggressive Q-value clipping
+      targetQ = Math.max(-50, Math.min(50, targetQ)); // Was ±100
 
       // Huber loss
       const error = targetQ - qValues[action];
@@ -489,11 +489,6 @@ class DoubleDQN {
     }
 
     return totalLoss / this.batchSize;
-  }
-  
-  // ✅ Calculate training progress
-  updateTrainingProgress(currentStep, totalSteps) {
-    this.trainingProgress = Math.min(100, (currentStep / totalSteps) * 100);
   }
 }
 
