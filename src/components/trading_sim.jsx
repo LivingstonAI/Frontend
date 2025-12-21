@@ -6,6 +6,10 @@ import SideNavs from "./side_navs";
 // CONFIGURATION & CONSTANTS
 // ============================================================================
 
+// ============================================================================
+// REPLACE CONFIG object - Keep exploring longer
+// ============================================================================
+
 const CONFIG = {
   TICK_RATE_DEFAULT: 100,
   INITIAL_CASH: 10000,
@@ -16,8 +20,8 @@ const CONFIG = {
   HIDDEN_SIZE_2: 16,
   DISCOUNT_FACTOR: 0.95,
   EPSILON_START: 1.0,
-  EPSILON_DECAY: 0.9998, // ✅ SLOWER decay - was 0.9995
-  MIN_EPSILON: 0.05, // ✅ HIGHER minimum - was 0.01 (keeps exploring!)
+  EPSILON_DECAY: 0.9999, // ✅ SLOWER - was 0.9998
+  MIN_EPSILON: 0.15,     // ✅ MUCH HIGHER - was 0.05 (keeps exploring!)
 };
 
 const THEME = {
