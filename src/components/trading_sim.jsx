@@ -2242,6 +2242,51 @@ if (action === 0 && agent.shares === 0 && agent.shortShares === 0) {
   tradeType = 'BUY';
 }
 
+  // ============================================================================
+// REPLACE ACTION 2: SELL block in the game loop
+// ============================================================================
+
+// ACTION 2: SELL (Close Long Position)
+else if (action === 2 && agent.shares > 0) {
+  const sharesToSell = newShares;
+  
+  // ✅ Calculate total cost of all buys
+  let totalCost = 0;
+  for (const item of newHistory) {
+    if (item.type === 'BUY') {
+      totalCost += item.amount * item.price / (1 - CONFIG.COMMISSION);
+    }
+  }
+
+  const revenue = sharesToSell * currentPrice * (1 - CONFIG.COMMISSION);
+  pnl = revenue - totalCost;
+
+  newCash += revenue;
+  newShares = 0;
+
+  // ✅ IMPORTANT: Remove BUY history and add SELL with PnL
+  newHistory = newHistory.filter(h => h.type !== 'BUY');
+  newHistory.push({ 
+    type: 'SELL',        // ✅ Use 'SELL' not just removing history
+    price: currentPrice, 
+    amount: sharesToSell, 
+    t: currentCandle.t, 
+    pnl: pnl             // ✅ Store PnL!
+  });
+  
+  newLogs.push({ 
+    msg: `🔴 SELL @ ${fmt(currentPrice)} | PnL ${fmt(pnl)} (${(pnl/totalCost*100).toFixed(1)}%)`, 
+    type: pnl >= 0 ? 'success' : 'danger' 
+  });
+  
+  tradeType = 'SELL';
+
+  // ✅ Calculate reward with actual PnL
+  if (agentModel) {
+    reward = calculateReward(agent, action, pnl, currentPrice, allCandles);
+  }
+}
+
 // ✅ REPLACE THE ENTIRE ACTION 3 BLOCK (SHORT):
 // ACTION 3: SHORT (Open Short Position) - IMPROVED SIZING
 else if (action === 3 && agent.shares === 0 && agent.shortShares === 0) {
