@@ -2023,45 +2023,43 @@ const handleSaveWeights = async (agent) => {
   };
 
   const resetSimulation = () => {
-    // Stop simulation first
-    setIsRunning(false);
-    
-    // Clear WebSocket if exists
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    
-    // Reset all state
-    setDataIndex(0);
-    setCandles([]);
-    setAssetPrice(0);
-    setStartPrice(null);
-    candlesRef.current = [];
-    setShowStatistics(false);
-    
-    // Reset agents with optional persistent memory
-    setAgents(prev => AGENT_TEMPLATES.map((template, idx) => {
-      const existing = prev[idx];
-      const newState = createInitialAgentState(template, initialCapital);  // ✅
+  // Stop simulation first
+  setIsRunning(false);
+  
+  // Clear WebSocket if exists
+  if (wsRef.current) {
+    wsRef.current.close();
+    wsRef.current = null;
+  }
+  
+  // Reset all state
+  setDataIndex(0);
+  setCandles([]);
+  setAssetPrice(0);
+  setStartPrice(null);
+  candlesRef.current = [];
+  setShowStatistics(false);
+  
+  // ✅ FIX: Pass initialCapital to createInitialAgentState
+  setAgents(prev => AGENT_TEMPLATES.map((template, idx) => {
+    const existing = prev[idx];
+    const newState = createInitialAgentState(template, initialCapital);  // ✅ ADD initialCapital
 
-
-      if (existing && existing.persistentMemory && existing.model) {
-        try {
-          const existingModel = existing.model;
-          newState.model.q_network = JSON.parse(JSON.stringify(existingModel.q_network));
-          newState.model.target_network = JSON.parse(JSON.stringify(existingModel.target_network));
-          newState.persistentMemory = true;
-          newState.logs = [{ msg: "Agent Restarted with Persistent Weights", type: 'info' }];
-        } catch (error) {
-          console.error('Error preserving model weights:', error);
-          newState.logs = [{ msg: "Agent Restarted (weights reset due to error)", type: 'warning' }];
-        }
+    if (existing && existing.persistentMemory && existing.model) {
+      try {
+        const existingModel = existing.model;
+        newState.model.q_network = JSON.parse(JSON.stringify(existingModel.q_network));
+        newState.model.target_network = JSON.parse(JSON.stringify(existingModel.target_network));
+        newState.persistentMemory = true;
+        newState.logs = [{ msg: "Agent Restarted with Persistent Weights", type: 'info' }];
+      } catch (error) {
+        console.error('Error preserving model weights:', error);
+        newState.logs = [{ msg: "Agent Restarted (weights reset due to error)", type: 'warning' }];
       }
-      return newState;
-    }));
-  };
-
+    }
+    return newState;
+  }));
+};
   useEffect(() => {
     if (dataSource === 'BINANCE') {
       setAssetName('BTC');
