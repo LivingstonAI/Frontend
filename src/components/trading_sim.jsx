@@ -39,6 +39,8 @@ const THEME = {
   terminalText: '#e2e8f0',
 };
 
+let capital = '';
+
 const AGENT_TEMPLATES = [
   {
     id: 1,
