@@ -231,6 +231,7 @@ const styles = `
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     transition: all 0.2s;
     border: 2px solid #dbeafe;
+    position: relative;
 }
 
 .mss-card:hover {
@@ -251,6 +252,26 @@ const styles = `
     font-size: 22px;
     color: #1e40af;
     font-weight: 700;
+}
+
+.chart-link {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.chart-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
 }
 
 .mss-badge {
@@ -559,12 +580,21 @@ export default function MarketStabilityScore() {
                             >
                                 <div className="card-header">
                                     <h4>{asset.symbol}</h4>
-                                    <span className="mss-badge">
-                                        {asset.mss}
-                                    </span>
+                                    <a 
+                                        href={`https://www.tradingview.com/chart/?symbol=${asset.symbol}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="chart-link"
+                                    >
+                                        📈 Chart
+                                    </a>
                                 </div>
                                 <p className="status">{asset.status}</p>
                                 <div className="card-metrics">
+                                    <div className="metric">
+                                        <span className="metric-label">MSS:</span>
+                                        <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
+                                    </div>
                                     <div className="metric">
                                         <span className="metric-label">Price:</span>
                                         <span className="metric-value">${asset.current_price}</span>
