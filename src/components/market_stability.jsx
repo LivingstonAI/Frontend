@@ -254,6 +254,11 @@ const styles = `
     font-weight: 700;
 }
 
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .chart-link {
     padding: 8px 16px;
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
@@ -272,6 +277,37 @@ const styles = `
 .chart-link:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+}
+
+.save-model-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.save-model-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.save-model-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #9ca3af;
+}
+
+.save-model-btn.saved {
+    background: #6b7280;
 }
 
 .mss-badge {
@@ -365,6 +401,30 @@ const styles = `
     color: #6b7280;
     font-size: 16px;
 }
+
+.trend-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.trend-badge.uptrend {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.trend-badge.downtrend {
+    background: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+}
+
+.trend-badge.ranging {
+    background: rgba(156, 163, 175, 0.2);
+    color: #6b7280;
+}
 `;
 
 export default function MarketStabilityScore() {
@@ -377,10 +437,12 @@ export default function MarketStabilityScore() {
     const [customSymbols, setCustomSymbols] = useState('');
     const [period, setPeriod] = useState(60);
     const [assetLists, setAssetLists] = useState(null);
+    const [savingModels, setSavingModels] = useState({});
+    const [savedModels, setSavedModels] = useState(new Set());
 
-    // Fetch predefined asset lists on mount
     useEffect(() => {
         fetchAssetLists();
+        fetchExistingModels();
     }, []);
 
     const fetchAssetLists = async () => {
@@ -392,6 +454,17 @@ export default function MarketStabilityScore() {
             }
         } catch (error) {
             console.error('Error fetching asset lists:', error);
+        }
+    };
+
+    const fetchExistingModels = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai-models/`);
+            const models = await response.json();
+            const assets = new Set(models.map(m => m.asset));
+            setSavedModels(assets);
+        } catch (error) {
+            console.error('Error fetching existing models:', error);
         }
     };
 
@@ -419,7 +492,27 @@ export default function MarketStabilityScore() {
 
             const data = await response.json();
             if (data.success) {
-                setMssData(data.data);
+                // Fetch trend data for each asset
+                const enrichedData = await Promise.all(
+                    data.data.map(async (asset) => {
+                        try {
+                            const trendResponse = await fetch(
+                                `${baseUrl}/api/detect-trend/?symbol=${asset.symbol}&period=20`
+                            );
+                            const trendData = await trendResponse.json();
+                            return {
+                                ...asset,
+                                trend: trendData.trend || 'unknown'
+                            };
+                        } catch (error) {
+                            return {
+                                ...asset,
+                                trend: 'unknown'
+                            };
+                        }
+                    })
+                );
+                setMssData(enrichedData);
             } else {
                 alert('Error calculating MSS: ' + data.error);
             }
@@ -428,6 +521,67 @@ export default function MarketStabilityScore() {
             alert('Failed to calculate MSS. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const saveToForwardTest = async (asset) => {
+        setSavingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            // Determine model code based on trend
+            let modelCode = '';
+            if (asset.trend === 'uptrend') {
+                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+if num_positions == 0:
+    if buy_hold(dataset=dataset):
+        if is_uptrend(data=dataset):
+            return_statement = 'buy'`;
+            } else if (asset.trend === 'downtrend') {
+                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+if num_positions == 0:
+    if sell_hold(dataset=dataset):
+        if is_downtrend(data=dataset):
+            return_statement = 'sell'`;
+            } else {
+                alert(`Cannot save ${asset.symbol}: No clear trend detected`);
+                setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
+                return;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: `[MSS] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
+                    asset: asset.symbol,
+                    interval: '1h',
+                    model_code: modelCode,
+                    initial_equity: 10000,
+                    num_positions: 1,
+                    take_profit: 4,
+                    take_profit_type: 'PERCENTAGE',
+                    stop_loss: 2,
+                    stop_loss_type: 'PERCENTAGE',
+                })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                setSavedModels(prev => new Set([...prev, asset.symbol]));
+                alert(`✅ Successfully saved ${asset.symbol} to forward testing!`);
+            } else {
+                alert(`Error: ${data.error || 'Failed to save model'}`);
+            }
+        } catch (error) {
+            console.error('Error saving model:', error);
+            alert('Failed to save model. Please try again.');
+        } finally {
+            setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
         }
     };
 
@@ -456,7 +610,6 @@ export default function MarketStabilityScore() {
                 <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
             </div>
 
-            {/* Control Panel */}
             <div className="mss-controls">
                 <div className="control-row">
                     <div className="control-group">
@@ -513,7 +666,6 @@ export default function MarketStabilityScore() {
                 </div>
             </div>
 
-            {/* Loading State */}
             {loading && (
                 <div className="mss-loading">
                     <div className="spinner"></div>
@@ -521,10 +673,8 @@ export default function MarketStabilityScore() {
                 </div>
             )}
 
-            {/* Results */}
             {!loading && mssData.length > 0 && (
                 <>
-                    {/* Summary Stats */}
                     <div className="mss-summary">
                         <div className="summary-card stable">
                             <h3>🟢 Stable</h3>
@@ -543,7 +693,6 @@ export default function MarketStabilityScore() {
                         </div>
                     </div>
 
-                    {/* Category Filter */}
                     <div className="category-filter">
                         <button 
                             className={selectedCategory === 'all' ? 'active' : ''}
@@ -571,7 +720,6 @@ export default function MarketStabilityScore() {
                         </button>
                     </div>
 
-                    {/* Assets Grid */}
                     <div className="mss-grid">
                         {filteredData.map((asset, index) => (
                             <div 
@@ -579,15 +727,39 @@ export default function MarketStabilityScore() {
                                 className="mss-card"
                             >
                                 <div className="card-header">
-                                    <h4>{asset.symbol}</h4>
-                                    <a 
-                                        href={`https://www.tradingview.com/chart/?symbol=${asset.symbol}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="chart-link"
-                                    >
-                                        📈 Chart
-                                    </a>
+                                    <div>
+                                        <h4>{asset.symbol}</h4>
+                                        {asset.trend && (
+                                            <span className={`trend-badge ${asset.trend}`}>
+                                                {asset.trend === 'uptrend' ? '📈 ' : asset.trend === 'downtrend' ? '📉 ' : '➡️ '}
+                                                {asset.trend.toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="card-actions">
+                                        <a 
+                                            href={`https://www.tradingview.com/chart/?symbol=${asset.symbol}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="chart-link"
+                                        >
+                                            📈 Chart
+                                        </a>
+                                        <button
+                                            className={`save-model-btn ${savedModels.has(asset.symbol) ? 'saved' : ''}`}
+                                            onClick={() => saveToForwardTest(asset)}
+                                            disabled={
+                                                savingModels[asset.symbol] || 
+                                                savedModels.has(asset.symbol) ||
+                                                !asset.trend ||
+                                                asset.trend === 'ranging'
+                                            }
+                                        >
+                                            {savingModels[asset.symbol] ? '💾 Saving...' : 
+                                             savedModels.has(asset.symbol) ? '✅ Saved' : 
+                                             '💾 Save Model'}
+                                        </button>
+                                    </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
                                 <div className="card-metrics">
@@ -633,7 +805,6 @@ export default function MarketStabilityScore() {
                 </>
             )}
 
-            {/* Empty State */}
             {!loading && mssData.length === 0 && (
                 <div className="mss-empty">
                     <div className="empty-icon">📊</div>
