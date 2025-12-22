@@ -13,8 +13,11 @@ export default function AICouncil() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [assetSearchTerm, setAssetSearchTerm] = useState('');
     const [selectedAssetForAnalysis, setSelectedAssetForAnalysis] = useState('');
     const [runningAnalysis, setRunningAnalysis] = useState(false);
+    const [customAsset, setCustomAsset] = useState('');
+    const [addingCustomAsset, setAddingCustomAsset] = useState(false);
 
     const assetCategories = {
         'Forex Pairs': [
@@ -110,6 +113,36 @@ export default function AICouncil() {
         }
     };
 
+    const addCustomAssetToWatch = async () => {
+        if (!customAsset.trim()) {
+            setError('Please enter an asset symbol');
+            return;
+        }
+
+        try {
+            setAddingCustomAsset(true);
+            const response = await fetch(`${baseUrl}/api/add-trading-asset-to-watch/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ asset: customAsset.toUpperCase().trim() })
+            });
+            
+            if (response.ok) {
+                fetchWatchedAssets();
+                setCustomAsset('');
+                setError('');
+            } else {
+                setError('Failed to add custom asset to watch list');
+            }
+        } catch (error) {
+            setError('Network error occurred');
+        } finally {
+            setAddingCustomAsset(false);
+        }
+    };
+
     const removeWatchedAsset = async (assetId) => {
         try {
             const response = await fetch(`${baseUrl}/api/remove-watched-trading-asset/`, {
@@ -152,6 +185,24 @@ export default function AICouncil() {
         } finally {
             setRunningAnalysis(false);
         }
+    };
+
+    // Filter assets based on search term
+    const getFilteredAssets = () => {
+        if (!assetSearchTerm.trim()) {
+            return availableAssets;
+        }
+
+        const filtered = {};
+        Object.entries(availableAssets).forEach(([category, assets]) => {
+            const matchingAssets = assets.filter(asset =>
+                asset.toLowerCase().includes(assetSearchTerm.toLowerCase())
+            );
+            if (matchingAssets.length > 0) {
+                filtered[category] = matchingAssets;
+            }
+        });
+        return filtered;
     };
 
     const filteredAnalyses = traderAnalyses.filter(analysis =>
@@ -215,6 +266,69 @@ export default function AICouncil() {
             fontWeight: '600',
             color: '#1e40af',
             marginBottom: '16px'
+        },
+        customAssetSection: {
+            backgroundColor: '#f0f9ff',
+            border: '2px dashed #bfdbfe',
+            borderRadius: '8px',
+            padding: '20px',
+            marginBottom: '24px'
+        },
+        customAssetTitle: {
+            fontSize: '15px',
+            fontWeight: '600',
+            color: '#1e40af',
+            marginBottom: '12px'
+        },
+        customAssetInputGroup: {
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap'
+        },
+        customAssetInput: {
+            flex: '1',
+            minWidth: '200px',
+            padding: '10px 14px',
+            border: '2px solid #bfdbfe',
+            borderRadius: '6px',
+            fontSize: '14px',
+            outline: 'none',
+            transition: 'border-color 0.2s ease'
+        },
+        customAssetButton: {
+            backgroundColor: '#1e40af',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'background-color 0.2s ease',
+            whiteSpace: 'nowrap'
+        },
+        customAssetButtonDisabled: {
+            backgroundColor: '#9ca3af',
+            cursor: 'not-allowed'
+        },
+        customAssetHelp: {
+            fontSize: '12px',
+            color: '#6b7280',
+            marginTop: '8px',
+            fontStyle: 'italic'
+        },
+        searchContainer: {
+            marginBottom: '16px'
+        },
+        searchInput: {
+            width: '100%',
+            padding: '10px 14px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px',
+            outline: 'none',
+            transition: 'border-color 0.2s ease'
         },
         categoryTitle: {
             fontSize: '14px',
@@ -438,6 +552,13 @@ export default function AICouncil() {
             padding: '40px',
             color: '#6b7280',
             fontSize: '14px'
+        },
+        noResults: {
+            textAlign: 'center',
+            padding: '20px',
+            color: '#6b7280',
+            fontSize: '14px',
+            fontStyle: 'italic'
         }
     };
 
@@ -455,6 +576,24 @@ export default function AICouncil() {
             .card {
                 padding: 16px !important;
                 margin-bottom: 16px !important;
+            }
+            
+            .custom-asset-section {
+                padding: 16px !important;
+            }
+            
+            .custom-asset-input-group {
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
+            
+            .custom-asset-input {
+                width: 100% !important;
+                min-width: unset !important;
+            }
+            
+            .custom-asset-button {
+                width: 100% !important;
             }
             
             .analysis-header {
@@ -565,6 +704,10 @@ export default function AICouncil() {
                 border-radius: 8px !important;
             }
             
+            .custom-asset-section {
+                padding: 12px !important;
+            }
+            
             .analysis-card {
                 padding: 12px !important;
                 border-radius: 8px !important;
@@ -594,6 +737,8 @@ export default function AICouncil() {
         }
     `;
 
+    const filteredAssets = getFilteredAssets();
+
     return (
         <div style={styles.container}>
             <style>{mobileStyles}</style>
@@ -611,46 +756,112 @@ export default function AICouncil() {
                         </div>
                     )}
 
+                    {/* Custom Asset Input Section */}
+                    <div className="custom-asset-section" style={styles.customAssetSection}>
+                        <div style={styles.customAssetTitle}>Add Custom Asset (US Stocks)</div>
+                        <div className="custom-asset-input-group" style={styles.customAssetInputGroup}>
+                            <input
+                                type="text"
+                                className="custom-asset-input"
+                                placeholder="Enter stock symbol (e.g., TSLA, AAPL)"
+                                value={customAsset}
+                                onChange={(e) => setCustomAsset(e.target.value.toUpperCase())}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        addCustomAssetToWatch();
+                                    }
+                                }}
+                                style={styles.customAssetInput}
+                                onFocus={(e) => e.target.style.borderColor = '#1e40af'}
+                                onBlur={(e) => e.target.style.borderColor = '#bfdbfe'}
+                            />
+                            <button
+                                className="custom-asset-button"
+                                onClick={addCustomAssetToWatch}
+                                disabled={addingCustomAsset || !customAsset.trim()}
+                                style={{
+                                    ...styles.customAssetButton,
+                                    ...(addingCustomAsset || !customAsset.trim() ? styles.customAssetButtonDisabled : {})
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!e.target.disabled) {
+                                        e.target.style.backgroundColor = '#1d4ed8';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!e.target.disabled) {
+                                        e.target.style.backgroundColor = '#1e40af';
+                                    }
+                                }}
+                            >
+                                {addingCustomAsset ? 'Adding...' : 'Add to Watch'}
+                            </button>
+                        </div>
+                        <div style={styles.customAssetHelp}>
+                            Enter any US stock symbol not in the lists below
+                        </div>
+                    </div>
+
                     {/* Asset Selection Section */}
                     <div className="card" style={styles.card}>
                         <h6 style={styles.cardTitle}>Select Assets to Analyze</h6>
                         
-                        {Object.entries(availableAssets).map(([category, assets]) => (
-                            <div key={category}>
-                                <div style={styles.categoryTitle}>{category}</div>
-                                <div className="asset-grid" style={styles.assetGrid}>
-                                    {assets.map(asset => (
-                                        <button
-                                            key={asset}
-                                            className="asset-button"
-                                            onClick={() => {
-                                                if (selectedAssets.includes(asset)) {
-                                                    setSelectedAssets(prev => prev.filter(a => a !== asset));
-                                                } else {
-                                                    setSelectedAssets(prev => [...prev, asset]);
-                                                }
-                                            }}
-                                            style={{
-                                                ...styles.assetButton,
-                                                ...(selectedAssets.includes(asset) ? styles.assetButtonSelected : {})
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                if (!selectedAssets.includes(asset)) {
-                                                    e.target.style.backgroundColor = '#eff6ff';
-                                                }
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                if (!selectedAssets.includes(asset)) {
-                                                    e.target.style.backgroundColor = 'white';
-                                                }
-                                            }}
-                                        >
-                                            {asset}
-                                        </button>
-                                    ))}
-                                </div>
+                        {/* Search Input */}
+                        <div style={styles.searchContainer}>
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Search available assets..."
+                                value={assetSearchTerm}
+                                onChange={(e) => setAssetSearchTerm(e.target.value)}
+                                style={styles.searchInput}
+                                onFocus={(e) => e.target.style.borderColor = '#1e40af'}
+                                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                            />
+                        </div>
+
+                        {Object.keys(filteredAssets).length === 0 ? (
+                            <div style={styles.noResults}>
+                                No assets found matching "{assetSearchTerm}"
                             </div>
-                        ))}
+                        ) : (
+                            Object.entries(filteredAssets).map(([category, assets]) => (
+                                <div key={category}>
+                                    <div style={styles.categoryTitle}>{category}</div>
+                                    <div className="asset-grid" style={styles.assetGrid}>
+                                        {assets.map(asset => (
+                                            <button
+                                                key={asset}
+                                                className="asset-button"
+                                                onClick={() => {
+                                                    if (selectedAssets.includes(asset)) {
+                                                        setSelectedAssets(prev => prev.filter(a => a !== asset));
+                                                    } else {
+                                                        setSelectedAssets(prev => [...prev, asset]);
+                                                    }
+                                                }}
+                                                style={{
+                                                    ...styles.assetButton,
+                                                    ...(selectedAssets.includes(asset) ? styles.assetButtonSelected : {})
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    if (!selectedAssets.includes(asset)) {
+                                                        e.target.style.backgroundColor = '#eff6ff';
+                                                    }
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (!selectedAssets.includes(asset)) {
+                                                        e.target.style.backgroundColor = 'white';
+                                                    }
+                                                }}
+                                            >
+                                                {asset}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        )}
 
                         {selectedAssets.length > 0 && (
                             <div className="add-buttons-container" style={styles.addButtonsContainer}>
