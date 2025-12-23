@@ -243,8 +243,14 @@ const styles = `
 .card-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 12px;
+    gap: 10px;
+}
+
+.card-header-left {
+    flex: 1;
+    min-width: 0;
 }
 
 .card-header h4 {
@@ -252,11 +258,13 @@ const styles = `
     font-size: 22px;
     color: #1e40af;
     font-weight: 700;
+    word-break: break-word;
 }
 
 .card-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .chart-link {
@@ -272,6 +280,7 @@ const styles = `
     align-items: center;
     gap: 6px;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    white-space: nowrap;
 }
 
 .chart-link:hover {
@@ -293,6 +302,7 @@ const styles = `
     align-items: center;
     gap: 6px;
     box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
 }
 
 .save-model-btn:hover:not(:disabled) {
@@ -308,6 +318,33 @@ const styles = `
 
 .save-model-btn.saved {
     background: #6b7280;
+}
+
+.deactivate-model-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+    white-space: nowrap;
+}
+
+.deactivate-model-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+}
+
+.deactivate-model-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .mss-badge {
@@ -328,15 +365,16 @@ const styles = `
 }
 
 .card-metrics {
-    display: flex;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
     margin-bottom: 18px;
     padding-bottom: 18px;
     border-bottom: 2px solid #dbeafe;
 }
 
 .metric {
-    flex: 1;
+    min-width: 0;
 }
 
 .metric-label {
@@ -349,9 +387,10 @@ const styles = `
 
 .metric-value {
     display: block;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: #1e40af;
+    word-break: break-word;
 }
 
 .card-details {
@@ -365,6 +404,7 @@ const styles = `
     justify-content: space-between;
     font-size: 14px;
     padding: 8px 0;
+    gap: 10px;
 }
 
 .detail-item span:first-child {
@@ -375,6 +415,8 @@ const styles = `
 .detail-item span:last-child {
     font-weight: 600;
     color: #1e40af;
+    text-align: right;
+    word-break: break-word;
 }
 
 .mss-empty {
@@ -408,7 +450,7 @@ const styles = `
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
-    margin-left: 8px;
+    margin-top: 6px;
 }
 
 .trend-badge.uptrend {
@@ -425,6 +467,104 @@ const styles = `
     background: rgba(156, 163, 175, 0.2);
     color: #6b7280;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .mss-wrapper {
+        padding: 10px;
+    }
+
+    .mss-header {
+        padding: 20px;
+    }
+
+    .mss-header h1 {
+        font-size: 24px;
+    }
+
+    .mss-header p {
+        font-size: 14px;
+    }
+
+    .mss-controls {
+        padding: 20px;
+    }
+
+    .control-group {
+        min-width: 100%;
+    }
+
+    .mss-calculate-btn {
+        width: 100%;
+        padding: 12px 24px;
+    }
+
+    .summary-card .big-number {
+        font-size: 36px;
+    }
+
+    .mss-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .mss-card {
+        padding: 20px;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .card-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .chart-link,
+    .save-model-btn,
+    .deactivate-model-btn {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+
+    .card-metrics {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .metric-value {
+        font-size: 16px;
+    }
+
+    .category-filter {
+        gap: 8px;
+    }
+
+    .category-filter button {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mss-header h1 {
+        font-size: 20px;
+    }
+
+    .card-header h4 {
+        font-size: 18px;
+    }
+
+    .summary-card {
+        padding: 20px;
+    }
+
+    .summary-card .big-number {
+        font-size: 28px;
+    }
+}
 `;
 
 export default function MarketStabilityScore() {
@@ -439,6 +579,8 @@ export default function MarketStabilityScore() {
     const [assetLists, setAssetLists] = useState(null);
     const [savingModels, setSavingModels] = useState({});
     const [savedModels, setSavedModels] = useState(new Set());
+    const [activeModels, setActiveModels] = useState({});
+    const [deactivatingModels, setDeactivatingModels] = useState({});
 
     useEffect(() => {
         fetchAssetLists();
@@ -457,12 +599,61 @@ export default function MarketStabilityScore() {
         }
     };
 
+    const deactivateModel = async (asset) => {
+        if (!window.confirm(`Are you sure you want to deactivate the model for ${asset.symbol}?`)) {
+            return;
+        }
+
+        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            const modelInfo = activeModels[asset.symbol];
+            if (!modelInfo) {
+                alert('Model not found');
+                return;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_active: false
+                })
+            });
+
+            if (response.ok) {
+                setActiveModels(prev => ({
+                    ...prev,
+                    [asset.symbol]: { ...prev[asset.symbol], isActive: false }
+                }));
+                alert(`⏸️ Successfully deactivated ${asset.symbol}`);
+                fetchExistingModels(); // Refresh to get latest state
+            } else {
+                alert('Failed to deactivate model');
+            }
+        } catch (error) {
+            console.error('Error deactivating model:', error);
+            alert('Failed to deactivate model. Please try again.');
+        } finally {
+            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        }
+    };
+
     const fetchExistingModels = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/snowai-models/`);
             const models = await response.json();
             const assets = new Set(models.map(m => m.asset));
             setSavedModels(assets);
+            
+            // Track which models are active
+            const activeMap = {};
+            models.forEach(m => {
+                activeMap[m.asset] = { id: m.id, isActive: m.is_active };
+            });
+            setActiveModels(activeMap);
         } catch (error) {
             console.error('Error fetching existing models:', error);
         }
@@ -573,7 +764,12 @@ if num_positions == 0:
             
             if (response.ok) {
                 setSavedModels(prev => new Set([...prev, asset.symbol]));
+                setActiveModels(prev => ({
+                    ...prev,
+                    [asset.symbol]: { id: data.id, isActive: true }
+                }));
                 alert(`✅ Successfully saved ${asset.symbol} to forward testing!`);
+                fetchExistingModels(); // Refresh to get latest state
             } else {
                 alert(`Error: ${data.error || 'Failed to save model'}`);
             }
@@ -727,7 +923,7 @@ if num_positions == 0:
                                 className="mss-card"
                             >
                                 <div className="card-header">
-                                    <div>
+                                    <div className="card-header-left">
                                         <h4>{asset.symbol}</h4>
                                         {asset.trend && (
                                             <span className={`trend-badge ${asset.trend}`}>
@@ -745,20 +941,30 @@ if num_positions == 0:
                                         >
                                             📈 Chart
                                         </a>
-                                        <button
-                                            className={`save-model-btn ${savedModels.has(asset.symbol) ? 'saved' : ''}`}
-                                            onClick={() => saveToForwardTest(asset)}
-                                            disabled={
-                                                savingModels[asset.symbol] || 
-                                                savedModels.has(asset.symbol) ||
-                                                !asset.trend ||
-                                                asset.trend === 'ranging'
-                                            }
-                                        >
-                                            {savingModels[asset.symbol] ? '💾 Saving...' : 
-                                             savedModels.has(asset.symbol) ? '✅ Saved' : 
-                                             '💾 Save Model'}
-                                        </button>
+                                        {savedModels.has(asset.symbol) && activeModels[asset.symbol]?.isActive ? (
+                                            <button
+                                                className="deactivate-model-btn"
+                                                onClick={() => deactivateModel(asset)}
+                                                disabled={deactivatingModels[asset.symbol]}
+                                            >
+                                                {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Deactivate'}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className={`save-model-btn ${savedModels.has(asset.symbol) ? 'saved' : ''}`}
+                                                onClick={() => saveToForwardTest(asset)}
+                                                disabled={
+                                                    savingModels[asset.symbol] || 
+                                                    savedModels.has(asset.symbol) ||
+                                                    !asset.trend ||
+                                                    asset.trend === 'ranging'
+                                                }
+                                            >
+                                                {savingModels[asset.symbol] ? '💾 Saving...' : 
+                                                 savedModels.has(asset.symbol) ? '✅ Saved' : 
+                                                 '💾 Save Model'}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
