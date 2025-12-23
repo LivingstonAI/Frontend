@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis, CartesianGrid, ReferenceLine } from 'recharts';
 import { Wifi, Zap, Activity, BrainCircuit, Terminal, Power, ChevronDown, ChevronUp, Cpu, ShieldCheck } from 'lucide-react';
+import Header from "./header";
 import SideNavs from "./side_navs";
 import Cookies from 'js-cookie';
 
