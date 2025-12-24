@@ -351,6 +351,33 @@ const styles = `
     cursor: not-allowed;
 }
 
+.delete-model-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(153, 27, 27, 0.3);
+    white-space: nowrap;
+}
+
+.delete-model-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(153, 27, 27, 0.4);
+}
+
+.delete-model-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .mss-badge {
     padding: 8px 16px;
     border-radius: 24px;
@@ -585,6 +612,8 @@ export default function MarketStabilityScore() {
     const [savedModels, setSavedModels] = useState(new Set());
     const [activeModels, setActiveModels] = useState({});
     const [deactivatingModels, setDeactivatingModels] = useState({});
+    const [deletingModels, setDeletingModels] = useState({});
+    const [customPeriod, setCustomPeriod] = useState('');
 
     useEffect(() => {
         fetchAssetLists();
@@ -642,6 +671,48 @@ export default function MarketStabilityScore() {
             alert('Failed to deactivate model. Please try again.');
         } finally {
             setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        }
+    };
+
+    const deleteModel = async (asset) => {
+        if (!window.confirm(`⚠️ Are you sure you want to DELETE the model for ${asset.symbol}? This will remove all trading history and cannot be undone!`)) {
+            return;
+        }
+
+        setDeletingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            const modelInfo = activeModels[asset.symbol];
+            if (!modelInfo) {
+                alert('Model not found');
+                return;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                setSavedModels(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(asset.symbol);
+                    return newSet;
+                });
+                setActiveModels(prev => {
+                    const newMap = { ...prev };
+                    delete newMap[asset.symbol];
+                    return newMap;
+                });
+                alert(`🗑️ Successfully deleted ${asset.symbol} model`);
+                fetchExistingModels(); // Refresh to get latest state
+            } else {
+                alert('Failed to delete model');
+            }
+        } catch (error) {
+            console.error('Error deleting model:', error);
+            alert('Failed to delete model. Please try again.');
+        } finally {
+            setDeletingModels(prev => ({ ...prev, [asset.symbol]: false }));
         }
     };
 
@@ -739,6 +810,9 @@ if num_positions == 0:
                 symbols = assetLists[selectedAssetClass] || [];
             }
 
+            // Use custom period if provided, otherwise use selected period
+            const finalPeriod = customPeriod && !isNaN(customPeriod) ? parseInt(customPeriod) : period;
+
             const response = await fetch(`${baseUrl}/api/mss/calculate/`, {
                 method: 'POST',
                 headers: {
@@ -746,7 +820,7 @@ if num_positions == 0:
                 },
                 body: JSON.stringify({
                     symbols: symbols,
-                    period: period
+                    period: finalPeriod
                 })
             });
 
@@ -910,7 +984,10 @@ if num_positions == 0:
                         <label>Period (days):</label>
                         <select 
                             value={period} 
-                            onChange={(e) => setPeriod(Number(e.target.value))}
+                            onChange={(e) => {
+                                setPeriod(Number(e.target.value));
+                                setCustomPeriod('');
+                            }}
                             disabled={loading}
                         >
                             <option value={20}>20 Days</option>
@@ -918,8 +995,24 @@ if num_positions == 0:
                             <option value={60}>60 Days</option>
                             <option value={90}>90 Days</option>
                             <option value={180}>180 Days</option>
+                            <option value={0}>Custom...</option>
                         </select>
                     </div>
+
+                    {period === 0 && (
+                        <div className="control-group">
+                            <label>Custom Period (days):</label>
+                            <input
+                                type="number"
+                                value={customPeriod}
+                                onChange={(e) => setCustomPeriod(e.target.value)}
+                                placeholder="Enter days (e.g., 45)"
+                                min="1"
+                                max="730"
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
 
                     <button 
                         className="mss-calculate-btn"
@@ -1011,23 +1104,32 @@ if num_positions == 0:
                                             📈 Chart
                                         </a>
                                         {savedModels.has(asset.symbol) ? (
-                                            activeModels[asset.symbol]?.isActive ? (
+                                            <>
+                                                {activeModels[asset.symbol]?.isActive ? (
+                                                    <button
+                                                        className="deactivate-model-btn"
+                                                        onClick={() => deactivateModel(asset)}
+                                                        disabled={deactivatingModels[asset.symbol]}
+                                                    >
+                                                        {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Pause'}
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="save-model-btn reactivate"
+                                                        onClick={() => reactivateModel(asset)}
+                                                        disabled={deactivatingModels[asset.symbol]}
+                                                    >
+                                                        {deactivatingModels[asset.symbol] ? '▶️ Activating...' : '▶️ Reactivate'}
+                                                    </button>
+                                                )}
                                                 <button
-                                                    className="deactivate-model-btn"
-                                                    onClick={() => deactivateModel(asset)}
-                                                    disabled={deactivatingModels[asset.symbol]}
+                                                    className="delete-model-btn"
+                                                    onClick={() => deleteModel(asset)}
+                                                    disabled={deletingModels[asset.symbol]}
                                                 >
-                                                    {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Deactivate'}
+                                                    {deletingModels[asset.symbol] ? '🗑️ Deleting...' : '🗑️ Delete'}
                                                 </button>
-                                            ) : (
-                                                <button
-                                                    className="save-model-btn reactivate"
-                                                    onClick={() => reactivateModel(asset)}
-                                                    disabled={deactivatingModels[asset.symbol]}
-                                                >
-                                                    {deactivatingModels[asset.symbol] ? '▶️ Activating...' : '▶️ Reactivate'}
-                                                </button>
-                                            )
+                                            </>
                                         ) : (
                                             <button
                                                 className="save-model-btn"
