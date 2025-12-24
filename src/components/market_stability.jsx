@@ -316,8 +316,12 @@ const styles = `
     background: #9ca3af;
 }
 
-.save-model-btn.saved {
-    background: #6b7280;
+.save-model-btn.reactivate {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.save-model-btn.reactivate:hover:not(:disabled) {
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
 }
 
 .deactivate-model-btn {
@@ -641,6 +645,44 @@ export default function MarketStabilityScore() {
         }
     };
 
+    const reactivateModel = async (asset) => {
+        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            const modelInfo = activeModels[asset.symbol];
+            if (!modelInfo) {
+                alert('Model not found');
+                return;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_active: true
+                })
+            });
+
+            if (response.ok) {
+                setActiveModels(prev => ({
+                    ...prev,
+                    [asset.symbol]: { ...prev[asset.symbol], isActive: true }
+                }));
+                alert(`▶️ Successfully reactivated ${asset.symbol}`);
+                fetchExistingModels(); // Refresh to get latest state
+            } else {
+                alert('Failed to reactivate model');
+            }
+        } catch (error) {
+            console.error('Error reactivating model:', error);
+            alert('Failed to reactivate model. Please try again.');
+        } finally {
+            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        }
+    };
+
     const fetchExistingModels = async () => {
         try {
             const response = await fetch(`${baseUrl}/api/snowai-models/`);
@@ -941,28 +983,35 @@ if num_positions == 0:
                                         >
                                             📈 Chart
                                         </a>
-                                        {savedModels.has(asset.symbol) && activeModels[asset.symbol]?.isActive ? (
-                                            <button
-                                                className="deactivate-model-btn"
-                                                onClick={() => deactivateModel(asset)}
-                                                disabled={deactivatingModels[asset.symbol]}
-                                            >
-                                                {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Deactivate'}
-                                            </button>
+                                        {savedModels.has(asset.symbol) ? (
+                                            activeModels[asset.symbol]?.isActive ? (
+                                                <button
+                                                    className="deactivate-model-btn"
+                                                    onClick={() => deactivateModel(asset)}
+                                                    disabled={deactivatingModels[asset.symbol]}
+                                                >
+                                                    {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Deactivate'}
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className="save-model-btn reactivate"
+                                                    onClick={() => reactivateModel(asset)}
+                                                    disabled={deactivatingModels[asset.symbol]}
+                                                >
+                                                    {deactivatingModels[asset.symbol] ? '▶️ Activating...' : '▶️ Reactivate'}
+                                                </button>
+                                            )
                                         ) : (
                                             <button
-                                                className={`save-model-btn ${savedModels.has(asset.symbol) ? 'saved' : ''}`}
+                                                className="save-model-btn"
                                                 onClick={() => saveToForwardTest(asset)}
                                                 disabled={
                                                     savingModels[asset.symbol] || 
-                                                    savedModels.has(asset.symbol) ||
                                                     !asset.trend ||
                                                     asset.trend === 'ranging'
                                                 }
                                             >
-                                                {savingModels[asset.symbol] ? '💾 Saving...' : 
-                                                 savedModels.has(asset.symbol) ? '✅ Saved' : 
-                                                 '💾 Save Model'}
+                                                {savingModels[asset.symbol] ? '💾 Saving...' : '💾 Save Model'}
                                             </button>
                                         )}
                                     </div>
