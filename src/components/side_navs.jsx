@@ -966,8 +966,8 @@ export default function SideNavs() {
         <Link to="/ide" className="side-nav">
             <i className="bi bi-code-slash"></i>
         </Link>
-        <Link to="/bi bi-usb-plug" className="side-nav">
-            <i className="bi bi-brain"></i>
+        <Link to="/neuro_link" className="side-nav">
+            <i className="bi bi-usb-plug"></i>
         </Link>
       </div>
       <br />
