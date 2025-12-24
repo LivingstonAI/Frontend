@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer, ComposedChart, Bar, Scatter } from 'recharts';
-import { TrendingUp, TrendingDown, Plus, X, Edit2, Trash2, Activity, DollarSign, Percent, BarChart3, CandlestickChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, X, Edit2, Trash2, Activity, DollarSign, Percent, BarChart3, CandlestickChart, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -29,6 +29,102 @@ const styles = {
     fontSize: '16px',
     color: 'rgba(255, 255, 255, 0.8)',
     margin: 0
+  },
+  searchAndFilterBar: {
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    padding: '20px',
+    border: '2px solid #e5e7eb',
+    marginBottom: '30px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+  },
+  searchBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '16px'
+  },
+  searchInput: {
+    flex: 1,
+    padding: '12px 16px 12px 44px',
+    borderRadius: '8px',
+    border: '2px solid #e5e7eb',
+    fontSize: '14px',
+    backgroundColor: '#f8fafc',
+    position: 'relative'
+  },
+  searchInputWrapper: {
+    position: 'relative',
+    flex: 1
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: '14px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#64748b',
+    pointerEvents: 'none'
+  },
+  filterRow: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+    alignItems: 'center'
+  },
+  filterGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  filterLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#64748b',
+    whiteSpace: 'nowrap'
+  },
+  filterSelect: {
+    padding: '8px 12px',
+    borderRadius: '6px',
+    border: '2px solid #e5e7eb',
+    fontSize: '13px',
+    backgroundColor: '#ffffff',
+    color: '#1e293b',
+    cursor: 'pointer'
+  },
+  sortButton: {
+    padding: '8px 16px',
+    borderRadius: '6px',
+    border: '2px solid #e5e7eb',
+    backgroundColor: '#ffffff',
+    color: '#1e293b',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '500',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    transition: 'all 0.2s ease'
+  },
+  sortButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+    color: '#fff'
+  },
+  statsBar: {
+    display: 'flex',
+    gap: '16px',
+    flexWrap: 'wrap',
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #e5e7eb'
+  },
+  statChip: {
+    padding: '6px 12px',
+    borderRadius: '6px',
+    backgroundColor: '#f1f5f9',
+    fontSize: '13px',
+    color: '#64748b',
+    fontWeight: '500'
   },
   mainGrid: {
     display: 'grid',
@@ -275,6 +371,11 @@ const styles = {
     display: 'flex',
     gap: '8px',
     marginTop: '16px'
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '60px 20px',
+    color: '#64748b'
   }
 };
 
@@ -291,6 +392,14 @@ export default function SnowAIForwardTestingEngine() {
   const [priceData, setPriceData] = useState([]);
   const [loadingChart, setLoadingChart] = useState(false);
   const [editModel, setEditModel] = useState(null);
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterAsset, setFilterAsset] = useState('all');
+  const [filterInterval, setFilterInterval] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   const assetCategories = {
     'Forex Pairs': [
@@ -350,6 +459,100 @@ export default function SnowAIForwardTestingEngine() {
       setAvailableModels(data);
     } catch (error) {
       console.error('Error fetching available models:', error);
+    }
+  };
+
+  // Get filtered and sorted models
+  const getFilteredModels = () => {
+    let filtered = models;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(model =>
+        model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        model.asset.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Status filter
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(model =>
+        filterStatus === 'active' ? model.is_active : !model.is_active
+      );
+    }
+
+    // Asset filter
+    if (filterAsset !== 'all') {
+      filtered = filtered.filter(model => model.asset === filterAsset);
+    }
+
+    // Interval filter
+    if (filterInterval !== 'all') {
+      filtered = filtered.filter(model => model.interval === filterInterval);
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+
+      switch (sortBy) {
+        case 'name':
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case 'equity':
+          aVal = a.current_equity || 0;
+          bVal = b.current_equity || 0;
+          break;
+        case 'pnl':
+          aVal = a.total_pnl || 0;
+          bVal = b.total_pnl || 0;
+          break;
+        case 'winrate':
+          aVal = a.win_rate || 0;
+          bVal = b.win_rate || 0;
+          break;
+        case 'trades':
+          aVal = a.total_trades || 0;
+          bVal = b.total_trades || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  };
+
+  // Get unique assets from models
+  const getUniqueAssets = () => {
+    const assets = [...new Set(models.map(m => m.asset))];
+    return assets.sort();
+  };
+
+  // Get stats for filtered models
+  const getFilteredStats = () => {
+    const filtered = getFilteredModels();
+    const activeCount = filtered.filter(m => m.is_active).length;
+    const totalEquity = filtered.reduce((sum, m) => sum + (m.current_equity || 0), 0);
+    const totalPnL = filtered.reduce((sum, m) => sum + (m.total_pnl || 0), 0);
+    const avgWinRate = filtered.length > 0
+      ? filtered.reduce((sum, m) => sum + (m.win_rate || 0), 0) / filtered.length
+      : 0;
+
+    return { count: filtered.length, activeCount, totalEquity, totalPnL, avgWinRate };
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
     }
   };
 
@@ -440,7 +643,6 @@ export default function SnowAIForwardTestingEngine() {
       const data = await response.json();
       setSelectedModel(data);
       
-      // Fetch price data with positions
       const priceResponse = await fetch(`${baseUrl}/api/snowai-chart-data-with-positions/${model.id}/`);
       const priceChartData = await priceResponse.json();
       setPriceData(priceChartData);
@@ -688,7 +890,7 @@ export default function SnowAIForwardTestingEngine() {
     </div>
   );
 
-    const renderEditModal = () => {
+  const renderEditModal = () => {
     if (!editModel) return null;
 
     return (
@@ -987,7 +1189,7 @@ export default function SnowAIForwardTestingEngine() {
                     </td>
                     <td style={styles.tableCell}>${pos.entry_price?.toFixed(2)}</td>
                     <td style={styles.tableCell}>
-                      {pos.exit_price ? `$${pos.exit_price.toFixed(2)}` : 'Open'}
+                      {pos.exit_price ? `${pos.exit_price.toFixed(2)}` : 'Open'}
                     </td>
                     <td style={{
                       ...styles.tableCell,
@@ -1023,14 +1225,17 @@ export default function SnowAIForwardTestingEngine() {
     );
   };
 
+  const filteredModels = getFilteredModels();
+  const stats = getFilteredStats();
+
   return (
     <div>
-        <div className="header">
-              <Header />
-        </div>
-        <div className="main-page-body">
-              <SideNavs />
-    <div style={styles.container}>
+      <div className="header">
+        <Header />
+      </div>
+      <div className="main-page-body">
+        <SideNavs />
+        <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>SnowAI Forward Testing Engine 🚀</h1>
         <p style={styles.headerSubtitle}>
@@ -1048,19 +1253,151 @@ export default function SnowAIForwardTestingEngine() {
         </button>
       </div>
 
-      <div style={styles.mainGrid}>
-        {models.map(model => renderModelCard(model))}
+      {/* Search and Filter Bar */}
+      <div style={styles.searchAndFilterBar}>
+        <div style={styles.searchBox}>
+          <div style={styles.searchInputWrapper}>
+            <Search size={18} style={styles.searchIcon} />
+            <input
+              type="text"
+              style={styles.searchInput}
+              placeholder="Search by name or asset..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div style={styles.filterRow}>
+          <div style={styles.filterGroup}>
+            <Filter size={16} color="#64748b" />
+            <span style={styles.filterLabel}>Status:</span>
+            <select
+              style={styles.filterSelect}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div style={styles.filterGroup}>
+            <span style={styles.filterLabel}>Asset:</span>
+            <select
+              style={styles.filterSelect}
+              value={filterAsset}
+              onChange={(e) => setFilterAsset(e.target.value)}
+            >
+              <option value="all">All Assets</option>
+              {getUniqueAssets().map(asset => (
+                <option key={asset} value={asset}>{asset}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={styles.filterGroup}>
+            <span style={styles.filterLabel}>Interval:</span>
+            <select
+              style={styles.filterSelect}
+              value={filterInterval}
+              onChange={(e) => setFilterInterval(e.target.value)}
+            >
+              <option value="all">All Intervals</option>
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h">1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+              <option value="1wk">1wk</option>
+            </select>
+          </div>
+
+          <div style={{borderLeft: '2px solid #e5e7eb', paddingLeft: '12px', marginLeft: '8px'}}>
+            <span style={styles.filterLabel}>Sort:</span>
+          </div>
+
+          <button
+            style={{
+              ...styles.sortButton,
+              ...(sortBy === 'equity' ? styles.sortButtonActive : {})
+            }}
+            onClick={() => handleSort('equity')}
+          >
+            Equity
+            {sortBy === 'equity' && (sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+          </button>
+
+          <button
+            style={{
+              ...styles.sortButton,
+              ...(sortBy === 'pnl' ? styles.sortButtonActive : {})
+            }}
+            onClick={() => handleSort('pnl')}
+          >
+            P&L
+            {sortBy === 'pnl' && (sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+          </button>
+
+          <button
+            style={{
+              ...styles.sortButton,
+              ...(sortBy === 'winrate' ? styles.sortButtonActive : {})
+            }}
+            onClick={() => handleSort('winrate')}
+          >
+            Win Rate
+            {sortBy === 'winrate' && (sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+          </button>
+
+          <button
+            style={{
+              ...styles.sortButton,
+              ...(sortBy === 'trades' ? styles.sortButtonActive : {})
+            }}
+            onClick={() => handleSort('trades')}
+          >
+            Trades
+            {sortBy === 'trades' && (sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+          </button>
+        </div>
+
+        {/* Stats Bar */}
+        <div style={styles.statsBar}>
+          <div style={styles.statChip}>
+            <strong>{stats.count}</strong> models shown
+          </div>
+          <div style={styles.statChip}>
+            <strong>{stats.activeCount}</strong> active
+          </div>
+          <div style={styles.statChip}>
+            Total Equity: <strong>${stats.totalEquity.toFixed(2)}</strong>
+          </div>
+          <div style={{
+            ...styles.statChip,
+            color: stats.totalPnL >= 0 ? '#10b981' : '#ef4444',
+            backgroundColor: stats.totalPnL >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'
+          }}>
+            Total P&L: <strong>{stats.totalPnL >= 0 ? '+' : ''}${stats.totalPnL.toFixed(2)}</strong>
+          </div>
+          <div style={styles.statChip}>
+            Avg Win Rate: <strong>{stats.avgWinRate.toFixed(1)}%</strong>
+          </div>
+        </div>
       </div>
 
-      {models.length === 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          color: '#64748b'
-        }}>
+      <div style={styles.mainGrid}>
+        {filteredModels.map(model => renderModelCard(model))}
+      </div>
+
+      {filteredModels.length === 0 && (
+        <div style={styles.emptyState}>
           <Activity size={48} style={{marginBottom: '16px', opacity: 0.5}} />
           <p style={{fontSize: '18px', margin: 0}}>
-            No models yet. Create your first forward testing model to get started!
+            {models.length === 0 
+              ? "No models yet. Create your first forward testing model to get started!"
+              : "No models match your filters. Try adjusting your search or filters."}
           </p>
         </div>
       )}
@@ -1068,8 +1405,8 @@ export default function SnowAIForwardTestingEngine() {
       {showAddModal && renderAddModal()}
       {showEditModal && renderEditModal()}
       {showDetailModal && renderDetailModal()}
-    </div>
-    </div>
+        </div>
       </div>
+    </div>
   );
 }
