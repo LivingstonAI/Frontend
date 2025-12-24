@@ -655,13 +655,40 @@ export default function MarketStabilityScore() {
                 return;
             }
 
+            // Check current trend before reactivating
+            if (!asset.trend || asset.trend === 'ranging' || asset.trend === 'unknown') {
+                alert(`❌ Cannot reactivate ${asset.symbol}: No clear trend detected. Current market is ${asset.trend || 'unknown'}.`);
+                setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+                return;
+            }
+
+            // Determine model code based on CURRENT trend
+            let modelCode = '';
+            if (asset.trend === 'uptrend') {
+                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+if num_positions == 0:
+    if buy_hold(dataset=dataset):
+        if is_uptrend(data=dataset):
+            return_statement = 'buy'`;
+            } else if (asset.trend === 'downtrend') {
+                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+if num_positions == 0:
+    if sell_hold(dataset=dataset):
+        if is_downtrend(data=dataset):
+            return_statement = 'sell'`;
+            }
+
             const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    is_active: true
+                    is_active: true,
+                    model_code: modelCode,
+                    name: `[MSS] ${asset.symbol} - ${asset.trend.toUpperCase()}`
                 })
             });
 
@@ -670,7 +697,7 @@ export default function MarketStabilityScore() {
                     ...prev,
                     [asset.symbol]: { ...prev[asset.symbol], isActive: true }
                 }));
-                alert(`▶️ Successfully reactivated ${asset.symbol}`);
+                alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} strategy!`);
                 fetchExistingModels(); // Refresh to get latest state
             } else {
                 alert('Failed to reactivate model');
