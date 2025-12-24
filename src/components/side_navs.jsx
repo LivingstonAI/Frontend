@@ -790,7 +790,7 @@ export default function SideNavs() {
         <Link to="/trading_sim" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-bullseye"></i></p></button></Link>
         <Link to="/forward_test" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-arrow-bar-right"></i></p></button></Link>
         <Link to="/ide" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-code-slash"></i></p></button></Link>
-        <Link to="/neuro_link" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-brain"></i></p></button></Link>
+        <Link to="/neuro_link" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-usb-plug"></i></p></button></Link>
 
       </div>
 
@@ -966,7 +966,7 @@ export default function SideNavs() {
         <Link to="/ide" className="side-nav">
             <i className="bi bi-code-slash"></i>
         </Link>
-        <Link to="/neuro_link" className="side-nav">
+        <Link to="/bi bi-usb-plug" className="side-nav">
             <i className="bi bi-brain"></i>
         </Link>
       </div>
