@@ -269,7 +269,7 @@ const NeuroLink = () => {
                 <span style={{color: '#94a3b8'}}>{log.message}</span>
               </div>
             ))}
-          </div>
+          </div><br /><br />
         )}
       </div>
 
