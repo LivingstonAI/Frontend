@@ -11,7 +11,7 @@ const NeuroLink = () => {
   const [logs, setLogs] = useState([]);
   const [battery, setBattery] = useState(100);
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
-  const [showModal, setShowModal] = useState(false); // New: Modal State
+  const [showModal, setShowModal] = useState(false); // Modal State
   
   // Refs
   const serverTimerRef = useRef(null);
@@ -121,222 +121,221 @@ const NeuroLink = () => {
 
   // --- RENDER ---
   return (
-     <div>
-            <div className="header">
-                <Header />
-            </div>
-            <div className="main-page-body">
-                <SideNavs />
-    <div style={styles.container}>
-      
-      {/* Top Bar */}
-      <div style={styles.header}>
-        <div style={styles.brandGroup}>
-          <div style={styles.iconCircle}>
-            <BrainCircuit size={20} color="#fff" />
-          </div>
-          <div>
-            <h1 style={styles.title}>SNOWAI <span style={{color: '#3b82f6'}}>NEURO</span></h1>
-            <div style={styles.subHeaderRow}>
-               <Cpu size={10} color="#64748b" />
-               <p style={styles.subtitle}>KERNEL v2.5.0-STABLE</p>
-            </div>
-          </div>
-        </div>
-        
-        <div style={styles.statusGroup}>
-          <div 
-            onClick={() => setShowModal(true)}
-            style={styles.helpButton}
-            title="System Manual"
-          >
-            <HelpCircle size={18} color="#64748b" />
-          </div>
-          <div style={{
-            ...styles.badge,
-            backgroundColor: status === 'ONLINE' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-            color: status === 'ONLINE' ? '#3b82f6' : '#64748b',
-          }}>
-            <Activity size={12} className={status === 'ONLINE' ? 'animate-pulse' : ''} />
-            <span style={styles.badgeText}>{status}</span>
-          </div>
-          {status === 'ONLINE' && (
-             <div style={styles.batteryContainer}>
-               <span style={styles.batteryText}>{battery}%</span>
-               <div style={styles.batteryBorder}>
-                 <div style={{...styles.batteryFill, width: `${battery}%`}} />
-               </div>
-             </div>
-          )}
-        </div>
+    <div>
+      <div className="header">
+        <Header />
       </div>
-
-      {/* Main Content */}
-      <div style={styles.main}>
-        {status === 'DISCONNECTED' ? (
-          <div style={styles.connectOverlay}>
-            <div style={styles.connectCard}>
-              <div style={styles.pulseIconContainer}>
-                <Power size={32} color="#3b82f6" />
+      <div className="main-page-body">
+        <SideNavs />
+        <div style={styles.container}>
+      
+          {/* Top Bar */}
+          <div style={styles.header}>
+            <div style={styles.brandGroup}>
+              <div style={styles.iconCircle}>
+                <BrainCircuit size={20} color="#fff" />
               </div>
-              <h3 style={styles.connectTitle}>Neural Link Severed</h3>
-              <p style={styles.connectText}>Awaiting secure handshake with gauntlet interface.</p>
-              <button onClick={connectToGauntlet} style={styles.primaryButton}>
-                INITIALIZE LINK
-              </button>
+              <div>
+                <h1 style={styles.title}>SNOWAI <span style={{color: '#3b82f6'}}>NEURO</span></h1>
+                <div style={styles.subHeaderRow}>
+                  <Cpu size={10} color="#64748b" />
+                  <p style={styles.subtitle}>KERNEL v2.5.0-STABLE</p>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div style={styles.dashboard}>
-            {/* Graph Card */}
-            <div style={styles.graphCard}>
-              <div style={styles.cardHeader}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <div style={styles.liveDot} />
-                  <span style={styles.cardLabel}>LIVE NEURAL TELEMETRY</span>
-                </div>
-                <div style={{display: 'flex', gap: '12px'}}>
-                  <span style={{...styles.legendItem, color: '#3b82f6'}}>● BETA (ACTION)</span>
-                  <span style={{...styles.legendItem, color: '#93c5fd'}}>● ALPHA (REST)</span>
-                </div>
+            
+            <div style={styles.statusGroup}>
+              <div 
+                onClick={() => setShowModal(true)}
+                style={styles.helpButton}
+                title="System Manual"
+              >
+                <HelpCircle size={18} color="#64748b" />
               </div>
-
-              <div style={{width: '100%', height: '240px', marginTop: '10px'}}>
-                <ResponsiveContainer>
-                  <AreaChart data={brainData}>
-                    <defs>
-                      <linearGradient id="colorBeta" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorAlpha" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#93c5fd" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <YAxis hide domain={[0, 1.2]} />
-                    <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="3 3" label={{ position: 'right', value: 'TRIGGER', fill: '#3b82f6', fontSize: 10 }} />
-                    <Area type="monotone" dataKey="beta" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBeta)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="alpha" stroke="#93c5fd" strokeWidth={1.5} fillOpacity={1} fill="url(#colorAlpha)" isAnimationActive={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div style={{
+                ...styles.badge,
+                backgroundColor: status === 'ONLINE' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                color: status === 'ONLINE' ? '#3b82f6' : '#64748b',
+              }}>
+                <Activity size={12} className={status === 'ONLINE' ? 'animate-pulse' : ''} />
+                <span style={styles.badgeText}>{status}</span>
               </div>
-              
-              <div style={styles.telemetryGrid}>
-                <div style={styles.telemetryItem}>
-                  <span style={styles.telemetryLabel}>INTENT INDEX</span>
-                  <span style={styles.telemetryValue}>{brainData.length ? (brainData[brainData.length-1].beta * 100).toFixed(1) : "0.0"}</span>
-                </div>
-                <div style={styles.telemetryItem}>
-                  <span style={styles.telemetryLabel}>STABILITY</span>
-                  <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
-                    <ShieldCheck size={14} color="#10b981" />
-                    <span style={{...styles.telemetryValue, color: '#10b981'}}>99.2%</span>
+              {status === 'ONLINE' && (
+                <div style={styles.batteryContainer}>
+                  <span style={styles.batteryText}>{battery}%</span>
+                  <div style={styles.batteryBorder}>
+                    <div style={{...styles.batteryFill, width: `${battery}%`}} />
                   </div>
                 </div>
-                <div style={styles.telemetryItem}>
-                  <span style={styles.telemetryLabel}>LATENCY</span>
-                  <span style={{...styles.telemetryValue, color: '#64748b'}}>08ms</span>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div style={styles.main}>
+            {status === 'DISCONNECTED' ? (
+              <div style={styles.connectOverlay}>
+                <div style={styles.connectCard}>
+                  <div style={styles.pulseIconContainer}>
+                    <Power size={32} color="#3b82f6" />
+                  </div>
+                  <h3 style={styles.connectTitle}>Neural Link Severed</h3>
+                  <p style={styles.connectText}>Awaiting secure handshake with gauntlet interface.</p>
+                  <button onClick={connectToGauntlet} style={styles.primaryButton}>
+                    INITIALIZE LINK
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.dashboard}>
+                {/* Graph Card */}
+                <div style={styles.graphCard}>
+                  <div style={styles.cardHeader}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <div style={styles.liveDot} />
+                      <span style={styles.cardLabel}>LIVE NEURAL TELEMETRY</span>
+                    </div>
+                    <div style={{display: 'flex', gap: '12px'}}>
+                      <span style={{...styles.legendItem, color: '#3b82f6'}}>● BETA (ACTION)</span>
+                      <span style={{...styles.legendItem, color: '#93c5fd'}}>● ALPHA (REST)</span>
+                    </div>
+                  </div>
+
+                  <div style={{width: '100%', height: '240px', marginTop: '10px'}}>
+                    <ResponsiveContainer>
+                      <AreaChart data={brainData}>
+                        <defs>
+                          <linearGradient id="colorBeta" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorAlpha" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#93c5fd" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <YAxis hide domain={[0, 1.2]} />
+                        <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="3 3" label={{ position: 'right', value: 'TRIGGER', fill: '#3b82f6', fontSize: 10 }} />
+                        <Area type="monotone" dataKey="beta" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBeta)" isAnimationActive={false} />
+                        <Area type="monotone" dataKey="alpha" stroke="#93c5fd" strokeWidth={1.5} fillOpacity={1} fill="url(#colorAlpha)" isAnimationActive={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  <div style={styles.telemetryGrid}>
+                    <div style={styles.telemetryItem}>
+                      <span style={styles.telemetryLabel}>INTENT INDEX</span>
+                      <span style={styles.telemetryValue}>{brainData.length ? (brainData[brainData.length-1].beta * 100).toFixed(1) : "0.0"}</span>
+                    </div>
+                    <div style={styles.telemetryItem}>
+                      <span style={styles.telemetryLabel}>STABILITY</span>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                        <ShieldCheck size={14} color="#10b981" />
+                        <span style={{...styles.telemetryValue, color: '#10b981'}}>99.2%</span>
+                      </div>
+                    </div>
+                    <div style={styles.telemetryItem}>
+                      <span style={styles.telemetryLabel}>LATENCY</span>
+                      <span style={{...styles.telemetryValue, color: '#64748b'}}>08ms</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Toggleable Terminal */}
+          <div style={{...styles.terminal, height: isTerminalOpen ? '360px' : '44px'}}>
+            <div style={styles.terminalHeader} onClick={() => setIsTerminalOpen(!isTerminalOpen)}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                <Terminal size={14} color="#3b82f6" />
+                <span style={styles.terminalTitle}>NEURAL_SYSTEM_LOGS</span>
+                {isTerminalOpen ? <ChevronDown size={14} color="#475569" /> : <ChevronUp size={14} color="#475569" />}
+              </div>
+              {status === 'ONLINE' && isTerminalOpen && (
+                <button onClick={(e) => { e.stopPropagation(); disconnect(); }} style={styles.killButton}>
+                  TERMINATE_STREAM
+                </button>
+              )}
+            </div>
+            
+            {isTerminalOpen && (
+              <div style={styles.logContainer}>
+                {logs.map((log, i) => (
+                  <div key={i} style={styles.logEntry}>
+                    <span style={styles.timestamp}>{log.timestamp}</span>
+                    <span style={{color: log.source === 'Mind' ? '#3b82f6' : log.source === 'SnowAI' ? '#10b981' : '#64748b', fontWeight: '700', marginRight: '8px', width: '65px'}}>{log.source.toUpperCase()}</span>
+                    <span style={{color: '#94a3b8'}}>{log.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* EXPLANATION MODAL */}
+          {showModal && (
+            <div style={styles.modalOverlay}>
+              <div style={styles.modalContent}>
+                <div style={styles.modalHeader}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <BrainCircuit size={24} color="#2563eb" />
+                    <h2 style={styles.modalTitle}>SnowAI Neuro-Link Manual</h2>
+                  </div>
+                  <button onClick={() => setShowModal(false)} style={styles.closeButton}>
+                    <X size={20} color="#64748b" />
+                  </button>
+                </div>
+                
+                <div style={styles.modalBody}>
+                  <section style={styles.modalSection}>
+                    <h3 style={styles.modalSectionTitle}>1. System Overview</h3>
+                    <p style={styles.modalText}>
+                      This component is a <strong>High-Fidelity BCI Simulation Dashboard</strong>. It visualizes two key neural metrics:
+                    </p>
+                    <ul style={styles.modalList}>
+                      <li><strong>Beta Waves (Dark Blue):</strong> Represents active thought, focus, and intent.</li>
+                      <li><strong>Alpha Waves (Light Blue):</strong> Represents relaxation and passive state.</li>
+                    </ul>
+                  </section>
+
+                  <section style={styles.modalSection}>
+                    <h3 style={styles.modalSectionTitle}>2. How It Works (Simulation)</h3>
+                    <p style={styles.modalText}>
+                      Currently running in <strong>Prototype Mode</strong>.
+                      The <code>useEffect</code> hook generates organic sine-wave data to mimic an EEG stream.
+                      Every ~100ms, the system runs a probability check (<code>Math.random &gt; 0.985</code>) to simulate you "thinking" a command.
+                    </p>
+                  </section>
+
+                  <section style={styles.modalSection}>
+                    <h3 style={styles.modalSectionTitle}>3. Integration Guide</h3>
+                    <p style={styles.modalText}>
+                      To use this with real hardware (OpenBCI/Muse):
+                    </p>
+                    <ol style={styles.modalList}>
+                      <li>Install <strong>bci.js</strong> or connect to a local Python stream via WebSockets.</li>
+                      <li>Replace the <code>setInterval</code> logic with a WebSocket listener.</li>
+                      <li>Update <code>BACKEND_URL</code> to point to your Django server: 
+                        <br/><code style={styles.codeBlock}>http://backend-production-c0ab.up.railway.app</code>
+                      </li>
+                      <li>Ensure your Django view <code>receive_sovereign_neuro_command_v1</code> is active and <code>csrf_exempt</code>.</li>
+                    </ol>
+                  </section>
+                </div>
+                
+                <div style={styles.modalFooter}>
+                  <button onClick={() => setShowModal(false)} style={styles.primaryButtonSmall}>
+                    ACKNOWLEDGE
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Toggleable Terminal */}
-      <div style={{...styles.terminal, height: isTerminalOpen ? '360px' : '44px'}}>
-        <div style={styles.terminalHeader} onClick={() => setIsTerminalOpen(!isTerminalOpen)}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
-            <Terminal size={14} color="#3b82f6" />
-            <span style={styles.terminalTitle}>NEURAL_SYSTEM_LOGS</span>
-            {isTerminalOpen ? <ChevronDown size={14} color="#475569" /> : <ChevronUp size={14} color="#475569" />}
-          </div>
-          {status === 'ONLINE' && isTerminalOpen && (
-            <button onClick={(e) => { e.stopPropagation(); disconnect(); }} style={styles.killButton}>
-              TERMINATE_STREAM
-            </button>
           )}
         </div>
-        
-        {isTerminalOpen && (
-          <div style={styles.logContainer}>
-            {logs.map((log, i) => (
-              <div key={i} style={styles.logEntry}>
-                <span style={styles.timestamp}>{log.timestamp}</span>
-                <span style={{color: log.source === 'Mind' ? '#3b82f6' : log.source === 'SnowAI' ? '#10b981' : '#64748b', fontWeight: '700', marginRight: '8px', width: '65px'}}>{log.source.toUpperCase()}</span>
-                <span style={{color: '#94a3b8'}}>{log.message}</span>
-              </div>
-            ))}
-          </div><br /><br />
-        )}
       </div>
-
-      {/* EXPLANATION MODAL */}
-      {showModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <BrainCircuit size={24} color="#2563eb" />
-                <h2 style={styles.modalTitle}>SnowAI Neuro-Link Manual</h2>
-              </div>
-              <button onClick={() => setShowModal(false)} style={styles.closeButton}>
-                <X size={20} color="#64748b" />
-              </button>
-            </div>
-            
-            <div style={styles.modalBody}>
-              <section style={styles.modalSection}>
-                <h3 style={styles.modalSectionTitle}>1. System Overview</h3>
-                <p style={styles.modalText}>
-                  This component is a <strong>High-Fidelity BCI Simulation Dashboard</strong>. It visualizes two key neural metrics:
-                </p>
-                <ul style={styles.modalList}>
-                  <li><strong>Beta Waves (Dark Blue):</strong> Represents active thought, focus, and intent.</li>
-                  <li><strong>Alpha Waves (Light Blue):</strong> Represents relaxation and passive state.</li>
-                </ul>
-              </section>
-
-              <section style={styles.modalSection}>
-                <h3 style={styles.modalSectionTitle}>2. How It Works (Simulation)</h3>
-                <p style={styles.modalText}>
-                  Currently running in <strong>Prototype Mode</strong>.
-                  The <code>useEffect</code> hook generates organic sine-wave data to mimic an EEG stream.
-                  Every ~100ms, the system runs a probability check (<code>Math.random &gt; 0.985</code>) to simulate you "thinking" a command.
-                </p>
-              </section>
-
-              <section style={styles.modalSection}>
-                <h3 style={styles.modalSectionTitle}>3. Integration Guide</h3>
-                <p style={styles.modalText}>
-                  To use this with real hardware (OpenBCI/Muse):
-                </p>
-                <ol style={styles.modalList}>
-                  <li>Install <strong>bci.js</strong> or connect to a local Python stream via WebSockets.</li>
-                  <li>Replace the <code>setInterval</code> logic with a WebSocket listener.</li>
-                  <li>Update <code>BACKEND_URL</code> to point to your Django server: 
-                    <br/><code style={styles.codeBlock}>http://backend-production-c0ab.up.railway.app</code>
-                  </li>
-                  <li>Ensure your Django view <code>receive_sovereign_neuro_command_v1</code> is active and <code>csrf_exempt</code>.</li>
-                </ol>
-              </section>
-            </div>
-            
-            <div style={styles.modalFooter}>
-              <button onClick={() => setShowModal(false)} style={styles.primaryButtonSmall}>
-                ACKNOWLEDGE
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-        </div>
-        </div>
   );
-              
 };
 
 // --- STYLES ---
@@ -384,8 +383,20 @@ const styles = {
   logEntry: { fontSize: '12px', fontFamily: 'monospace', marginBottom: '6px', display: 'flex' },
   timestamp: { color: '#cbd5e1', marginRight: '12px', fontSize: '11px' },
 
-  // MODAL STYLES
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  // MODAL STYLES (UPDATED: FIXED POSITION)
+  modalOverlay: { 
+    position: 'fixed', // Changed from absolute to fixed
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
+    backgroundColor: 'rgba(15, 23, 42, 0.6)', 
+    backdropFilter: 'blur(4px)', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    zIndex: 9999 // Increased Z-Index to stay on top
+  },
   modalContent: { backgroundColor: '#fff', width: '90%', maxWidth: '500px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', overflow: 'hidden' },
   modalHeader: { padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 },
