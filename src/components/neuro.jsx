@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis, CartesianGrid, ReferenceLine } from 'recharts';
-import { Wifi, Zap, Activity, BrainCircuit, Terminal, Power, ChevronDown, ChevronUp, Cpu, ShieldCheck } from 'lucide-react';
+import { Wifi, Zap, Activity, BrainCircuit, Terminal, Power, ChevronDown, ChevronUp, Cpu, ShieldCheck, HelpCircle, X } from 'lucide-react';
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 
 const NeuroLink = () => {
   // --- STATE MANAGEMENT ---
@@ -12,20 +11,27 @@ const NeuroLink = () => {
   const [logs, setLogs] = useState([]);
   const [battery, setBattery] = useState(100);
   const [isTerminalOpen, setIsTerminalOpen] = useState(true);
+  const [showModal, setShowModal] = useState(false); // New: Modal State
   
-  // Refs for simulation timers
+  // Refs
   const serverTimerRef = useRef(null);
   const streamRef = useRef(null);
+
+  // --- CONFIG ---
+  // Change this to your live backend URL when deploying
+  const BACKEND_URL = "http://backend-production-c0ab.up.railway.app";
 
   // --- 1. CONNECTION LOGIC ---
   const connectToGauntlet = () => {
     setStatus('SYNCING');
     addLog('System', 'Initializing BCI Handshake...');
     
+    // Simulate Bluetooth discovery delay
     setTimeout(() => {
       addLog('Gauntlet', 'Device Found: Neural-Link MK-IV');
     }, 800);
 
+    // Simulate Secure Handshake
     setTimeout(() => {
       setStatus('ONLINE');
       addLog('System', 'Connection Established [Secure]');
@@ -35,7 +41,7 @@ const NeuroLink = () => {
 
   const disconnect = () => {
     setStatus('DISCONNECTED');
-    setBrainData([]); // Fixed: Clear previous stream graph
+    setBrainData([]);
     clearInterval(streamRef.current);
     addLog('System', 'Link Severed.');
   };
@@ -47,44 +53,65 @@ const NeuroLink = () => {
     streamRef.current = setInterval(() => {
       setBrainData(prev => {
         const time = Date.now();
-        // Create more "organic" looking wave patterns
+        // Generate organic-looking Alpha/Beta waves using Sine waves + Noise
         const baseAlpha = 0.2 + (Math.sin(time / 500) * 0.1) + (Math.random() * 0.1);
         const baseBeta = 0.4 + (Math.sin(time / 200) * 0.2) + (Math.random() * 0.3);
         
-        const newData = [...prev, { 
-          time, 
-          alpha: baseAlpha, 
-          beta: baseBeta,
-        }];
-
+        const newData = [...prev, { time, alpha: baseAlpha, beta: baseBeta }];
+        
+        // Keep buffer size manageable (50 points)
         if (newData.length > 50) newData.shift(); 
         return newData;
       });
 
+      // Battery drain simulation
       if (Math.random() > 0.99) setBattery(b => Math.max(0, b - 1));
 
-      // Intent detection
+      // INTENT DETECTION TRIGGER (Simulation)
+      // In reality, this would check if beta > threshold for X seconds
       const focusSpike = Math.random();
-      if (focusSpike > 0.98) {
+      if (focusSpike > 0.985) {
         triggerNeuralCommand();
       }
 
-    }, 80); // Faster tick for smoother "advanced" feel
+    }, 80); // 12.5Hz Refresh Rate
 
     return () => clearInterval(streamRef.current);
   }, [status]);
 
-  // --- 3. COMMAND EXECUTION ---
-  const triggerNeuralCommand = () => {
+  // --- 3. COMMAND EXECUTION (LIVE FETCH) ---
+  const triggerNeuralCommand = async () => {
     const commands = ["EXECUTE_HEDGE_STRATEGY", "SCAN_MARKET_VOLATILITY", "OPTIMIZE_LATENCY", "DEPLOY_SMART_CONTRACT"];
     const randomCmd = commands[Math.floor(Math.random() * commands.length)];
     
     addLog('Mind', `Intent Detected: ${randomCmd}`);
 
-    clearTimeout(serverTimerRef.current);
-    serverTimerRef.current = setTimeout(() => {
-      addLog('SnowAI', `Command Executed: ${randomCmd} [ACK]`);
-    }, 600); 
+    try {
+      // API Call to your Railway Backend
+      const response = await fetch(`${BACKEND_URL}/snow-ai/neuro-command/receive/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // No CSRF token needed since endpoint is exempt
+        },
+        body: JSON.stringify({
+          command_signature: randomCmd,
+          neural_fidelity: 0.98,
+          timestamp: Date.now()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        addLog('SnowAI', `Executed: ${data.message} [ACK]`);
+      } else {
+        // Fallback simulation if backend is offline or cors fails during dev
+        console.warn("Backend unreachable, running simulation mode.");
+        addLog('SnowAI', `Simulated Execution: ${randomCmd} [ACK]`);
+      }
+    } catch (error) {
+      addLog('SnowAI', `Offline Mode: ${randomCmd} [ACK]`);
+    }
   };
 
   const addLog = (source, message) => {
@@ -94,7 +121,7 @@ const NeuroLink = () => {
 
   // --- RENDER ---
   return (
-    <div>
+     <div>
             <div className="header">
                 <Header />
             </div>
@@ -118,6 +145,13 @@ const NeuroLink = () => {
         </div>
         
         <div style={styles.statusGroup}>
+          <div 
+            onClick={() => setShowModal(true)}
+            style={styles.helpButton}
+            title="System Manual"
+          >
+            <HelpCircle size={18} color="#64748b" />
+          </div>
           <div style={{
             ...styles.badge,
             backgroundColor: status === 'ONLINE' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
@@ -137,7 +171,7 @@ const NeuroLink = () => {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div style={styles.main}>
         {status === 'DISCONNECTED' ? (
           <div style={styles.connectOverlay}>
@@ -154,8 +188,7 @@ const NeuroLink = () => {
           </div>
         ) : (
           <div style={styles.dashboard}>
-            
-            {/* Advanced Visualization Card */}
+            {/* Graph Card */}
             <div style={styles.graphCard}>
               <div style={styles.cardHeader}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
@@ -184,24 +217,8 @@ const NeuroLink = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <YAxis hide domain={[0, 1.2]} />
                     <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="3 3" label={{ position: 'right', value: 'TRIGGER', fill: '#3b82f6', fontSize: 10 }} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="beta" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      fillOpacity={1} 
-                      fill="url(#colorBeta)" 
-                      isAnimationActive={false} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="alpha" 
-                      stroke="#93c5fd" 
-                      strokeWidth={1.5}
-                      fillOpacity={1} 
-                      fill="url(#colorAlpha)" 
-                      isAnimationActive={false} 
-                    />
+                    <Area type="monotone" dataKey="beta" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBeta)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="alpha" stroke="#93c5fd" strokeWidth={1.5} fillOpacity={1} fill="url(#colorAlpha)" isAnimationActive={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -209,9 +226,7 @@ const NeuroLink = () => {
               <div style={styles.telemetryGrid}>
                 <div style={styles.telemetryItem}>
                   <span style={styles.telemetryLabel}>INTENT INDEX</span>
-                  <span style={styles.telemetryValue}>
-                    {brainData.length ? (brainData[brainData.length-1].beta * 100).toFixed(1) : "0.0"}
-                  </span>
+                  <span style={styles.telemetryValue}>{brainData.length ? (brainData[brainData.length-1].beta * 100).toFixed(1) : "0.0"}</span>
                 </div>
                 <div style={styles.telemetryItem}>
                   <span style={styles.telemetryLabel}>STABILITY</span>
@@ -226,13 +241,12 @@ const NeuroLink = () => {
                 </div>
               </div>
             </div>
-
           </div>
         )}
       </div>
 
       {/* Toggleable Terminal */}
-      <div style={{...styles.terminal, height: isTerminalOpen ? '260px' : '44px'}}>
+      <div style={{...styles.terminal, height: isTerminalOpen ? '360px' : '44px'}}>
         <div style={styles.terminalHeader} onClick={() => setIsTerminalOpen(!isTerminalOpen)}>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
             <Terminal size={14} color="#3b82f6" />
@@ -251,280 +265,139 @@ const NeuroLink = () => {
             {logs.map((log, i) => (
               <div key={i} style={styles.logEntry}>
                 <span style={styles.timestamp}>{log.timestamp}</span>
-                <span style={{
-                  color: log.source === 'Mind' ? '#3b82f6' : 
-                         log.source === 'SnowAI' ? '#10b981' : '#64748b',
-                  fontWeight: '700',
-                  marginRight: '8px',
-                  width: '65px'
-                }}>{log.source.toUpperCase()}</span>
+                <span style={{color: log.source === 'Mind' ? '#3b82f6' : log.source === 'SnowAI' ? '#10b981' : '#64748b', fontWeight: '700', marginRight: '8px', width: '65px'}}>{log.source.toUpperCase()}</span>
                 <span style={{color: '#94a3b8'}}>{log.message}</span>
               </div>
             ))}
-            {logs.length === 0 && <div style={styles.emptyLogs}>System idle. Awaiting synchronization...</div>}
           </div>
         )}
       </div>
+
+      {/* EXPLANATION MODAL */}
+      {showModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <BrainCircuit size={24} color="#2563eb" />
+                <h2 style={styles.modalTitle}>SnowAI Neuro-Link Manual</h2>
+              </div>
+              <button onClick={() => setShowModal(false)} style={styles.closeButton}>
+                <X size={20} color="#64748b" />
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <section style={styles.modalSection}>
+                <h3 style={styles.modalSectionTitle}>1. System Overview</h3>
+                <p style={styles.modalText}>
+                  This component is a <strong>High-Fidelity BCI Simulation Dashboard</strong>. It visualizes two key neural metrics:
+                </p>
+                <ul style={styles.modalList}>
+                  <li><strong>Beta Waves (Dark Blue):</strong> Represents active thought, focus, and intent.</li>
+                  <li><strong>Alpha Waves (Light Blue):</strong> Represents relaxation and passive state.</li>
+                </ul>
+              </section>
+
+              <section style={styles.modalSection}>
+                <h3 style={styles.modalSectionTitle}>2. How It Works (Simulation)</h3>
+                <p style={styles.modalText}>
+                  Currently running in <strong>Prototype Mode</strong>.
+                  The <code>useEffect</code> hook generates organic sine-wave data to mimic an EEG stream.
+                  Every ~100ms, the system runs a probability check (<code>Math.random &gt; 0.985</code>) to simulate you "thinking" a command.
+                </p>
+              </section>
+
+              <section style={styles.modalSection}>
+                <h3 style={styles.modalSectionTitle}>3. Integration Guide</h3>
+                <p style={styles.modalText}>
+                  To use this with real hardware (OpenBCI/Muse):
+                </p>
+                <ol style={styles.modalList}>
+                  <li>Install <strong>bci.js</strong> or connect to a local Python stream via WebSockets.</li>
+                  <li>Replace the <code>setInterval</code> logic with a WebSocket listener.</li>
+                  <li>Update <code>BACKEND_URL</code> to point to your Django server: 
+                    <br/><code style={styles.codeBlock}>http://backend-production-c0ab.up.railway.app</code>
+                  </li>
+                  <li>Ensure your Django view <code>receive_sovereign_neuro_command_v1</code> is active and <code>csrf_exempt</code>.</li>
+                </ol>
+              </section>
+            </div>
+            
+            <div style={styles.modalFooter}>
+              <button onClick={() => setShowModal(false)} style={styles.primaryButtonSmall}>
+                ACKNOWLEDGE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-     </div>
-    </div>
+        </div>
+        </div>
   );
+              
 };
 
-// --- STYLES (Blue/White, No Tailwind) ---
+// --- STYLES ---
 const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    width: '100%',
-    backgroundColor: '#fff',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    overflow: 'hidden',
-    color: '#1e293b',
-  },
-  header: {
-    padding: '16px 24px',
-    borderBottom: '1px solid #f1f5f9',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  iconCircle: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '10px',
-    backgroundColor: '#3b82f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-  },
-  brandGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  subHeaderRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    marginTop: '2px'
-  },
-  title: {
-    fontSize: '16px',
-    fontWeight: '900',
-    margin: 0,
-    letterSpacing: '1px',
-    lineHeight: '1',
-  },
-  subtitle: {
-    fontSize: '9px',
-    color: '#94a3b8',
-    margin: 0,
-    fontWeight: '700',
-    letterSpacing: '0.5px',
-  },
-  statusGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  badge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 12px',
-    borderRadius: '6px',
-  },
-  badgeText: {
-    fontSize: '10px',
-    fontWeight: '800',
-    letterSpacing: '0.5px',
-  },
-  batteryContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  batteryText: {
-    fontSize: '10px',
-    fontWeight: '700',
-    color: '#64748b',
-  },
-  batteryBorder: {
-    width: '30px',
-    height: '14px',
-    border: '1.5px solid #e2e8f0',
-    borderRadius: '3px',
-    padding: '1px',
-  },
-  batteryFill: {
-    height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: '1px',
-  },
-  main: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    position: 'relative',
-  },
-  connectOverlay: {
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '24px',
-  },
-  connectCard: {
-    textAlign: 'center',
-    maxWidth: '360px',
-  },
-  pulseIconContainer: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '40px',
-    backgroundColor: '#eff6ff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 24px auto',
-  },
-  connectTitle: {
-    fontSize: '22px',
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: '8px',
-  },
-  connectText: {
-    fontSize: '14px',
-    color: '#64748b',
-    lineHeight: '1.6',
-    marginBottom: '32px',
-  },
-  primaryButton: {
-    backgroundColor: '#3b82f6',
-    color: '#fff',
-    border: 'none',
-    padding: '16px 40px',
-    borderRadius: '12px',
-    fontSize: '13px',
-    fontWeight: '800',
-    letterSpacing: '1px',
-    cursor: 'pointer',
-    boxShadow: '0 8px 24px rgba(59, 130, 246, 0.25)',
-  },
-  dashboard: {
-    padding: '20px',
-  },
-  graphCard: {
-    backgroundColor: '#fff',
-    borderRadius: '20px',
-    padding: '24px',
-    border: '1px solid #f1f5f9',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  liveDot: {
-    width: '8px',
-    height: '8px',
-    backgroundColor: '#ef4444',
-    borderRadius: '50%',
-    boxShadow: '0 0 8px #ef4444',
-  },
-  cardLabel: {
-    fontSize: '11px',
-    fontWeight: '800',
-    color: '#475569',
-    letterSpacing: '0.5px',
-  },
-  legendItem: {
-    fontSize: '9px',
-    fontWeight: '800',
-  },
-  telemetryGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gap: '24px',
-    marginTop: '24px',
-    paddingTop: '24px',
-    borderTop: '1px solid #f1f5f9',
-  },
-  telemetryItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  telemetryLabel: {
-    fontSize: '10px',
-    fontWeight: '700',
-    color: '#94a3b8',
-    letterSpacing: '0.5px',
-  },
-  telemetryValue: {
-    fontSize: '24px',
-    fontWeight: '900',
-    color: '#1e293b',
-    fontFamily: 'monospace',
-  },
-  terminal: {
-    backgroundColor: '#fff',
-    borderTop: '1px solid #f1f5f9',
-    display: 'flex',
-    flexDirection: 'column',
-    transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  },
-  terminalHeader: {
-    padding: '12px 20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #f1f5f9',
-  },
-  terminalTitle: {
-    fontSize: '10px',
-    fontWeight: '800',
-    color: '#475569',
-    letterSpacing: '1px',
-  },
-  killButton: {
-    backgroundColor: 'transparent',
-    border: '1px solid #fee2e2',
-    color: '#ef4444',
-    fontSize: '9px',
-    fontWeight: '800',
-    padding: '4px 10px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  logContainer: {
-    flex: 1,
-    padding: '16px 20px',
-    overflowY: 'auto',
-    backgroundColor: '#fafafa',
-  },
-  logEntry: {
-    fontSize: '12px',
-    fontFamily: 'monospace',
-    marginBottom: '6px',
-    display: 'flex',
-  },
-  timestamp: {
-    color: '#cbd5e1',
-    marginRight: '12px',
-    fontSize: '11px',
-  },
-  emptyLogs: {
-    fontSize: '12px',
-    color: '#cbd5e1',
-    fontStyle: 'italic',
-    marginTop: '10px'
-  }
+  container: { display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', overflow: 'hidden', color: '#1e293b' },
+  header: { padding: '16px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff' },
+  iconCircle: { width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' },
+  brandGroup: { display: 'flex', alignItems: 'center', gap: '12px' },
+  subHeaderRow: { display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' },
+  title: { fontSize: '16px', fontWeight: '900', margin: 0, letterSpacing: '1px', lineHeight: '1' },
+  subtitle: { fontSize: '9px', color: '#94a3b8', margin: 0, fontWeight: '700', letterSpacing: '0.5px' },
+  statusGroup: { display: 'flex', alignItems: 'center', gap: '16px' },
+  badge: { display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '6px' },
+  badgeText: { fontSize: '10px', fontWeight: '800', letterSpacing: '0.5px' },
+  batteryContainer: { display: 'flex', alignItems: 'center', gap: '8px' },
+  batteryText: { fontSize: '10px', fontWeight: '700', color: '#64748b' },
+  batteryBorder: { width: '30px', height: '14px', border: '1.5px solid #e2e8f0', borderRadius: '3px', padding: '1px' },
+  batteryFill: { height: '100%', backgroundColor: '#10b981', borderRadius: '1px' },
+  helpButton: { cursor: 'pointer', padding: '8px', borderRadius: '50%', backgroundColor: '#f8fafc', transition: 'background 0.2s' },
+  
+  main: { flex: 1, backgroundColor: '#f8fafc', position: 'relative' },
+  connectOverlay: { height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' },
+  connectCard: { textAlign: 'center', maxWidth: '360px' },
+  pulseIconContainer: { width: '80px', height: '80px', borderRadius: '40px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' },
+  connectTitle: { fontSize: '22px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' },
+  connectText: { fontSize: '14px', color: '#64748b', lineHeight: '1.6', marginBottom: '32px' },
+  primaryButton: { backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '12px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', cursor: 'pointer', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.25)' },
+  
+  dashboard: { padding: '20px' },
+  graphCard: { backgroundColor: '#fff', borderRadius: '20px', padding: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  liveDot: { width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', boxShadow: '0 0 8px #ef4444' },
+  cardLabel: { fontSize: '11px', fontWeight: '800', color: '#475569', letterSpacing: '0.5px' },
+  legendItem: { fontSize: '9px', fontWeight: '800' },
+  telemetryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' },
+  telemetryItem: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  telemetryLabel: { fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.5px' },
+  telemetryValue: { fontSize: '24px', fontWeight: '900', color: '#1e293b', fontFamily: 'monospace' },
+  
+  terminal: { backgroundColor: '#fff', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)' },
+  terminalHeader: { padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9' },
+  terminalTitle: { fontSize: '10px', fontWeight: '800', color: '#475569', letterSpacing: '1px' },
+  killButton: { backgroundColor: 'transparent', border: '1px solid #fee2e2', color: '#ef4444', fontSize: '9px', fontWeight: '800', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer' },
+  logContainer: { flex: 1, padding: '16px 20px', overflowY: 'auto', backgroundColor: '#fafafa' },
+  logEntry: { fontSize: '12px', fontFamily: 'monospace', marginBottom: '6px', display: 'flex' },
+  timestamp: { color: '#cbd5e1', marginRight: '12px', fontSize: '11px' },
+
+  // MODAL STYLES
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 },
+  modalContent: { backgroundColor: '#fff', width: '90%', maxWidth: '500px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', overflow: 'hidden' },
+  modalHeader: { padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  modalTitle: { fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 },
+  closeButton: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
+  modalBody: { padding: '24px', maxHeight: '60vh', overflowY: 'auto' },
+  modalSection: { marginBottom: '24px' },
+  modalSectionTitle: { fontSize: '14px', fontWeight: '700', color: '#334155', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  modalText: { fontSize: '14px', lineHeight: '1.6', color: '#64748b', margin: '0 0 12px 0' },
+  modalList: { paddingLeft: '20px', margin: 0, fontSize: '14px', color: '#64748b', lineHeight: '1.6' },
+  codeBlock: { backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '12px', color: '#0f172a' },
+  modalFooter: { padding: '16px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' },
+  primaryButtonSmall: { backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
 };
 
 export default NeuroLink;
