@@ -810,8 +810,21 @@ if num_positions == 0:
                 symbols = assetLists[selectedAssetClass] || [];
             }
 
-            // Use custom period if provided, otherwise use selected period
-            const finalPeriod = customPeriod && !isNaN(customPeriod) ? parseInt(customPeriod) : period;
+            // Use custom period if provided and valid, otherwise use selected period
+            let finalPeriod = period;
+            if (period === 0) {
+                // User selected "Custom..."
+                const customVal = parseInt(customPeriod);
+                if (customPeriod && !isNaN(customVal) && customVal > 0) {
+                    finalPeriod = customVal;
+                } else {
+                    alert('Please enter a valid custom period (number of days)');
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            console.log('Calculating MSS with period:', finalPeriod); // Debug log
 
             const response = await fetch(`${baseUrl}/api/mss/calculate/`, {
                 method: 'POST',
