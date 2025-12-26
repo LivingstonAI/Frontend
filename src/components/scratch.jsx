@@ -1236,6 +1236,32 @@ return [`permafrost_theta_short(data=dataset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['is_bullish_market_retracement'] = function(block, generator) {
+
+
+  return [`is_bullish_market_retracement(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bullish_market_retracement'] = function(block, generator) {
+
+return [`is_bullish_market_retracement(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['is_bearish_market_retracement'] = function(block, generator) {
+
+
+  return [`is_bearish_market_retracement(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_bearish_market_retracement'] = function(block, generator) {
+
+return [`is_bearish_market_retracement(data=dataset)`, Order.NONE];
+
+};
+
 
 
    // Blockly block definition for "Moving Average" block
@@ -2246,8 +2272,29 @@ Blockly.Blocks['snow_alpha_buy'] = {
     }
   };
 
+Blockly.Blocks['is_bullish_market_retracement'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("is bullish market retracement")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Checks for short retracements in bullish markets");
+      this.setHelpUrl("");
+    }
+  };
 
-
+    Blockly.Blocks['is_bearish_market_retracement'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("is bearish market retracement")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Checks for short retracements in bearish markets");
+      this.setHelpUrl("");
+    }
+  };
 
   
     const MY_TOOLBOX = {
@@ -2595,6 +2642,14 @@ Blockly.Blocks['snow_alpha_buy'] = {
             {
               "kind": "block",
               "type": "is_volatile_market"
+            },
+            {
+              "kind": "block",
+              "type": "is_bullish_market_retracement"
+            },
+            {
+              "kind": "block",
+              "type": "is_bearish_market_retracement"
             },
 
           ]
