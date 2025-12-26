@@ -499,6 +499,77 @@ const styles = `
     color: #6b7280;
 }
 
+.mss-filters {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+}
+
+.filter-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-box {
+    flex: 1;
+    min-width: 250px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #dbeafe;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.status-filter {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-filter button {
+    padding: 10px 20px;
+    border: 2px solid #dbeafe;
+    background: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #1e40af;
+}
+
+.status-filter button:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.status-filter button.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.filter-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e40af;
+    margin-right: 5px;
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .mss-wrapper {
@@ -555,7 +626,8 @@ const styles = `
 
     .chart-link,
     .save-model-btn,
-    .deactivate-model-btn {
+    .deactivate-model-btn,
+    .delete-model-btn {
         font-size: 12px;
         padding: 8px 12px;
     }
@@ -576,6 +648,27 @@ const styles = `
     .category-filter button {
         padding: 10px 16px;
         font-size: 13px;
+    }
+
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-box {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .status-filter {
+        width: 100%;
+    }
+
+    .status-filter button {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        padding: 8px 12px;
     }
 }
 
@@ -614,6 +707,8 @@ export default function MarketStabilityScore() {
     const [deactivatingModels, setDeactivatingModels] = useState({});
     const [deletingModels, setDeletingModels] = useState({});
     const [customPeriod, setCustomPeriod] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [modelStatusFilter, setModelStatusFilter] = useState('all');
 
     useEffect(() => {
         fetchAssetLists();
@@ -938,8 +1033,28 @@ if num_positions == 0:
     };
 
     const filteredData = mssData.filter(item => {
-        if (selectedCategory === 'all') return true;
-        return item.category === selectedCategory;
+        // Filter by category (stable/choppy/volatile)
+        if (selectedCategory !== 'all' && item.category !== selectedCategory) {
+            return false;
+        }
+        
+        // Filter by search query
+        if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
+            return false;
+        }
+        
+        // Filter by model status
+        if (modelStatusFilter === 'saved') {
+            if (!savedModels.has(item.symbol)) return false;
+        } else if (modelStatusFilter === 'active') {
+            if (!savedModels.has(item.symbol) || !activeModels[item.symbol]?.isActive) return false;
+        } else if (modelStatusFilter === 'paused') {
+            if (!savedModels.has(item.symbol) || activeModels[item.symbol]?.isActive) return false;
+        } else if (modelStatusFilter === 'not-saved') {
+            if (savedModels.has(item.symbol)) return false;
+        }
+        
+        return true;
     });
 
     const stableAssets = mssData.filter(item => item.category === 'stable');
@@ -1197,8 +1312,15 @@ if num_positions == 0:
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                                                    ))}
+                        </div>
+                    ) : (
+                        <div className="mss-empty">
+                            <div className="empty-icon">🔍</div>
+                            <h3>No Results Found</h3>
+                            <p>Try adjusting your filters or search query.</p>
+                        </div>
+                    )}
                 </>
             )}
 
