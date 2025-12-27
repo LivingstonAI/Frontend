@@ -3,8 +3,6 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 const styles = `
-/* Market Stability Score Styles */
-
 .mss-wrapper {
     padding: 20px;
     background: #f0f4ff;
@@ -188,7 +186,7 @@ const styles = `
 
 .search-filter-container {
     background: white;
-    padding: 20px;
+    padding: 25px;
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     margin-bottom: 30px;
@@ -196,12 +194,12 @@ const styles = `
 
 .search-box {
     width: 100%;
-    padding: 12px 16px;
+    padding: 14px 18px;
     border: 2px solid #dbeafe;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 15px;
     transition: all 0.2s;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 .search-box:focus {
@@ -212,17 +210,17 @@ const styles = `
 
 .filter-buttons {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
 .filter-btn {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: 2px solid #dbeafe;
     background: white;
     border-radius: 10px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
     color: #1e40af;
@@ -237,6 +235,7 @@ const styles = `
     background: #2563eb;
     color: white;
     border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .category-filter {
@@ -284,7 +283,6 @@ const styles = `
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     transition: all 0.2s;
     border: 2px solid #dbeafe;
-    position: relative;
 }
 
 .mss-card:hover {
@@ -311,7 +309,6 @@ const styles = `
     font-size: 22px;
     color: #1e40af;
     font-weight: 700;
-    word-break: break-word;
 }
 
 .card-actions {
@@ -329,11 +326,7 @@ const styles = `
     font-size: 13px;
     font-weight: 600;
     transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
-    white-space: nowrap;
 }
 
 .chart-link:hover {
@@ -351,11 +344,7 @@ const styles = `
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
-    white-space: nowrap;
 }
 
 .save-model-btn:hover:not(:disabled) {
@@ -373,10 +362,6 @@ const styles = `
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
-.save-model-btn.reactivate:hover:not(:disabled) {
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
-}
-
 .deactivate-model-btn {
     padding: 8px 16px;
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -387,21 +372,12 @@ const styles = `
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
-    white-space: nowrap;
 }
 
 .deactivate-model-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
-}
-
-.deactivate-model-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 
 .delete-model-btn {
@@ -414,31 +390,12 @@ const styles = `
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     box-shadow: 0 2px 6px rgba(153, 27, 27, 0.3);
-    white-space: nowrap;
 }
 
 .delete-model-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(153, 27, 27, 0.4);
-}
-
-.delete-model-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.mss-badge {
-    padding: 8px 16px;
-    border-radius: 24px;
-    color: white;
-    font-weight: 700;
-    font-size: 18px;
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .mss-card .status {
@@ -457,10 +414,6 @@ const styles = `
     border-bottom: 2px solid #dbeafe;
 }
 
-.metric {
-    min-width: 0;
-}
-
 .metric-label {
     display: block;
     font-size: 12px;
@@ -474,7 +427,6 @@ const styles = `
     font-size: 18px;
     font-weight: 700;
     color: #1e40af;
-    word-break: break-word;
 }
 
 .card-details {
@@ -488,7 +440,6 @@ const styles = `
     justify-content: space-between;
     font-size: 14px;
     padding: 8px 0;
-    gap: 10px;
 }
 
 .detail-item span:first-child {
@@ -499,8 +450,6 @@ const styles = `
 .detail-item span:last-child {
     font-weight: 600;
     color: #1e40af;
-    text-align: right;
-    word-break: break-word;
 }
 
 .mss-empty {
@@ -552,106 +501,18 @@ const styles = `
     color: #6b7280;
 }
 
-/* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .mss-wrapper {
         padding: 10px;
     }
-
-    .mss-header {
-        padding: 20px;
+    .mss-grid {
+        grid-template-columns: 1fr;
     }
-
-    .mss-header h1 {
-        font-size: 24px;
-    }
-
-    .mss-header p {
-        font-size: 14px;
-    }
-
-    .mss-controls {
-        padding: 20px;
-    }
-
     .control-group {
         min-width: 100%;
     }
-
-    .mss-calculate-btn {
-        width: 100%;
-        padding: 12px 24px;
-    }
-
-    .summary-card .big-number {
-        font-size: 36px;
-    }
-
-    .mss-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .mss-card {
-        padding: 20px;
-    }
-
-    .card-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .card-actions {
-        width: 100%;
-        justify-content: flex-start;
-    }
-
-    .chart-link,
-    .save-model-btn,
-    .deactivate-model-btn {
-        font-size: 12px;
-        padding: 8px 12px;
-    }
-
-    .delete-model-btn {
-        font-size: 12px;
-        padding: 8px 12px;
-    }
-
     .card-metrics {
         grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .metric-value {
-        font-size: 16px;
-    }
-
-    .category-filter {
-        gap: 8px;
-    }
-
-    .category-filter button {
-        padding: 10px 16px;
-        font-size: 13px;
-    }
-}
-
-@media (max-width: 480px) {
-    .mss-header h1 {
-        font-size: 20px;
-    }
-
-    .card-header h4 {
-        font-size: 18px;
-    }
-
-    .summary-card {
-        padding: 20px;
-    }
-
-    .summary-card .big-number {
-        font-size: 28px;
     }
 }
 `;
@@ -689,153 +550,6 @@ export default function MarketStabilityScore() {
             }
         } catch (error) {
             console.error('Error fetching asset lists:', error);
-        }
-    };
-
-    const deactivateModel = async (asset) => {
-        if (!window.confirm(`Are you sure you want to deactivate the model for ${asset.symbol}?`)) {
-            return;
-        }
-
-        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
-
-        try {
-            const modelInfo = activeModels[asset.symbol];
-            if (!modelInfo) {
-                alert('Model not found');
-                return;
-            }
-
-            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_active: false
-                })
-            });
-
-            if (response.ok) {
-                setActiveModels(prev => ({
-                    ...prev,
-                    [asset.symbol]: { ...prev[asset.symbol], isActive: false }
-                }));
-                alert(`⏸️ Successfully deactivated ${asset.symbol}`);
-                fetchExistingModels();
-            } else {
-                alert('Failed to deactivate model');
-            }
-        } catch (error) {
-            console.error('Error deactivating model:', error);
-            alert('Failed to deactivate model. Please try again.');
-        } finally {
-            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
-        }
-    };
-
-    const deleteModel = async (asset) => {
-        if (!window.confirm(`⚠️ Are you sure you want to DELETE the model for ${asset.symbol}? This will remove all trading history and cannot be undone!`)) {
-            return;
-        }
-
-        setDeletingModels(prev => ({ ...prev, [asset.symbol]: true }));
-
-        try {
-            const modelInfo = activeModels[asset.symbol];
-            if (!modelInfo) {
-                alert('Model not found');
-                return;
-            }
-
-            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                setSavedModels(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(asset.symbol);
-                    return newSet;
-                });
-                setActiveModels(prev => {
-                    const newMap = { ...prev };
-                    delete newMap[asset.symbol];
-                    return newMap;
-                });
-                alert(`🗑️ Successfully deleted ${asset.symbol} model`);
-                fetchExistingModels();
-            } else {
-                alert('Failed to delete model');
-            }
-        } catch (error) {
-            console.error('Error deleting model:', error);
-            alert('Failed to delete model. Please try again.');
-        } finally {
-            setDeletingModels(prev => ({ ...prev, [asset.symbol]: false }));
-        }
-    };
-
-    const reactivateModel = async (asset) => {
-        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
-
-        try {
-            const modelInfo = activeModels[asset.symbol];
-            if (!modelInfo) {
-                alert('Model not found');
-                return;
-            }
-
-            if (!asset.trend || asset.trend === 'ranging' || asset.trend === 'unknown') {
-                alert(`❌ Cannot reactivate ${asset.symbol}: No clear trend detected. Current market is ${asset.trend || 'unknown'}.`);
-                setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
-                return;
-            }
-
-            let modelCode = '';
-            if (asset.trend === 'uptrend') {
-                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
-set_stop_loss(number=2, type_of_setting='PERCENTAGE')
-if num_positions == 0:
-    if is_bullish_market_retracement(data=dataset):
-        if is_uptrend(data=dataset):
-            return_statement = 'buy'`;
-            } else if (asset.trend === 'downtrend') {
-                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
-set_stop_loss(number=2, type_of_setting='PERCENTAGE')
-if num_positions == 0:
-    if is_bearish_market_retracement(data=dataset):
-        if is_downtrend(data=dataset):
-            return_statement = 'sell'`;
-            }
-
-            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_active: true,
-                    model_code: modelCode,
-                    name: `[MSS] ${asset.symbol} - ${asset.trend.toUpperCase()}`
-                })
-            });
-
-            if (response.ok) {
-                setActiveModels(prev => ({
-                    ...prev,
-                    [asset.symbol]: { ...prev[asset.symbol], isActive: true }
-                }));
-                alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} strategy!`);
-                fetchExistingModels();
-            } else {
-                alert('Failed to reactivate model');
-            }
-        } catch (error) {
-            console.error('Error reactivating model:', error);
-            alert('Failed to reactivate model. Please try again.');
-        } finally {
-            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
         }
     };
 
@@ -879,6 +593,8 @@ if num_positions == 0:
                 }
             }
 
+            console.log('Making API call with period:', finalPeriod);
+
             const response = await fetch(`${baseUrl}/api/mss/calculate/`, {
                 method: 'POST',
                 headers: {
@@ -891,6 +607,8 @@ if num_positions == 0:
             });
 
             const data = await response.json();
+            console.log('API Response:', data);
+            
             if (data.success) {
                 const enrichedData = await Promise.all(
                     data.data.map(async (asset) => {
@@ -988,6 +706,153 @@ if num_positions == 0:
         }
     };
 
+    const deactivateModel = async (asset) => {
+        if (!window.confirm(`Are you sure you want to deactivate the model for ${asset.symbol}?`)) {
+            return;
+        }
+
+        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            const modelInfo = activeModels[asset.symbol];
+            if (!modelInfo) {
+                alert('Model not found');
+                return;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_active: false
+                })
+            });
+
+            if (response.ok) {
+                setActiveModels(prev => ({
+                    ...prev,
+                    [asset.symbol]: { ...prev[asset.symbol], isActive: false }
+                }));
+                alert(`⏸️ Successfully deactivated ${asset.symbol}`);
+                fetchExistingModels();
+            } else {
+                alert('Failed to deactivate model');
+            }
+        } catch (error) {
+            console.error('Error deactivating model:', error);
+            alert('Failed to deactivate model. Please try again.');
+        } finally {
+            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        }
+    };
+
+    const reactivateModel = async (asset) => {
+        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            const modelInfo = activeModels[asset.symbol];
+            if (!modelInfo) {
+                alert('Model not found');
+                return;
+            }
+
+            if (!asset.trend || asset.trend === 'ranging' || asset.trend === 'unknown') {
+                alert(`❌ Cannot reactivate ${asset.symbol}: No clear trend detected. Current market is ${asset.trend || 'unknown'}.`);
+                setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+                return;
+            }
+
+            let modelCode = '';
+            if (asset.trend === 'uptrend') {
+                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+if num_positions == 0:
+    if is_bullish_market_retracement(data=dataset):
+        if is_uptrend(data=dataset):
+            return_statement = 'buy'`;
+            } else if (asset.trend === 'downtrend') {
+                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+if num_positions == 0:
+    if is_bearish_market_retracement(data=dataset):
+        if is_downtrend(data=dataset):
+            return_statement = 'sell'`;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_active: true,
+                    model_code: modelCode,
+                    name: `[MSS] ${asset.symbol} - ${asset.trend.toUpperCase()}`
+                })
+            });
+
+            if (response.ok) {
+                setActiveModels(prev => ({
+                    ...prev,
+                    [asset.symbol]: { ...prev[asset.symbol], isActive: true }
+                }));
+                alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} strategy!`);
+                fetchExistingModels();
+            } else {
+                alert('Failed to reactivate model');
+            }
+        } catch (error) {
+            console.error('Error reactivating model:', error);
+            alert('Failed to reactivate model. Please try again.');
+        } finally {
+            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        }
+    };
+
+    const deleteModel = async (asset) => {
+        if (!window.confirm(`⚠️ Are you sure you want to DELETE the model for ${asset.symbol}? This will remove all trading history and cannot be undone!`)) {
+            return;
+        }
+
+        setDeletingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+        try {
+            const modelInfo = activeModels[asset.symbol];
+            if (!modelInfo) {
+                alert('Model not found');
+                return;
+            }
+
+            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                setSavedModels(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(asset.symbol);
+                    return newSet;
+                });
+                setActiveModels(prev => {
+                    const newMap = { ...prev };
+                    delete newMap[asset.symbol];
+                    return newMap;
+                });
+                alert(`🗑️ Successfully deleted ${asset.symbol} model`);
+                fetchExistingModels();
+            } else {
+                alert('Failed to delete model');
+            }
+        } catch (error) {
+            console.error('Error deleting model:', error);
+            alert('Failed to delete model. Please try again.');
+        } finally {
+            setDeletingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        }
+    };
+
     const filteredData = mssData.filter(item => {
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -1011,9 +876,9 @@ if num_positions == 0:
         return item.category === selectedCategory;
     });
 
-    const stableAssets = mssData.filter(item => item.category === 'stable');
-    const choppyAssets = mssData.filter(item => item.category === 'choppy');
-    const volatileAssets = mssData.filter(item => item.category === 'volatile');
+    const stableAssets = filteredData.filter(item => item.category === 'stable');
+    const choppyAssets = filteredData.filter(item => item.category === 'choppy');
+    const volatileAssets = filteredData.filter(item => item.category === 'volatile');
 
     return (
         <div>
@@ -1067,8 +932,9 @@ if num_positions == 0:
                         <select 
                             value={period} 
                             onChange={(e) => {
-                                setPeriod(Number(e.target.value));
-                                if (Number(e.target.value) !== 0) {
+                                const val = Number(e.target.value);
+                                setPeriod(val);
+                                if (val !== 0) {
                                     setCustomPeriod('');
                                 }
                             }}
@@ -1154,19 +1020,19 @@ if num_positions == 0:
                                 className={`filter-btn ${modelStatusFilter === 'active' ? 'active' : ''}`}
                                 onClick={() => setModelStatusFilter('active')}
                             >
-                                Active
+                                ▶️ Active
                             </button>
                             <button
                                 className={`filter-btn ${modelStatusFilter === 'paused' ? 'active' : ''}`}
                                 onClick={() => setModelStatusFilter('paused')}
                             >
-                                Paused
+                                ⏸️ Paused
                             </button>
                             <button
                                 className={`filter-btn ${modelStatusFilter === 'unsaved' ? 'active' : ''}`}
                                 onClick={() => setModelStatusFilter('unsaved')}
                             >
-                                Unsaved
+                                💾 Unsaved
                             </button>
                         </div>
                     </div>
@@ -1200,10 +1066,7 @@ if num_positions == 0:
 
                     <div className="mss-grid">
                         {filteredData.map((asset, index) => (
-                            <div 
-                                key={index} 
-                                className="mss-card"
-                            >
+                            <div key={index} className="mss-card">
                                 <div className="card-header">
                                     <div className="card-header-left">
                                         <h4>{asset.symbol}</h4>
