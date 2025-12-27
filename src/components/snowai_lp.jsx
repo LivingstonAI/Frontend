@@ -99,6 +99,7 @@ import celebrate_alan from '../Celebrate - Alan Avry (prod. by d.higgs) (unoffic
 import gods from "../NewJeans (뉴진스) 'GODS' Lyrics (Color Coded Lyrics)  League of Legends - Worlds 2023 Anthem.mp3";
 import mente_ma from '../MENTE MÁ - NAKAMA (Official Lyric Video).mp3';
 import bang_lai from '../攬佬SKAI ISYOURGOD - 八方來財  Ba Fang Lai Cai (Stacks from All Sides)動態歌詞English SubsPinyin.mp3';
+import decembre from '../Élise de Lune - Décembre.mp3';
 
 
 export default function SnowAILandingPage() {
@@ -238,7 +239,8 @@ export default function SnowAILandingPage() {
       "95": { name: "Celebrate - Alan Avry 🦜", file: celebrate_alan },
       "96": { name: "GODS - 뉴진스", file: gods },
       "97": { name: "MENTE MA 🏄", file: mente_ma },
-      "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai }
+      "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai },
+      "99": { name: "Dècembre 🇫🇷", file: decembre },
     };
 
 
