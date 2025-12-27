@@ -186,6 +186,59 @@ const styles = `
     margin: 0;
 }
 
+.search-filter-container {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+}
+
+.search-box {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #dbeafe;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: all 0.2s;
+    margin-bottom: 15px;
+}
+
+.search-box:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 10px 20px;
+    border: 2px solid #dbeafe;
+    background: white;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #1e40af;
+}
+
+.filter-btn:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.filter-btn.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
 .category-filter {
     display: flex;
     gap: 12px;
@@ -565,58 +618,6 @@ const styles = `
         padding: 8px 12px;
     }
 
-    .search-filter-container {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
-
-    .search-box {
-        flex: 1;
-        min-width: 250px;
-        padding: 12px 16px;
-        border: 2px solid #dbeafe;
-        border-radius: 10px;
-        font-size: 14px;
-        transition: all 0.2s;
-    }
-
-    .search-box:focus {
-        outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .filter-buttons {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .filter-btn {
-        padding: 10px 20px;
-        border: 2px solid #dbeafe;
-        background: white;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s;
-        color: #1e40af;
-    }
-
-    .filter-btn:hover {
-        border-color: #2563eb;
-        background: #eff6ff;
-    }
-
-    .filter-btn.active {
-        background: #2563eb;
-        color: white;
-        border-color: #2563eb;
-    }
-
     .card-metrics {
         grid-template-columns: 1fr;
         gap: 12px;
@@ -672,7 +673,7 @@ export default function MarketStabilityScore() {
     const [deletingModels, setDeletingModels] = useState({});
     const [customPeriod, setCustomPeriod] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [modelStatusFilter, setModelStatusFilter] = useState('all'); // all, active, paused, unsaved
+    const [modelStatusFilter, setModelStatusFilter] = useState('all');
 
     useEffect(() => {
         fetchAssetLists();
@@ -721,7 +722,7 @@ export default function MarketStabilityScore() {
                     [asset.symbol]: { ...prev[asset.symbol], isActive: false }
                 }));
                 alert(`⏸️ Successfully deactivated ${asset.symbol}`);
-                fetchExistingModels(); // Refresh to get latest state
+                fetchExistingModels();
             } else {
                 alert('Failed to deactivate model');
             }
@@ -763,7 +764,7 @@ export default function MarketStabilityScore() {
                     return newMap;
                 });
                 alert(`🗑️ Successfully deleted ${asset.symbol} model`);
-                fetchExistingModels(); // Refresh to get latest state
+                fetchExistingModels();
             } else {
                 alert('Failed to delete model');
             }
@@ -785,14 +786,12 @@ export default function MarketStabilityScore() {
                 return;
             }
 
-            // Check current trend before reactivating
             if (!asset.trend || asset.trend === 'ranging' || asset.trend === 'unknown') {
                 alert(`❌ Cannot reactivate ${asset.symbol}: No clear trend detected. Current market is ${asset.trend || 'unknown'}.`);
                 setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
                 return;
             }
 
-            // Determine model code based on CURRENT trend
             let modelCode = '';
             if (asset.trend === 'uptrend') {
                 modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
@@ -828,7 +827,7 @@ if num_positions == 0:
                     [asset.symbol]: { ...prev[asset.symbol], isActive: true }
                 }));
                 alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} strategy!`);
-                fetchExistingModels(); // Refresh to get latest state
+                fetchExistingModels();
             } else {
                 alert('Failed to reactivate model');
             }
@@ -847,7 +846,6 @@ if num_positions == 0:
             const assets = new Set(models.map(m => m.asset));
             setSavedModels(assets);
             
-            // Track which models are active
             const activeMap = {};
             models.forEach(m => {
                 activeMap[m.asset] = { id: m.id, isActive: m.is_active };
@@ -869,10 +867,8 @@ if num_positions == 0:
                 symbols = assetLists[selectedAssetClass] || [];
             }
 
-            // Use custom period if provided and valid, otherwise use selected period
             let finalPeriod = period;
             if (period === 0) {
-                // User selected "Custom..."
                 const customVal = parseInt(customPeriod);
                 if (customPeriod && !isNaN(customVal) && customVal > 0) {
                     finalPeriod = customVal;
@@ -882,8 +878,6 @@ if num_positions == 0:
                     return;
                 }
             }
-
-            console.log('Calculating MSS with period:', finalPeriod); // Debug log
 
             const response = await fetch(`${baseUrl}/api/mss/calculate/`, {
                 method: 'POST',
@@ -898,7 +892,6 @@ if num_positions == 0:
 
             const data = await response.json();
             if (data.success) {
-                // Fetch trend data for each asset
                 const enrichedData = await Promise.all(
                     data.data.map(async (asset) => {
                         try {
@@ -934,7 +927,6 @@ if num_positions == 0:
         setSavingModels(prev => ({ ...prev, [asset.symbol]: true }));
 
         try {
-            // Determine model code based on trend
             let modelCode = '';
             if (asset.trend === 'uptrend') {
                 modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
@@ -984,7 +976,7 @@ if num_positions == 0:
                     [asset.symbol]: { id: data.id, isActive: true }
                 }));
                 alert(`✅ Successfully saved ${asset.symbol} to forward testing!`);
-                fetchExistingModels(); // Refresh to get latest state
+                fetchExistingModels();
             } else {
                 alert(`Error: ${data.error || 'Failed to save model'}`);
             }
@@ -997,12 +989,10 @@ if num_positions == 0:
     };
 
     const filteredData = mssData.filter(item => {
-        // Search filter
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
         }
         
-        // Model status filter
         if (modelStatusFilter === 'active') {
             if (!savedModels.has(item.symbol) || !activeModels[item.symbol]?.isActive) {
                 return false;
@@ -1017,7 +1007,6 @@ if num_positions == 0:
             }
         }
         
-        // Category filter
         if (selectedCategory === 'all') return true;
         return item.category === selectedCategory;
     });
@@ -1034,8 +1023,8 @@ if num_positions == 0:
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info">
-                    <div className="mss-wrapper">
+        <div className="mss-wrapper">
+            <style>{styles}</style>
             
             <div className="mss-header">
                 <h1>Market Stability Score</h1>
@@ -1079,7 +1068,9 @@ if num_positions == 0:
                             value={period} 
                             onChange={(e) => {
                                 setPeriod(Number(e.target.value));
-                                setCustomPeriod('');
+                                if (Number(e.target.value) !== 0) {
+                                    setCustomPeriod('');
+                                }
                             }}
                             disabled={loading}
                         >
@@ -1144,12 +1135,48 @@ if num_positions == 0:
                         </div>
                     </div>
 
+                    <div className="search-filter-container">
+                        <input
+                            type="text"
+                            className="search-box"
+                            placeholder="🔍 Search by asset name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <div className="filter-buttons">
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'all' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('all')}
+                            >
+                                All Models
+                            </button>
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'active' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('active')}
+                            >
+                                Active
+                            </button>
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'paused' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('paused')}
+                            >
+                                Paused
+                            </button>
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'unsaved' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('unsaved')}
+                            >
+                                Unsaved
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="category-filter">
                         <button 
                             className={selectedCategory === 'all' ? 'active' : ''}
                             onClick={() => setSelectedCategory('all')}
                         >
-                            All ({mssData.length})
+                            All ({filteredData.length})
                         </button>
                         <button 
                             className={selectedCategory === 'stable' ? 'active' : ''}
@@ -1289,9 +1316,8 @@ if num_positions == 0:
                     <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
                 </div>
             )}
-                    </div>
-                </div>
-            </div>
+        </div>
+        </div>
         </div>
     );
 }
