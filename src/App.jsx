@@ -86,6 +86,7 @@ import SnowAITradingSim from './components/trading_sim.jsx';
 import SnowAIForwardTestingEngine from './components/forward_test.jsx';
 import SnowAIIDE from './components/ide.jsx';
 import NeuroLink from './components/neuro.jsx';
+import SnowAISandbox from './components/sandbox.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -583,6 +584,12 @@ function App() {
             <Route path='/neuro_link' element={
               <ProtectedRoute>
                 <NeuroLink />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/sandbox' element={
+              <ProtectedRoute>
+                <SnowAISandbox />
               </ProtectedRoute>
             } />
             
