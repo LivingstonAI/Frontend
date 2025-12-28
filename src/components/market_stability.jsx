@@ -535,6 +535,8 @@ export default function MarketStabilityScore() {
     const [customPeriod, setCustomPeriod] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [modelStatusFilter, setModelStatusFilter] = useState('all');
+    const [loadingVolume, setLoadingVolume] = useState(false);
+    const [volumeFilter, setVolumeFilter] = useState('all');
 
     useEffect(() => {
         fetchAssetLists();
@@ -853,6 +855,49 @@ if num_positions == 0:
         }
     };
 
+    const calculateRelativeVolume = async () => {
+        setLoadingVolume(true);
+        try {
+            const symbols = mssData.map(asset => asset.symbol);
+            
+            const response = await fetch(`${baseUrl}/api/mss-hyper-volumetric-relativistic-analyzer/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbols: symbols
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const enrichedData = mssData.map(asset => {
+                    const volumeData = data.volume_data.find(v => v.symbol === asset.symbol);
+                    return {
+                        ...asset,
+                        relativeVolume: volumeData?.relative_volume || null,
+                        volumeCategory: volumeData?.category || null,
+                        currentVolume: volumeData?.current_volume || null,
+                        avgVolume: volumeData?.avg_volume || null,
+                        highVolume: volumeData?.high_volume || null,
+                        lowVolume: volumeData?.low_volume || null
+                    };
+                });
+                setMssData(enrichedData);
+                alert('✅ Relative volume calculated successfully!');
+            } else {
+                alert('Error calculating relative volume: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to calculate relative volume. Please try again.');
+        } finally {
+            setLoadingVolume(false);
+        }
+    };
+
     const filteredData = mssData.filter(item => {
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -871,6 +916,12 @@ if num_positions == 0:
                 return false;
             }
         }
+
+        if (volumeFilter !== 'all' && item.volumeCategory) {
+            if (volumeFilter !== item.volumeCategory) {
+                return false;
+            }
+        }
         
         if (selectedCategory === 'all') return true;
         return item.category === selectedCategory;
@@ -880,9 +931,10 @@ if num_positions == 0:
     const choppyAssets = filteredData.filter(item => item.category === 'choppy');
     const volatileAssets = filteredData.filter(item => item.category === 'volatile');
 
+    const hasVolumeData = mssData.some(item => item.relativeVolume !== null && item.relativeVolume !== undefined);
+
     return (
         <div>
-            <style>{styles}</style>
             <div className="header">
                 <Header />
             </div>
@@ -1035,6 +1087,44 @@ if num_positions == 0:
                                 💾 Unsaved
                             </button>
                         </div>
+                        <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                            <button
+                                className="mss-calculate-btn"
+                                onClick={calculateRelativeVolume}
+                                disabled={loadingVolume}
+                                style={{ padding: '12px 24px', fontSize: '14px' }}
+                            >
+                                {loadingVolume ? '📊 Calculating Volume...' : '📊 Calculate Relative Volume'}
+                            </button>
+                            {hasVolumeData && (
+                                <>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('all')}
+                                    >
+                                        All Volume
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'high' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('high')}
+                                    >
+                                        🔥 High Volume
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'average' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('average')}
+                                    >
+                                        📊 Average Volume
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'low' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('low')}
+                                    >
+                                        💤 Low Volume
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     <div className="category-filter">
@@ -1148,6 +1238,37 @@ if num_positions == 0:
                                         </span>
                                     </div>
                                 </div>
+                                {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
+                                    <div style={{ 
+                                        background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
+                                                   asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
+                                                   'rgba(59, 130, 246, 0.1)',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '18px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
+                                                Relative Volume:
+                                            </span>
+                                            <span style={{ 
+                                                fontSize: '15px', 
+                                                fontWeight: 700,
+                                                color: asset.volumeCategory === 'high' ? '#059669' : 
+                                                       asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                            }}>
+                                                {asset.relativeVolume}x
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                            Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
+                                        </div>
+                                        <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
+                                            {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
+                                            {asset.volumeCategory?.toUpperCase()} VOLUME
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="card-details">
                                     <div className="detail-item">
                                         <span>Norm. Volatility:</span>
