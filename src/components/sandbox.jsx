@@ -164,8 +164,14 @@ const styles = `
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
 .start-training-btn {
-    width: 100%;
+    flex: 1;
     padding: 16px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
@@ -176,7 +182,6 @@ const styles = `
     cursor: pointer;
     transition: all 0.3s;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    margin-top: 20px;
 }
 
 .start-training-btn:hover:not(:disabled) {
@@ -186,6 +191,41 @@ const styles = `
 
 .start-training-btn:disabled {
     opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.control-btn {
+    padding: 16px 30px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: white;
+}
+
+.pause-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.resume-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.checkpoint-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.control-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.control-btn:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
@@ -222,6 +262,11 @@ const styles = `
     border-left: 4px solid #3b82f6;
 }
 
+.training-status.paused {
+    background: #fef3c7;
+    border-left-color: #f59e0b;
+}
+
 .status-text {
     color: #1e40af;
     font-weight: 600;
@@ -253,6 +298,69 @@ const styles = `
     font-size: 24px;
     font-weight: 700;
     color: #3b82f6;
+}
+
+.checkpoint-section {
+    background: #f3f4f6;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.checkpoint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.checkpoint-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+.checkpoint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.checkpoint-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dbeafe;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.checkpoint-info {
+    flex: 1;
+}
+
+.checkpoint-id {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 5px;
+}
+
+.checkpoint-details {
+    font-size: 14px;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.load-checkpoint-btn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .results-section {
@@ -376,6 +484,27 @@ const styles = `
     margin-right: 10px;
 }
 
+.alert-box {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
+}
+
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+}
+
 @media (max-width: 768px) {
     .sandbox-wrapper {
         padding: 10px;
@@ -408,6 +537,10 @@ const styles = `
     .upload-zone {
         padding: 30px 20px;
     }
+
+    .button-group {
+        flex-direction: column;
+    }
 }
 `;
 
@@ -417,11 +550,16 @@ export default function SnowAISandbox() {
     const [files, setFiles] = useState([]);
     const [dragging, setDragging] = useState(false);
     const [training, setTraining] = useState(false);
+    const [paused, setPaused] = useState(false);
     const [progress, setProgress] = useState(0);
     const [currentStatus, setCurrentStatus] = useState('');
     const [sessionId, setSessionId] = useState(null);
     const [results, setResults] = useState(null);
     const [logs, setLogs] = useState([]);
+    const [currentIteration, setCurrentIteration] = useState(0);
+    const [canCheckpoint, setCanCheckpoint] = useState(false);
+    const [checkpoints, setCheckpoints] = useState([]);
+    const [selectedCheckpoint, setSelectedCheckpoint] = useState(null);
     
     const [config, setConfig] = useState({
         initial_equity: 10000,
@@ -430,6 +568,22 @@ export default function SnowAISandbox() {
         take_profit: 4,
         stop_loss: 2,
     });
+
+    useEffect(() => {
+        loadCheckpoints();
+    }, []);
+
+    const loadCheckpoints = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai-sandbox/checkpoints/`);
+            const data = await response.json();
+            if (data.checkpoints) {
+                setCheckpoints(data.checkpoints);
+            }
+        } catch (error) {
+            console.error('Error loading checkpoints:', error);
+        }
+    };
 
     const handleDragEnter = (e) => {
         e.preventDefault();
@@ -473,13 +627,14 @@ export default function SnowAISandbox() {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const startTraining = async () => {
-        if (files.length === 0) {
-            alert('Please upload at least one CSV file');
+    const startTraining = async (checkpointId = null) => {
+        if (files.length === 0 && !checkpointId) {
+            alert('Please upload at least one CSV file or select a checkpoint');
             return;
         }
 
         setTraining(true);
+        setPaused(false);
         setProgress(0);
         setLogs([]);
         setResults(null);
@@ -490,6 +645,11 @@ export default function SnowAISandbox() {
             formData.append('files', file);
         });
         formData.append('config', JSON.stringify(config));
+        
+        if (checkpointId) {
+            formData.append('checkpoint_id', checkpointId);
+            addLog(`📦 Loading checkpoint: ${checkpointId.substring(0, 8)}...`);
+        }
 
         try {
             const response = await fetch(`${baseUrl}/api/snowai-sandbox/train/`, {
@@ -513,6 +673,60 @@ export default function SnowAISandbox() {
         }
     };
 
+    const pauseTraining = async () => {
+        if (!sessionId) return;
+
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai-sandbox/pause/${sessionId}/`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.message) {
+                setPaused(true);
+                addLog('⏸️ Training paused');
+            }
+        } catch (error) {
+            addLog('❌ Error pausing: ' + error.message);
+        }
+    };
+
+    const resumeTraining = async () => {
+        if (!sessionId) return;
+
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai-sandbox/resume/${sessionId}/`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.message) {
+                setPaused(false);
+                addLog('▶️ Training resumed');
+            }
+        } catch (error) {
+            addLog('❌ Error resuming: ' + error.message);
+        }
+    };
+
+    const saveCheckpoint = async () => {
+        if (!sessionId) return;
+
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai-sandbox/checkpoint/${sessionId}/`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            
+            if (data.checkpoint_id) {
+                addLog(`💾 Checkpoint saved: ${data.checkpoint_id.substring(0, 8)}...`);
+                loadCheckpoints();
+            }
+        } catch (error) {
+            addLog('❌ Error saving checkpoint: ' + error.message);
+        }
+    };
+
     const pollTrainingStatus = async (id) => {
         const interval = setInterval(async () => {
             try {
@@ -521,9 +735,16 @@ export default function SnowAISandbox() {
 
                 setProgress(data.progress || 0);
                 setCurrentStatus(data.status || '');
+                setCurrentIteration(data.current_iteration || 0);
+                setCanCheckpoint(data.can_checkpoint || false);
+                setPaused(data.paused || false);
                 
-                if (data.log) {
-                    addLog(data.log);
+                if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(log => {
+                        if (!logs.some(l => l.message === log)) {
+                            addLog(log);
+                        }
+                    });
                 }
 
                 if (data.completed) {
@@ -572,6 +793,37 @@ export default function SnowAISandbox() {
                             <h1>❄️ SnowAI Sandbox</h1>
                             <p>Upload your market data and let AI discover the best trading function combinations through evolutionary learning</p>
                         </div>
+
+                        {/* Checkpoint Section */}
+                        {checkpoints.length > 0 && (
+                            <div className="sandbox-card">
+                                <h2 className="card-title">💾 Load Previous Training</h2>
+                                <div className="alert-box alert-info">
+                                    <span>ℹ️</span>
+                                    <span>Resume training from a saved checkpoint with new data or continue where you left off</span>
+                                </div>
+                                <div className="checkpoint-list">
+                                    {checkpoints.map((checkpoint, idx) => (
+                                        <div key={idx} className="checkpoint-item">
+                                            <div className="checkpoint-info">
+                                                <div className="checkpoint-id">ID: {checkpoint.id.substring(0, 16)}...</div>
+                                                <div className="checkpoint-details">
+                                                    Iteration: {checkpoint.iteration} | Population: {checkpoint.population_size} | 
+                                                    TP: {checkpoint.config.take_profit}% | SL: {checkpoint.config.stop_loss}%
+                                                </div>
+                                            </div>
+                                            <button 
+                                                className="load-checkpoint-btn"
+                                                onClick={() => startTraining(checkpoint.id)}
+                                                disabled={training}
+                                            >
+                                                Load & Continue
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* File Upload */}
                         <div className="sandbox-card">
@@ -668,14 +920,47 @@ export default function SnowAISandbox() {
                                 </div>
                             </div>
 
-                            <button 
-                                className="start-training-btn"
-                                onClick={startTraining}
-                                disabled={training || files.length === 0}
-                            >
-                                {training ? '🔄 Training in Progress...' : '🚀 Start AI Training'}
-                            </button>
+                            <div className="button-group">
+                                <button 
+                                    className="start-training-btn"
+                                    onClick={() => startTraining()}
+                                    disabled={training || files.length === 0}
+                                >
+                                    {training ? '🔄 Training in Progress...' : '🚀 Start AI Training'}
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Training Controls */}
+                        {training && (
+                            <div className="sandbox-card">
+                                <h2 className="card-title">🎮 Training Controls</h2>
+                                <div className="button-group">
+                                    {!paused ? (
+                                        <button 
+                                            className="control-btn pause-btn"
+                                            onClick={pauseTraining}
+                                        >
+                                            ⏸️ Pause Training
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            className="control-btn resume-btn"
+                                            onClick={resumeTraining}
+                                        >
+                                            ▶️ Resume Training
+                                        </button>
+                                    )}
+                                    <button 
+                                        className="control-btn checkpoint-btn"
+                                        onClick={saveCheckpoint}
+                                        disabled={!canCheckpoint}
+                                    >
+                                        💾 Save Checkpoint
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Training Progress */}
                         {training && (
@@ -688,16 +973,24 @@ export default function SnowAISandbox() {
                                         </div>
                                     </div>
 
-                                    <div className="training-status">
-                                        <div className="status-text">{currentStatus}</div>
+                                    <div className={`training-status ${paused ? 'paused' : ''}`}>
+                                        <div className="status-text">
+                                            {paused ? '⏸️ PAUSED' : currentStatus}
+                                        </div>
                                         <div className="live-metrics">
                                             <div className="metric-box">
                                                 <div className="metric-label">Iteration</div>
-                                                <div className="metric-value">{Math.floor(progress)}</div>
+                                                <div className="metric-value">{currentIteration}</div>
                                             </div>
                                             <div className="metric-box">
                                                 <div className="metric-label">Files</div>
                                                 <div className="metric-value">{files.length}</div>
+                                            </div>
+                                            <div className="metric-box">
+                                                <div className="metric-label">Status</div>
+                                                <div className="metric-value" style={{fontSize: '16px'}}>
+                                                    {paused ? '⏸️' : '▶️'}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -719,6 +1012,10 @@ export default function SnowAISandbox() {
                         {results && (
                             <>
                                 <div className="sandbox-card">
+                                    <div className="alert-box alert-success">
+                                        <span>✅</span>
+                                        <span>Training completed! You can save a checkpoint to resume with different data later.</span>
+                                    </div>
                                     <h2 className="card-title">🏆 Top Performing Strategies</h2>
                                     <div className="results-grid">
                                         {results.top_strategies?.map((strategy, index) => (
