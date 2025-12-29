@@ -754,6 +754,11 @@ export default function MarketStabilityScore() {
 
     const calculateMSS = async () => {
         setLoading(true);
+        setSectorData(null);
+        setShowSectorAnalysis(false);
+        setSelectedStock(null);
+        setStockVsSectorData(null);
+        
         try {
             let symbols = [];
             
@@ -799,14 +804,20 @@ export default function MarketStabilityScore() {
                                 `${baseUrl}/api/detect-trend/?symbol=${asset.symbol}&period=20`
                             );
                             const trendData = await trendResponse.json();
+                            
+                            const stockSymbol = asset.symbol;
+                            const sector = await getSectorForStock(stockSymbol);
+                            
                             return {
                                 ...asset,
-                                trend: trendData.trend || 'unknown'
+                                trend: trendData.trend || 'unknown',
+                                sector: sector
                             };
                         } catch (error) {
                             return {
                                 ...asset,
-                                trend: 'unknown'
+                                trend: 'unknown',
+                                sector: null
                             };
                         }
                     })
@@ -820,6 +831,16 @@ export default function MarketStabilityScore() {
             alert('Failed to calculate MSS. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const getSectorForStock = async (symbol) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/mss-stock-sector-identifier/?symbol=${symbol}`);
+            const data = await response.json();
+            return data.sector || null;
+        } catch (error) {
+            return null;
         }
     };
 
@@ -1428,7 +1449,11 @@ if num_positions == 0:
                             <div className="sector-filters">
                                 <button
                                     className={`sector-filter-btn ${selectedSector === 'all' ? 'active' : ''}`}
-                                    onClick={() => setSelectedSector('all')}
+                                    onClick={() => {
+                                        setSelectedSector('all');
+                                        setSelectedStock(null);
+                                        setStockVsSectorData(null);
+                                    }}
                                 >
                                     All Sectors
                                 </button>
@@ -1436,7 +1461,11 @@ if num_positions == 0:
                                     <button
                                         key={sector.sector}
                                         className={`sector-filter-btn ${selectedSector === sector.sector ? 'active' : ''}`}
-                                        onClick={() => setSelectedSector(sector.sector)}
+                                        onClick={() => {
+                                            setSelectedSector(sector.sector);
+                                            setSelectedStock(null);
+                                            setStockVsSectorData(null);
+                                        }}
                                     >
                                         {sector.sector} ({sector.avg_return >= 0 ? '+' : ''}{sector.avg_return.toFixed(1)}%)
                                     </button>
@@ -1444,38 +1473,43 @@ if num_positions == 0:
                             </div>
 
                             <div className="sector-charts-grid">
-                                {sectorData.sector_timeseries?.map(sectorTS => (
+                                {sectorData.sector_timeseries
+                                    ?.filter(sectorTS => selectedSector === 'all' || sectorTS.sector === selectedSector)
+                                    .map(sectorTS => (
                                     <div key={sectorTS.sector} className="sector-chart-container">
                                         <div className="sector-chart-title">
-                                            {sectorTS.sector} - Performance Over Time
+                                            {sectorTS.sector} - Market Cap Weighted Performance
                                         </div>
-                                        <ResponsiveContainer width="100%" height={300}>
+                                        <ResponsiveContainer width="100%" height={280}>
                                             <LineChart data={sectorTS.data}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis 
                                                     dataKey="date" 
                                                     stroke="#6b7280"
-                                                    style={{ fontSize: '11px' }}
+                                                    style={{ fontSize: '10px' }}
+                                                    interval="preserveStartEnd"
                                                 />
                                                 <YAxis 
                                                     stroke="#6b7280"
-                                                    style={{ fontSize: '11px' }}
-                                                    label={{ value: 'Cumulative Return %', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
+                                                    style={{ fontSize: '10px' }}
+                                                    label={{ value: 'Index Value', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
+                                                    width={45}
                                                 />
                                                 <Tooltip 
                                                     contentStyle={{ 
                                                         background: 'white', 
                                                         border: '2px solid #2563eb',
                                                         borderRadius: '8px',
-                                                        padding: '10px'
+                                                        padding: '8px',
+                                                        fontSize: '12px'
                                                     }}
                                                 />
                                                 <Line 
                                                     type="monotone" 
-                                                    dataKey="return" 
+                                                    dataKey="index" 
                                                     stroke="#2563eb" 
                                                     strokeWidth={3}
-                                                    name="Return %"
+                                                    name="Sector Index"
                                                     dot={false}
                                                 />
                                             </LineChart>
@@ -1641,7 +1675,7 @@ if num_positions == 0:
                                                 {savingModels[asset.symbol] ? '💾 Saving...' : '💾 Save Model'}
                                             </button>
                                         )}
-                                        {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && sectorData && (
+                                        {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && sectorData && asset.sector && (
                                             <button
                                                 className="chart-link"
                                                 onClick={() => compareStockToSector(asset.symbol)}
@@ -1735,7 +1769,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-        </div>
+         </div>
         </div>
     );
 }
