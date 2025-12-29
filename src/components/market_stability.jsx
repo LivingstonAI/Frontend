@@ -294,19 +294,17 @@ const styles = `
 
 .card-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
     margin-bottom: 12px;
-    gap: 10px;
 }
 
 .card-header-left {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
 }
 
 .card-header h4 {
-    margin: 0;
+    margin: 0 0 8px 0;
     font-size: 22px;
     color: #1e40af;
     font-weight: 700;
@@ -316,6 +314,7 @@ const styles = `
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .chart-link {
@@ -573,8 +572,23 @@ const styles = `
     background: #f8fafc;
     padding: 20px;
     border-radius: 12px;
+    margin-bottom: 20px;
+    min-height: 350px;
+}
+
+.sector-chart-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.sector-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 25px;
     margin-bottom: 25px;
-    height: 400px;
 }
 
 .sector-stats-grid {
@@ -632,6 +646,28 @@ const styles = `
     height: 350px;
 }
 
+.loading-comparison {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    background: white;
+    border-radius: 10px;
+}
+
+.loading-comparison .spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+}
+
+.loading-comparison p {
+    margin-top: 15px;
+    color: #1e40af;
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     .mss-wrapper {
         padding: 10px;
@@ -680,6 +716,7 @@ export default function MarketStabilityScore() {
     const [selectedSector, setSelectedSector] = useState('all');
     const [selectedStock, setSelectedStock] = useState(null);
     const [stockVsSectorData, setStockVsSectorData] = useState(null);
+    const [loadingStockComparison, setLoadingStockComparison] = useState(false);
 
     useEffect(() => {
         fetchAssetLists();
@@ -1076,6 +1113,10 @@ if num_positions == 0:
     };
 
     const compareStockToSector = async (symbol) => {
+        setLoadingStockComparison(true);
+        setSelectedStock(symbol);
+        setStockVsSectorData(null);
+        
         try {
             const response = await fetch(`${baseUrl}/api/mss-stock-sector-relativistic-performance-comparator/`, {
                 method: 'POST',
@@ -1090,14 +1131,17 @@ if num_positions == 0:
             const data = await response.json();
             
             if (data.success) {
-                setSelectedStock(symbol);
                 setStockVsSectorData(data);
             } else {
                 alert('Error comparing stock: ' + data.error);
+                setSelectedStock(null);
             }
         } catch (error) {
             console.error('Error:', error);
             alert('Failed to compare stock. Please try again.');
+            setSelectedStock(null);
+        } finally {
+            setLoadingStockComparison(false);
         }
     };
 
@@ -1399,50 +1443,48 @@ if num_positions == 0:
                                 ))}
                             </div>
 
-                            <div className="sector-chart-container">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={sectorData.sector_performance}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                        <XAxis 
-                                            dataKey="sector" 
-                                            stroke="#6b7280"
-                                            style={{ fontSize: '12px' }}
-                                        />
-                                        <YAxis 
-                                            stroke="#6b7280"
-                                            style={{ fontSize: '12px' }}
-                                            label={{ value: 'Performance %', angle: -90, position: 'insideLeft' }}
-                                        />
-                                        <Tooltip 
-                                            contentStyle={{ 
-                                                background: 'white', 
-                                                border: '2px solid #2563eb',
-                                                borderRadius: '8px',
-                                                padding: '10px'
-                                            }}
-                                        />
-                                        <Legend />
-                                        <Line 
-                                            type="monotone" 
-                                            dataKey="avg_return" 
-                                            stroke="#2563eb" 
-                                            strokeWidth={3}
-                                            name="Avg Return %"
-                                            dot={{ fill: '#2563eb', r: 5 }}
-                                        />
-                                        <Line 
-                                            type="monotone" 
-                                            dataKey="relative_strength" 
-                                            stroke="#10b981" 
-                                            strokeWidth={2}
-                                            name="Relative Strength"
-                                            dot={{ fill: '#10b981', r: 4 }}
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                            <div className="sector-charts-grid">
+                                {sectorData.sector_timeseries?.map(sectorTS => (
+                                    <div key={sectorTS.sector} className="sector-chart-container">
+                                        <div className="sector-chart-title">
+                                            {sectorTS.sector} - Performance Over Time
+                                        </div>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <LineChart data={sectorTS.data}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '11px' }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '11px' }}
+                                                    label={{ value: 'Cumulative Return %', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        background: 'white', 
+                                                        border: '2px solid #2563eb',
+                                                        borderRadius: '8px',
+                                                        padding: '10px'
+                                                    }}
+                                                />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="return" 
+                                                    stroke="#2563eb" 
+                                                    strokeWidth={3}
+                                                    name="Return %"
+                                                    dot={false}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                ))}
                             </div>
 
-                            {stockVsSectorData && selectedStock && (
+                            {selectedStock && (
                                 <div className="stock-comparison-container">
                                     <div className="stock-comparison-header">
                                         <h3>📈 {selectedStock} vs {stockVsSectorData.sector} Sector</h3>
@@ -1693,7 +1735,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-         </div>
+        </div>
         </div>
     );
 }
