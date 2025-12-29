@@ -1523,6 +1523,7 @@ if num_positions == 0:
                                                             style={{ fontSize: '10px' }}
                                                             label={{ value: '% Change', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
                                                             width={50}
+                                                            domain={['auto', 'auto']}
                                                         />
                                                         <Tooltip 
                                                             contentStyle={{ 
@@ -1799,7 +1800,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-           </div>
-           </div>
+         </div>
+         </div>
     );
 }
