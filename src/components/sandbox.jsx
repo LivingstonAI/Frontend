@@ -739,12 +739,10 @@ export default function SnowAISandbox() {
                 setCanCheckpoint(data.can_checkpoint || false);
                 setPaused(data.paused || false);
                 
-                // Only update logs if not paused
+                // Add only new logs from backend
                 if (!data.paused && data.logs && data.logs.length > 0) {
                     data.logs.forEach(log => {
-                        if (!logs.some(l => l.message === log)) {
-                            addLog(log);
-                        }
+                        addLog(log);
                     });
                 }
 
