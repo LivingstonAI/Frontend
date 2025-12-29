@@ -641,9 +641,23 @@ const styles = `
 
 .comparison-chart {
     background: white;
-    padding: 20px;
+    padding: 15px;
     border-radius: 10px;
-    height: 350px;
+    min-height: 320px;
+}
+
+.comparison-dual-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 968px) {
+    .comparison-dual-charts {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
 }
 
 .loading-comparison {
@@ -1134,6 +1148,13 @@ if num_positions == 0:
     };
 
     const compareStockToSector = async (symbol) => {
+        const asset = mssData.find(a => a.symbol === symbol);
+        
+        if (!asset || !asset.sector) {
+            alert('Cannot compare: Sector information not available for this stock.');
+            return;
+        }
+        
         setLoadingStockComparison(true);
         setSelectedStock(symbol);
         setStockVsSectorData(null);
@@ -1475,47 +1496,56 @@ if num_positions == 0:
                             <div className="sector-charts-grid">
                                 {sectorData.sector_timeseries
                                     ?.filter(sectorTS => selectedSector === 'all' || sectorTS.sector === selectedSector)
-                                    .map(sectorTS => (
-                                    <div key={sectorTS.sector} className="sector-chart-container">
-                                        <div className="sector-chart-title">
-                                            {sectorTS.sector} - Market Cap Weighted Performance
-                                        </div>
-                                        <ResponsiveContainer width="100%" height={280}>
-                                            <LineChart data={sectorTS.data}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                <XAxis 
-                                                    dataKey="date" 
-                                                    stroke="#6b7280"
-                                                    style={{ fontSize: '10px' }}
-                                                    interval="preserveStartEnd"
-                                                />
-                                                <YAxis 
-                                                    stroke="#6b7280"
-                                                    style={{ fontSize: '10px' }}
-                                                    label={{ value: 'Index Value', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
-                                                    width={45}
-                                                />
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        background: 'white', 
-                                                        border: '2px solid #2563eb',
-                                                        borderRadius: '8px',
-                                                        padding: '8px',
-                                                        fontSize: '12px'
-                                                    }}
-                                                />
-                                                <Line 
-                                                    type="monotone" 
-                                                    dataKey="index" 
-                                                    stroke="#2563eb" 
-                                                    strokeWidth={3}
-                                                    name="Sector Index"
-                                                    dot={false}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                ))}
+                                    .map(sectorTS => {
+                                        // Calculate percentage change from baseline for better visualization
+                                        const baselineValue = sectorTS.data[0]?.index || 100;
+                                        const enhancedData = sectorTS.data.map(point => ({
+                                            ...point,
+                                            change_pct: ((point.index - baselineValue) / baselineValue * 100).toFixed(2)
+                                        }));
+                                        
+                                        return (
+                                            <div key={sectorTS.sector} className="sector-chart-container">
+                                                <div className="sector-chart-title">
+                                                    {sectorTS.sector} - Market Cap Weighted Performance
+                                                </div>
+                                                <ResponsiveContainer width="100%" height={280}>
+                                                    <LineChart data={enhancedData}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                        <XAxis 
+                                                            dataKey="date" 
+                                                            stroke="#6b7280"
+                                                            style={{ fontSize: '10px' }}
+                                                            interval="preserveStartEnd"
+                                                        />
+                                                        <YAxis 
+                                                            stroke="#6b7280"
+                                                            style={{ fontSize: '10px' }}
+                                                            label={{ value: '% Change', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
+                                                            width={50}
+                                                        />
+                                                        <Tooltip 
+                                                            contentStyle={{ 
+                                                                background: 'white', 
+                                                                border: '2px solid #2563eb',
+                                                                borderRadius: '8px',
+                                                                padding: '8px',
+                                                                fontSize: '12px'
+                                                            }}
+                                                        />
+                                                        <Line 
+                                                            type="monotone" 
+                                                            dataKey="change_pct" 
+                                                            stroke="#2563eb" 
+                                                            strokeWidth={3}
+                                                            name="% Change"
+                                                            dot={false}
+                                                        />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        );
+                                    })}
                             </div>
 
                             {selectedStock && (
@@ -1769,7 +1799,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-         </div>
-        </div>
+           </div>
+           </div>
     );
 }
