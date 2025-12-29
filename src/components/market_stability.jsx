@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -501,6 +502,136 @@ const styles = `
     color: #6b7280;
 }
 
+.sector-analysis-container {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+}
+
+.sector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.sector-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.sector-close-btn {
+    padding: 8px 16px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sector-close-btn:hover {
+    background: #dc2626;
+}
+
+.sector-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.sector-filter-btn {
+    padding: 10px 20px;
+    border: 2px solid #dbeafe;
+    background: white;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #1e40af;
+}
+
+.sector-filter-btn:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.sector-filter-btn.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.sector-chart-container {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    height: 400px;
+}
+
+.sector-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.sector-stat-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.sector-stat-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.sector-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+.stock-comparison-container {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 25px;
+}
+
+.stock-comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.stock-comparison-header h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.comparison-chart {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    height: 350px;
+}
+
 @media (max-width: 768px) {
     .mss-wrapper {
         padding: 10px;
@@ -513,6 +644,12 @@ const styles = `
     }
     .card-metrics {
         grid-template-columns: 1fr;
+    }
+    .sector-chart-container {
+        height: 300px;
+    }
+    .comparison-chart {
+        height: 250px;
     }
 }
 `;
@@ -537,6 +674,12 @@ export default function MarketStabilityScore() {
     const [modelStatusFilter, setModelStatusFilter] = useState('all');
     const [loadingVolume, setLoadingVolume] = useState(false);
     const [volumeFilter, setVolumeFilter] = useState('all');
+    const [showSectorAnalysis, setShowSectorAnalysis] = useState(false);
+    const [sectorData, setSectorData] = useState(null);
+    const [loadingSectors, setLoadingSectors] = useState(false);
+    const [selectedSector, setSelectedSector] = useState('all');
+    const [selectedStock, setSelectedStock] = useState(null);
+    const [stockVsSectorData, setStockVsSectorData] = useState(null);
 
     useEffect(() => {
         fetchAssetLists();
@@ -898,6 +1041,66 @@ if num_positions == 0:
         }
     };
 
+    const analyzeSectorPerformance = async () => {
+        setLoadingSectors(true);
+        try {
+            const stockSymbols = mssData
+                .filter(asset => !asset.symbol.includes('=') && !asset.symbol.startsWith('^'))
+                .map(asset => asset.symbol);
+            
+            const response = await fetch(`${baseUrl}/api/mss-quantum-sector-momentum-flux-analyzer/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbols: stockSymbols
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                setSectorData(data);
+                setShowSectorAnalysis(true);
+                alert('✅ Sector analysis complete!');
+            } else {
+                alert('Error analyzing sectors: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to analyze sectors. Please try again.');
+        } finally {
+            setLoadingSectors(false);
+        }
+    };
+
+    const compareStockToSector = async (symbol) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/mss-stock-sector-relativistic-performance-comparator/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbol: symbol
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                setSelectedStock(symbol);
+                setStockVsSectorData(data);
+            } else {
+                alert('Error comparing stock: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to compare stock. Please try again.');
+        }
+    };
+
     const filteredData = mssData.filter(item => {
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -922,6 +1125,12 @@ if num_positions == 0:
                 return false;
             }
         }
+
+        if (selectedSector !== 'all' && item.sector) {
+            if (selectedSector !== item.sector) {
+                return false;
+            }
+        }
         
         if (selectedCategory === 'all') return true;
         return item.category === selectedCategory;
@@ -935,6 +1144,7 @@ if num_positions == 0:
 
     return (
         <div>
+            <style>{styles}</style>
             <div className="header">
                 <Header />
             </div>
@@ -1096,6 +1306,16 @@ if num_positions == 0:
                             >
                                 {loadingVolume ? '📊 Calculating Volume...' : '📊 Calculate Relative Volume'}
                             </button>
+                            {selectedAssetClass === 'stocks' && (
+                                <button
+                                    className="mss-calculate-btn"
+                                    onClick={analyzeSectorPerformance}
+                                    disabled={loadingSectors}
+                                    style={{ padding: '12px 24px', fontSize: '14px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+                                >
+                                    {loadingSectors ? '🎯 Analyzing Sectors...' : '🎯 Analyze Sectors'}
+                                </button>
+                            )}
                             {hasVolumeData && (
                                 <>
                                     <button
@@ -1126,6 +1346,169 @@ if num_positions == 0:
                             )}
                         </div>
                     </div>
+
+                    {showSectorAnalysis && sectorData && (
+                        <div className="sector-analysis-container">
+                            <div className="sector-header">
+                                <h2>📊 Sector Performance Analysis</h2>
+                                <button className="sector-close-btn" onClick={() => setShowSectorAnalysis(false)}>
+                                    ✕ Close
+                                </button>
+                            </div>
+
+                            <div className="sector-stats-grid">
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Total Sectors</div>
+                                    <div className="sector-stat-value">{sectorData.sector_performance?.length || 0}</div>
+                                </div>
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Strongest Sector</div>
+                                    <div className="sector-stat-value" style={{ fontSize: '16px' }}>
+                                        {sectorData.sector_performance?.[0]?.sector || 'N/A'}
+                                    </div>
+                                </div>
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Avg Sector Return</div>
+                                    <div className="sector-stat-value" style={{ color: sectorData.overall_avg_return >= 0 ? '#059669' : '#dc2626' }}>
+                                        {sectorData.overall_avg_return?.toFixed(2)}%
+                                    </div>
+                                </div>
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Total Money Flow</div>
+                                    <div className="sector-stat-value" style={{ fontSize: '16px' }}>
+                                        ${(sectorData.total_volume_dollars / 1e9).toFixed(2)}B
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="sector-filters">
+                                <button
+                                    className={`sector-filter-btn ${selectedSector === 'all' ? 'active' : ''}`}
+                                    onClick={() => setSelectedSector('all')}
+                                >
+                                    All Sectors
+                                </button>
+                                {sectorData.sector_performance?.map(sector => (
+                                    <button
+                                        key={sector.sector}
+                                        className={`sector-filter-btn ${selectedSector === sector.sector ? 'active' : ''}`}
+                                        onClick={() => setSelectedSector(sector.sector)}
+                                    >
+                                        {sector.sector} ({sector.avg_return >= 0 ? '+' : ''}{sector.avg_return.toFixed(1)}%)
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="sector-chart-container">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={sectorData.sector_performance}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                        <XAxis 
+                                            dataKey="sector" 
+                                            stroke="#6b7280"
+                                            style={{ fontSize: '12px' }}
+                                        />
+                                        <YAxis 
+                                            stroke="#6b7280"
+                                            style={{ fontSize: '12px' }}
+                                            label={{ value: 'Performance %', angle: -90, position: 'insideLeft' }}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{ 
+                                                background: 'white', 
+                                                border: '2px solid #2563eb',
+                                                borderRadius: '8px',
+                                                padding: '10px'
+                                            }}
+                                        />
+                                        <Legend />
+                                        <Line 
+                                            type="monotone" 
+                                            dataKey="avg_return" 
+                                            stroke="#2563eb" 
+                                            strokeWidth={3}
+                                            name="Avg Return %"
+                                            dot={{ fill: '#2563eb', r: 5 }}
+                                        />
+                                        <Line 
+                                            type="monotone" 
+                                            dataKey="relative_strength" 
+                                            stroke="#10b981" 
+                                            strokeWidth={2}
+                                            name="Relative Strength"
+                                            dot={{ fill: '#10b981', r: 4 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {stockVsSectorData && selectedStock && (
+                                <div className="stock-comparison-container">
+                                    <div className="stock-comparison-header">
+                                        <h3>📈 {selectedStock} vs {stockVsSectorData.sector} Sector</h3>
+                                        <button 
+                                            className="sector-close-btn"
+                                            onClick={() => { setSelectedStock(null); setStockVsSectorData(null); }}
+                                        >
+                                            ✕ Close
+                                        </button>
+                                    </div>
+                                    <div className="comparison-chart">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={stockVsSectorData.comparison_data}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '11px' }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '11px' }}
+                                                    label={{ value: 'Return %', angle: -90, position: 'insideLeft' }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        background: 'white', 
+                                                        border: '2px solid #2563eb',
+                                                        borderRadius: '8px'
+                                                    }}
+                                                />
+                                                <Legend />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="stock_return" 
+                                                    stroke="#2563eb" 
+                                                    strokeWidth={2}
+                                                    name={selectedStock}
+                                                    dot={false}
+                                                />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="sector_return" 
+                                                    stroke="#ef4444" 
+                                                    strokeWidth={2}
+                                                    name={`${stockVsSectorData.sector} Sector`}
+                                                    dot={false}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '8px' }}>
+                                        <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
+                                            <strong>Stock Performance:</strong> {stockVsSectorData.stock_performance >= 0 ? '+' : ''}{stockVsSectorData.stock_performance.toFixed(2)}%
+                                        </p>
+                                        <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
+                                            <strong>Sector Performance:</strong> {stockVsSectorData.sector_performance >= 0 ? '+' : ''}{stockVsSectorData.sector_performance.toFixed(2)}%
+                                        </p>
+                                        <p style={{ margin: '5px 0', color: stockVsSectorData.outperformance >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
+                                            <strong>Outperformance:</strong> {stockVsSectorData.outperformance >= 0 ? '+' : ''}{stockVsSectorData.outperformance.toFixed(2)}%
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="category-filter">
                         <button 
@@ -1216,6 +1599,15 @@ if num_positions == 0:
                                                 {savingModels[asset.symbol] ? '💾 Saving...' : '💾 Save Model'}
                                             </button>
                                         )}
+                                        {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && sectorData && (
+                                            <button
+                                                className="chart-link"
+                                                onClick={() => compareStockToSector(asset.symbol)}
+                                                style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+                                            >
+                                                🎯 vs Sector
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -1301,7 +1693,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-        </div>
+         </div>
         </div>
     );
 }
