@@ -772,6 +772,7 @@ export default function MarketStabilityScore() {
         setShowSectorAnalysis(false);
         setSelectedStock(null);
         setStockVsSectorData(null);
+        setSelectedSector('all');
         
         try {
             let symbols = [];
@@ -1149,9 +1150,8 @@ if num_positions == 0:
 
     const compareStockToSector = async (symbol) => {
         const asset = mssData.find(a => a.symbol === symbol);
-        console.log(asset);
         
-        if (!asset) {
+        if (!asset || !asset.sector) {
             alert('Cannot compare: Sector information not available for this stock.');
             return;
         }
@@ -1159,7 +1159,6 @@ if num_positions == 0:
         setLoadingStockComparison(true);
         setSelectedStock(symbol);
         setStockVsSectorData(null);
-        console.log('Function still running...')
         
         try {
             const response = await fetch(`${baseUrl}/api/mss-stock-sector-relativistic-performance-comparator/`, {
@@ -1182,7 +1181,6 @@ if num_positions == 0:
             }
         } catch (error) {
             console.error('Error:', error);
-            console.log(error);
             alert('Failed to compare stock. Please try again.');
             setSelectedStock(null);
         } finally {
@@ -1531,44 +1529,45 @@ if num_positions == 0:
                                                         ({latestChange >= 0 ? '+' : ''}{latestChange.toFixed(2)}%)
                                                     </span>
                                                 </div>
-                                                <div style={{ width: '100%', height: '280px', overflow: 'hidden' }}>
-                                                    <ResponsiveContainer width="99%" height="100%">
+                                                <div style={{ width: '100%', height: '280px', overflow: 'hidden', position: 'relative' }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
                                                         <LineChart 
                                                             data={enhancedData} 
-                                                            margin={{ top: 5, right: 5, left: -5, bottom: 5 }}
+                                                            margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
                                                         >
                                                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                             <XAxis 
                                                                 dataKey="date" 
                                                                 stroke="#6b7280"
-                                                                style={{ fontSize: '9px' }}
+                                                                style={{ fontSize: '8px' }}
                                                                 interval="preserveStartEnd"
-                                                                tick={{ fontSize: 9 }}
+                                                                tick={{ fontSize: 8 }}
+                                                                height={30}
                                                             />
                                                             <YAxis 
                                                                 stroke="#6b7280"
-                                                                style={{ fontSize: '9px' }}
-                                                                label={{ value: '% Change', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
-                                                                width={35}
+                                                                style={{ fontSize: '8px' }}
+                                                                width={32}
                                                                 domain={[yMin, yMax]}
-                                                                tick={{ fontSize: 9 }}
+                                                                tick={{ fontSize: 8 }}
                                                             />
                                                             <Tooltip 
                                                                 contentStyle={{ 
                                                                     background: 'white', 
                                                                     border: '2px solid #2563eb',
                                                                     borderRadius: '8px',
-                                                                    padding: '8px',
-                                                                    fontSize: '11px'
+                                                                    padding: '6px',
+                                                                    fontSize: '10px'
                                                                 }}
                                                             />
                                                             <Line 
                                                                 type="monotone" 
                                                                 dataKey="change_pct" 
                                                                 stroke="#2563eb" 
-                                                                strokeWidth={2.5}
+                                                                strokeWidth={2}
                                                                 name="% Change"
                                                                 dot={false}
+                                                                isAnimationActive={false}
                                                             />
                                                         </LineChart>
                                                     </ResponsiveContainer>
@@ -1834,7 +1833,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-        </div>
-        </div>
+         </div>
+         </div>
     );
 }
