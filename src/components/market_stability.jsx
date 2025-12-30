@@ -1528,22 +1528,27 @@ if num_positions == 0:
                                                         ({latestChange >= 0 ? '+' : ''}{latestChange.toFixed(2)}%)
                                                     </span>
                                                 </div>
-                                                <div style={{ width: '100%', height: '280px' }}>
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <LineChart data={enhancedData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                <div style={{ width: '100%', height: '280px', overflow: 'hidden' }}>
+                                                    <ResponsiveContainer width="99%" height="100%">
+                                                        <LineChart 
+                                                            data={enhancedData} 
+                                                            margin={{ top: 5, right: 5, left: -5, bottom: 5 }}
+                                                        >
                                                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                             <XAxis 
                                                                 dataKey="date" 
                                                                 stroke="#6b7280"
                                                                 style={{ fontSize: '9px' }}
                                                                 interval="preserveStartEnd"
+                                                                tick={{ fontSize: 9 }}
                                                             />
                                                             <YAxis 
                                                                 stroke="#6b7280"
                                                                 style={{ fontSize: '9px' }}
                                                                 label={{ value: '% Change', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
-                                                                width={40}
+                                                                width={35}
                                                                 domain={[yMin, yMax]}
+                                                                tick={{ fontSize: 9 }}
                                                             />
                                                             <Tooltip 
                                                                 contentStyle={{ 
@@ -1672,7 +1677,7 @@ if num_positions == 0:
                                     <div className="card-header-left">
                                         <h4>{asset.symbol}</h4>
                                         {asset.sector && (
-                                            <span className="sector-name-badge">
+                                            <span className={`sector-name-badge sector-${asset.sector.replace(/\s+/g, '-')}`}>
                                                 🏢 {asset.sector}
                                             </span>
                                         )}
