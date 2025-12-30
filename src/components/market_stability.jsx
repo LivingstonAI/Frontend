@@ -1826,7 +1826,7 @@ if num_positions == 0:
                 </div>
             )}
         </div>
-         </div>
-         </div>
+        </div>
+        </div>
     );
 }
