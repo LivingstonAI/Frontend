@@ -1149,11 +1149,9 @@ if num_positions == 0:
 
     const compareStockToSector = async (symbol) => {
         const asset = mssData.find(a => a.symbol === symbol);
-
-        console.log('Starting comparison');
         console.log(asset);
         
-        if (!asset || !asset.sector) {
+        if (!asset) {
             alert('Cannot compare: Sector information not available for this stock.');
             return;
         }
@@ -1182,7 +1180,6 @@ if num_positions == 0:
                 setSelectedStock(null);
             }
         } catch (error) {
-            console.log(asset);
             console.error('Error:', error);
             alert('Failed to compare stock. Please try again.');
             setSelectedStock(null);
