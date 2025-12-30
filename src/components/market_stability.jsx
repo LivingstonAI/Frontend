@@ -1159,6 +1159,7 @@ if num_positions == 0:
         setLoadingStockComparison(true);
         setSelectedStock(symbol);
         setStockVsSectorData(null);
+        console.log('Function still running...')
         
         try {
             const response = await fetch(`${baseUrl}/api/mss-stock-sector-relativistic-performance-comparator/`, {
@@ -1181,6 +1182,7 @@ if num_positions == 0:
             }
         } catch (error) {
             console.error('Error:', error);
+            console.log(error);
             alert('Failed to compare stock. Please try again.');
             setSelectedStock(null);
         } finally {
