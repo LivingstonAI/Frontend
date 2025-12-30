@@ -1497,53 +1497,74 @@ if num_positions == 0:
                                 {sectorData.sector_timeseries
                                     ?.filter(sectorTS => selectedSector === 'all' || sectorTS.sector === selectedSector)
                                     .map(sectorTS => {
-                                        // Calculate percentage change from baseline for better visualization
+                                        // Calculate percentage change from baseline
                                         const baselineValue = sectorTS.data[0]?.index || 100;
                                         const enhancedData = sectorTS.data.map(point => ({
                                             ...point,
-                                            change_pct: ((point.index - baselineValue) / baselineValue * 100).toFixed(2)
+                                            change_pct: parseFloat(((point.index - baselineValue) / baselineValue * 100).toFixed(2))
                                         }));
+                                        
+                                        // Find min and max for proper Y-axis scaling
+                                        const values = enhancedData.map(d => d.change_pct);
+                                        const minValue = Math.min(...values);
+                                        const maxValue = Math.max(...values);
+                                        const range = maxValue - minValue;
+                                        const padding = range * 0.15; // 15% padding
+                                        const yMin = minValue - padding;
+                                        const yMax = maxValue + padding;
+                                        
+                                        // Get latest change
+                                        const latestChange = enhancedData[enhancedData.length - 1]?.change_pct || 0;
                                         
                                         return (
                                             <div key={sectorTS.sector} className="sector-chart-container">
                                                 <div className="sector-chart-title">
-                                                    {sectorTS.sector} - Market Cap Weighted Performance
+                                                    {sectorTS.sector} - Performance
+                                                    <span style={{ 
+                                                        marginLeft: '10px',
+                                                        color: latestChange >= 0 ? '#059669' : '#dc2626',
+                                                        fontWeight: 700
+                                                    }}>
+                                                        ({latestChange >= 0 ? '+' : ''}{latestChange.toFixed(2)}%)
+                                                    </span>
                                                 </div>
-                                                <ResponsiveContainer width="100%" height={280}>
-                                                    <LineChart data={enhancedData}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                        <XAxis 
-                                                            dataKey="date" 
-                                                            stroke="#6b7280"
-                                                            style={{ fontSize: '10px' }}
-                                                            interval="preserveStartEnd"
-                                                        />
-                                                        <YAxis 
-                                                            stroke="#6b7280"
-                                                            style={{ fontSize: '10px' }}
-                                                            label={{ value: '% Change', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
-                                                            width={50}
-                                                            domain={['auto', 'auto']}
-                                                        />
-                                                        <Tooltip 
-                                                            contentStyle={{ 
-                                                                background: 'white', 
-                                                                border: '2px solid #2563eb',
-                                                                borderRadius: '8px',
-                                                                padding: '8px',
-                                                                fontSize: '12px'
-                                                            }}
-                                                        />
-                                                        <Line 
-                                                            type="monotone" 
-                                                            dataKey="change_pct" 
-                                                            stroke="#2563eb" 
-                                                            strokeWidth={3}
-                                                            name="% Change"
-                                                            dot={false}
-                                                        />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
+                                                <div style={{ width: '100%', height: '280px' }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart data={enhancedData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                            <XAxis 
+                                                                dataKey="date" 
+                                                                stroke="#6b7280"
+                                                                style={{ fontSize: '9px' }}
+                                                                interval="preserveStartEnd"
+                                                            />
+                                                            <YAxis 
+                                                                stroke="#6b7280"
+                                                                style={{ fontSize: '9px' }}
+                                                                label={{ value: '% Change', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
+                                                                width={40}
+                                                                domain={[yMin, yMax]}
+                                                            />
+                                                            <Tooltip 
+                                                                contentStyle={{ 
+                                                                    background: 'white', 
+                                                                    border: '2px solid #2563eb',
+                                                                    borderRadius: '8px',
+                                                                    padding: '8px',
+                                                                    fontSize: '11px'
+                                                                }}
+                                                            />
+                                                            <Line 
+                                                                type="monotone" 
+                                                                dataKey="change_pct" 
+                                                                stroke="#2563eb" 
+                                                                strokeWidth={2.5}
+                                                                name="% Change"
+                                                                dot={false}
+                                                            />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -1650,6 +1671,11 @@ if num_positions == 0:
                                 <div className="card-header">
                                     <div className="card-header-left">
                                         <h4>{asset.symbol}</h4>
+                                        {asset.sector && (
+                                            <span className="sector-name-badge">
+                                                🏢 {asset.sector}
+                                            </span>
+                                        )}
                                         {asset.trend && (
                                             <span className={`trend-badge ${asset.trend}`}>
                                                 {asset.trend === 'uptrend' ? '📈 ' : asset.trend === 'downtrend' ? '📉 ' : '➡️ '}
