@@ -739,8 +739,8 @@ export default function SnowAISandbox() {
                 setCanCheckpoint(data.can_checkpoint || false);
                 setPaused(data.paused || false);
                 
-                // Add only new logs from backend
-                if (!data.paused && data.logs && data.logs.length > 0) {
+                // Add new logs from backend (backend only sends new ones)
+                if (data.logs && data.logs.length > 0) {
                     data.logs.forEach(log => {
                         addLog(log);
                     });
@@ -761,7 +761,7 @@ export default function SnowAISandbox() {
             } catch (error) {
                 console.error('Polling error:', error);
             }
-        }, 2000);
+        }, 1000); // Poll every 1 second for faster updates
     };
 
     const addLog = (message) => {
