@@ -1297,7 +1297,7 @@ if num_positions == 0:
         <div>
             <style>{styles}</style>
             <Header />
-            <div style={{ display: 'flex' }}>
+            <div>
                 <SideNavs />
                 <div className="mss-wrapper" style={{ flex: 1 }}>
                     <div className="mss-header">
