@@ -1595,7 +1595,7 @@ if num_positions == 0:
                     'Authorization': `Bearer ${OPENAI_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-o4-mini',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',
