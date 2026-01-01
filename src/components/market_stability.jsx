@@ -2516,6 +2516,5 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
                     )}
                 </div>
             </div>
-        </div>
     );
 }
