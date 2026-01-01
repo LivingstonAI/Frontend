@@ -4,6 +4,280 @@ import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const styles = `
+.ai-chatbot-orb {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb, #1e40af);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5), 0 0 60px rgba(37, 99, 235, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+.ai-chatbot-orb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 12px 48px rgba(37, 99, 235, 0.6), 0 0 80px rgba(37, 99, 235, 0.4);
+}
+
+.ai-chatbot-orb svg {
+    width: 35px;
+    height: 35px;
+    fill: white;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5), 0 0 60px rgba(37, 99, 235, 0.3);
+    }
+    50% {
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.7), 0 0 80px rgba(37, 99, 235, 0.5);
+    }
+}
+
+.ai-chatbot-panel {
+    position: fixed;
+    bottom: 120px;
+    right: 30px;
+    width: 400px;
+    max-height: 600px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ai-chatbot-header {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ai-chatbot-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.ai-chatbot-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ai-chatbot-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.ai-chatbot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f8fafc;
+}
+
+.ai-message {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ai-message.user {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    margin-left: 40px;
+}
+
+.ai-message.assistant {
+    margin-right: 40px;
+}
+
+.ai-chatbot-input-container {
+    padding: 15px;
+    background: white;
+    border-top: 2px solid #e5e7eb;
+    display: flex;
+    gap: 10px;
+}
+
+.ai-chatbot-input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #dbeafe;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.ai-chatbot-input:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.ai-chatbot-send {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-chatbot-send:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.ai-chatbot-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ai-analysis-container {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #2563eb;
+}
+
+.ai-analysis-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.ai-analysis-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+}
+
+.ai-analysis-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+.ai-analysis-content {
+    color: #1f2937;
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+.ai-analysis-section {
+    margin-bottom: 15px;
+}
+
+.ai-analysis-section-title {
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.ai-sentiment-positive {
+    color: #059669;
+    font-weight: 700;
+}
+
+.ai-sentiment-negative {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.ai-sentiment-neutral {
+    color: #6b7280;
+    font-weight: 700;
+}
+
+.ai-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.ai-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #dbeafe;
+    border-top: 3px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.analyze-asset-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+}
+
+.analyze-asset-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.4);
+}
+
+.analyze-asset-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .ai-chatbot-panel {
+        width: calc(100vw - 40px);
+        right: 20px;
+        bottom: 100px;
+        max-height: 500px;
+    }
+    
+    .ai-chatbot-orb {
+        width: 60px;
+        height: 60px;
+        bottom: 20px;
+        right: 20px;
+    }
+}
+
 .mss-wrapper {
     padding: 20px;
     background: #f0f4ff;
@@ -800,11 +1074,32 @@ export default function MarketStabilityScore() {
     const [selectedStock, setSelectedStock] = useState(null);
     const [stockVsSectorData, setStockVsSectorData] = useState(null);
     const [loadingStockComparison, setLoadingStockComparison] = useState(false);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [analyzingAsset, setAnalyzingAsset] = useState({});
+    const [assetAnalysis, setAssetAnalysis] = useState({});
+    const [showChatbot, setShowChatbot] = useState(false);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [chatLoading, setChatLoading] = useState(false);
 
     useEffect(() => {
         fetchAssetLists();
         fetchExistingModels();
+        fetchOpenAIKey();
     }, []);
+
+    const fetchOpenAIKey = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching OpenAI key:", error);
+        }
+    };
 
     const fetchAssetLists = async () => {
         try {
@@ -1252,6 +1547,257 @@ if num_positions == 0:
         }
     };
 
+    const analyzeAssetSentiment = async (symbol) => {
+        setAnalyzingAsset(prev => ({ ...prev, [symbol]: true }));
+
+        try {
+            // Fetch news data
+            const newsResponse = await fetch(`${baseUrl}/fetch_news_data_api`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    assets: [symbol],
+                    user_email: 'user@example.com'
+                })
+            });
+
+            const newsData = await newsResponse.json();
+            
+            if (!newsData.message || newsData.message.length === 0) {
+                setAssetAnalysis(prev => ({
+                    ...prev,
+                    [symbol]: {
+                        noData: true,
+                        message: 'No recent news or sentiment data available for this asset.'
+                    }
+                }));
+                setAnalyzingAsset(prev => ({ ...prev, [symbol]: false }));
+                return;
+            }
+
+            // Prepare context for AI analysis
+            const newsContext = newsData.message.map(item => ({
+                title: item.title,
+                description: item.description,
+                highlights: item.highlights,
+                source: item.source
+            }));
+
+            const economicEvents = newsData.economic_events.find(e => e.asset === symbol)?.economic_events || [];
+
+            // Call OpenAI for analysis
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a financial analyst providing concise sentiment analysis. Respond in a structured format without markdown. Use clear sections.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Analyze the sentiment for ${symbol} based on this recent news and economic events:
+
+News: ${JSON.stringify(newsContext)}
+Economic Events: ${JSON.stringify(economicEvents)}
+
+Provide:
+1. Overall Sentiment (Bullish/Bearish/Neutral)
+2. Key Factors (3-4 bullet points)
+3. Risk Assessment
+4. Short-term Outlook
+
+Keep it concise and actionable.`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 500
+                })
+            });
+
+            const aiData = await aiResponse.json();
+            const analysis = aiData.choices[0].message.content;
+
+            setAssetAnalysis(prev => ({
+                ...prev,
+                [symbol]: {
+                    analysis: analysis,
+                    timestamp: new Date().toISOString()
+                }
+            }));
+
+        } catch (error) {
+            console.error('Error analyzing asset:', error);
+            setAssetAnalysis(prev => ({
+                ...prev,
+                [symbol]: {
+                    error: true,
+                    message: 'Failed to generate analysis. Please try again.'
+                }
+            }));
+        } finally {
+            setAnalyzingAsset(prev => ({ ...prev, [symbol]: false }));
+        }
+    };
+
+    const analyzeSectorSentiment = async (sector) => {
+        if (!sectorData || !sectorData.sector_performance) return;
+
+        const sectorInfo = sectorData.sector_performance.find(s => s.sector === sector);
+        if (!sectorInfo) return;
+
+        setChatLoading(true);
+        setChatMessages(prev => [...prev, {
+            role: 'user',
+            content: `Analyze sentiment for ${sector} sector`
+        }]);
+
+        try {
+            // Get all symbols in the sector
+            const symbols = sectorInfo.symbols;
+
+            // Fetch news for all symbols in sector
+            const newsResponse = await fetch(`${baseUrl}/fetch_news_data_api`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    assets: symbols.slice(0, 10), // Limit to 10 stocks
+                    user_email: 'user@example.com'
+                })
+            });
+
+            const newsData = await newsResponse.json();
+
+            const newsContext = newsData.message.map(item => ({
+                asset: item.asset,
+                title: item.title,
+                highlights: item.highlights
+            }));
+
+            // Call OpenAI for sector analysis
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a financial analyst providing sector analysis. Be concise and insightful.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Analyze the ${sector} sector sentiment based on:
+
+Performance: ${sectorInfo.avg_return.toFixed(2)}% return
+Stocks Analyzed: ${sectorInfo.num_stocks}
+Recent News: ${JSON.stringify(newsContext)}
+
+Provide sector outlook, key drivers, and investment considerations. Keep response under 300 words.`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 400
+                })
+            });
+
+            const aiData = await aiResponse.json();
+            const analysis = aiData.choices[0].message.content;
+
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: analysis
+            }]);
+
+        } catch (error) {
+            console.error('Error analyzing sector:', error);
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Failed to analyze sector. Please try again.'
+            }]);
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
+    const handleChatSend = async () => {
+        if (!chatInput.trim() || chatLoading) return;
+
+        const userMessage = chatInput.trim();
+        setChatInput('');
+        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+        setChatLoading(true);
+
+        try {
+            // Check if asking about a sector
+            const sectorMatch = sectorData?.sector_performance?.find(s => 
+                userMessage.toLowerCase().includes(s.sector.toLowerCase())
+            );
+
+            if (sectorMatch) {
+                await analyzeSectorSentiment(sectorMatch.sector);
+                return;
+            }
+
+            // General market query
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a helpful trading assistant. Provide concise, actionable insights about markets and trading.'
+                        },
+                        ...chatMessages.map(msg => ({
+                            role: msg.role,
+                            content: msg.content
+                        })),
+                        {
+                            role: 'user',
+                            content: userMessage
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 300
+                })
+            });
+
+            const aiData = await aiResponse.json();
+            const response = aiData.choices[0].message.content;
+
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: response
+            }]);
+
+        } catch (error) {
+            console.error('Error in chat:', error);
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, I encountered an error. Please try again.'
+            }]);
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
     const filteredData = mssData.filter(item => {
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -1297,10 +1843,9 @@ if num_positions == 0:
         <div>
             <style>{styles}</style>
             <Header />
-            <div>
-                <SideNavs />
-                <div className="mss-wrapper" style={{ flex: 1 }}>
-                    <div className="mss-header">
+            <SideNavs />
+            <div className="mss-wrapper">
+                <div className="mss-header">
                         <h1>Market Stability Score</h1>
                         <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
                     </div>
@@ -1659,7 +2204,7 @@ if num_positions == 0:
                                             </div>
                                             <div className="comparison-chart">
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={stockVsSectorData.comparison_data}>
+                                                    <LineChart data={stockVsSectorData.comparison_data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                         <XAxis 
                                                             dataKey="date" 
@@ -1669,7 +2214,7 @@ if num_positions == 0:
                                                         <YAxis 
                                                             stroke="#6b7280"
                                                             style={{ fontSize: '11px' }}
-                                                            label={{ value: 'Return %', angle: -90, position: 'insideLeft' }}
+                                                            domain={['auto', 'auto']}
                                                         />
                                                         <Tooltip 
                                                             contentStyle={{ 
@@ -1681,7 +2226,7 @@ if num_positions == 0:
                                                         <Legend />
                                                         <Line 
                                                             type="monotone" 
-                                                            dataKey="stock_return" 
+                                                            dataKey="stock_price" 
                                                             stroke="#2563eb" 
                                                             strokeWidth={2}
                                                             name={selectedStock}
@@ -1689,10 +2234,10 @@ if num_positions == 0:
                                                         />
                                                         <Line 
                                                             type="monotone" 
-                                                            dataKey="sector_return" 
+                                                            dataKey="sector_index" 
                                                             stroke="#ef4444" 
                                                             strokeWidth={2}
-                                                            name={`${stockVsSectorData.sector} Sector`}
+                                                            name={`${stockVsSectorData.sector} Index`}
                                                             dot={false}
                                                         />
                                                     </LineChart>
@@ -1817,9 +2362,77 @@ if num_positions == 0:
                                                         🎯 vs Sector
                                                     </button>
                                                 )}
+                                                <button
+                                                    className="analyze-asset-btn"
+                                                    onClick={() => analyzeAssetSentiment(asset.symbol)}
+                                                    disabled={analyzingAsset[asset.symbol]}
+                                                >
+                                                    {analyzingAsset[asset.symbol] ? '🤖 Analyzing...' : '🤖 AI Analysis'}
+                                                </button>
                                             </div>
                                         </div>
                                         <p className="status">{asset.status}</p>
+                                        
+                                        {assetAnalysis[asset.symbol] && (
+                                            <div className="ai-analysis-container">
+                                                {assetAnalysis[asset.symbol].noData ? (
+                                                    <>
+                                                        <div className="ai-analysis-header">
+                                                            <div className="ai-analysis-icon">📊</div>
+                                                            <div className="ai-analysis-title">No Data Available</div>
+                                                        </div>
+                                                        <div className="ai-analysis-content">
+                                                            <p style={{ margin: 0, color: '#6b7280' }}>
+                                                                {assetAnalysis[asset.symbol].message}
+                                                            </p>
+                                                        </div>
+                                                    </>
+                                                ) : assetAnalysis[asset.symbol].error ? (
+                                                    <>
+                                                        <div className="ai-analysis-header">
+                                                            <div className="ai-analysis-icon">⚠️</div>
+                                                            <div className="ai-analysis-title">Analysis Error</div>
+                                                        </div>
+                                                        <div className="ai-analysis-content">
+                                                            <p style={{ margin: 0, color: '#dc2626' }}>
+                                                                {assetAnalysis[asset.symbol].message}
+                                                            </p>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="ai-analysis-header">
+                                                            <div className="ai-analysis-icon">🤖</div>
+                                                            <div className="ai-analysis-title">AI Sentiment Analysis</div>
+                                                        </div>
+                                                        <div className="ai-analysis-content">
+                                                            {assetAnalysis[asset.symbol].analysis.split('\n\n').map((section, idx) => {
+                                                                const lines = section.split('\n');
+                                                                const title = lines[0];
+                                                                const content = lines.slice(1).join('\n');
+                                                                
+                                                                let sentimentClass = '';
+                                                                if (title.toLowerCase().includes('bullish')) sentimentClass = 'ai-sentiment-positive';
+                                                                else if (title.toLowerCase().includes('bearish')) sentimentClass = 'ai-sentiment-negative';
+                                                                else if (title.toLowerCase().includes('neutral')) sentimentClass = 'ai-sentiment-neutral';
+                                                                
+                                                                return (
+                                                                    <div key={idx} className="ai-analysis-section">
+                                                                        <div className={`ai-analysis-section-title ${sentimentClass}`}>
+                                                                            {title}
+                                                                        </div>
+                                                                        <div style={{ whiteSpace: 'pre-line' }}>
+                                                                            {content}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                        
                                         <div className="card-metrics">
                                             <div className="metric">
                                                 <span className="metric-label">MSS:</span>
