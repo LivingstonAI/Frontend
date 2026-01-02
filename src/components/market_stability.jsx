@@ -5,14 +5,53 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 
 const styles = `
+.ai-chatbot-orb {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb, #1e40af);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5), 0 0 60px rgba(37, 99, 235, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+.ai-chatbot-orb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 12px 48px rgba(37, 99, 235, 0.6), 0 0 80px rgba(37, 99, 235, 0.4);
+}
+
+.ai-chatbot-orb svg {
+    width: 35px;
+    height: 35px;
+    fill: white;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5), 0 0 60px rgba(37, 99, 235, 0.3);
+    }
+    50% {
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.7), 0 0 80px rgba(37, 99, 235, 0.5);
+    }
+}
+
+/* Wider, better proportioned chat panel */
 .ai-chatbot-panel {
     position: fixed;
     bottom: 120px;
     right: 30px;
-    width: 450px;  /* Increased from 400px */
-    height: 650px;  /* Slightly taller */
+    width: 450px;
+    height: 650px;
     background: white;
-    border-radius: 24px;  /* Softer, more modern */
+    border-radius: 24px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
     z-index: 999;
     display: flex;
@@ -21,7 +60,7 @@ const styles = `
     border: 1px solid #e5e7eb;
 }
 
-
+/* Better header styling */
 .ai-chatbot-header {
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
@@ -41,6 +80,26 @@ const styles = `
     gap: 10px;
 }
 
+.ai-chatbot-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ai-chatbot-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Messages container with better spacing */
 .ai-chatbot-messages {
     flex: 1;
     overflow-y: auto;
@@ -48,14 +107,15 @@ const styles = `
     background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
     display: flex;
     flex-direction: column;
-    gap: 24px;  /* Much more space between messages */
+    gap: 24px;
     min-height: 0;
 }
 
+/* Completely redesigned message bubbles */
 .ai-message {
     padding: 16px 20px;
     border-radius: 18px;
-    max-width: 75%;  /* Reduced from 80% - more breathing room */
+    max-width: 75%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -77,16 +137,17 @@ const styles = `
     }
 }
 
+/* User messages - right aligned, blue */
 .ai-message.user {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     margin-left: auto;
     align-self: flex-end;
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
-    border-bottom-right-radius: 4px;  /* Tail effect */
+    border-bottom-right-radius: 4px;
 }
 
-
+/* Assistant messages - left aligned, white */
 .ai-message.assistant {
     margin-right: auto;
     align-self: flex-start;
@@ -94,7 +155,7 @@ const styles = `
     border: 2px solid #e5e7eb;
     color: #1f2937;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    border-bottom-left-radius: 4px;  /* Tail effect */
+    border-bottom-left-radius: 4px;
 }
 
 .ai-message.assistant::before {
@@ -105,7 +166,7 @@ const styles = `
     font-size: 20px;
 }
 
-
+/* Better image preview in messages */
 .ai-image-preview {
     max-width: 100%;
     max-height: 220px;
@@ -116,7 +177,7 @@ const styles = `
     border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-
+/* Loading indicator redesign */
 .ai-loading {
     display: flex;
     align-items: center;
@@ -142,7 +203,7 @@ const styles = `
     animation: spin 0.8s linear infinite;
 }
 
-
+/* Input container with better layout */
 .ai-chatbot-input-container {
     padding: 20px;
     background: white;
@@ -153,6 +214,7 @@ const styles = `
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
 }
 
+/* Input field styling */
 .ai-chatbot-input {
     flex: 1;
     padding: 14px 16px;
@@ -175,6 +237,7 @@ const styles = `
     color: #9ca3af;
 }
 
+/* File upload button redesign */
 .ai-file-upload-btn {
     padding: 14px;
     background: #f3f4f6;
@@ -200,6 +263,7 @@ const styles = `
     display: none;
 }
 
+/* Send button styling */
 .ai-chatbot-send {
     padding: 14px 28px;
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
@@ -225,10 +289,11 @@ const styles = `
     transform: none;
 }
 
+/* Image attached indicator */
 .ai-image-attached {
-    position: absolute;
-    bottom: 70px;
-    right: 20px;
+    position: fixed;
+    bottom: 790px;
+    right: 50px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     padding: 8px 16px;
@@ -240,6 +305,7 @@ const styles = `
     gap: 8px;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     animation: slideUp 0.3s ease-out;
+    z-index: 1000;
 }
 
 @keyframes slideUp {
@@ -272,6 +338,7 @@ const styles = `
     background: rgba(255, 255, 255, 0.5);
 }
 
+/* Welcome message styling */
 .ai-welcome-message {
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     padding: 20px;
@@ -294,6 +361,7 @@ const styles = `
     font-size: 20px;
 }
 
+/* Better scrollbar */
 .ai-chatbot-messages::-webkit-scrollbar {
     width: 6px;
 }
@@ -311,26 +379,6 @@ const styles = `
     background: #94a3b8;
 }
 
-@media (max-width: 768px) {
-    .ai-chatbot-panel {
-        width: calc(100vw - 40px);
-        right: 20px;
-        bottom: 100px;
-        height: 550px;
-    }
-    
-    .ai-message {
-        max-width: 80%;
-    }
-    
-    .ai-message.assistant::before {
-        display: none;  /* Hide icon on mobile */
-    }
-    
-    .ai-welcome-message::before {
-        display: none;
-    }
-}
 .ai-analysis-container {
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     padding: 20px;
@@ -396,23 +444,6 @@ const styles = `
     font-weight: 700;
 }
 
-.ai-loading {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #1e40af;
-    font-weight: 600;
-}
-
-.ai-loading-spinner {
-    width: 20px;
-    height: 20px;
-    border: 3px solid #dbeafe;
-    border-top: 3px solid #2563eb;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
 .analyze-asset-btn {
     padding: 8px 16px;
     background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
@@ -434,6 +465,40 @@ const styles = `
 .analyze-asset-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .ai-chatbot-panel {
+        width: calc(100vw - 40px);
+        right: 20px;
+        bottom: 100px;
+        height: 550px;
+    }
+    
+    .ai-chatbot-orb {
+        width: 60px;
+        height: 60px;
+        bottom: 20px;
+        right: 20px;
+    }
+    
+    .ai-message {
+        max-width: 80%;
+    }
+    
+    .ai-message.assistant::before {
+        display: none;
+    }
+    
+    .ai-welcome-message::before {
+        display: none;
+    }
+    
+    .ai-image-attached {
+        right: 20px;
+        bottom: 670px;
+    }
 }
 
 .mss-wrapper {
@@ -924,286 +989,248 @@ const styles = `
 }
 
 .trend-badge.downtrend {
-    background: rgba(239, 68, 68, 0.2);
-    color: #dc2626;
+background: rgba(239, 68, 68, 0.2);
+color: #dc2626;
 }
-
 .trend-badge.ranging {
-    background: rgba(156, 163, 175, 0.2);
-    color: #6b7280;
+background: rgba(156, 163, 175, 0.2);
+color: #6b7280;
 }
-
 .sector-name-badge {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+display: inline-block;
+padding: 6px 14px;
+border-radius: 20px;
+font-size: 12px;
+font-weight: 700;
+margin-top: 6px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
-
 .sector-Technology {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
+background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+color: white;
 }
-
 .sector-Financial {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
+background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+color: white;
 }
-
 .sector-Healthcare {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
+background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+color: white;
 }
-
 .sector-Consumer-Cyclical {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
+background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+color: white;
 }
-
 .sector-Consumer-Defensive {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-    color: white;
+background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+color: white;
 }
-
 .sector-Energy {
-    background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
-    color: white;
+background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+color: white;
 }
-
 .sector-Industrials {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    color: white;
+background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+color: white;
 }
-
 .sector-Communication {
-    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-    color: white;
+background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+color: white;
 }
-
 .sector-Real-Estate {
-    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-    color: white;
+background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+color: white;
 }
-
 .sector-Materials {
-    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-    color: white;
+background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+color: white;
 }
-
 .sector-Utilities {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    color: white;
+background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+color: white;
 }
-
 .sector-analysis-container {
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 30px;
+background: white;
+padding: 30px;
+border-radius: 16px;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+margin-bottom: 30px;
 }
-
 .sector-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 25px;
 }
-
 .sector-header h2 {
-    margin: 0;
-    font-size: 24px;
-    color: #1e40af;
-    font-weight: 700;
+margin: 0;
+font-size: 24px;
+color: #1e40af;
+font-weight: 700;
 }
-
 .sector-close-btn {
-    padding: 8px 16px;
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+padding: 8px 16px;
+background: #ef4444;
+color: white;
+border: none;
+border-radius: 8px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
 }
-
 .sector-close-btn:hover {
-    background: #dc2626;
+background: #dc2626;
 }
-
 .sector-toggle-btn {
-    padding: 8px 16px;
-    background: #8b5cf6;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-left: 10px;
+padding: 8px 16px;
+background: #8b5cf6;
+color: white;
+border: none;
+border-radius: 8px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s;
+margin-left: 10px;
 }
-
 .sector-toggle-btn:hover {
-    background: #7c3aed;
+background: #7c3aed;
 }
-
 .sector-filters {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 25px;
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+margin-bottom: 25px;
 }
-
 .sector-filter-btn {
-    padding: 10px 20px;
-    border: 2px solid #dbeafe;
-    background: white;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #1e40af;
+padding: 10px 20px;
+border: 2px solid #dbeafe;
+background: white;
+border-radius: 10px;
+font-weight: 600;
+font-size: 13px;
+cursor: pointer;
+transition: all 0.2s;
+color: #1e40af;
 }
-
 .sector-filter-btn:hover {
-    border-color: #2563eb;
-    background: #eff6ff;
+border-color: #2563eb;
+background: #eff6ff;
 }
-
 .sector-filter-btn.active {
-    background: #2563eb;
-    color: white;
-    border-color: #2563eb;
+background: #2563eb;
+color: white;
+border-color: #2563eb;
 }
-
 .sector-chart-container {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
+background: #f8fafc;
+padding: 20px;
+border-radius: 12px;
+margin-bottom: 20px;
 }
-
 .sector-chart-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1e40af;
-    margin-bottom: 15px;
-    text-align: center;
+font-size: 16px;
+font-weight: 700;
+color: #1e40af;
+margin-bottom: 15px;
+text-align: center;
 }
-
 .sector-charts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 25px;
-    margin-bottom: 25px;
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+gap: 25px;
+margin-bottom: 25px;
 }
-
 .sector-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 15px;
+margin-bottom: 25px;
 }
-
 .sector-stat-card {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
+background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+padding: 20px;
+border-radius: 12px;
+text-align: center;
 }
-
 .sector-stat-label {
-    font-size: 13px;
-    color: #6b7280;
-    margin-bottom: 8px;
-    font-weight: 500;
+font-size: 13px;
+color: #6b7280;
+margin-bottom: 8px;
+font-weight: 500;
 }
-
 .sector-stat-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1e40af;
+font-size: 28px;
+font-weight: 700;
+color: #1e40af;
 }
-
 .stock-comparison-container {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 12px;
-    margin-top: 25px;
+background: #f8fafc;
+padding: 20px;
+border-radius: 12px;
+margin-top: 25px;
 }
-
 .stock-comparison-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 20px;
 }
-
 .stock-comparison-header h3 {
-    margin: 0;
-    font-size: 20px;
-    color: #1e40af;
-    font-weight: 700;
+margin: 0;
+font-size: 20px;
+color: #1e40af;
+font-weight: 700;
 }
-
 .comparison-chart {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    height: 320px;
-    overflow: hidden;
+background: white;
+padding: 15px;
+border-radius: 10px;
+height: 320px;
+overflow: hidden;
 }
-
 .loading-comparison {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    background: white;
-    border-radius: 10px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+height: 200px;
+background: white;
+border-radius: 10px;
 }
-
 .loading-comparison .spinner {
-    width: 40px;
-    height: 40px;
-    border-width: 3px;
+width: 40px;
+height: 40px;
+border-width: 3px;
 }
-
 .loading-comparison p {
-    margin-top: 15px;
-    color: #1e40af;
-    font-weight: 600;
+margin-top: 15px;
+color: #1e40af;
+font-weight: 600;
 }
-
 @media (max-width: 768px) {
-    .mss-wrapper {
-        padding: 10px;
-    }
-    .mss-grid {
-        grid-template-columns: 1fr;
-    }
-    .control-group {
-        min-width: 100%;
-    }
-    .card-metrics {
-        grid-template-columns: 1fr;
-    }
-    .sector-charts-grid {
-        grid-template-columns: 1fr;
-    }
-    .sector-chart-container {
-        padding: 15px;
-    }
+.mss-wrapper {
+padding: 10px;
+}
+.mss-grid {
+grid-template-columns: 1fr;
+}
+.control-group {
+min-width: 100%;
+}
+.card-metrics {
+grid-template-columns: 1fr;
+}
+.sector-charts-grid {
+grid-template-columns: 1fr;
+}
+.sector-chart-container {
+padding: 15px;
+}
 }
 `;
+
 
 export default function MarketStabilityScore() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
