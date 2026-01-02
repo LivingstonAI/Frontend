@@ -116,17 +116,19 @@ const styles = `
 
 /* Message bubbles - more compact */
 .ai-message {
-    padding: 12px 16px;  /* Reduced from 16px 20px */
-    border-radius: 16px;  /* Slightly smaller */
-    max-width: 70%;  /* Reduced from 75% */
+    padding: 12px 16px;
+    border-radius: 16px;
+    max-width: 70%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
-    line-height: 1.5;  /* Reduced from 1.65 */
-    font-size: 14px;  /* Reduced from 14.5px */
+    line-height: 1.5;
+    font-size: 14px;
     white-space: pre-wrap;
     position: relative;
     animation: messageSlideIn 0.3s ease-out;
+    width: fit-content; /* Add this */
+    display: block; /* Change to block for better flow */
 }
 
 /* User messages - more compact */
@@ -138,11 +140,14 @@ const styles = `
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
     border-bottom-right-radius: 4px;
     padding: 10px 14px;
-    max-width: 70%; /* Ensure it doesn't expand too much */
+    max-width: 70%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
-    white-space: pre-wrap; /* Keep this */
+    white-space: pre-wrap;
+    width: fit-content; /* Add this - makes bubble fit content */
+    min-height: auto; /* Add this - removes any minimum height */
+    display: inline-block; /* Add this - better sizing behavior */
 }
 
 /* Assistant messages */
