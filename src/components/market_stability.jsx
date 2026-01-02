@@ -127,11 +127,10 @@ const styles = `
     white-space: pre-wrap;
     position: relative;
     animation: messageSlideIn 0.3s ease-out;
-    width: fit-content; /* Add this */
-    display: block; /* Change to block for better flow */
+    /* Remove width: fit-content */
+    /* Remove display: block if you added it */
 }
 
-/* User messages - more compact */
 .ai-message.user {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
@@ -140,14 +139,15 @@ const styles = `
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
     border-bottom-right-radius: 4px;
     padding: 10px 14px;
-    max-width: 70%;
+    max-width: 70%; /* Keeps good width */
+    min-width: 80px; /* Add this - prevents too thin bubbles */
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
     white-space: pre-wrap;
-    width: fit-content; /* Add this - makes bubble fit content */
-    min-height: auto; /* Add this - removes any minimum height */
-    display: inline-block; /* Add this - better sizing behavior */
+    line-height: 1.4; /* Reduce from 1.5 for tighter height */
+    display: block; /* Change back to block */
+    width: auto; /* Auto width instead of fit-content */
 }
 
 /* Assistant messages */
