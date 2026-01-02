@@ -99,7 +99,7 @@ const styles = `
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* Messages container with better spacing */
+/* Messages container - prevent overflow on mount */
 .ai-chatbot-messages {
     flex: 1;
     overflow-y: auto;
@@ -107,24 +107,90 @@ const styles = `
     background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;  /* Reduced from 24px */
     min-height: 0;
+    max-height: 100%;  /* Add this */
 }
 
-/* Completely redesigned message bubbles */
+/* Message bubbles - more compact */
 .ai-message {
-    padding: 16px 20px;
-    border-radius: 18px;
-    max-width: 75%;
+    padding: 12px 16px;  /* Reduced from 16px 20px */
+    border-radius: 16px;  /* Slightly smaller */
+    max-width: 70%;  /* Reduced from 75% */
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
-    line-height: 1.65;
-    font-size: 14.5px;
+    line-height: 1.5;  /* Reduced from 1.65 */
+    font-size: 14px;  /* Reduced from 14.5px */
     white-space: pre-wrap;
     position: relative;
     animation: messageSlideIn 0.3s ease-out;
 }
+
+/* User messages - more compact */
+.ai-message.user {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    margin-left: auto;
+    align-self: flex-end;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+    border-bottom-right-radius: 4px;
+    padding: 10px 14px;  /* Even more compact for user messages */
+}
+
+/* Assistant messages */
+.ai-message.assistant {
+    margin-right: auto;
+    align-self: flex-start;
+    background: white;
+    border: 2px solid #e5e7eb;
+    color: #1f2937;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border-bottom-left-radius: 4px;
+    padding: 12px 16px;
+}
+
+/* Welcome message - more compact */
+.ai-welcome-message {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    padding: 16px;  /* Reduced from 20px */
+    border-radius: 16px;  /* Reduced from 18px */
+    border: 2px solid #3b82f6;
+    max-width: 90%;  /* Increased from 85% to use space better */
+    align-self: flex-start;
+    line-height: 1.5;  /* Reduced from 1.65 */
+    color: #1e40af;
+    font-size: 14px;  /* Reduced from 14.5px */
+    position: relative;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+/* Loading indicator - more compact */
+.ai-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;  /* Reduced from 14px */
+    color: #2563eb;
+    font-weight: 600;
+    padding: 10px 14px;  /* Reduced from 16px 20px */
+    background: white;
+    border-radius: 16px;
+    border: 2px solid #dbeafe;
+    max-width: 70%;
+    align-self: flex-start;
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.1);
+    border-bottom-left-radius: 4px;
+}
+
+.ai-loading-spinner {
+    width: 18px;  /* Reduced from 22px */
+    height: 18px;
+    border: 3px solid #dbeafe;
+    border-top: 3px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
 
 @keyframes messageSlideIn {
     from {
@@ -137,26 +203,6 @@ const styles = `
     }
 }
 
-/* User messages - right aligned, blue */
-.ai-message.user {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    margin-left: auto;
-    align-self: flex-end;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
-    border-bottom-right-radius: 4px;
-}
-
-/* Assistant messages - left aligned, white */
-.ai-message.assistant {
-    margin-right: auto;
-    align-self: flex-start;
-    background: white;
-    border: 2px solid #e5e7eb;
-    color: #1f2937;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    border-bottom-left-radius: 4px;
-}
 
 .ai-message.assistant::before {
     content: '🎯';
@@ -175,32 +221,6 @@ const styles = `
     object-fit: contain;
     display: block;
     border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-/* Loading indicator redesign */
-.ai-loading {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    color: #2563eb;
-    font-weight: 600;
-    padding: 16px 20px;
-    background: white;
-    border-radius: 18px;
-    border: 2px solid #dbeafe;
-    max-width: 75%;
-    align-self: flex-start;
-    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.1);
-    border-bottom-left-radius: 4px;
-}
-
-.ai-loading-spinner {
-    width: 22px;
-    height: 22px;
-    border: 3px solid #dbeafe;
-    border-top: 3px solid #2563eb;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
 }
 
 /* Input container with better layout */
