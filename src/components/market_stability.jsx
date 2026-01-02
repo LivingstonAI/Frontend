@@ -138,16 +138,14 @@ const styles = `
     align-self: flex-end;
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
     border-bottom-right-radius: 4px;
-    padding: 10px 14px;
-    max-width: 70%; /* Keeps good width */
-    min-width: 80px; /* Add this - prevents too thin bubbles */
+    padding: 12px 16px; /* Increased from 10px 14px for better spacing */
+    max-width: 70%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
     white-space: pre-wrap;
-    line-height: 1.4; /* Reduce from 1.5 for tighter height */
-    display: block; /* Change back to block */
-    width: auto; /* Auto width instead of fit-content */
+    height: auto; /* Your fix - lets content dictate height */
+    line-height: 1.5; /* Comfortable line spacing */
 }
 
 /* Assistant messages */
