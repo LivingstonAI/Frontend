@@ -5,254 +5,376 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 
 const styles = `
-.ai-chatbot-orb {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb, #1e40af);
-    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5), 0 0 60px rgba(37, 99, 235, 0.3);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s infinite;
-}
-
-.ai-chatbot-orb:hover {
-    transform: scale(1.1);
-    box-shadow: 0 12px 48px rgba(37, 99, 235, 0.6), 0 0 80px rgba(37, 99, 235, 0.4);
-}
-
-.ai-chatbot-orb svg {
-    width: 35px;
-    height: 35px;
-    fill: white;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5), 0 0 60px rgba(37, 99, 235, 0.3);
-    }
-    50% {
-        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.7), 0 0 80px rgba(37, 99, 235, 0.5);
-    }
-}
-
+// ============================================
+// FIX 1: Wider, better proportioned chat panel
+// ============================================
 .ai-chatbot-panel {
     position: fixed;
     bottom: 120px;
     right: 30px;
-    width: 400px;
-    max-height: 600px;
+    width: 450px;  /* Increased from 400px */
+    height: 650px;  /* Slightly taller */
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-radius: 24px;  /* Softer, more modern */
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
     z-index: 999;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border: 1px solid #e5e7eb;
 }
 
+// ============================================
+// FIX 2: Better header styling
+// ============================================
 .ai-chatbot-header {
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
-    padding: 20px;
+    padding: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.2);
 }
 
 .ai-chatbot-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 700;
-}
-
-.ai-chatbot-close {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 18px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.ai-chatbot-close:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-
-
-// ============================================
-// FIX 1: Prevent chat panel from moving up
-// ============================================
-.ai-chatbot-panel {
-    position: fixed;
-    bottom: 120px;  /* Keep this fixed - won't move up */
-    right: 30px;
-    width: 400px;
-    height: 600px;  /* ADD FIXED HEIGHT */
-    max-height: 600px;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    z-index: 999;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    gap: 10px;
 }
 
 // ============================================
-// FIX 2: Better message container with auto-scroll
+// FIX 3: Messages container with better spacing
 // ============================================
 .ai-chatbot-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
-    background: #f8fafc;
+    padding: 24px;
+    background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
     display: flex;
     flex-direction: column;
-    gap: 20px;  /* Increased from 15px */
-    min-height: 0;  /* Important for flex scrolling */
+    gap: 24px;  /* Much more space between messages */
+    min-height: 0;
 }
 
 // ============================================
-// FIX 3: Better message styling with more breathing room
+// FIX 4: Completely redesigned message bubbles
 // ============================================
 .ai-message {
-    background: white;
-    padding: 16px 18px;  /* More padding */
-    border-radius: 16px;  /* Softer corners */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    max-width: 80%;  /* Slightly wider */
+    padding: 16px 20px;
+    border-radius: 18px;
+    max-width: 75%;  /* Reduced from 80% - more breathing room */
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
-    line-height: 1.6;  /* Better line spacing */
-    font-size: 14px;
-    white-space: pre-wrap;  /* Preserve line breaks */
+    line-height: 1.65;
+    font-size: 14.5px;
+    white-space: pre-wrap;
+    position: relative;
+    animation: messageSlideIn 0.3s ease-out;
 }
 
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// ============================================
+// FIX 5: User messages - right aligned, blue
+// ============================================
 .ai-message.user {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     margin-left: auto;
     align-self: flex-end;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+    border-bottom-right-radius: 4px;  /* Tail effect */
 }
 
+// ============================================
+// FIX 6: Assistant messages - left aligned, white
+// ============================================
 .ai-message.assistant {
     margin-right: auto;
     align-self: flex-start;
     background: white;
     border: 2px solid #e5e7eb;
+    color: #1f2937;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border-bottom-left-radius: 4px;  /* Tail effect */
+}
+
+// Add a subtle icon indicator for Simons
+.ai-message.assistant::before {
+    content: '🎯';
+    position: absolute;
+    left: -32px;
+    top: 0;
+    font-size: 20px;
 }
 
 // ============================================
-// FIX 3: Image preview styling
+// FIX 7: Better image preview in messages
 // ============================================
 .ai-image-preview {
     max-width: 100%;
-    max-height: 250px;
+    max-height: 220px;
     border-radius: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     object-fit: contain;
     display: block;
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 // ============================================
-// FIX 4: File upload button styling
+// FIX 8: Loading indicator redesign
+// ============================================
+.ai-loading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #2563eb;
+    font-weight: 600;
+    padding: 16px 20px;
+    background: white;
+    border-radius: 18px;
+    border: 2px solid #dbeafe;
+    max-width: 75%;
+    align-self: flex-start;
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.1);
+    border-bottom-left-radius: 4px;
+}
+
+.ai-loading-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #dbeafe;
+    border-top: 3px solid #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+// ============================================
+// FIX 9: Input container with better layout
+// ============================================
+.ai-chatbot-input-container {
+    padding: 20px;
+    background: white;
+    border-top: 2px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
+}
+
+// ============================================
+// FIX 10: Input field styling
+// ============================================
+.ai-chatbot-input {
+    flex: 1;
+    padding: 14px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 14px;
+    transition: all 0.2s;
+    background: #f9fafb;
+    color: #1f2937;
+}
+
+.ai-chatbot-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.ai-chatbot-input::placeholder {
+    color: #9ca3af;
+}
+
+// ============================================
+// FIX 11: File upload button redesign
 // ============================================
 .ai-file-upload-btn {
-    padding: 12px;
-    background: #e5e7eb;
-    border: none;
-    border-radius: 10px;
+    padding: 14px;
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 20px;
+    min-width: 48px;
+    height: 48px;
 }
 
 .ai-file-upload-btn:hover {
-    background: #d1d5db;
+    background: #e5e7eb;
+    border-color: #2563eb;
+    transform: translateY(-1px);
 }
 
 .ai-file-upload-btn input[type="file"] {
     display: none;
 }
 
-.ai-loading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #1e40af;
-    font-weight: 600;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 16px;
-    border: 2px solid #dbeafe;
-    max-width: 80%;
-    align-self: flex-start;
-}
-
-
-
-.ai-chatbot-input-container {
-    padding: 18px;
-    background: white;
-    border-top: 2px solid #e5e7eb;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.ai-chatbot-input {
-    flex: 1;
-    padding: 12px;
-    border: 2px solid #dbeafe;
-    border-radius: 10px;
-    font-size: 14px;
-}
-
-.ai-chatbot-input:focus {
-    outline: none;
-    border-color: #2563eb;
-}
-
+// ============================================
+// FIX 12: Send button styling
+// ============================================
 .ai-chatbot-send {
-    padding: 12px 24px;
+    padding: 14px 28px;
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
     border: none;
-    border-radius: 10px;
-    font-weight: 600;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    min-width: 80px;
 }
 
 .ai-chatbot-send:hover:not(:disabled) {
     transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 .ai-chatbot-send:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
 }
 
+// ============================================
+// FIX 13: Image attached indicator
+// ============================================
+.ai-image-attached {
+    position: absolute;
+    bottom: 70px;
+    right: 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-image-remove {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ai-image-remove:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+// ============================================
+// FIX 14: Welcome message styling
+// ============================================
+.ai-welcome-message {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    padding: 20px;
+    border-radius: 18px;
+    border: 2px solid #3b82f6;
+    max-width: 85%;
+    align-self: flex-start;
+    line-height: 1.65;
+    color: #1e40af;
+    font-size: 14.5px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.ai-welcome-message::before {
+    content: '🎯';
+    position: absolute;
+    left: -32px;
+    top: 0;
+    font-size: 20px;
+}
+
+// ============================================
+// FIX 15: Better scrollbar
+// ============================================
+.ai-chatbot-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+// ============================================
+// FIX 16: Mobile responsive
+// ============================================
+@media (max-width: 768px) {
+    .ai-chatbot-panel {
+        width: calc(100vw - 40px);
+        right: 20px;
+        bottom: 100px;
+        height: 550px;
+    }
+    
+    .ai-message {
+        max-width: 80%;
+    }
+    
+    .ai-message.assistant::before {
+        display: none;  /* Hide icon on mobile */
+    }
+    
+    .ai-welcome-message::before {
+        display: none;
+    }
+}
 .ai-analysis-container {
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     padding: 20px;
@@ -356,48 +478,6 @@ const styles = `
 .analyze-asset-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-    .ai-chatbot-panel {
-        width: calc(100vw - 40px);
-        right: 20px;
-        bottom: 100px;
-        height: 500px;
-        max-height: 500px;
-    }
-    
-    .ai-chatbot-orb {
-        width: 60px;
-        height: 60px;
-        bottom: 20px;
-        right: 20px;
-    }
-    
-    .ai-message {
-        max-width: 85%;
-    }
-}
-
-// ============================================
-// FIX 10: Custom scrollbar styling (optional but nice)
-// ============================================
-.ai-chatbot-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-.ai-chatbot-messages::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 10px;
-}
-
-.ai-chatbot-messages::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-}
-
-.ai-chatbot-messages::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
 }
 
 .mss-wrapper {
@@ -2717,57 +2797,64 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
         </div>
 
         <div className="ai-chatbot-messages">
-            {chatMessages.length === 0 && (
-                <div className="ai-message assistant">
-                    Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
-                </div>
-            )}
-            {chatMessages.map((msg, idx) => (
-                <div key={idx} className={`ai-message ${msg.role}`}>
-                    {msg.image && (
-                        <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
-                    )}
-                    <div>{msg.content}</div>
-                </div>
-            ))}
-            {chatLoading && (
-                <div className="ai-loading">
-                    <div className="ai-loading-spinner"></div>
-                    <span>Simons is analyzing...</span>
-                </div>
-            )}
-            <div ref={messagesEndRef} />  {/* Scroll anchor */}
+    {chatMessages.length === 0 && (
+        <div className="ai-welcome-message">
+            Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
         </div>
-        
+    )}
+    {chatMessages.map((msg, idx) => (
+        <div key={idx} className={`ai-message ${msg.role}`}>
+            {msg.image && (
+                <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+            )}
+            <div>{msg.content}</div>
+        </div>
+    ))}
+    {chatLoading && (
+        <div className="ai-loading">
+            <div className="ai-loading-spinner"></div>
+            <span>Simons is analyzing...</span>
+        </div>
+    )}
+    <div ref={messagesEndRef} />
+</div>
         <div className="ai-chatbot-input-container">
-            <label className="ai-file-upload-btn">
-                📎
-                <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                />
-            </label>
-            {chatImage && (
-                <span style={{ fontSize: '12px', color: '#059669' }}>📷 Image attached</span>
-            )}
-            <input
-                type="text"
-                className="ai-chatbot-input"
-                placeholder="Ask Simons about markets, trends, or upload a chart..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
-                disabled={chatLoading}
-            />
-            <button 
-                className="ai-chatbot-send"
-                onClick={handleChatSend}
-                disabled={chatLoading || (!chatInput.trim() && !chatImage)}
-            >
-                Send
-            </button>
-        </div>
+    <label className="ai-file-upload-btn" title="Upload chart image">
+        📎
+        <input 
+            type="file" 
+            accept="image/*"
+            onChange={handleImageUpload}
+        />
+    </label>
+    <input
+        type="text"
+        className="ai-chatbot-input"
+        placeholder="Ask Simons about markets, trends, or upload a chart..."
+        value={chatInput}
+        onChange={(e) => setChatInput(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+        disabled={chatLoading}
+    />
+    <button 
+        className="ai-chatbot-send"
+        onClick={handleChatSend}
+        disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+    >
+        {chatLoading ? '...' : 'Send'}
+    </button>
+</div>
+
+{chatImage && (
+    <div className="ai-image-attached">
+        <span>📷 Chart attached</span>
+        <button 
+            className="ai-image-remove"
+            onClick={() => setChatImage(null)}
+            title="Remove image"
+        >
+            ✕
+        </button>
     </div>
 )}
 
