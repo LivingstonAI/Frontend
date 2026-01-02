@@ -2516,6 +2516,60 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
                             <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
                         </div>
                     )}
+                {showChatbot && (
+                    <>
+                        <div className="ai-chatbot-orb" onClick={() => setShowChatbot(!showChatbot)}>
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                            </svg>
+                        </div>
+                
+                        <div className="ai-chatbot-panel">
+                            <div className="ai-chatbot-header">
+                                <h3>🤖 Market Assistant</h3>
+                                <button className="ai-chatbot-close" onClick={() => setShowChatbot(false)}>✕</button>
+                            </div>
+                            
+                            <div className="ai-chatbot-messages">
+                                {chatMessages.length === 0 && (
+                                    <div className="ai-message assistant">
+                                        👋 Hi! I can help you analyze sectors, discuss market trends, or answer trading questions. Try asking me about any sector!
+                                    </div>
+                                )}
+                                {chatMessages.map((msg, idx) => (
+                                    <div key={idx} className={`ai-message ${msg.role}`}>
+                                        {msg.content}
+                                    </div>
+                                ))}
+                                {chatLoading && (
+                                    <div className="ai-loading">
+                                        <div className="ai-loading-spinner"></div>
+                                        <span>Thinking...</span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="ai-chatbot-input-container">
+                                <input
+                                    type="text"
+                                    className="ai-chatbot-input"
+                                    placeholder="Ask about sectors or markets..."
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                                    disabled={chatLoading}
+                                />
+                                <button 
+                                    className="ai-chatbot-send"
+                                    onClick={handleChatSend}
+                                    disabled={chatLoading || !chatInput.trim()}
+                                >
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
                 </div>
             </div>
     );
