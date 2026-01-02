@@ -95,6 +95,7 @@ const styles = `
 .ai-chatbot-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Add this */
     padding: 20px;
     background: #f8fafc;
 }
@@ -105,16 +106,27 @@ const styles = `
     border-radius: 12px;
     margin-bottom: 15px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    word-wrap: break-word; /* Add this */
+    word-break: break-word; /* Add this */
+    overflow-wrap: break-word; /* Add this */
+    max-width: 100%; /* Add this */
+    white-space: pre-wrap; /* Add this to preserve line breaks */
 }
 
 .ai-message.user {
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
     margin-left: 40px;
+    word-wrap: break-word; /* Add this */
+    word-break: break-word; /* Add this */
+    overflow-wrap: break-word; /* Add this */
 }
 
 .ai-message.assistant {
     margin-right: 40px;
+    word-wrap: break-word; /* Add this */
+    word-break: break-word; /* Add this */
+    overflow-wrap: break-word; /* Add this */
 }
 
 .ai-chatbot-input-container {
