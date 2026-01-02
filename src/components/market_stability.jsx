@@ -1691,7 +1691,7 @@ Keep it concise and actionable.`
                     'Authorization': `Bearer ${OPENAI_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',
@@ -1759,7 +1759,7 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
                     'Authorization': `Bearer ${OPENAI_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',
@@ -2215,6 +2215,7 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
                                                             stroke="#6b7280"
                                                             style={{ fontSize: '11px' }}
                                                             domain={['auto', 'auto']}
+                                                            label={{ value: '% Return', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
                                                         />
                                                         <Tooltip 
                                                             contentStyle={{ 
@@ -2226,18 +2227,18 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
                                                         <Legend />
                                                         <Line 
                                                             type="monotone" 
-                                                            dataKey="stock_price" 
+                                                            dataKey="stock_return" 
                                                             stroke="#2563eb" 
                                                             strokeWidth={2}
-                                                            name={selectedStock}
+                                                            name={`${selectedStock} %`}
                                                             dot={false}
                                                         />
                                                         <Line 
                                                             type="monotone" 
-                                                            dataKey="sector_index" 
+                                                            dataKey="sector_return" 
                                                             stroke="#ef4444" 
                                                             strokeWidth={2}
-                                                            name={`${stockVsSectorData.sector} Index`}
+                                                            name={`${stockVsSectorData.sector} %`}
                                                             dot={false}
                                                         />
                                                     </LineChart>
