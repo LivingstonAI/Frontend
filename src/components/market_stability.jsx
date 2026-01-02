@@ -1,6 +1,6 @@
 import Header from "./header";
 import SideNavs from "./side_navs";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
@@ -95,7 +95,26 @@ const styles = `
 
 
 // ============================================
-// FIX 1: Message container scrolling and sizing
+// FIX 1: Prevent chat panel from moving up
+// ============================================
+.ai-chatbot-panel {
+    position: fixed;
+    bottom: 120px;  /* Keep this fixed - won't move up */
+    right: 30px;
+    width: 400px;
+    height: 600px;  /* ADD FIXED HEIGHT */
+    max-height: 600px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+// ============================================
+// FIX 2: Better message container with auto-scroll
 // ============================================
 .ai-chatbot-messages {
     flex: 1;
@@ -104,21 +123,25 @@ const styles = `
     background: #f8fafc;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;  /* Increased from 15px */
+    min-height: 0;  /* Important for flex scrolling */
 }
 
 // ============================================
-// FIX 2: Messages wrapping properly inside container
+// FIX 3: Better message styling with more breathing room
 // ============================================
 .ai-message {
     background: white;
-    padding: 15px;
-    border-radius: 12px;
+    padding: 16px 18px;  /* More padding */
+    border-radius: 16px;  /* Softer corners */
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    max-width: 85%;
+    max-width: 80%;  /* Slightly wider */
     word-wrap: break-word;
     overflow-wrap: break-word;
     word-break: break-word;
+    line-height: 1.6;  /* Better line spacing */
+    font-size: 14px;
+    white-space: pre-wrap;  /* Preserve line breaks */
 }
 
 .ai-message.user {
@@ -126,22 +149,26 @@ const styles = `
     color: white;
     margin-left: auto;
     align-self: flex-end;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .ai-message.assistant {
     margin-right: auto;
     align-self: flex-start;
+    background: white;
+    border: 2px solid #e5e7eb;
 }
 
 // ============================================
 // FIX 3: Image preview styling
 // ============================================
 .ai-image-preview {
-    max-width: 200px;
-    max-height: 200px;
-    border-radius: 8px;
-    margin-top: 8px;
-    object-fit: cover;
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    object-fit: contain;
+    display: block;
 }
 
 // ============================================
@@ -167,14 +194,30 @@ const styles = `
     display: none;
 }
 
+.ai-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #1e40af;
+    font-weight: 600;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 16px;
+    border: 2px solid #dbeafe;
+    max-width: 80%;
+    align-self: flex-start;
+}
+
 
 
 .ai-chatbot-input-container {
-    padding: 15px;
+    padding: 18px;
     background: white;
     border-top: 2px solid #e5e7eb;
     display: flex;
     gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .ai-chatbot-input {
@@ -320,6 +363,7 @@ const styles = `
         width: calc(100vw - 40px);
         right: 20px;
         bottom: 100px;
+        height: 500px;
         max-height: 500px;
     }
     
@@ -329,6 +373,31 @@ const styles = `
         bottom: 20px;
         right: 20px;
     }
+    
+    .ai-message {
+        max-width: 85%;
+    }
+}
+
+// ============================================
+// FIX 10: Custom scrollbar styling (optional but nice)
+// ============================================
+.ai-chatbot-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .mss-wrapper {
@@ -1136,6 +1205,16 @@ export default function MarketStabilityScore() {
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
     const [chatImage, setChatImage] = useState(null);
+
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+    
+    useEffect(() => {
+        scrollToBottom();
+    }, [chatMessages]);
 
 
     useEffect(() => {
@@ -2636,7 +2715,7 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
                 ✕
             </button>
         </div>
-        
+
         <div className="ai-chatbot-messages">
             {chatMessages.length === 0 && (
                 <div className="ai-message assistant">
@@ -2648,7 +2727,7 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
                     {msg.image && (
                         <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
                     )}
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                    <div>{msg.content}</div>
                 </div>
             ))}
             {chatLoading && (
@@ -2657,6 +2736,7 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
                     <span>Simons is analyzing...</span>
                 </div>
             )}
+            <div ref={messagesEndRef} />  {/* Scroll anchor */}
         </div>
         
         <div className="ai-chatbot-input-container">
