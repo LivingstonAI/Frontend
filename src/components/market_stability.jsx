@@ -1078,7 +1078,7 @@ export default function MarketStabilityScore() {
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [analyzingAsset, setAnalyzingAsset] = useState({});
     const [assetAnalysis, setAssetAnalysis] = useState({});
-    const [showChatbot, setShowChatbot] = useState(true);
+    const [showChatbot, setShowChatbot] = useState(false);
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
