@@ -17,7 +17,7 @@ const styles = `
     cursor: pointer;
     transition: all 0.3s ease;
     z-index: 1000;
-    display: flex;
+    display: flex; /* Keep this */
     align-items: center;
     justify-content: center;
     animation: pulse 2s infinite;
@@ -58,6 +58,7 @@ const styles = `
     flex-direction: column;
     overflow: hidden;
     border: 1px solid #e5e7eb;
+    max-height: calc(100vh - 140px); /* Add this to prevent overflow */
 }
 
 /* Better header styling */
@@ -107,9 +108,10 @@ const styles = `
     background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
     display: flex;
     flex-direction: column;
-    gap: 16px;  /* Reduced from 24px */
-    min-height: 0;
-    max-height: 100%;  /* Add this */
+    gap: 16px;
+    min-height: 0; /* Keep this */
+    max-height: 100%; /* Keep this */
+    overflow-anchor: none; /* Add this to prevent scroll jumping */
 }
 
 /* Message bubbles - more compact */
@@ -135,7 +137,12 @@ const styles = `
     align-self: flex-end;
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
     border-bottom-right-radius: 4px;
-    padding: 10px 14px;  /* Even more compact for user messages */
+    padding: 10px 14px;
+    max-width: 70%; /* Ensure it doesn't expand too much */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap; /* Keep this */
 }
 
 /* Assistant messages */
@@ -489,11 +496,13 @@ const styles = `
 
 /* Mobile responsive */
 @media (max-width: 768px) {
+
     .ai-chatbot-panel {
         width: calc(100vw - 40px);
         right: 20px;
-        bottom: 100px;
-        height: 550px;
+        bottom: 20px; /* Changed from 100px */
+        height: calc(100vh - 100px); /* Make it fill more of the screen */
+        max-height: calc(100vh - 100px);
     }
     
     .ai-chatbot-orb {
@@ -1288,6 +1297,8 @@ export default function MarketStabilityScore() {
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
     const [chatImage, setChatImage] = useState(null);
+    const [showOrb, setShowOrb] = useState(true); // Add this new state
+
 
     const messagesEndRef = useRef(null);
 
@@ -2778,13 +2789,19 @@ return (
 
     {/* AI Chatbot */}
     {showChatbot && (
-        <div className="ai-chatbot-panel">
+        <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
             <div className="ai-chatbot-header">
                 <h3>
                     <span>🎯</span>
                     <span>Simons - Trading Assistant</span>
                 </h3>
-                <button className="ai-chatbot-close" onClick={() => setShowChatbot(false)}>
+                <button 
+                    className="ai-chatbot-close" 
+                    onClick={() => {
+                        setShowChatbot(false);
+                        setShowOrb(true); // Show orb when closing chat
+                    }}
+                >
                     ✕
                 </button>
             </div>
@@ -2856,9 +2873,13 @@ return (
 
     {/* Chatbot Orb */}
     <div 
-        className="ai-chatbot-orb"
-        onClick={() => setShowChatbot(!showChatbot)}
-        title="Chat with Simons"
+    className="ai-chatbot-orb"
+    onClick={() => {
+        setShowChatbot(!showChatbot);
+        setShowOrb(false);
+    }}
+    title="Chat with Simons"
+    style={{ display: showOrb ? 'flex' : 'none' }}
     >
         <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
