@@ -5,9 +5,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 
 const styles = `
-// ============================================
-// FIX 1: Wider, better proportioned chat panel
-// ============================================
 .ai-chatbot-panel {
     position: fixed;
     bottom: 120px;
@@ -24,9 +21,7 @@ const styles = `
     border: 1px solid #e5e7eb;
 }
 
-// ============================================
-// FIX 2: Better header styling
-// ============================================
+
 .ai-chatbot-header {
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
@@ -46,9 +41,6 @@ const styles = `
     gap: 10px;
 }
 
-// ============================================
-// FIX 3: Messages container with better spacing
-// ============================================
 .ai-chatbot-messages {
     flex: 1;
     overflow-y: auto;
@@ -60,9 +52,6 @@ const styles = `
     min-height: 0;
 }
 
-// ============================================
-// FIX 4: Completely redesigned message bubbles
-// ============================================
 .ai-message {
     padding: 16px 20px;
     border-radius: 18px;
@@ -88,9 +77,6 @@ const styles = `
     }
 }
 
-// ============================================
-// FIX 5: User messages - right aligned, blue
-// ============================================
 .ai-message.user {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
@@ -100,9 +86,7 @@ const styles = `
     border-bottom-right-radius: 4px;  /* Tail effect */
 }
 
-// ============================================
-// FIX 6: Assistant messages - left aligned, white
-// ============================================
+
 .ai-message.assistant {
     margin-right: auto;
     align-self: flex-start;
@@ -113,7 +97,6 @@ const styles = `
     border-bottom-left-radius: 4px;  /* Tail effect */
 }
 
-// Add a subtle icon indicator for Simons
 .ai-message.assistant::before {
     content: '🎯';
     position: absolute;
@@ -122,9 +105,7 @@ const styles = `
     font-size: 20px;
 }
 
-// ============================================
-// FIX 7: Better image preview in messages
-// ============================================
+
 .ai-image-preview {
     max-width: 100%;
     max-height: 220px;
@@ -135,9 +116,7 @@ const styles = `
     border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-// ============================================
-// FIX 8: Loading indicator redesign
-// ============================================
+
 .ai-loading {
     display: flex;
     align-items: center;
@@ -163,9 +142,7 @@ const styles = `
     animation: spin 0.8s linear infinite;
 }
 
-// ============================================
-// FIX 9: Input container with better layout
-// ============================================
+
 .ai-chatbot-input-container {
     padding: 20px;
     background: white;
@@ -176,9 +153,6 @@ const styles = `
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
 }
 
-// ============================================
-// FIX 10: Input field styling
-// ============================================
 .ai-chatbot-input {
     flex: 1;
     padding: 14px 16px;
@@ -201,9 +175,6 @@ const styles = `
     color: #9ca3af;
 }
 
-// ============================================
-// FIX 11: File upload button redesign
-// ============================================
 .ai-file-upload-btn {
     padding: 14px;
     background: #f3f4f6;
@@ -229,9 +200,6 @@ const styles = `
     display: none;
 }
 
-// ============================================
-// FIX 12: Send button styling
-// ============================================
 .ai-chatbot-send {
     padding: 14px 28px;
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
@@ -257,9 +225,6 @@ const styles = `
     transform: none;
 }
 
-// ============================================
-// FIX 13: Image attached indicator
-// ============================================
 .ai-image-attached {
     position: absolute;
     bottom: 70px;
@@ -307,9 +272,6 @@ const styles = `
     background: rgba(255, 255, 255, 0.5);
 }
 
-// ============================================
-// FIX 14: Welcome message styling
-// ============================================
 .ai-welcome-message {
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     padding: 20px;
@@ -332,9 +294,6 @@ const styles = `
     font-size: 20px;
 }
 
-// ============================================
-// FIX 15: Better scrollbar
-// ============================================
 .ai-chatbot-messages::-webkit-scrollbar {
     width: 6px;
 }
@@ -352,9 +311,6 @@ const styles = `
     background: #94a3b8;
 }
 
-// ============================================
-// FIX 16: Mobile responsive
-// ============================================
 @media (max-width: 768px) {
     .ai-chatbot-panel {
         width: calc(100vw - 40px);
