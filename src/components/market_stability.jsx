@@ -92,42 +92,82 @@ const styles = `
     background: rgba(255, 255, 255, 0.3);
 }
 
+
+
+// ============================================
+// FIX 1: Message container scrolling and sizing
+// ============================================
 .ai-chatbot-messages {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden; /* Add this */
     padding: 20px;
     background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
+// ============================================
+// FIX 2: Messages wrapping properly inside container
+// ============================================
 .ai-message {
     background: white;
     padding: 15px;
     border-radius: 12px;
-    margin-bottom: 15px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    word-wrap: break-word; /* Add this */
-    word-break: break-word; /* Add this */
-    overflow-wrap: break-word; /* Add this */
-    max-width: 100%; /* Add this */
-    white-space: pre-wrap; /* Add this to preserve line breaks */
+    max-width: 85%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .ai-message.user {
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     color: white;
-    margin-left: 40px;
-    word-wrap: break-word; /* Add this */
-    word-break: break-word; /* Add this */
-    overflow-wrap: break-word; /* Add this */
+    margin-left: auto;
+    align-self: flex-end;
 }
 
 .ai-message.assistant {
-    margin-right: 40px;
-    word-wrap: break-word; /* Add this */
-    word-break: break-word; /* Add this */
-    overflow-wrap: break-word; /* Add this */
+    margin-right: auto;
+    align-self: flex-start;
 }
+
+// ============================================
+// FIX 3: Image preview styling
+// ============================================
+.ai-image-preview {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 8px;
+    object-fit: cover;
+}
+
+// ============================================
+// FIX 4: File upload button styling
+// ============================================
+.ai-file-upload-btn {
+    padding: 12px;
+    background: #e5e7eb;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-file-upload-btn:hover {
+    background: #d1d5db;
+}
+
+.ai-file-upload-btn input[type="file"] {
+    display: none;
+}
+
+
 
 .ai-chatbot-input-container {
     padding: 15px;
@@ -1095,6 +1135,8 @@ export default function MarketStabilityScore() {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
+    const [chatImage, setChatImage] = useState(null);
+
 
     useEffect(() => {
         fetchAssetLists();
@@ -1114,6 +1156,17 @@ export default function MarketStabilityScore() {
             console.error("Error fetching OpenAI key:", error);
         }
     };
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setChatImage(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
 
     const fetchAssetLists = async () => {
         try {
@@ -1747,71 +1800,101 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
     };
 
     const handleChatSend = async () => {
-        if (!chatInput.trim() || chatLoading) return;
+    if ((!chatInput.trim() && !chatImage) || chatLoading) return;
 
-        const userMessage = chatInput.trim();
-        setChatInput('');
-        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-        setChatLoading(true);
+    const userMessage = chatInput.trim();
+    const imageToSend = chatImage;
+    
+    setChatInput('');
+    setChatImage(null);
+    
+    const messageContent = userMessage || "Please analyze this image";
+    setChatMessages(prev => [...prev, { 
+        role: 'user', 
+        content: messageContent,
+        image: imageToSend 
+    }]);
+    
+    setChatLoading(true);
 
-        try {
-            // Check if asking about a sector
-            const sectorMatch = sectorData?.sector_performance?.find(s => 
-                userMessage.toLowerCase().includes(s.sector.toLowerCase())
-            );
+    try {
+        // Prepare MSS data context
+        const mssContext = mssData.length > 0 
+            ? `Current Market Data Analysis:
+${mssData.slice(0, 10).map(asset => 
+    `- ${asset.symbol}: MSS ${asset.mss}, Trend: ${asset.trend || 'unknown'}, Price: $${asset.current_price}, Change: ${asset.price_change}%${asset.sector ? `, Sector: ${asset.sector}` : ''}`
+).join('\n')}`
+            : 'No market data currently loaded.';
 
-            if (sectorMatch) {
-                await analyzeSectorSentiment(sectorMatch.sector);
-                return;
-            }
+        const messages = [
+            {
+                role: 'system',
+                content: `You are Simons, a professional yet friendly trading and investing assistant named after legendary investor Jim Simons. Your purpose is to help traders analyze markets, understand trends, and make informed decisions.
 
-            // General market query
-            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a helpful trading assistant. Provide concise, actionable insights about markets and trading.'
-                        },
-                        ...chatMessages.map(msg => ({
-                            role: msg.role,
-                            content: msg.content
-                        })),
-                        {
-                            role: 'user',
-                            content: userMessage
-                        }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 300
-                })
+${mssContext}
+
+You have access to real-time Market Stability Score (MSS) data, which evaluates assets based on volatility, trend clarity, and liquidity. Higher MSS scores indicate better trading conditions.
+
+Be concise, actionable, and insightful. Focus on practical trading advice while maintaining a professional but approachable tone.`
+            },
+            ...chatMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }))
+        ];
+
+        // Add image if present
+        if (imageToSend) {
+            messages.push({
+                role: 'user',
+                content: [
+                    { type: 'text', text: userMessage || 'Please analyze this chart/image' },
+                    { 
+                        type: 'image_url', 
+                        image_url: { url: imageToSend }
+                    }
+                ]
             });
-
-            const aiData = await aiResponse.json();
-            const response = aiData.choices[0].message.content;
-
-            setChatMessages(prev => [...prev, {
-                role: 'assistant',
-                content: response
-            }]);
-
-        } catch (error) {
-            console.error('Error in chat:', error);
-            setChatMessages(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error. Please try again.'
-            }]);
-        } finally {
-            setChatLoading(false);
+        } else {
+            messages.push({
+                role: 'user',
+                content: userMessage
+            });
         }
-    };
 
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        const aiData = await aiResponse.json();
+        const response = aiData.choices[0].message.content;
+
+        setChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: response
+        }]);
+
+    } catch (error) {
+        console.error('Error in chat:', error);
+        setChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Sorry, I encountered an error. Please try again.'
+        }]);
+    } finally {
+        setChatLoading(false);
+    }
+};
+    
     const filteredData = mssData.filter(item => {
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -2533,24 +2616,23 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
                 {/* The orb should always show when chatbot is enabled */}
 {chatbotEnabled && (
     <div 
-        className="ai-chatbot-orb" 
-        onClick={() => setShowChatbot(!showChatbot)}
-    >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
-        </svg>
-    </div>
+    className="ai-chatbot-orb"
+    onClick={() => setShowChatbot(!showChatbot)}
+    title="Chat with Simons"
+>
+    <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+    </svg>
+</div>
 )}
-
-{/* The panel only shows when showChatbot is true */}
 {showChatbot && (
     <div className="ai-chatbot-panel">
         <div className="ai-chatbot-header">
-            <h3>🤖 Market Assistant</h3>
-            <button 
-                className="ai-chatbot-close" 
-                onClick={() => setShowChatbot(false)}  // Only closes panel, not orb
-            >
+            <h3>
+                <span>🎯</span>
+                <span>Simons - Trading Assistant</span>
+            </h3>
+            <button className="ai-chatbot-close" onClick={() => setShowChatbot(false)}>
                 ✕
             </button>
         </div>
@@ -2558,27 +2640,41 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
         <div className="ai-chatbot-messages">
             {chatMessages.length === 0 && (
                 <div className="ai-message assistant">
-                    👋 Hi! I can help you analyze sectors, discuss market trends, or answer trading questions. Try asking me about any sector!
+                    Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
                 </div>
             )}
             {chatMessages.map((msg, idx) => (
                 <div key={idx} className={`ai-message ${msg.role}`}>
-                    {msg.content}
+                    {msg.image && (
+                        <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                    )}
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                 </div>
             ))}
             {chatLoading && (
                 <div className="ai-loading">
                     <div className="ai-loading-spinner"></div>
-                    <span>Thinking...</span>
+                    <span>Simons is analyzing...</span>
                 </div>
             )}
         </div>
         
         <div className="ai-chatbot-input-container">
+            <label className="ai-file-upload-btn">
+                📎
+                <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                />
+            </label>
+            {chatImage && (
+                <span style={{ fontSize: '12px', color: '#059669' }}>📷 Image attached</span>
+            )}
             <input
                 type="text"
                 className="ai-chatbot-input"
-                placeholder="Ask about sectors or markets..."
+                placeholder="Ask Simons about markets, trends, or upload a chart..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
@@ -2587,7 +2683,7 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
             <button 
                 className="ai-chatbot-send"
                 onClick={handleChatSend}
-                disabled={chatLoading || !chatInput.trim()}
+                disabled={chatLoading || (!chatInput.trim() && !chatImage)}
             >
                 Send
             </button>
