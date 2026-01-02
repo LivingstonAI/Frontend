@@ -2858,8 +2858,6 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
     </div>
 )}
 
-                
-                </div>
-            </div>
+                                </div>
     );
 }
