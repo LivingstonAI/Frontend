@@ -2095,769 +2095,768 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
 
     const hasVolumeData = mssData.some(item => item.relativeVolume !== null && item.relativeVolume !== undefined);
 
-    return (
+return (
         <div>
             <style>{styles}</style>
             <Header />
             <SideNavs />
             <div className="mss-wrapper">
                 <div className="mss-header">
-                        <h1>Market Stability Score</h1>
-                        <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
-                    </div>
+                    <h1>Market Stability Score</h1>
+                    <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
+                </div>
 
-                    <div className="mss-controls">
-                        <div className="control-row">
-                            <div className="control-group">
-                                <label>Asset Class:</label>
-                                <select 
-                                    value={selectedAssetClass} 
-                                    onChange={(e) => setSelectedAssetClass(e.target.value)}
-                                    disabled={loading}
-                                >
-                                    <option value="forex">Forex</option>
-                                    <option value="stocks">Stocks</option>
-                                    <option value="indices">Stock Indices</option>
-                                    <option value="commodities">Commodities</option>
-                                    <option value="bonds">Bonds & Yields</option>
-                                    <option value="custom">Custom Symbols</option>
-                                </select>
-                            </div>
-
-                            {selectedAssetClass === 'custom' && (
-                                <div className="control-group">
-                                    <label>Symbols (comma-separated):</label>
-                                    <input
-                                        type="text"
-                                        value={customSymbols}
-                                        onChange={(e) => setCustomSymbols(e.target.value)}
-                                        placeholder="AAPL, MSFT, TSLA"
-                                        disabled={loading}
-                                    />
-                                </div>
-                            )}
-
-                            <div className="control-group">
-                                <label>Period (days):</label>
-                                <select 
-                                    value={period} 
-                                    onChange={(e) => {
-                                        const val = Number(e.target.value);
-                                        setPeriod(val);
-                                        if (val !== 0) {
-                                            setCustomPeriod('');
-                                        }
-                                    }}
-                                    disabled={loading}
-                                >
-                                    <option value={20}>20 Days</option>
-                                    <option value={30}>30 Days</option>
-                                    <option value={60}>60 Days</option>
-                                    <option value={90}>90 Days</option>
-                                    <option value={180}>180 Days</option>
-                                    <option value={0}>Custom...</option>
-                                </select>
-                            </div>
-
-                            {period === 0 && (
-                                <div className="control-group">
-                                    <label>Custom Period (days):</label>
-                                    <input
-                                        type="number"
-                                        value={customPeriod}
-                                        onChange={(e) => setCustomPeriod(e.target.value)}
-                                        placeholder="Enter days (e.g., 45)"
-                                        min="1"
-                                        max="730"
-                                        disabled={loading}
-                                    />
-                                </div>
-                            )}
-
-                            <button 
-                                className="mss-calculate-btn"
-                                onClick={calculateMSS}
+                <div className="mss-controls">
+                    <div className="control-row">
+                        <div className="control-group">
+                            <label>Asset Class:</label>
+                            <select 
+                                value={selectedAssetClass} 
+                                onChange={(e) => setSelectedAssetClass(e.target.value)}
                                 disabled={loading}
                             >
-                                {loading ? 'Calculating...' : 'Calculate MSS'}
-                            </button>
+                                <option value="forex">Forex</option>
+                                <option value="stocks">Stocks</option>
+                                <option value="indices">Stock Indices</option>
+                                <option value="commodities">Commodities</option>
+                                <option value="bonds">Bonds & Yields</option>
+                                <option value="custom">Custom Symbols</option>
+                            </select>
                         </div>
-                    </div>
 
-                    {loading && (
-                        <div className="mss-loading">
-                            <div className="spinner"></div>
-                            <p>Analyzing market data...</p>
-                        </div>
-                    )}
-
-                    {!loading && mssData.length > 0 && (
-                        <>
-                            <div className="mss-summary">
-                                <div className="summary-card stable">
-                                    <h3>🟢 Stable</h3>
-                                    <p className="big-number">{stableAssets.length}</p>
-                                    <p className="label">Assets (MSS ≥ 60)</p>
-                                </div>
-                                <div className="summary-card choppy">
-                                    <h3>🟡 Choppy</h3>
-                                    <p className="big-number">{choppyAssets.length}</p>
-                                    <p className="label">Assets (40-60)</p>
-                                </div>
-                                <div className="summary-card volatile">
-                                    <h3>🔴 Volatile</h3>
-                                    <p className="big-number">{volatileAssets.length}</p>
-                                    <p className="label">Assets (MSS &lt; 40)</p>
-                                </div>
-                            </div>
-
-                            <div className="search-filter-container">
+                        {selectedAssetClass === 'custom' && (
+                            <div className="control-group">
+                                <label>Symbols (comma-separated):</label>
                                 <input
                                     type="text"
-                                    className="search-box"
-                                    placeholder="🔍 Search by asset name..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    value={customSymbols}
+                                    onChange={(e) => setCustomSymbols(e.target.value)}
+                                    placeholder="AAPL, MSFT, TSLA"
+                                    disabled={loading}
                                 />
-                                <div className="filter-buttons">
-                                    <button
-                                        className={`filter-btn ${modelStatusFilter === 'all' ? 'active' : ''}`}
-                                        onClick={() => setModelStatusFilter('all')}
-                                    >
-                                        All Models
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${modelStatusFilter === 'active' ? 'active' : ''}`}
-                                        onClick={() => setModelStatusFilter('active')}
-                                    >
-                                        ▶️ Active
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${modelStatusFilter === 'paused' ? 'active' : ''}`}
-                                        onClick={() => setModelStatusFilter('paused')}
-                                    >
-                                        ⏸️ Paused
-                                    </button>
-                                    <button
-                                        className={`filter-btn ${modelStatusFilter === 'unsaved' ? 'active' : ''}`}
-                                        onClick={() => setModelStatusFilter('unsaved')}
-                                    >
-                                        💾 Unsaved
-                                    </button>
-                                </div>
-                                <div className="filter-buttons" style={{ marginTop: '12px' }}>
-                                    <button
-                                        className="mss-calculate-btn"
-                                        onClick={calculateRelativeVolume}
-                                        disabled={loadingVolume}
-                                        style={{ padding: '12px 24px', fontSize: '14px' }}
-                                    >
-                                        {loadingVolume ? '📊 Calculating Volume...' : '📊 Calculate Relative Volume'}
-                                    </button>
-                                    {selectedAssetClass === 'stocks' && (
-                                        <>
-                                            {!sectorData ? (
-                                                <button
-                                                    className="mss-calculate-btn"
-                                                    onClick={analyzeSectorPerformance}
-                                                    disabled={loadingSectors}
-                                                    style={{ padding: '12px 24px', fontSize: '14px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
-                                                >
-                                                    {loadingSectors ? '🎯 Analyzing Sectors...' : '🎯 Analyze Sectors'}
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    className="sector-toggle-btn"
-                                                    onClick={() => setShowSectorAnalysis(!showSectorAnalysis)}
-                                                    style={{ padding: '12px 24px', fontSize: '14px' }}
-                                                >
-                                                    {showSectorAnalysis ? '👁️ Hide Sector Analysis' : '👁️ Show Sector Analysis'}
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-                                    {hasVolumeData && (
-                                        <>
-                                            <button
-                                                className={`filter-btn ${volumeFilter === 'all' ? 'active' : ''}`}
-                                                onClick={() => setVolumeFilter('all')}
-                                            >
-                                                All Volume
-                                            </button>
-                                            <button
-                                                className={`filter-btn ${volumeFilter === 'high' ? 'active' : ''}`}
-                                                onClick={() => setVolumeFilter('high')}
-                                            >
-                                                🔥 High Volume
-                                            </button>
-                                            <button
-                                                className={`filter-btn ${volumeFilter === 'average' ? 'active' : ''}`}
-                                                onClick={() => setVolumeFilter('average')}
-                                            >
-                                                📊 Average Volume
-                                            </button>
-                                            <button
-                                                className={`filter-btn ${volumeFilter === 'low' ? 'active' : ''}`}
-                                                onClick={() => setVolumeFilter('low')}
-                                            >
-                                                💤 Low Volume
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
                             </div>
+                        )}
 
-                            {showSectorAnalysis && sectorData && (
-                                <div className="sector-analysis-container">
-                                    <div className="sector-header">
-                                        <h2>📊 Sector Performance Analysis</h2>
-                                        <button className="sector-close-btn" onClick={() => setShowSectorAnalysis(false)}>
-                                            ✕ Close
-                                        </button>
-                                    </div>
+                        <div className="control-group">
+                            <label>Period (days):</label>
+                            <select 
+                                value={period} 
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setPeriod(val);
+                                    if (val !== 0) {
+                                        setCustomPeriod('');
+                                    }
+                                }}
+                                disabled={loading}
+                            >
+                                <option value={20}>20 Days</option>
+                                <option value={30}>30 Days</option>
+                                <option value={60}>60 Days</option>
+                                <option value={90}>90 Days</option>
+                                <option value={180}>180 Days</option>
+                                <option value={0}>Custom...</option>
+                            </select>
+                        </div>
 
-                                    <div className="sector-stats-grid">
-                                        <div className="sector-stat-card">
-                                            <div className="sector-stat-label">Total Sectors</div>
-                                            <div className="sector-stat-value">{sectorData.sector_performance?.length || 0}</div>
-                                        </div>
-                                        <div className="sector-stat-card">
-                                            <div className="sector-stat-label">Strongest Sector</div>
-                                            <div className="sector-stat-value" style={{ fontSize: '16px' }}>
-                                                {sectorData.sector_performance?.[0]?.sector || 'N/A'}
-                                            </div>
-                                        </div>
-                                        <div className="sector-stat-card">
-                                            <div className="sector-stat-label">Avg Sector Return</div>
-                                            <div className="sector-stat-value" style={{ color: sectorData.overall_avg_return >= 0 ? '#059669' : '#dc2626' }}>
-                                                {sectorData.overall_avg_return?.toFixed(2)}%
-                                            </div>
-                                        </div>
-                                        <div className="sector-stat-card">
-                                            <div className="sector-stat-label">Total Money Flow</div>
-                                            <div className="sector-stat-value" style={{ fontSize: '16px' }}>
-                                                ${(sectorData.total_volume_dollars / 1e9).toFixed(2)}B
-                                            </div>
-                                        </div>
-                                    </div>
+                        {period === 0 && (
+                            <div className="control-group">
+                                <label>Custom Period (days):</label>
+                                <input
+                                    type="number"
+                                    value={customPeriod}
+                                    onChange={(e) => setCustomPeriod(e.target.value)}
+                                    placeholder="Enter days (e.g., 45)"
+                                    min="1"
+                                    max="730"
+                                    disabled={loading}
+                                />
+                            </div>
+                        )}
 
-                                    <div className="sector-filters">
+                        <button 
+                            className="mss-calculate-btn"
+                            onClick={calculateMSS}
+                            disabled={loading}
+                        >
+                            {loading ? 'Calculating...' : 'Calculate MSS'}
+                        </button>
+                    </div>
+                </div>
+
+                {loading && (
+                    <div className="mss-loading">
+                        <div className="spinner"></div>
+                        <p>Analyzing market data...</p>
+                    </div>
+                )}
+
+                {!loading && mssData.length > 0 && (
+                    <>
+                        <div className="mss-summary">
+                            <div className="summary-card stable">
+                                <h3>🟢 Stable</h3>
+                                <p className="big-number">{stableAssets.length}</p>
+                                <p className="label">Assets (MSS ≥ 60)</p>
+                            </div>
+                            <div className="summary-card choppy">
+                                <h3>🟡 Choppy</h3>
+                                <p className="big-number">{choppyAssets.length}</p>
+                                <p className="label">Assets (40-60)</p>
+                            </div>
+                            <div className="summary-card volatile">
+                                <h3>🔴 Volatile</h3>
+                                <p className="big-number">{volatileAssets.length}</p>
+                                <p className="label">Assets (MSS &lt; 40)</p>
+                            </div>
+                        </div>
+
+                        <div className="search-filter-container">
+                            <input
+                                type="text"
+                                className="search-box"
+                                placeholder="🔍 Search by asset name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <div className="filter-buttons">
+                                <button
+                                    className={`filter-btn ${modelStatusFilter === 'all' ? 'active' : ''}`}
+                                    onClick={() => setModelStatusFilter('all')}
+                                >
+                                    All Models
+                                </button>
+                                <button
+                                    className={`filter-btn ${modelStatusFilter === 'active' ? 'active' : ''}`}
+                                    onClick={() => setModelStatusFilter('active')}
+                                >
+                                    ▶️ Active
+                                </button>
+                                <button
+                                    className={`filter-btn ${modelStatusFilter === 'paused' ? 'active' : ''}`}
+                                    onClick={() => setModelStatusFilter('paused')}
+                                >
+                                    ⏸️ Paused
+                                </button>
+                                <button
+                                    className={`filter-btn ${modelStatusFilter === 'unsaved' ? 'active' : ''}`}
+                                    onClick={() => setModelStatusFilter('unsaved')}
+                                >
+                                    💾 Unsaved
+                                </button>
+                            </div>
+                            <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                                <button
+                                    className="mss-calculate-btn"
+                                    onClick={calculateRelativeVolume}
+                                    disabled={loadingVolume}
+                                    style={{ padding: '12px 24px', fontSize: '14px' }}
+                                >
+                                    {loadingVolume ? '📊 Calculating Volume...' : '📊 Calculate Relative Volume'}
+                                </button>
+                                {selectedAssetClass === 'stocks' && (
+                                    <>
+                                        {!sectorData ? (
+                                            <button
+                                                className="mss-calculate-btn"
+                                                onClick={analyzeSectorPerformance}
+                                                disabled={loadingSectors}
+                                                style={{ padding: '12px 24px', fontSize: '14px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+                                            >
+                                                {loadingSectors ? '🎯 Analyzing Sectors...' : '🎯 Analyze Sectors'}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="sector-toggle-btn"
+                                                onClick={() => setShowSectorAnalysis(!showSectorAnalysis)}
+                                                style={{ padding: '12px 24px', fontSize: '14px' }}
+                                            >
+                                                {showSectorAnalysis ? '👁️ Hide Sector Analysis' : '👁️ Show Sector Analysis'}
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                                {hasVolumeData && (
+                                    <>
                                         <button
-                                            className={`sector-filter-btn ${selectedSector === 'all' ? 'active' : ''}`}
+                                            className={`filter-btn ${volumeFilter === 'all' ? 'active' : ''}`}
+                                            onClick={() => setVolumeFilter('all')}
+                                        >
+                                            All Volume
+                                        </button>
+                                        <button
+                                            className={`filter-btn ${volumeFilter === 'high' ? 'active' : ''}`}
+                                            onClick={() => setVolumeFilter('high')}
+                                        >
+                                            🔥 High Volume
+                                        </button>
+                                        <button
+                                            className={`filter-btn ${volumeFilter === 'average' ? 'active' : ''}`}
+                                            onClick={() => setVolumeFilter('average')}
+                                        >
+                                            📊 Average Volume
+                                        </button>
+                                        <button
+                                            className={`filter-btn ${volumeFilter === 'low' ? 'active' : ''}`}
+                                            onClick={() => setVolumeFilter('low')}
+                                        >
+                                            💤 Low Volume
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {showSectorAnalysis && sectorData && (
+                            <div className="sector-analysis-container">
+                                <div className="sector-header">
+                                    <h2>📊 Sector Performance Analysis</h2>
+                                    <button className="sector-close-btn" onClick={() => setShowSectorAnalysis(false)}>
+                                        ✕ Close
+                                    </button>
+                                </div>
+
+                                <div className="sector-stats-grid">
+                                    <div className="sector-stat-card">
+                                        <div className="sector-stat-label">Total Sectors</div>
+                                        <div className="sector-stat-value">{sectorData.sector_performance?.length || 0}</div>
+                                    </div>
+                                    <div className="sector-stat-card">
+                                        <div className="sector-stat-label">Strongest Sector</div>
+                                        <div className="sector-stat-value" style={{ fontSize: '16px' }}>
+                                            {sectorData.sector_performance?.[0]?.sector || 'N/A'}
+                                        </div>
+                                    </div>
+                                    <div className="sector-stat-card">
+                                        <div className="sector-stat-label">Avg Sector Return</div>
+                                        <div className="sector-stat-value" style={{ color: sectorData.overall_avg_return >= 0 ? '#059669' : '#dc2626' }}>
+                                            {sectorData.overall_avg_return?.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                    <div className="sector-stat-card">
+                                        <div className="sector-stat-label">Total Money Flow</div>
+                                        <div className="sector-stat-value" style={{ fontSize: '16px' }}>
+                                            ${(sectorData.total_volume_dollars / 1e9).toFixed(2)}B
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="sector-filters">
+                                    <button
+                                        className={`sector-filter-btn ${selectedSector === 'all' ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setSelectedSector('all');
+                                            setSelectedStock(null);
+                                            setStockVsSectorData(null);
+                                        }}
+                                    >
+                                        All Sectors
+                                    </button>
+                                    {sectorData.sector_performance?.map(sector => (
+                                        <button
+                                            key={sector.sector}
+                                            className={`sector-filter-btn ${selectedSector === sector.sector ? 'active' : ''}`}
                                             onClick={() => {
-                                                setSelectedSector('all');
+                                                setSelectedSector(sector.sector);
                                                 setSelectedStock(null);
                                                 setStockVsSectorData(null);
                                             }}
                                         >
-                                            All Sectors
+                                            {sector.sector} ({sector.avg_return >= 0 ? '+' : ''}{sector.avg_return.toFixed(1)}%)
                                         </button>
-                                        {sectorData.sector_performance?.map(sector => (
-                                            <button
-                                                key={sector.sector}
-                                                className={`sector-filter-btn ${selectedSector === sector.sector ? 'active' : ''}`}
-                                                onClick={() => {
-                                                    setSelectedSector(sector.sector);
-                                                    setSelectedStock(null);
-                                                    setStockVsSectorData(null);
-                                                }}
-                                            >
-                                                {sector.sector} ({sector.avg_return >= 0 ? '+' : ''}{sector.avg_return.toFixed(1)}%)
-                                            </button>
-                                        ))}
-                                    </div>
+                                    ))}
+                                </div>
 
-                                    <div className="sector-charts-grid">
-                                        {sectorData.sector_timeseries
-                                            ?.filter(sectorTS => selectedSector === 'all' || sectorTS.sector === selectedSector)
-                                            .map(sectorTS => {
-                                                const baselineValue = sectorTS.data[0]?.index || 100;
-                                                const enhancedData = sectorTS.data.map(point => ({
-                                                    ...point,
-                                                    change_pct: parseFloat(((point.index - baselineValue) / baselineValue * 100).toFixed(2))
-                                                }));
-                                                
-                                                const values = enhancedData.map(d => d.change_pct);
-                                                const minValue = Math.min(...values);
-                                                const maxValue = Math.max(...values);
-                                                const range = maxValue - minValue;
-                                                const padding = range * 0.15;
-                                                const yMin = minValue - padding;
-                                                const yMax = maxValue + padding;
-                                                
-                                                const latestChange = enhancedData[enhancedData.length - 1]?.change_pct || 0;
-                                                
-                                                return (
-                                                    <div key={sectorTS.sector} className="sector-chart-container">
-                                                        <div className="sector-chart-title">
-                                                            {sectorTS.sector} - Performance
-                                                            <span style={{ 
-                                                                marginLeft: '10px',
-                                                                color: latestChange >= 0 ? '#059669' : '#dc2626',
-                                                                fontWeight: 700
-                                                            }}>
-                                                                ({latestChange >= 0 ? '+' : ''}{latestChange.toFixed(2)}%)
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ width: '100%', height: '280px' }}>
-                                                            <ResponsiveContainer width="100%" height="100%">
-                                                                <LineChart 
-                                                                    data={enhancedData} 
-                                                                    margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
-                                                                >
-                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                                    <XAxis 
-                                                                        dataKey="date" 
-                                                                        stroke="#6b7280"
-                                                                        style={{ fontSize: '8px' }}
-                                                                        interval="preserveStartEnd"
-                                                                        tick={{ fontSize: 8 }}
-                                                                        height={30}
-                                                                    />
-                                                                    <YAxis 
-                                                                        stroke="#6b7280"
-                                                                        style={{ fontSize: '8px' }}
-                                                                        width={32}
-                                                                        domain={[yMin, yMax]}
-                                                                        tick={{ fontSize: 8 }}
-                                                                    />
-                                                                    <Tooltip 
-                                                                        contentStyle={{ 
-                                                                            background: 'white', 
-                                                                            border: '2px solid #2563eb',
-                                                                            borderRadius: '8px',
-                                                                            padding: '6px',
-                                                                            fontSize: '10px'
-                                                                        }}
-                                                                    />
-                                                                    <Line 
-                                                                        type="monotone" 
-                                                                        dataKey="change_pct" 
-                                                                        stroke="#2563eb" 
-                                                                        strokeWidth={2}
-                                                                        name="% Change"
-                                                                        dot={false}
-                                                                        isAnimationActive={false}
-                                                                    />
-                                                                </LineChart>
-                                                            </ResponsiveContainer>
-                                                        </div>
+                                <div className="sector-charts-grid">
+                                    {sectorData.sector_timeseries
+                                        ?.filter(sectorTS => selectedSector === 'all' || sectorTS.sector === selectedSector)
+                                        .map(sectorTS => {
+                                            const baselineValue = sectorTS.data[0]?.index || 100;
+                                            const enhancedData = sectorTS.data.map(point => ({
+                                                ...point,
+                                                change_pct: parseFloat(((point.index - baselineValue) / baselineValue * 100).toFixed(2))
+                                            }));
+                                            
+                                            const values = enhancedData.map(d => d.change_pct);
+                                            const minValue = Math.min(...values);
+                                            const maxValue = Math.max(...values);
+                                            const range = maxValue - minValue;
+                                            const padding = range * 0.15;
+                                            const yMin = minValue - padding;
+                                            const yMax = maxValue + padding;
+                                            
+                                            const latestChange = enhancedData[enhancedData.length - 1]?.change_pct || 0;
+                                            
+                                            return (
+                                                <div key={sectorTS.sector} className="sector-chart-container">
+                                                    <div className="sector-chart-title">
+                                                        {sectorTS.sector} - Performance
+                                                        <span style={{ 
+                                                            marginLeft: '10px',
+                                                            color: latestChange >= 0 ? '#059669' : '#dc2626',
+                                                            fontWeight: 700
+                                                        }}>
+                                                            ({latestChange >= 0 ? '+' : ''}{latestChange.toFixed(2)}%)
+                                                        </span>
                                                     </div>
-                                                );
-                                            })}
+                                                    <div style={{ width: '100%', height: '280px' }}>
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <LineChart 
+                                                                data={enhancedData} 
+                                                                margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
+                                                            >
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                                <XAxis 
+                                                                    dataKey="date" 
+                                                                    stroke="#6b7280"
+                                                                    style={{ fontSize: '8px' }}
+                                                                    interval="preserveStartEnd"
+                                                                    tick={{ fontSize: 8 }}
+                                                                    height={30}
+                                                                />
+                                                                <YAxis 
+                                                                    stroke="#6b7280"
+                                                                    style={{ fontSize: '8px' }}
+                                                                    width={32}
+                                                                    domain={[yMin, yMax]}
+                                                                    tick={{ fontSize: 8 }}
+                                                                />
+                                                                <Tooltip 
+                                                                    contentStyle={{ 
+                                                                        background: 'white', 
+                                                                        border: '2px solid #2563eb',
+                                                                        borderRadius: '8px',
+                                                                        padding: '6px',
+                                                                        fontSize: '10px'
+                                                                    }}
+                                                                />
+                                                                <Line 
+                                                                    type="monotone" 
+                                                                    dataKey="change_pct" 
+                                                                    stroke="#2563eb" 
+                                                                    strokeWidth={2}
+                                                                    name="% Change"
+                                                                    dot={false}
+                                                                    isAnimationActive={false}
+                                                                />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                                {selectedStock && stockVsSectorData && (
+                                    <div className="stock-comparison-container">
+                                        <div className="stock-comparison-header">
+                                            <h3>📈 {selectedStock} vs {stockVsSectorData.sector} Sector</h3>
+                                            <button 
+                                                className="sector-close-btn"
+                                                onClick={() => { setSelectedStock(null); setStockVsSectorData(null); }}
+                                            >
+                                                ✕ Close
+                                            </button>
+                                        </div>
+                                        <div className="comparison-chart">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={stockVsSectorData.comparison_data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                    <XAxis 
+                                                        dataKey="date" 
+                                                        stroke="#6b7280"
+                                                        style={{ fontSize: '11px' }}
+                                                    />
+                                                    <YAxis 
+                                                        stroke="#6b7280"
+                                                        style={{ fontSize: '11px' }}
+                                                        domain={['auto', 'auto']}
+                                                        label={{ value: '% Return', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
+                                                    />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            background: 'white', 
+                                                            border: '2px solid #2563eb',
+                                                            borderRadius: '8px'
+                                                        }}
+                                                    />
+                                                    <Legend />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="stock_return" 
+                                                        stroke="#2563eb" 
+                                                        strokeWidth={2}
+                                                        name={`${selectedStock} %`}
+                                                        dot={false}
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="sector_return" 
+                                                        stroke="#ef4444" 
+                                                        strokeWidth={2}
+                                                        name={`${stockVsSectorData.sector} %`}
+                                                        dot={false}
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '8px' }}>
+                                            <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
+                                                <strong>Stock Performance:</strong> {stockVsSectorData.stock_performance >= 0 ? '+' : ''}{stockVsSectorData.stock_performance.toFixed(2)}%
+                                            </p>
+                                            <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
+                                                <strong>Sector Performance:</strong> {stockVsSectorData.sector_performance >= 0 ? '+' : ''}{stockVsSectorData.sector_performance.toFixed(2)}%
+                                            </p>
+                                            <p style={{ margin: '5px 0', color: stockVsSectorData.outperformance >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
+                                                <strong>Outperformance:</strong> {stockVsSectorData.outperformance >= 0 ? '+' : ''}{stockVsSectorData.outperformance.toFixed(2)}%
+                                            </p>
+                                        </div>
                                     </div>
+                                )}
+                            </div>
+                        )}
 
-                                    {selectedStock && stockVsSectorData && (
-                                        <div className="stock-comparison-container">
-                                            <div className="stock-comparison-header">
-                                                <h3>📈 {selectedStock} vs {stockVsSectorData.sector} Sector</h3>
-                                                <button 
-                                                    className="sector-close-btn"
-                                                    onClick={() => { setSelectedStock(null); setStockVsSectorData(null); }}
+                        <div className="category-filter">
+                            <button 
+                                className={selectedCategory === 'all' ? 'active' : ''}
+                                onClick={() => setSelectedCategory('all')}
+                            >
+                                All ({filteredData.length})
+                            </button>
+                            <button 
+                                className={selectedCategory === 'stable' ? 'active' : ''}
+                                onClick={() => setSelectedCategory('stable')}
+                            >
+                                Stable ({stableAssets.length})
+                            </button>
+                            <button 
+                                className={selectedCategory === 'choppy' ? 'active' : ''}
+                                onClick={() => setSelectedCategory('choppy')}
+                            >
+                                Choppy ({choppyAssets.length})
+                            </button>
+                            <button 
+                                className={selectedCategory === 'volatile' ? 'active' : ''}
+                                onClick={() => setSelectedCategory('volatile')}
+                            >
+                                Volatile ({volatileAssets.length})
+                            </button>
+                        </div>
+
+                        <div className="mss-grid">
+                            {filteredData.map((asset, index) => (
+                                <div key={index} className="mss-card">
+                                    <div className="card-header">
+                                        <div className="card-header-left">
+                                            <h4>{asset.symbol}</h4>
+                                            {asset.sector && (
+                                                <span className={`sector-name-badge sector-${asset.sector.replace(/\s+/g, '-')}`}>
+                                                    🏢 {asset.sector}
+                                                </span>
+                                            )}
+                                            {asset.trend && (
+                                                <span className={`trend-badge ${asset.trend}`}>
+                                                    {asset.trend === 'uptrend' ? '📈 ' : asset.trend === 'downtrend' ? '📉 ' : '➡️ '}
+                                                    {asset.trend.toUpperCase()}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="card-actions">
+                                            <a 
+                                                href={`https://www.tradingview.com/chart/?symbol=${asset.symbol}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="chart-link"
+                                            >
+                                                📈 Chart
+                                            </a>
+                                            {savedModels.has(asset.symbol) ? (
+                                                <>
+                                                    {activeModels[asset.symbol]?.isActive ? (
+                                                        <button
+                                                            className="deactivate-model-btn"
+                                                            onClick={() => deactivateModel(asset)}
+                                                            disabled={deactivatingModels[asset.symbol]}
+                                                        >
+                                                            {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Pause'}
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            className="save-model-btn reactivate"
+                                                            onClick={() => reactivateModel(asset)}
+                                                            disabled={deactivatingModels[asset.symbol]}
+                                                        >
+                                                            {deactivatingModels[asset.symbol] ? '▶️ Activating...' : '▶️ Reactivate'}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="delete-model-btn"
+                                                        onClick={() => deleteModel(asset)}
+                                                        disabled={deletingModels[asset.symbol]}
+                                                    >
+                                                        {deletingModels[asset.symbol] ? '🗑️ Deleting...' : '🗑️ Delete'}
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    className="save-model-btn"
+                                                    onClick={() => saveToForwardTest(asset)}
+                                                    disabled={
+                                                        savingModels[asset.symbol] || 
+                                                        !asset.trend ||
+                                                        asset.trend === 'ranging'
+                                                    }
                                                 >
-                                                    ✕ Close
+                                                    {savingModels[asset.symbol] ? '💾 Saving...' : '💾 Save Model'}
                                                 </button>
-                                            </div>
-                                            <div className="comparison-chart">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={stockVsSectorData.comparison_data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                        <XAxis 
-                                                            dataKey="date" 
-                                                            stroke="#6b7280"
-                                                            style={{ fontSize: '11px' }}
-                                                        />
-                                                        <YAxis 
-                                                            stroke="#6b7280"
-                                                            style={{ fontSize: '11px' }}
-                                                            domain={['auto', 'auto']}
-                                                            label={{ value: '% Return', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
-                                                        />
-                                                        <Tooltip 
-                                                            contentStyle={{ 
-                                                                background: 'white', 
-                                                                border: '2px solid #2563eb',
-                                                                borderRadius: '8px'
-                                                            }}
-                                                        />
-                                                        <Legend />
-                                                        <Line 
-                                                            type="monotone" 
-                                                            dataKey="stock_return" 
-                                                            stroke="#2563eb" 
-                                                            strokeWidth={2}
-                                                            name={`${selectedStock} %`}
-                                                            dot={false}
-                                                        />
-                                                        <Line 
-                                                            type="monotone" 
-                                                            dataKey="sector_return" 
-                                                            stroke="#ef4444" 
-                                                            strokeWidth={2}
-                                                            name={`${stockVsSectorData.sector} %`}
-                                                            dot={false}
-                                                        />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                            <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '8px' }}>
-                                                <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
-                                                    <strong>Stock Performance:</strong> {stockVsSectorData.stock_performance >= 0 ? '+' : ''}{stockVsSectorData.stock_performance.toFixed(2)}%
-                                                </p>
-                                                <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
-                                                    <strong>Sector Performance:</strong> {stockVsSectorData.sector_performance >= 0 ? '+' : ''}{stockVsSectorData.sector_performance.toFixed(2)}%
-                                                </p>
-                                                <p style={{ margin: '5px 0', color: stockVsSectorData.outperformance >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
-                                                    <strong>Outperformance:</strong> {stockVsSectorData.outperformance >= 0 ? '+' : ''}{stockVsSectorData.outperformance.toFixed(2)}%
-                                                </p>
-                                            </div>
+                                            )}
+                                            {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && sectorData && asset.sector && (
+                                                <button
+                                                    className="chart-link"
+                                                    onClick={() => compareStockToSector(asset.symbol)}
+                                                    style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+                                                >
+                                                    🎯 vs Sector
+                                                </button>
+                                            )}
+                                            <button
+                                                className="analyze-asset-btn"
+                                                onClick={() => analyzeAssetSentiment(asset.symbol)}
+                                                disabled={analyzingAsset[asset.symbol]}
+                                            >
+                                                {analyzingAsset[asset.symbol] ? '🤖 Analyzing...' : '🤖 AI Analysis'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="status">{asset.status}</p>
+                                    
+                                    {assetAnalysis[asset.symbol] && (
+                                        <div className="ai-analysis-container">
+                                            {assetAnalysis[asset.symbol].noData ? (
+                                                <>
+                                                    <div className="ai-analysis-header">
+                                                        <div className="ai-analysis-icon">📊</div>
+                                                        <div className="ai-analysis-title">No Data Available</div>
+                                                    </div>
+                                                    <div className="ai-analysis-content">
+                                                        <p style={{ margin: 0, color: '#6b7280' }}>
+                                                            {assetAnalysis[asset.symbol].message}
+                                                        </p>
+                                                    </div>
+                                                </>
+                                            ) : assetAnalysis[asset.symbol].error ? (
+                                                <>
+                                                    <div className="ai-analysis-header">
+                                                        <div className="ai-analysis-icon">⚠️</div>
+                                                        <div className="ai-analysis-title">Analysis Error</div>
+                                                    </div>
+                                                    <div className="ai-analysis-content">
+                                                        <p style={{ margin: 0, color: '#dc2626' }}>
+                                                            {assetAnalysis[asset.symbol].message}
+                                                        </p>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="ai-analysis-header">
+                                                        <div className="ai-analysis-icon">🤖</div>
+                                                        <div className="ai-analysis-title">AI Sentiment Analysis</div>
+                                                    </div>
+                                                    <div className="ai-analysis-content">
+                                                        {assetAnalysis[asset.symbol].analysis.split('\n\n').map((section, idx) => {
+                                                            const lines = section.split('\n');
+                                                            const title = lines[0];
+                                                            const content = lines.slice(1).join('\n');
+                                                            
+                                                            let sentimentClass = '';
+                                                            if (title.toLowerCase().includes('bullish')) sentimentClass = 'ai-sentiment-positive';
+                                                            else if (title.toLowerCase().includes('bearish')) sentimentClass = 'ai-sentiment-negative';
+                                                            else if (title.toLowerCase().includes('neutral')) sentimentClass = 'ai-sentiment-neutral';
+                                                            
+                                                            return (
+                                                                <div key={idx} className="ai-analysis-section">
+                                                                    <div className={`ai-analysis-section-title ${sentimentClass}`}>
+                                                                        {title}
+                                                                    </div>
+                                                                    <div style={{ whiteSpace: 'pre-line' }}>
+                                                                        {content}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     )}
-                                </div>
-                            )}
-
-                            <div className="category-filter">
-                                <button 
-                                    className={selectedCategory === 'all' ? 'active' : ''}
-                                    onClick={() => setSelectedCategory('all')}
-                                >
-                                    All ({filteredData.length})
-                                </button>
-                                <button 
-                                    className={selectedCategory === 'stable' ? 'active' : ''}
-                                    onClick={() => setSelectedCategory('stable')}
-                                >
-                                    Stable ({stableAssets.length})
-                                </button>
-                                <button 
-                                    className={selectedCategory === 'choppy' ? 'active' : ''}
-                                    onClick={() => setSelectedCategory('choppy')}
-                                >
-                                    Choppy ({choppyAssets.length})
-                                </button>
-                                <button 
-                                    className={selectedCategory === 'volatile' ? 'active' : ''}
-                                    onClick={() => setSelectedCategory('volatile')}
-                                >
-                                    Volatile ({volatileAssets.length})
-                                </button>
-                            </div>
-
-                            <div className="mss-grid">
-                                {filteredData.map((asset, index) => (
-                                    <div key={index} className="mss-card">
-                                        <div className="card-header">
-                                            <div className="card-header-left">
-                                                <h4>{asset.symbol}</h4>
-                                                {asset.sector && (
-                                                    <span className={`sector-name-badge sector-${asset.sector.replace(/\s+/g, '-')}`}>
-                                                        🏢 {asset.sector}
-                                                    </span>
-                                                )}
-                                                {asset.trend && (
-                                                    <span className={`trend-badge ${asset.trend}`}>
-                                                        {asset.trend === 'uptrend' ? '📈 ' : asset.trend === 'downtrend' ? '📉 ' : '➡️ '}
-                                                        {asset.trend.toUpperCase()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="card-actions">
-                                                <a 
-                                                    href={`https://www.tradingview.com/chart/?symbol=${asset.symbol}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="chart-link"
-                                                >
-                                                    📈 Chart
-                                                </a>
-                                                {savedModels.has(asset.symbol) ? (
-                                                    <>
-                                                        {activeModels[asset.symbol]?.isActive ? (
-                                                            <button
-                                                                className="deactivate-model-btn"
-                                                                onClick={() => deactivateModel(asset)}
-                                                                disabled={deactivatingModels[asset.symbol]}
-                                                            >
-                                                                {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Pause'}
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                className="save-model-btn reactivate"
-                                                                onClick={() => reactivateModel(asset)}
-                                                                disabled={deactivatingModels[asset.symbol]}
-                                                            >
-                                                                {deactivatingModels[asset.symbol] ? '▶️ Activating...' : '▶️ Reactivate'}
-                                                            </button>
-                                                        )}
-                                                        <button
-                                                            className="delete-model-btn"
-                                                            onClick={() => deleteModel(asset)}
-                                                            disabled={deletingModels[asset.symbol]}
-                                                        >
-                                                            {deletingModels[asset.symbol] ? '🗑️ Deleting...' : '🗑️ Delete'}
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <button
-                                                        className="save-model-btn"
-                                                        onClick={() => saveToForwardTest(asset)}
-                                                        disabled={
-                                                            savingModels[asset.symbol] || 
-                                                            !asset.trend ||
-                                                            asset.trend === 'ranging'
-                                                        }
-                                                    >
-                                                        {savingModels[asset.symbol] ? '💾 Saving...' : '💾 Save Model'}
-                                                    </button>
-                                                )}
-                                                {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && sectorData && asset.sector && (
-                                                    <button
-                                                        className="chart-link"
-                                                        onClick={() => compareStockToSector(asset.symbol)}
-                                                        style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
-                                                    >
-                                                        🎯 vs Sector
-                                                    </button>
-                                                )}
-                                                <button
-                                                    className="analyze-asset-btn"
-                                                    onClick={() => analyzeAssetSentiment(asset.symbol)}
-                                                    disabled={analyzingAsset[asset.symbol]}
-                                                >
-                                                    {analyzingAsset[asset.symbol] ? '🤖 Analyzing...' : '🤖 AI Analysis'}
-                                                </button>
-                                            </div>
+                                    
+                                    <div className="card-metrics">
+                                        <div className="metric">
+                                            <span className="metric-label">MSS:</span>
+                                            <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
                                         </div>
-                                        <p className="status">{asset.status}</p>
-                                        
-                                        {assetAnalysis[asset.symbol] && (
-                                            <div className="ai-analysis-container">
-                                                {assetAnalysis[asset.symbol].noData ? (
-                                                    <>
-                                                        <div className="ai-analysis-header">
-                                                            <div className="ai-analysis-icon">📊</div>
-                                                            <div className="ai-analysis-title">No Data Available</div>
-                                                        </div>
-                                                        <div className="ai-analysis-content">
-                                                            <p style={{ margin: 0, color: '#6b7280' }}>
-                                                                {assetAnalysis[asset.symbol].message}
-                                                            </p>
-                                                        </div>
-                                                    </>
-                                                ) : assetAnalysis[asset.symbol].error ? (
-                                                    <>
-                                                        <div className="ai-analysis-header">
-                                                            <div className="ai-analysis-icon">⚠️</div>
-                                                            <div className="ai-analysis-title">Analysis Error</div>
-                                                        </div>
-                                                        <div className="ai-analysis-content">
-                                                            <p style={{ margin: 0, color: '#dc2626' }}>
-                                                                {assetAnalysis[asset.symbol].message}
-                                                            </p>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="ai-analysis-header">
-                                                            <div className="ai-analysis-icon">🤖</div>
-                                                            <div className="ai-analysis-title">AI Sentiment Analysis</div>
-                                                        </div>
-                                                        <div className="ai-analysis-content">
-                                                            {assetAnalysis[asset.symbol].analysis.split('\n\n').map((section, idx) => {
-                                                                const lines = section.split('\n');
-                                                                const title = lines[0];
-                                                                const content = lines.slice(1).join('\n');
-                                                                
-                                                                let sentimentClass = '';
-                                                                if (title.toLowerCase().includes('bullish')) sentimentClass = 'ai-sentiment-positive';
-                                                                else if (title.toLowerCase().includes('bearish')) sentimentClass = 'ai-sentiment-negative';
-                                                                else if (title.toLowerCase().includes('neutral')) sentimentClass = 'ai-sentiment-neutral';
-                                                                
-                                                                return (
-                                                                    <div key={idx} className="ai-analysis-section">
-                                                                        <div className={`ai-analysis-section-title ${sentimentClass}`}>
-                                                                            {title}
-                                                                        </div>
-                                                                        <div style={{ whiteSpace: 'pre-line' }}>
-                                                                            {content}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
-                                        
-                                        <div className="card-metrics">
-                                            <div className="metric">
-                                                <span className="metric-label">MSS:</span>
-                                                <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
-                                            </div>
-                                            <div className="metric">
-                                                <span className="metric-label">Price:</span>
-                                                <span className="metric-value">${asset.current_price}</span>
-                                            </div>
-                                            <div className="metric">
-                                                <span className="metric-label">Change:</span>
-                                                <span 
-                                                    className="metric-value"
-                                                    style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
-                                                >
-                                                    {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
-                                                </span>
-                                            </div>
+                                        <div className="metric">
+                                            <span className="metric-label">Price:</span>
+                                            <span className="metric-value">${asset.current_price}</span>
                                         </div>
-                                        {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
-                                            <div style={{ 
-                                                background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
-                                                           asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
-                                                           'rgba(59, 130, 246, 0.1)',
-                                                padding: '12px',
-                                                borderRadius: '8px',
-                                                marginBottom: '18px'
-                                            }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
-                                                        Relative Volume:
-                                                    </span>
-                                                    <span style={{ 
-                                                        fontSize: '15px', 
-                                                        fontWeight: 700,
-                                                        color: asset.volumeCategory === 'high' ? '#059669' : 
-                                                               asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
-                                                    }}>
-                                                        {asset.relativeVolume}x
-                                                    </span>
-                                                </div>
-                                                <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                                                    Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
-                                                </div>
-                                                <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
-                                                    {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
-                                                    {asset.volumeCategory?.toUpperCase()} VOLUME
-                                                </span>
-                                            </div>
-                                        )}
-                                        <div className="card-details">
-                                            <div className="detail-item">
-                                                <span>Norm. Volatility:</span>
-                                                <span>{asset.normalized_volatility}</span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <span>R² (Trend):</span>
-                                                <span>{asset.r_squared}</span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <span>Liquidity Factor:</span>
-                                                <span>{asset.liquidity_factor}</span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <span>Avg Volume:</span>
-                                                <span>{asset.avg_volume.toLocaleString()}</span>
-                                            </div>
+                                        <div className="metric">
+                                            <span className="metric-label">Change:</span>
+                                            <span 
+                                                className="metric-value"
+                                                style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
+                                            >
+                                                {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
+                                            </span>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
-                    {!loading && mssData.length === 0 && (
-                        <div className="mss-empty">
-                            <div className="empty-icon">📊</div>
-                            <h3>Ready to Analyze</h3>
-                            <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
-                        </div>
-                    )}
-
-                {/* The orb should always show when chatbot is enabled */}
-{chatbotEnabled && (
-    <div 
-    className="ai-chatbot-orb"
-    onClick={() => setShowChatbot(!showChatbot)}
-    title="Chat with Simons"
->
-    <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
-    </svg>
-</div>
-)}
-{showChatbot && (
-    <div className="ai-chatbot-panel">
-        <div className="ai-chatbot-header">
-            <h3>
-                <span>🎯</span>
-                <span>Simons - Trading Assistant</span>
-            </h3>
-            <button className="ai-chatbot-close" onClick={() => setShowChatbot(false)}>
-                ✕
-            </button>
-        </div>
-
-        <div className="ai-chatbot-messages">
-    {chatMessages.length === 0 && (
-        <div className="ai-welcome-message">
-            Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
-        </div>
-    )}
-    {chatMessages.map((msg, idx) => (
-        <div key={idx} className={`ai-message ${msg.role}`}>
-            {msg.image && (
-                <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
-            )}
-            <div>{msg.content}</div>
-        </div>
-    ))}
-    {chatLoading && (
-        <div className="ai-loading">
-            <div className="ai-loading-spinner"></div>
-            <span>Simons is analyzing...</span>
-        </div>
-    )}
-    <div ref={messagesEndRef} />
-</div>
-        <div className="ai-chatbot-input-container">
-    <label className="ai-file-upload-btn" title="Upload chart image">
-        📎
-        <input 
-            type="file" 
-            accept="image/*"
-            onChange={handleImageUpload}
-        />
-    </label>
-    <input
-        type="text"
-        className="ai-chatbot-input"
-        placeholder="Ask Simons about markets, trends, or upload a chart..."
-        value={chatInput}
-        onChange={(e) => setChatInput(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
-        disabled={chatLoading}
-    />
-    <button 
-        className="ai-chatbot-send"
-        onClick={handleChatSend}
-        disabled={chatLoading || (!chatInput.trim() && !chatImage)}
-    >
-        {chatLoading ? '...' : 'Send'}
-    </button>
-</div>
-
-{chatImage && (
-    <div className="ai-image-attached">
-        <span>📷 Chart attached</span>
-        <button 
-            className="ai-image-remove"
-            onClick={() => setChatImage(null)}
-            title="Remove image"
-        >
-            ✕
-        </button>
-    </div>
-)}
-
+                                    {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
+                                        <div style={{ 
+                                            background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
+                                                       asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
+                                                       'rgba(59, 130, 246, 0.1)',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            marginBottom: '18px'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
+                                                    Relative Volume:
+                                                </span>
+                                                <span style={{ 
+                                                    fontSize: '15px', 
+                                                    fontWeight: 700,
+                                                    color: asset.volumeCategory === 'high' ? '#059669' : 
+                                                           asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                                }}>
+                                                    {asset.relativeVolume}x
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                                Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
+                                            </div>
+                                            <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
+                                                {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
+                                                {asset.volumeCategory?.toUpperCase()} VOLUME
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="card-details">
+                                        <div className="detail-item">
+                                            <span>Norm. Volatility:</span>
+                                            <span>{asset.normalized_volatility}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span>R² (Trend):</span>
+                                            <span>{asset.r_squared}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span>Liquidity Factor:</span>
+                                            <span>{asset.liquidity_factor}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span>Avg Volume:</span>
+                                            <span>{asset.avg_volume.toLocaleString()}</span>
+                                        </div>
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+
+                {!loading && mssData.length === 0 && (
+                    <div className="mss-empty">
+                        <div className="empty-icon">📊</div>
+                        <h3>Ready to Analyze</h3>
+                        <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
+                    </div>
+                )}
+
+                {chatbotEnabled && (
+                    <div 
+                        className="ai-chatbot-orb"
+                        onClick={() => setShowChatbot(!showChatbot)}
+                        title="Chat with Simons"
+                    >
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+                        </svg>
+                    </div>
+                )}
+                {showChatbot && (
+                    <div className="ai-chatbot-panel">
+                        <div className="ai-chatbot-header">
+                            <h3>
+                                <span>🎯</span>
+                                <span>Simons - Trading Assistant</span>
+                            </h3>
+                            <button className="ai-chatbot-close" onClick={() => setShowChatbot(false)}>
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="ai-chatbot-messages">
+                            {chatMessages.length === 0 && (
+                                <div className="ai-welcome-message">
+                                    Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
+                                </div>
+                            )}
+                            {chatMessages.map((msg, idx) => (
+                                <div key={idx} className={`ai-message ${msg.role}`}>
+                                    {msg.image && (
+                                        <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                                    )}
+                                    <div>{msg.content}</div>
+                                </div>
+                            ))}
+                            {chatLoading && (
+                                <div className="ai-loading">
+                                    <div className="ai-loading-spinner"></div>
+                                    <span>Simons is analyzing...</span>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <div className="ai-chatbot-input-container">
+                            <label className="ai-file-upload-btn" title="Upload chart image">
+                                📎
+                                <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                />
+                            </label>
+                            <input
+                                type="text"
+                                className="ai-chatbot-input"
+                                placeholder="Ask Simons about markets, trends, or upload a chart..."
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                                disabled={chatLoading}
+                            />
+                            <button 
+                                className="ai-chatbot-send"
+                                onClick={handleChatSend}
+                                disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+                            >
+                                {chatLoading ? '...' : 'Send'}
+                            </button>
+                        </div>
+
+                        {chatImage && (
+                            <div className="ai-image-attached">
+                                <span>📷 Chart attached</span>
+                                <button 
+                                    className="ai-image-remove"
+                                    onClick={() => setChatImage(null)}
+                                    title="Remove image"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     );
-}
