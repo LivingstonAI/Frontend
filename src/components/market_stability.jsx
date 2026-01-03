@@ -1260,6 +1260,129 @@ grid-template-columns: 1fr;
 .sector-chart-container {
 padding: 15px;
 }
+.monte-carlo-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.monte-carlo-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+}
+
+.monte-carlo-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.monte-carlo-results {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    padding: 16px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #f59e0b;
+}
+
+.monte-carlo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.monte-carlo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.monte-carlo-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.monte-carlo-probabilities {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.probability-card {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.probability-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.probability-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.probability-value.bullish {
+    color: #059669;
+}
+
+.probability-value.bearish {
+    color: #dc2626;
+}
+
+.monte-carlo-signal {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.monte-carlo-signal.bullish {
+    color: #059669;
+    border: 2px solid #059669;
+}
+
+.monte-carlo-signal.bearish {
+    color: #dc2626;
+    border: 2px solid #dc2626;
+}
+
+.monte-carlo-signal.neutral {
+    color: #6b7280;
+    border: 2px solid #9ca3af;
+}
+
+.monte-carlo-timestamp {
+    font-size: 11px;
+    color: #92400e;
+    text-align: center;
+    margin-top: 8px;
+    font-style: italic;
+}
 }
 `;
 
@@ -1301,8 +1424,8 @@ export default function MarketStabilityScore() {
     const [chatLoading, setChatLoading] = useState(false);
     const [chatImage, setChatImage] = useState(null);
     const [showOrb, setShowOrb] = useState(true); // Add this new state
-
-
+    const [monteCarloLoading, setMonteCarloLoading] = useState({});
+    const [monteCarloResults, setMonteCarloResults] = useState({});
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
@@ -1319,6 +1442,49 @@ export default function MarketStabilityScore() {
         fetchExistingModels();
         fetchOpenAIKey();
     }, []);
+
+    const runMonteCarloSimulation = async (symbol) => {
+    setMonteCarloLoading(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/monte-carlo-prediction/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                lookback_days: 120,
+                forecast_days: 5,
+                num_simulations: 10000,
+                threshold: 0.60
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            setMonteCarloResults(prev => ({
+                ...prev,
+                [symbol]: {
+                    bullishProb: data.bullish_probability,
+                    bearishProb: data.bearish_probability,
+                    isBullish: data.is_bullish,
+                    isBearish: data.is_bearish,
+                    currentPrice: data.current_price,
+                    timestamp: new Date().toISOString()
+                }
+            }));
+        } else {
+            alert(`Monte Carlo Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error running Monte Carlo:', error);
+        alert('Failed to run Monte Carlo simulation. Please try again.');
+    } finally {
+        setMonteCarloLoading(prev => ({ ...prev, [symbol]: false }));
+    }
+};
 
     const fetchOpenAIKey = async () => {
         try {
@@ -2587,6 +2753,13 @@ return (
                                         >
                                             📈 Chart
                                         </a>
+                                        <button
+                                            className="monte-carlo-btn"
+                                            onClick={() => runMonteCarloSimulation(asset.symbol)}
+                                            disabled={monteCarloLoading[asset.symbol]}
+                                        >
+                                            {monteCarloLoading[asset.symbol] ? '🎲 Simulating...' : '🎲 Monte Carlo'}
+                                        </button>
                                         {savedModels.has(asset.symbol) ? (
                                             <>
                                                 {activeModels[asset.symbol]?.isActive ? (
@@ -2704,6 +2877,45 @@ return (
                                                 </div>
                                             </>
                                         )}
+                                    </div>
+                                )}
+
+                                {monteCarloResults[asset.symbol] && (
+                                    <div className="monte-carlo-results">
+                                        <div className="monte-carlo-header">
+                                            <div className="monte-carlo-icon">🎲</div>
+                                            <div className="monte-carlo-title">Monte Carlo Prediction</div>
+                                        </div>
+                                        
+                                        <div className="monte-carlo-probabilities">
+                                            <div className="probability-card">
+                                                <div className="probability-label">📈 Bullish Probability</div>
+                                                <div className="probability-value bullish">
+                                                    {(monteCarloResults[asset.symbol].bullishProb * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                            <div className="probability-card">
+                                                <div className="probability-label">📉 Bearish Probability</div>
+                                                <div className="probability-value bearish">
+                                                    {(monteCarloResults[asset.symbol].bearishProb * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className={`monte-carlo-signal ${
+                                            monteCarloResults[asset.symbol].isBullish ? 'bullish' : 
+                                            monteCarloResults[asset.symbol].isBearish ? 'bearish' : 
+                                            'neutral'
+                                        }`}>
+                                            {monteCarloResults[asset.symbol].isBullish && '🚀 BULLISH SIGNAL - High probability of upward movement'}
+                                            {monteCarloResults[asset.symbol].isBearish && '⚠️ BEARISH SIGNAL - High probability of downward movement'}
+                                            {!monteCarloResults[asset.symbol].isBullish && !monteCarloResults[asset.symbol].isBearish && 
+                                                '➡️ NEUTRAL - No strong directional bias'}
+                                        </div>
+                                        
+                                        <div className="monte-carlo-timestamp">
+                                            Based on 120-day analysis • {new Date(monteCarloResults[asset.symbol].timestamp).toLocaleTimeString()}
+                                        </div>
                                     </div>
                                 )}
                                 
