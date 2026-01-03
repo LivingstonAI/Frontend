@@ -1262,6 +1262,32 @@ return [`is_bearish_market_retracement(data=dataset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['is_monte_carlo_bullish_prediction'] = function(block, generator) {
+
+
+  return [`is_monte_carlo_bullish_prediction(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_monte_carlo_bullish_prediction'] = function(block, generator) {
+
+return [`is_monte_carlo_bullish_prediction(data=dataset)`, Order.NONE];
+
+};
+
+pythonGenerator['forBlock']['is_monte_carlo_bearish_prediction'] = function(block, generator) {
+
+
+  return [`is_monte_carlo_bearish_prediction(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_monte_carlo_bearish_prediction'] = function(block, generator) {
+
+return [`is_monte_carlo_bearish_prediction(data=dataset)`, Order.NONE];
+
+};
+
 
 
    // Blockly block definition for "Moving Average" block
@@ -2290,8 +2316,33 @@ Blockly.Blocks['is_bullish_market_retracement'] = {
           .appendField("is bearish market retracement")
           .setAlign(Blockly.ALIGN_CENTRE);
       this.setOutput(true, "Boolean");
-      this.setColour(160);
+      this.setColour(330);
       this.setTooltip("Checks for short retracements in bearish markets");
+      this.setHelpUrl("");
+    }
+  };
+
+
+Blockly.Blocks['is_monte_carlo_bullish_prediction'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("is monte_carlo bullish prediction")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Checks for monte carlo bullish predictions");
+      this.setHelpUrl("");
+    }
+  };
+
+    Blockly.Blocks['is_monte_carlo_bearish_prediction'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("is monte carlo bearish prediction")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(330);
+      this.setTooltip("Checks for monte carlo bearish predictions");
       this.setHelpUrl("");
     }
   };
@@ -2650,6 +2701,14 @@ Blockly.Blocks['is_bullish_market_retracement'] = {
             {
               "kind": "block",
               "type": "is_bearish_market_retracement"
+            },
+            {
+              "kind": "block",
+              "type": "is_monte_carlo_bullish_prediction"
+            },
+            {
+              "kind": "block",
+              "type": "is_monte_carlo_bearish_prediction"
             },
 
           ]
