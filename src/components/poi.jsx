@@ -3,6 +3,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 const styles = {
+    
     mainBodyInfo: {
         flex: 1,
         padding: '20px',
@@ -990,7 +991,10 @@ Estimated IQ: ${person.estimated_iq}
                                     </button>
                                     <button
                                         style={{ ...styles.smallButton, ...styles.voiceButton }}
-                                        onClick={() => speakText(person.bio, `bio-${person.id}`)}
+                                        onClick={() => {
+                                            const fullText = `${person.name}. Biography: ${person.bio}. ${person.accomplishments ? `Accomplishments: ${person.accomplishments}.` : ''} ${person.works ? `Published Works: ${person.works}.` : ''} ${person.additional_notes ? `Additional Notes: ${person.additional_notes}.` : ''}`;
+                                            speakText(fullText, `bio-${person.id}`);
+                                        }}
                                     >
                                         {isSpeaking && currentSpeakingButton === `bio-${person.id}` ? '⏹ Stop' : '🔊 Read Bio'}
                                     </button>
