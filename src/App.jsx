@@ -87,6 +87,7 @@ import SnowAIForwardTestingEngine from './components/forward_test.jsx';
 import SnowAIIDE from './components/ide.jsx';
 import NeuroLink from './components/neuro.jsx';
 import SnowAISandbox from './components/sandbox.jsx';
+import SnowAIPeopleofInterest from './components/poi.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -593,7 +594,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            
+            <Route path='/poi' element={
+              <ProtectedRoute>
+                <SnowAIPeopleofInterest />
+              </ProtectedRoute>
+            } />
 
 
 

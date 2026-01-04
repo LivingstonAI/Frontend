@@ -794,6 +794,7 @@ export default function SideNavs() {
         <Link to="/ide" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-code-slash"></i></p></button></Link>
         <Link to="/neuro_link" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-usb-plug"></i></p></button></Link>
         <Link to="/sandbox" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-box"></i></p></button></Link>
+        <Link to="/poi" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-person-arms-up"></i></p></button></Link>
 
       </div>
 
@@ -974,6 +975,9 @@ export default function SideNavs() {
         </Link>
         <Link to="/sandbox" className="side-nav">
             <i className="bi bi-box"></i>
+        </Link>
+        <Link to="/poi" className="side-nav">
+            <i className="bi bi-person-arms-up"></i>
         </Link>
       </div>
       <br />
