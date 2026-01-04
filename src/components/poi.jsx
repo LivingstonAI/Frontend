@@ -3,6 +3,19 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 const styles = {
+    container: {
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh'
+    },
+    header: {
+        width: '100%'
+    },
+    mainPageBody: {
+        display: 'flex',
+        flex: 1,
+        position: 'relative'
+    },
     mainBodyInfo: {
         flex: 1,
         padding: '20px',
@@ -10,15 +23,15 @@ const styles = {
         overflowY: 'auto'
     },
     pageHeader: {
-        color: '#1e3a8a',
+        color: '#0ea5e9',
         fontSize: '28px',
         fontWeight: 'bold',
         marginBottom: '20px',
-        borderBottom: '3px solid #3b82f6',
+        borderBottom: '3px solid #7dd3fc',
         paddingBottom: '10px'
     },
     addPersonButton: {
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#0ea5e9',
         color: 'white',
         border: 'none',
         padding: '12px 24px',
@@ -56,7 +69,7 @@ const styles = {
     modalHeader: {
         fontSize: '24px',
         fontWeight: 'bold',
-        color: '#1e3a8a',
+        color: '#0ea5e9',
         marginBottom: '20px'
     },
     formGroup: {
@@ -66,7 +79,7 @@ const styles = {
         display: 'block',
         marginBottom: '5px',
         fontWeight: '600',
-        color: '#1e3a8a'
+        color: '#0ea5e9'
     },
     input: {
         width: '100%',
@@ -109,7 +122,7 @@ const styles = {
         flexWrap: 'wrap'
     },
     primaryButton: {
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#0ea5e9',
         color: 'white',
         border: 'none',
         padding: '10px 20px',
@@ -157,7 +170,7 @@ const styles = {
     personName: {
         fontSize: '20px',
         fontWeight: 'bold',
-        color: '#1e3a8a',
+        color: '#0ea5e9',
         marginBottom: '10px'
     },
     personBio: {
@@ -184,7 +197,7 @@ const styles = {
         fontWeight: '600'
     },
     viewButton: {
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#0ea5e9',
         color: 'white'
     },
     chatButton: {
@@ -208,7 +221,7 @@ const styles = {
     detailTitle: {
         fontSize: '16px',
         fontWeight: 'bold',
-        color: '#1e3a8a',
+        color: '#0ea5e9',
         marginBottom: '8px'
     },
     detailText: {
@@ -242,19 +255,21 @@ const styles = {
     },
     chatMessage: {
         marginBottom: '12px',
-        padding: '10px',
-        borderRadius: '8px',
-        maxWidth: '80%'
+        padding: '10px 14px',
+        borderRadius: '12px',
+        maxWidth: '75%',
+        width: 'fit-content',
+        wordWrap: 'break-word'
     },
     userMessage: {
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#0ea5e9',
         color: 'white',
         marginLeft: 'auto'
     },
     aiMessage: {
-        backgroundColor: 'white',
-        color: '#374151',
-        border: '1px solid #e5e7eb'
+        backgroundColor: '#e0f2fe',
+        color: '#0c4a6e',
+        border: '1px solid #bae6fd'
     },
     chatInputContainer: {
         display: 'flex',
@@ -271,7 +286,7 @@ const styles = {
         marginRight: '10px'
     },
     sendButton: {
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#0ea5e9',
         color: 'white',
         border: 'none',
         padding: '10px 20px',
@@ -285,7 +300,23 @@ const styles = {
         padding: '20px',
         marginBottom: '20px',
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        border: '2px solid #3b82f6'
+        border: '2px solid #7dd3fc'
+    },
+    generalChatHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '15px'
+    },
+    toggleChatButton: {
+        backgroundColor: '#0ea5e9',
+        color: 'white',
+        border: 'none',
+        padding: '8px 16px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: '600'
     },
     youtubeUrlInput: {
         display: 'flex',
@@ -364,6 +395,7 @@ export default function SnowAIPeopleofInterest() {
     const [generalChatMessages, setGeneralChatMessages] = useState([]);
     const [generalChatInput, setGeneralChatInput] = useState('');
     const [isSendingGeneralMessage, setIsSendingGeneralMessage] = useState(false);
+    const [isGeneralChatOpen, setIsGeneralChatOpen] = useState(false);
 
     useEffect(() => {
         fetchAllPeople();
@@ -400,6 +432,20 @@ export default function SnowAIPeopleofInterest() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setFormData(prev => ({ ...prev, image: file }));
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const addYoutubeUrl = () => {
         if (newYoutubeUrl.trim()) {
             setFormData(prev => ({
@@ -420,7 +466,7 @@ export default function SnowAIPeopleofInterest() {
     const resetForm = () => {
         setFormData({
             name: '',
-            image_url: '',
+            image: null,
             accomplishments: '',
             bio: '',
             works: '',
@@ -428,15 +474,28 @@ export default function SnowAIPeopleofInterest() {
             estimated_iq: '',
             additional_notes: ''
         });
+        setImagePreview(null);
         setNewYoutubeUrl('');
     };
 
     const handleCreatePerson = async () => {
         try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('accomplishments', formData.accomplishments);
+            formDataToSend.append('bio', formData.bio);
+            formDataToSend.append('works', formData.works);
+            formDataToSend.append('estimated_iq', formData.estimated_iq);
+            formDataToSend.append('additional_notes', formData.additional_notes);
+            formDataToSend.append('youtube_urls', JSON.stringify(formData.youtube_urls));
+            
+            if (formData.image) {
+                formDataToSend.append('image', formData.image);
+            }
+            
             const response = await fetch(`${baseUrl}/snowai_poi_create_person_unique_v1/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: formDataToSend
             });
             const data = await response.json();
             if (data.success) {
@@ -451,10 +510,22 @@ export default function SnowAIPeopleofInterest() {
 
     const handleUpdatePerson = async () => {
         try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('accomplishments', formData.accomplishments);
+            formDataToSend.append('bio', formData.bio);
+            formDataToSend.append('works', formData.works);
+            formDataToSend.append('estimated_iq', formData.estimated_iq);
+            formDataToSend.append('additional_notes', formData.additional_notes);
+            formDataToSend.append('youtube_urls', JSON.stringify(formData.youtube_urls));
+            
+            if (formData.image && typeof formData.image !== 'string') {
+                formDataToSend.append('image', formData.image);
+            }
+            
             const response = await fetch(`${baseUrl}/snowai_poi_update_person_unique_v1/${editingPerson.id}/`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                method: 'POST',
+                body: formDataToSend
             });
             const data = await response.json();
             if (data.success) {
@@ -488,7 +559,7 @@ export default function SnowAIPeopleofInterest() {
         setEditingPerson(person);
         setFormData({
             name: person.name,
-            image_url: person.image_url,
+            image: person.image_url, // Store URL for display
             accomplishments: person.accomplishments,
             bio: person.bio,
             works: person.works,
@@ -496,6 +567,7 @@ export default function SnowAIPeopleofInterest() {
             estimated_iq: person.estimated_iq,
             additional_notes: person.additional_notes
         });
+        setImagePreview(person.image_url); // Set existing image as preview
         setShowAddModal(true);
     };
 
@@ -638,47 +710,60 @@ Estimated IQ: ${person.estimated_iq}
                     
                     {/* General Chat Section */}
                     <div style={styles.generalChatSection}>
-                        <h3 style={styles.modalHeader}>General AI Assistant</h3>
-                        <p style={{ color: '#6b7280', marginBottom: '15px', fontSize: '14px' }}>
-                            Ask questions about any of the people in your collection or compare them.
-                        </p>
-                        <div style={styles.chatContainer}>
-                            <div style={styles.chatMessages}>
-                                {generalChatMessages.length === 0 && (
-                                    <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: '20px' }}>
-                                        Start a conversation about the people in your collection...
-                                    </p>
-                                )}
-                                {generalChatMessages.map((msg, idx) => (
-                                    <div
-                                        key={idx}
-                                        style={{
-                                            ...styles.chatMessage,
-                                            ...(msg.role === 'user' ? styles.userMessage : styles.aiMessage)
-                                        }}
-                                    >
-                                        {msg.content}
-                                    </div>
-                                ))}
+                        <div style={styles.generalChatHeader}>
+                            <div>
+                                <h3 style={styles.modalHeader}>General AI Assistant</h3>
+                                <p style={{ color: '#64748b', marginBottom: '0', fontSize: '14px' }}>
+                                    Ask questions about any of the people in your collection or compare them.
+                                </p>
                             </div>
-                            <div style={styles.chatInputContainer}>
-                                <input
-                                    type="text"
-                                    style={styles.chatInput}
-                                    value={generalChatInput}
-                                    onChange={(e) => setGeneralChatInput(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && sendGeneralChatMessage()}
-                                    placeholder="Ask about anyone in your collection..."
-                                />
-                                <button
-                                    style={styles.sendButton}
-                                    onClick={sendGeneralChatMessage}
-                                    disabled={isSendingGeneralMessage}
-                                >
-                                    {isSendingGeneralMessage ? 'Sending...' : 'Send'}
-                                </button>
-                            </div>
+                            <button
+                                style={styles.toggleChatButton}
+                                onClick={() => setIsGeneralChatOpen(!isGeneralChatOpen)}
+                            >
+                                {isGeneralChatOpen ? 'Close Chat' : 'Open Chat'}
+                            </button>
                         </div>
+                        
+                        {isGeneralChatOpen && (
+                            <div style={styles.chatContainer}>
+                                <div style={styles.chatMessages}>
+                                    {generalChatMessages.length === 0 && (
+                                        <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: '20px' }}>
+                                            Start a conversation about the people in your collection...
+                                        </p>
+                                    )}
+                                    {generalChatMessages.map((msg, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                ...styles.chatMessage,
+                                                ...(msg.role === 'user' ? styles.userMessage : styles.aiMessage)
+                                            }}
+                                        >
+                                            {msg.content}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={styles.chatInputContainer}>
+                                    <input
+                                        type="text"
+                                        style={styles.chatInput}
+                                        value={generalChatInput}
+                                        onChange={(e) => setGeneralChatInput(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && sendGeneralChatMessage()}
+                                        placeholder="Ask about anyone in your collection..."
+                                    />
+                                    <button
+                                        style={styles.sendButton}
+                                        onClick={sendGeneralChatMessage}
+                                        disabled={isSendingGeneralMessage}
+                                    >
+                                        {isSendingGeneralMessage ? 'Sending...' : 'Send'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <button
@@ -714,7 +799,7 @@ Estimated IQ: ${person.estimated_iq}
                                 <div style={styles.personName}>{person.name}</div>
                                 <div style={styles.personBio}>{person.bio}</div>
                                 {person.estimated_iq && (
-                                    <div style={{ fontSize: '14px', color: '#3b82f6', fontWeight: '600' }}>
+                                    <div style={{ fontSize: '14px', color: '#0ea5e9', fontWeight: '600' }}>
                                         Estimated IQ: {person.estimated_iq}
                                     </div>
                                 )}
@@ -769,15 +854,20 @@ Estimated IQ: ${person.estimated_iq}
                                 </div>
 
                                 <div style={styles.formGroup}>
-                                    <label style={styles.label}>Image URL *</label>
+                                    <label style={styles.label}>Image *</label>
                                     <input
-                                        type="text"
-                                        name="image_url"
-                                        style={styles.input}
-                                        value={formData.image_url}
-                                        onChange={handleInputChange}
-                                        placeholder="https://example.com/image.jpg"
+                                        type="file"
+                                        accept="image/*"
+                                        style={styles.fileInput}
+                                        onChange={handleImageChange}
                                     />
+                                    {imagePreview && (
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            style={styles.imagePreview}
+                                        />
+                                    )}
                                 </div>
 
                                 <div style={styles.formGroup}>
