@@ -523,8 +523,9 @@ export default function SnowAIPeopleofInterest() {
     
     // Voice state
     const [voices, setVoices] = useState([]);
-    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [selectedVoiceIndex, setSelectedVoiceIndex] = useState(0);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [currentSpeakingButton, setCurrentSpeakingButton] = useState(null);
     
     // Orb state
     const [isOrbChatOpen, setIsOrbChatOpen] = useState(false);
@@ -542,26 +543,34 @@ export default function SnowAIPeopleofInterest() {
         
         if (loadedVoices.length > 0) {
             setVoices(loadedVoices);
-            setSelectedVoice(loadedVoices[0]);
         }
         
         // Chrome loads voices asynchronously
         synth.onvoiceschanged = () => {
             const voices = synth.getVoices();
             setVoices(voices);
-            if (!selectedVoice && voices.length > 0) {
-                setSelectedVoice(voices[0]);
-            }
         };
     };
 
-    const speakText = (text) => {
+    const speakText = (text, buttonId) => {
         if (!text) return;
         
         const synth = window.speechSynthesis;
-        synth.cancel(); // Stop any ongoing speech
+        
+        // If already speaking from this button, stop it
+        if (isSpeaking && currentSpeakingButton === buttonId) {
+            synth.cancel();
+            setIsSpeaking(false);
+            setCurrentSpeakingButton(null);
+            return;
+        }
+        
+        // Stop any ongoing speech
+        synth.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
+        const selectedVoice = voices[selectedVoiceIndex];
+        
         if (selectedVoice) {
             utterance.voice = selectedVoice;
         }
@@ -569,9 +578,18 @@ export default function SnowAIPeopleofInterest() {
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        utterance.onstart = () => {
+            setIsSpeaking(true);
+            setCurrentSpeakingButton(buttonId);
+        };
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            setCurrentSpeakingButton(null);
+        };
+        utterance.onerror = () => {
+            setIsSpeaking(false);
+            setCurrentSpeakingButton(null);
+        };
         
         synth.speak(utterance);
     };
@@ -579,6 +597,7 @@ export default function SnowAIPeopleofInterest() {
     const stopSpeaking = () => {
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
+        setCurrentSpeakingButton(null);
     };
 
     const fetchOpenAIKey = async () => {
@@ -813,7 +832,6 @@ Please answer questions about this person based on the information provided and 
             if (data.choices && data.choices[0]) {
                 const aiResponse = data.choices[0].message.content;
                 setChatMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
-                speakText(aiResponse); // Auto-read AI response
             } else {
                 throw new Error("Invalid response from OpenAI");
             }
@@ -821,7 +839,6 @@ Please answer questions about this person based on the information provided and 
             console.error("Error sending message:", error);
             const errorMsg = 'Sorry, there was an error processing your message.';
             setChatMessages(prev => [...prev, { role: 'ai', content: errorMsg }]);
-            speakText(errorMsg);
         } finally {
             setIsSendingMessage(false);
         }
@@ -874,7 +891,6 @@ Estimated IQ: ${person.estimated_iq}
             if (data.choices && data.choices[0]) {
                 const aiResponse = data.choices[0].message.content;
                 setGeneralChatMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
-                speakText(aiResponse); // Auto-read AI response
             } else {
                 throw new Error("Invalid response from OpenAI");
             }
@@ -882,7 +898,6 @@ Estimated IQ: ${person.estimated_iq}
             console.error("Error sending general message:", error);
             const errorMsg = 'Sorry, there was an error processing your message.';
             setGeneralChatMessages(prev => [...prev, { role: 'ai', content: errorMsg }]);
-            speakText(errorMsg);
         } finally {
             setIsSendingGeneralMessage(false);
         }
@@ -903,8 +918,8 @@ Estimated IQ: ${person.estimated_iq}
                         <div style={styles.voiceControlTitle}>🔊 Voice Reader Settings</div>
                         <select
                             style={styles.voiceSelect}
-                            value={selectedVoice ? voices.indexOf(selectedVoice) : 0}
-                            onChange={(e) => setSelectedVoice(voices[e.target.value])}
+                            value={selectedVoiceIndex}
+                            onChange={(e) => setSelectedVoiceIndex(parseInt(e.target.value))}
                         >
                             {voices.map((voice, index) => (
                                 <option key={index} value={index}>
@@ -912,13 +927,6 @@ Estimated IQ: ${person.estimated_iq}
                                 </option>
                             ))}
                         </select>
-                        <div style={styles.voiceButtonGroup}>
-                            {isSpeaking && (
-                                <button style={styles.stopVoiceButton} onClick={stopSpeaking}>
-                                    ⏹ Stop Speaking
-                                </button>
-                            )}
-                        </div>
                     </div>
 
                     {/* Search Bar */}
@@ -982,9 +990,9 @@ Estimated IQ: ${person.estimated_iq}
                                     </button>
                                     <button
                                         style={{ ...styles.smallButton, ...styles.voiceButton }}
-                                        onClick={() => speakText(person.bio)}
+                                        onClick={() => speakText(person.bio, `bio-${person.id}`)}
                                     >
-                                        🔊 Read Bio
+                                        {isSpeaking && currentSpeakingButton === `bio-${person.id}` ? '⏹ Stop' : '🔊 Read Bio'}
                                     </button>
                                     <button
                                         style={{ ...styles.smallButton, ...styles.editButton }}
@@ -1167,9 +1175,9 @@ Estimated IQ: ${person.estimated_iq}
                                 
                                 <button
                                     style={{ ...styles.primaryButton, marginBottom: '15px' }}
-                                    onClick={() => speakText(`${selectedPerson.name}. ${selectedPerson.bio}. Accomplishments: ${selectedPerson.accomplishments}. Works: ${selectedPerson.works}.`)}
+                                    onClick={() => speakText(`${selectedPerson.name}. ${selectedPerson.bio}. Accomplishments: ${selectedPerson.accomplishments}. Works: ${selectedPerson.works}.`, `full-profile-${selectedPerson.id}`)}
                                 >
-                                    🔊 Read Full Profile
+                                    {isSpeaking && currentSpeakingButton === `full-profile-${selectedPerson.id}` ? '⏹ Stop Reading' : '🔊 Read Full Profile'}
                                 </button>
                                 
                                 {selectedPerson.image_url && (
@@ -1192,9 +1200,9 @@ Estimated IQ: ${person.estimated_iq}
                                     <div style={styles.detailText}>{selectedPerson.bio}</div>
                                     <button
                                         style={{ ...styles.voiceButton, ...styles.smallButton, marginTop: '8px' }}
-                                        onClick={() => speakText(selectedPerson.bio)}
+                                        onClick={() => speakText(selectedPerson.bio, `view-bio-${selectedPerson.id}`)}
                                     >
-                                        🔊 Read Bio
+                                        {isSpeaking && currentSpeakingButton === `view-bio-${selectedPerson.id}` ? '⏹ Stop' : '🔊 Read Bio'}
                                     </button>
                                 </div>
 
@@ -1204,9 +1212,9 @@ Estimated IQ: ${person.estimated_iq}
                                         <div style={styles.detailText}>{selectedPerson.accomplishments}</div>
                                         <button
                                             style={{ ...styles.voiceButton, ...styles.smallButton, marginTop: '8px' }}
-                                            onClick={() => speakText(selectedPerson.accomplishments)}
+                                            onClick={() => speakText(selectedPerson.accomplishments, `view-accomplishments-${selectedPerson.id}`)}
                                         >
-                                            🔊 Read Accomplishments
+                                            {isSpeaking && currentSpeakingButton === `view-accomplishments-${selectedPerson.id}` ? '⏹ Stop' : '🔊 Read Accomplishments'}
                                         </button>
                                     </div>
                                 )}
@@ -1217,9 +1225,9 @@ Estimated IQ: ${person.estimated_iq}
                                         <div style={styles.detailText}>{selectedPerson.works}</div>
                                         <button
                                             style={{ ...styles.voiceButton, ...styles.smallButton, marginTop: '8px' }}
-                                            onClick={() => speakText(selectedPerson.works)}
+                                            onClick={() => speakText(selectedPerson.works, `view-works-${selectedPerson.id}`)}
                                         >
-                                            🔊 Read Works
+                                            {isSpeaking && currentSpeakingButton === `view-works-${selectedPerson.id}` ? '⏹ Stop' : '🔊 Read Works'}
                                         </button>
                                     </div>
                                 )}
@@ -1361,14 +1369,30 @@ Estimated IQ: ${person.estimated_iq}
                                         </p>
                                     )}
                                     {generalChatMessages.map((msg, idx) => (
-                                        <div
-                                            key={idx}
-                                            style={{
-                                                ...styles.chatMessage,
-                                                ...(msg.role === 'user' ? styles.userMessage : styles.aiMessage)
-                                            }}
-                                        >
-                                            {msg.content}
+                                        <div key={idx}>
+                                            <div
+                                                style={{
+                                                    ...styles.chatMessage,
+                                                    ...(msg.role === 'user' ? styles.userMessage : styles.aiMessage)
+                                                }}
+                                            >
+                                                {msg.content}
+                                            </div>
+                                            {msg.role === 'ai' && (
+                                                <button
+                                                    style={{ 
+                                                        ...styles.voiceButton, 
+                                                        ...styles.smallButton, 
+                                                        fontSize: '11px',
+                                                        padding: '4px 8px',
+                                                        marginLeft: '8px',
+                                                        marginBottom: '8px'
+                                                    }}
+                                                    onClick={() => speakText(msg.content, `general-chat-msg-${idx}`)}
+                                                >
+                                                    {isSpeaking && currentSpeakingButton === `general-chat-msg-${idx}` ? '⏹' : '🔊'}
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
