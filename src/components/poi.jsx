@@ -700,7 +700,7 @@ Estimated IQ: ${person.estimated_iq}
                     <div style={styles.generalChatSection}>
                         <div style={styles.generalChatHeader}>
                             <div>
-                                <h3 style={styles.modalHeader}>General AI Assistant</h3>
+                                <h3 style={styles.modalHeader}>AI Simons - General Assistant</h3>
                                 <p style={{ color: '#64748b', marginBottom: '0', fontSize: '14px' }}>
                                     Ask questions about any of the people in your collection or compare them.
                                 </p>
@@ -1052,7 +1052,7 @@ Estimated IQ: ${person.estimated_iq}
                     {showChatModal && selectedPerson && (
                         <div style={styles.modal} onClick={() => setShowChatModal(false)}>
                             <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                <h2 style={styles.modalHeader}>Chat about {selectedPerson.name}</h2>
+                                <h2 style={styles.modalHeader}>Chat with AI Simons about {selectedPerson.name}</h2>
                                 <p style={{ color: '#6b7280', marginBottom: '15px', fontSize: '14px' }}>
                                     Ask questions about their life, work, and accomplishments.
                                 </p>
