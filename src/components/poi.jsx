@@ -3,7 +3,6 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 const styles = {
-    
     mainBodyInfo: {
         flex: 1,
         padding: '20px',
@@ -192,6 +191,10 @@ const styles = {
         backgroundColor: '#10b981',
         color: 'white'
     },
+    voiceButton: {
+        backgroundColor: '#8b5cf6',
+        color: 'white'
+    },
     editButton: {
         backgroundColor: '#f59e0b',
         color: 'white'
@@ -306,6 +309,136 @@ const styles = {
         fontSize: '14px',
         fontWeight: '600'
     },
+    searchBar: {
+        width: '100%',
+        padding: '12px',
+        border: '2px solid #7dd3fc',
+        borderRadius: '8px',
+        fontSize: '16px',
+        marginBottom: '20px',
+        boxSizing: 'border-box'
+    },
+    closeButton: {
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        backgroundColor: '#ef4444',
+        color: 'white',
+        border: 'none',
+        borderRadius: '50%',
+        width: '32px',
+        height: '32px',
+        fontSize: '18px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 'bold'
+    },
+    voiceControlSection: {
+        backgroundColor: '#e0f2fe',
+        padding: '15px',
+        borderRadius: '8px',
+        marginBottom: '20px',
+        border: '1px solid #7dd3fc'
+    },
+    voiceControlTitle: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#0ea5e9',
+        marginBottom: '10px'
+    },
+    voiceSelect: {
+        width: '100%',
+        padding: '8px',
+        borderRadius: '6px',
+        border: '2px solid #7dd3fc',
+        fontSize: '14px',
+        marginBottom: '10px',
+        boxSizing: 'border-box'
+    },
+    voiceButtonGroup: {
+        display: 'flex',
+        gap: '8px',
+        flexWrap: 'wrap'
+    },
+    voiceButton: {
+        backgroundColor: '#0ea5e9',
+        color: 'white',
+        border: 'none',
+        padding: '6px 12px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '600'
+    },
+    stopVoiceButton: {
+        backgroundColor: '#ef4444',
+        color: 'white',
+        border: 'none',
+        padding: '6px 12px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: '600'
+    },
+    orbContainer: {
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        zIndex: 1001
+    },
+    orbButton: {
+        width: '60px',
+        height: '60px',
+        borderRadius: '50%',
+        backgroundColor: '#0ea5e9',
+        border: 'none',
+        cursor: 'pointer',
+        boxShadow: '0 4px 12px rgba(14, 165, 233, 0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        color: 'white'
+    },
+    orbButtonHover: {
+        transform: 'scale(1.1)',
+        boxShadow: '0 6px 16px rgba(14, 165, 233, 0.6)'
+    },
+    orbChatWindow: {
+        position: 'fixed',
+        bottom: '90px',
+        right: '20px',
+        width: '380px',
+        maxWidth: 'calc(100vw - 40px)',
+        height: '500px',
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+    },
+    orbChatHeader: {
+        backgroundColor: '#0ea5e9',
+        color: 'white',
+        padding: '15px',
+        fontWeight: '600',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    orbChatCloseButton: {
+        backgroundColor: 'transparent',
+        border: 'none',
+        color: 'white',
+        fontSize: '20px',
+        cursor: 'pointer',
+        fontWeight: 'bold'
+    },
     youtubeUrlInput: {
         display: 'flex',
         gap: '8px',
@@ -384,11 +517,69 @@ export default function SnowAIPeopleofInterest() {
     const [generalChatInput, setGeneralChatInput] = useState('');
     const [isSendingGeneralMessage, setIsSendingGeneralMessage] = useState(false);
     const [isGeneralChatOpen, setIsGeneralChatOpen] = useState(false);
+    
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    
+    // Voice state
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    
+    // Orb state
+    const [isOrbChatOpen, setIsOrbChatOpen] = useState(false);
+    const [isOrbHovered, setIsOrbHovered] = useState(false);
 
     useEffect(() => {
         fetchAllPeople();
         fetchOpenAIKey();
+        loadVoices();
     }, []);
+
+    const loadVoices = () => {
+        const synth = window.speechSynthesis;
+        const loadedVoices = synth.getVoices();
+        
+        if (loadedVoices.length > 0) {
+            setVoices(loadedVoices);
+            setSelectedVoice(loadedVoices[0]);
+        }
+        
+        // Chrome loads voices asynchronously
+        synth.onvoiceschanged = () => {
+            const voices = synth.getVoices();
+            setVoices(voices);
+            if (!selectedVoice && voices.length > 0) {
+                setSelectedVoice(voices[0]);
+            }
+        };
+    };
+
+    const speakText = (text) => {
+        if (!text) return;
+        
+        const synth = window.speechSynthesis;
+        synth.cancel(); // Stop any ongoing speech
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+        
+        synth.speak(utterance);
+    };
+
+    const stopSpeaking = () => {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+    };
 
     const fetchOpenAIKey = async () => {
         try {
@@ -575,6 +766,11 @@ export default function SnowAIPeopleofInterest() {
         return videoIdMatch ? `https://www.youtube.com/embed/${videoIdMatch[1]}` : null;
     };
 
+    // Filter people based on search query
+    const filteredPeople = people.filter(person =>
+        person.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const sendChatMessage = async () => {
         if (!chatInput.trim() || isSendingMessage || !OPENAI_API_KEY) return;
 
@@ -617,12 +813,15 @@ Please answer questions about this person based on the information provided and 
             if (data.choices && data.choices[0]) {
                 const aiResponse = data.choices[0].message.content;
                 setChatMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
+                speakText(aiResponse); // Auto-read AI response
             } else {
                 throw new Error("Invalid response from OpenAI");
             }
         } catch (error) {
             console.error("Error sending message:", error);
-            setChatMessages(prev => [...prev, { role: 'ai', content: 'Sorry, there was an error processing your message.' }]);
+            const errorMsg = 'Sorry, there was an error processing your message.';
+            setChatMessages(prev => [...prev, { role: 'ai', content: errorMsg }]);
+            speakText(errorMsg);
         } finally {
             setIsSendingMessage(false);
         }
@@ -675,12 +874,15 @@ Estimated IQ: ${person.estimated_iq}
             if (data.choices && data.choices[0]) {
                 const aiResponse = data.choices[0].message.content;
                 setGeneralChatMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
+                speakText(aiResponse); // Auto-read AI response
             } else {
                 throw new Error("Invalid response from OpenAI");
             }
         } catch (error) {
             console.error("Error sending general message:", error);
-            setGeneralChatMessages(prev => [...prev, { role: 'ai', content: 'Sorry, there was an error processing your message.' }]);
+            const errorMsg = 'Sorry, there was an error processing your message.';
+            setGeneralChatMessages(prev => [...prev, { role: 'ai', content: errorMsg }]);
+            speakText(errorMsg);
         } finally {
             setIsSendingGeneralMessage(false);
         }
@@ -696,63 +898,37 @@ Estimated IQ: ${person.estimated_iq}
                 <div style={styles.mainBodyInfo}>
                     <h5 style={styles.pageHeader}>SnowAI People of Interest</h5>
                     
-                    {/* General Chat Section */}
-                    <div style={styles.generalChatSection}>
-                        <div style={styles.generalChatHeader}>
-                            <div>
-                                <h3 style={styles.modalHeader}>AI Simons - General Assistant</h3>
-                                <p style={{ color: '#64748b', marginBottom: '0', fontSize: '14px' }}>
-                                    Ask questions about any of the people in your collection or compare them.
-                                </p>
-                            </div>
-                            <button
-                                style={styles.toggleChatButton}
-                                onClick={() => setIsGeneralChatOpen(!isGeneralChatOpen)}
-                            >
-                                {isGeneralChatOpen ? 'Close Chat' : 'Open Chat'}
-                            </button>
+                    {/* Voice Control Section */}
+                    <div style={styles.voiceControlSection}>
+                        <div style={styles.voiceControlTitle}>🔊 Voice Reader Settings</div>
+                        <select
+                            style={styles.voiceSelect}
+                            value={selectedVoice ? voices.indexOf(selectedVoice) : 0}
+                            onChange={(e) => setSelectedVoice(voices[e.target.value])}
+                        >
+                            {voices.map((voice, index) => (
+                                <option key={index} value={index}>
+                                    {voice.name} ({voice.lang})
+                                </option>
+                            ))}
+                        </select>
+                        <div style={styles.voiceButtonGroup}>
+                            {isSpeaking && (
+                                <button style={styles.stopVoiceButton} onClick={stopSpeaking}>
+                                    ⏹ Stop Speaking
+                                </button>
+                            )}
                         </div>
-                        
-                        {isGeneralChatOpen && (
-                            <div style={styles.chatContainer}>
-                                <div style={styles.chatMessages}>
-                                    {generalChatMessages.length === 0 && (
-                                        <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: '20px' }}>
-                                            Start a conversation about the people in your collection...
-                                        </p>
-                                    )}
-                                    {generalChatMessages.map((msg, idx) => (
-                                        <div
-                                            key={idx}
-                                            style={{
-                                                ...styles.chatMessage,
-                                                ...(msg.role === 'user' ? styles.userMessage : styles.aiMessage)
-                                            }}
-                                        >
-                                            {msg.content}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div style={styles.chatInputContainer}>
-                                    <input
-                                        type="text"
-                                        style={styles.chatInput}
-                                        value={generalChatInput}
-                                        onChange={(e) => setGeneralChatInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && sendGeneralChatMessage()}
-                                        placeholder="Ask about anyone in your collection..."
-                                    />
-                                    <button
-                                        style={styles.sendButton}
-                                        onClick={sendGeneralChatMessage}
-                                        disabled={isSendingGeneralMessage}
-                                    >
-                                        {isSendingGeneralMessage ? 'Sending...' : 'Send'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
+
+                    {/* Search Bar */}
+                    <input
+                        type="text"
+                        style={styles.searchBar}
+                        placeholder="🔍 Search by person name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
 
                     <button
                         style={styles.addPersonButton}
@@ -767,7 +943,7 @@ Estimated IQ: ${person.estimated_iq}
 
                     {/* People Grid */}
                     <div style={styles.peopleGrid}>
-                        {people.map((person) => (
+                        {filteredPeople.map((person) => (
                             <div
                                 key={person.id}
                                 style={{
@@ -803,6 +979,12 @@ Estimated IQ: ${person.estimated_iq}
                                         onClick={() => openChatModal(person)}
                                     >
                                         Chat with AI
+                                    </button>
+                                    <button
+                                        style={{ ...styles.smallButton, ...styles.voiceButton }}
+                                        onClick={() => speakText(person.bio)}
+                                    >
+                                        🔊 Read Bio
                                     </button>
                                     <button
                                         style={{ ...styles.smallButton, ...styles.editButton }}
@@ -972,8 +1154,23 @@ Estimated IQ: ${person.estimated_iq}
                     {/* View Details Modal */}
                     {showViewModal && selectedPerson && (
                         <div style={styles.modal} onClick={() => setShowViewModal(false)}>
-                            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ ...styles.modalContent, position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    style={styles.closeButton}
+                                    onClick={() => setShowViewModal(false)}
+                                    title="Close"
+                                >
+                                    ✕
+                                </button>
+                                
                                 <h2 style={styles.modalHeader}>{selectedPerson.name}</h2>
+                                
+                                <button
+                                    style={{ ...styles.primaryButton, marginBottom: '15px' }}
+                                    onClick={() => speakText(`${selectedPerson.name}. ${selectedPerson.bio}. Accomplishments: ${selectedPerson.accomplishments}. Works: ${selectedPerson.works}.`)}
+                                >
+                                    🔊 Read Full Profile
+                                </button>
                                 
                                 {selectedPerson.image_url && (
                                     <img
@@ -993,12 +1190,24 @@ Estimated IQ: ${person.estimated_iq}
                                 <div style={styles.detailSection}>
                                     <div style={styles.detailTitle}>Biography</div>
                                     <div style={styles.detailText}>{selectedPerson.bio}</div>
+                                    <button
+                                        style={{ ...styles.voiceButton, ...styles.smallButton, marginTop: '8px' }}
+                                        onClick={() => speakText(selectedPerson.bio)}
+                                    >
+                                        🔊 Read Bio
+                                    </button>
                                 </div>
 
                                 {selectedPerson.accomplishments && (
                                     <div style={styles.detailSection}>
                                         <div style={styles.detailTitle}>Accomplishments</div>
                                         <div style={styles.detailText}>{selectedPerson.accomplishments}</div>
+                                        <button
+                                            style={{ ...styles.voiceButton, ...styles.smallButton, marginTop: '8px' }}
+                                            onClick={() => speakText(selectedPerson.accomplishments)}
+                                        >
+                                            🔊 Read Accomplishments
+                                        </button>
                                     </div>
                                 )}
 
@@ -1006,6 +1215,12 @@ Estimated IQ: ${person.estimated_iq}
                                     <div style={styles.detailSection}>
                                         <div style={styles.detailTitle}>Published Works</div>
                                         <div style={styles.detailText}>{selectedPerson.works}</div>
+                                        <button
+                                            style={{ ...styles.voiceButton, ...styles.smallButton, marginTop: '8px' }}
+                                            onClick={() => speakText(selectedPerson.works)}
+                                        >
+                                            🔊 Read Works
+                                        </button>
                                     </div>
                                 )}
 
@@ -1104,6 +1319,74 @@ Estimated IQ: ${person.estimated_iq}
                                         }}
                                     >
                                         Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* AI Simons Orb */}
+                    <div style={styles.orbContainer}>
+                        <button
+                            style={{
+                                ...styles.orbButton,
+                                ...(isOrbHovered ? styles.orbButtonHover : {})
+                            }}
+                            onMouseEnter={() => setIsOrbHovered(true)}
+                            onMouseLeave={() => setIsOrbHovered(false)}
+                            onClick={() => setIsOrbChatOpen(!isOrbChatOpen)}
+                            title="Chat with AI Simons"
+                        >
+                            🤖
+                        </button>
+                    </div>
+
+                    {/* Orb Chat Window */}
+                    {isOrbChatOpen && (
+                        <div style={styles.orbChatWindow}>
+                            <div style={styles.orbChatHeader}>
+                                <span>AI Simons Assistant</span>
+                                <button
+                                    style={styles.orbChatCloseButton}
+                                    onClick={() => setIsOrbChatOpen(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div style={styles.chatContainer}>
+                                <div style={styles.chatMessages}>
+                                    {generalChatMessages.length === 0 && (
+                                        <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
+                                            Hi! I'm AI Simons. Ask me anything about the people in your collection!
+                                        </p>
+                                    )}
+                                    {generalChatMessages.map((msg, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                ...styles.chatMessage,
+                                                ...(msg.role === 'user' ? styles.userMessage : styles.aiMessage)
+                                            }}
+                                        >
+                                            {msg.content}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={styles.chatInputContainer}>
+                                    <input
+                                        type="text"
+                                        style={styles.chatInput}
+                                        value={generalChatInput}
+                                        onChange={(e) => setGeneralChatInput(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && sendGeneralChatMessage()}
+                                        placeholder="Ask about anyone..."
+                                    />
+                                    <button
+                                        style={styles.sendButton}
+                                        onClick={sendGeneralChatMessage}
+                                        disabled={isSendingGeneralMessage}
+                                    >
+                                        {isSendingGeneralMessage ? '...' : '📤'}
                                     </button>
                                 </div>
                             </div>
