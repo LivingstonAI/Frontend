@@ -44,6 +44,15 @@ export default function PaperGPT() {
     const [showPDFViewer, setShowPDFViewer] = useState(false);
     const [currentPDFUrl, setCurrentPDFUrl] = useState(null);
 
+    // General AI Chat state (for papers not saved to library)
+    const [showGeneralChatModal, setShowGeneralChatModal] = useState(false);
+    const [generalChatFile, setGeneralChatFile] = useState(null);
+    const [generalChatMessages, setGeneralChatMessages] = useState([]);
+    const [generalChatInput, setGeneralChatInput] = useState("");
+    const [isGeneralChatProcessing, setIsGeneralChatProcessing] = useState(false);
+    const [isGeneralAiThinking, setIsGeneralAiThinking] = useState(false);
+    const [generalPaperContext, setGeneralPaperContext] = useState(null);
+
 
     const searchInputFix = `
         .search-input {
@@ -640,6 +649,147 @@ const deletePaperFromBackend = async (paperId) => {
             setIsAiThinking(false);
         }
     };
+
+    const processGeneralChatPDF = async (file) => {
+        setIsGeneralChatProcessing(true);
+        try {
+            // Extract text from PDF
+            const extractedText = await extractTextFromPDF(file);
+            
+            // Generate a quick summary for context
+            const summary = await generateSummary(extractedText);
+            
+            // Set the paper context
+            const context = {
+                fileName: file.name,
+                extractedText: extractedText,
+                aiSummary: summary
+            };
+            
+            setGeneralPaperContext(context);
+            
+            // Add welcome message from AI
+            setGeneralChatMessages([{
+                role: 'assistant',
+                content: `I've analyzed "${file.name}". Here's a quick summary:\n\n${summary}\n\nFeel free to ask me anything about this paper!`,
+                timestamp: new Date().toISOString()
+            }]);
+            
+        } catch (error) {
+            console.error("Error processing PDF:", error);
+            alert("Error processing PDF: " + error.message);
+            closeGeneralChatModal();
+        } finally {
+            setIsGeneralChatProcessing(false);
+        }
+    };
+
+    const handleGeneralChatMessage = async () => {
+    if (!generalChatInput.trim() || !generalPaperContext) return;
+
+    const userMessage = generalChatInput.trim();
+    
+    // Add user message to chat
+    const newUserMessage = {
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toISOString()
+    };
+    
+    setGeneralChatMessages(prev => [...prev, newUserMessage]);
+    setGeneralChatInput("");
+    setIsGeneralAiThinking(true);
+
+    try {
+        // Use the same chatWithAI function but with generalPaperContext
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are an expert research assistant helping to analyze and discuss a research paper. Here is the paper content: ${generalPaperContext.extractedText.substring(0, 8000)}. The paper's AI summary is: ${generalPaperContext.aiSummary}. Answer questions about this paper accurately and insightfully.`
+                    },
+                    ...generalChatMessages.map(msg => ({
+                        role: msg.role,
+                        content: msg.content
+                    })),
+                    {
+                        role: 'user',
+                        content: userMessage
+                    }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+        
+        // Add AI response to chat
+        const newAiMessage = {
+            role: 'assistant',
+            content: aiResponse,
+            timestamp: new Date().toISOString()
+        };
+        
+        setGeneralChatMessages(prev => [...prev, newAiMessage]);
+    } catch (error) {
+        console.error("Error chatting with AI:", error);
+        alert("Error: " + error.message);
+        
+        // Add error message to chat
+        setGeneralChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: "I'm sorry, I encountered an error. Please try again.",
+            timestamp: new Date().toISOString(),
+            isError: true
+        }]);
+    } finally {
+        setIsGeneralAiThinking(false);
+    }
+};
+
+const openGeneralChatModal = () => {
+    setShowGeneralChatModal(true);
+    setGeneralChatMessages([]);
+    setGeneralChatInput("");
+    setGeneralPaperContext(null);
+    setGeneralChatFile(null);
+    setIsGeneralChatProcessing(false);
+};
+
+const closeGeneralChatModal = () => {
+    setShowGeneralChatModal(false);
+    setGeneralChatMessages([]);
+    setGeneralChatInput("");
+    setGeneralPaperContext(null);
+    setGeneralChatFile(null);
+    setIsGeneralChatProcessing(false);
+    setIsGeneralAiThinking(false);
+};
+
+const handleGeneralChatFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+        setGeneralChatFile(file);
+        await processGeneralChatPDF(file);
+    } else {
+        alert('Please select a valid PDF file');
+    }
+};
+
+    
 
     const openChatModal = (paper) => {
         setChatPaper(paper);
@@ -1329,11 +1479,46 @@ useEffect(() => {
                     <SideNavs />
                     <div className="main-content">
                         <div className="content-wrapper">
-                            <div className="header-section">
-                                <h1 className="main-title">
-                                    <BookOpen size={32} style={{ color: '#3b82f6' }} />
-                                    PaperGPT
-                                </h1>
+                            {/* Find the header-section div and update it like this: */}
+                        <div className="header-section">
+                            <h1 className="main-title">
+                                <BookOpen size={32} style={{ color: '#3b82f6' }} />
+                                PaperGPT
+                            </h1>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                {/* NEW: Quick Chat Button */}
+                                <button
+                                    onClick={openGeneralChatModal}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                                        color: 'white',
+                                        padding: '0.75rem 1.5rem',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 4px 14px 0 rgba(139, 92, 246, 0.39)'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.target.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+                                        e.target.style.transform = 'translateY(-2px)';
+                                        e.target.style.boxShadow = '0 8px 25px 0 rgba(139, 92, 246, 0.5)';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.target.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 4px 14px 0 rgba(139, 92, 246, 0.39)';
+                                    }}
+                                >
+                                    <BookOpen size={20} />
+                                    Quick Chat
+                                </button>
+                                
+                                {/* Existing Add Paper button */}
                                 <button
                                     onClick={() => setShowUploadModal(true)}
                                     className="add-paper-btn"
@@ -1342,6 +1527,7 @@ useEffect(() => {
                                     Add Paper
                                 </button>
                             </div>
+                        </div>
 
                             <div className="grid-layout">
                                 {/* Papers List */}
@@ -2178,6 +2364,330 @@ useEffect(() => {
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+)}
+
+{/* General AI Chat Modal */}
+{showGeneralChatModal && (
+    <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 70,
+        backdropFilter: 'blur(4px)'
+    }}>
+        <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: '90vw',
+            maxWidth: '800px',
+            height: '80vh',
+            margin: '1rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        }}>
+            {/* Chat Header */}
+            <div style={{
+                padding: '1.5rem',
+                borderBottom: '2px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)'
+            }}>
+                <div>
+                    <h3 style={{
+                        fontSize: '1.25rem',
+                        fontWeight: '700',
+                        color: '#1e293b',
+                        margin: 0,
+                        marginBottom: '0.25rem'
+                    }}>
+                        Quick Chat with AI
+                    </h3>
+                    <p style={{
+                        fontSize: '0.875rem',
+                        color: '#64748b',
+                        margin: 0
+                    }}>
+                        {generalPaperContext ? generalPaperContext.fileName : 'Upload a PDF to start chatting'}
+                    </p>
+                </div>
+                <button
+                    onClick={closeGeneralChatModal}
+                    style={{
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.5rem 1rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                        e.target.style.background = '#dc2626';
+                    }}
+                    onMouseOut={(e) => {
+                        e.target.style.background = '#ef4444';
+                    }}
+                >
+                    Close
+                </button>
+            </div>
+            
+            {/* File Upload Section (shown only if no paper is loaded) */}
+            {!generalPaperContext && !isGeneralChatProcessing && (
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3rem',
+                    background: '#f8fafc'
+                }}>
+                    <div style={{
+                        textAlign: 'center',
+                        maxWidth: '400px'
+                    }}>
+                        <Upload size={64} style={{ 
+                            margin: '0 auto 1.5rem', 
+                            color: '#8b5cf6' 
+                        }} />
+                        <h4 style={{
+                            fontSize: '1.25rem',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            marginBottom: '0.5rem'
+                        }}>
+                            Upload a PDF to chat
+                        </h4>
+                        <p style={{
+                            fontSize: '0.875rem',
+                            color: '#64748b',
+                            marginBottom: '2rem'
+                        }}>
+                            Upload any research paper and I'll analyze it so we can discuss it together.
+                        </p>
+                        <label style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                            color: 'white',
+                            padding: '0.875rem 1.5rem',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 4px 14px 0 rgba(139, 92, 246, 0.39)'
+                        }}>
+                            <Upload size={20} />
+                            Choose PDF File
+                            <input
+                                type="file"
+                                accept=".pdf"
+                                onChange={handleGeneralChatFileSelect}
+                                style={{ display: 'none' }}
+                            />
+                        </label>
+                    </div>
+                </div>
+            )}
+            
+            {/* Processing State */}
+            {isGeneralChatProcessing && (
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3rem',
+                    background: '#f8fafc'
+                }}>
+                    <div style={{
+                        textAlign: 'center'
+                    }}>
+                        <div className="loading-spinner" style={{
+                            width: '3rem',
+                            height: '3rem',
+                            border: '4px solid #e2e8f0',
+                            borderTopColor: '#8b5cf6',
+                            margin: '0 auto 1.5rem'
+                        }}></div>
+                        <h4 style={{
+                            fontSize: '1.25rem',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            marginBottom: '0.5rem'
+                        }}>
+                            Processing your paper...
+                        </h4>
+                        <p style={{
+                            fontSize: '0.875rem',
+                            color: '#64748b'
+                        }}>
+                            Extracting text and generating summary. This may take a moment.
+                        </p>
+                    </div>
+                </div>
+            )}
+            
+            {/* Chat Messages (shown only if paper is loaded) */}
+            {generalPaperContext && !isGeneralChatProcessing && (
+                <>
+                    <div style={{
+                        flex: 1,
+                        padding: '1.5rem',
+                        overflowY: 'auto',
+                        background: '#f8fafc',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                    }}>
+                        {generalChatMessages.map((message, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
+                                }}
+                            >
+                                <div style={{
+                                    maxWidth: '75%',
+                                    padding: '1rem 1.25rem',
+                                    borderRadius: '12px',
+                                    background: message.role === 'user' 
+                                        ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' 
+                                        : message.isError 
+                                            ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
+                                            : 'white',
+                                    color: message.role === 'user' ? 'white' : '#1e293b',
+                                    boxShadow: message.role === 'user' 
+                                        ? '0 4px 14px 0 rgba(139, 92, 246, 0.39)'
+                                        : '0 2px 8px 0 rgba(0, 0, 0, 0.1)',
+                                    border: message.role === 'assistant' && !message.isError ? '1px solid #e2e8f0' : 'none'
+                                }}>
+                                    <p style={{
+                                        margin: 0,
+                                        lineHeight: 1.6,
+                                        fontSize: '0.925rem',
+                                        whiteSpace: 'pre-wrap'
+                                    }}>
+                                        {message.content}
+                                    </p>
+                                    <p style={{
+                                        margin: '0.5rem 0 0 0',
+                                        fontSize: '0.75rem',
+                                        opacity: 0.7
+                                    }}>
+                                        {new Date(message.timestamp).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {isGeneralAiThinking && (
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-start'
+                            }}>
+                                <div style={{
+                                    maxWidth: '75%',
+                                    padding: '1rem 1.25rem',
+                                    borderRadius: '12px',
+                                    background: 'white',
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.1)'
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        gap: '0.5rem',
+                                        alignItems: 'center',
+                                        color: '#64748b'
+                                    }}>
+                                        <div className="loading-spinner"></div>
+                                        AI is thinking...
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Chat Input */}
+                    <div style={{
+                        padding: '1.5rem',
+                        borderTop: '2px solid #e2e8f0',
+                        background: 'white'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            gap: '1rem'
+                        }}>
+                            <input
+                                type="text"
+                                value={generalChatInput}
+                                onChange={(e) => setGeneralChatInput(e.target.value)}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !isGeneralAiThinking) {
+                                        handleGeneralChatMessage();
+                                    }
+                                }}
+                                placeholder="Ask a question about this paper..."
+                                disabled={isGeneralAiThinking}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.875rem 1rem',
+                                    border: '2px solid #e2e8f0',
+                                    borderRadius: '12px',
+                                    fontSize: '0.925rem',
+                                    transition: 'all 0.2s ease',
+                                    background: isGeneralAiThinking ? '#f8fafc' : 'white'
+                                }}
+                            />
+                            <button
+                                onClick={handleGeneralChatMessage}
+                                disabled={isGeneralAiThinking || !generalChatInput.trim()}
+                                style={{
+                                    padding: '0.875rem 1.5rem',
+                                    background: (isGeneralAiThinking || !generalChatInput.trim()) 
+                                        ? '#cbd5e1' 
+                                        : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    cursor: (isGeneralAiThinking || !generalChatInput.trim()) ? 'not-allowed' : 'pointer',
+                                    fontWeight: '600',
+                                    fontSize: '0.925rem',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: (isGeneralAiThinking || !generalChatInput.trim()) 
+                                        ? 'none' 
+                                        : '0 4px 14px 0 rgba(139, 92, 246, 0.39)'
+                                }}
+                                onMouseOver={(e) => {
+                                    if (!isGeneralAiThinking && generalChatInput.trim()) {
+                                        e.target.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+                                    }
+                                }}
+                                onMouseOut={(e) => {
+                                    if (!isGeneralAiThinking && generalChatInput.trim()) {
+                                        e.target.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+                                    }
+                                }}
+                            >
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     </div>
 )}
