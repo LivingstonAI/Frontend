@@ -15,6 +15,12 @@ export default function PaperGPT() {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showFullSummary, setShowFullSummary] = useState(false);
     const [showFullNotes, setShowFullNotes] = useState(false);
+        // AI Chat state
+    const [showChatModal, setShowChatModal] = useState(false);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [currentChatInput, setCurrentChatInput] = useState("");
+    const [isAiThinking, setIsAiThinking] = useState(false);
+    const [chatPaper, setChatPaper] = useState(null);
     const [newPaper, setNewPaper] = useState({
         title: "",
         file: null,
@@ -549,6 +555,104 @@ const deletePaperFromBackend = async (paperId) => {
 
         const data = await response.json();
         return data.choices[0].message.content;
+    };
+
+    const chatWithAI = async (userMessage, paperContext) => {
+        if (!OPENAI_API_KEY) {
+            throw new Error("OpenAI API key not available");
+        }
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are an expert research assistant helping to analyze and discuss a research paper. Here is the paper content: ${paperContext.extractedText.substring(0, 8000)}. The paper's AI summary is: ${paperContext.aiSummary}. Answer questions about this paper accurately and insightfully.`
+                    },
+                    ...chatMessages.map(msg => ({
+                        role: msg.role,
+                        content: msg.content
+                    })),
+                    {
+                        role: 'user',
+                        content: userMessage
+                    }
+                ],
+                max_tokens: 1000,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    };
+
+    const handleSendChatMessage = async () => {
+        if (!currentChatInput.trim() || !chatPaper) return;
+
+        const userMessage = currentChatInput.trim();
+        
+        // Add user message to chat
+        const newUserMessage = {
+            role: 'user',
+            content: userMessage,
+            timestamp: new Date().toISOString()
+        };
+        
+        setChatMessages(prev => [...prev, newUserMessage]);
+        setCurrentChatInput("");
+        setIsAiThinking(true);
+
+        try {
+            // Get AI response
+            const aiResponse = await chatWithAI(userMessage, chatPaper);
+            
+            // Add AI response to chat
+            const newAiMessage = {
+                role: 'assistant',
+                content: aiResponse,
+                timestamp: new Date().toISOString()
+            };
+            
+            setChatMessages(prev => [...prev, newAiMessage]);
+        } catch (error) {
+            console.error("Error chatting with AI:", error);
+            alert("Error: " + error.message);
+            
+            // Add error message to chat
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: "I'm sorry, I encountered an error. Please try again.",
+                timestamp: new Date().toISOString(),
+                isError: true
+            }]);
+        } finally {
+            setIsAiThinking(false);
+        }
+    };
+
+    const openChatModal = (paper) => {
+        setChatPaper(paper);
+        setChatMessages([]);
+        setShowChatModal(true);
+    };
+
+    const closeChatModal = () => {
+        setShowChatModal(false);
+        setChatPaper(null);
+        setChatMessages([]);
+        setCurrentChatInput("");
+        setIsAiThinking(false);
     };
 
     const handleFileUpload = async () => {
@@ -1358,39 +1462,71 @@ useEffect(() => {
                                                         {formatDate(selectedPaper.uploadDate)}
                                                     </span>
                                                     <span>{formatFileSize(selectedPaper.fileSize)}</span>
+                                                    {/* Replace the existing ViewPDFButton line with this */}
                                                     <span className="meta-item" style={{ display: 'flex', gap: '0.5rem' }}>
-                                                            <ViewPDFButton paper={selectedPaper} />
+                                                        <ViewPDFButton paper={selectedPaper} />
+                                                        
+                                                        {/* NEW: Speak with AI Button */}
+                                                        <button
+                                                            onClick={() => openChatModal(selectedPaper)}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.5rem',
+                                                                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                padding: '0.5rem 0.75rem',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.875rem',
+                                                                fontWeight: '500',
+                                                                transition: 'all 0.2s ease',
+                                                                boxShadow: '0 2px 8px 0 rgba(245, 158, 11, 0.3)'
+                                                            }}
+                                                            onMouseOver={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #d97706 0%, #b45309 100%)';
+                                                                e.target.style.transform = 'translateY(-1px)';
+                                                            }}
+                                                            onMouseOut={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                                                                e.target.style.transform = 'translateY(0)';
+                                                            }}
+                                                        >
+                                                            <BookOpen size={16} />
+                                                            Speak with AI
+                                                        </button>
 
-                                                    <button
-                                                        onClick={() => downloadPDF(selectedPaper)}
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.25rem',
-                                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '8px',
-                                                            padding: '0.5rem 0.75rem',
-                                                            cursor: 'pointer',
-                                                            fontSize: '0.875rem',
-                                                            fontWeight: '500',
-                                                            transition: 'all 0.2s ease',
-                                                            boxShadow: '0 2px 8px 0 rgba(16, 185, 129, 0.3)'
-                                                        }}
-                                                        onMouseOver={(e) => {
-                                                            e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
-                                                            e.target.style.transform = 'translateY(-1px)';
-                                                        }}
-                                                        onMouseOut={(e) => {
-                                                            e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                                                            e.target.style.transform = 'translateY(0)';
-                                                        }}
-                                                    >
-                                                        <Download size={16} />
-                                                        Download PDF
-                                                    </button>
-                                                </span>
+                                                        <button
+                                                            onClick={() => downloadPDF(selectedPaper)}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.25rem',
+                                                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                padding: '0.5rem 0.75rem',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.875rem',
+                                                                fontWeight: '500',
+                                                                transition: 'all 0.2s ease',
+                                                                boxShadow: '0 2px 8px 0 rgba(16, 185, 129, 0.3)'
+                                                            }}
+                                                            onMouseOver={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                                                                e.target.style.transform = 'translateY(-1px)';
+                                                            }}
+                                                            onMouseOut={(e) => {
+                                                                e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                                                                e.target.style.transform = 'translateY(0)';
+                                                            }}
+                                                        >
+                                                            <Download size={16} />
+                                                            Download PDF
+                                                        </button>
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -1811,6 +1947,240 @@ useEffect(() => {
                         </div>
                     </div>
                 )}
+                {/* AI Chat Modal */}
+{showChatModal && chatPaper && (
+    <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 70,
+        backdropFilter: 'blur(4px)'
+    }}>
+        <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            width: '90vw',
+            maxWidth: '800px',
+            height: '80vh',
+            margin: '1rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        }}>
+            {/* Chat Header */}
+            <div style={{
+                padding: '1.5rem',
+                borderBottom: '2px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+            }}>
+                <div>
+                    <h3 style={{
+                        fontSize: '1.25rem',
+                        fontWeight: '700',
+                        color: '#1e293b',
+                        margin: 0,
+                        marginBottom: '0.25rem'
+                    }}>
+                        Chat with AI about this paper
+                    </h3>
+                    <p style={{
+                        fontSize: '0.875rem',
+                        color: '#64748b',
+                        margin: 0
+                    }}>
+                        {chatPaper.title}
+                    </p>
+                </div>
+                <button
+                    onClick={closeChatModal}
+                    style={{
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.5rem 1rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                        e.target.style.background = '#dc2626';
+                    }}
+                    onMouseOut={(e) => {
+                        e.target.style.background = '#ef4444';
+                    }}
+                >
+                    Close
+                </button>
+            </div>
+            
+            {/* Chat Messages */}
+            <div style={{
+                flex: 1,
+                padding: '1.5rem',
+                overflowY: 'auto',
+                background: '#f8fafc',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+            }}>
+                {chatMessages.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '3rem 1rem',
+                        color: '#64748b'
+                    }}>
+                        <BookOpen size={48} style={{ margin: '0 auto 1rem', color: '#cbd5e1' }} />
+                        <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Start a conversation</p>
+                        <p style={{ fontSize: '0.875rem' }}>Ask me anything about this research paper!</p>
+                    </div>
+                ) : (
+                    chatMessages.map((message, index) => (
+                        <div
+                            key={index}
+                            style={{
+                                display: 'flex',
+                                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
+                            }}
+                        >
+                            <div style={{
+                                maxWidth: '75%',
+                                padding: '1rem 1.25rem',
+                                borderRadius: '12px',
+                                background: message.role === 'user' 
+                                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' 
+                                    : message.isError 
+                                        ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
+                                        : 'white',
+                                color: message.role === 'user' ? 'white' : '#1e293b',
+                                boxShadow: message.role === 'user' 
+                                    ? '0 4px 14px 0 rgba(59, 130, 246, 0.39)'
+                                    : '0 2px 8px 0 rgba(0, 0, 0, 0.1)',
+                                border: message.role === 'assistant' && !message.isError ? '1px solid #e2e8f0' : 'none'
+                            }}>
+                                <p style={{
+                                    margin: 0,
+                                    lineHeight: 1.6,
+                                    fontSize: '0.925rem',
+                                    whiteSpace: 'pre-wrap'
+                                }}>
+                                    {message.content}
+                                </p>
+                                <p style={{
+                                    margin: '0.5rem 0 0 0',
+                                    fontSize: '0.75rem',
+                                    opacity: 0.7
+                                }}>
+                                    {new Date(message.timestamp).toLocaleTimeString()}
+                                </p>
+                            </div>
+                        </div>
+                    ))
+                )}
+                
+                {isAiThinking && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-start'
+                    }}>
+                        <div style={{
+                            maxWidth: '75%',
+                            padding: '1rem 1.25rem',
+                            borderRadius: '12px',
+                            background: 'white',
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                gap: '0.5rem',
+                                alignItems: 'center',
+                                color: '#64748b'
+                            }}>
+                                <div className="loading-spinner"></div>
+                                AI is thinking...
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+            
+            {/* Chat Input */}
+            <div style={{
+                padding: '1.5rem',
+                borderTop: '2px solid #e2e8f0',
+                background: 'white'
+            }}>
+                <div style={{
+                    display: 'flex',
+                    gap: '1rem'
+                }}>
+                    <input
+                        type="text"
+                        value={currentChatInput}
+                        onChange={(e) => setCurrentChatInput(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !isAiThinking) {
+                                handleSendChatMessage();
+                            }
+                        }}
+                        placeholder="Ask a question about this paper..."
+                        disabled={isAiThinking}
+                        style={{
+                            flex: 1,
+                            padding: '0.875rem 1rem',
+                            border: '2px solid #e2e8f0',
+                            borderRadius: '12px',
+                            fontSize: '0.925rem',
+                            transition: 'all 0.2s ease',
+                            background: isAiThinking ? '#f8fafc' : 'white'
+                        }}
+                    />
+                    <button
+                        onClick={handleSendChatMessage}
+                        disabled={isAiThinking || !currentChatInput.trim()}
+                        style={{
+                            padding: '0.875rem 1.5rem',
+                            background: (isAiThinking || !currentChatInput.trim()) 
+                                ? '#cbd5e1' 
+                                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            cursor: (isAiThinking || !currentChatInput.trim()) ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '0.925rem',
+                            transition: 'all 0.2s ease',
+                            boxShadow: (isAiThinking || !currentChatInput.trim()) 
+                                ? 'none' 
+                                : '0 4px 14px 0 rgba(59, 130, 246, 0.39)'
+                        }}
+                        onMouseOver={(e) => {
+                            if (!isAiThinking && currentChatInput.trim()) {
+                                e.target.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+                            }
+                        }}
+                        onMouseOut={(e) => {
+                            if (!isAiThinking && currentChatInput.trim()) {
+                                e.target.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+                            }
+                        }}
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
             </div>
         </>
     );
