@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 
 const monteCarloStyles = `
+
 .monte-carlo-btn {
     padding: 8px 16px;
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
@@ -132,6 +133,165 @@ const monteCarloStyles = `
 
 const styles = `
 ${monteCarloStyles}
+.retracement-analysis-container {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #10b981;
+}
+
+.retracement-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.retracement-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.retracement-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #065f46;
+}
+
+.entry-zones-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.entry-zone-card {
+    background: white;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    border: 2px solid #d1fae5;
+}
+
+.entry-zone-card.aggressive {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.entry-zone-card.optimal {
+    border-color: #059669;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.entry-zone-card.conservative {
+    border-color: #047857;
+    background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+}
+
+.entry-zone-label {
+    font-size: 11px;
+    color: #065f46;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.entry-zone-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: #047857;
+}
+
+.entry-signal-banner {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 15px 0;
+    border: 2px solid #10b981;
+}
+
+.entry-signal-banner.excellent {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-color: #047857;
+}
+
+.entry-signal-banner.good {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: white;
+    border-color: #059669;
+}
+
+.entry-signal-banner.fair {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    border-color: #d97706;
+}
+
+.entry-signal-banner.poor {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    color: white;
+    border-color: #dc2626;
+}
+
+.retracement-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.retracement-stat-item {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.retracement-stat-label {
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.retracement-stat-value {
+    color: #047857;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.calculate-retracement-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.calculate-retracement-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.calculate-retracement-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 .ai-chatbot-orb {
     position: fixed;
     bottom: 30px;
@@ -1390,6 +1550,7 @@ padding: 15px;
 
 
 
+
 }
 `;
 
@@ -1449,6 +1610,45 @@ export default function MarketStabilityScore() {
         fetchExistingModels();
         fetchOpenAIKey();
     }, []);
+
+    // Add this state at the top with your other states
+    const [retracementData, setRetracementData] = useState({});
+    const [loadingRetracement, setLoadingRetracement] = useState({});
+
+    // Add this function
+    const calculateRetracementEntry = async (symbol) => {
+        setLoadingRetracement(prev => ({ ...prev, [symbol]: true }));
+        
+        try {
+            const response = await fetch(`${baseUrl}/api/mss-quantum-retracement-fibonacci-entry-optimizer/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbol: symbol,
+                    lookback_period: 90,
+                    sensitivity: 'medium'
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                setRetracementData(prev => ({
+                    ...prev,
+                    [symbol]: data
+                }));
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error calculating retracement:', error);
+            alert('Failed to calculate retracement entry points');
+        } finally {
+            setLoadingRetracement(prev => ({ ...prev, [symbol]: false }));
+        }
+    };
 
 
     const runMonteCarloSimulation = async (symbol) => {
@@ -2824,6 +3024,13 @@ return (
                                         >
                                             {analyzingAsset[asset.symbol] ? '🤖 Analyzing...' : '🤖 AI Analysis'}
                                         </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => calculateRetracementEntry(asset.symbol)}
+                                            disabled={loadingRetracement[asset.symbol]}
+                                        >
+                                            {loadingRetracement[asset.symbol] ? '📊 Calculating...' : '📊 Entry Points'}
+                                        </button>
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -2882,6 +3089,77 @@ return (
                                                             </div>
                                                         );
                                                     })}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {retracementData[asset.symbol] && (
+                                    <div className="retracement-analysis-container">
+                                        <div className="retracement-header">
+                                            <div className="retracement-icon">📊</div>
+                                            <div className="retracement-title">Optimal Entry Analysis</div>
+                                        </div>
+                                        
+                                        {retracementData[asset.symbol].entry_signal && (
+                                            <div className={`entry-signal-banner ${retracementData[asset.symbol].entry_quality}`}>
+                                                <strong>{retracementData[asset.symbol].entry_signal}</strong>
+                                            </div>
+                                        )}
+                                        
+                                        {retracementData[asset.symbol].entry_zones && (
+                                            <>
+                                                <div className="entry-zones-grid">
+                                                    <div className="entry-zone-card aggressive">
+                                                        <div className="entry-zone-label">🎯 Aggressive</div>
+                                                        <div className="entry-zone-price">
+                                                            ${retracementData[asset.symbol].entry_zones.aggressive_entry}
+                                                        </div>
+                                                    </div>
+                                                    <div className="entry-zone-card optimal">
+                                                        <div className="entry-zone-label">✅ Optimal</div>
+                                                        <div className="entry-zone-price">
+                                                            ${retracementData[asset.symbol].entry_zones.optimal_entry}
+                                                        </div>
+                                                    </div>
+                                                    <div className="entry-zone-card conservative">
+                                                        <div className="entry-zone-label">🛡️ Conservative</div>
+                                                        <div className="entry-zone-price">
+                                                            ${retracementData[asset.symbol].entry_zones.conservative_entry}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="retracement-stats-grid">
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Current Price</div>
+                                                        <div className="retracement-stat-value">
+                                                            ${retracementData[asset.symbol].current_price}
+                                                        </div>
+                                                    </div>
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Invalidation Level</div>
+                                                        <div className="retracement-stat-value" style={{color: '#dc2626'}}>
+                                                            ${retracementData[asset.symbol].entry_zones.invalidation_level}
+                                                        </div>
+                                                    </div>
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Avg Retracement</div>
+                                                        <div className="retracement-stat-value">
+                                                            {retracementData[asset.symbol].current_trend === 'uptrend' 
+                                                                ? retracementData[asset.symbol].bullish_retracements.median_retracement_pct
+                                                                : retracementData[asset.symbol].bearish_retracements.median_retracement_pct}%
+                                                        </div>
+                                                    </div>
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Patterns Analyzed</div>
+                                                        <div className="retracement-stat-value">
+                                                            {retracementData[asset.symbol].current_trend === 'uptrend'
+                                                                ? retracementData[asset.symbol].bullish_retracements.count
+                                                                : retracementData[asset.symbol].bearish_retracements.count}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </>
                                         )}
