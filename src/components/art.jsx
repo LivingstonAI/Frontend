@@ -103,6 +103,7 @@ import mente_ma from '../MENTE MÁ - NAKAMA (Official Lyric Video).mp3';
 import bang_lai from '../攬佬SKAI ISYOURGOD - 八方來財  Ba Fang Lai Cai (Stacks from All Sides)動態歌詞English SubsPinyin.mp3';
 import decembre from '../Élise de Lune - Décembre.mp3';
 import honored_one from '../Gojo Satoru - The Honored One  Jujutsu Kaisen Season 2 OST.mp3';
+import answer_to_my_love from '../Answer To My Love.mp3';
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -216,6 +217,7 @@ export default function Art() {
         "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai },
         "99": { name: "Dècembre 🇫🇷", file: decembre },
         "100": { name: "If I am With You ☀️", file: honored_one },
+        "101": { name: "Answer to My Love 🎧", file: answer_to_my_love },
       };
   
   // Music player states
