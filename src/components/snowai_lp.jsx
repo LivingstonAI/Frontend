@@ -100,6 +100,8 @@ import gods from "../NewJeans (뉴진스) 'GODS' Lyrics (Color Coded Lyrics)  Le
 import mente_ma from '../MENTE MÁ - NAKAMA (Official Lyric Video).mp3';
 import bang_lai from '../攬佬SKAI ISYOURGOD - 八方來財  Ba Fang Lai Cai (Stacks from All Sides)動態歌詞English SubsPinyin.mp3';
 import decembre from '../Élise de Lune - Décembre.mp3';
+import honored_one from '../Gojo Satoru - The Honored One  Jujutsu Kaisen Season 2 OST.mp3';
+
 
 
 export default function SnowAILandingPage() {
@@ -241,6 +243,7 @@ export default function SnowAILandingPage() {
       "97": { name: "MENTE MA 🏄", file: mente_ma },
       "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai },
       "99": { name: "Dècembre 🇫🇷", file: decembre },
+      "100": { name: "If I am With You ☀️", file: honored_one },
     };
 
 

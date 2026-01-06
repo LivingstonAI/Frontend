@@ -102,6 +102,7 @@ import gods from "../NewJeans (뉴진스) 'GODS' Lyrics (Color Coded Lyrics)  Le
 import mente_ma from '../MENTE MÁ - NAKAMA (Official Lyric Video).mp3';
 import bang_lai from '../攬佬SKAI ISYOURGOD - 八方來財  Ba Fang Lai Cai (Stacks from All Sides)動態歌詞English SubsPinyin.mp3';
 import decembre from '../Élise de Lune - Décembre.mp3';
+import honored_one from '../Gojo Satoru - The Honored One  Jujutsu Kaisen Season 2 OST.mp3';
 
 // Audio to be used for authentication
 import access_granted_audio from '../Access Granted Sound.mp3';
@@ -214,6 +215,7 @@ export default function Art() {
         "97": { name: "MENTE MA 🏄", file: mente_ma },
         "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai },
         "99": { name: "Dècembre 🇫🇷", file: decembre },
+        "100": { name: "If I am With You ☀️", file: honored_one },
       };
   
   // Music player states
@@ -373,7 +375,15 @@ export default function Art() {
       secondary: "rgba(220, 220, 220, 0.4)",
       glow: "#f5f5f5",
       shadowGlow: "#dcdcdc"
+    },
+    goldSunrise: {
+      name: "Gold Sunrise",
+      primary: "rgba(255, 215, 0, 0.85)",   // rich golden hue
+      secondary: "rgba(255, 140, 0, 0.4)",  // warm amber-orange for depth
+      glow: "#ffd700",                      // classic gold glow
+      shadowGlow: "#ff8c00"                 // sunrise orange shadow
     }
+
   };
 
 
