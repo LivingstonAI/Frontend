@@ -1288,6 +1288,19 @@ return [`is_monte_carlo_bearish_prediction(data=dataset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['average_retracement'] = function(block, generator) {
+
+
+  return [`average_retracement(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['average_retracement'] = function(block, generator) {
+
+return [`average_retracement(data=dataset)`, Order.NONE];
+
+};
+
 
 
    // Blockly block definition for "Moving Average" block
@@ -2347,6 +2360,18 @@ Blockly.Blocks['is_monte_carlo_bullish_prediction'] = {
     }
   };
 
+Blockly.Blocks['average_retracement'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("average retracement")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(210);
+      this.setTooltip("Checks for average retracement calculation levels");
+      this.setHelpUrl("");
+    }
+  };
+
   
     const MY_TOOLBOX = {
       "kind": "categoryToolbox",
@@ -2709,6 +2734,10 @@ Blockly.Blocks['is_monte_carlo_bullish_prediction'] = {
             {
               "kind": "block",
               "type": "is_monte_carlo_bearish_prediction"
+            },
+            {
+              "kind": "block",
+              "type": "average_retracement"
             },
 
           ]
