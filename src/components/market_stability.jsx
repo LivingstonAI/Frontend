@@ -169,14 +169,14 @@ ${monteCarloStyles}
 
 .entry-zones-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 12px;
     margin: 15px 0;
 }
 
 .entry-zone-card {
     background: white;
-    padding: 12px;
+    padding: 12px 8px;
     border-radius: 10px;
     text-align: center;
     border: 2px solid #d1fae5;
@@ -198,26 +198,30 @@ ${monteCarloStyles}
 }
 
 .entry-zone-label {
-    font-size: 11px;
+    font-size: 10px;
     color: #065f46;
     font-weight: 600;
     text-transform: uppercase;
     margin-bottom: 6px;
+    white-space: nowrap;
 }
 
 .entry-zone-price {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     color: #047857;
+    word-break: break-all;
 }
 
 .entry-signal-banner {
     background: white;
-    padding: 15px;
+    padding: 12px;
     border-radius: 10px;
     text-align: center;
     margin: 15px 0;
     border: 2px solid #10b981;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 .entry-signal-banner.excellent {
@@ -246,28 +250,30 @@ ${monteCarloStyles}
 
 .retracement-stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px;
     margin-top: 15px;
 }
 
 .retracement-stat-item {
     background: white;
-    padding: 10px;
+    padding: 10px 8px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .retracement-stat-label {
     color: #6b7280;
     font-weight: 500;
     margin-bottom: 4px;
+    font-size: 11px;
 }
 
 .retracement-stat-value {
     color: #047857;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 14px;
+    word-break: break-all;
 }
 
 .calculate-retracement-btn {
@@ -292,6 +298,42 @@ ${monteCarloStyles}
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+@media (max-width: 768px) {
+    .retracement-analysis-container {
+        padding: 15px;
+    }
+    
+    .retracement-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .entry-zones-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .entry-zone-card {
+        padding: 12px;
+    }
+    
+    .entry-zone-price {
+        font-size: 18px;
+    }
+    
+    .entry-signal-banner {
+        font-size: 12px;
+        padding: 10px;
+    }
+    
+    .retracement-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}
+
 .ai-chatbot-orb {
     position: fixed;
     bottom: 30px;
