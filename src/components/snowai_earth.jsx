@@ -1,18 +1,113 @@
+import Header from "./header";
+import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import Header from "./header";
-import SideNavs from "./side_navs";
+import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide-react';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function SnowAIEarth() {
+// // Simulated Header Component
+// const Header = () => (
+//     <div style={{
+//         background: 'linear-gradient(135deg, #1a2332 0%, #0f1419 100%)',
+//         padding: '15px 30px',
+//         borderBottom: '2px solid #2563eb',
+//         display: 'flex',
+//         justifyContent: 'space-between',
+//         alignItems: 'center'
+//     }}>
+//         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+//             <Shield size={28} color="#2563eb" />
+//             <div>
+//                 <h1 style={{ 
+//                     color: '#fff', 
+//                     margin: 0, 
+//                     fontSize: '20px',
+//                     fontWeight: '700',
+//                     letterSpacing: '2px'
+//                 }}>
+//                     GLOBAL MACRO INTELLIGENCE
+//                 </h1>
+//                 <p style={{ 
+//                     color: '#64748b', 
+//                     margin: 0, 
+//                     fontSize: '11px',
+//                     letterSpacing: '1px'
+//                 }}>
+//                     CLASSIFIED // ECONOMIC SURVEILLANCE DIVISION
+//                 </p>
+//             </div>
+//         </div>
+//         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+//             <div style={{ textAlign: 'right' }}>
+//                 <div style={{ color: '#2563eb', fontSize: '11px', fontWeight: '600' }}>
+//                     SECURITY CLEARANCE: TOP SECRET
+//                 </div>
+//                 <div style={{ color: '#64748b', fontSize: '10px' }}>
+//                     {new Date().toLocaleString('en-US', { 
+//                         dateStyle: 'medium', 
+//                         timeStyle: 'short' 
+//                     })} UTC
+//                 </div>
+//             </div>
+//             <Lock size={20} color="#2563eb" />
+//         </div>
+//     </div>
+// );
+
+// // Simulated SideNavs Component (actually top nav)
+// const SideNavs = () => (
+//     <div style={{
+//         background: '#0f1419',
+//         padding: '12px 30px',
+//         borderBottom: '1px solid #1e293b',
+//         display: 'flex',
+//         gap: '2px',
+//         overflowX: 'auto'
+//     }}>
+//         {['THREAT MATRIX', 'ASSET TRACKING', 'INTEL REPORTS', 'FIELD OPS', 'ANALYTICS'].map((item, idx) => (
+//             <button
+//                 key={idx}
+//                 style={{
+//                     background: idx === 0 ? '#1e3a8a' : 'transparent',
+//                     border: 'none',
+//                     color: idx === 0 ? '#60a5fa' : '#64748b',
+//                     padding: '8px 20px',
+//                     fontSize: '11px',
+//                     fontWeight: '600',
+//                     letterSpacing: '1px',
+//                     cursor: 'pointer',
+//                     borderRadius: '4px',
+//                     transition: 'all 0.3s ease',
+//                     whiteSpace: 'nowrap'
+//                 }}
+//                 onMouseEnter={(e) => {
+//                     if (idx !== 0) {
+//                         e.target.style.background = '#1e293b';
+//                         e.target.style.color = '#94a3b8';
+//                     }
+//                 }}
+//                 onMouseLeave={(e) => {
+//                     if (idx !== 0) {
+//                         e.target.style.background = 'transparent';
+//                         e.target.style.color = '#64748b';
+//                     }
+//                 }}
+//             >
+//                 {item}
+//             </button>
+//         ))}
+//     </div>
+// );
+
+export default function CIAMacroIntel() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
-    const [globeTheme, setGlobeTheme] = useState('blue-marble');
+    const [globeTheme, setGlobeTheme] = useState('night-ops');
     const [isMobile, setIsMobile] = useState(false);
     const [geoJsonData, setGeoJsonData] = useState(null);
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -27,45 +122,43 @@ export default function SnowAIEarth() {
     const [searchCountry, setSearchCountry] = useState('');
     const [autoRotate, setAutoRotate] = useState(true);
 
-    // Globe theme configurations (removed dark theme)
     const globeThemes = {
-        'blue-marble': {
-            name: 'Blue Marble',
-            globeImage: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
-            background: "//unpkg.com/three-globe/example/img/night-sky.png"
-        },
-        'night-lights': {
-            name: 'Night Lights',
+        'night-ops': {
+            name: 'NIGHT OPS',
             globeImage: "//unpkg.com/three-globe/example/img/earth-night.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
         },
-        'natural-earth': {
-            name: 'Natural Earth',
+        'satellite': {
+            name: 'SATELLITE',
+            globeImage: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
+            background: "//unpkg.com/three-globe/example/img/night-sky.png"
+        },
+        'recon': {
+            name: 'RECON',
             globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
         }
     };
     
-    // Sample country data with coordinates
     const countryData = [
-        { name: 'United States', lat: 39.8283, lng: -98.5795, color: '#ff6b6b', iso: 'US' },
-        { name: 'Canada', lat: 56.1304, lng: -106.3468, color: '#4ecdc4', iso: 'CA' },
-        { name: 'Brazil', lat: -14.2350, lng: -51.9253, color: '#45b7d1', iso: 'BR' },
-        { name: 'Russia', lat: 61.5240, lng: 105.3188, color: '#96ceb4', iso: 'RU' },
-        { name: 'China', lat: 35.8617, lng: 104.1954, color: '#ffeaa7', iso: 'CN' },
-        { name: 'India', lat: 20.5937, lng: 78.9629, color: '#fab1a0', iso: 'IN' },
-        { name: 'Australia', lat: -25.2744, lng: 133.7751, color: '#fd79a8', iso: 'AU' },
-        { name: 'United Kingdom', lat: 55.3781, lng: -3.4360, color: '#6c5ce7', iso: 'GB' },
-        { name: 'France', lat: 46.2276, lng: 2.2137, color: '#a29bfe', iso: 'FR' },
-        { name: 'Germany', lat: 51.1657, lng: 10.4515, color: '#74b9ff', iso: 'DE' },
-        { name: 'Japan', lat: 36.2048, lng: 138.2529, color: '#00b894', iso: 'JP' },
-        { name: 'South Africa', lat: -30.5595, lng: 22.9375, color: '#e17055', iso: 'ZA' },
-        { name: 'Egypt', lat: 26.0975, lng: 31.4789, color: '#fdcb6e', iso: 'EG' },
-        { name: 'Mexico', lat: 23.6345, lng: -102.5528, color: '#e84393', iso: 'MX' },
-        { name: 'Argentina', lat: -38.4161, lng: -63.6167, color: '#00cec9', iso: 'AR' }
+        { name: 'United States', lat: 39.8283, lng: -98.5795, color: '#2563eb', iso: 'US', threat: 'LOW' },
+        { name: 'Canada', lat: 56.1304, lng: -106.3468, color: '#3b82f6', iso: 'CA', threat: 'LOW' },
+        { name: 'Brazil', lat: -14.2350, lng: -51.9253, color: '#60a5fa', iso: 'BR', threat: 'MEDIUM' },
+        { name: 'Russia', lat: 61.5240, lng: 105.3188, color: '#dc2626', iso: 'RU', threat: 'HIGH' },
+        { name: 'China', lat: 35.8617, lng: 104.1954, color: '#ef4444', iso: 'CN', threat: 'HIGH' },
+        { name: 'India', lat: 20.5937, lng: 78.9629, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM' },
+        { name: 'Australia', lat: -25.2744, lng: 133.7751, color: '#3b82f6', iso: 'AU', threat: 'LOW' },
+        { name: 'United Kingdom', lat: 55.3781, lng: -3.4360, color: '#2563eb', iso: 'GB', threat: 'LOW' },
+        { name: 'France', lat: 46.2276, lng: 2.2137, color: '#3b82f6', iso: 'FR', threat: 'LOW' },
+        { name: 'Germany', lat: 51.1657, lng: 10.4515, color: '#3b82f6', iso: 'DE', threat: 'LOW' },
+        { name: 'Japan', lat: 36.2048, lng: 138.2529, color: '#3b82f6', iso: 'JP', threat: 'LOW' },
+        { name: 'South Africa', lat: -30.5595, lng: 22.9375, color: '#f59e0b', iso: 'ZA', threat: 'MEDIUM' },
+        { name: 'Egypt', lat: 26.0975, lng: 31.4789, color: '#f59e0b', iso: 'EG', threat: 'MEDIUM' },
+        { name: 'Mexico', lat: 23.6345, lng: -102.5528, color: '#f59e0b', iso: 'MX', threat: 'MEDIUM' },
+        { name: 'Argentina', lat: -38.4161, lng: -63.6167, color: '#60a5fa', iso: 'AR', threat: 'MEDIUM' }
     ];
 
     useEffect(() => {
@@ -94,76 +187,68 @@ export default function SnowAIEarth() {
     }, []);
 
     const handleCountrySearch = () => {
-    if (!searchCountry.trim() || !globeRef.current) return;
-    
-    // First try to find in your countryData array
-    let targetCountry = countryData.find(country => 
-        country.name.toLowerCase().includes(searchCountry.toLowerCase())
-    );
-    
-    if (targetCountry) {
-        // Animate to the country location
-        globeRef.current.pointOfView({
-            lat: targetCountry.lat,
-            lng: targetCountry.lng,
-            altitude: 2.5 // Good zoom level - not too close, not too far
-        }, 2000); // 2 second animation
+        if (!searchCountry.trim() || !globeRef.current) return;
         
-        setSelectedCountry(targetCountry.name);
-        setSearchCountry(''); // Clear search after successful navigation
-        return;
-    }
-    
-    // If not found in countryData, search in worldData (geoJson)
-    const foundFeature = worldData.features?.find(feature => {
-        const countryName = feature.properties?.NAME || feature.properties?.name || '';
-        return countryName.toLowerCase().includes(searchCountry.toLowerCase());
-    });
-    
-    if (foundFeature && foundFeature.properties) {
-        // Calculate centroid for countries not in your main dataset
-        const coords = foundFeature.geometry.coordinates;
-        let lat = 0, lng = 0;
+        let targetCountry = countryData.find(country => 
+            country.name.toLowerCase().includes(searchCountry.toLowerCase())
+        );
         
-        // Simple centroid calculation (works for most countries)
-        if (foundFeature.geometry.type === 'Polygon') {
-            const coordArray = coords[0];
-            coordArray.forEach(coord => {
-                lng += coord[0];
-                lat += coord[1];
-            });
-            lng /= coordArray.length;
-            lat /= coordArray.length;
-        } else if (foundFeature.geometry.type === 'MultiPolygon') {
-            let totalPoints = 0;
-            coords.forEach(polygon => {
-                polygon[0].forEach(coord => {
-                    lng += coord[0];
-                    lat += coord[1];
-                    totalPoints++;
-                });
-            });
-            lng /= totalPoints;
-            lat /= totalPoints;
+        if (targetCountry) {
+            globeRef.current.pointOfView({
+                lat: targetCountry.lat,
+                lng: targetCountry.lng,
+                altitude: 2.5
+            }, 2000);
+            
+            setSelectedCountry(targetCountry.name);
+            setSearchCountry('');
+            return;
         }
         
-        globeRef.current.pointOfView({
-            lat: lat,
-            lng: lng,
-            altitude: 2.5
-        }, 2000);
+        const foundFeature = worldData.features?.find(feature => {
+            const countryName = feature.properties?.NAME || feature.properties?.name || '';
+            return countryName.toLowerCase().includes(searchCountry.toLowerCase());
+        });
         
-        const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
-        setSelectedCountry(countryName);
-        setSearchCountry('');
-    } else {
-        // Show error or suggestion
-        alert(`Country "${searchCountry}" not found. Please check the spelling.`);
-    }
-};
+        if (foundFeature && foundFeature.properties) {
+            const coords = foundFeature.geometry.coordinates;
+            let lat = 0, lng = 0;
+            
+            if (foundFeature.geometry.type === 'Polygon') {
+                const coordArray = coords[0];
+                coordArray.forEach(coord => {
+                    lng += coord[0];
+                    lat += coord[1];
+                });
+                lng /= coordArray.length;
+                lat /= coordArray.length;
+            } else if (foundFeature.geometry.type === 'MultiPolygon') {
+                let totalPoints = 0;
+                coords.forEach(polygon => {
+                    polygon[0].forEach(coord => {
+                        lng += coord[0];
+                        lat += coord[1];
+                        totalPoints++;
+                    });
+                });
+                lng /= totalPoints;
+                lat /= totalPoints;
+            }
+            
+            globeRef.current.pointOfView({
+                lat: lat,
+                lng: lng,
+                altitude: 2.5
+            }, 2000);
+            
+            const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
+            setSelectedCountry(countryName);
+            setSearchCountry('');
+        } else {
+            alert(`TARGET "${searchCountry}" NOT FOUND IN DATABASE. VERIFY INTEL.`);
+        }
+    };
 
-
-    // Memoize the drawD3Map function with zoom functionality
     const drawD3Map = useCallback(() => {
         if (!geoJsonData || !geoJsonData.features || !svgRef.current || !mapContainerRef.current) {
             return;
@@ -188,23 +273,17 @@ export default function SnowAIEarth() {
 
         const path = d3.geoPath().projection(projection);
 
-        // Create zoom behavior
         const zoom = d3.zoom()
             .scaleExtent([0.5, 8])
             .on("zoom", (event) => {
                 g.attr("transform", event.transform);
             });
 
-        // Store zoom behavior in ref for external access
         zoomRef.current = zoom;
-
-        // Apply zoom to svg
         svg.call(zoom);
 
-        // Create main group for all map elements
         const g = svg.append("g");
 
-        // Add countries
         g.append("g")
             .selectAll("path")
             .data(geoJsonData.features)
@@ -213,20 +292,20 @@ export default function SnowAIEarth() {
             .attr("d", path)
             .attr("fill", d => {
                 const countryName = d.properties?.NAME || d.properties?.name;
-                return selectedCountry === countryName ? "#ff6b6b" : "#f1faee";
+                return selectedCountry === countryName ? "#2563eb" : "#1e293b";
             })
-            .attr("stroke", "#457b9d")
+            .attr("stroke", "#334155")
             .attr("stroke-width", 0.5)
             .style("cursor", "pointer")
             .on("mouseover", function(event, d) {
                 d3.select(this)
-                    .attr("fill", "#74b9ff")
+                    .attr("fill", "#3b82f6")
                     .attr("stroke-width", 1);
             })
             .on("mouseout", function(event, d) {
                 const countryName = d.properties?.NAME || d.properties?.name;
                 d3.select(this)
-                    .attr("fill", selectedCountry === countryName ? "#ff6b6b" : "#f1faee")
+                    .attr("fill", selectedCountry === countryName ? "#2563eb" : "#1e293b")
                     .attr("stroke-width", 0.5);
             })
             .on("click", function(event, d) {
@@ -234,7 +313,6 @@ export default function SnowAIEarth() {
                 handleCountryClick({ name: countryName });
             });
 
-        // Add country markers
         g.append("g")
             .selectAll("circle")
             .data(countries)
@@ -248,20 +326,20 @@ export default function SnowAIEarth() {
                 const coords = projection([d.lng, d.lat]);
                 return coords ? coords[1] : 0;
             })
-            .attr("r", isMobile ? 3 : 4)
+            .attr("r", isMobile ? 4 : 5)
             .attr("fill", d => d.color)
-            .attr("stroke", "#fff")
+            .attr("stroke", "#0f172a")
             .attr("stroke-width", 2)
             .style("cursor", "pointer")
+            .style("filter", "drop-shadow(0 0 8px rgba(37, 99, 235, 0.8))")
             .on("click", function(event, d) {
                 handleCountryClick(d);
             })
             .append("title")
-            .text(d => d.name);
+            .text(d => `${d.name} - THREAT: ${d.threat}`);
 
     }, [geoJsonData, isMobile, selectedCountry, countries]);
 
-    // Reset zoom function
     const resetZoom = () => {
         if (zoomRef.current && svgRef.current) {
             d3.select(svgRef.current)
@@ -271,7 +349,6 @@ export default function SnowAIEarth() {
         }
     };
 
-    // Separate useEffect for drawing the map with debouncing
     useEffect(() => {
         if (!view3D && geoJsonData) {
             const timer = setTimeout(() => {
@@ -282,7 +359,6 @@ export default function SnowAIEarth() {
         }
     }, [view3D, geoJsonData, drawD3Map]);
 
-    // Add resize handler for the map
     useEffect(() => {
         const handleResize = () => {
             if (!view3D) {
@@ -350,7 +426,6 @@ export default function SnowAIEarth() {
             await fetchEconomicData(clickedCountry);
         }
         
-        // Show the analysis modal after confirmation
         setShowAnalysisModal(true);
         
         if (!view3D) {
@@ -386,14 +461,23 @@ export default function SnowAIEarth() {
         if (!analysis) return null;
 
         const aiData = analysis.aiAnalysis;
+        const targetCountry = countries.find(c => c.name === selectedCountry);
 
         return (
             <div style={styles.analysisModal}>
                 <div style={styles.analysisModalContent}>
                     <div style={styles.analysisModalHeader}>
-                        <h3 style={styles.analysisModalTitle}>
-                            Economic Analysis: {analysis.country}
-                        </h3>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                                <Eye size={24} />
+                                <h3 style={styles.analysisModalTitle}>
+                                    INTEL BRIEF: {analysis.country.toUpperCase()}
+                                </h3>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748b', letterSpacing: '1px' }}>
+                                CLASSIFICATION: {targetCountry?.threat || 'UNKNOWN'} PRIORITY
+                            </div>
+                        </div>
                         <button 
                             style={styles.analysisCloseButton}
                             onClick={handleCloseAnalysisModal}
@@ -405,31 +489,47 @@ export default function SnowAIEarth() {
                     <div style={styles.analysisModalBody}>
                         {analysis.has_data ? (
                             <div>
-                                <div style={styles.analysisSection}>
+                                <div style={styles.threatPanel}>
+                                    <div style={styles.threatHeader}>
+                                        <AlertTriangle size={16} />
+                                        <span>ECONOMIC THREAT ASSESSMENT</span>
+                                    </div>
                                     <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
-                                        {aiData.overall_sentiment.toUpperCase()} SENTIMENT
+                                        {aiData.overall_sentiment.toUpperCase()}
                                     </div>
                                 </div>
                                 
-                                <div style={styles.analysisSection}>
-                                    <h4 style={styles.sectionTitle}>Summary</h4>
+                                <div style={styles.intelSection}>
+                                    <div style={styles.sectionHeader}>
+                                        <div style={styles.sectionLine} />
+                                        <h4 style={styles.sectionTitle}>EXECUTIVE SUMMARY</h4>
+                                    </div>
                                     <p style={styles.summaryText}>{aiData.summary}</p>
                                 </div>
                                 
-                                <div style={styles.analysisSection}>
-                                    <h4 style={styles.sectionTitle}>Key Highlights</h4>
-                                    <ul style={styles.highlightsList}>
+                                <div style={styles.intelSection}>
+                                    <div style={styles.sectionHeader}>
+                                        <div style={styles.sectionLine} />
+                                        <h4 style={styles.sectionTitle}>KEY INTELLIGENCE</h4>
+                                    </div>
+                                    <div style={styles.highlightsList}>
                                         {aiData.key_highlights.map((highlight, index) => (
-                                            <li key={index} style={styles.highlightItem}>{highlight}</li>
+                                            <div key={index} style={styles.highlightItem}>
+                                                <span style={styles.bulletPoint}>▸</span>
+                                                {highlight}
+                                            </div>
                                         ))}
-                                    </ul>
+                                    </div>
                                 </div>
                                 
                                 {aiData.major_events.length > 0 && (
-                                    <div style={styles.analysisSection}>
-                                        <h4 style={styles.sectionTitle}>Major Events</h4>
+                                    <div style={styles.intelSection}>
+                                        <div style={styles.sectionHeader}>
+                                            <div style={styles.sectionLine} />
+                                            <h4 style={styles.sectionTitle}>SIGNIFICANT EVENTS</h4>
+                                        </div>
                                         {aiData.major_events.map((event, index) => (
-                                            <div key={index} style={styles.eventItem}>
+                                            <div key={index} style={styles.eventCard}>
                                                 <div style={styles.eventHeader}>
                                                     <span style={styles.eventName}>{event.event_name}</span>
                                                     <span style={styles.impactBadge(event.impact_level)}>
@@ -444,38 +544,61 @@ export default function SnowAIEarth() {
                                 
                                 <div style={styles.analysisGrid}>
                                     {aiData.risk_factors.length > 0 && (
-                                        <div style={styles.riskFactorsSection}>
-                                            <h4 style={styles.sectionTitle}>Risk Factors</h4>
-                                            <ul style={styles.factorsList}>
+                                        <div style={styles.riskPanel}>
+                                            <div style={styles.panelHeader}>
+                                                <AlertTriangle size={14} />
+                                                <span>RISK FACTORS</span>
+                                            </div>
+                                            <div style={styles.factorsList}>
                                                 {aiData.risk_factors.map((risk, index) => (
-                                                    <li key={index} style={styles.riskItem}>{risk}</li>
+                                                    <div key={index} style={styles.riskItem}>
+                                                        <span style={styles.riskBullet}>◆</span>
+                                                        {risk}
+                                                    </div>
                                                 ))}
-                                            </ul>
+                                            </div>
                                         </div>
                                     )}
                                     
                                     {aiData.opportunities.length > 0 && (
-                                        <div style={styles.opportunitiesSection}>
-                                            <h4 style={styles.sectionTitle}>Opportunities</h4>
-                                            <ul style={styles.factorsList}>
+                                        <div style={styles.opportunityPanel}>
+                                            <div style={styles.panelHeader}>
+                                                <TrendingUp size={14} />
+                                                <span>OPPORTUNITIES</span>
+                                            </div>
+                                            <div style={styles.factorsList}>
                                                 {aiData.opportunities.map((opportunity, index) => (
-                                                    <li key={index} style={styles.opportunityItem}>{opportunity}</li>
+                                                    <div key={index} style={styles.opportunityItem}>
+                                                        <span style={styles.opportunityBullet}>◆</span>
+                                                        {opportunity}
+                                                    </div>
                                                 ))}
-                                            </ul>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                                 
                                 <div style={styles.metaInfo}>
-                                    <small style={styles.metaText}>
-                                        Analysis Period: {aiData.analysis_period} | Currency: {analysis.currency}
-                                    </small>
+                                    <div style={styles.metaItem}>
+                                        <DollarSign size={12} />
+                                        <span>CURRENCY: {analysis.currency}</span>
+                                    </div>
+                                    <div style={styles.metaSeparator}>|</div>
+                                    <div style={styles.metaItem}>
+                                        <span>PERIOD: {aiData.analysis_period}</span>
+                                    </div>
+                                    <div style={styles.metaSeparator}>|</div>
+                                    <div style={styles.metaItem}>
+                                        <span>CLASSIFIED</span>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
                             <div style={styles.noDataContainer}>
-                                <div style={styles.noDataIcon}>📊</div>
-                                <h4 style={styles.noDataTitle}>No Economic Data Available</h4>
+                                <div style={styles.noDataIcon}>
+                                    <Shield size={48} color="#475569" />
+                                </div>
+                                <h4 style={styles.noDataTitle}>INSUFFICIENT INTEL</h4>
                                 <p style={styles.noDataMessage}>
                                     {analysis.message}
                                 </p>
@@ -493,111 +616,180 @@ export default function SnowAIEarth() {
     };
 
     const styles = {
-        majorUpcomingNewsEventsHeader: {
-            fontSize: isMobile ? '1.8rem' : '2.5rem',
-            fontWeight: 'bold',
-            color: '#2c3e50',
-            marginBottom: '20px',
-            textAlign: 'center'
+        container: {
+            background: 'linear-gradient(to bottom, #0f1419 0%, #1a1f2e 100%)',
+            minHeight: '100vh',
+            color: '#e2e8f0'
+        },
+        mainPageBody: {
+            display: 'flex',
+            flexDirection: 'column'
+        },
+        mainBodyInfo: {
+            padding: isMobile ? '15px' : '30px',
+            maxWidth: '1400px',
+            margin: '0 auto',
+            width: '100%'
+        },
+        pageHeader: {
+            textAlign: 'center',
+            marginBottom: '30px',
+            borderBottom: '2px solid #1e3a8a',
+            paddingBottom: '20px'
+        },
+        pageTitle: {
+            fontSize: isMobile ? '1.8rem' : '2.2rem',
+            fontWeight: '700',
+            color: '#fff',
+            margin: 0,
+            letterSpacing: '3px',
+            textTransform: 'uppercase',
+            textShadow: '0 0 20px rgba(37, 99, 235, 0.5)'
+        },
+        pageSubtitle: {
+            fontSize: '12px',
+            color: '#64748b',
+            letterSpacing: '2px',
+            marginTop: '8px'
         },
         controlsContainer: {
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
             justifyContent: 'center',
             alignItems: 'center',
-            marginBottom: '20px',
+            marginBottom: '25px',
             gap: '15px',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            background: 'rgba(15, 20, 25, 0.8)',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid #1e293b'
         },
         toggleContainer: {
             display: 'flex',
-            gap: '10px'
+            gap: '8px',
+            background: '#0f172a',
+            padding: '4px',
+            borderRadius: '6px',
+            border: '1px solid #1e3a8a'
         },
         themeContainer: {
             display: 'flex',
-            gap: '5px',
+            gap: '8px',
             alignItems: 'center',
-            flexWrap: 'wrap'
+            background: '#0f172a',
+            padding: '4px',
+            borderRadius: '6px',
+            border: '1px solid #1e3a8a'
         },
-        zoomControls: {
-            display: 'flex',
-            gap: '5px',
-            alignItems: 'center'
+        controlLabel: {
+            fontSize: '11px',
+            color: '#64748b',
+            fontWeight: '600',
+            letterSpacing: '1px',
+            marginRight: '8px'
         },
         toggleButton: {
-            padding: isMobile ? '10px 16px' : '12px 24px',
+            padding: isMobile ? '10px 18px' : '12px 24px',
             border: 'none',
-            borderRadius: '25px',
-            fontSize: isMobile ? '14px' : '16px',
-            fontWeight: '600',
+            borderRadius: '4px',
+            fontSize: isMobile ? '12px' : '13px',
+            fontWeight: '700',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
             whiteSpace: 'nowrap'
         },
         themeButton: {
-            padding: '6px 12px',
+            padding: '8px 14px',
             border: 'none',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: '500',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-            whiteSpace: 'nowrap',
-            margin: '2px'
-        },
-        zoomButton: {
-            padding: '8px 12px',
-            border: 'none',
-            borderRadius: '15px',
-            fontSize: '12px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            backgroundColor: '#ecf0f1',
-            color: '#7f8c8d'
+            letterSpacing: '1px',
+            whiteSpace: 'nowrap'
         },
         activeButton: {
-            backgroundColor: '#3498db',
-            color: 'white',
-            transform: 'translateY(-2px)',
-            boxShadow: '0 6px 20px rgba(52, 152, 219, 0.3)'
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            color: '#fff',
+            boxShadow: '0 0 20px rgba(37, 99, 235, 0.5)'
         },
         inactiveButton: {
-            backgroundColor: 'white',
-            color: '#7f8c8d',
-            border: '2px solid #ecf0f1'
+            background: 'transparent',
+            color: '#64748b',
+            border: '1px solid #1e293b'
+        },
+        searchContainer: {
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '20px',
+            flexWrap: 'wrap'
+        },
+        searchInput: {
+            padding: '10px 16px',
+            background: '#0f172a',
+            border: '1px solid #1e3a8a',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+            fontSize: '13px',
+            outline: 'none',
+            width: isMobile ? '200px' : '280px',
+            fontFamily: 'monospace',
+            letterSpacing: '1px'
+        },
+        searchButton: {
+            padding: '10px 20px',
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 0 15px rgba(37, 99, 235, 0.3)'
         },
         viewContainer: {
             width: '100%',
-            height: `calc(100vh - ${isMobile ? '300px' : '220px'})`,
+            height: `calc(100vh - ${isMobile ? '400px' : '350px'})`,
             position: 'relative',
-            borderRadius: '15px',
+            borderRadius: '8px',
             overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            border: '2px solid #1e3a8a',
+            boxShadow: '0 0 40px rgba(37, 99, 235, 0.2)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: view3D ? '#000' : '#e8f4fd'
+            background: view3D ? '#000' : '#0f172a'
         },
         countryLabel: {
             position: 'absolute',
             top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            color: 'white',
-            padding: '10px 20px',
-            borderRadius: '25px',
-            fontSize: isMobile ? '14px' : '18px',
-            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%)',
+            color: '#fff',
+            padding: '12px 24px',
+            borderRadius: '6px',
+            fontSize: isMobile ? '13px' : '16px',
+            fontWeight: '700',
             zIndex: 1000,
-            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+            border: '1px solid #2563eb',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            boxShadow: '0 0 30px rgba(37, 99, 235, 0.5)'
         },
         mapContainer: {
             width: '100%',
             height: '100%',
-            backgroundColor: '#e8f4fd',
+            background: '#0f172a',
             position: 'relative'
         },
         svgMap: {
@@ -611,33 +803,37 @@ export default function SnowAIEarth() {
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            background: 'rgba(0, 0, 0, 0.85)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 10000
+            zIndex: 10000,
+            backdropFilter: 'blur(8px)'
         },
         modalContent: {
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '20px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-            maxWidth: '500px',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            padding: '35px',
+            borderRadius: '12px',
+            border: '2px solid #1e3a8a',
+            boxShadow: '0 0 60px rgba(37, 99, 235, 0.4)',
+            maxWidth: '550px',
             width: '90%',
-            textAlign: 'center',
-            animation: 'fadeIn 0.3s ease'
+            textAlign: 'center'
         },
         modalTitle: {
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: '#2c3e50',
-            marginBottom: '15px'
+            fontSize: '1.4rem',
+            fontWeight: '700',
+            color: '#fff',
+            marginBottom: '10px',
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
         },
         modalMessage: {
-            fontSize: '1rem',
-            color: '#7f8c8d',
-            marginBottom: '25px',
-            lineHeight: '1.5'
+            fontSize: '14px',
+            color: '#94a3b8',
+            marginBottom: '30px',
+            lineHeight: '1.6',
+            letterSpacing: '0.5px'
         },
         modalButtons: {
             display: 'flex',
@@ -645,23 +841,26 @@ export default function SnowAIEarth() {
             justifyContent: 'center'
         },
         modalButton: {
-            padding: '12px 24px',
+            padding: '12px 28px',
             border: 'none',
-            borderRadius: '25px',
-            fontSize: '16px',
-            fontWeight: '600',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: '700',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-            minWidth: '100px'
+            minWidth: '120px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
         },
         confirmButton: {
-            backgroundColor: '#3498db',
-            color: 'white',
-            boxShadow: '0 4px 15px rgba(52, 152, 219, 0.3)'
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            color: '#fff',
+            boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)'
         },
         declineButton: {
-            backgroundColor: '#ecf0f1',
-            color: '#7f8c8d'
+            background: 'transparent',
+            color: '#64748b',
+            border: '1px solid #334155'
         },
         loadingOverlay: {
             position: 'absolute',
@@ -669,266 +868,352 @@ export default function SnowAIEarth() {
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            background: 'rgba(0, 0, 0, 0.9)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 9999,
-            borderRadius: '15px'
+            borderRadius: '8px'
         },
         loadingContent: {
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '15px',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            padding: '40px',
+            borderRadius: '12px',
             textAlign: 'center',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+            border: '2px solid #1e3a8a',
+            boxShadow: '0 0 40px rgba(37, 99, 235, 0.4)'
         },
         loadingSpinner: {
-            width: '40px',
-            height: '40px',
-            border: '4px solid #ecf0f1',
-            borderTop: '4px solid #3498db',
+            width: '50px',
+            height: '50px',
+            border: '4px solid #1e293b',
+            borderTop: '4px solid #2563eb',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 15px'
+            margin: '0 auto 20px',
+            boxShadow: '0 0 20px rgba(37, 99, 235, 0.5)'
         },
         loadingText: {
-            fontSize: '16px',
-            color: '#2c3e50',
-            fontWeight: '500'
+            fontSize: '14px',
+            color: '#e2e8f0',
+            fontWeight: '600',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
         },
-        // Updated analysis modal styles - centered modal instead of overlay panel
         analysisModal: {
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            background: 'rgba(0, 0, 0, 0.9)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 10001,
-            animation: 'fadeIn 0.3s ease'
+            backdropFilter: 'blur(10px)'
         },
         analysisModalContent: {
-            backgroundColor: 'white',
-            borderRadius: '20px',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
-            width: isMobile ? '95%' : '700px',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%)',
+            borderRadius: '12px',
+            border: '2px solid #1e3a8a',
+            boxShadow: '0 0 60px rgba(37, 99, 235, 0.5)',
+            width: isMobile ? '95%' : '800px',
             maxWidth: '95vw',
-            maxHeight: '85vh',
-            overflow: 'hidden',
-            animation: 'fadeIn 0.3s ease'
+            maxHeight: '90vh',
+            overflow: 'hidden'
         },
         analysisModalHeader: {
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             padding: '25px 30px',
-            backgroundColor: '#3498db',
-            color: 'white'
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+            color: '#fff',
+            borderBottom: '2px solid #60a5fa'
         },
         analysisModalTitle: {
-            fontSize: isMobile ? '1.3rem' : '1.5rem',
-            fontWeight: 'bold',
-            margin: 0
+            fontSize: isMobile ? '1.2rem' : '1.4rem',
+            fontWeight: '700',
+            margin: 0,
+            letterSpacing: '2px'
         },
         analysisCloseButton: {
             background: 'none',
             border: 'none',
-            color: 'white',
-            fontSize: '28px',
+            color: '#fff',
+            fontSize: '32px',
             cursor: 'pointer',
-            padding: '5px',
+            padding: '0',
             width: '40px',
             height: '40px',
-            borderRadius: '50%',
+            borderRadius: '6px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            transition: 'background-color 0.3s ease'
+            transition: 'background 0.3s ease',
+            fontWeight: '300'
         },
         analysisModalBody: {
             padding: '30px',
-            maxHeight: '70vh',
-            overflowY: 'auto'
+            maxHeight: '75vh',
+            overflowY: 'auto',
+            background: '#0f172a'
         },
-        analysisSection: {
-            marginBottom: '20px'
+        threatPanel: {
+            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)',
+            padding: '20px',
+            borderRadius: '8px',
+            marginBottom: '25px',
+            border: '1px solid #1e3a8a',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+        },
+        threatHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: '#60a5fa',
+            fontSize: '13px',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
         },
         sentimentBadge: (sentiment) => ({
             display: 'inline-block',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            backgroundColor: sentiment === 'positive' ? '#27ae60' : sentiment === 'negative' ? '#e74c3c' : '#95a5a6',
-            color: 'white'
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            background: sentiment === 'positive' 
+                ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' 
+                : sentiment === 'negative' 
+                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' 
+                : 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)'
         }),
+        intelSection: {
+            marginBottom: '25px'
+        },
+        sectionHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '15px'
+        },
+        sectionLine: {
+            width: '4px',
+            height: '20px',
+            background: 'linear-gradient(to bottom, #2563eb, #60a5fa)',
+            borderRadius: '2px'
+        },
         sectionTitle: {
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            color: '#2c3e50',
-            marginBottom: '10px',
-            margin: '0 0 10px 0'
+            fontSize: '13px',
+            fontWeight: '700',
+            color: '#60a5fa',
+            margin: 0,
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
         },
         summaryText: {
             fontSize: '14px',
-            color: '#7f8c8d',
-            lineHeight: '1.6',
-            margin: 0
+            color: '#cbd5e1',
+            lineHeight: '1.7',
+            margin: 0,
+            paddingLeft: '16px',
+            borderLeft: '2px solid #1e3a8a'
         },
         highlightsList: {
-            margin: 0,
-            paddingLeft: '20px'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
         },
         highlightItem: {
-            fontSize: '14px',
-            color: '#2c3e50',
-            marginBottom: '5px',
-            lineHeight: '1.4'
+            fontSize: '13px',
+            color: '#cbd5e1',
+            lineHeight: '1.6',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            padding: '12px',
+            background: 'rgba(30, 58, 138, 0.1)',
+            borderRadius: '6px',
+            border: '1px solid #1e293b'
         },
-        eventItem: {
-            backgroundColor: '#f8f9fa',
-            padding: '15px',
-            borderRadius: '10px',
-            marginBottom: '10px'
+        bulletPoint: {
+            color: '#2563eb',
+            fontSize: '16px',
+            fontWeight: '700',
+            flexShrink: 0
+        },
+        eventCard: {
+            background: 'rgba(30, 41, 59, 0.5)',
+            padding: '18px',
+            borderRadius: '8px',
+            marginBottom: '12px',
+            border: '1px solid #1e3a8a'
         },
         eventHeader: {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '8px'
+            marginBottom: '10px',
+            gap: '10px'
         },
         eventName: {
             fontSize: '14px',
-            fontWeight: 'bold',
-            color: '#2c3e50'
+            fontWeight: '700',
+            color: '#e2e8f0',
+            letterSpacing: '0.5px'
         },
         impactBadge: (impact) => ({
-            padding: '3px 8px',
-            borderRadius: '12px',
+            padding: '4px 10px',
+            borderRadius: '4px',
             fontSize: '10px',
-            fontWeight: 'bold',
-            backgroundColor: impact === 'high' ? '#e74c3c' : impact === 'medium' ? '#f39c12' : '#95a5a6',
-            color: 'white'
+            fontWeight: '700',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            background: impact === 'high' 
+                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' 
+                : impact === 'medium' 
+                ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)' 
+                : 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
         }),
         eventSummary: {
             fontSize: '13px',
-            color: '#7f8c8d',
+            color: '#94a3b8',
             margin: 0,
-            lineHeight: '1.4'
+            lineHeight: '1.5'
         },
         analysisGrid: {
             display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: '15px',
-            marginBottom: '20px'
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+            gap: '20px',
+            marginBottom: '25px'
         },
-        riskFactorsSection: {
-            backgroundColor: '#fdf2f2',
-            padding: '15px',
-            borderRadius: '10px',
-            borderLeft: '4px solid #e74c3c'
+        riskPanel: {
+            background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid rgba(220, 38, 38, 0.3)'
         },
-        opportunitiesSection: {
-            backgroundColor: '#f0f9f4',
-            padding: '15px',
-            borderRadius: '10px',
-            borderLeft: '4px solid #27ae60'
+        opportunityPanel: {
+            background: 'linear-gradient(135deg, rgba(22, 163, 74, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)',
+            padding: '20px',
+            borderRadius: '8px',
+            border: '1px solid rgba(22, 163, 74, 0.3)'
+        },
+        panelHeader: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '15px',
+            fontSize: '12px',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            color: '#94a3b8'
         },
         factorsList: {
-            margin: 0,
-            paddingLeft: '20px'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
         },
         riskItem: {
             fontSize: '13px',
-            color: '#c0392b',
-            marginBottom: '5px',
-            lineHeight: '1.4'
+            color: '#fca5a5',
+            lineHeight: '1.5',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+        },
+        riskBullet: {
+            color: '#ef4444',
+            fontSize: '12px',
+            flexShrink: 0,
+            marginTop: '2px'
         },
         opportunityItem: {
             fontSize: '13px',
-            color: '#27ae60',
-            marginBottom: '5px',
-            lineHeight: '1.4'
+            color: '#86efac',
+            lineHeight: '1.5',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+        },
+        opportunityBullet: {
+            color: '#22c55e',
+            fontSize: '12px',
+            flexShrink: 0,
+            marginTop: '2px'
         },
         metaInfo: {
-            borderTop: '1px solid #ecf0f1',
-            paddingTop: '15px'
+            borderTop: '1px solid #1e293b',
+            paddingTop: '20px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '15px',
+            flexWrap: 'wrap'
         },
-        metaText: {
-            fontSize: '12px',
-            color: '#bdc3c7'
+        metaItem: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            color: '#64748b',
+            fontWeight: '600',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
+        },
+        metaSeparator: {
+            color: '#334155',
+            fontSize: '11px'
         },
         noDataContainer: {
             textAlign: 'center',
-            padding: '20px'
+            padding: '40px 20px'
         },
         noDataIcon: {
-            fontSize: '48px',
-            marginBottom: '15px'
+            marginBottom: '20px',
+            opacity: 0.5
         },
         noDataTitle: {
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            color: '#7f8c8d',
-            marginBottom: '10px',
-            margin: '0 0 10px 0'
+            fontSize: '1.2rem',
+            fontWeight: '700',
+            color: '#64748b',
+            marginBottom: '12px',
+            margin: '0 0 12px 0',
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
         },
         noDataMessage: {
             fontSize: '14px',
-            color: '#95a5a6',
+            color: '#475569',
             marginBottom: '15px',
-            lineHeight: '1.5',
+            lineHeight: '1.6',
             margin: '0 0 15px 0'
         },
         noDataSummary: {
             fontSize: '13px',
-            color: '#bdc3c7',
-            lineHeight: '1.4',
+            color: '#334155',
+            lineHeight: '1.5',
             fontStyle: 'italic',
             margin: 0
-        },
-        searchContainer: {
-            display: 'flex',
-            gap: '5px',
-            alignItems: 'center',
-            flexWrap: 'wrap'
-        },
-        rotationContainer: {
-            display: 'flex',
-            gap: '5px',
-            alignItems: 'center'
-        },
-        searchInput: {
-            padding: '8px 12px',
-            border: '2px solid #ecf0f1',
-            borderRadius: '20px',
-            fontSize: '14px',
-            outline: 'none',
-            width: isMobile ? '150px' : '200px',
-            transition: 'border-color 0.3s ease'
-        },
-        searchButton: {
-            padding: '8px 16px',
-            border: 'none',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            backgroundColor: '#3498db',
-            color: 'white',
-            transition: 'all 0.3s ease',
-            whiteSpace: 'nowrap'
         }
     };
 
     const getGlobeSize = () => {
         const baseSize = isMobile ? 
             Math.min(window.innerWidth - 40, 400) : 
-            Math.min(window.innerWidth * 0.4, window.innerHeight * 0.5, 600);
+            Math.min(window.innerWidth * 0.45, window.innerHeight * 0.55, 650);
         
         return {
             width: baseSize,
@@ -947,22 +1232,40 @@ export default function SnowAIEarth() {
     const ConfirmationModal = () => (
         <div style={styles.modal}>
             <div style={styles.modalContent}>
-                <h3 style={styles.modalTitle}>Economic Analysis</h3>
+                <h3 style={styles.modalTitle}>INITIATE INTEL BRIEFING</h3>
                 <p style={styles.modalMessage}>
-                    Would you like to see an AI-powered economic summary for <strong>{clickedCountry}</strong>?
+                    Request economic intelligence analysis for <strong style={{ color: '#2563eb' }}>{clickedCountry}</strong>?
+                    <br /><br />
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                        Classification: CONFIDENTIAL
+                    </span>
                 </p>
                 <div style={styles.modalButtons}>
                     <button
                         style={{...styles.modalButton, ...styles.declineButton}}
                         onClick={handleDeclineAnalysis}
+                        onMouseEnter={(e) => {
+                            e.target.style.background = '#1e293b';
+                            e.target.style.color = '#94a3b8';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.color = '#64748b';
+                        }}
                     >
-                        No, Thanks
+                        ABORT
                     </button>
                     <button
                         style={{...styles.modalButton, ...styles.confirmButton}}
                         onClick={handleConfirmAnalysis}
+                        onMouseEnter={(e) => {
+                            e.target.style.boxShadow = '0 0 30px rgba(37, 99, 235, 0.6)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.boxShadow = '0 0 20px rgba(37, 99, 235, 0.4)';
+                        }}
                     >
-                        Yes, Show Me
+                        AUTHORIZE
                     </button>
                 </div>
             </div>
@@ -974,7 +1277,10 @@ export default function SnowAIEarth() {
             <div style={styles.loadingContent}>
                 <div style={styles.loadingSpinner}></div>
                 <div style={styles.loadingText}>
-                    Analyzing economic data for {clickedCountry}...
+                    PROCESSING INTEL: {clickedCountry}
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px', letterSpacing: '1px' }}>
+                    ACCESSING CLASSIFIED DATABASE...
                 </div>
             </div>
         </div>
@@ -984,21 +1290,26 @@ export default function SnowAIEarth() {
     const globeSize = getGlobeSize();
 
     useEffect(() => {
-    if (globeRef.current && globeRef.current.controls) {
-        globeRef.current.controls().autoRotate = autoRotate;
-        globeRef.current.controls().autoRotateSpeed = 0.5;
-    }
-}, [autoRotate]);
+        if (globeRef.current && globeRef.current.controls) {
+            globeRef.current.controls().autoRotate = autoRotate;
+            globeRef.current.controls().autoRotateSpeed = 0.5;
+        }
+    }, [autoRotate]);
 
     return (
         <div style={styles.container}>
-            <div style={styles.header}>
-                <Header />
-            </div>
+            <Header />
+            <SideNavs />
             <div style={styles.mainPageBody}>
-                <SideNavs />
                 <div style={styles.mainBodyInfo}>
-                    <h5 style={styles.majorUpcomingNewsEventsHeader}>SnowAI Earth</h5>
+                    <div style={styles.pageHeader}>
+                        <h1 style={styles.pageTitle}>
+                            GEOPOLITICAL INTELLIGENCE SYSTEM
+                        </h1>
+                        <p style={styles.pageSubtitle}>
+                            REAL-TIME ECONOMIC SURVEILLANCE & THREAT ASSESSMENT
+                        </p>
+                    </div>
                     
                     <div style={styles.controlsContainer}>
                         <div style={styles.toggleContainer}>
@@ -1008,8 +1319,18 @@ export default function SnowAIEarth() {
                                     ...(view3D ? styles.inactiveButton : styles.activeButton)
                                 }}
                                 onClick={() => setView3D(false)}
+                                onMouseEnter={(e) => {
+                                    if (!view3D) return;
+                                    e.target.style.background = '#1e293b';
+                                    e.target.style.color = '#94a3b8';
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!view3D) return;
+                                    e.target.style.background = 'transparent';
+                                    e.target.style.color = '#64748b';
+                                }}
                             >
-                                2D Map
+                                2D MAP
                             </button>
                             <button
                                 style={{
@@ -1017,14 +1338,24 @@ export default function SnowAIEarth() {
                                     ...(view3D ? styles.activeButton : styles.inactiveButton)
                                 }}
                                 onClick={() => setView3D(true)}
+                                onMouseEnter={(e) => {
+                                    if (view3D) return;
+                                    e.target.style.background = '#1e293b';
+                                    e.target.style.color = '#94a3b8';
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (view3D) return;
+                                    e.target.style.background = 'transparent';
+                                    e.target.style.color = '#64748b';
+                                }}
                             >
-                                3D Globe
+                                3D GLOBE
                             </button>
                         </div>
                         
                         {view3D && (
                             <div style={styles.themeContainer}>
-                                <span style={{ fontSize: '14px', color: '#7f8c8d', marginRight: '5px' }}>Theme:</span>
+                                <span style={styles.controlLabel}>MODE:</span>
                                 {Object.entries(globeThemes).map(([key, theme]) => (
                                     <button
                                         key={key}
@@ -1033,6 +1364,16 @@ export default function SnowAIEarth() {
                                             ...(globeTheme === key ? styles.activeButton : styles.inactiveButton)
                                         }}
                                         onClick={() => setGlobeTheme(key)}
+                                        onMouseEnter={(e) => {
+                                            if (globeTheme === key) return;
+                                            e.target.style.background = '#1e293b';
+                                            e.target.style.color = '#94a3b8';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (globeTheme === key) return;
+                                            e.target.style.background = 'transparent';
+                                            e.target.style.color = '#64748b';
+                                        }}
                                     >
                                         {theme.name}
                                     </button>
@@ -1041,15 +1382,42 @@ export default function SnowAIEarth() {
                         )}
                         
                         {!view3D && (
-                            <div style={styles.zoomControls}>
-                                <span style={{ fontSize: '14px', color: '#7f8c8d', marginRight: '5px' }}>Zoom:</span>
-                                <button
-                                    style={styles.zoomButton}
-                                    onClick={resetZoom}
-                                >
-                                    Reset Zoom
-                                </button>
-                            </div>
+                            <button
+                                style={{...styles.toggleButton, ...styles.inactiveButton}}
+                                onClick={resetZoom}
+                                onMouseEnter={(e) => {
+                                    e.target.style.background = '#1e293b';
+                                    e.target.style.color = '#94a3b8';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.background = 'transparent';
+                                    e.target.style.color = '#64748b';
+                                }}
+                            >
+                                RESET VIEW
+                            </button>
+                        )}
+
+                        {view3D && (
+                            <button
+                                style={{
+                                    ...styles.toggleButton,
+                                    ...(autoRotate ? styles.activeButton : styles.inactiveButton)
+                                }}
+                                onClick={() => setAutoRotate(!autoRotate)}
+                                onMouseEnter={(e) => {
+                                    if (autoRotate) return;
+                                    e.target.style.background = '#1e293b';
+                                    e.target.style.color = '#94a3b8';
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (autoRotate) return;
+                                    e.target.style.background = 'transparent';
+                                    e.target.style.color = '#64748b';
+                                }}
+                            >
+                                {autoRotate ? 'STOP ROTATION' : 'AUTO ROTATE'}
+                            </button>
                         )}
                     </div>
 
@@ -1057,7 +1425,7 @@ export default function SnowAIEarth() {
                         <div style={styles.searchContainer}>
                             <input
                                 type="text"
-                                placeholder="Enter country name..."
+                                placeholder="ENTER TARGET LOCATION..."
                                 value={searchCountry}
                                 onChange={(e) => setSearchCountry(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleCountrySearch()}
@@ -1066,31 +1434,21 @@ export default function SnowAIEarth() {
                             <button
                                 onClick={handleCountrySearch}
                                 style={styles.searchButton}
-                            >
-                                Locate Country
-                            </button>
-                        </div>
-                    )}
-
-                    {view3D && (
-                        <div style={styles.rotationContainer}>
-                            <button
-                                style={{
-                                    ...styles.toggleButton,
-                                    ...(autoRotate ? styles.activeButton : styles.inactiveButton)
+                                onMouseEnter={(e) => {
+                                    e.target.style.boxShadow = '0 0 25px rgba(37, 99, 235, 0.5)';
                                 }}
-                                onClick={() => setAutoRotate(!autoRotate)}
+                                onMouseLeave={(e) => {
+                                    e.target.style.boxShadow = '0 0 15px rgba(37, 99, 235, 0.3)';
+                                }}
                             >
-                                {autoRotate ? 'Disable Rotation' : 'Enable Rotation'}
+                                LOCATE TARGET
                             </button>
                         </div>
                     )}
-
-
 
                     {selectedCountry && (
                         <div style={styles.countryLabel}>
-                            {selectedCountry}
+                            TARGET: {selectedCountry}
                         </div>
                     )}
 
@@ -1104,20 +1462,23 @@ export default function SnowAIEarth() {
                                 
                                 polygonsData={worldData.features || []}
                                 polygonAltitude={0.006}
-                                polygonCapColor={() => 'rgba(50, 50, 50, 0.1)'}
-                                polygonSideColor={() => 'rgba(50, 50, 50, 0.05)'}
-                                polygonStrokeColor={() => '#ffffff'}
+                                polygonCapColor={() => 'rgba(30, 58, 138, 0.3)'}
+                                polygonSideColor={() => 'rgba(37, 99, 235, 0.1)'}
+                                polygonStrokeColor={() => '#1e3a8a'}
                                 polygonLabel={({ properties }) => `
                                     <div style="
-                                        background: rgba(0,0,0,0.8);
+                                        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%);
                                         color: white;
-                                        padding: 8px 12px;
+                                        padding: 10px 16px;
                                         border-radius: 6px;
-                                        font-size: 14px;
+                                        font-size: 13px;
                                         font-weight: bold;
                                         max-width: 200px;
+                                        border: 1px solid #2563eb;
+                                        letter-spacing: 1px;
+                                        text-transform: uppercase;
                                     ">
-                                        ${properties?.NAME || properties?.name || 'Unknown Country'}
+                                        ${properties?.NAME || properties?.name || 'UNKNOWN TERRITORY'}
                                     </div>
                                 `}
                                 onPolygonClick={handlePolygonClick}
@@ -1125,28 +1486,33 @@ export default function SnowAIEarth() {
                                 pointsData={countries}
                                 pointAltitude={0.01}
                                 pointColor={d => d.color}
-                                pointRadius={isMobile ? 0.15 : 0.25}
+                                pointRadius={isMobile ? 0.2 : 0.3}
                                 pointLabel={d => `
                                     <div style="
-                                        background: rgba(0,0,0,0.8);
+                                        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%);
                                         color: white;
-                                        padding: 8px 12px;
+                                        padding: 12px 18px;
                                         border-radius: 6px;
-                                        font-size: 14px;
+                                        font-size: 13px;
                                         font-weight: bold;
+                                        border: 1px solid #2563eb;
+                                        letter-spacing: 1px;
                                     ">
-                                        ${d.name}
+                                        <div style="text-transform: uppercase; margin-bottom: 4px;">${d.name}</div>
+                                        <div style="font-size: 11px; color: ${
+                                            d.threat === 'HIGH' ? '#ef4444' :
+                                            d.threat === 'MEDIUM' ? '#f59e0b' : '#22c55e'
+                                        };">THREAT: ${d.threat}</div>
                                     </div>
                                 `}
                                 onPointClick={handleCountryClick}
                                 
                                 showAtmosphere={true}
-                                atmosphereColor="lightblue"
-                                atmosphereAltitude={0.15}
+                                atmosphereColor="#2563eb"
+                                atmosphereAltitude={0.2}
                                 
                                 enablePointerInteraction={true}
                                 
-                                // Fixed auto-rotation properties
                                 controlsAutoRotate={autoRotate}
                                 controlsAutoRotateSpeed={0.5}
                                 controlsEnableZoom={true}
@@ -1170,52 +1536,40 @@ export default function SnowAIEarth() {
 
             {showConfirmationModal && <ConfirmationModal />}
 
-            <style jsx>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(-20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                
+            <style>{`
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
                 
-                .closeButton:hover,
-                .analysisCloseButton:hover {
-                    background-color: rgba(255, 255, 255, 0.2) !important;
+                *::-webkit-scrollbar {
+                    width: 10px;
+                    height: 10px;
                 }
                 
-                .modalButton:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+                *::-webkit-scrollbar-track {
+                    background: #0f172a;
+                    border-radius: 5px;
                 }
                 
-                .zoomButton:hover {
-                    background-color: #bdc3c7 !important;
-                    color: #2c3e50 !important;
+                *::-webkit-scrollbar-thumb {
+                    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+                    border-radius: 5px;
+                    border: 2px solid #0f172a;
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar,
-                .analysisModalBody::-webkit-scrollbar {
-                    width: 8px;
+                *::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar-track,
-                .analysisModalBody::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 4px;
+                input::placeholder {
+                    color: #475569;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
                 }
                 
-                .analysisPanelContent::-webkit-scrollbar-thumb,
-                .analysisModalBody::-webkit-scrollbar-thumb {
-                    background: #c1c1c1;
-                    border-radius: 4px;
-                }
-                
-                .analysisPanelContent::-webkit-scrollbar-thumb:hover,
-                .analysisModalBody::-webkit-scrollbar-thumb:hover {
-                    background: #a8a8a8;
+                button:active {
+                    transform: scale(0.98);
                 }
             `}</style>
         </div>
