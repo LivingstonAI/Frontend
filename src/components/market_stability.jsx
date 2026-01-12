@@ -2791,7 +2791,7 @@ return (
                                 </>
                             )}
                         </div>
-                    </div>
+                    </div><br />
 
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
                         <button
