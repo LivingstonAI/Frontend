@@ -31,6 +31,9 @@ export default function SnowAIEarth() {
     const [threatLevel, setThreatLevel] = useState('MODERATE');
     const [activeAgents, setActiveAgents] = useState(147);
     const [dataStreams, setDataStreams] = useState(23);
+    const [showMediaCenter, setShowMediaCenter] = useState(false);
+    const [videoUrl, setVideoUrl] = useState('');
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
     const globeThemes = {
         'night-ops': {
@@ -418,6 +421,27 @@ export default function SnowAIEarth() {
         }
     };
 
+    const extractYouTubeId = (url) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const handlePlayVideo = () => {
+        const videoId = extractYouTubeId(videoUrl);
+        if (videoId) {
+            setIsVideoPlaying(true);
+        } else {
+            alert('INVALID YOUTUBE URL FORMAT. PLEASE VERIFY INTEL SOURCE.');
+        }
+    };
+
+    const handleCloseMediaCenter = () => {
+        setShowMediaCenter(false);
+        setVideoUrl('');
+        setIsVideoPlaying(false);
+    };
+
     const handlePolygonClick = (polygon) => {
         const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
         handleCountryClick(countryName);
@@ -617,6 +641,79 @@ export default function SnowAIEarth() {
                             </div>
                         )}
                     </div>
+                </div>
+            </div>
+        );
+    };
+
+    const MediaCenterModal = () => {
+        const videoId = extractYouTubeId(videoUrl);
+        
+        return (
+            <div style={styles.mediaCenterModal}>
+                <div style={styles.mediaCenterContent}>
+                    <div style={styles.mediaCenterHeader}>
+                        <h3 style={styles.mediaCenterTitle}>
+                            <span>📡</span> MEDIA SURVEILLANCE CENTER
+                        </h3>
+                        <button 
+                            style={styles.mediaCloseButton}
+                            onClick={handleCloseMediaCenter}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.mediaWarning}>
+                        ⚠️ CLASSIFIED MEDIA ACCESS - Enter YouTube URL for intelligence briefing playback. All sessions are monitored and logged.
+                    </div>
+                    
+                    <div style={styles.mediaInputContainer}>
+                        <input
+                            type="text"
+                            placeholder="ENTER YOUTUBE URL (e.g., https://www.youtube.com/watch?v=...)"
+                            value={videoUrl}
+                            onChange={(e) => setVideoUrl(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handlePlayVideo()}
+                            style={styles.mediaInput}
+                        />
+                        <button
+                            onClick={handlePlayVideo}
+                            style={styles.mediaButton}
+                            onMouseEnter={(e) => {
+                                e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.4)';
+                            }}
+                        >
+                            INITIATE PLAYBACK
+                        </button>
+                    </div>
+                    
+                    {isVideoPlaying && videoId && (
+                        <div style={styles.videoContainer}>
+                            <iframe
+                                style={styles.videoIframe}
+                                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                                title="Intelligence Briefing Video"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    )}
+                    
+                    {!isVideoPlaying && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '40px 20px',
+                            color: '#64748b',
+                            fontSize: isMobile ? '12px' : '14px',
+                            letterSpacing: '1px'
+                        }}>
+                            AWAITING VIDEO INTELLIGENCE SOURCE...
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -1275,6 +1372,145 @@ export default function SnowAIEarth() {
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)'
         }),
+        mediaCenterButton: {
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            width: isMobile ? '50px' : '60px',
+            height: isMobile ? '50px' : '60px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            border: '2px solid #fff',
+            color: '#fff',
+            fontSize: isMobile ? '20px' : '24px',
+            cursor: 'pointer',
+            boxShadow: '0 0 30px rgba(220, 38, 38, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9998,
+            transition: 'all 0.3s ease',
+            animation: 'pulse 2s infinite'
+        },
+        mediaCenterModal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0, 0, 0, 0.95)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10002,
+            backdropFilter: 'blur(10px)'
+        },
+        mediaCenterContent: {
+            background: 'linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%)',
+            borderRadius: '12px',
+            border: '2px solid #dc2626',
+            boxShadow: '0 0 60px rgba(220, 38, 38, 0.5)',
+            width: isMobile ? '95%' : '900px',
+            maxWidth: '95vw',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            padding: isMobile ? '15px' : '25px'
+        },
+        mediaCenterHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+            paddingBottom: '15px',
+            borderBottom: '2px solid #dc2626'
+        },
+        mediaCenterTitle: {
+            fontSize: isMobile ? '1.1rem' : '1.3rem',
+            fontWeight: '700',
+            color: '#fff',
+            margin: 0,
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+        },
+        mediaCloseButton: {
+            background: 'none',
+            border: 'none',
+            color: '#dc2626',
+            fontSize: '32px',
+            cursor: 'pointer',
+            padding: '0',
+            width: '40px',
+            height: '40px',
+            borderRadius: '6px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            transition: 'background 0.3s ease',
+            fontWeight: '300'
+        },
+        mediaInputContainer: {
+            marginBottom: '20px'
+        },
+        mediaInput: {
+            width: '100%',
+            padding: isMobile ? '10px 14px' : '12px 16px',
+            background: '#0f172a',
+            border: '1px solid #dc2626',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+            fontSize: isMobile ? '12px' : '14px',
+            outline: 'none',
+            fontFamily: 'monospace',
+            letterSpacing: '0.5px',
+            marginBottom: '10px'
+        },
+        mediaButton: {
+            width: '100%',
+            padding: isMobile ? '10px 20px' : '12px 24px',
+            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: isMobile ? '12px' : '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 0 20px rgba(220, 38, 38, 0.4)'
+        },
+        videoContainer: {
+            position: 'relative',
+            width: '100%',
+            paddingBottom: '56.25%',
+            height: 0,
+            overflow: 'hidden',
+            borderRadius: '8px',
+            border: '2px solid #dc2626',
+            boxShadow: '0 0 30px rgba(220, 38, 38, 0.3)'
+        },
+        videoIframe: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none'
+        },
+        mediaWarning: {
+            background: 'rgba(220, 38, 38, 0.1)',
+            border: '1px solid rgba(220, 38, 38, 0.3)',
+            borderRadius: '6px',
+            padding: isMobile ? '10px' : '15px',
+            marginBottom: '15px',
+            fontSize: isMobile ? '11px' : '12px',
+            color: '#fca5a5',
+            letterSpacing: '0.5px',
+            lineHeight: '1.5'
+        },
         newsIntelSection: {
             marginBottom: '30px',
             padding: '20px',
@@ -1693,7 +1929,25 @@ export default function SnowAIEarth() {
                 </div>
             </div>
 
+            {/* Media Center Floating Button */}
+            <button
+                style={styles.mediaCenterButton}
+                onClick={() => setShowMediaCenter(true)}
+                title="Media Surveillance Center"
+                onMouseEnter={(e) => {
+                    e.target.style.transform = 'scale(1.1)';
+                    e.target.style.boxShadow = '0 0 40px rgba(220, 38, 38, 0.8), 0 4px 25px rgba(0, 0, 0, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                    e.target.style.transform = 'scale(1)';
+                    e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)';
+                }}
+            >
+                📡
+            </button>
+
             {showConfirmationModal && <ConfirmationModal />}
+            {showMediaCenter && <MediaCenterModal />}
 
             <style>{`
                 @keyframes spin {
@@ -1744,6 +1998,14 @@ export default function SnowAIEarth() {
                 
                 .newsLink:hover {
                     color: #60a5fa !important;
+                }
+                
+                .mediaCenterButton:hover {
+                    animation: none !important;
+                }
+                
+                .mediaCloseButton:hover {
+                    background: rgba(220, 38, 38, 0.2) !important;
                 }
             `}</style>
         </div>
