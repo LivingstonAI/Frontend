@@ -101,7 +101,7 @@ const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master
 //     </div>
 // );
 
-export default function CIAMacroIntel() {
+export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
