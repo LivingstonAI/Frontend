@@ -2935,7 +2935,7 @@ return (
                                 </>
                             )}
                         </div>
-                    </div><br />
+                    </div>
 
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
                         <button
@@ -2963,6 +2963,7 @@ return (
                             💤 Weak Trend (R² less than 0.4)
                         </button>
                     </div>
+                    <br />
 
                     {showSectorAnalysis && sectorData && (
                         <div className="sector-analysis-container">
