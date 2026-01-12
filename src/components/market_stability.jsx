@@ -1637,6 +1637,7 @@ export default function MarketStabilityScore() {
     const [monteCarloLoading, setMonteCarloLoading] = useState({});
     const [monteCarloResults, setMonteCarloResults] = useState({});
     const messagesEndRef = useRef(null);
+    const [rSquaredFilter, setRSquaredFilter] = useState('all'); // 'all', 'high', 'medium', 'low'
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -2513,11 +2514,14 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
     }
 };
     
-    const filteredData = mssData.filter(item => {
+    const filteredData = mssData
+    .filter(item => {
+        // Existing search filter
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
         }
         
+        // Existing model status filter
         if (modelStatusFilter === 'active') {
             if (!savedModels.has(item.symbol) || !activeModels[item.symbol]?.isActive) {
                 return false;
@@ -2532,20 +2536,42 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
             }
         }
 
+        // Existing volume filter
         if (volumeFilter !== 'all' && item.volumeCategory) {
             if (volumeFilter !== item.volumeCategory) {
                 return false;
             }
         }
 
+        // Existing sector filter
         if (selectedSector !== 'all' && item.sector) {
             if (selectedSector !== item.sector) {
                 return false;
             }
         }
+
+        // NEW: R² filter
+        if (rSquaredFilter !== 'all') {
+            const rSquared = parseFloat(item.r_squared);
+            if (rSquaredFilter === 'high' && rSquared < 0.7) {
+                return false;
+            } else if (rSquaredFilter === 'medium' && (rSquared < 0.4 || rSquared >= 0.7)) {
+                return false;
+            } else if (rSquaredFilter === 'low' && rSquared >= 0.4) {
+                return false;
+            }
+        }
         
+        // Existing category filter
         if (selectedCategory === 'all') return true;
         return item.category === selectedCategory;
+    })
+    // NEW: Sort by R² (highest to lowest) when filter is active
+    .sort((a, b) => {
+        if (rSquaredFilter !== 'all') {
+            return parseFloat(b.r_squared) - parseFloat(a.r_squared);
+        }
+        return 0; // Keep original order when no R² filter
     });
 
     const stableAssets = filteredData.filter(item => item.category === 'stable');
@@ -2764,6 +2790,33 @@ return (
                                 </>
                             )}
                         </div>
+                    </div>
+
+                    <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('all')}
+                        >
+                            All R² Values
+                        </button>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'high' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('high')}
+                        >
+                            🎯 Strong Trend (R² ≥ 0.7)
+                        </button>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'medium' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('medium')}
+                        >
+                            📊 Moderate Trend (0.4-0.7)
+                        </button>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'low' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('low')}
+                        >
+                            💤 Weak Trend (R² less than 0.4)
+                        </button>
                     </div>
 
                     {showSectorAnalysis && sectorData && (
