@@ -1888,10 +1888,10 @@ const saveToForwardTest = async (asset) => {
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Multi-layer confirmation system
+    # Multi-layer confirmation system with R² trend strength
     if is_uptrend(data=dataset, lookback_days=30):
-        if is_stable_market(data=dataset, lookback_period=30):
-            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+        if is_stable_market(data=dataset, lookback_period=20):
+            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
                 if is_bullish_market_retracement(data=dataset, lookback_period=20):
                     if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
                         if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
@@ -1901,10 +1901,10 @@ if num_positions == 0:
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Multi-layer confirmation system
+    # Multi-layer confirmation system with R² trend strength
     if is_downtrend(data=dataset, lookback_days=30):
-        if is_stable_market(data=dataset, lookback_period=30):
-            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+        if is_stable_market(data=dataset, lookback_period=20):
+            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
                 if is_bearish_market_retracement(data=dataset, lookback_period=20):
                     if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
                         if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
@@ -1942,7 +1942,7 @@ if num_positions == 0:
                 ...prev,
                 [asset.symbol]: { id: data.id, isActive: true }
             }));
-            alert(`✅ Successfully saved ${asset.symbol} with 6-Layer Elite Strategy:\n✓ Trend\n✓ Stability (MSS)\n✓ Momentum (Elasticity)\n✓ Retracement\n✓ Average Retracement\n✓ Monte Carlo`);
+                alert(`✅ Successfully saved ${asset.symbol} with 6-Layer Elite Strategy:\n✓ Trend\n✓ Stability (MSS)\n✓ R² Trend Strength\n✓ Retracement\n✓ Average Retracement\n✓ Monte Carlo`);
             fetchExistingModels();
         } else {
             alert(`Error: ${data.error || 'Failed to save model'}`);
@@ -2021,10 +2021,10 @@ const reactivateModel = async (asset) => {
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Multi-layer confirmation system
+    # Multi-layer confirmation system with R² trend strength
     if is_uptrend(data=dataset, lookback_days=30):
-        if is_stable_market(data=dataset, lookback_period=30):
-            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+        if is_stable_market(data=dataset, lookback_period=20):
+            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
                 if is_bullish_market_retracement(data=dataset, lookback_period=20):
                     if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
                         if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
@@ -2034,10 +2034,10 @@ if num_positions == 0:
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Multi-layer confirmation system
+    # Multi-layer confirmation system with R² trend strength
     if is_downtrend(data=dataset, lookback_days=30):
-        if is_stable_market(data=dataset, lookback_period=30):
-            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+        if is_stable_market(data=dataset, lookback_period=20):
+            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
                 if is_bearish_market_retracement(data=dataset, lookback_period=20):
                     if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
                         if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
@@ -2061,7 +2061,8 @@ if num_positions == 0:
                 ...prev,
                 [asset.symbol]: { ...prev[asset.symbol], isActive: true }
             }));
-            alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} + Multi-Layer Confirmation strategy!`);
+                alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} + 6-Layer Confirmation:\n✓ Trend\n✓ Stability (20d)\n✓ R² Strength (20d)\n✓ Retracement\n✓ Avg Retracement\n✓ Monte Carlo`);
+
             fetchExistingModels();
         } else {
             alert('Failed to reactivate model');
