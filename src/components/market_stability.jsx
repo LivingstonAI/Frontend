@@ -1877,7 +1877,6 @@ export default function MarketStabilityScore() {
         }
     };
 
-    // Update the saveToForwardTest function
 const saveToForwardTest = async (asset) => {
     setSavingModels(prev => ({ ...prev, [asset.symbol]: true }));
 
@@ -1888,25 +1887,27 @@ const saveToForwardTest = async (asset) => {
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Check if in uptrend with proper retracement
-    if is_uptrend(data=dataset):
-        if is_bullish_market_retracement(data=dataset):
-            if average_retracement(data=dataset):
-                # Additional confirmation with Monte Carlo
-                if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                    return_statement = 'buy'`;
+    # Multi-layer confirmation system
+    if is_uptrend(data=dataset, lookback_days=30):
+        if is_stable_market(data=dataset, lookback_period=30):
+            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+                if is_bullish_market_retracement(data=dataset, lookback_period=20):
+                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                        if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
+                            return_statement = 'buy'`;
         } else if (asset.trend === 'downtrend') {
             modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Check if in downtrend with proper retracement
-    if is_downtrend(data=dataset):
-        if is_bearish_market_retracement(data=dataset):
-            if average_retracement(data=dataset):
-                # Additional confirmation with Monte Carlo
-                if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                    return_statement = 'sell'`;
+    # Multi-layer confirmation system
+    if is_downtrend(data=dataset, lookback_days=30):
+        if is_stable_market(data=dataset, lookback_period=30):
+            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+                if is_bearish_market_retracement(data=dataset, lookback_period=20):
+                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                        if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
+                            return_statement = 'sell'`;
         } else {
             alert(`Cannot save ${asset.symbol}: No clear trend detected`);
             setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
@@ -1919,7 +1920,7 @@ if num_positions == 0:
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                name: `[MSS-AR-MC] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
+                name: `[MSS-ELITE] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
                 asset: asset.symbol,
                 interval: '1h',
                 model_code: modelCode,
@@ -1940,7 +1941,7 @@ if num_positions == 0:
                 ...prev,
                 [asset.symbol]: { id: data.id, isActive: true }
             }));
-            alert(`✅ Successfully saved ${asset.symbol} with Market Retracement + Average Retracement + Monte Carlo strategy!`);
+            alert(`✅ Successfully saved ${asset.symbol} with 6-Layer Elite Strategy:\n✓ Trend\n✓ Stability (MSS)\n✓ Momentum (Elasticity)\n✓ Retracement\n✓ Average Retracement\n✓ Monte Carlo`);
             fetchExistingModels();
         } else {
             alert(`Error: ${data.error || 'Failed to save model'}`);
@@ -1952,6 +1953,7 @@ if num_positions == 0:
         setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
     }
 };
+
 
     const deactivateModel = async (asset) => {
         if (!window.confirm(`Are you sure you want to deactivate the model for ${asset.symbol}?`)) {
@@ -2018,25 +2020,27 @@ const reactivateModel = async (asset) => {
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Check if in uptrend with proper retracement
-    if is_uptrend(data=dataset):
-        if is_bullish_market_retracement(data=dataset):
-            if average_retracement(data=dataset):
-                # Additional confirmation with Monte Carlo
-                if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                    return_statement = 'buy'`;
+    # Multi-layer confirmation system
+    if is_uptrend(data=dataset, lookback_days=30):
+        if is_stable_market(data=dataset, lookback_period=30):
+            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+                if is_bullish_market_retracement(data=dataset, lookback_period=20):
+                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                        if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
+                            return_statement = 'buy'`;
         } else if (asset.trend === 'downtrend') {
             modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # Check if in downtrend with proper retracement
-    if is_downtrend(data=dataset):
-        if is_bearish_market_retracement(data=dataset):
-            if average_retracement(data=dataset):
-                # Additional confirmation with Monte Carlo
-                if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                    return_statement = 'sell'`;
+    # Multi-layer confirmation system
+    if is_downtrend(data=dataset, lookback_days=30):
+        if is_stable_market(data=dataset, lookback_period=30):
+            if is_high_elasticity_trend(data=dataset, lookback_period=30, threshold=0.8):
+                if is_bearish_market_retracement(data=dataset, lookback_period=20):
+                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                        if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
+                            return_statement = 'sell'`;
         }
 
         const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
