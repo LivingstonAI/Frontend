@@ -102,7 +102,7 @@ import bang_lai from '../攬佬SKAI ISYOURGOD - 八方來財  Ba Fang Lai Cai (S
 import decembre from '../Élise de Lune - Décembre.mp3';
 import honored_one from '../Gojo Satoru - The Honored One  Jujutsu Kaisen Season 2 OST.mp3';
 import answer_to_my_love from '../Answer To My Love.mp3';
-
+import kilometro from '../LOS COMUNISTAS DÓNDE ESTÁN_  AFROHOUSE  KILOMETRO.mp3';
 
 export default function SnowAILandingPage() {
   const [times, setTimes] = useState({
@@ -245,7 +245,7 @@ export default function SnowAILandingPage() {
       "99": { name: "Dècembre 🇫🇷", file: decembre },
       "100": { name: "If I am With You ☀️", file: honored_one },
       "101": { name: "Answer to My Love 🎧", file: answer_to_my_love },
-      
+      "102": { name: "Afrohouse Kilometro 🕺", file: kilometro },
     };
 
 

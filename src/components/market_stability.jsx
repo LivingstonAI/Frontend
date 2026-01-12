@@ -2766,6 +2766,8 @@ return (
                             }}
                             disabled={loading}
                         >
+                            <option value={10}>10 Days</option>
+                            <option value={15}>15 Days</option>
                             <option value={20}>20 Days</option>
                             <option value={30}>30 Days</option>
                             <option value={60}>60 Days</option>
