@@ -7,99 +7,6 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-// // Simulated Header Component
-// const Header = () => (
-//     <div style={{
-//         background: 'linear-gradient(135deg, #1a2332 0%, #0f1419 100%)',
-//         padding: '15px 30px',
-//         borderBottom: '2px solid #2563eb',
-//         display: 'flex',
-//         justifyContent: 'space-between',
-//         alignItems: 'center'
-//     }}>
-//         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-//             <Shield size={28} color="#2563eb" />
-//             <div>
-//                 <h1 style={{ 
-//                     color: '#fff', 
-//                     margin: 0, 
-//                     fontSize: '20px',
-//                     fontWeight: '700',
-//                     letterSpacing: '2px'
-//                 }}>
-//                     GLOBAL MACRO INTELLIGENCE
-//                 </h1>
-//                 <p style={{ 
-//                     color: '#64748b', 
-//                     margin: 0, 
-//                     fontSize: '11px',
-//                     letterSpacing: '1px'
-//                 }}>
-//                     CLASSIFIED // ECONOMIC SURVEILLANCE DIVISION
-//                 </p>
-//             </div>
-//         </div>
-//         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-//             <div style={{ textAlign: 'right' }}>
-//                 <div style={{ color: '#2563eb', fontSize: '11px', fontWeight: '600' }}>
-//                     SECURITY CLEARANCE: TOP SECRET
-//                 </div>
-//                 <div style={{ color: '#64748b', fontSize: '10px' }}>
-//                     {new Date().toLocaleString('en-US', { 
-//                         dateStyle: 'medium', 
-//                         timeStyle: 'short' 
-//                     })} UTC
-//                 </div>
-//             </div>
-//             <Lock size={20} color="#2563eb" />
-//         </div>
-//     </div>
-// );
-
-// // Simulated SideNavs Component (actually top nav)
-// const SideNavs = () => (
-//     <div style={{
-//         background: '#0f1419',
-//         padding: '12px 30px',
-//         borderBottom: '1px solid #1e293b',
-//         display: 'flex',
-//         gap: '2px',
-//         overflowX: 'auto'
-//     }}>
-//         {['THREAT MATRIX', 'ASSET TRACKING', 'INTEL REPORTS', 'FIELD OPS', 'ANALYTICS'].map((item, idx) => (
-//             <button
-//                 key={idx}
-//                 style={{
-//                     background: idx === 0 ? '#1e3a8a' : 'transparent',
-//                     border: 'none',
-//                     color: idx === 0 ? '#60a5fa' : '#64748b',
-//                     padding: '8px 20px',
-//                     fontSize: '11px',
-//                     fontWeight: '600',
-//                     letterSpacing: '1px',
-//                     cursor: 'pointer',
-//                     borderRadius: '4px',
-//                     transition: 'all 0.3s ease',
-//                     whiteSpace: 'nowrap'
-//                 }}
-//                 onMouseEnter={(e) => {
-//                     if (idx !== 0) {
-//                         e.target.style.background = '#1e293b';
-//                         e.target.style.color = '#94a3b8';
-//                     }
-//                 }}
-//                 onMouseLeave={(e) => {
-//                     if (idx !== 0) {
-//                         e.target.style.background = 'transparent';
-//                         e.target.style.color = '#64748b';
-//                     }
-//                 }}
-//             >
-//                 {item}
-//             </button>
-//         ))}
-//     </div>
-// );
 
 export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -268,7 +175,7 @@ export default function SnowAIEarth() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 7 : width / 6.5)
+            .scale(isMobile ? width / 8 : width / 7.5)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
@@ -376,7 +283,8 @@ export default function SnowAIEarth() {
     const fetchEconomicData = async (countryName) => {
         setLoadingAnalysis(true);
         try {
-            const response = await fetch(`${baseUrl}/api/economic-data-map/`, {
+            // Fetch economic data
+            const econResponse = await fetch(`${baseUrl}/api/economic-data-map/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -386,12 +294,49 @@ export default function SnowAIEarth() {
                 })
             });
 
-            const data = await response.json();
+            const econData = await econResponse.json();
             
-            if (data.success) {
+            // Get currency code for news data
+            const currencyMap = {
+                'United States': 'USD', 'USA': 'USD', 'US': 'USD',
+                'Canada': 'CAD', 'United Kingdom': 'GBP', 'UK': 'GBP',
+                'Japan': 'JPY', 'Australia': 'AUD', 'Switzerland': 'CHF',
+                'China': 'CNY', 'Brazil': 'BRL', 'Mexico': 'MXN',
+                'South Africa': 'ZAR', 'India': 'INR', 'Russia': 'RUB',
+                'South Korea': 'KRW', 'Sweden': 'SEK', 'Norway': 'NOK',
+                'Germany': 'EUR', 'France': 'EUR', 'Italy': 'EUR', 'Spain': 'EUR'
+            };
+            
+            const currency = currencyMap[countryName] || 'USD';
+            const currencyPair = `${currency}USD`;
+            
+            // Fetch news data
+            let newsData = { message: [] };
+            try {
+                const newsResponse = await fetch(`${baseUrl}/api/fetch_news_data_api/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        assets: [currencyPair],
+                        user_email: 'intel@classified.gov'
+                    })
+                });
+                
+                if (newsResponse.ok) {
+                    newsData = await newsResponse.json();
+                }
+            } catch (newsError) {
+                console.log('News data unavailable:', newsError);
+            }
+            
+            if (econData.success) {
                 const analysisData = {
-                    ...data,
-                    aiAnalysis: JSON.parse(data.ai_analysis)
+                    ...econData,
+                    aiAnalysis: JSON.parse(econData.ai_analysis),
+                    newsData: newsData.message || [],
+                    currencyPair: currencyPair
                 };
                 
                 setEconomicAnalysis(prev => ({
@@ -401,7 +346,7 @@ export default function SnowAIEarth() {
                 
                 return analysisData;
             } else {
-                console.error('Failed to fetch economic data:', data.error);
+                console.error('Failed to fetch economic data:', econData.error);
                 return null;
             }
         } catch (error) {
@@ -462,6 +407,7 @@ export default function SnowAIEarth() {
 
         const aiData = analysis.aiAnalysis;
         const targetCountry = countries.find(c => c.name === selectedCountry);
+        const newsArticles = analysis.newsData || [];
 
         return (
             <div style={styles.analysisModal}>
@@ -475,7 +421,7 @@ export default function SnowAIEarth() {
                                 </h3>
                             </div>
                             <div style={{ fontSize: '11px', color: '#64748b', letterSpacing: '1px' }}>
-                                CLASSIFICATION: {targetCountry?.threat || 'UNKNOWN'} PRIORITY
+                                CLASSIFICATION: {targetCountry?.threat || 'UNKNOWN'} PRIORITY | PAIR: {analysis.currencyPair}
                             </div>
                         </div>
                         <button 
@@ -498,6 +444,45 @@ export default function SnowAIEarth() {
                                         {aiData.overall_sentiment.toUpperCase()}
                                     </div>
                                 </div>
+
+                                {/* News Intelligence Section */}
+                                {newsArticles.length > 0 && (
+                                    <div style={styles.newsIntelSection}>
+                                        <div style={styles.sectionHeader}>
+                                            <div style={styles.sectionLine} />
+                                            <h4 style={styles.sectionTitle}>
+                                                🔴 LIVE INTELLIGENCE FEED - {analysis.currencyPair}
+                                            </h4>
+                                        </div>
+                                        <div style={styles.newsGrid}>
+                                            {newsArticles.slice(0, 6).map((article, index) => (
+                                                <div key={index} style={styles.newsCard} className="newsCard">
+                                                    <div style={styles.newsHeader}>
+                                                        <span style={styles.newsSource}>{article.source}</span>
+                                                        <span style={styles.newsAsset}>{article.asset}</span>
+                                                    </div>
+                                                    <h5 style={styles.newsTitle}>{article.title}</h5>
+                                                    {article.highlights && (
+                                                        <p style={styles.newsHighlight}>
+                                                            ⚡ {typeof article.highlights === 'string' 
+                                                                ? article.highlights 
+                                                                : JSON.stringify(article.highlights).substring(0, 150) + '...'}
+                                                        </p>
+                                                    )}
+                                                    <a 
+                                                        href={article.url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        style={styles.newsLink}
+                                                        className="newsLink"
+                                                    >
+                                                        ACCESS FULL INTEL →
+                                                    </a>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 
                                 <div style={styles.intelSection}>
                                     <div style={styles.sectionHeader}>
@@ -1207,6 +1192,79 @@ export default function SnowAIEarth() {
             lineHeight: '1.5',
             fontStyle: 'italic',
             margin: 0
+        },
+        newsIntelSection: {
+            marginBottom: '30px',
+            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%)',
+            borderRadius: '8px',
+            border: '1px solid rgba(220, 38, 38, 0.3)'
+        },
+        newsGrid: {
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+            gap: '15px',
+            marginTop: '15px'
+        },
+        newsCard: {
+            background: 'rgba(15, 23, 42, 0.6)',
+            padding: '15px',
+            borderRadius: '6px',
+            border: '1px solid #1e3a8a',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+        },
+        newsHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '10px',
+            flexWrap: 'wrap',
+            gap: '8px'
+        },
+        newsSource: {
+            fontSize: '10px',
+            fontWeight: '700',
+            color: '#60a5fa',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            background: 'rgba(37, 99, 235, 0.2)',
+            padding: '4px 8px',
+            borderRadius: '4px'
+        },
+        newsAsset: {
+            fontSize: '10px',
+            fontWeight: '700',
+            color: '#94a3b8',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+        },
+        newsTitle: {
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#e2e8f0',
+            marginBottom: '8px',
+            lineHeight: '1.4',
+            margin: '0 0 8px 0'
+        },
+        newsHighlight: {
+            fontSize: '12px',
+            color: '#94a3b8',
+            lineHeight: '1.5',
+            marginBottom: '10px',
+            margin: '0 0 10px 0',
+            fontStyle: 'italic'
+        },
+        newsLink: {
+            fontSize: '11px',
+            color: '#2563eb',
+            textDecoration: 'none',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            transition: 'color 0.3s ease'
         }
     };
 
@@ -1570,6 +1628,16 @@ export default function SnowAIEarth() {
                 
                 button:active {
                     transform: scale(0.98);
+                }
+                
+                .newsCard:hover {
+                    border-color: #2563eb !important;
+                    box-shadow: 0 0 20px rgba(37, 99, 235, 0.3) !important;
+                    transform: translateY(-2px);
+                }
+                
+                .newsLink:hover {
+                    color: #60a5fa !important;
                 }
             `}</style>
         </div>
