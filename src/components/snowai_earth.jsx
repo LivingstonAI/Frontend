@@ -7,7 +7,6 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-
 export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
@@ -28,6 +27,10 @@ export default function SnowAIEarth() {
     const zoomRef = useRef();
     const [searchCountry, setSearchCountry] = useState('');
     const [autoRotate, setAutoRotate] = useState(true);
+    const [intelStatus, setIntelStatus] = useState('STANDBY');
+    const [threatLevel, setThreatLevel] = useState('MODERATE');
+    const [activeAgents, setActiveAgents] = useState(147);
+    const [dataStreams, setDataStreams] = useState(23);
 
     const globeThemes = {
         'night-ops': {
@@ -89,9 +92,23 @@ export default function SnowAIEarth() {
                 setWorldData({ features: [] });
                 setGeoJsonData({ features: [] });
             });
+        
+        // Simulate real-time intel updates
+        const intelInterval = setInterval(() => {
+            setActiveAgents(prev => Math.min(999, prev + Math.floor(Math.random() * 5) - 2));
+            setDataStreams(prev => Math.min(99, Math.max(10, prev + Math.floor(Math.random() * 3) - 1)));
             
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+            const statuses = ['STANDBY', 'MONITORING', 'SCANNING'];
+            if (intelStatus === 'STANDBY' || intelStatus === 'MONITORING' || intelStatus === 'SCANNING') {
+                setIntelStatus(statuses[Math.floor(Math.random() * statuses.length)]);
+            }
+        }, 5000);
+            
+        return () => {
+            window.removeEventListener('resize', checkMobile);
+            clearInterval(intelInterval);
+        };
+    }, [intelStatus]);
 
     const handleCountrySearch = () => {
         if (!searchCountry.trim() || !globeRef.current) return;
@@ -362,16 +379,19 @@ export default function SnowAIEarth() {
         setClickedCountry(countryName);
         setSelectedCountry(countryName);
         setShowConfirmationModal(true);
+        setIntelStatus('QUERYING');
     };
 
     const handleConfirmAnalysis = async () => {
         setShowConfirmationModal(false);
+        setIntelStatus('ANALYZING');
         
         if (!economicAnalysis[clickedCountry]) {
             await fetchEconomicData(clickedCountry);
         }
         
         setShowAnalysisModal(true);
+        setIntelStatus('ACTIVE');
         
         if (!view3D) {
             setTimeout(() => {
@@ -384,11 +404,13 @@ export default function SnowAIEarth() {
         setShowConfirmationModal(false);
         setSelectedCountry('');
         setClickedCountry('');
+        setIntelStatus('STANDBY');
     };
 
     const handleCloseAnalysisModal = () => {
         setShowAnalysisModal(false);
         setSelectedCountry('');
+        setIntelStatus('STANDBY');
         if (!view3D) {
             setTimeout(() => {
                 drawD3Map();
@@ -639,12 +661,11 @@ export default function SnowAIEarth() {
         },
         controlsContainer: {
             display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
+            flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             marginBottom: '25px',
             gap: '15px',
-            flexWrap: 'wrap',
             background: 'rgba(15, 20, 25, 0.8)',
             padding: '20px',
             borderRadius: '8px',
@@ -656,7 +677,9 @@ export default function SnowAIEarth() {
             background: '#0f172a',
             padding: '4px',
             borderRadius: '6px',
-            border: '1px solid #1e3a8a'
+            border: '1px solid #1e3a8a',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
         },
         themeContainer: {
             display: 'flex',
@@ -665,7 +688,9 @@ export default function SnowAIEarth() {
             background: '#0f172a',
             padding: '4px',
             borderRadius: '6px',
-            border: '1px solid #1e3a8a'
+            border: '1px solid #1e3a8a',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
         },
         controlLabel: {
             fontSize: '11px',
@@ -1193,6 +1218,63 @@ export default function SnowAIEarth() {
             fontStyle: 'italic',
             margin: 0
         },
+        statusBar: {
+            background: 'linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%)',
+            padding: '12px 30px',
+            borderBottom: '1px solid #1e3a8a',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '15px'
+        },
+        statusItem: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '11px',
+            color: '#64748b',
+            fontWeight: '600',
+            letterSpacing: '1px'
+        },
+        statusDot: (status) => ({
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: status === 'ACTIVE' || status === 'ANALYZING' 
+                ? '#22c55e' 
+                : status === 'QUERYING' 
+                ? '#f59e0b' 
+                : '#64748b',
+            boxShadow: status === 'ACTIVE' || status === 'ANALYZING'
+                ? '0 0 10px #22c55e'
+                : status === 'QUERYING'
+                ? '0 0 10px #f59e0b'
+                : 'none',
+            animation: status === 'ACTIVE' || status === 'ANALYZING' || status === 'QUERYING' 
+                ? 'pulse 2s infinite' 
+                : 'none'
+        }),
+        statusValue: {
+            color: '#2563eb',
+            fontWeight: '700'
+        },
+        threatIndicator: (level) => ({
+            display: 'inline-block',
+            padding: '4px 10px',
+            borderRadius: '4px',
+            fontSize: '10px',
+            fontWeight: '700',
+            letterSpacing: '1px',
+            background: level === 'HIGH' 
+                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' 
+                : level === 'ELEVATED'
+                ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+                : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)'
+        }),
         newsIntelSection: {
             marginBottom: '30px',
             padding: '20px',
@@ -1358,6 +1440,25 @@ export default function SnowAIEarth() {
         <div style={styles.container}>
             <Header />
             <SideNavs />
+            
+            {/* Live Status Bar */}
+            <div style={styles.statusBar}>
+                <div style={styles.statusItem}>
+                    <div style={styles.statusDot(intelStatus)}></div>
+                    <span>SYSTEM STATUS: <span style={styles.statusValue}>{intelStatus}</span></span>
+                </div>
+                <div style={styles.statusItem}>
+                    <span>ACTIVE AGENTS: <span style={styles.statusValue}>{activeAgents}</span></span>
+                </div>
+                <div style={styles.statusItem}>
+                    <span>DATA STREAMS: <span style={styles.statusValue}>{dataStreams}</span></span>
+                </div>
+                <div style={styles.statusItem}>
+                    <span>THREAT LEVEL: </span>
+                    <span style={styles.threatIndicator(threatLevel)}>{threatLevel}</span>
+                </div>
+            </div>
+            
             <div style={styles.mainPageBody}>
                 <div style={styles.mainBodyInfo}>
                     <div style={styles.pageHeader}>
@@ -1598,6 +1699,11 @@ export default function SnowAIEarth() {
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.4; }
                 }
                 
                 *::-webkit-scrollbar {
