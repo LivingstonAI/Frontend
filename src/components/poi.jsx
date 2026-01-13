@@ -3,14 +3,6 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 const styles = {
-    header: {
-        width: '100%'
-    },
-    mainPageBody: {
-        display: 'flex',
-        flex: 1,
-        position: 'relative'
-    },
     mainBodyInfo: {
         flex: 1,
         padding: '20px',
