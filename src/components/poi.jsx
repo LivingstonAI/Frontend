@@ -3,7 +3,14 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 const styles = {
-    
+    header: {
+        width: '100%'
+    },
+    mainPageBody: {
+        display: 'flex',
+        flex: 1,
+        position: 'relative'
+    },
     mainBodyInfo: {
         flex: 1,
         padding: '20px',
@@ -316,8 +323,28 @@ const styles = {
         border: '2px solid #7dd3fc',
         borderRadius: '8px',
         fontSize: '16px',
-        marginBottom: '20px',
+        marginBottom: '15px',
         boxSizing: 'border-box'
+    },
+    filterSection: {
+        display: 'flex',
+        gap: '15px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        alignItems: 'center'
+    },
+    filterLabel: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: '#0ea5e9'
+    },
+    filterSelect: {
+        padding: '10px',
+        borderRadius: '6px',
+        border: '2px solid #7dd3fc',
+        fontSize: '14px',
+        minWidth: '200px',
+        cursor: 'pointer'
     },
     closeButton: {
         position: 'absolute',
@@ -496,6 +523,7 @@ export default function SnowAIPeopleofInterest() {
     // Form state
     const [formData, setFormData] = useState({
         name: '',
+        field: 'mathematics',
         image: null,
         accomplishments: '',
         bio: '',
@@ -521,6 +549,7 @@ export default function SnowAIPeopleofInterest() {
     
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
+    const [fieldFilter, setFieldFilter] = useState('all');
     
     // Voice state
     const [voices, setVoices] = useState([]);
@@ -665,6 +694,7 @@ export default function SnowAIPeopleofInterest() {
     const resetForm = () => {
         setFormData({
             name: '',
+            field: 'mathematics',
             image: null,
             accomplishments: '',
             bio: '',
@@ -681,6 +711,7 @@ export default function SnowAIPeopleofInterest() {
         try {
             const formDataToSend = new FormData();
             formDataToSend.append('name', formData.name);
+            formDataToSend.append('field', formData.field);
             formDataToSend.append('accomplishments', formData.accomplishments);
             formDataToSend.append('bio', formData.bio);
             formDataToSend.append('works', formData.works);
@@ -758,6 +789,7 @@ export default function SnowAIPeopleofInterest() {
         setEditingPerson(person);
         setFormData({
             name: person.name,
+            field: person.field || 'mathematics',
             image: person.image_url, // Store URL for display
             accomplishments: person.accomplishments,
             bio: person.bio,
@@ -786,10 +818,12 @@ export default function SnowAIPeopleofInterest() {
         return videoIdMatch ? `https://www.youtube.com/embed/${videoIdMatch[1]}` : null;
     };
 
-    // Filter people based on search query
-    const filteredPeople = people.filter(person =>
-        person.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Filter people based on search query and field
+    const filteredPeople = people.filter(person => {
+        const matchesSearch = person.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesField = fieldFilter === 'all' || person.field === fieldFilter;
+        return matchesSearch && matchesField;
+    });
 
     const sendChatMessage = async () => {
         if (!chatInput.trim() || isSendingMessage || !OPENAI_API_KEY) return;
@@ -939,6 +973,31 @@ Estimated IQ: ${person.estimated_iq}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
 
+                    {/* Filter Section */}
+                    <div style={styles.filterSection}>
+                        <span style={styles.filterLabel}>Filter by Field:</span>
+                        <select
+                            style={styles.filterSelect}
+                            value={fieldFilter}
+                            onChange={(e) => setFieldFilter(e.target.value)}
+                        >
+                            <option value="all">All Fields</option>
+                            <option value="mathematics">Mathematics</option>
+                            <option value="physics">Physics</option>
+                            <option value="computer_science">Computer Science</option>
+                            <option value="economics">Economics</option>
+                            <option value="biology">Biology</option>
+                            <option value="chemistry">Chemistry</option>
+                            <option value="engineering">Engineering</option>
+                            <option value="philosophy">Philosophy</option>
+                            <option value="neuroscience">Neuroscience</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <span style={{ fontSize: '14px', color: '#64748b' }}>
+                            ({filteredPeople.length} {filteredPeople.length === 1 ? 'person' : 'people'})
+                        </span>
+                    </div>
+
                     <button
                         style={styles.addPersonButton}
                         onClick={() => {
@@ -970,6 +1029,9 @@ Estimated IQ: ${person.estimated_iq}
                                     />
                                 )}
                                 <div style={styles.personName}>{person.name}</div>
+                                <div style={{ fontSize: '12px', color: '#0ea5e9', fontWeight: '600', marginBottom: '8px' }}>
+                                    {person.field_display || person.field}
+                                </div>
                                 <div style={styles.personBio}>{person.bio}</div>
                                 {person.estimated_iq && (
                                     <div style={{ fontSize: '14px', color: '#0ea5e9', fontWeight: '600' }}>
@@ -1033,6 +1095,27 @@ Estimated IQ: ${person.estimated_iq}
                                         onChange={handleInputChange}
                                         placeholder="e.g., Sabine Hossenfelder"
                                     />
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Field *</label>
+                                    <select
+                                        name="field"
+                                        style={styles.input}
+                                        value={formData.field}
+                                        onChange={handleInputChange}
+                                    >
+                                        <option value="mathematics">Mathematics</option>
+                                        <option value="physics">Physics</option>
+                                        <option value="computer_science">Computer Science</option>
+                                        <option value="economics">Economics</option>
+                                        <option value="biology">Biology</option>
+                                        <option value="chemistry">Chemistry</option>
+                                        <option value="engineering">Engineering</option>
+                                        <option value="philosophy">Philosophy</option>
+                                        <option value="neuroscience">Neuroscience</option>
+                                        <option value="other">Other</option>
+                                    </select>
                                 </div>
 
                                 <div style={styles.formGroup}>
