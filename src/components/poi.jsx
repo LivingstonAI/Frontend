@@ -559,6 +559,11 @@ export default function SnowAIPeopleofInterest() {
         loadVoices();
     }, []);
 
+    // Debug: Watch formData changes
+    useEffect(() => {
+        console.log('formData changed:', formData);
+    }, [formData]);
+
     const loadVoices = () => {
         const synth = window.speechSynthesis;
         const loadedVoices = synth.getVoices();
