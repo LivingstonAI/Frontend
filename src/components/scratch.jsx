@@ -2379,6 +2379,7 @@ Blockly.Blocks['average_retracement'] = {
         {
           "kind": "category",
           "name": "Control",
+          "expanded": "false", // Add this line
           "contents": [
             {
               "kind": "block",
@@ -2405,6 +2406,7 @@ Blockly.Blocks['average_retracement'] = {
         {
           "kind": "category",
           "name": "Logic",
+          "expanded": "false", // Add this line
           "contents": [
             {
               "kind": "block",
