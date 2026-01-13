@@ -1302,6 +1302,20 @@ return [`average_retracement(data=dataset)`, Order.NONE];
 };
 
 
+pythonGenerator['forBlock']['is_high_r_squared'] = function(block, generator) {
+
+
+  return [`is_high_r_squared(data=dataset)`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['is_high_r_squared'] = function(block, generator) {
+
+return [`is_high_r_squared(data=dataset)`, Order.NONE];
+
+};
+
+
 
    // Blockly block definition for "Moving Average" block
   Blockly.Blocks['moving_average'] = {
@@ -2371,6 +2385,18 @@ Blockly.Blocks['average_retracement'] = {
       this.setHelpUrl("");
     }
   };
+  
+  Blockly.Blocks['is_high_r_squared'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField("is high r squared")
+          .setAlign(Blockly.ALIGN_CENTRE);
+      this.setOutput(true, "Boolean");
+      this.setColour(160);
+      this.setTooltip("Checks for strength of the trend");
+      this.setHelpUrl("");
+    }
+  };
 
   
     const MY_TOOLBOX = {
@@ -2739,7 +2765,10 @@ Blockly.Blocks['average_retracement'] = {
               "kind": "block",
               "type": "average_retracement"
             },
-
+            {
+              "kind": "block",
+              "type": "is_high_r_squared"
+            },
           ]
         },
         {
@@ -2758,7 +2787,8 @@ Blockly.Blocks['average_retracement'] = {
             {
               "kind": "block",
               "type": "asian_session" // Add the "Momentum" block here
-            },      
+            },  
+                 
           ]
         },
         {
