@@ -721,7 +721,8 @@ export default function SnowAIPeopleofInterest() {
             });
             const data = await response.json();
             if (data.success) {
-                fetchAllPeople();
+                // Add new person to state immediately
+                setPeople(prev => [data.data, ...prev]);
                 setShowAddModal(false);
                 resetForm();
             }
@@ -769,7 +770,8 @@ export default function SnowAIPeopleofInterest() {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    fetchAllPeople();
+                    // Remove person from state immediately
+                    setPeople(prev => prev.filter(p => p.id !== personId));
                 }
             } catch (error) {
                 console.error("Error deleting person:", error);
