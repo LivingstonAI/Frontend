@@ -649,6 +649,7 @@ export default function SnowAIPeopleofInterest() {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        console.log(`Input changed: ${name} = ${value}`); // Debug log
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -781,9 +782,15 @@ export default function SnowAIPeopleofInterest() {
 
     const openEditModal = (person) => {
         setEditingPerson(person);
+        
+        // Debug: Check what field value we're getting
+        console.log('Opening edit modal for:', person.name);
+        console.log('Person field:', person.field);
+        console.log('Full person data:', person);
+        
         setFormData({
             name: person.name,
-            field: person.field || 'mathematics',
+            field: person.field || 'other',
             image: person.image_url, // Store URL for display
             accomplishments: person.accomplishments,
             bio: person.bio,
