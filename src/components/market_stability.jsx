@@ -4,6 +4,169 @@ import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
+const elasticityStyles = `
+.elasticity-analysis-container {
+    background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #ec4899;
+}
+
+.elasticity-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.elasticity-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.elasticity-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #831843;
+}
+
+.elasticity-signal-banner {
+    background: white;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 15px 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.elasticity-signal-banner.strong {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: 2px solid #047857;
+}
+
+.elasticity-signal-banner.moderate {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    border: 2px solid #d97706;
+}
+
+.elasticity-signal-banner.weak {
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    color: white;
+    border: 2px solid #dc2626;
+}
+
+.elasticity-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.elasticity-metric-card {
+    background: white;
+    padding: 16px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.elasticity-metric-card.overall {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+    border: 2px solid #ec4899;
+}
+
+.elasticity-metric-card.bullish {
+    border: 2px solid #10b981;
+}
+
+.elasticity-metric-card.bearish {
+    border: 2px solid #ef4444;
+}
+
+.elasticity-metric-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.elasticity-metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #831843;
+    margin: 8px 0;
+}
+
+.elasticity-metric-value.bullish {
+    color: #059669;
+}
+
+.elasticity-metric-value.bearish {
+    color: #dc2626;
+}
+
+.elasticity-metric-sublabel {
+    font-size: 11px;
+    color: #831843;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.elasticity-metric-detail {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.elasticity-interpretation {
+    background: white;
+    padding: 16px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+.interpretation-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #831843;
+    margin-bottom: 10px;
+}
+
+.interpretation-content {
+    font-size: 13px;
+    color: #1f2937;
+    line-height: 1.6;
+}
+
+.interpretation-content p {
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .elasticity-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .elasticity-metric-card.overall {
+        grid-column: 1;
+    }
+}
+`;
+
 const monteCarloStyles = `
 
 .monte-carlo-btn {
@@ -133,6 +296,7 @@ const monteCarloStyles = `
 
 const styles = `
 ${monteCarloStyles}
+${elasticityStyles}
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -1639,6 +1803,8 @@ export default function MarketStabilityScore() {
     const messagesEndRef = useRef(null);
     const [rSquaredFilter, setRSquaredFilter] = useState('all'); // 'all', 'high', 'medium', 'low'
     const [batchUpdating, setBatchUpdating] = useState(false);
+    const [loadingElasticity, setLoadingElasticity] = useState({});
+    const [elasticityData, setElasticityData] = useState({});
 
 
     const scrollToBottom = () => {
@@ -1751,6 +1917,42 @@ export default function MarketStabilityScore() {
             console.error("Error fetching OpenAI key:", error);
         }
     };
+
+    // 2. ADD NEW FUNCTION - Calculate Trend Elasticity:
+const calculateTrendElasticity = async (symbol) => {
+    setLoadingElasticity(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-trend-elasticity-analyzer/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                lookback_period: 90
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            setElasticityData(prev => ({
+                ...prev,
+                [symbol]: data
+            }));
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error calculating elasticity:', error);
+        alert('Failed to calculate trend elasticity');
+    } finally {
+        setLoadingElasticity(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file && file.type.startsWith('image/')) {
@@ -3300,6 +3502,14 @@ return (
                                         >
                                             {loadingRetracement[asset.symbol] ? '📊 Calculating...' : '📊 Entry Points'}
                                         </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => calculateTrendElasticity(asset.symbol)}
+                                            disabled={loadingElasticity[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}
+                                        >
+                                            {loadingElasticity[asset.symbol] ? '⚡ Calculating...' : '⚡ Trend Elasticity'}
+                                        </button>
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -3434,6 +3644,108 @@ return (
                                         )}
                                     </div>
                                 )}
+
+                                {elasticityData[asset.symbol] && (
+                                <div className="elasticity-analysis-container">
+                                    <div className="elasticity-header">
+                                        <div className="elasticity-icon">⚡</div>
+                                        <div className="elasticity-title">Trend Elasticity Analysis</div>
+                                    </div>
+                                    
+                                    {elasticityData[asset.symbol].overall_elasticity && (
+                                        <>
+                                            <div className={`elasticity-signal-banner ${elasticityData[asset.symbol].elasticity_category}`}>
+                                                <strong>
+                                                    {elasticityData[asset.symbol].elasticity_category === 'strong' && '💪 STRONG TREND - Minimal retracements, powerful momentum'}
+                                                    {elasticityData[asset.symbol].elasticity_category === 'moderate' && '📊 MODERATE TREND - Balanced retracements, steady movement'}
+                                                    {elasticityData[asset.symbol].elasticity_category === 'weak' && '⚠️ WEAK TREND - Deep retracements, choppy movement'}
+                                                </strong>
+                                            </div>
+                                            
+                                            <div className="elasticity-metrics-grid">
+                                                <div className="elasticity-metric-card overall">
+                                                    <div className="elasticity-metric-label">Overall Elasticity Score</div>
+                                                    <div className="elasticity-metric-value" style={{
+                                                        color: elasticityData[asset.symbol].overall_elasticity >= 0.7 ? '#059669' :
+                                                            elasticityData[asset.symbol].overall_elasticity >= 0.4 ? '#f59e0b' : '#dc2626'
+                                                    }}>
+                                                        {(elasticityData[asset.symbol].overall_elasticity * 100).toFixed(1)}%
+                                                    </div>
+                                                    <div className="elasticity-metric-sublabel">
+                                                        {elasticityData[asset.symbol].overall_elasticity >= 0.7 ? 'Excellent' :
+                                                        elasticityData[asset.symbol].overall_elasticity >= 0.4 ? 'Good' : 'Poor'}
+                                                    </div>
+                                                </div>
+                                                
+                                                {elasticityData[asset.symbol].bullish_elasticity && (
+                                                    <div className="elasticity-metric-card bullish">
+                                                        <div className="elasticity-metric-label">📈 Bullish Elasticity</div>
+                                                        <div className="elasticity-metric-value bullish">
+                                                            {(elasticityData[asset.symbol].bullish_elasticity.elasticity_score * 100).toFixed(1)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Avg Retracement: {elasticityData[asset.symbol].bullish_elasticity.avg_retracement_pct.toFixed(2)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Patterns: {elasticityData[asset.symbol].bullish_elasticity.pattern_count}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {elasticityData[asset.symbol].bearish_elasticity && (
+                                                    <div className="elasticity-metric-card bearish">
+                                                        <div className="elasticity-metric-label">📉 Bearish Elasticity</div>
+                                                        <div className="elasticity-metric-value bearish">
+                                                            {(elasticityData[asset.symbol].bearish_elasticity.elasticity_score * 100).toFixed(1)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Avg Retracement: {elasticityData[asset.symbol].bearish_elasticity.avg_retracement_pct.toFixed(2)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Patterns: {elasticityData[asset.symbol].bearish_elasticity.pattern_count}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="elasticity-interpretation">
+                                                <div className="interpretation-title">📖 What This Means:</div>
+                                                <div className="interpretation-content">
+                                                    {elasticityData[asset.symbol].overall_elasticity >= 0.7 ? (
+                                                        <p>This asset shows <strong style={{color: '#059669'}}>strong trend elasticity</strong>. 
+                                                        Retracements are shallow and brief, indicating powerful momentum. 
+                                                        Ideal for trend-following strategies with tight stops.</p>
+                                                    ) : elasticityData[asset.symbol].overall_elasticity >= 0.4 ? (
+                                                        <p>This asset has <strong style={{color: '#f59e0b'}}>moderate trend elasticity</strong>. 
+                                                        Retracements are balanced - not too deep, not too shallow. 
+                                                        Good for swing trading with medium-sized stops.</p>
+                                                    ) : (
+                                                        <p>This asset exhibits <strong style={{color: '#dc2626'}}>weak trend elasticity</strong>. 
+                                                        Deep retracements and choppy movement suggest unstable trends. 
+                                                        Consider wider stops or wait for clearer trend confirmation.</p>
+                                                    )}
+                                                    
+                                                    {asset.trend === 'uptrend' && elasticityData[asset.symbol].bullish_elasticity && (
+                                                        <p style={{marginTop: '10px'}}>
+                                                            Current uptrend shows average pullbacks of <strong>
+                                                            {elasticityData[asset.symbol].bullish_elasticity.avg_retracement_pct.toFixed(2)}%</strong> before continuation.
+                                                            Consider entries near this retracement level.
+                                                        </p>
+                                                    )}
+                                                    
+                                                    {asset.trend === 'downtrend' && elasticityData[asset.symbol].bearish_elasticity && (
+                                                        <p style={{marginTop: '10px'}}>
+                                                            Current downtrend shows average bounces of <strong>
+                                                            {elasticityData[asset.symbol].bearish_elasticity.avg_retracement_pct.toFixed(2)}%</strong> before continuation.
+                                                            Consider entries near this retracement level.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
 
                                 {monteCarloResults[asset.symbol] && (
                                     <div className="monte-carlo-results">
