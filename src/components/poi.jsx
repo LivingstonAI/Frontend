@@ -751,9 +751,6 @@ export default function SnowAIPeopleofInterest() {
             if (formData.image && typeof formData.image !== 'string') {
                 formDataToSend.append('image', formData.image);
             }
-
-            console.log('formData.field before sending:', formData.field);
-            console.log('Full formData object:', formData);
             
             const response = await fetch(`${baseUrl}/snowai_poi_update_person_unique_v1/${editingPerson.id}/`, {
                 method: 'POST',
