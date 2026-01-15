@@ -3044,7 +3044,7 @@ return (
                     </button>
                     <button 
                         className="mss-calculate-btn"
-                        onClick={detectEarlyMomentum}
+                        onClick={detectTrendEmergence}
                         disabled={loadingEMS}
                         style={{ 
                             background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
