@@ -1805,6 +1805,8 @@ export default function MarketStabilityScore() {
     const [batchUpdating, setBatchUpdating] = useState(false);
     const [loadingElasticity, setLoadingElasticity] = useState({});
     const [elasticityData, setElasticityData] = useState({});
+    const [emsData, setEmsData] = useState([]);
+    const [loadingEMS, setLoadingEMS] = useState(false);
 
 
     const scrollToBottom = () => {
@@ -1825,6 +1827,45 @@ export default function MarketStabilityScore() {
     // Add this state at the top with your other states
     const [retracementData, setRetracementData] = useState({});
     const [loadingRetracement, setLoadingRetracement] = useState({});
+
+    const detectTrendEmergence = async () => {
+        setLoadingEMS(true);
+        try {
+            let symbols = [];
+            
+            if (selectedAssetClass === 'custom') {
+                symbols = customSymbols.split(',').map(s => s.trim()).filter(s => s);
+            } else if (assetLists) {
+                symbols = assetLists[selectedAssetClass] || [];
+            }
+
+            const response = await fetch(`${baseUrl}/api/detect-trend-emergence/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbols: symbols,
+                    period: period === 0 ? parseInt(customPeriod) : period  // Use YOUR selected period!
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                setEmsData(data.data);
+                const hotTrends = data.data.filter(d => d.emergence_score >= 100);
+                alert(`✅ Found ${hotTrends.length} emerging trends at inflection points!`);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to detect trend emergence');
+        } finally {
+            setLoadingEMS(false);
+        }
+    };
 
     // Add this function
     const calculateRetracementEntry = async (symbol) => {
@@ -3001,6 +3042,17 @@ return (
                     >
                         {loading ? 'Calculating...' : 'Calculate MSS'}
                     </button>
+                    <button 
+                        className="mss-calculate-btn"
+                        onClick={detectEarlyMomentum}
+                        disabled={loadingEMS}
+                        style={{ 
+                            background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                            marginLeft: '12px'
+                        }}
+                    >
+                        {loadingEMS ? '🔥 Scanning...' : '🔥 Find Hot Trends'}
+                    </button>
                 </div>
             </div>
 
@@ -3951,6 +4003,106 @@ return (
                 ✕
             </button>
         </div>
+    )}
+
+    {emsData.length > 0 && (
+        <>
+            <div className="mss-summary">
+                <div className="summary-card" style={{borderColor: '#dc2626'}}>
+                    <h3>🔥 EXPLOSIVE</h3>
+                    <p className="big-number" style={{color: '#dc2626'}}>
+                        {emsData.filter(d => d.ems >= 200).length}
+                    </p>
+                    <p className="label">Enter NOW</p>
+                </div>
+                <div className="summary-card" style={{borderColor: '#f59e0b'}}>
+                    <h3>⚡ HOT</h3>
+                    <p className="big-number" style={{color: '#f59e0b'}}>
+                        {emsData.filter(d => d.ems >= 150 && d.ems < 200).length}
+                    </p>
+                    <p className="label">High Priority</p>
+                </div>
+                <div className="summary-card" style={{borderColor: '#10b981'}}>
+                    <h3>🎯 EMERGING</h3>
+                    <p className="big-number" style={{color: '#10b981'}}>
+                        {emsData.filter(d => d.ems >= 100 && d.ems < 150).length}
+                    </p>
+                    <p className="label">Watch Closely</p>
+                </div>
+            </div>
+
+            <div className="mss-grid">
+                {emsData.filter(d => d.ems >= 100).map((asset, index) => (
+                    <div key={index} className="mss-card" style={{borderColor: asset.color}}>
+                        <div className="card-header">
+                            <div className="card-header-left">
+                                <h4>{asset.symbol}</h4>
+                                <span style={{
+                                    fontSize: '24px',
+                                    fontWeight: 700,
+                                    color: asset.color
+                                }}>
+                                    {asset.opportunity}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div style={{
+                            background: asset.color,
+                            color: 'white',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            fontWeight: 700,
+                            fontSize: '16px',
+                            marginBottom: '15px'
+                        }}>
+                            {asset.urgency} - {asset.entry_window}
+                        </div>
+                        
+                        <div className="card-metrics">
+                            <div className="metric">
+                                <span className="metric-label">EMS:</span>
+                                <span className="metric-value" style={{color: asset.color}}>
+                                    {asset.ems}
+                                </span>
+                            </div>
+                            <div className="metric">
+                                <span className="metric-label">Direction:</span>
+                                <span className="metric-value" style={{
+                                    color: asset.momentum_direction === 'bullish' ? '#10b981' : '#ef4444'
+                                }}>
+                                    {asset.momentum_direction === 'bullish' ? '📈' : '📉'}
+                                </span>
+                            </div>
+                            <div className="metric">
+                                <span className="metric-label">Confirm:</span>
+                                <span className="metric-value">{asset.confirmation_pct}%</span>
+                            </div>
+                        </div>
+                        
+                        <div className="card-details">
+                            <div className="detail-item">
+                                <span>Momentum Accel:</span>
+                                <span>{asset.momentum_acceleration}x</span>
+                            </div>
+                            <div className="detail-item">
+                                <span>Volume Expansion:</span>
+                                <span>{asset.volume_expansion}x</span>
+                            </div>
+                            <div className="detail-item">
+                                <span>Consecutive Days:</span>
+                                <span>{asset.consecutive_days}</span>
+                            </div>
+                            <div className="detail-item">
+                                <span>Price Position:</span>
+                                <span>{asset.price_position}%</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </>
     )}
 
     {/* Chatbot Orb */}
