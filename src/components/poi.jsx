@@ -741,6 +741,7 @@ export default function SnowAIPeopleofInterest() {
         try {
             const formDataToSend = new FormData();
             formDataToSend.append('name', formData.name);
+            formDataToSend.append('field', formData.field); // THIS WAS MISSING!
             formDataToSend.append('accomplishments', formData.accomplishments);
             formDataToSend.append('bio', formData.bio);
             formDataToSend.append('works', formData.works);
@@ -752,16 +753,23 @@ export default function SnowAIPeopleofInterest() {
                 formDataToSend.append('image', formData.image);
             }
             
+            console.log('Sending field value:', formData.field); // Debug log
+            
             const response = await fetch(`${baseUrl}/snowai_poi_update_person_unique_v1/${editingPerson.id}/`, {
                 method: 'POST',
                 body: formDataToSend
             });
             const data = await response.json();
             if (data.success) {
-                fetchAllPeople();
+                // Update the person in state immediately with the response data
+                setPeople(prev => prev.map(p => 
+                    p.id === editingPerson.id ? data.person : p
+                ));
                 setShowAddModal(false);
                 setEditingPerson(null);
                 resetForm();
+            } else {
+                console.error('Update failed:', data.error);
             }
         } catch (error) {
             console.error("Error updating person:", error);
