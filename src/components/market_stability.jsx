@@ -1826,6 +1826,12 @@ export default function MarketStabilityScore() {
     const [retracementData, setRetracementData] = useState({});
     const [loadingRetracement, setLoadingRetracement] = useState({});
 
+    // Add these states at the top with your other states
+    const [trendDurations, setTrendDurations] = useState({});
+    const [loadingDurations, setLoadingDurations] = useState({});
+    const [loadingAllDurations, setLoadingAllDurations] = useState(false);
+    const [durationSortOrder, setDurationSortOrder] = useState('desc'); // 'asc' or 'desc'
+
     // Add this function
     const calculateRetracementEntry = async (symbol) => {
         setLoadingRetracement(prev => ({ ...prev, [symbol]: true }));
@@ -1860,6 +1866,156 @@ export default function MarketStabilityScore() {
             setLoadingRetracement(prev => ({ ...prev, [symbol]: false }));
         }
     };
+
+    // Function to get duration for single asset
+const getTrendDuration = async (symbol) => {
+    setLoadingDurations(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-analyze-trend-duration-timeline/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: [symbol]
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            setTrendDurations(prev => ({
+                ...prev,
+                [symbol]: data.data[0]
+            }));
+        } else {
+            alert(`Error: ${data.error || 'No data available'}`);
+        }
+    } catch (error) {
+        console.error('Error getting trend duration:', error);
+        alert('Failed to get trend duration');
+    } finally {
+        setLoadingDurations(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Function to get durations for ALL assets
+const getAllTrendDurations = async () => {
+    setLoadingAllDurations(true);
+    
+    try {
+        const symbols = filteredData.map(asset => asset.symbol);
+        
+        const response = await fetch(`${baseUrl}/api/mss-analyze-trend-duration-timeline/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: symbols
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const durationsMap = {};
+            data.data.forEach(item => {
+                durationsMap[item.symbol] = item;
+            });
+            setTrendDurations(durationsMap);
+            alert(`✅ Analyzed trend duration for ${data.data.length} assets!`);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error getting all durations:', error);
+        alert('Failed to get trend durations');
+    } finally {
+        setLoadingAllDurations(false);
+    }
+};
+
+// Function to sort data by trend duration
+const sortByTrendDuration = () => {
+    const newOrder = durationSortOrder === 'desc' ? 'asc' : 'desc';
+    setDurationSortOrder(newOrder);
+    
+    // We'll update the filteredData sorting below
+};
+
+// Update your filteredData to include duration sorting
+const getSortedFilteredData = () => {
+    let data = mssData.filter(item => {
+        // ... your existing filters ...
+        if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
+            return false;
+        }
+        
+        if (modelStatusFilter === 'active') {
+            if (!savedModels.has(item.symbol) || !activeModels[item.symbol]?.isActive) {
+                return false;
+            }
+        } else if (modelStatusFilter === 'paused') {
+            if (!savedModels.has(item.symbol) || activeModels[item.symbol]?.isActive) {
+                return false;
+            }
+        } else if (modelStatusFilter === 'unsaved') {
+            if (savedModels.has(item.symbol)) {
+                return false;
+            }
+        }
+
+        if (volumeFilter !== 'all' && item.volumeCategory) {
+            if (volumeFilter !== item.volumeCategory) {
+                return false;
+            }
+        }
+
+        if (selectedSector !== 'all' && item.sector) {
+            if (selectedSector !== item.sector) {
+                return false;
+            }
+        }
+
+        if (rSquaredFilter !== 'all') {
+            const rSquared = parseFloat(item.r_squared);
+            if (rSquaredFilter === 'high' && rSquared < 0.7) {
+                return false;
+            } else if (rSquaredFilter === 'medium' && (rSquared < 0.4 || rSquared >= 0.7)) {
+                return false;
+            } else if (rSquaredFilter === 'low' && rSquared >= 0.4) {
+                return false;
+            }
+        }
+        
+        if (selectedCategory === 'all') return true;
+        return item.category === selectedCategory;
+    });
+
+    // Sort by R² if filter is active
+    if (rSquaredFilter !== 'all') {
+        data.sort((a, b) => parseFloat(b.r_squared) - parseFloat(a.r_squared));
+    }
+    
+    // Sort by trend duration if we have duration data
+    if (Object.keys(trendDurations).length > 0) {
+        data.sort((a, b) => {
+            const aDuration = trendDurations[a.symbol]?.trend_duration_days || -1;
+            const bDuration = trendDurations[b.symbol]?.trend_duration_days || -1;
+            
+            if (durationSortOrder === 'desc') {
+                return bDuration - aDuration; // Longest first
+            } else {
+                return aDuration - bDuration; // Shortest first
+            }
+        });
+    }
+    
+    return data;
+};
+
 
 
     const runMonteCarloSimulation = async (symbol) => {
@@ -2913,6 +3069,9 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
 
     const hasVolumeData = mssData.some(item => item.relativeVolume !== null && item.relativeVolume !== undefined);
 
+    const displayData = getSortedFilteredData();
+
+
 return (
     <div>
         <style>{styles}</style>
@@ -3168,6 +3327,31 @@ return (
                         </button>
                     </div>
                     <br />
+                    {/* NEW: Trend Duration Controls */}
+                    <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                        <button
+                            className="mss-calculate-btn"
+                            onClick={getAllTrendDurations}
+                            disabled={loadingAllDurations || filteredData.length === 0}
+                            style={{ 
+                                padding: '12px 24px', 
+                                fontSize: '14px',
+                                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+                            }}
+                        >
+                            {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
+                        </button>
+                        
+                        {Object.keys(trendDurations).length > 0 && (
+                            <button
+                                className="filter-btn"
+                                onClick={sortByTrendDuration}
+                                style={{ marginLeft: '12px' }}
+                            >
+                                {durationSortOrder === 'desc' ? '⬇️ Longest First' : '⬆️ Shortest First'}
+                            </button>
+                        )}
+                    </div><br />
 
                     {showSectorAnalysis && sectorData && (
                         <div className="sector-analysis-container">
@@ -3510,6 +3694,14 @@ return (
                                         >
                                             {loadingElasticity[asset.symbol] ? '⚡ Calculating...' : '⚡ Trend Elasticity'}
                                         </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => getTrendDuration(asset.symbol)}
+                                            disabled={loadingDurations[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
+                                        >
+                                            {loadingDurations[asset.symbol] ? '⏱️ Analyzing...' : '⏱️ Trend Age'}
+                                        </button>
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -3785,6 +3977,83 @@ return (
                                         </div>
                                     </div>
                                 )}
+                                {trendDurations[asset.symbol] && (
+                                <div className="retracement-analysis-container" style={{
+                                    background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+                                    borderColor: trendDurations[asset.symbol].trend_color
+                                }}>
+                                    <div className="retracement-header">
+                                        <div className="retracement-icon" style={{
+                                            background: `linear-gradient(135deg, ${trendDurations[asset.symbol].trend_color} 0%, ${trendDurations[asset.symbol].trend_color}dd 100%)`
+                                        }}>
+                                            {trendDurations[asset.symbol].trend_emoji}
+                                        </div>
+                                        <div className="retracement-title">Trend Duration Analysis</div>
+                                    </div>
+                                    
+                                    <div className={`entry-signal-banner ${
+                                        trendDurations[asset.symbol].entry_priority === 'highest' ? 'excellent' :
+                                        trendDurations[asset.symbol].entry_priority === 'high' ? 'good' :
+                                        trendDurations[asset.symbol].entry_priority === 'medium' ? 'fair' : 'poor'
+                                    }`}>
+                                        <strong>{trendDurations[asset.symbol].entry_recommendation}</strong>
+                                    </div>
+                                    
+                                    <div className="entry-zones-grid">
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Trend Type</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                {trendDurations[asset.symbol].current_trend.toUpperCase()}
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Duration</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                {trendDurations[asset.symbol].trend_duration_days} days
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Age Status</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                {trendDurations[asset.symbol].age_label}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="retracement-stats-grid">
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Freshness Score</div>
+                                            <div className="retracement-stat-value" style={{
+                                                color: trendDurations[asset.symbol].freshness_score >= 80 ? '#10b981' :
+                                                    trendDurations[asset.symbol].freshness_score >= 60 ? '#f59e0b' : '#ef4444'
+                                            }}>
+                                                {trendDurations[asset.symbol].freshness_score}/100
+                                            </div>
+                                        </div>
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Total Move</div>
+                                            <div className="retracement-stat-value" style={{
+                                                color: trendDurations[asset.symbol].total_move_pct >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {trendDurations[asset.symbol].total_move_pct >= 0 ? '+' : ''}
+                                                {trendDurations[asset.symbol].total_move_pct}%
+                                            </div>
+                                        </div>
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Avg/Day</div>
+                                            <div className="retracement-stat-value">
+                                                {trendDurations[asset.symbol].avg_move_per_day}%
+                                            </div>
+                                        </div>
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Entry Priority</div>
+                                            <div className="retracement-stat-value" style={{textTransform: 'uppercase', fontSize: '12px'}}>
+                                                {trendDurations[asset.symbol].entry_priority}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                                 
                                 <div className="card-metrics">
                                     <div className="metric">
