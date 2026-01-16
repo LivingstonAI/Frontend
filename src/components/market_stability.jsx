@@ -1805,6 +1805,82 @@ export default function MarketStabilityScore() {
     const [batchUpdating, setBatchUpdating] = useState(false);
     const [loadingElasticity, setLoadingElasticity] = useState({});
     const [elasticityData, setElasticityData] = useState({});
+    // Add states
+    const [adrData, setAdrData] = useState({});
+    const [loadingADR, setLoadingADR] = useState({});
+    const [loadingAllADR, setLoadingAllADR] = useState(false);
+
+    // Function for single asset
+    const getAverageDailyRange = async (symbol) => {
+        setLoadingADR(prev => ({ ...prev, [symbol]: true }));
+        
+        try {
+            const response = await fetch(`${baseUrl}/api/mss-calculate-average-daily-range-projections/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbols: [symbol],
+                    lookback_days: 20
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.data.length > 0) {
+                setAdrData(prev => ({
+                    ...prev,
+                    [symbol]: data.data[0]
+                }));
+            } else {
+                alert(`Error: ${data.error || 'No data available'}`);
+            }
+        } catch (error) {
+            console.error('Error getting ADR:', error);
+            alert('Failed to calculate Average Daily Range');
+        } finally {
+            setLoadingADR(prev => ({ ...prev, [symbol]: false }));
+        }
+    };
+
+    // Function for all assets
+    const getAllAverageDailyRanges = async () => {
+        setLoadingAllADR(true);
+        
+        try {
+            const symbols = filteredData.map(asset => asset.symbol);
+            
+            const response = await fetch(`${baseUrl}/api/mss-calculate-average-daily-range-projections/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbols: symbols,
+                    lookback_days: 20
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                const adrMap = {};
+                data.data.forEach(item => {
+                    adrMap[item.symbol] = item;
+                });
+                setAdrData(adrMap);
+                alert(`✅ Calculated ADR for ${data.data.length} assets!`);
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error getting all ADR:', error);
+            alert('Failed to calculate Average Daily Ranges');
+        } finally {
+            setLoadingAllADR(false);
+        }
+    };
 
 
     const scrollToBottom = () => {
@@ -3326,7 +3402,21 @@ return (
                             💤 Weak Trend (R² less than 0.4)
                         </button>
                     </div>
+
                     <br />
+                    {/* Add this with your other bulk analysis buttons */}
+                    <button
+                        className="mss-calculate-btn"
+                        onClick={getAllAverageDailyRanges}
+                        disabled={loadingAllADR || filteredData.length === 0}
+                        style={{ 
+                            padding: '12px 24px', 
+                            fontSize: '14px',
+                            background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+                        }}
+                    >
+                        {loadingAllADR ? '📊 Calculating...' : '📊 Calculate All ADR'}
+                    </button><br />
                     {/* NEW: Trend Duration Controls */}
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
                         <button
@@ -3702,6 +3792,14 @@ return (
                                         >
                                             {loadingDurations[asset.symbol] ? '⏱️ Analyzing...' : '⏱️ Trend Age'}
                                         </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => getAverageDailyRange(asset.symbol)}
+                                            disabled={loadingADR[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}
+                                        >
+                                            {loadingADR[asset.symbol] ? '📊 Calculating...' : '📊 Daily Range'}
+                                        </button>
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -3834,6 +3932,143 @@ return (
                                                 </div>
                                             </>
                                         )}
+                                    </div>
+                                )}
+
+                                {adrData[asset.symbol] && (
+                                    <div className="retracement-analysis-container" style={{
+                                        background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+                                        borderColor: adrData[asset.symbol].volatility_color
+                                    }}>
+                                        <div className="retracement-header">
+                                            <div className="retracement-icon" style={{
+                                                background: `linear-gradient(135deg, ${adrData[asset.symbol].volatility_color} 0%, ${adrData[asset.symbol].volatility_color}dd 100%)`
+                                            }}>
+                                                📊
+                                            </div>
+                                            <div className="retracement-title">Average Daily Range Analysis</div>
+                                        </div>
+                                        
+                                        <div className="entry-signal-banner" style={{
+                                            background: adrData[asset.symbol].volatility_color,
+                                            color: 'white'
+                                        }}>
+                                            <strong>{adrData[asset.symbol].volatility_label}</strong>
+                                            <br />
+                                            ADR: ${adrData[asset.symbol].adr_dollars} ({adrData[asset.symbol].adr_pct}%)
+                                        </div>
+                                        
+                                        <div className="entry-signal-banner" style={{
+                                            background: adrData[asset.symbol].range_completion_pct >= 70 ? '#f59e0b' : '#10b981',
+                                            color: 'white',
+                                            marginTop: '10px'
+                                        }}>
+                                            <strong>{adrData[asset.symbol].range_status}</strong>
+                                            <br />
+                                            Today's Range: ${adrData[asset.symbol].current_range} ({adrData[asset.symbol].range_completion_pct}% of ADR used)
+                                        </div>
+                                        
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '15px',
+                                            marginTop: '15px'
+                                        }}>
+                                            {/* Bullish Scenario */}
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                                                padding: '15px',
+                                                borderRadius: '10px',
+                                                border: '2px solid #10b981'
+                                            }}>
+                                                <div style={{
+                                                    fontSize: '14px',
+                                                    fontWeight: 700,
+                                                    color: '#065f46',
+                                                    marginBottom: '10px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    📈 BULLISH SCENARIO ({adrData[asset.symbol].bullish_probability}%)
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#047857', marginBottom: '5px'}}>
+                                                    <strong>EOD Target:</strong> ${adrData[asset.symbol].bullish_eod_projection}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#047857', marginBottom: '5px'}}>
+                                                    <strong>Potential High:</strong> ${adrData[asset.symbol].bullish_potential_high}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#047857'}}>
+                                                    <strong>Potential Low:</strong> ${adrData[asset.symbol].bullish_potential_low}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Bearish Scenario */}
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                                                padding: '15px',
+                                                borderRadius: '10px',
+                                                border: '2px solid #ef4444'
+                                            }}>
+                                                <div style={{
+                                                    fontSize: '14px',
+                                                    fontWeight: 700,
+                                                    color: '#7f1d1d',
+                                                    marginBottom: '10px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    📉 BEARISH SCENARIO ({adrData[asset.symbol].bearish_probability}%)
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#991b1b', marginBottom: '5px'}}>
+                                                    <strong>EOD Target:</strong> ${adrData[asset.symbol].bearish_eod_projection}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#991b1b', marginBottom: '5px'}}>
+                                                    <strong>Potential High:</strong> ${adrData[asset.symbol].bearish_potential_high}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#991b1b'}}>
+                                                    <strong>Potential Low:</strong> ${adrData[asset.symbol].bearish_potential_low}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="retracement-stats-grid" style={{marginTop: '15px'}}>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Current Price</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].current_price}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Today's Open</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].today_open}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Today's High</div>
+                                                <div className="retracement-stat-value" style={{color: '#10b981'}}>
+                                                    ${adrData[asset.symbol].today_high}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Today's Low</div>
+                                                <div className="retracement-stat-value" style={{color: '#ef4444'}}>
+                                                    ${adrData[asset.symbol].today_low}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Remaining Range</div>
+                                                <div className="retracement-stat-value">
+                                                    ${adrData[asset.symbol].remaining_range_dollars}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Aggressive High</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].aggressive_high}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Aggressive Low</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].aggressive_low}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Days Analyzed</div>
+                                                <div className="retracement-stat-value">{adrData[asset.symbol].lookback_period}</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
