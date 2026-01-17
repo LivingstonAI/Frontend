@@ -237,7 +237,7 @@ export default function CIAMacroIntel() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 4.5 : width / 10)
+            .scale(isMobile ? width / 4.5 : width / 12)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
