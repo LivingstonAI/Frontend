@@ -7,7 +7,7 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function SnowAIEarth() {
+export default function CIAMacroIntel() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
@@ -34,6 +34,16 @@ export default function SnowAIEarth() {
     const [showMediaCenter, setShowMediaCenter] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    
+    // Separate useEffect for intel status updates only
+    useEffect(() => {
+        const intelInterval = setInterval(() => {
+            setActiveAgents(prev => Math.min(999, prev + Math.floor(Math.random() * 5) - 2));
+            setDataStreams(prev => Math.min(99, Math.max(10, prev + Math.floor(Math.random() * 3) - 1)));
+        }, 5000);
+            
+        return () => clearInterval(intelInterval);
+    }, []);
 
     const globeThemes = {
         'night-ops': {
@@ -95,23 +105,9 @@ export default function SnowAIEarth() {
                 setWorldData({ features: [] });
                 setGeoJsonData({ features: [] });
             });
-        
-        // Simulate real-time intel updates
-        const intelInterval = setInterval(() => {
-            setActiveAgents(prev => Math.min(999, prev + Math.floor(Math.random() * 5) - 2));
-            setDataStreams(prev => Math.min(99, Math.max(10, prev + Math.floor(Math.random() * 3) - 1)));
             
-            const statuses = ['STANDBY', 'MONITORING', 'SCANNING'];
-            if (intelStatus === 'STANDBY' || intelStatus === 'MONITORING' || intelStatus === 'SCANNING') {
-                setIntelStatus(statuses[Math.floor(Math.random() * statuses.length)]);
-            }
-        }, 5000);
-            
-        return () => {
-            window.removeEventListener('resize', checkMobile);
-            clearInterval(intelInterval);
-        };
-    }, [intelStatus]);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const handleCountrySearch = () => {
         if (!searchCountry.trim() || !globeRef.current) return;
@@ -195,7 +191,7 @@ export default function SnowAIEarth() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 5 : width / 4.5)
+            .scale(isMobile ? width / 6.5 : width / 6)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
