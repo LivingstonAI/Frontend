@@ -55,21 +55,79 @@ export default function CIAMacroIntel() {
     };
     
     const countryData = [
-        { name: 'United States', lat: 39.8283, lng: -98.5795, color: '#2563eb', iso: 'US', threat: 'LOW' },
-        { name: 'Canada', lat: 56.1304, lng: -106.3468, color: '#3b82f6', iso: 'CA', threat: 'LOW' },
-        { name: 'Brazil', lat: -14.2350, lng: -51.9253, color: '#60a5fa', iso: 'BR', threat: 'MEDIUM' },
-        { name: 'Russia', lat: 61.5240, lng: 105.3188, color: '#dc2626', iso: 'RU', threat: 'HIGH' },
-        { name: 'China', lat: 35.8617, lng: 104.1954, color: '#ef4444', iso: 'CN', threat: 'HIGH' },
-        { name: 'India', lat: 20.5937, lng: 78.9629, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM' },
-        { name: 'Australia', lat: -25.2744, lng: 133.7751, color: '#3b82f6', iso: 'AU', threat: 'LOW' },
-        { name: 'United Kingdom', lat: 55.3781, lng: -3.4360, color: '#2563eb', iso: 'GB', threat: 'LOW' },
-        { name: 'France', lat: 46.2276, lng: 2.2137, color: '#3b82f6', iso: 'FR', threat: 'LOW' },
-        { name: 'Germany', lat: 51.1657, lng: 10.4515, color: '#3b82f6', iso: 'DE', threat: 'LOW' },
-        { name: 'Japan', lat: 36.2048, lng: 138.2529, color: '#3b82f6', iso: 'JP', threat: 'LOW' },
-        { name: 'South Africa', lat: -30.5595, lng: 22.9375, color: '#f59e0b', iso: 'ZA', threat: 'MEDIUM' },
-        { name: 'Egypt', lat: 26.0975, lng: 31.4789, color: '#f59e0b', iso: 'EG', threat: 'MEDIUM' },
-        { name: 'Mexico', lat: 23.6345, lng: -102.5528, color: '#f59e0b', iso: 'MX', threat: 'MEDIUM' },
-        { name: 'Argentina', lat: -38.4161, lng: -63.6167, color: '#60a5fa', iso: 'AR', threat: 'MEDIUM' }
+        // United States - Major Centers
+        { name: 'Washington D.C.', lat: 38.9072, lng: -77.0369, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Political/Military' },
+        { name: 'New York', lat: 40.7128, lng: -74.0060, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
+        { name: 'San Francisco', lat: 37.7749, lng: -122.4194, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
+        { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Economic' },
+        { name: 'Chicago', lat: 41.8781, lng: -87.6298, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
+        
+        // China - Major Centers
+        { name: 'Beijing', lat: 39.9042, lng: 116.4074, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Political/Military' },
+        { name: 'Shanghai', lat: 31.2304, lng: 121.4737, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
+        { name: 'Shenzhen', lat: 22.5431, lng: 114.0579, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Tech/Economic' },
+        { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
+        
+        // Europe - Major Centers
+        { name: 'London', lat: 51.5074, lng: -0.1278, color: '#2563eb', iso: 'GB', threat: 'LOW', type: 'Financial' },
+        { name: 'Frankfurt', lat: 50.1109, lng: 8.6821, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Financial' },
+        { name: 'Paris', lat: 48.8566, lng: 2.3522, color: '#3b82f6', iso: 'FR', threat: 'LOW', type: 'Political/Economic' },
+        { name: 'Brussels', lat: 50.8503, lng: 4.3517, color: '#3b82f6', iso: 'BE', threat: 'LOW', type: 'Political/Diplomatic' },
+        { name: 'Geneva', lat: 46.2044, lng: 6.1432, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Diplomatic' },
+        { name: 'Zurich', lat: 47.3769, lng: 8.5417, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Financial' },
+        { name: 'Berlin', lat: 52.5200, lng: 13.4050, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Political' },
+        { name: 'Amsterdam', lat: 52.3676, lng: 4.9041, color: '#3b82f6', iso: 'NL', threat: 'LOW', type: 'Financial' },
+        
+        // Asia-Pacific
+        { name: 'Tokyo', lat: 35.6762, lng: 139.6503, color: '#3b82f6', iso: 'JP', threat: 'LOW', type: 'Economic/Financial' },
+        { name: 'Singapore', lat: 1.3521, lng: 103.8198, color: '#3b82f6', iso: 'SG', threat: 'LOW', type: 'Financial' },
+        { name: 'Seoul', lat: 37.5665, lng: 126.9780, color: '#f59e0b', iso: 'KR', threat: 'MEDIUM', type: 'Tech/Economic' },
+        { name: 'Mumbai', lat: 19.0760, lng: 72.8777, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Financial' },
+        { name: 'New Delhi', lat: 28.6139, lng: 77.2090, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Political' },
+        { name: 'Sydney', lat: -33.8688, lng: 151.2093, color: '#3b82f6', iso: 'AU', threat: 'LOW', type: 'Financial' },
+        { name: 'Dubai', lat: 25.2048, lng: 55.2708, color: '#f59e0b', iso: 'AE', threat: 'MEDIUM', type: 'Financial' },
+        
+        // Russia
+        { name: 'Moscow', lat: 55.7558, lng: 37.6173, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Political/Military' },
+        { name: 'St. Petersburg', lat: 59.9343, lng: 30.3351, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Economic' },
+        
+        // Middle East
+        { name: 'Tel Aviv', lat: 32.0853, lng: 34.7818, color: '#f59e0b', iso: 'IL', threat: 'MEDIUM', type: 'Tech/Military' },
+        { name: 'Riyadh', lat: 24.7136, lng: 46.6753, color: '#f59e0b', iso: 'SA', threat: 'MEDIUM', type: 'Political/Economic' },
+        { name: 'Istanbul', lat: 41.0082, lng: 28.9784, color: '#f59e0b', iso: 'TR', threat: 'MEDIUM', type: 'Economic/Strategic' },
+        
+        // Americas
+        { name: 'Toronto', lat: 43.6532, lng: -79.3832, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Financial' },
+        { name: 'São Paulo', lat: -23.5505, lng: -46.6333, color: '#60a5fa', iso: 'BR', threat: 'MEDIUM', type: 'Economic/Financial' },
+        { name: 'Mexico City', lat: 19.4326, lng: -99.1332, color: '#f59e0b', iso: 'MX', threat: 'MEDIUM', type: 'Political/Economic' },
+        { name: 'Buenos Aires', lat: -34.6037, lng: -58.3816, color: '#60a5fa', iso: 'AR', threat: 'MEDIUM', type: 'Economic' },
+        
+        // Africa
+        { name: 'Johannesburg', lat: -26.2041, lng: 28.0473, color: '#f59e0b', iso: 'ZA', threat: 'MEDIUM', type: 'Economic/Financial' },
+        { name: 'Cairo', lat: 30.0444, lng: 31.2357, color: '#f59e0b', iso: 'EG', threat: 'MEDIUM', type: 'Political/Strategic' },
+        { name: 'Lagos', lat: 6.5244, lng: 3.3792, color: '#f59e0b', iso: 'NG', threat: 'MEDIUM', type: 'Economic' },
+        
+        // Additional Strategic Points
+        { name: 'Vancouver', lat: 49.2827, lng: -123.1207, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Economic' },
+        { name: 'Miami', lat: 25.7617, lng: -80.1918, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
+        { name: 'Boston', lat: 42.3601, lng: -71.0589, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Financial' },
+        { name: 'Seattle', lat: 47.6062, lng: -122.3321, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
+        { name: 'Austin', lat: 30.2672, lng: -97.7431, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech' },
+        { name: 'Taipei', lat: 25.0330, lng: 121.5654, color: '#f59e0b', iso: 'TW', threat: 'MEDIUM', type: 'Tech/Strategic' },
+        { name: 'Bangkok', lat: 13.7563, lng: 100.5018, color: '#f59e0b', iso: 'TH', threat: 'MEDIUM', type: 'Economic' },
+        { name: 'Kuala Lumpur', lat: 3.1390, lng: 101.6869, color: '#f59e0b', iso: 'MY', threat: 'MEDIUM', type: 'Economic' },
+        { name: 'Vienna', lat: 48.2082, lng: 16.3738, color: '#3b82f6', iso: 'AT', threat: 'LOW', type: 'Diplomatic' },
+        { name: 'Stockholm', lat: 59.3293, lng: 18.0686, color: '#3b82f6', iso: 'SE', threat: 'LOW', type: 'Economic/Tech' },
+        { name: 'Copenhagen', lat: 55.6761, lng: 12.5683, color: '#3b82f6', iso: 'DK', threat: 'LOW', type: 'Economic' },
+        { name: 'Oslo', lat: 59.9139, lng: 10.7522, color: '#3b82f6', iso: 'NO', threat: 'LOW', type: 'Economic' },
+        { name: 'Warsaw', lat: 52.2297, lng: 21.0122, color: '#3b82f6', iso: 'PL', threat: 'LOW', type: 'Political/Economic' },
+        { name: 'Prague', lat: 50.0755, lng: 14.4378, color: '#3b82f6', iso: 'CZ', threat: 'LOW', type: 'Economic' },
+        { name: 'Milan', lat: 45.4642, lng: 9.1900, color: '#3b82f6', iso: 'IT', threat: 'LOW', type: 'Economic/Financial' },
+        { name: 'Madrid', lat: 40.4168, lng: -3.7038, color: '#3b82f6', iso: 'ES', threat: 'LOW', type: 'Political/Economic' },
+        { name: 'Lisbon', lat: 38.7223, lng: -9.1393, color: '#3b82f6', iso: 'PT', threat: 'LOW', type: 'Economic' },
+        { name: 'Dublin', lat: 53.3498, lng: -6.2603, color: '#3b82f6', iso: 'IE', threat: 'LOW', type: 'Tech/Financial' },
+        { name: 'Luxembourg', lat: 49.6116, lng: 6.1319, color: '#3b82f6', iso: 'LU', threat: 'LOW', type: 'Financial' },
+        { name: 'Monaco', lat: 43.7384, lng: 7.4246, color: '#3b82f6', iso: 'MC', threat: 'LOW', type: 'Financial' }
     ];
 
     useEffect(() => {
@@ -179,7 +237,7 @@ export default function CIAMacroIntel() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 9 : width / 10)
+            .scale(isMobile ? width / 6 : width / 10)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
@@ -237,17 +295,17 @@ export default function CIAMacroIntel() {
                 const coords = projection([d.lng, d.lat]);
                 return coords ? coords[1] : 0;
             })
-            .attr("r", isMobile ? 4 : 5)
+            .attr("r", isMobile ? 3 : 4)
             .attr("fill", d => d.color)
             .attr("stroke", "#0f172a")
-            .attr("stroke-width", 2)
+            .attr("stroke-width", 1.5)
             .style("cursor", "pointer")
-            .style("filter", "drop-shadow(0 0 8px rgba(37, 99, 235, 0.8))")
+            .style("filter", "drop-shadow(0 0 6px rgba(37, 99, 235, 0.8))")
             .on("click", function(event, d) {
                 handleCountryClick(d);
             })
             .append("title")
-            .text(d => `${d.name} - THREAT: ${d.threat}`);
+            .text(d => `${d.name} - THREAT: ${d.threat}\nTYPE: ${d.type}`);
 
     }, [geoJsonData, isMobile, countries]);
 
@@ -1868,19 +1926,20 @@ export default function CIAMacroIntel() {
                                 pointsData={countries}
                                 pointAltitude={0.01}
                                 pointColor={d => d.color}
-                                pointRadius={isMobile ? 0.2 : 0.3}
+                                pointRadius={isMobile ? 0.15 : 0.2}
                                 pointLabel={d => `
                                     <div style="
                                         background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%);
                                         color: white;
                                         padding: 12px 18px;
                                         border-radius: 6px;
-                                        font-size: 13px;
+                                        font-size: 12px;
                                         font-weight: bold;
                                         border: 1px solid #2563eb;
                                         letter-spacing: 1px;
                                     ">
-                                        <div style="text-transform: uppercase; margin-bottom: 4px;">${d.name}</div>
+                                        <div style="text-transform: uppercase; margin-bottom: 4px; font-size: 13px;">${d.name}</div>
+                                        <div style="font-size: 10px; color: #94a3b8; margin-bottom: 3px;">${d.type}</div>
                                         <div style="font-size: 11px; color: ${
                                             d.threat === 'HIGH' ? '#ef4444' :
                                             d.threat === 'MEDIUM' ? '#f59e0b' : '#22c55e'
