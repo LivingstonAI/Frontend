@@ -1810,6 +1810,53 @@ export default function MarketStabilityScore() {
     const [loadingADR, setLoadingADR] = useState({});
     const [loadingAllADR, setLoadingAllADR] = useState(false);
 
+    // Add states
+    const [targetPriceInput, setTargetPriceInput] = useState({});
+    const [priceTargetData, setPriceTargetData] = useState({});
+    const [loadingPriceTarget, setLoadingPriceTarget] = useState({});
+
+    // Function to estimate price target
+    const estimatePriceTarget = async (symbol) => {
+        const targetPrice = targetPriceInput[symbol];
+        
+        if (!targetPrice || isNaN(targetPrice)) {
+            alert('Please enter a valid target price');
+            return;
+        }
+        
+        setLoadingPriceTarget(prev => ({ ...prev, [symbol]: true }));
+        
+        try {
+            const response = await fetch(`${baseUrl}/api/mss-estimate-price-target-timeline/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    symbol: symbol,
+                    target_price: parseFloat(targetPrice),
+                    lookback_days: 60
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                setPriceTargetData(prev => ({
+                    ...prev,
+                    [symbol]: data
+                }));
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error estimating price target:', error);
+            alert('Failed to estimate price target timeline');
+        } finally {
+            setLoadingPriceTarget(prev => ({ ...prev, [symbol]: false }));
+        }
+    };
+
     // Function for single asset
     const getAverageDailyRange = async (symbol) => {
         setLoadingADR(prev => ({ ...prev, [symbol]: true }));
@@ -3800,6 +3847,42 @@ return (
                                         >
                                             {loadingADR[asset.symbol] ? '📊 Calculating...' : '📊 Daily Range'}
                                         </button>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            gap: '8px', 
+                                            alignItems: 'center',
+                                            marginTop: '10px',
+                                            width: '100%'
+                                        }}>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder={`Target price (current: $${asset.current_price})`}
+                                                value={targetPriceInput[asset.symbol] || ''}
+                                                onChange={(e) => setTargetPriceInput(prev => ({
+                                                    ...prev,
+                                                    [asset.symbol]: e.target.value
+                                                }))}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #e5e7eb',
+                                                    fontSize: '13px'
+                                                }}
+                                            />
+                                            <button
+                                                className="calculate-retracement-btn"
+                                                onClick={() => estimatePriceTarget(asset.symbol)}
+                                                disabled={loadingPriceTarget[asset.symbol]}
+                                                style={{ 
+                                                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                            >
+                                                {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -4071,6 +4154,128 @@ return (
                                         </div>
                                     </div>
                                 )}
+
+                                {priceTargetData[asset.symbol] && (
+                                <div className="retracement-analysis-container" style={{
+                                    background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                                    borderColor: priceTargetData[asset.symbol].timeline_color
+                                }}>
+                                    <div className="retracement-header">
+                                        <div className="retracement-icon" style={{
+                                            background: `linear-gradient(135deg, ${priceTargetData[asset.symbol].timeline_color} 0%, ${priceTargetData[asset.symbol].timeline_color}dd 100%)`
+                                        }}>
+                                            🎯
+                                        </div>
+                                        <div className="retracement-title">Price Target Timeline</div>
+                                    </div>
+                                    
+                                    <div className={`entry-signal-banner`} style={{
+                                        background: priceTargetData[asset.symbol].timeline_color,
+                                        color: 'white'
+                                    }}>
+                                        <strong>{priceTargetData[asset.symbol].timeline_label}</strong>
+                                        <br />
+                                        {priceTargetData[asset.symbol].estimated_days > 0 
+                                            ? `Estimated: ${priceTargetData[asset.symbol].estimated_days} days`
+                                            : 'Target unlikely to be reached'}
+                                    </div>
+                                    
+                                    <div className="entry-zones-grid">
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Current Price</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                ${priceTargetData[asset.symbol].current_price}
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Target Price</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                ${priceTargetData[asset.symbol].target_price}
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Distance</div>
+                                            <div className="entry-zone-price" style={{
+                                                fontSize: '14px',
+                                                color: priceTargetData[asset.symbol].price_distance >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {priceTargetData[asset.symbol].price_distance >= 0 ? '+' : ''}
+                                                {priceTargetData[asset.symbol].price_distance_pct.toFixed(2)}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '12px'
+                                    }}>
+                                        <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '8px'}}>
+                                            <strong>Trend Analysis:</strong>
+                                        </div>
+                                        <div style={{fontSize: '13px', color: '#1f2937', marginBottom: '6px'}}>
+                                            {priceTargetData[asset.symbol].trend_emoji} {priceTargetData[asset.symbol].analysis_trend}
+                                        </div>
+                                        <div style={{fontSize: '13px', color: '#1f2937', marginBottom: '6px'}}>
+                                            {priceTargetData[asset.symbol].risk_assessment}
+                                        </div>
+                                        <div style={{fontSize: '12px', color: '#6b7280', fontStyle: 'italic'}}>
+                                            {priceTargetData[asset.symbol].context}
+                                        </div>
+                                    </div>
+                                    
+                                    {priceTargetData[asset.symbol].estimated_days > 0 && (
+                                        <div className="retracement-stats-grid">
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Probability</div>
+                                                <div className="retracement-stat-value" style={{
+                                                    color: priceTargetData[asset.symbol].probability >= 60 ? '#10b981' :
+                                                        priceTargetData[asset.symbol].probability >= 40 ? '#f59e0b' : '#ef4444'
+                                                }}>
+                                                    {priceTargetData[asset.symbol].probability}%
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Best Case</div>
+                                                <div className="retracement-stat-value">
+                                                    {priceTargetData[asset.symbol].best_case_days > 0 
+                                                        ? `${priceTargetData[asset.symbol].best_case_days} days` 
+                                                        : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Worst Case</div>
+                                                <div className="retracement-stat-value">
+                                                    {priceTargetData[asset.symbol].worst_case_days > 0 && priceTargetData[asset.symbol].worst_case_days < 999
+                                                        ? `${priceTargetData[asset.symbol].worst_case_days} days` 
+                                                        : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Trend Compatible</div>
+                                                <div className="retracement-stat-value" style={{fontSize: '18px'}}>
+                                                    {priceTargetData[asset.symbol].trend_compatible ? '✅' : '❌'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <div style={{
+                                        background: '#f9fafb',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        color: '#1f2937',
+                                        lineHeight: '1.6',
+                                        marginTop: '12px'
+                                    }}>
+                                        <strong>Recommendation:</strong>
+                                        <br />
+                                        {priceTargetData[asset.symbol].recommendation}
+                                    </div>
+                                </div>
+                            )}
 
                                 {elasticityData[asset.symbol] && (
                                 <div className="elasticity-analysis-container">
