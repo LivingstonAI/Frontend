@@ -195,7 +195,7 @@ export default function SnowAIEarth() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 8 : width / 7.5)
+            .scale(isMobile ? width / 5 : width / 4.5)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
@@ -395,12 +395,6 @@ export default function SnowAIEarth() {
         
         setShowAnalysisModal(true);
         setIntelStatus('ACTIVE');
-        
-        if (!view3D) {
-            setTimeout(() => {
-                drawD3Map();
-            }, 100);
-        }
     };
 
     const handleDeclineAnalysis = () => {
@@ -414,11 +408,6 @@ export default function SnowAIEarth() {
         setShowAnalysisModal(false);
         setSelectedCountry('');
         setIntelStatus('STANDBY');
-        if (!view3D) {
-            setTimeout(() => {
-                drawD3Map();
-            }, 100);
-        }
     };
 
     const extractYouTubeId = (url) => {
@@ -650,7 +639,11 @@ export default function SnowAIEarth() {
         const videoId = extractYouTubeId(videoUrl);
         
         return (
-            <div style={styles.mediaCenterModal}>
+            <div style={styles.mediaCenterModal} onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    handleCloseMediaCenter();
+                }
+            }}>
                 <div style={styles.mediaCenterContent}>
                     <div style={styles.mediaCenterHeader}>
                         <h3 style={styles.mediaCenterTitle}>
@@ -668,42 +661,57 @@ export default function SnowAIEarth() {
                         ⚠️ CLASSIFIED MEDIA ACCESS - Enter YouTube URL for intelligence briefing playback. All sessions are monitored and logged.
                     </div>
                     
-                    <div style={styles.mediaInputContainer}>
-                        <input
-                            type="text"
-                            placeholder="ENTER YOUTUBE URL (e.g., https://www.youtube.com/watch?v=...)"
-                            value={videoUrl}
-                            onChange={(e) => setVideoUrl(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handlePlayVideo()}
-                            style={styles.mediaInput}
-                        />
-                        <button
-                            onClick={handlePlayVideo}
-                            style={styles.mediaButton}
-                            onMouseEnter={(e) => {
-                                e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.target.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.4)';
-                            }}
-                        >
-                            INITIATE PLAYBACK
-                        </button>
-                    </div>
-                    
-                    {isVideoPlaying && videoId && (
-                        <div style={styles.videoContainer}>
-                            <iframe
-                                style={styles.videoIframe}
-                                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-                                title="Intelligence Briefing Video"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                            ></iframe>
+                    {!isVideoPlaying && (
+                        <div style={styles.mediaInputContainer}>
+                            <input
+                                type="text"
+                                placeholder="ENTER YOUTUBE URL (e.g., https://www.youtube.com/watch?v=...)"
+                                value={videoUrl}
+                                onChange={(e) => setVideoUrl(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handlePlayVideo()}
+                                style={styles.mediaInput}
+                            />
+                            <button
+                                onClick={handlePlayVideo}
+                                style={styles.mediaButton}
+                                onMouseEnter={(e) => {
+                                    e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.4)';
+                                }}
+                            >
+                                INITIATE PLAYBACK
+                            </button>
                         </div>
                     )}
                     
-                    {!isVideoPlaying && (
+                    {isVideoPlaying && videoId ? (
+                        <div>
+                            <div style={styles.videoContainer}>
+                                <iframe
+                                    style={styles.videoIframe}
+                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                                    title="Intelligence Briefing Video"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setIsVideoPlaying(false);
+                                    setVideoUrl('');
+                                }}
+                                style={{
+                                    ...styles.mediaButton,
+                                    marginTop: '15px',
+                                    background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)'
+                                }}
+                            >
+                                TERMINATE PLAYBACK
+                            </button>
+                        </div>
+                    ) : !isVideoPlaying ? (
                         <div style={{
                             textAlign: 'center',
                             padding: '40px 20px',
@@ -713,7 +721,7 @@ export default function SnowAIEarth() {
                         }}>
                             AWAITING VIDEO INTELLIGENCE SOURCE...
                         </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
         );
