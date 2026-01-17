@@ -28,22 +28,10 @@ export default function CIAMacroIntel() {
     const [searchCountry, setSearchCountry] = useState('');
     const [autoRotate, setAutoRotate] = useState(true);
     const [intelStatus, setIntelStatus] = useState('STANDBY');
-    const [threatLevel, setThreatLevel] = useState('MODERATE');
-    const [activeAgents, setActiveAgents] = useState(147);
-    const [dataStreams, setDataStreams] = useState(23);
+    const [threatLevel] = useState('MODERATE');
     const [showMediaCenter, setShowMediaCenter] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-    
-    // Separate useEffect for intel status updates only
-    useEffect(() => {
-        const intelInterval = setInterval(() => {
-            setActiveAgents(prev => Math.min(999, prev + Math.floor(Math.random() * 5) - 2));
-            setDataStreams(prev => Math.min(99, Math.max(10, prev + Math.floor(Math.random() * 3) - 1)));
-        }, 5000);
-            
-        return () => clearInterval(intelInterval);
-    }, []);
 
     const globeThemes = {
         'night-ops': {
@@ -191,7 +179,7 @@ export default function CIAMacroIntel() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 6.5 : width / 6)
+            .scale(isMobile ? width / 9 : width / 10)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
@@ -261,7 +249,7 @@ export default function CIAMacroIntel() {
             .append("title")
             .text(d => `${d.name} - THREAT: ${d.threat}`);
 
-    }, [geoJsonData, isMobile, selectedCountry, countries]);
+    }, [geoJsonData, isMobile, countries]);
 
     const resetZoom = () => {
         if (zoomRef.current && svgRef.current) {
@@ -632,7 +620,7 @@ export default function CIAMacroIntel() {
     };
 
     const MediaCenterModal = () => {
-        const videoId = extractYouTubeId(videoUrl);
+        const videoId = isVideoPlaying ? extractYouTubeId(videoUrl) : null;
         
         return (
             <div style={styles.mediaCenterModal} onClick={(e) => {
@@ -686,6 +674,7 @@ export default function CIAMacroIntel() {
                         <div>
                             <div style={styles.videoContainer}>
                                 <iframe
+                                    key={videoId}
                                     style={styles.videoIframe}
                                     src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
                                     title="Intelligence Briefing Video"
@@ -1417,7 +1406,7 @@ export default function CIAMacroIntel() {
             width: isMobile ? '95%' : '900px',
             maxWidth: '95vw',
             maxHeight: '90vh',
-            overflow: 'hidden',
+            overflow: 'auto',
             padding: isMobile ? '15px' : '25px'
         },
         mediaCenterHeader: {
@@ -1686,12 +1675,6 @@ export default function CIAMacroIntel() {
                 <div style={styles.statusItem}>
                     <div style={styles.statusDot(intelStatus)}></div>
                     <span>SYSTEM STATUS: <span style={styles.statusValue}>{intelStatus}</span></span>
-                </div>
-                <div style={styles.statusItem}>
-                    <span>ACTIVE AGENTS: <span style={styles.statusValue}>{activeAgents}</span></span>
-                </div>
-                <div style={styles.statusItem}>
-                    <span>DATA STREAMS: <span style={styles.statusValue}>{dataStreams}</span></span>
                 </div>
                 <div style={styles.statusItem}>
                     <span>THREAT LEVEL: </span>
