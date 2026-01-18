@@ -1,1070 +1,1325 @@
-import React, { useState, useEffect } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
+import React, { useState, useEffect } from "react";
+import { Search, Filter, TrendingUp, TrendingDown, BarChart3, Calendar, DollarSign, Activity, Play, Pause, Save, Eye, X, CheckSquare, Square } from "lucide-react";
 
-const styles = `
-.sandbox-wrapper {
-    padding: 20px;
-    background: #f0f4ff;
-    min-height: 100vh;
-}
-
-.sandbox-header {
-    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-    color: white;
-    padding: 40px;
-    border-radius: 16px;
-    margin-bottom: 30px;
-    box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
-}
-
-.sandbox-header h1 {
-    margin: 0 0 10px 0;
-    font-size: 36px;
-    font-weight: 700;
-}
-
-.sandbox-header p {
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.6;
-    opacity: 0.95;
-}
-
-.sandbox-card {
-    background: white;
-    border-radius: 16px;
-    padding: 30px;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border: 2px solid #dbeafe;
-}
-
-.card-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1e40af;
-    margin: 0 0 20px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.upload-zone {
-    border: 3px dashed #3b82f6;
-    border-radius: 12px;
-    padding: 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: #eff6ff;
-}
-
-.upload-zone:hover {
-    border-color: #1e40af;
-    background: #dbeafe;
-    transform: translateY(-2px);
-}
-
-.upload-zone.dragging {
-    border-color: #10b981;
-    background: #d1fae5;
-}
-
-.upload-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-}
-
-.upload-text {
-    color: #1e40af;
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.upload-hint {
-    color: #6b7280;
-    font-size: 14px;
-}
-
-.file-input {
-    display: none;
-}
-
-.uploaded-files {
-    margin-top: 20px;
-}
-
-.file-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: #eff6ff;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    border: 1px solid #dbeafe;
-}
-
-.file-name {
-    color: #1e40af;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.file-size {
-    color: #6b7280;
-    font-size: 12px;
-    margin-left: 10px;
-}
-
-.remove-file-btn {
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.config-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.config-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.config-label {
-    color: #1e40af;
-    font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-.config-input,
-.config-select {
-    padding: 12px;
-    border: 2px solid #dbeafe;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.config-input:focus,
-.config-select:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.start-training-btn {
-    flex: 1;
-    padding: 16px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.start-training-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-}
-
-.start-training-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.control-btn {
-    padding: 16px 30px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    color: white;
-}
-
-.pause-btn {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.resume-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.checkpoint-btn {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.control-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-}
-
-.control-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.training-progress {
-    margin-top: 30px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 30px;
-    background: #dbeafe;
-    border-radius: 15px;
-    overflow: hidden;
-    position: relative;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
-    transition: width 0.5s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 14px;
-}
-
-.training-status {
-    margin-top: 20px;
-    padding: 20px;
-    background: #eff6ff;
-    border-radius: 12px;
-    border-left: 4px solid #3b82f6;
-}
-
-.training-status.paused {
-    background: #fef3c7;
-    border-left-color: #f59e0b;
-}
-
-.status-text {
-    color: #1e40af;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.live-metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.metric-box {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    border: 1px solid #dbeafe;
-}
-
-.metric-label {
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 5px;
-}
-
-.metric-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: #3b82f6;
-}
-
-.checkpoint-section {
-    background: #f3f4f6;
-    padding: 20px;
-    border-radius: 12px;
-    margin-top: 20px;
-}
-
-.checkpoint-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.checkpoint-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1e40af;
-}
-
-.checkpoint-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.checkpoint-item {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #dbeafe;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.checkpoint-info {
-    flex: 1;
-}
-
-.checkpoint-id {
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 5px;
-}
-
-.checkpoint-details {
-    font-size: 14px;
-    color: #1e40af;
-    font-weight: 600;
-}
-
-.load-checkpoint-btn {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.results-section {
-    margin-top: 30px;
-}
-
-.results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.result-card {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    border: 2px solid #dbeafe;
-    transition: all 0.2s;
-}
-
-.result-card:hover {
-    border-color: #3b82f6;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
-}
-
-.result-rank {
-    display: inline-block;
-    padding: 6px 12px;
-    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-    color: white;
-    border-radius: 20px;
-    font-weight: 700;
-    font-size: 14px;
-    margin-bottom: 15px;
-}
-
-.result-function {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1e40af;
-    margin-bottom: 10px;
-}
-
-.result-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-}
-
-.stat-label {
-    color: #6b7280;
-}
-
-.stat-value {
-    font-weight: 700;
-    color: #1e40af;
-}
-
-.stat-value.positive {
-    color: #10b981;
-}
-
-.stat-value.negative {
-    color: #ef4444;
-}
-
-.insights-section {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    padding: 25px;
-    border-radius: 12px;
-    margin-top: 20px;
-}
-
-.insight-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1e40af;
-    margin-bottom: 15px;
-}
-
-.insight-item {
-    padding: 12px;
-    background: white;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    border-left: 4px solid #3b82f6;
-}
-
-.insight-text {
-    color: #1e40af;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.log-container {
-    max-height: 300px;
-    overflow-y: auto;
-    background: #1e293b;
-    color: #10b981;
-    padding: 20px;
-    border-radius: 12px;
-    font-family: monospace;
-    font-size: 13px;
-    line-height: 1.8;
-    margin-top: 20px;
-}
-
-.log-entry {
-    margin-bottom: 8px;
-}
-
-.log-timestamp {
-    color: #60a5fa;
-    margin-right: 10px;
-}
-
-.alert-box {
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.alert-info {
-    background: #dbeafe;
-    color: #1e40af;
-    border-left: 4px solid #3b82f6;
-}
-
-.alert-success {
-    background: #d1fae5;
-    color: #065f46;
-    border-left: 4px solid #10b981;
-}
-
-@media (max-width: 768px) {
-    .sandbox-wrapper {
-        padding: 10px;
-    }
-
-    .sandbox-header {
-        padding: 25px;
-    }
-
-    .sandbox-header h1 {
-        font-size: 28px;
-    }
-
-    .sandbox-card {
-        padding: 20px;
-    }
-
-    .config-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .results-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .live-metrics {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .upload-zone {
-        padding: 30px 20px;
-    }
-
-    .button-group {
-        flex-direction: column;
-    }
-}
-`;
-
-export default function SnowAISandbox() {
+const SnowAISandbox = () => {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
-    const [files, setFiles] = useState([]);
-    const [dragging, setDragging] = useState(false);
-    const [training, setTraining] = useState(false);
-    const [paused, setPaused] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [currentStatus, setCurrentStatus] = useState('');
+    // State management
+    const [activeTab, setActiveTab] = useState('create'); // create, results, scheduled
+    const [availableFunctions, setAvailableFunctions] = useState([]);
+    const [selectedFunctions, setSelectedFunctions] = useState([]);
     const [sessionId, setSessionId] = useState(null);
-    const [results, setResults] = useState(null);
+    const [sessionStatus, setSessionStatus] = useState(null);
     const [logs, setLogs] = useState([]);
-    const [currentIteration, setCurrentIteration] = useState(0);
-    const [canCheckpoint, setCanCheckpoint] = useState(false);
-    const [checkpoints, setCheckpoints] = useState([]);
-    const [selectedCheckpoint, setSelectedCheckpoint] = useState(null);
+    const [results, setResults] = useState([]);
+    const [filteredResults, setFilteredResults] = useState([]);
+    const [selectedStrategy, setSelectedStrategy] = useState(null);
+    const [bokehPlot, setBokehPlot] = useState(null);
     
+    // Filters
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterAsset, setFilterAsset] = useState('');
+    const [filterTimeframe, setFilterTimeframe] = useState('');
+    const [filterMinWinRate, setFilterMinWinRate] = useState('');
+    
+    // Configuration
     const [config, setConfig] = useState({
+        asset_symbol: 'BTCUSD',
+        timeframe: '1h',
         initial_equity: 10000,
-        max_iterations: 100,
+        max_iterations: 50,
         population_size: 20,
-        take_profit: 4,
-        stop_loss: 2,
+        take_profit: 4.0,
+        stop_loss: 2.0,
     });
 
+    // Load available functions on mount
     useEffect(() => {
-        loadCheckpoints();
-    }, []);
-
-    const loadCheckpoints = async () => {
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai-sandbox/checkpoints/`);
-            const data = await response.json();
-            if (data.checkpoints) {
-                setCheckpoints(data.checkpoints);
-            }
-        } catch (error) {
-            console.error('Error loading checkpoints:', error);
+        loadAvailableFunctions();
+        if (activeTab === 'results') {
+            loadResults();
         }
-    };
+    }, [activeTab]);
 
-    const handleDragEnter = (e) => {
-        e.preventDefault();
-        setDragging(true);
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        setDragging(false);
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setDragging(false);
-        
-        const droppedFiles = Array.from(e.dataTransfer.files);
-        handleFiles(droppedFiles);
-    };
-
-    const handleFileInput = (e) => {
-        const selectedFiles = Array.from(e.target.files);
-        handleFiles(selectedFiles);
-    };
-
-    const handleFiles = (newFiles) => {
-        const csvFiles = newFiles.filter(f => 
-            f.name.endsWith('.csv') || 
-            f.type === 'text/csv' || 
-            f.type === 'application/vnd.ms-excel'
-        );
-        
-        if (csvFiles.length === 0) {
-            alert('Please upload CSV files only');
-            return;
+    // Poll session status
+    useEffect(() => {
+        if (sessionId && sessionStatus?.status !== 'completed' && sessionStatus?.status !== 'failed') {
+            const interval = setInterval(() => {
+                pollSessionStatus();
+            }, 2000);
+            return () => clearInterval(interval);
         }
-        
-        setFiles(prev => [...prev, ...csvFiles]);
-    };
+    }, [sessionId, sessionStatus]);
 
-    const removeFile = (index) => {
-        setFiles(prev => prev.filter((_, i) => i !== index));
-    };
+    // Filter results
+    useEffect(() => {
+        filterResults();
+    }, [results, searchTerm, filterAsset, filterTimeframe, filterMinWinRate]);
 
-    const startTraining = async (checkpointId = null) => {
-        if (files.length === 0 && !checkpointId) {
-            alert('Please upload at least one CSV file or select a checkpoint');
-            return;
-        }
-
-        setTraining(true);
-        setPaused(false);
-        setProgress(0);
-        setLogs([]);
-        setResults(null);
-        addLog('🚀 Initializing SnowAI Sandbox...');
-
-        const formData = new FormData();
-        files.forEach(file => {
-            formData.append('files', file);
-        });
-        formData.append('config', JSON.stringify(config));
-        
-        if (checkpointId) {
-            formData.append('checkpoint_id', checkpointId);
-            addLog(`📦 Loading checkpoint: ${checkpointId.substring(0, 8)}...`);
-        }
-
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai-sandbox/train/`, {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-            
-            if (data.session_id) {
-                setSessionId(data.session_id);
-                addLog('✅ Training session started');
-                pollTrainingStatus(data.session_id);
-            } else {
-                addLog('❌ Error: ' + (data.error || 'Failed to start training'));
-                setTraining(false);
-            }
-        } catch (error) {
-            addLog('❌ Error: ' + error.message);
-            setTraining(false);
-        }
-    };
-
-    const pauseTraining = async () => {
-        if (!sessionId) return;
-
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai-sandbox/pause/${sessionId}/`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            
-            if (data.message) {
-                setPaused(true);
-                addLog('⏸️ Training paused');
-            }
-        } catch (error) {
-            addLog('❌ Error pausing: ' + error.message);
-        }
-    };
-
-    const resumeTraining = async () => {
-        if (!sessionId) return;
-
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai-sandbox/resume/${sessionId}/`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            
-            if (data.message) {
-                setPaused(false);
-                addLog('▶️ Training resumed');
-            }
-        } catch (error) {
-            addLog('❌ Error resuming: ' + error.message);
-        }
-    };
-
-    const saveCheckpoint = async () => {
-        if (!sessionId) return;
-
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai-sandbox/checkpoint/${sessionId}/`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            
-            if (data.checkpoint_id) {
-                addLog(`💾 Checkpoint saved: ${data.checkpoint_id.substring(0, 8)}...`);
-                loadCheckpoints();
-            }
-        } catch (error) {
-            addLog('❌ Error saving checkpoint: ' + error.message);
-        }
-    };
-
-    const pollTrainingStatus = async (id) => {
-        const interval = setInterval(async () => {
+    // Initialize Bokeh when plot data changes
+    useEffect(() => {
+        if (bokehPlot && window.Bokeh) {
             try {
-                const response = await fetch(`${baseUrl}/api/snowai-sandbox/status/${id}/`);
-                const data = await response.json();
-
-                setProgress(data.progress || 0);
-                setCurrentStatus(data.status || '');
-                setCurrentIteration(data.current_iteration || 0);
-                setCanCheckpoint(data.can_checkpoint || false);
-                setPaused(data.paused || false);
-                
-                // Add new logs from backend (backend only sends new ones)
-                if (data.logs && data.logs.length > 0) {
-                    data.logs.forEach(log => {
-                        addLog(log);
-                    });
-                }
-
-                if (data.completed) {
-                    clearInterval(interval);
-                    setTraining(false);
-                    setResults(data.results);
-                    addLog('🎉 Training completed!');
-                }
-
-                if (data.error) {
-                    clearInterval(interval);
-                    setTraining(false);
-                    addLog('❌ Error: ' + data.error);
+                const plotId = `bokeh-plot-${Date.now()}`;
+                const plotElement = document.getElementById('bokeh-plot-container');
+                if (plotElement) {
+                    plotElement.innerHTML = `<div id="${plotId}"></div>`;
+                    window.Bokeh.embed.embed_item(bokehPlot, plotId);
                 }
             } catch (error) {
-                console.error('Polling error:', error);
+                console.error('Bokeh plot error:', error);
             }
-        }, 1000); // Poll every 1 second for faster updates
+        }
+    }, [bokehPlot]);
+
+    const loadAvailableFunctions = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai/functions/`);
+            const data = await response.json();
+            setAvailableFunctions(data.functions || []);
+        } catch (error) {
+            console.error('Error loading functions:', error);
+        }
     };
 
-    const addLog = (message) => {
-        const timestamp = new Date().toLocaleTimeString();
-        setLogs(prev => [...prev, { timestamp, message }]);
+    const loadResults = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (filterAsset) params.append('asset', filterAsset);
+            if (filterTimeframe) params.append('timeframe', filterTimeframe);
+            if (filterMinWinRate) params.append('min_win_rate', filterMinWinRate);
+            
+            const response = await fetch(`${baseUrl}/api/snowai/results/?${params}`);
+            const data = await response.json();
+            setResults(data.results || []);
+        } catch (error) {
+            console.error('Error loading results:', error);
+        }
     };
 
-    const formatBytes = (bytes) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    const filterResults = () => {
+        let filtered = [...results];
+        
+        if (searchTerm) {
+            filtered = filtered.filter(r => 
+                r.asset_symbol.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+        
+        setFilteredResults(filtered);
+    };
+
+    const startBacktest = async () => {
+        if (selectedFunctions.length === 0) {
+            alert('Please select at least one function');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai/start/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...config,
+                    selected_functions: selectedFunctions,
+                })
+            });
+
+            const data = await response.json();
+            if (data.session_id) {
+                setSessionId(data.session_id);
+                setLogs([{ timestamp: new Date().toLocaleTimeString(), level: 'info', message: '🚀 Starting backtest...' }]);
+            }
+        } catch (error) {
+            console.error('Error starting backtest:', error);
+        }
+    };
+
+    const pollSessionStatus = async () => {
+        if (!sessionId) return;
+
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai/status/${sessionId}/`);
+            const data = await response.json();
+            setSessionStatus(data);
+            
+            if (data.logs && data.logs.length > 0) {
+                setLogs(prev => [...prev, ...data.logs]);
+            }
+        } catch (error) {
+            console.error('Error polling status:', error);
+        }
+    };
+
+    const viewStrategyDetail = async (resultId) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai/strategy/${resultId}/`);
+            const data = await response.json();
+            setSelectedStrategy(data);
+            
+            if (data.plot_json) {
+                try {
+                    setBokehPlot(JSON.parse(data.plot_json));
+                } catch (e) {
+                    console.error('Error parsing plot JSON:', e);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading strategy:', error);
+        }
+    };
+
+    const toggleFunctionSelection = (funcId) => {
+        setSelectedFunctions(prev => 
+            prev.includes(funcId)
+                ? prev.filter(id => id !== funcId)
+                : [...prev, funcId]
+        );
+    };
+
+    const selectAllInCategory = (category) => {
+        const categoryFuncs = availableFunctions
+            .filter(f => f.category === category)
+            .map(f => f.function_id);
+        
+        const allSelected = categoryFuncs.every(id => selectedFunctions.includes(id));
+        
+        if (allSelected) {
+            setSelectedFunctions(prev => prev.filter(id => !categoryFuncs.includes(id)));
+        } else {
+            setSelectedFunctions(prev => [...new Set([...prev, ...categoryFuncs])]);
+        }
+    };
+
+    // Group functions by category
+    const functionsByCategory = availableFunctions.reduce((acc, func) => {
+        if (!acc[func.category]) acc[func.category] = [];
+        acc[func.category].push(func);
+        return acc;
+    }, {});
+
+    const categoryLabels = {
+        'trend': 'Trend Detection',
+        'retracement': 'Retracement Signals',
+        'support_resistance': 'Support & Resistance',
+        'market_condition': 'Market Conditions',
+        'hold_strategy': 'Hold Strategies',
     };
 
     return (
         <div>
-            <style>{styles}</style>
             <div className="header">
                 <Header />
             </div>
             <div className="main-page-body">
                 <SideNavs />
-                <div className="main-body-info">
-                    <div className="sandbox-wrapper">
-                        
-                        <div className="sandbox-header">
-                            <h1>❄️ SnowAI Sandbox</h1>
-                            <p>Upload your market data and let AI discover the best trading function combinations through evolutionary learning</p>
+        <div style={{ padding: '20px', background: '#f0f4ff', minHeight: '100vh' }}>
+            {/* Header */}
+            <div style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                color: 'white',
+                padding: '40px',
+                borderRadius: '16px',
+                marginBottom: '30px',
+                boxShadow: '0 10px 40px rgba(59, 130, 246, 0.3)',
+            }}>
+                <h1 style={{ margin: '0 0 10px 0', fontSize: '36px', fontWeight: '700' }}>
+                    ❄️ SnowAI Sandbox V2
+                </h1>
+                <p style={{ margin: 0, fontSize: '16px', opacity: 0.95 }}>
+                    Advanced AI-powered backtesting with function selection, asset testing, and comprehensive analytics
+                </p>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ 
+                display: 'flex', 
+                gap: '10px', 
+                marginBottom: '30px',
+                flexWrap: 'wrap',
+            }}>
+                {[
+                    { id: 'create', label: '🚀 Create Backtest', icon: Play },
+                    { id: 'results', label: '📊 View Results', icon: BarChart3 },
+                    { id: 'scheduled', label: '📅 Scheduled Tests', icon: Calendar },
+                ].map(tab => {
+                    const Icon = tab.icon;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                padding: '12px 24px',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                background: activeTab === tab.id 
+                                    ? 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)'
+                                    : 'white',
+                                color: activeTab === tab.id ? 'white' : '#1e40af',
+                                boxShadow: activeTab === tab.id 
+                                    ? '0 4px 12px rgba(59, 130, 246, 0.3)'
+                                    : '0 2px 8px rgba(0, 0, 0, 0.08)',
+                                transition: 'all 0.3s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                            }}
+                        >
+                            <Icon size={18} />
+                            {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* CREATE BACKTEST TAB */}
+            {activeTab === 'create' && (
+                <>
+                    {/* Configuration Card */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '30px',
+                        marginBottom: '30px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                        border: '2px solid #dbeafe',
+                    }}>
+                        <h2 style={{ 
+                            fontSize: '20px', 
+                            fontWeight: '700', 
+                            color: '#1e40af', 
+                            marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                        }}>
+                            <Activity size={20} />
+                            Backtest Configuration
+                        </h2>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                            gap: '20px',
+                        }}>
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Asset Symbol
+                                </label>
+                                <input
+                                    type="text"
+                                    value={config.asset_symbol}
+                                    onChange={(e) => setConfig({...config, asset_symbol: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                    placeholder="e.g., BTCUSD, AAPL, EURUSD"
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Timeframe
+                                </label>
+                                <select
+                                    value={config.timeframe}
+                                    onChange={(e) => setConfig({...config, timeframe: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                >
+                                    <option value="1m">1 Minute</option>
+                                    <option value="5m">5 Minutes</option>
+                                    <option value="15m">15 Minutes</option>
+                                    <option value="30m">30 Minutes</option>
+                                    <option value="1h">1 Hour</option>
+                                    <option value="4h">4 Hours</option>
+                                    <option value="1d">1 Day</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Initial Equity ($)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={config.initial_equity}
+                                    onChange={(e) => setConfig({...config, initial_equity: parseFloat(e.target.value)})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Max Iterations
+                                </label>
+                                <input
+                                    type="number"
+                                    value={config.max_iterations}
+                                    onChange={(e) => setConfig({...config, max_iterations: parseInt(e.target.value)})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Population Size
+                                </label>
+                                <input
+                                    type="number"
+                                    value={config.population_size}
+                                    onChange={(e) => setConfig({...config, population_size: parseInt(e.target.value)})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Take Profit (%)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={config.take_profit}
+                                    onChange={(e) => setConfig({...config, take_profit: parseFloat(e.target.value)})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Stop Loss (%)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={config.stop_loss}
+                                    onChange={(e) => setConfig({...config, stop_loss: parseFloat(e.target.value)})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Function Selection Card */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '30px',
+                        marginBottom: '30px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                        border: '2px solid #dbeafe',
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                        }}>
+                            <h2 style={{ 
+                                fontSize: '20px', 
+                                fontWeight: '700', 
+                                color: '#1e40af',
+                                margin: 0,
+                            }}>
+                                🎯 Select Trading Functions
+                            </h2>
+                            <div style={{
+                                background: '#eff6ff',
+                                padding: '8px 16px',
+                                borderRadius: '20px',
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: '#1e40af',
+                            }}>
+                                {selectedFunctions.length} Selected
+                            </div>
                         </div>
 
-                        {/* Checkpoint Section */}
-                        {checkpoints.length > 0 && (
-                            <div className="sandbox-card">
-                                <h2 className="card-title">💾 Load Previous Training</h2>
-                                <div className="alert-box alert-info">
-                                    <span>ℹ️</span>
-                                    <span>Resume training from a saved checkpoint with new data or continue where you left off</span>
+                        {Object.entries(functionsByCategory).map(([category, functions]) => (
+                            <div key={category} style={{
+                                marginBottom: '20px',
+                                padding: '20px',
+                                background: '#f9fafb',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '15px',
+                                }}>
+                                    <h3 style={{
+                                        fontSize: '16px',
+                                        fontWeight: '700',
+                                        color: '#374151',
+                                        margin: 0,
+                                    }}>
+                                        {categoryLabels[category] || category}
+                                    </h3>
+                                    <button
+                                        onClick={() => selectAllInCategory(category)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            background: '#e5e7eb',
+                                            color: '#374151',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Toggle All
+                                    </button>
                                 </div>
-                                <div className="checkpoint-list">
-                                    {checkpoints.map((checkpoint, idx) => (
-                                        <div key={idx} className="checkpoint-item">
-                                            <div className="checkpoint-info">
-                                                <div className="checkpoint-id">ID: {checkpoint.id.substring(0, 16)}...</div>
-                                                <div className="checkpoint-details">
-                                                    Iteration: {checkpoint.iteration} | Population: {checkpoint.population_size} | 
-                                                    TP: {checkpoint.config.take_profit}% | SL: {checkpoint.config.stop_loss}%
+
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                    gap: '12px',
+                                }}>
+                                    {functions.map(func => {
+                                        const isSelected = selectedFunctions.includes(func.function_id);
+                                        return (
+                                            <div
+                                                key={func.function_id}
+                                                onClick={() => toggleFunctionSelection(func.function_id)}
+                                                style={{
+                                                    padding: '12px',
+                                                    background: isSelected ? '#dbeafe' : 'white',
+                                                    border: `2px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}`,
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    display: 'flex',
+                                                    alignItems: 'flex-start',
+                                                    gap: '10px',
+                                                }}
+                                            >
+                                                {isSelected ? (
+                                                    <CheckSquare size={20} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '2px' }} />
+                                                ) : (
+                                                    <Square size={20} style={{ color: '#9ca3af', flexShrink: 0, marginTop: '2px' }} />
+                                                )}
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{
+                                                        fontSize: '14px',
+                                                        fontWeight: '600',
+                                                        color: isSelected ? '#1e40af' : '#374151',
+                                                        marginBottom: '4px',
+                                                    }}>
+                                                        {func.function_name}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '12px',
+                                                        color: '#6b7280',
+                                                        lineHeight: '1.4',
+                                                    }}>
+                                                        {func.description}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <button 
-                                                className="load-checkpoint-btn"
-                                                onClick={() => startTraining(checkpoint.id)}
-                                                disabled={training}
-                                            >
-                                                Load & Continue
-                                            </button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
-                        )}
+                        ))}
 
-                        {/* File Upload */}
-                        <div className="sandbox-card">
-                            <h2 className="card-title">📁 Upload Training Data</h2>
-                            <div 
-                                className={`upload-zone ${dragging ? 'dragging' : ''}`}
-                                onDragEnter={handleDragEnter}
-                                onDragOver={handleDragEnter}
-                                onDragLeave={handleDragLeave}
-                                onDrop={handleDrop}
-                                onClick={() => document.getElementById('file-input').click()}
-                            >
-                                <div className="upload-icon">📊</div>
-                                <div className="upload-text">Drop CSV files here or click to browse</div>
-                                <div className="upload-hint">Support for multiple files • OHLCV format preferred</div>
+                        <button
+                            onClick={startBacktest}
+                            disabled={selectedFunctions.length === 0 || sessionStatus?.status === 'running'}
+                            style={{
+                                width: '100%',
+                                padding: '16px',
+                                background: selectedFunctions.length === 0 || sessionStatus?.status === 'running'
+                                    ? '#9ca3af'
+                                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '18px',
+                                fontWeight: '700',
+                                cursor: selectedFunctions.length === 0 || sessionStatus?.status === 'running' ? 'not-allowed' : 'pointer',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '10px',
+                            }}
+                        >
+                            <Play size={20} />
+                            {sessionStatus?.status === 'running' ? 'Training in Progress...' : 'Start AI Training'}
+                        </button>
+                    </div>
+
+                    {/* Training Progress */}
+                    {sessionId && sessionStatus && (
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            padding: '30px',
+                            marginBottom: '30px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                            border: '2px solid #dbeafe',
+                        }}>
+                            <h2 style={{ 
+                                fontSize: '20px', 
+                                fontWeight: '700', 
+                                color: '#1e40af', 
+                                marginBottom: '20px',
+                            }}>
+                                📊 Training Progress
+                            </h2>
+
+                            {/* Progress Bar */}
+                            <div style={{
+                                width: '100%',
+                                height: '30px',
+                                background: '#dbeafe',
+                                borderRadius: '15px',
+                                overflow: 'hidden',
+                                marginBottom: '20px',
+                            }}>
+                                <div style={{
+                                    height: '100%',
+                                    width: `${sessionStatus.progress}%`,
+                                    background: 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'white',
+                                    fontWeight: '700',
+                                    fontSize: '14px',
+                                    transition: 'width 0.5s ease',
+                                }}>
+                                    {sessionStatus.progress}%
+                                </div>
                             </div>
-                            <input
-                                id="file-input"
-                                type="file"
-                                className="file-input"
-                                multiple
-                                accept=".csv"
-                                onChange={handleFileInput}
-                            />
 
-                            {files.length > 0 && (
-                                <div className="uploaded-files">
-                                    {files.map((file, index) => (
-                                        <div key={index} className="file-item">
-                                            <div>
-                                                <span className="file-name">{file.name}</span>
-                                                <span className="file-size">({formatBytes(file.size)})</span>
+                            {/* Status Info */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                                gap: '15px',
+                                marginBottom: '20px',
+                            }}>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '15px',
+                                    borderRadius: '8px',
+                                    textAlign: 'center',
+                                    border: '1px solid #dbeafe',
+                                }}>
+                                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Status</div>
+                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
+                                        {sessionStatus.status}
+                                    </div>
+                                </div>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '15px',
+                                    borderRadius: '8px',
+                                    textAlign: 'center',
+                                    border: '1px solid #dbeafe',
+                                }}>
+                                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Iteration</div>
+                                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>
+                                        {sessionStatus.current_iteration}
+                                    </div>
+                                </div>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '15px',
+                                    borderRadius: '8px',
+                                    textAlign: 'center',
+                                    border: '1px solid #dbeafe',
+                                }}>
+                                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Asset</div>
+                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
+                                        {config.asset_symbol}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Logs */}
+                            <div style={{
+                                maxHeight: '300px',
+                                overflowY: 'auto',
+                                background: '#1e293b',
+                                color: '#10b981',
+                                padding: '20px',
+                                borderRadius: '12px',
+                                fontFamily: 'monospace',
+                                fontSize: '13px',
+                                lineHeight: '1.8',
+                            }}>
+                                {logs.map((log, index) => (
+                                    <div key={index} style={{ marginBottom: '8px' }}>
+                                        <span style={{ color: '#60a5fa', marginRight: '10px' }}>
+                                            [{log.timestamp}]
+                                        </span>
+                                        <span>{log.message}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Top Strategies */}
+                            {sessionStatus.strategies && sessionStatus.strategies.length > 0 && (
+                                <div style={{ marginTop: '30px' }}>
+                                    <h3 style={{ 
+                                        fontSize: '18px', 
+                                        fontWeight: '700', 
+                                        color: '#1e40af',
+                                        marginBottom: '15px',
+                                    }}>
+                                        🏆 Top Strategies
+                                    </h3>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                                        gap: '15px',
+                                    }}>
+                                        {sessionStatus.strategies.slice(0, 5).map((strategy, index) => (
+                                            <div key={strategy.result_id} style={{
+                                                background: '#f9fafb',
+                                                padding: '20px',
+                                                borderRadius: '12px',
+                                                border: '2px solid #dbeafe',
+                                            }}>
+                                                <div style={{
+                                                    display: 'inline-block',
+                                                    padding: '6px 12px',
+                                                    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                                                    color: 'white',
+                                                    borderRadius: '20px',
+                                                    fontWeight: '700',
+                                                    fontSize: '14px',
+                                                    marginBottom: '15px',
+                                                }}>
+                                                    #{index + 1}
+                                                </div>
+                                                <div style={{ fontSize: '14px', marginBottom: '10px' }}>
+                                                    <strong>Buy:</strong> {strategy.buy_functions.join(', ')}
+                                                </div>
+                                                <div style={{ fontSize: '14px', marginBottom: '10px' }}>
+                                                    <strong>Sell:</strong> {strategy.sell_functions.join(', ')}
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    fontSize: '14px',
+                                                    marginTop: '10px',
+                                                }}>
+                                                    <span>Win Rate:</span>
+                                                    <span style={{ 
+                                                        fontWeight: '700', 
+                                                        color: strategy.win_rate >= 50 ? '#10b981' : '#ef4444'
+                                                    }}>
+                                                        {strategy.win_rate.toFixed(1)}%
+                                                    </span>
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    fontSize: '14px',
+                                                }}>
+                                                    <span>P&L:</span>
+                                                    <span style={{ 
+                                                        fontWeight: '700', 
+                                                        color: strategy.total_pnl >= 0 ? '#10b981' : '#ef4444'
+                                                    }}>
+                                                        ${strategy.total_pnl.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={() => viewStrategyDetail(strategy.result_id)}
+                                                    style={{
+                                                        width: '100%',
+                                                        marginTop: '15px',
+                                                        padding: '10px',
+                                                        background: '#3b82f6',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        fontWeight: '600',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '8px',
+                                                    }}
+                                                >
+                                                    <Eye size={16} />
+                                                    View Details
+                                                </button>
                                             </div>
-                                            <button 
-                                                className="remove-file-btn"
-                                                onClick={() => removeFile(index)}
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
+                    )}
+                </>
+            )}
 
-                        {/* Configuration */}
-                        <div className="sandbox-card">
-                            <h2 className="card-title">⚙️ Training Configuration</h2>
-                            <div className="config-grid">
-                                <div className="config-item">
-                                    <label className="config-label">Initial Equity ($)</label>
+            {/* RESULTS TAB */}
+            {activeTab === 'results' && (
+                <>
+                    {/* Filters */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '30px',
+                        marginBottom: '30px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                        border: '2px solid #dbeafe',
+                    }}>
+                        <h2 style={{ 
+                            fontSize: '20px', 
+                            fontWeight: '700', 
+                            color: '#1e40af', 
+                            marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                        }}>
+                            <Filter size={20} />
+                            Filter Results
+                        </h2>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '15px',
+                        }}>
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Search Asset
+                                </label>
+                                <div style={{ position: 'relative' }}>
+                                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
                                     <input
-                                        type="number"
-                                        className="config-input"
-                                        value={config.initial_equity}
-                                        onChange={(e) => setConfig({...config, initial_equity: parseFloat(e.target.value)})}
-                                    />
-                                </div>
-                                <div className="config-item">
-                                    <label className="config-label">Max Iterations</label>
-                                    <input
-                                        type="number"
-                                        className="config-input"
-                                        value={config.max_iterations}
-                                        onChange={(e) => setConfig({...config, max_iterations: parseInt(e.target.value)})}
-                                    />
-                                </div>
-                                <div className="config-item">
-                                    <label className="config-label">Population Size</label>
-                                    <input
-                                        type="number"
-                                        className="config-input"
-                                        value={config.population_size}
-                                        onChange={(e) => setConfig({...config, population_size: parseInt(e.target.value)})}
-                                    />
-                                </div>
-                                <div className="config-item">
-                                    <label className="config-label">Take Profit (%)</label>
-                                    <input
-                                        type="number"
-                                        className="config-input"
-                                        value={config.take_profit}
-                                        onChange={(e) => setConfig({...config, take_profit: parseFloat(e.target.value)})}
-                                    />
-                                </div>
-                                <div className="config-item">
-                                    <label className="config-label">Stop Loss (%)</label>
-                                    <input
-                                        type="number"
-                                        className="config-input"
-                                        value={config.stop_loss}
-                                        onChange={(e) => setConfig({...config, stop_loss: parseFloat(e.target.value)})}
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Search..."
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 12px 12px 40px',
+                                            border: '2px solid #dbeafe',
+                                            borderRadius: '8px',
+                                            fontSize: '14px',
+                                        }}
                                     />
                                 </div>
                             </div>
 
-                            <div className="button-group">
-                                <button 
-                                    className="start-training-btn"
-                                    onClick={() => startTraining()}
-                                    disabled={training || files.length === 0}
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Timeframe
+                                </label>
+                                <select
+                                    value={filterTimeframe}
+                                    onChange={(e) => setFilterTimeframe(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
                                 >
-                                    {training ? '🔄 Training in Progress...' : '🚀 Start AI Training'}
-                                </button>
+                                    <option value="">All Timeframes</option>
+                                    <option value="1m">1 Minute</option>
+                                    <option value="5m">5 Minutes</option>
+                                    <option value="15m">15 Minutes</option>
+                                    <option value="1h">1 Hour</option>
+                                    <option value="4h">4 Hours</option>
+                                    <option value="1d">1 Day</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                    Min Win Rate (%)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={filterMinWinRate}
+                                    onChange={(e) => setFilterMinWinRate(e.target.value)}
+                                    placeholder="e.g., 50"
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        border: '2px solid #dbeafe',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                    }}
+                                />
+                            </div>
+
+                            <button
+                                onClick={loadResults}
+                                style={{
+                                    padding: '12px 24px',
+                                    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    alignSelf: 'flex-end',
+                                }}
+                            >
+                                Apply Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Results Grid */}
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '30px',
+                        marginBottom: '30px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                        border: '2px solid #dbeafe',
+                    }}>
+                        <h2 style={{ 
+                            fontSize: '20px', 
+                            fontWeight: '700', 
+                            color: '#1e40af', 
+                            marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                        }}>
+                            <BarChart3 size={20} />
+                            Backtest Results ({filteredResults.length})
+                        </h2>
+
+                        {filteredResults.length === 0 ? (
+                            <div style={{
+                                padding: '60px',
+                                textAlign: 'center',
+                                color: '#6b7280',
+                            }}>
+                                <BarChart3 size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
+                                <p style={{ fontSize: '18px', fontWeight: '600' }}>No results found</p>
+                                <p style={{ fontSize: '14px' }}>Try adjusting your filters or create a new backtest</p>
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                                gap: '20px',
+                            }}>
+                                {filteredResults.map(result => (
+                                    <div key={result.session_id} style={{
+                                        background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                                        padding: '24px',
+                                        borderRadius: '12px',
+                                        border: '2px solid #e5e7eb',
+                                        transition: 'all 0.3s',
+                                        cursor: 'pointer',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = '#3b82f6';
+                                        e.currentTarget.style.transform = 'translateY(-4px)';
+                                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = '#e5e7eb';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            marginBottom: '15px',
+                                        }}>
+                                            <h3 style={{
+                                                fontSize: '20px',
+                                                fontWeight: '700',
+                                                color: '#1e40af',
+                                                margin: 0,
+                                            }}>
+                                                {result.asset_symbol}
+                                            </h3>
+                                            <span style={{
+                                                padding: '4px 12px',
+                                                background: '#dbeafe',
+                                                color: '#1e40af',
+                                                borderRadius: '12px',
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                            }}>
+                                                {result.timeframe}
+                                            </span>
+                                        </div>
+
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                fontSize: '14px',
+                                                marginBottom: '8px',
+                                            }}>
+                                                <span style={{ color: '#6b7280' }}>Win Rate:</span>
+                                                <span style={{
+                                                    fontWeight: '700',
+                                                    color: result.best_win_rate >= 50 ? '#10b981' : '#ef4444',
+                                                }}>
+                                                    {result.best_win_rate.toFixed(1)}%
+                                                </span>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                fontSize: '14px',
+                                                marginBottom: '8px',
+                                            }}>
+                                                <span style={{ color: '#6b7280' }}>P&L:</span>
+                                                <span style={{
+                                                    fontWeight: '700',
+                                                    color: result.best_pnl >= 0 ? '#10b981' : '#ef4444',
+                                                }}>
+                                                    ${result.best_pnl.toFixed(2)}
+                                                </span>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                fontSize: '14px',
+                                                marginBottom: '8px',
+                                            }}>
+                                                <span style={{ color: '#6b7280' }}>Trades:</span>
+                                                <span style={{ fontWeight: '700', color: '#1e40af' }}>
+                                                    {result.total_trades}
+                                                </span>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                fontSize: '14px',
+                                            }}>
+                                                <span style={{ color: '#6b7280' }}>Fitness:</span>
+                                                <span style={{ fontWeight: '700', color: '#1e40af' }}>
+                                                    {result.best_fitness.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{
+                                            fontSize: '12px',
+                                            color: '#9ca3af',
+                                            marginBottom: '15px',
+                                        }}>
+                                            {new Date(result.created_at).toLocaleString()}
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                // Find first strategy for this session
+                                                if (sessionStatus?.strategies) {
+                                                    const strategy = sessionStatus.strategies[0];
+                                                    if (strategy) {
+                                                        viewStrategyDetail(strategy.result_id);
+                                                    }
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px',
+                                                background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                fontWeight: '700',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                            }}
+                                        >
+                                            <Eye size={16} />
+                                            View Details
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+
+            {/* SCHEDULED TAB */}
+            {activeTab === 'scheduled' && (
+                <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    padding: '30px',
+                    marginBottom: '30px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    border: '2px solid #dbeafe',
+                }}>
+                    <h2 style={{ 
+                        fontSize: '20px', 
+                        fontWeight: '700', 
+                        color: '#1e40af', 
+                        marginBottom: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                    }}>
+                        <Calendar size={20} />
+                        Scheduled Backtests
+                    </h2>
+                    <div style={{
+                        padding: '60px',
+                        textAlign: 'center',
+                        color: '#6b7280',
+                    }}>
+                        <Calendar size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
+                        <p style={{ fontSize: '18px', fontWeight: '600' }}>Scheduled Backtests Coming Soon</p>
+                        <p style={{ fontSize: '14px' }}>Set up automated backtests to run daily, weekly, or monthly</p>
+                    </div>
+                </div>
+            )}
+
+            {/* STRATEGY DETAIL MODAL */}
+            {selectedStrategy && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '20px',
+                    overflowY: 'auto',
+                }}
+                onClick={() => {
+                    setSelectedStrategy(null);
+                    setBokehPlot(null);
+                }}>
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            padding: '30px',
+                            maxWidth: '1200px',
+                            width: '100%',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            position: 'relative',
+                        }}>
+                        <button
+                            onClick={() => {
+                                setSelectedStrategy(null);
+                                setBokehPlot(null);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: '20px',
+                                right: '20px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '40px',
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                fontSize: '20px',
+                                fontWeight: '700',
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <h2 style={{
+                            fontSize: '24px',
+                            fontWeight: '700',
+                            color: '#1e40af',
+                            marginBottom: '30px',
+                        }}>
+                            Strategy Details
+                        </h2>
+
+                        {/* Functions Used */}
+                        <div style={{ marginBottom: '30px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#374151', marginBottom: '15px' }}>
+                                🎯 Buy Functions
+                            </h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+                                {selectedStrategy.buy_functions.map(func => (
+                                    <span key={func.id} style={{
+                                        padding: '8px 16px',
+                                        background: '#dbeafe',
+                                        color: '#1e40af',
+                                        borderRadius: '20px',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                    }}>
+                                        {func.name}
+                                    </span>
+                                ))}
+                            </div>
+
+                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#374151', marginBottom: '15px' }}>
+                                🎯 Sell Functions
+                            </h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                                {selectedStrategy.sell_functions.map(func => (
+                                    <span key={func.id} style={{
+                                        padding: '8px 16px',
+                                        background: '#fee2e2',
+                                        color: '#dc2626',
+                                        borderRadius: '20px',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                    }}>
+                                        {func.name}
+                                    </span>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Training Controls */}
-                        {training && (
-                            <div className="sandbox-card">
-                                <h2 className="card-title">🎮 Training Controls</h2>
-                                <div className="button-group">
-                                    {!paused ? (
-                                        <button 
-                                            className="control-btn pause-btn"
-                                            onClick={pauseTraining}
-                                        >
-                                            ⏸️ Pause Training
-                                        </button>
-                                    ) : (
-                                        <button 
-                                            className="control-btn resume-btn"
-                                            onClick={resumeTraining}
-                                        >
-                                            ▶️ Resume Training
-                                        </button>
-                                    )}
-                                    <button 
-                                        className="control-btn checkpoint-btn"
-                                        onClick={saveCheckpoint}
-                                        disabled={!canCheckpoint}
-                                    >
-                                        💾 Save Checkpoint
-                                    </button>
-                                </div>
+                        {/* Metrics Grid */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '20px',
+                            marginBottom: '30px',
+                        }}>
+                            {[
+                                { label: 'Fitness Score', value: selectedStrategy.fitness_score.toFixed(2), icon: TrendingUp },
+                                { label: 'Win Rate', value: `${selectedStrategy.win_rate.toFixed(1)}%`, icon: Activity, color: selectedStrategy.win_rate >= 50 ? '#10b981' : '#ef4444' },
+                                { label: 'Total P&L', value: `${selectedStrategy.total_pnl.toFixed(2)}`, icon: DollarSign, color: selectedStrategy.total_pnl >= 0 ? '#10b981' : '#ef4444' },
+                                { label: 'Total Trades', value: selectedStrategy.total_trades, icon: BarChart3 },
+                                { label: 'Winning Trades', value: selectedStrategy.winning_trades, icon: TrendingUp, color: '#10b981' },
+                                { label: 'Losing Trades', value: selectedStrategy.losing_trades, icon: TrendingDown, color: '#ef4444' },
+                                { label: 'Sharpe Ratio', value: selectedStrategy.sharpe_ratio?.toFixed(2) || 'N/A', icon: Activity },
+                                { label: 'Max Drawdown', value: selectedStrategy.max_drawdown ? `${selectedStrategy.max_drawdown.toFixed(2)}%` : 'N/A', icon: TrendingDown, color: '#ef4444' },
+                            ].map((metric, idx) => {
+                                const Icon = metric.icon;
+                                return (
+                                    <div key={idx} style={{
+                                        background: '#f9fafb',
+                                        padding: '20px',
+                                        borderRadius: '12px',
+                                        border: '2px solid #e5e7eb',
+                                    }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            marginBottom: '10px',
+                                        }}>
+                                            <Icon size={20} style={{ color: '#6b7280' }} />
+                                            <span style={{ fontSize: '14px', color: '#6b7280' }}>{metric.label}</span>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '24px',
+                                            fontWeight: '700',
+                                            color: metric.color || '#1e40af',
+                                        }}>
+                                            {metric.value}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Bokeh Plot */}
+                        {bokehPlot && (
+                            <div style={{ marginTop: '30px' }}>
+                                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#374151', marginBottom: '15px' }}>
+                                    📈 Equity Curve
+                                </h3>
+                                <div 
+                                    id="bokeh-plot-container"
+                                    style={{
+                                        width: '100%',
+                                        minHeight: '400px',
+                                        background: '#f9fafb',
+                                        borderRadius: '12px',
+                                        padding: '20px',
+                                    }}
+                                />
                             </div>
                         )}
-
-                        {/* Training Progress */}
-                        {training && (
-                            <div className="sandbox-card">
-                                <h2 className="card-title">📊 Training Progress</h2>
-                                <div className="training-progress">
-                                    <div className="progress-bar">
-                                        <div className="progress-fill" style={{width: `${progress}%`}}>
-                                            {progress}%
-                                        </div>
-                                    </div>
-
-                                    <div className={`training-status ${paused ? 'paused' : ''}`}>
-                                        <div className="status-text">
-                                            {paused ? '⏸️ PAUSED' : currentStatus}
-                                        </div>
-                                        <div className="live-metrics">
-                                            <div className="metric-box">
-                                                <div className="metric-label">Iteration</div>
-                                                <div className="metric-value">{currentIteration}</div>
-                                            </div>
-                                            <div className="metric-box">
-                                                <div className="metric-label">Files</div>
-                                                <div className="metric-value">{files.length}</div>
-                                            </div>
-                                            <div className="metric-box">
-                                                <div className="metric-label">Status</div>
-                                                <div className="metric-value" style={{fontSize: '16px'}}>
-                                                    {paused ? '⏸️' : '▶️'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Live Logs */}
-                                <div className="log-container">
-                                    {logs.map((log, index) => (
-                                        <div key={index} className="log-entry">
-                                            <span className="log-timestamp">[{log.timestamp}]</span>
-                                            <span>{log.message}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Results */}
-                        {results && (
-                            <>
-                                <div className="sandbox-card">
-                                    <div className="alert-box alert-success">
-                                        <span>✅</span>
-                                        <span>Training completed! You can save a checkpoint to resume with different data later.</span>
-                                    </div>
-                                    <h2 className="card-title">🏆 Top Performing Strategies</h2>
-                                    <div className="results-grid">
-                                        {results.top_strategies?.map((strategy, index) => (
-                                            <div key={index} className="result-card">
-                                                <span className="result-rank">#{index + 1}</span>
-                                                <div className="result-function">{strategy.functions.join(' + ')}</div>
-                                                <div className="result-stats">
-                                                    <div className="stat-row">
-                                                        <span className="stat-label">Win Rate:</span>
-                                                        <span className={`stat-value ${strategy.win_rate >= 50 ? 'positive' : 'negative'}`}>
-                                                            {strategy.win_rate.toFixed(1)}%
-                                                        </span>
-                                                    </div>
-                                                    <div className="stat-row">
-                                                        <span className="stat-label">Total P&L:</span>
-                                                        <span className={`stat-value ${strategy.total_pnl >= 0 ? 'positive' : 'negative'}`}>
-                                                            ${strategy.total_pnl.toFixed(2)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="stat-row">
-                                                        <span className="stat-label">Trades:</span>
-                                                        <span className="stat-value">{strategy.total_trades}</span>
-                                                    </div>
-                                                    <div className="stat-row">
-                                                        <span className="stat-label">Fitness:</span>
-                                                        <span className="stat-value">{strategy.fitness.toFixed(2)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="sandbox-card">
-                                    <h2 className="card-title">💡 AI Insights</h2>
-                                    <div className="insights-section">
-                                        <div className="insight-title">What the AI Learned:</div>
-                                        {results.insights?.map((insight, index) => (
-                                            <div key={index} className="insight-item">
-                                                <div className="insight-text">{insight}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Load Bokeh Script */}
+            <script src="https://cdn.bokeh.org/bokeh/release/bokeh-2.4.3.min.js"></script>
         </div>
+        </div>
+        </div>  
     );
-}
+};
+
+export default SnowAISandbox;
