@@ -546,7 +546,7 @@ const styles = `
 }
 `;
 
-export default function SnowAISandboxV2() {
+export default function SnowAISandbox() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
     const [activeTab, setActiveTab] = useState('run'); // 'run' or 'results'
