@@ -1,1325 +1,1167 @@
+import React, { useState, useEffect } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import React, { useState, useEffect } from "react";
-import { Search, Filter, TrendingUp, TrendingDown, BarChart3, Calendar, DollarSign, Activity, Play, Pause, Save, Eye, X, CheckSquare, Square } from "lucide-react";
 
-const SnowAISandbox = () => {
+const styles = `
+.sandbox-wrapper {
+    padding: 20px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    min-height: 100vh;
+}
+
+.sandbox-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+    padding: 50px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 60px rgba(59, 130, 246, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.sandbox-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.sandbox-header h1 {
+    margin: 0 0 15px 0;
+    font-size: 42px;
+    font-weight: 800;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.sandbox-header p {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.7;
+    opacity: 0.95;
+    position: relative;
+    z-index: 1;
+}
+
+.main-grid {
+    display: grid;
+    gap: 25px;
+    grid-template-columns: 1fr;
+}
+
+.sandbox-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 35px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.sandbox-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 48px rgba(59, 130, 246, 0.25);
+}
+
+.card-title {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 25px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-label {
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.input-field, .select-field {
+    padding: 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: all 0.3s;
+    background: white;
+}
+
+.input-field:focus, .select-field:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.function-selector {
+    background: #f8fafc;
+    padding: 25px;
+    border-radius: 16px;
+    border: 2px solid #e2e8f0;
+}
+
+.function-selector-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.function-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.function-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: white;
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.function-checkbox:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.function-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.function-checkbox.checked {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.function-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 16px 32px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    flex: 1;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.status-banner {
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: 600;
+}
+
+.status-running {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.status-completed {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.status-error {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.progress-container {
+    margin: 25px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 35px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 25px;
+}
+
+.result-card {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s;
+}
+
+.result-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.result-id {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.result-date {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.result-metrics {
+    display: grid;
+    gap: 12px;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.metric-label {
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.metric-value {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.metric-positive { color: #10b981; }
+.metric-negative { color: #ef4444; }
+.metric-neutral { color: #3b82f6; }
+
+.view-details-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.3s;
+}
+
+.view-details-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    max-width: 1200px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 30px;
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.bokeh-plot-container {
+    width: 100%;
+    margin: 25px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.search-filter-section {
+    background: #f8fafc;
+    padding: 25px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.search-input {
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    width: 100%;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state-text {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.tab-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.tab-button {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.tab-button.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+.tab-button:hover {
+    color: #3b82f6;
+}
+
+@media (max-width: 768px) {
+    .sandbox-wrapper {
+        padding: 10px;
+    }
+    
+    .sandbox-header {
+        padding: 30px 20px;
+    }
+    
+    .sandbox-header h1 {
+        font-size: 32px;
+    }
+    
+    .sandbox-card {
+        padding: 20px;
+    }
+    
+    .section-grid,
+    .function-grid,
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+}
+`;
+
+export default function SnowAISandboxV2() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     
-    // State management
-    const [activeTab, setActiveTab] = useState('create'); // create, results, scheduled
-    const [availableFunctions, setAvailableFunctions] = useState([]);
-    const [selectedFunctions, setSelectedFunctions] = useState([]);
-    const [sessionId, setSessionId] = useState(null);
-    const [sessionStatus, setSessionStatus] = useState(null);
-    const [logs, setLogs] = useState([]);
-    const [results, setResults] = useState([]);
-    const [filteredResults, setFilteredResults] = useState([]);
-    const [selectedStrategy, setSelectedStrategy] = useState(null);
-    const [bokehPlot, setBokehPlot] = useState(null);
+    const [activeTab, setActiveTab] = useState('run'); // 'run' or 'results'
     
-    // Filters
+    // Configuration state
+    const [config, setConfig] = useState({
+        asset_symbol: 'AAPL',
+        timeframe: '1d',
+        start_year: 2020,
+        end_year: 2024,
+        initial_capital: 10000,
+        take_profit: 4.0,
+        stop_loss: 2.0,
+        selected_functions: []
+    });
+    
+    // Available functions
+    const availableFunctions = [
+        'is_uptrend',
+        'is_downtrend',
+        'is_ranging_market',
+        'is_bullish_market_retracement',
+        'is_bearish_market_retracement',
+        'is_resistance_level',
+        'is_support_level',
+        'buy_hold',
+        'sell_hold',
+        'is_stable_market'
+    ];
+    
+    // Training state
+    const [isRunning, setIsRunning] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [status, setStatus] = useState('');
+    const [sessionId, setSessionId] = useState(null);
+    const [currentResult, setCurrentResult] = useState(null);
+    
+    // Results state
+    const [savedResults, setSavedResults] = useState([]);
+    const [filteredResults, setFilteredResults] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterAsset, setFilterAsset] = useState('');
     const [filterTimeframe, setFilterTimeframe] = useState('');
-    const [filterMinWinRate, setFilterMinWinRate] = useState('');
     
-    // Configuration
-    const [config, setConfig] = useState({
-        asset_symbol: 'BTCUSD',
-        timeframe: '1h',
-        initial_equity: 10000,
-        max_iterations: 50,
-        population_size: 20,
-        take_profit: 4.0,
-        stop_loss: 2.0,
-    });
-
-    // Load available functions on mount
+    // Modal state
+    const [selectedResultDetail, setSelectedResultDetail] = useState(null);
+    
     useEffect(() => {
-        loadAvailableFunctions();
-        if (activeTab === 'results') {
-            loadResults();
-        }
-    }, [activeTab]);
-
-    // Poll session status
-    useEffect(() => {
-        if (sessionId && sessionStatus?.status !== 'completed' && sessionStatus?.status !== 'failed') {
-            const interval = setInterval(() => {
-                pollSessionStatus();
-            }, 2000);
-            return () => clearInterval(interval);
-        }
-    }, [sessionId, sessionStatus]);
-
-    // Filter results
+        loadSavedResults();
+    }, []);
+    
     useEffect(() => {
         filterResults();
-    }, [results, searchTerm, filterAsset, filterTimeframe, filterMinWinRate]);
-
-    // Initialize Bokeh when plot data changes
-    useEffect(() => {
-        if (bokehPlot && window.Bokeh) {
-            try {
-                const plotId = `bokeh-plot-${Date.now()}`;
-                const plotElement = document.getElementById('bokeh-plot-container');
-                if (plotElement) {
-                    plotElement.innerHTML = `<div id="${plotId}"></div>`;
-                    window.Bokeh.embed.embed_item(bokehPlot, plotId);
-                }
-            } catch (error) {
-                console.error('Bokeh plot error:', error);
+    }, [savedResults, searchTerm, filterAsset, filterTimeframe]);
+    
+    const loadSavedResults = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai-backtest/results/`);
+            const data = await response.json();
+            if (data.results) {
+                setSavedResults(data.results);
             }
-        }
-    }, [bokehPlot]);
-
-    const loadAvailableFunctions = async () => {
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai/functions/`);
-            const data = await response.json();
-            setAvailableFunctions(data.functions || []);
-        } catch (error) {
-            console.error('Error loading functions:', error);
-        }
-    };
-
-    const loadResults = async () => {
-        try {
-            const params = new URLSearchParams();
-            if (filterAsset) params.append('asset', filterAsset);
-            if (filterTimeframe) params.append('timeframe', filterTimeframe);
-            if (filterMinWinRate) params.append('min_win_rate', filterMinWinRate);
-            
-            const response = await fetch(`${baseUrl}/api/snowai/results/?${params}`);
-            const data = await response.json();
-            setResults(data.results || []);
         } catch (error) {
             console.error('Error loading results:', error);
         }
     };
-
+    
     const filterResults = () => {
-        let filtered = [...results];
+        let filtered = savedResults;
         
         if (searchTerm) {
             filtered = filtered.filter(r => 
+                r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 r.asset_symbol.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
         
+        if (filterAsset) {
+            filtered = filtered.filter(r => r.asset_symbol === filterAsset);
+        }
+        
+        if (filterTimeframe) {
+            filtered = filtered.filter(r => r.timeframe === filterTimeframe);
+        }
+        
         setFilteredResults(filtered);
     };
-
+    
+    const toggleFunction = (funcName) => {
+        setConfig(prev => ({
+            ...prev,
+            selected_functions: prev.selected_functions.includes(funcName)
+                ? prev.selected_functions.filter(f => f !== funcName)
+                : [...prev.selected_functions, funcName]
+        }));
+    };
+    
     const startBacktest = async () => {
-        if (selectedFunctions.length === 0) {
-            alert('Please select at least one function');
+        if (config.selected_functions.length === 0) {
+            alert('Please select at least one trading function');
             return;
         }
-
+        
+        setIsRunning(true);
+        setProgress(0);
+        setStatus('Initializing backtest...');
+        setCurrentResult(null);
+        
         try {
-            const response = await fetch(`${baseUrl}/api/snowai/start/`, {
+            const response = await fetch(`${baseUrl}/api/snowai-backtest/run/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...config,
-                    selected_functions: selectedFunctions,
-                })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
             });
-
+            
             const data = await response.json();
+            
             if (data.session_id) {
                 setSessionId(data.session_id);
-                setLogs([{ timestamp: new Date().toLocaleTimeString(), level: 'info', message: '🚀 Starting backtest...' }]);
+                pollBacktestStatus(data.session_id);
+            } else {
+                setStatus('Error: ' + (data.error || 'Failed to start backtest'));
+                setIsRunning(false);
             }
         } catch (error) {
-            console.error('Error starting backtest:', error);
+            setStatus('Error: ' + error.message);
+            setIsRunning(false);
         }
     };
-
-    const pollSessionStatus = async () => {
-        if (!sessionId) return;
-
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai/status/${sessionId}/`);
-            const data = await response.json();
-            setSessionStatus(data);
-            
-            if (data.logs && data.logs.length > 0) {
-                setLogs(prev => [...prev, ...data.logs]);
-            }
-        } catch (error) {
-            console.error('Error polling status:', error);
-        }
-    };
-
-    const viewStrategyDetail = async (resultId) => {
-        try {
-            const response = await fetch(`${baseUrl}/api/snowai/strategy/${resultId}/`);
-            const data = await response.json();
-            setSelectedStrategy(data);
-            
-            if (data.plot_json) {
-                try {
-                    setBokehPlot(JSON.parse(data.plot_json));
-                } catch (e) {
-                    console.error('Error parsing plot JSON:', e);
+    
+    const pollBacktestStatus = async (id) => {
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch(`${baseUrl}/api/snowai-backtest/status/${id}/`);
+                const data = await response.json();
+                
+                setProgress(data.progress || 0);
+                setStatus(data.status || '');
+                
+                if (data.completed) {
+                    clearInterval(interval);
+                    setIsRunning(false);
+                    setCurrentResult(data.result);
+                    loadSavedResults(); // Refresh results list
                 }
+                
+                if (data.error) {
+                    clearInterval(interval);
+                    setIsRunning(false);
+                    setStatus('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
             }
+        }, 1000);
+    };
+    
+    const loadBokehPlot = (plotJson, containerId) => {
+        if (!plotJson || !window.Bokeh) return;
+        
+        try {
+            const plotData = typeof plotJson === 'string' ? JSON.parse(plotJson) : plotJson;
+            window.Bokeh.embed.embed_item(plotData, containerId);
         } catch (error) {
-            console.error('Error loading strategy:', error);
+            console.error('Error loading Bokeh plot:', error);
         }
     };
-
-    const toggleFunctionSelection = (funcId) => {
-        setSelectedFunctions(prev => 
-            prev.includes(funcId)
-                ? prev.filter(id => id !== funcId)
-                : [...prev, funcId]
-        );
+    
+    const openResultDetail = (result) => {
+        setSelectedResultDetail(result);
+        setTimeout(() => {
+            if (result.plot_json) {
+                loadBokehPlot(result.plot_json, 'modal-bokeh-plot');
+            }
+        }, 100);
     };
-
-    const selectAllInCategory = (category) => {
-        const categoryFuncs = availableFunctions
-            .filter(f => f.category === category)
-            .map(f => f.function_id);
-        
-        const allSelected = categoryFuncs.every(id => selectedFunctions.includes(id));
-        
-        if (allSelected) {
-            setSelectedFunctions(prev => prev.filter(id => !categoryFuncs.includes(id)));
-        } else {
-            setSelectedFunctions(prev => [...new Set([...prev, ...categoryFuncs])]);
-        }
-    };
-
-    // Group functions by category
-    const functionsByCategory = availableFunctions.reduce((acc, func) => {
-        if (!acc[func.category]) acc[func.category] = [];
-        acc[func.category].push(func);
-        return acc;
-    }, {});
-
-    const categoryLabels = {
-        'trend': 'Trend Detection',
-        'retracement': 'Retracement Signals',
-        'support_resistance': 'Support & Resistance',
-        'market_condition': 'Market Conditions',
-        'hold_strategy': 'Hold Strategies',
-    };
-
+    
+    const uniqueAssets = [...new Set(savedResults.map(r => r.asset_symbol))];
+    const uniqueTimeframes = [...new Set(savedResults.map(r => r.timeframe))];
+    
     return (
         <div>
+            <style>{styles}</style>
             <div className="header">
                 <Header />
             </div>
             <div className="main-page-body">
                 <SideNavs />
-        <div style={{ padding: '20px', background: '#f0f4ff', minHeight: '100vh' }}>
-            {/* Header */}
-            <div style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                color: 'white',
-                padding: '40px',
-                borderRadius: '16px',
-                marginBottom: '30px',
-                boxShadow: '0 10px 40px rgba(59, 130, 246, 0.3)',
-            }}>
-                <h1 style={{ margin: '0 0 10px 0', fontSize: '36px', fontWeight: '700' }}>
-                    ❄️ SnowAI Sandbox V2
-                </h1>
-                <p style={{ margin: 0, fontSize: '16px', opacity: 0.95 }}>
-                    Advanced AI-powered backtesting with function selection, asset testing, and comprehensive analytics
-                </p>
-            </div>
-
-            {/* Tabs */}
-            <div style={{ 
-                display: 'flex', 
-                gap: '10px', 
-                marginBottom: '30px',
-                flexWrap: 'wrap',
-            }}>
-                {[
-                    { id: 'create', label: '🚀 Create Backtest', icon: Play },
-                    { id: 'results', label: '📊 View Results', icon: BarChart3 },
-                    { id: 'scheduled', label: '📅 Scheduled Tests', icon: Calendar },
-                ].map(tab => {
-                    const Icon = tab.icon;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            style={{
-                                padding: '12px 24px',
-                                border: 'none',
-                                borderRadius: '12px',
-                                fontSize: '16px',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                background: activeTab === tab.id 
-                                    ? 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)'
-                                    : 'white',
-                                color: activeTab === tab.id ? 'white' : '#1e40af',
-                                boxShadow: activeTab === tab.id 
-                                    ? '0 4px 12px rgba(59, 130, 246, 0.3)'
-                                    : '0 2px 8px rgba(0, 0, 0, 0.08)',
-                                transition: 'all 0.3s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                            }}
-                        >
-                            <Icon size={18} />
-                            {tab.label}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* CREATE BACKTEST TAB */}
-            {activeTab === 'create' && (
-                <>
-                    {/* Configuration Card */}
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '16px',
-                        padding: '30px',
-                        marginBottom: '30px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                        border: '2px solid #dbeafe',
-                    }}>
-                        <h2 style={{ 
-                            fontSize: '20px', 
-                            fontWeight: '700', 
-                            color: '#1e40af', 
-                            marginBottom: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                        }}>
-                            <Activity size={20} />
-                            Backtest Configuration
-                        </h2>
-
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                            gap: '20px',
-                        }}>
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Asset Symbol
-                                </label>
-                                <input
-                                    type="text"
-                                    value={config.asset_symbol}
-                                    onChange={(e) => setConfig({...config, asset_symbol: e.target.value})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                    placeholder="e.g., BTCUSD, AAPL, EURUSD"
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Timeframe
-                                </label>
-                                <select
-                                    value={config.timeframe}
-                                    onChange={(e) => setConfig({...config, timeframe: e.target.value})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                >
-                                    <option value="1m">1 Minute</option>
-                                    <option value="5m">5 Minutes</option>
-                                    <option value="15m">15 Minutes</option>
-                                    <option value="30m">30 Minutes</option>
-                                    <option value="1h">1 Hour</option>
-                                    <option value="4h">4 Hours</option>
-                                    <option value="1d">1 Day</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Initial Equity ($)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={config.initial_equity}
-                                    onChange={(e) => setConfig({...config, initial_equity: parseFloat(e.target.value)})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Max Iterations
-                                </label>
-                                <input
-                                    type="number"
-                                    value={config.max_iterations}
-                                    onChange={(e) => setConfig({...config, max_iterations: parseInt(e.target.value)})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Population Size
-                                </label>
-                                <input
-                                    type="number"
-                                    value={config.population_size}
-                                    onChange={(e) => setConfig({...config, population_size: parseInt(e.target.value)})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Take Profit (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    value={config.take_profit}
-                                    onChange={(e) => setConfig({...config, take_profit: parseFloat(e.target.value)})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Stop Loss (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    value={config.stop_loss}
-                                    onChange={(e) => setConfig({...config, stop_loss: parseFloat(e.target.value)})}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
+                <div className="main-body-info">
+                    <div className="sandbox-wrapper">
+                        
+                        <div className="sandbox-header">
+                            <h1>❄️ SnowAI Sandbox v2</h1>
+                            <p>Advanced AI-powered backtesting with Backtesting.py - Select your functions, configure parameters, and discover winning strategies</p>
                         </div>
-                    </div>
-
-                    {/* Function Selection Card */}
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '16px',
-                        padding: '30px',
-                        marginBottom: '30px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                        border: '2px solid #dbeafe',
-                    }}>
-                        <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            marginBottom: '20px',
-                        }}>
-                            <h2 style={{ 
-                                fontSize: '20px', 
-                                fontWeight: '700', 
-                                color: '#1e40af',
-                                margin: 0,
-                            }}>
-                                🎯 Select Trading Functions
-                            </h2>
-                            <div style={{
-                                background: '#eff6ff',
-                                padding: '8px 16px',
-                                borderRadius: '20px',
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: '#1e40af',
-                            }}>
-                                {selectedFunctions.length} Selected
-                            </div>
+                        
+                        <div className="tab-navigation">
+                            <button 
+                                className={`tab-button ${activeTab === 'run' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('run')}
+                            >
+                                🚀 Run Backtest
+                            </button>
+                            <button 
+                                className={`tab-button ${activeTab === 'results' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('results')}
+                            >
+                                📊 Saved Results ({savedResults.length})
+                            </button>
                         </div>
-
-                        {Object.entries(functionsByCategory).map(([category, functions]) => (
-                            <div key={category} style={{
-                                marginBottom: '20px',
-                                padding: '20px',
-                                background: '#f9fafb',
-                                borderRadius: '12px',
-                                border: '1px solid #e5e7eb',
-                            }}>
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    marginBottom: '15px',
-                                }}>
-                                    <h3 style={{
-                                        fontSize: '16px',
-                                        fontWeight: '700',
-                                        color: '#374151',
-                                        margin: 0,
-                                    }}>
-                                        {categoryLabels[category] || category}
-                                    </h3>
-                                    <button
-                                        onClick={() => selectAllInCategory(category)}
-                                        style={{
-                                            padding: '6px 12px',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            fontSize: '12px',
-                                            fontWeight: '600',
-                                            background: '#e5e7eb',
-                                            color: '#374151',
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        Toggle All
-                                    </button>
-                                </div>
-
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                    gap: '12px',
-                                }}>
-                                    {functions.map(func => {
-                                        const isSelected = selectedFunctions.includes(func.function_id);
-                                        return (
-                                            <div
-                                                key={func.function_id}
-                                                onClick={() => toggleFunctionSelection(func.function_id)}
-                                                style={{
-                                                    padding: '12px',
-                                                    background: isSelected ? '#dbeafe' : 'white',
-                                                    border: `2px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}`,
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    display: 'flex',
-                                                    alignItems: 'flex-start',
-                                                    gap: '10px',
-                                                }}
+                        
+                        {activeTab === 'run' && (
+                            <>
+                                <div className="sandbox-card">
+                                    <h2 className="card-title">⚙️ Backtest Configuration</h2>
+                                    
+                                    <div className="section-grid">
+                                        <div className="input-group">
+                                            <label className="input-label">📈 Asset Symbol</label>
+                                            <input
+                                                type="text"
+                                                className="input-field"
+                                                value={config.asset_symbol}
+                                                onChange={(e) => setConfig({...config, asset_symbol: e.target.value.toUpperCase()})}
+                                                placeholder="AAPL, TSLA, BTC-USD..."
+                                            />
+                                        </div>
+                                        
+                                        <div className="input-group">
+                                            <label className="input-label">⏱️ Timeframe</label>
+                                            <select
+                                                className="select-field"
+                                                value={config.timeframe}
+                                                onChange={(e) => setConfig({...config, timeframe: e.target.value})}
                                             >
-                                                {isSelected ? (
-                                                    <CheckSquare size={20} style={{ color: '#3b82f6', flexShrink: 0, marginTop: '2px' }} />
-                                                ) : (
-                                                    <Square size={20} style={{ color: '#9ca3af', flexShrink: 0, marginTop: '2px' }} />
-                                                )}
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{
-                                                        fontSize: '14px',
-                                                        fontWeight: '600',
-                                                        color: isSelected ? '#1e40af' : '#374151',
-                                                        marginBottom: '4px',
-                                                    }}>
-                                                        {func.function_name}
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: '12px',
-                                                        color: '#6b7280',
-                                                        lineHeight: '1.4',
-                                                    }}>
-                                                        {func.description}
-                                                    </div>
+                                                <option value="1m">1 Minute</option>
+                                                <option value="5m">5 Minutes</option>
+                                                <option value="15m">15 Minutes</option>
+                                                <option value="1h">1 Hour</option>
+                                                <option value="1d">1 Day</option>
+                                                <option value="1wk">1 Week</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="input-group">
+                                            <label className="input-label">📅 Start Year</label>
+                                            <input
+                                                type="number"
+                                                className="input-field"
+                                                value={config.start_year}
+                                                onChange={(e) => setConfig({...config, start_year: parseInt(e.target.value)})}
+                                            />
+                                        </div>
+                                        
+                                        <div className="input-group">
+                                            <label className="input-label">📅 End Year</label>
+                                            <input
+                                                type="number"
+                                                className="input-field"
+                                                value={config.end_year}
+                                                onChange={(e) => setConfig({...config, end_year: parseInt(e.target.value)})}
+                                            />
+                                        </div>
+                                        
+                                        <div className="input-group">
+                                            <label className="input-label">💰 Initial Capital ($)</label>
+                                            <input
+                                                type="number"
+                                                className="input-field"
+                                                value={config.initial_capital}
+                                                onChange={(e) => setConfig({...config, initial_capital: parseFloat(e.target.value)})}
+                                            />
+                                        </div>
+                                        
+                                        <div className="input-group">
+                                            <label className="input-label">🎯 Take Profit (%)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                className="input-field"
+                                                value={config.take_profit}
+                                                onChange={(e) => setConfig({...config, take_profit: parseFloat(e.target.value)})}
+                                            />
+                                        </div>
+                                        
+                                        <div className="input-group">
+                                            <label className="input-label">🛑 Stop Loss (%)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                className="input-field"
+                                                value={config.stop_loss}
+                                                onChange={(e) => setConfig({...config, stop_loss: parseFloat(e.target.value)})}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="sandbox-card">
+                                    <h2 className="card-title">🎯 Select Trading Functions</h2>
+                                    
+                                    <div className="function-selector">
+                                        <div className="function-selector-title">
+                                            ✨ Choose functions for entry/exit signals
+                                            <span style={{fontSize: '14px', fontWeight: 'normal', color: '#64748b', marginLeft: '10px'}}>
+                                                ({config.selected_functions.length} selected)
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="function-grid">
+                                            {availableFunctions.map(func => (
+                                                <div 
+                                                    key={func}
+                                                    className={`function-checkbox ${config.selected_functions.includes(func) ? 'checked' : ''}`}
+                                                    onClick={() => toggleFunction(func)}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.selected_functions.includes(func)}
+                                                        onChange={() => {}}
+                                                    />
+                                                    <label className="function-label">{func}</label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="action-buttons">
+                                        <button 
+                                            className="btn btn-primary"
+                                            onClick={startBacktest}
+                                            disabled={isRunning || config.selected_functions.length === 0}
+                                        >
+                                            {isRunning ? '🔄 Running...' : '🚀 Start Backtest'}
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {isRunning && (
+                                    <div className="sandbox-card">
+                                        <div className="status-banner status-running">
+                                            <span style={{fontSize: '24px'}}>⚡</span>
+                                            <span>{status}</span>
+                                        </div>
+                                        
+                                        <div className="progress-container">
+                                            <div className="progress-bar">
+                                                <div className="progress-fill" style={{width: `${progress}%`}}>
+                                                    {progress}%
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
-
-                        <button
-                            onClick={startBacktest}
-                            disabled={selectedFunctions.length === 0 || sessionStatus?.status === 'running'}
-                            style={{
-                                width: '100%',
-                                padding: '16px',
-                                background: selectedFunctions.length === 0 || sessionStatus?.status === 'running'
-                                    ? '#9ca3af'
-                                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '12px',
-                                fontSize: '18px',
-                                fontWeight: '700',
-                                cursor: selectedFunctions.length === 0 || sessionStatus?.status === 'running' ? 'not-allowed' : 'pointer',
-                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '10px',
-                            }}
-                        >
-                            <Play size={20} />
-                            {sessionStatus?.status === 'running' ? 'Training in Progress...' : 'Start AI Training'}
-                        </button>
-                    </div>
-
-                    {/* Training Progress */}
-                    {sessionId && sessionStatus && (
-                        <div style={{
-                            background: 'white',
-                            borderRadius: '16px',
-                            padding: '30px',
-                            marginBottom: '30px',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                            border: '2px solid #dbeafe',
-                        }}>
-                            <h2 style={{ 
-                                fontSize: '20px', 
-                                fontWeight: '700', 
-                                color: '#1e40af', 
-                                marginBottom: '20px',
-                            }}>
-                                📊 Training Progress
-                            </h2>
-
-                            {/* Progress Bar */}
-                            <div style={{
-                                width: '100%',
-                                height: '30px',
-                                background: '#dbeafe',
-                                borderRadius: '15px',
-                                overflow: 'hidden',
-                                marginBottom: '20px',
-                            }}>
-                                <div style={{
-                                    height: '100%',
-                                    width: `${sessionStatus.progress}%`,
-                                    background: 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'white',
-                                    fontWeight: '700',
-                                    fontSize: '14px',
-                                    transition: 'width 0.5s ease',
-                                }}>
-                                    {sessionStatus.progress}%
-                                </div>
-                            </div>
-
-                            {/* Status Info */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                                gap: '15px',
-                                marginBottom: '20px',
-                            }}>
-                                <div style={{
-                                    background: 'white',
-                                    padding: '15px',
-                                    borderRadius: '8px',
-                                    textAlign: 'center',
-                                    border: '1px solid #dbeafe',
-                                }}>
-                                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Status</div>
-                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
-                                        {sessionStatus.status}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {currentResult && (
+                                    <div className="sandbox-card">
+                                        <div className="status-banner status-completed">
+                                            <span style={{fontSize: '24px'}}>✅</span>
+                                            <span>Backtest Completed Successfully!</span>
+                                        </div>
+                                        
+                                        <h2 className="card-title">📊 Results</h2>
+                                        
+                                        <div className="result-metrics">
+                                            <div className="metric-row">
+                                                <span className="metric-label">Total Return:</span>
+                                                <span className={`metric-value ${parseFloat(currentResult.return_percent) >= 0 ? 'metric-positive' : 'metric-negative'}`}>
+                                                    {parseFloat(currentResult.return_percent).toFixed(2)}%
+                                                </span>
+                                            </div>
+                                            <div className="metric-row">
+                                                <span className="metric-label">Win Rate:</span>
+                                                <span className={`metric-value ${parseFloat(currentResult.win_rate) >= 50 ? 'metric-positive' : 'metric-negative'}`}>
+                                                    {parseFloat(currentResult.win_rate).toFixed(2)}%
+                                                </span>
+                                            </div>
+                                            <div className="metric-row">
+                                                <span className="metric-label">Total Trades:</span>
+                                                <span className="metric-value metric-neutral">
+                                                    {currentResult.num_trades}
+                                                </span>
+                                            </div>
+                                            <div className="metric-row">
+                                                <span className="metric-label">Sharpe Ratio:</span>
+                                                <span className="metric-value metric-neutral">
+                                                    {parseFloat(currentResult.sharpe_ratio).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {currentResult.plot_json && (
+                                            <div className="bokeh-plot-container" id="current-bokeh-plot"></div>
+                                        )}
+                                        
+                                        <button 
+                                            className="btn btn-secondary"
+                                            onClick={() => {
+                                                if (currentResult.plot_json) {
+                                                    setTimeout(() => loadBokehPlot(currentResult.plot_json, 'current-bokeh-plot'), 100);
+                                                }
+                                            }}
+                                        >
+                                            📈 Load Chart
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        
+                        {activeTab === 'results' && (
+                            <>
+                                <div className="sandbox-card">
+                                    <h2 className="card-title">🔍 Search & Filter Results</h2>
+                                    
+                                    <div className="search-filter-section">
+                                        <div className="filter-grid">
+                                            <input
+                                                type="text"
+                                                className="search-input"
+                                                placeholder="🔍 Search by ID or symbol..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                            />
+                                            
+                                            <select
+                                                className="select-field"
+                                                value={filterAsset}
+                                                onChange={(e) => setFilterAsset(e.target.value)}
+                                            >
+                                                <option value="">All Assets</option>
+                                                {uniqueAssets.map(asset => (
+                                                    <option key={asset} value={asset}>{asset}</option>
+                                                ))}
+                                            </select>
+                                            
+                                            <select
+                                                className="select-field"
+                                                value={filterTimeframe}
+                                                onChange={(e) => setFilterTimeframe(e.target.value)}
+                                            >
+                                                <option value="">All Timeframes</option>
+                                                {uniqueTimeframes.map(tf => (
+                                                    <option key={tf} value={tf}>{tf}</option>
+                                                ))}
+                                            </select>
+                                            
+                                            <button 
+                                                className="btn btn-secondary"
+                                                onClick={() => {
+                                                    setSearchTerm('');
+                                                    setFilterAsset('');
+                                                    setFilterTimeframe('');
+                                                }}
+                                            >
+                                                🔄 Reset Filters
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{
-                                    background: 'white',
-                                    padding: '15px',
-                                    borderRadius: '8px',
-                                    textAlign: 'center',
-                                    border: '1px solid #dbeafe',
-                                }}>
-                                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Iteration</div>
-                                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>
-                                        {sessionStatus.current_iteration}
+                                
+                                {filteredResults.length === 0 ? (
+                                    <div className="sandbox-card">
+                                        <div className="empty-state">
+                                            <div className="empty-state-icon">📊</div>
+                                            <div className="empty-state-text">No results found</div>
+                                            <p style={{color: '#94a3b8', marginTop: '10px'}}>
+                                                {savedResults.length === 0 
+                                                    ? 'Run your first backtest to see results here' 
+                                                    : 'Try adjusting your filters'}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div style={{
-                                    background: 'white',
-                                    padding: '15px',
-                                    borderRadius: '8px',
-                                    textAlign: 'center',
-                                    border: '1px solid #dbeafe',
-                                }}>
-                                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>Asset</div>
-                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#3b82f6' }}>
-                                        {config.asset_symbol}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Logs */}
-                            <div style={{
-                                maxHeight: '300px',
-                                overflowY: 'auto',
-                                background: '#1e293b',
-                                color: '#10b981',
-                                padding: '20px',
-                                borderRadius: '12px',
-                                fontFamily: 'monospace',
-                                fontSize: '13px',
-                                lineHeight: '1.8',
-                            }}>
-                                {logs.map((log, index) => (
-                                    <div key={index} style={{ marginBottom: '8px' }}>
-                                        <span style={{ color: '#60a5fa', marginRight: '10px' }}>
-                                            [{log.timestamp}]
-                                        </span>
-                                        <span>{log.message}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Top Strategies */}
-                            {sessionStatus.strategies && sessionStatus.strategies.length > 0 && (
-                                <div style={{ marginTop: '30px' }}>
-                                    <h3 style={{ 
-                                        fontSize: '18px', 
-                                        fontWeight: '700', 
-                                        color: '#1e40af',
-                                        marginBottom: '15px',
-                                    }}>
-                                        🏆 Top Strategies
-                                    </h3>
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                                        gap: '15px',
-                                    }}>
-                                        {sessionStatus.strategies.slice(0, 5).map((strategy, index) => (
-                                            <div key={strategy.result_id} style={{
-                                                background: '#f9fafb',
-                                                padding: '20px',
-                                                borderRadius: '12px',
-                                                border: '2px solid #dbeafe',
-                                            }}>
-                                                <div style={{
-                                                    display: 'inline-block',
-                                                    padding: '6px 12px',
-                                                    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                                                    color: 'white',
-                                                    borderRadius: '20px',
-                                                    fontWeight: '700',
-                                                    fontSize: '14px',
-                                                    marginBottom: '15px',
-                                                }}>
-                                                    #{index + 1}
+                                ) : (
+                                    <div className="results-grid">
+                                        {filteredResults.map(result => (
+                                            <div key={result.id} className="result-card">
+                                                <div className="result-header">
+                                                    <div className="result-id">
+                                                        ID: {result.id.substring(0, 8)}...
+                                                    </div>
+                                                    <div className="result-date">
+                                                        {new Date(result.created_at).toLocaleDateString()}
+                                                    </div>
                                                 </div>
-                                                <div style={{ fontSize: '14px', marginBottom: '10px' }}>
-                                                    <strong>Buy:</strong> {strategy.buy_functions.join(', ')}
+                                                
+                                                <div style={{marginBottom: '15px'}}>
+                                                    <div style={{fontSize: '18px', fontWeight: '700', color: '#1e293b', marginBottom: '5px'}}>
+                                                        {result.asset_symbol}
+                                                    </div>
+                                                    <div style={{fontSize: '14px', color: '#64748b'}}>
+                                                        {result.timeframe} | {result.start_year} - {result.end_year}
+                                                    </div>
                                                 </div>
-                                                <div style={{ fontSize: '14px', marginBottom: '10px' }}>
-                                                    <strong>Sell:</strong> {strategy.sell_functions.join(', ')}
+                                                
+                                                <div className="result-metrics">
+                                                    <div className="metric-row">
+                                                        <span className="metric-label">Return:</span>
+                                                        <span className={`metric-value ${parseFloat(result.return_percent) >= 0 ? 'metric-positive' : 'metric-negative'}`}>
+                                                            {parseFloat(result.return_percent).toFixed(2)}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="metric-row">
+                                                        <span className="metric-label">Win Rate:</span>
+                                                        <span className={`metric-value ${parseFloat(result.win_rate) >= 50 ? 'metric-positive' : 'metric-negative'}`}>
+                                                            {parseFloat(result.win_rate).toFixed(2)}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="metric-row">
+                                                        <span className="metric-label">Trades:</span>
+                                                        <span className="metric-value metric-neutral">
+                                                            {result.num_trades}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    fontSize: '14px',
-                                                    marginTop: '10px',
-                                                }}>
-                                                    <span>Win Rate:</span>
-                                                    <span style={{ 
-                                                        fontWeight: '700', 
-                                                        color: strategy.win_rate >= 50 ? '#10b981' : '#ef4444'
-                                                    }}>
-                                                        {strategy.win_rate.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    fontSize: '14px',
-                                                }}>
-                                                    <span>P&L:</span>
-                                                    <span style={{ 
-                                                        fontWeight: '700', 
-                                                        color: strategy.total_pnl >= 0 ? '#10b981' : '#ef4444'
-                                                    }}>
-                                                        ${strategy.total_pnl.toFixed(2)}
-                                                    </span>
-                                                </div>
-                                                <button
-                                                    onClick={() => viewStrategyDetail(strategy.result_id)}
-                                                    style={{
-                                                        width: '100%',
-                                                        marginTop: '15px',
-                                                        padding: '10px',
-                                                        background: '#3b82f6',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        borderRadius: '8px',
-                                                        cursor: 'pointer',
-                                                        fontWeight: '600',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '8px',
-                                                    }}
+                                                
+                                                <button 
+                                                    className="view-details-btn"
+                                                    onClick={() => openResultDetail(result)}
                                                 >
-                                                    <Eye size={16} />
-                                                    View Details
+                                                    📊 View Full Details
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* RESULTS TAB */}
-            {activeTab === 'results' && (
-                <>
-                    {/* Filters */}
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '16px',
-                        padding: '30px',
-                        marginBottom: '30px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                        border: '2px solid #dbeafe',
-                    }}>
-                        <h2 style={{ 
-                            fontSize: '20px', 
-                            fontWeight: '700', 
-                            color: '#1e40af', 
-                            marginBottom: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                        }}>
-                            <Filter size={20} />
-                            Filter Results
-                        </h2>
-
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: '15px',
-                        }}>
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Search Asset
-                                </label>
-                                <div style={{ position: 'relative' }}>
-                                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search..."
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px 12px 12px 40px',
-                                            border: '2px solid #dbeafe',
-                                            borderRadius: '8px',
-                                            fontSize: '14px',
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Timeframe
-                                </label>
-                                <select
-                                    value={filterTimeframe}
-                                    onChange={(e) => setFilterTimeframe(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                >
-                                    <option value="">All Timeframes</option>
-                                    <option value="1m">1 Minute</option>
-                                    <option value="5m">5 Minutes</option>
-                                    <option value="15m">15 Minutes</option>
-                                    <option value="1h">1 Hour</option>
-                                    <option value="4h">4 Hours</option>
-                                    <option value="1d">1 Day</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                    Min Win Rate (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={filterMinWinRate}
-                                    onChange={(e) => setFilterMinWinRate(e.target.value)}
-                                    placeholder="e.g., 50"
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid #dbeafe',
-                                        borderRadius: '8px',
-                                        fontSize: '14px',
-                                    }}
-                                />
-                            </div>
-
-                            <button
-                                onClick={loadResults}
-                                style={{
-                                    padding: '12px 24px',
-                                    background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    alignSelf: 'flex-end',
-                                }}
-                            >
-                                Apply Filters
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Results Grid */}
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '16px',
-                        padding: '30px',
-                        marginBottom: '30px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                        border: '2px solid #dbeafe',
-                    }}>
-                        <h2 style={{ 
-                            fontSize: '20px', 
-                            fontWeight: '700', 
-                            color: '#1e40af', 
-                            marginBottom: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                        }}>
-                            <BarChart3 size={20} />
-                            Backtest Results ({filteredResults.length})
-                        </h2>
-
-                        {filteredResults.length === 0 ? (
-                            <div style={{
-                                padding: '60px',
-                                textAlign: 'center',
-                                color: '#6b7280',
-                            }}>
-                                <BarChart3 size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
-                                <p style={{ fontSize: '18px', fontWeight: '600' }}>No results found</p>
-                                <p style={{ fontSize: '14px' }}>Try adjusting your filters or create a new backtest</p>
-                            </div>
-                        ) : (
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                                gap: '20px',
-                            }}>
-                                {filteredResults.map(result => (
-                                    <div key={result.session_id} style={{
-                                        background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                                        padding: '24px',
-                                        borderRadius: '12px',
-                                        border: '2px solid #e5e7eb',
-                                        transition: 'all 0.3s',
-                                        cursor: 'pointer',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = '#3b82f6';
-                                        e.currentTarget.style.transform = 'translateY(-4px)';
-                                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.2)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = '#e5e7eb';
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = 'none';
-                                    }}>
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            marginBottom: '15px',
-                                        }}>
-                                            <h3 style={{
-                                                fontSize: '20px',
-                                                fontWeight: '700',
-                                                color: '#1e40af',
-                                                margin: 0,
-                                            }}>
-                                                {result.asset_symbol}
-                                            </h3>
-                                            <span style={{
-                                                padding: '4px 12px',
-                                                background: '#dbeafe',
-                                                color: '#1e40af',
-                                                borderRadius: '12px',
-                                                fontSize: '12px',
-                                                fontWeight: '600',
-                                            }}>
-                                                {result.timeframe}
-                                            </span>
+                                )}
+                            </>
+                        )}
+                        
+                        {selectedResultDetail && (
+                            <div className="modal-overlay" onClick={() => setSelectedResultDetail(null)}>
+                                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                    <div className="modal-header">
+                                        <div className="modal-title">
+                                            📊 Backtest Results - {selectedResultDetail.asset_symbol}
                                         </div>
-
-                                        <div style={{ marginBottom: '15px' }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                fontSize: '14px',
-                                                marginBottom: '8px',
-                                            }}>
-                                                <span style={{ color: '#6b7280' }}>Win Rate:</span>
-                                                <span style={{
-                                                    fontWeight: '700',
-                                                    color: result.best_win_rate >= 50 ? '#10b981' : '#ef4444',
-                                                }}>
-                                                    {result.best_win_rate.toFixed(1)}%
-                                                </span>
-                                            </div>
-
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                fontSize: '14px',
-                                                marginBottom: '8px',
-                                            }}>
-                                                <span style={{ color: '#6b7280' }}>P&L:</span>
-                                                <span style={{
-                                                    fontWeight: '700',
-                                                    color: result.best_pnl >= 0 ? '#10b981' : '#ef4444',
-                                                }}>
-                                                    ${result.best_pnl.toFixed(2)}
-                                                </span>
-                                            </div>
-
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                fontSize: '14px',
-                                                marginBottom: '8px',
-                                            }}>
-                                                <span style={{ color: '#6b7280' }}>Trades:</span>
-                                                <span style={{ fontWeight: '700', color: '#1e40af' }}>
-                                                    {result.total_trades}
-                                                </span>
-                                            </div>
-
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                fontSize: '14px',
-                                            }}>
-                                                <span style={{ color: '#6b7280' }}>Fitness:</span>
-                                                <span style={{ fontWeight: '700', color: '#1e40af' }}>
-                                                    {result.best_fitness.toFixed(2)}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div style={{
-                                            fontSize: '12px',
-                                            color: '#9ca3af',
-                                            marginBottom: '15px',
-                                        }}>
-                                            {new Date(result.created_at).toLocaleString()}
-                                        </div>
-
-                                        <button
-                                            onClick={() => {
-                                                // Find first strategy for this session
-                                                if (sessionStatus?.strategies) {
-                                                    const strategy = sessionStatus.strategies[0];
-                                                    if (strategy) {
-                                                        viewStrategyDetail(strategy.result_id);
-                                                    }
-                                                }
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px',
-                                                background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '700',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '8px',
-                                            }}
+                                        <button 
+                                            className="modal-close"
+                                            onClick={() => setSelectedResultDetail(null)}
                                         >
-                                            <Eye size={16} />
-                                            View Details
+                                            ×
                                         </button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
-
-            {/* SCHEDULED TAB */}
-            {activeTab === 'scheduled' && (
-                <div style={{
-                    background: 'white',
-                    borderRadius: '16px',
-                    padding: '30px',
-                    marginBottom: '30px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                    border: '2px solid #dbeafe',
-                }}>
-                    <h2 style={{ 
-                        fontSize: '20px', 
-                        fontWeight: '700', 
-                        color: '#1e40af', 
-                        marginBottom: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                    }}>
-                        <Calendar size={20} />
-                        Scheduled Backtests
-                    </h2>
-                    <div style={{
-                        padding: '60px',
-                        textAlign: 'center',
-                        color: '#6b7280',
-                    }}>
-                        <Calendar size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
-                        <p style={{ fontSize: '18px', fontWeight: '600' }}>Scheduled Backtests Coming Soon</p>
-                        <p style={{ fontSize: '14px' }}>Set up automated backtests to run daily, weekly, or monthly</p>
-                    </div>
-                </div>
-            )}
-
-            {/* STRATEGY DETAIL MODAL */}
-            {selectedStrategy && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    padding: '20px',
-                    overflowY: 'auto',
-                }}
-                onClick={() => {
-                    setSelectedStrategy(null);
-                    setBokehPlot(null);
-                }}>
-                    <div 
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: 'white',
-                            borderRadius: '16px',
-                            padding: '30px',
-                            maxWidth: '1200px',
-                            width: '100%',
-                            maxHeight: '90vh',
-                            overflowY: 'auto',
-                            position: 'relative',
-                        }}>
-                        <button
-                            onClick={() => {
-                                setSelectedStrategy(null);
-                                setBokehPlot(null);
-                            }}
-                            style={{
-                                position: 'absolute',
-                                top: '20px',
-                                right: '20px',
-                                background: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '40px',
-                                height: '40px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                fontSize: '20px',
-                                fontWeight: '700',
-                            }}
-                        >
-                            <X size={20} />
-                        </button>
-
-                        <h2 style={{
-                            fontSize: '24px',
-                            fontWeight: '700',
-                            color: '#1e40af',
-                            marginBottom: '30px',
-                        }}>
-                            Strategy Details
-                        </h2>
-
-                        {/* Functions Used */}
-                        <div style={{ marginBottom: '30px' }}>
-                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#374151', marginBottom: '15px' }}>
-                                🎯 Buy Functions
-                            </h3>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
-                                {selectedStrategy.buy_functions.map(func => (
-                                    <span key={func.id} style={{
-                                        padding: '8px 16px',
-                                        background: '#dbeafe',
-                                        color: '#1e40af',
-                                        borderRadius: '20px',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                    }}>
-                                        {func.name}
-                                    </span>
-                                ))}
-                            </div>
-
-                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#374151', marginBottom: '15px' }}>
-                                🎯 Sell Functions
-                            </h3>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                                {selectedStrategy.sell_functions.map(func => (
-                                    <span key={func.id} style={{
-                                        padding: '8px 16px',
-                                        background: '#fee2e2',
-                                        color: '#dc2626',
-                                        borderRadius: '20px',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                    }}>
-                                        {func.name}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Metrics Grid */}
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: '20px',
-                            marginBottom: '30px',
-                        }}>
-                            {[
-                                { label: 'Fitness Score', value: selectedStrategy.fitness_score.toFixed(2), icon: TrendingUp },
-                                { label: 'Win Rate', value: `${selectedStrategy.win_rate.toFixed(1)}%`, icon: Activity, color: selectedStrategy.win_rate >= 50 ? '#10b981' : '#ef4444' },
-                                { label: 'Total P&L', value: `${selectedStrategy.total_pnl.toFixed(2)}`, icon: DollarSign, color: selectedStrategy.total_pnl >= 0 ? '#10b981' : '#ef4444' },
-                                { label: 'Total Trades', value: selectedStrategy.total_trades, icon: BarChart3 },
-                                { label: 'Winning Trades', value: selectedStrategy.winning_trades, icon: TrendingUp, color: '#10b981' },
-                                { label: 'Losing Trades', value: selectedStrategy.losing_trades, icon: TrendingDown, color: '#ef4444' },
-                                { label: 'Sharpe Ratio', value: selectedStrategy.sharpe_ratio?.toFixed(2) || 'N/A', icon: Activity },
-                                { label: 'Max Drawdown', value: selectedStrategy.max_drawdown ? `${selectedStrategy.max_drawdown.toFixed(2)}%` : 'N/A', icon: TrendingDown, color: '#ef4444' },
-                            ].map((metric, idx) => {
-                                const Icon = metric.icon;
-                                return (
-                                    <div key={idx} style={{
-                                        background: '#f9fafb',
-                                        padding: '20px',
-                                        borderRadius: '12px',
-                                        border: '2px solid #e5e7eb',
-                                    }}>
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '10px',
-                                            marginBottom: '10px',
-                                        }}>
-                                            <Icon size={20} style={{ color: '#6b7280' }} />
-                                            <span style={{ fontSize: '14px', color: '#6b7280' }}>{metric.label}</span>
+                                    
+                                    <div className="modal-body">
+                                        <div style={{marginBottom: '25px'}}>
+                                            <h3 style={{marginBottom: '10px', color: '#1e293b'}}>Configuration</h3>
+                                            <div style={{background: '#f8fafc', padding: '15px', borderRadius: '10px'}}>
+                                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '14px'}}>
+                                                    <div><strong>Asset:</strong> {selectedResultDetail.asset_symbol}</div>
+                                                    <div><strong>Timeframe:</strong> {selectedResultDetail.timeframe}</div>
+                                                    <div><strong>Period:</strong> {selectedResultDetail.start_year} - {selectedResultDetail.end_year}</div>
+                                                    <div><strong>Initial Capital:</strong> ${selectedResultDetail.initial_capital}</div>
+                                                    <div><strong>Take Profit:</strong> {selectedResultDetail.take_profit}%</div>
+                                                    <div><strong>Stop Loss:</strong> {selectedResultDetail.stop_loss}%</div>
+                                                </div>
+                                                <div style={{marginTop: '15px'}}>
+                                                    <strong>Functions Used:</strong>
+                                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px'}}>
+                                                        {JSON.parse(selectedResultDetail.selected_functions).map(func => (
+                                                            <span key={func} style={{background: '#3b82f6', color: 'white', padding: '4px 12px', borderRadius: '6px', fontSize: '12px'}}>
+                                                                {func}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div style={{
-                                            fontSize: '24px',
-                                            fontWeight: '700',
-                                            color: metric.color || '#1e40af',
-                                        }}>
-                                            {metric.value}
+                                        
+                                        <div style={{marginBottom: '25px'}}>
+                                            <h3 style={{marginBottom: '15px', color: '#1e293b'}}>Performance Metrics</h3>
+                                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px'}}>
+                                                {[
+                                                    {label: 'Total Return', value: `${parseFloat(selectedResultDetail.return_percent).toFixed(2)}%`, type: parseFloat(selectedResultDetail.return_percent) >= 0 ? 'positive' : 'negative'},
+                                                    {label: 'Annual Return', value: `${parseFloat(selectedResultDetail.annual_return).toFixed(2)}%`, type: 'neutral'},
+                                                    {label: 'Buy & Hold Return', value: `${parseFloat(selectedResultDetail.buy_hold_return).toFixed(2)}%`, type: 'neutral'},
+                                                    {label: 'Sharpe Ratio', value: parseFloat(selectedResultDetail.sharpe_ratio).toFixed(2), type: 'neutral'},
+                                                    {label: 'Sortino Ratio', value: parseFloat(selectedResultDetail.sortino_ratio).toFixed(2), type: 'neutral'},
+                                                    {label: 'Max Drawdown', value: `${parseFloat(selectedResultDetail.max_drawdown).toFixed(2)}%`, type: 'negative'},
+                                                    {label: 'Win Rate', value: `${parseFloat(selectedResultDetail.win_rate).toFixed(2)}%`, type: parseFloat(selectedResultDetail.win_rate) >= 50 ? 'positive' : 'negative'},
+                                                    {label: 'Total Trades', value: selectedResultDetail.num_trades, type: 'neutral'},
+                                                    {label: 'Best Trade', value: `${parseFloat(selectedResultDetail.best_trade).toFixed(2)}%`, type: 'positive'},
+                                                    {label: 'Worst Trade', value: `${parseFloat(selectedResultDetail.worst_trade).toFixed(2)}%`, type: 'negative'},
+                                                    {label: 'Profit Factor', value: parseFloat(selectedResultDetail.profit_factor).toFixed(2), type: 'neutral'},
+                                                    {label: 'Expectancy', value: `${parseFloat(selectedResultDetail.expectancy).toFixed(2)}%`, type: 'neutral'}
+                                                ].map(metric => (
+                                                    <div key={metric.label} style={{background: '#f8fafc', padding: '15px', borderRadius: '10px'}}>
+                                                        <div style={{fontSize: '12px', color: '#64748b', marginBottom: '5px'}}>{metric.label}</div>
+                                                        <div className={`metric-value metric-${metric.type}`} style={{fontSize: '20px'}}>
+                                                            {metric.value}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
+                                        
+                                        {selectedResultDetail.plot_json && (
+                                            <div>
+                                                <h3 style={{marginBottom: '15px', color: '#1e293b'}}>Equity Curve</h3>
+                                                <div className="bokeh-plot-container" id="modal-bokeh-plot"></div>
+                                            </div>
+                                        )}
                                     </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Bokeh Plot */}
-                        {bokehPlot && (
-                            <div style={{ marginTop: '30px' }}>
-                                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#374151', marginBottom: '15px' }}>
-                                    📈 Equity Curve
-                                </h3>
-                                <div 
-                                    id="bokeh-plot-container"
-                                    style={{
-                                        width: '100%',
-                                        minHeight: '400px',
-                                        background: '#f9fafb',
-                                        borderRadius: '12px',
-                                        padding: '20px',
-                                    }}
-                                />
+                                </div>
                             </div>
                         )}
+                        
                     </div>
                 </div>
-            )}
-
-            {/* Load Bokeh Script */}
+            </div>
             <script src="https://cdn.bokeh.org/bokeh/release/bokeh-2.4.3.min.js"></script>
+            <script src="https://cdn.bokeh.org/bokeh/release/bokeh-widgets-2.4.3.min.js"></script>
+            <script src="https://cdn.bokeh.org/bokeh/release/bokeh-tables-2.4.3.min.js"></script>
         </div>
-        </div>
-        </div>  
     );
-};
-
-export default SnowAISandbox;
+}
