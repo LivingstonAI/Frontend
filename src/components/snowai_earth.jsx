@@ -7,7 +7,7 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function CIAMacroIntel() {
+export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
@@ -534,23 +534,26 @@ export default function CIAMacroIntel() {
         setIsVideoPlaying(false);
     };
 
+    
     const handleLauraQuery = async () => {
         if (!lauraInput.trim() && !selectedImage) return;
         
         setLauraLoading(true);
         setLauraError('');
         
+        // Store the current input BEFORE clearing it
+        const currentInput = lauraInput;
+        const currentImage = selectedImage;
+        
+        // Add user message to chat
         const userMessage = { 
             role: 'user', 
-            content: lauraInput,
+            content: currentInput,
             image: imagePreview 
         };
         setLauraMessages(prev => [...prev, userMessage]);
         
-        const currentInput = lauraInput;
-        const currentImage = selectedImage;
-        
-        // Clear input immediately
+        // NOW clear the input fields
         setLauraInput('');
         setSelectedImage(null);
         setImagePreview(null);
