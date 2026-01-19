@@ -46,6 +46,7 @@ export default function SnowAIEarth() {
     const [availableVoices, setAvailableVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const messagesEndRef = useRef(null);
 
     const globeThemes = {
         'night-ops': {
@@ -274,6 +275,13 @@ export default function SnowAIEarth() {
         }
 
         const svg = d3.select(svgRef.current);
+        const existingContent = svg.selectAll("g").size();
+        
+        // Only redraw if no content exists
+        if (existingContent > 0) {
+            return;
+        }
+        
         svg.selectAll("*").remove();
 
         const container = mapContainerRef.current;
@@ -328,6 +336,7 @@ export default function SnowAIEarth() {
                     .attr("stroke-width", 0.5);
             })
             .on("click", function(event, d) {
+                event.stopPropagation();
                 const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
                 handleCountryClick({ name: countryName });
             });
@@ -352,6 +361,7 @@ export default function SnowAIEarth() {
             .style("cursor", "pointer")
             .style("filter", "drop-shadow(0 0 6px rgba(37, 99, 235, 0.8))")
             .on("click", function(event, d) {
+                event.stopPropagation();
                 handleCountryClick(d);
             })
             .append("title")
@@ -540,9 +550,13 @@ export default function SnowAIEarth() {
         const currentInput = lauraInput;
         const currentImage = selectedImage;
         
+        // Clear input immediately
         setLauraInput('');
         setSelectedImage(null);
         setImagePreview(null);
+        
+        // Scroll to bottom after adding user message
+        setTimeout(() => scrollToBottom(), 100);
         
         try {
             // Build context from stored economic analysis
@@ -603,6 +617,7 @@ export default function SnowAIEarth() {
                 content: '⚠️ CRITICAL ERROR: Intelligence network unreachable. Retry connection or contact system administrator.'
             }]);
             setLauraLoading(false);
+            setTimeout(() => scrollToBottom(), 100);
         }
     };
     
@@ -640,7 +655,12 @@ export default function SnowAIEarth() {
             }]);
         } finally {
             setLauraLoading(false);
+            setTimeout(() => scrollToBottom(), 100);
         }
+    };
+    
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const handleGeopoliticalSearch = async () => {
@@ -1056,6 +1076,8 @@ export default function SnowAIEarth() {
                                 </div>
                             </div>
                         )}
+                        
+                        <div ref={messagesEndRef} />
                     </div>
                     
                     <div style={styles.lauraInputContainer}>
@@ -1109,14 +1131,21 @@ export default function SnowAIEarth() {
                         <textarea
                             placeholder="Query Laura about economic data, trends, or country analyses..."
                             value={lauraInput}
-                            onChange={(e) => setLauraInput(e.target.value)}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                setLauraInput(e.target.value);
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    !lauraLoading && handleLauraQuery();
+                                    e.stopPropagation();
+                                    if (!lauraLoading) {
+                                        handleLauraQuery();
+                                    }
                                 }
                             }}
                             style={styles.lauraInput}
+                            rows={1}
                         />
                         <div style={styles.lauraButtonContainer}>
                             <button
@@ -1497,7 +1526,7 @@ export default function SnowAIEarth() {
         },
         lauraInput: {
             width: '100%',
-            padding: isMobile ? '8px 12px' : '10px 14px',
+            padding: isMobile ? '6px 10px' : '8px 12px',
             background: '#312e81',
             border: '1px solid #7c3aed',
             borderRadius: '6px',
@@ -1505,9 +1534,9 @@ export default function SnowAIEarth() {
             fontSize: isMobile ? '13px' : '14px',
             outline: 'none',
             resize: 'none',
-            minHeight: isMobile ? '36px' : '40px',
-            maxHeight: '80px',
-            fontFamily: 'inherit'
+            height: isMobile ? '32px' : '36px',
+            fontFamily: 'inherit',
+            lineHeight: '1.4'
         },
         imageUploadContainer: {
             display: 'flex',
