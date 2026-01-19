@@ -7,7 +7,1258 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-const styles = {
+export default function SnowAIEarth() {
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+    const [view3D, setView3D] = useState(true);
+    const [selectedCountry, setSelectedCountry] = useState('');
+    const [countries, setCountries] = useState([]);
+    const [worldData, setWorldData] = useState({ features: [] });
+    const [globeTheme, setGlobeTheme] = useState('night-ops');
+    const [isMobile, setIsMobile] = useState(false);
+    const [geoJsonData, setGeoJsonData] = useState(null);
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+    const [economicAnalysis, setEconomicAnalysis] = useState({});
+    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [clickedCountry, setClickedCountry] = useState('');
+    const svgRef = useRef();
+    const globeRef = useRef();
+    const mapContainerRef = useRef();
+    const zoomRef = useRef();
+    const [searchCountry, setSearchCountry] = useState('');
+    const [autoRotate, setAutoRotate] = useState(true);
+    const [intelStatus, setIntelStatus] = useState('STANDBY');
+    const [threatLevel] = useState('MODERATE');
+    const [showMediaCenter, setShowMediaCenter] = useState(false);
+    const [videoUrl, setVideoUrl] = useState('');
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [showLaura, setShowLaura] = useState(false);
+    const [lauraMessages, setLauraMessages] = useState([]);
+    const [lauraInput, setLauraInput] = useState('');
+    const [lauraLoading, setLauraLoading] = useState(false);
+    const [lauraError, setLauraError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [availableVoices, setAvailableVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    const globeThemes = {
+        'night-ops': {
+            name: 'NIGHT OPS',
+            globeImage: "//unpkg.com/three-globe/example/img/earth-night.jpg",
+            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
+            background: "//unpkg.com/three-globe/example/img/night-sky.png"
+        },
+        'satellite': {
+            name: 'SATELLITE',
+            globeImage: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
+            background: "//unpkg.com/three-globe/example/img/night-sky.png"
+        },
+        'recon': {
+            name: 'RECON',
+            globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
+            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
+            background: "//unpkg.com/three-globe/example/img/night-sky.png"
+        }
+    };
+    
+    const countryData = [
+        // United States - Major Centers
+        { name: 'Washington D.C.', lat: 38.9072, lng: -77.0369, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Political/Military' },
+        { name: 'New York', lat: 40.7128, lng: -74.0060, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
+        { name: 'San Francisco', lat: 37.7749, lng: -122.4194, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
+        { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Economic' },
+        { name: 'Chicago', lat: 41.8781, lng: -87.6298, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
+        
+        // China - Major Centers
+        { name: 'Beijing', lat: 39.9042, lng: 116.4074, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Political/Military' },
+        { name: 'Shanghai', lat: 31.2304, lng: 121.4737, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
+        { name: 'Shenzhen', lat: 22.5431, lng: 114.0579, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Tech/Economic' },
+        { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
+        
+        // Europe - Major Centers
+        { name: 'London', lat: 51.5074, lng: -0.1278, color: '#2563eb', iso: 'GB', threat: 'LOW', type: 'Financial' },
+        { name: 'Frankfurt', lat: 50.1109, lng: 8.6821, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Financial' },
+        { name: 'Paris', lat: 48.8566, lng: 2.3522, color: '#3b82f6', iso: 'FR', threat: 'LOW', type: 'Political/Economic' },
+        { name: 'Brussels', lat: 50.8503, lng: 4.3517, color: '#3b82f6', iso: 'BE', threat: 'LOW', type: 'Political/Diplomatic' },
+        { name: 'Geneva', lat: 46.2044, lng: 6.1432, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Diplomatic' },
+        { name: 'Zurich', lat: 47.3769, lng: 8.5417, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Financial' },
+        { name: 'Berlin', lat: 52.5200, lng: 13.4050, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Political' },
+        { name: 'Amsterdam', lat: 52.3676, lng: 4.9041, color: '#3b82f6', iso: 'NL', threat: 'LOW', type: 'Financial' },
+        
+        // Asia-Pacific
+        { name: 'Tokyo', lat: 35.6762, lng: 139.6503, color: '#3b82f6', iso: 'JP', threat: 'LOW', type: 'Economic/Financial' },
+        { name: 'Singapore', lat: 1.3521, lng: 103.8198, color: '#3b82f6', iso: 'SG', threat: 'LOW', type: 'Financial' },
+        { name: 'Seoul', lat: 37.5665, lng: 126.9780, color: '#f59e0b', iso: 'KR', threat: 'MEDIUM', type: 'Tech/Economic' },
+        { name: 'Mumbai', lat: 19.0760, lng: 72.8777, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Financial' },
+        { name: 'New Delhi', lat: 28.6139, lng: 77.2090, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Political' },
+        { name: 'Sydney', lat: -33.8688, lng: 151.2093, color: '#3b82f6', iso: 'AU', threat: 'LOW', type: 'Financial' },
+        { name: 'Dubai', lat: 25.2048, lng: 55.2708, color: '#f59e0b', iso: 'AE', threat: 'MEDIUM', type: 'Financial' },
+        
+        // Russia
+        { name: 'Moscow', lat: 55.7558, lng: 37.6173, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Political/Military' },
+        { name: 'St. Petersburg', lat: 59.9343, lng: 30.3351, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Economic' },
+        
+        // Middle East
+        { name: 'Tel Aviv', lat: 32.0853, lng: 34.7818, color: '#f59e0b', iso: 'IL', threat: 'MEDIUM', type: 'Tech/Military' },
+        { name: 'Riyadh', lat: 24.7136, lng: 46.6753, color: '#f59e0b', iso: 'SA', threat: 'MEDIUM', type: 'Political/Economic' },
+        { name: 'Istanbul', lat: 41.0082, lng: 28.9784, color: '#f59e0b', iso: 'TR', threat: 'MEDIUM', type: 'Economic/Strategic' },
+        
+        // Americas
+        { name: 'Toronto', lat: 43.6532, lng: -79.3832, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Financial' },
+        { name: 'São Paulo', lat: -23.5505, lng: -46.6333, color: '#60a5fa', iso: 'BR', threat: 'MEDIUM', type: 'Economic/Financial' },
+        { name: 'Mexico City', lat: 19.4326, lng: -99.1332, color: '#f59e0b', iso: 'MX', threat: 'MEDIUM', type: 'Political/Economic' },
+        { name: 'Buenos Aires', lat: -34.6037, lng: -58.3816, color: '#60a5fa', iso: 'AR', threat: 'MEDIUM', type: 'Economic' },
+        
+        // Africa
+        { name: 'Johannesburg', lat: -26.2041, lng: 28.0473, color: '#f59e0b', iso: 'ZA', threat: 'MEDIUM', type: 'Economic/Financial' },
+        { name: 'Cairo', lat: 30.0444, lng: 31.2357, color: '#f59e0b', iso: 'EG', threat: 'MEDIUM', type: 'Political/Strategic' },
+        { name: 'Lagos', lat: 6.5244, lng: 3.3792, color: '#f59e0b', iso: 'NG', threat: 'MEDIUM', type: 'Economic' },
+        
+        // Additional Strategic Points
+        { name: 'Vancouver', lat: 49.2827, lng: -123.1207, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Economic' },
+        { name: 'Miami', lat: 25.7617, lng: -80.1918, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
+        { name: 'Boston', lat: 42.3601, lng: -71.0589, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Financial' },
+        { name: 'Seattle', lat: 47.6062, lng: -122.3321, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
+        { name: 'Austin', lat: 30.2672, lng: -97.7431, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech' },
+        { name: 'Taipei', lat: 25.0330, lng: 121.5654, color: '#f59e0b', iso: 'TW', threat: 'MEDIUM', type: 'Tech/Strategic' },
+        { name: 'Bangkok', lat: 13.7563, lng: 100.5018, color: '#f59e0b', iso: 'TH', threat: 'MEDIUM', type: 'Economic' },
+        { name: 'Kuala Lumpur', lat: 3.1390, lng: 101.6869, color: '#f59e0b', iso: 'MY', threat: 'MEDIUM', type: 'Economic' },
+        { name: 'Vienna', lat: 48.2082, lng: 16.3738, color: '#3b82f6', iso: 'AT', threat: 'LOW', type: 'Diplomatic' },
+        { name: 'Stockholm', lat: 59.3293, lng: 18.0686, color: '#3b82f6', iso: 'SE', threat: 'LOW', type: 'Economic/Tech' },
+        { name: 'Copenhagen', lat: 55.6761, lng: 12.5683, color: '#3b82f6', iso: 'DK', threat: 'LOW', type: 'Economic' },
+        { name: 'Oslo', lat: 59.9139, lng: 10.7522, color: '#3b82f6', iso: 'NO', threat: 'LOW', type: 'Economic' },
+        { name: 'Warsaw', lat: 52.2297, lng: 21.0122, color: '#3b82f6', iso: 'PL', threat: 'LOW', type: 'Political/Economic' },
+        { name: 'Prague', lat: 50.0755, lng: 14.4378, color: '#3b82f6', iso: 'CZ', threat: 'LOW', type: 'Economic' },
+        { name: 'Milan', lat: 45.4642, lng: 9.1900, color: '#3b82f6', iso: 'IT', threat: 'LOW', type: 'Economic/Financial' },
+        { name: 'Madrid', lat: 40.4168, lng: -3.7038, color: '#3b82f6', iso: 'ES', threat: 'LOW', type: 'Political/Economic' },
+        { name: 'Lisbon', lat: 38.7223, lng: -9.1393, color: '#3b82f6', iso: 'PT', threat: 'LOW', type: 'Economic' },
+        { name: 'Dublin', lat: 53.3498, lng: -6.2603, color: '#3b82f6', iso: 'IE', threat: 'LOW', type: 'Tech/Financial' },
+        { name: 'Luxembourg', lat: 49.6116, lng: 6.1319, color: '#3b82f6', iso: 'LU', threat: 'LOW', type: 'Financial' },
+        { name: 'Monaco', lat: 43.7384, lng: 7.4246, color: '#3b82f6', iso: 'MC', threat: 'LOW', type: 'Financial' }
+    ];
+
+    useEffect(() => {
+        setCountries(countryData);
+        
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        
+        fetch(geoUrl)
+            .then(res => res.json())
+            .then(data => {
+                setGeoJsonData(data);
+                setWorldData(data);
+            })
+            .catch(err => {
+                console.error('Error loading world data:', err);
+                setWorldData({ features: [] });
+                setGeoJsonData({ features: [] });
+            });
+        
+        // Fetch OpenAI API key
+        fetchDataFromAPI();
+        
+        // Load available voices
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            setAvailableVoices(voices);
+            
+            // Try to load saved voice preference
+            const savedVoiceName = localStorage.getItem('lauraVoice');
+            if (savedVoiceName) {
+                const savedVoice = voices.find(v => v.name === savedVoiceName);
+                if (savedVoice) setSelectedVoice(savedVoice);
+            } else if (voices.length > 0) {
+                setSelectedVoice(voices[0]);
+            }
+        };
+        
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+            
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    const fetchDataFromAPI = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching OpenAI key:", error);
+        }
+    };
+
+    const handleCountrySearch = () => {
+        if (!searchCountry.trim() || !globeRef.current) return;
+        
+        let targetCountry = countryData.find(country => 
+            country.name.toLowerCase().includes(searchCountry.toLowerCase())
+        );
+        
+        if (targetCountry) {
+            globeRef.current.pointOfView({
+                lat: targetCountry.lat,
+                lng: targetCountry.lng,
+                altitude: 2.5
+            }, 2000);
+            
+            setSelectedCountry(targetCountry.name);
+            setSearchCountry('');
+            return;
+        }
+        
+        const foundFeature = worldData.features?.find(feature => {
+            const countryName = feature.properties?.NAME || feature.properties?.name || '';
+            return countryName.toLowerCase().includes(searchCountry.toLowerCase());
+        });
+        
+        if (foundFeature && foundFeature.properties) {
+            const coords = foundFeature.geometry.coordinates;
+            let lat = 0, lng = 0;
+            
+            if (foundFeature.geometry.type === 'Polygon') {
+                const coordArray = coords[0];
+                coordArray.forEach(coord => {
+                    lng += coord[0];
+                    lat += coord[1];
+                });
+                lng /= coordArray.length;
+                lat /= coordArray.length;
+            } else if (foundFeature.geometry.type === 'MultiPolygon') {
+                let totalPoints = 0;
+                coords.forEach(polygon => {
+                    polygon[0].forEach(coord => {
+                        lng += coord[0];
+                        lat += coord[1];
+                        totalPoints++;
+                    });
+                });
+                lng /= totalPoints;
+                lat /= totalPoints;
+            }
+            
+            globeRef.current.pointOfView({
+                lat: lat,
+                lng: lng,
+                altitude: 2.5
+            }, 2000);
+            
+            const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
+            setSelectedCountry(countryName);
+            setSearchCountry('');
+        } else {
+            alert(`TARGET "${searchCountry}" NOT FOUND IN DATABASE. VERIFY INTEL.`);
+        }
+    };
+
+    const drawD3Map = useCallback(() => {
+        if (!geoJsonData || !geoJsonData.features || !svgRef.current || !mapContainerRef.current) {
+            return;
+        }
+
+        const svg = d3.select(svgRef.current);
+        const existingContent = svg.selectAll("g").size();
+        
+        // Only redraw if no content exists
+        if (existingContent > 0) {
+            return;
+        }
+        
+        svg.selectAll("*").remove();
+
+        const container = mapContainerRef.current;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        svg.attr("width", width).attr("height", height);
+
+        const projection = d3.geoNaturalEarth1()
+            .scale(isMobile ? width / 9 : width / 10)
+            .translate([width / 2, height / 2]);
+
+        const path = d3.geoPath().projection(projection);
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 8])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        zoomRef.current = zoom;
+        svg.call(zoom);
+
+        const g = svg.append("g");
+
+        g.append("g")
+            .selectAll("path")
+            .data(geoJsonData.features)
+            .enter()
+            .append("path")
+            .attr("d", path)
+            .attr("fill", d => {
+                const countryName = d.properties?.NAME || d.properties?.name;
+                return selectedCountry === countryName ? "#2563eb" : "#1e293b";
+            })
+            .attr("stroke", "#334155")
+            .attr("stroke-width", 0.5)
+            .style("cursor", "pointer")
+            .on("mouseover", function(event, d) {
+                d3.select(this)
+                    .attr("fill", "#3b82f6")
+                    .attr("stroke-width", 1);
+            })
+            .on("mouseout", function(event, d) {
+                const countryName = d.properties?.NAME || d.properties?.name;
+                d3.select(this)
+                    .attr("fill", selectedCountry === countryName ? "#2563eb" : "#1e293b")
+                    .attr("stroke-width", 0.5);
+            })
+            .on("click", function(event, d) {
+                event.stopPropagation();
+                const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
+                handleCountryClick({ name: countryName });
+            });
+
+        g.append("g")
+            .selectAll("circle")
+            .data(countries)
+            .enter()
+            .append("circle")
+            .attr("cx", d => {
+                const coords = projection([d.lng, d.lat]);
+                return coords ? coords[0] : 0;
+            })
+            .attr("cy", d => {
+                const coords = projection([d.lng, d.lat]);
+                return coords ? coords[1] : 0;
+            })
+            .attr("r", isMobile ? 3 : 4)
+            .attr("fill", d => d.color)
+            .attr("stroke", "#0f172a")
+            .attr("stroke-width", 1.5)
+            .style("cursor", "pointer")
+            .style("filter", "drop-shadow(0 0 6px rgba(37, 99, 235, 0.8))")
+            .on("click", function(event, d) {
+                event.stopPropagation();
+                handleCountryClick(d);
+            })
+            .append("title")
+            .text(d => `${d.name} - THREAT: ${d.threat}\nTYPE: ${d.type}`);
+
+    }, [geoJsonData, isMobile, countries]);
+
+    const resetZoom = () => {
+        if (zoomRef.current && svgRef.current) {
+            d3.select(svgRef.current)
+                .transition()
+                .duration(750)
+                .call(zoomRef.current.transform, d3.zoomIdentity);
+        }
+    };
+
+    useEffect(() => {
+        if (!view3D && geoJsonData) {
+            const timer = setTimeout(() => {
+                drawD3Map();
+            }, 100);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [view3D, geoJsonData, drawD3Map]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (!view3D) {
+                const timer = setTimeout(() => {
+                    drawD3Map();
+                }, 200);
+                return () => clearTimeout(timer);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [view3D, drawD3Map]);
+
+    const fetchEconomicData = async (countryName) => {
+        setLoadingAnalysis(true);
+        try {
+            // Fetch economic data
+            const econResponse = await fetch(`${baseUrl}/api/economic-data-map/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    country_name: countryName
+                })
+            });
+
+            const econData = await econResponse.json();
+            
+            // Get currency code for news data
+            const currencyMap = {
+                'United States': 'USD', 'USA': 'USD', 'US': 'USD',
+                'Canada': 'CAD', 'United Kingdom': 'GBP', 'UK': 'GBP',
+                'Japan': 'JPY', 'Australia': 'AUD', 'Switzerland': 'CHF',
+                'China': 'CNY', 'Brazil': 'BRL', 'Mexico': 'MXN',
+                'South Africa': 'ZAR', 'India': 'INR', 'Russia': 'RUB',
+                'South Korea': 'KRW', 'Sweden': 'SEK', 'Norway': 'NOK',
+                'Germany': 'EUR', 'France': 'EUR', 'Italy': 'EUR', 'Spain': 'EUR'
+            };
+            
+            const currency = currencyMap[countryName] || 'USD';
+            const currencyPair = `${currency}USD`;
+            
+            // Fetch news data
+            let newsData = { message: [] };
+            try {
+                const newsResponse = await fetch(`${baseUrl}/api/fetch_news_data_api/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        assets: [currencyPair],
+                        user_email: 'intel@classified.gov'
+                    })
+                });
+                
+                if (newsResponse.ok) {
+                    newsData = await newsResponse.json();
+                }
+            } catch (newsError) {
+                console.log('News data unavailable:', newsError);
+            }
+            
+            if (econData.success) {
+                const analysisData = {
+                    ...econData,
+                    aiAnalysis: JSON.parse(econData.ai_analysis),
+                    newsData: newsData.message || [],
+                    currencyPair: currencyPair
+                };
+                
+                setEconomicAnalysis(prev => ({
+                    ...prev,
+                    [countryName]: analysisData
+                }));
+                
+                return analysisData;
+            } else {
+                console.error('Failed to fetch economic data:', econData.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching economic data:', error);
+            return null;
+        } finally {
+            setLoadingAnalysis(false);
+        }
+    };
+
+    const handleCountryClick = (country) => {
+        const countryName = typeof country === 'string' ? country : country.name;
+        setClickedCountry(countryName);
+        setSelectedCountry(countryName);
+        setShowConfirmationModal(true);
+        setIntelStatus('QUERYING');
+        // Don't change view - keep the map visible
+    };
+
+    const handleConfirmAnalysis = async () => {
+        setShowConfirmationModal(false);
+        setIntelStatus('ANALYZING');
+        
+        if (!economicAnalysis[clickedCountry]) {
+            await fetchEconomicData(clickedCountry);
+        }
+        
+        setShowAnalysisModal(true);
+        setIntelStatus('ACTIVE');
+    };
+
+    const handleDeclineAnalysis = () => {
+        setShowConfirmationModal(false);
+        setSelectedCountry('');
+        setClickedCountry('');
+        setIntelStatus('STANDBY');
+    };
+
+    const handleCloseAnalysisModal = () => {
+        setShowAnalysisModal(false);
+        setSelectedCountry('');
+        setIntelStatus('STANDBY');
+    };
+
+    const extractYouTubeId = (url) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const handlePlayVideo = () => {
+        const videoId = extractYouTubeId(videoUrl);
+        if (videoId) {
+            setIsVideoPlaying(true);
+        } else {
+            alert('INVALID YOUTUBE URL FORMAT. PLEASE VERIFY INTEL SOURCE.');
+        }
+    };
+
+    const handleCloseMediaCenter = () => {
+        setShowMediaCenter(false);
+        setVideoUrl('');
+        setIsVideoPlaying(false);
+    };
+
+    
+    const handleLauraQuery = async () => {
+        if (!lauraInput.trim() && !selectedImage) return;
+
+        setLauraLoading(true);
+        setLauraError('');
+
+        const currentInput = lauraInput;
+        const currentImage = selectedImage;
+
+        const userMessage = { 
+            role: 'user', 
+            content: currentInput,
+            image: imagePreview 
+        };
+
+        const updatedMessages = [...lauraMessages, userMessage];
+        setLauraMessages(updatedMessages);
+
+        // Build context
+        let context = "Available economic intelligence data:\n\n";
+        Object.entries(economicAnalysis).forEach(([country, data]) => {
+            if (data.has_data) {
+            context += `${country}: ${JSON.stringify(data.aiAnalysis)}\n`;
+            }
+        });
+
+        const messages = [
+            {
+            role: "system",
+            content: `You are Laura, an AI intelligence analyst. Here's the current intelligence:\n\n${context}`
+            },
+            ...updatedMessages.filter(m => !m.image).map(m => ({
+            role: m.role,
+            content: m.content
+            })),
+            {
+            role: "user",
+            content: currentInput || "Analyze this image"
+            }
+        ];
+
+        const requestBody = {
+            model: "gpt-4o-mini",
+            messages,
+            max_tokens: 1000
+        };
+
+        try {
+            if (currentImage) {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64Image = reader.result.split(',')[1];
+                requestBody.messages[requestBody.messages.length - 1] = {
+                role: "user",
+                content: [
+                    { type: "text", text: currentInput || "Analyze this image" },
+                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                ]
+                };
+                await sendToOpenAI(requestBody);
+                setLauraInput(''); // clear AFTER success
+                setSelectedImage(null);
+                setImagePreview(null);
+            };
+            reader.onerror = () => {
+                setLauraError('Image upload failed.');
+                setLauraLoading(false);
+            };
+            reader.readAsDataURL(currentImage);
+            } else {
+            await sendToOpenAI(requestBody);
+            setLauraInput('');
+            setSelectedImage(null);
+            setImagePreview(null);
+            }
+        } catch (error) {
+            setLauraError('Connection to intelligence network failed.');
+            setLauraMessages(prev => [...prev, { role: 'assistant', content: '⚠️ CRITICAL ERROR: Intelligence network unreachable.' }]);
+        } finally {
+            setLauraLoading(false);
+            setTimeout(() => scrollToBottom(), 100);
+        }
+        };
+
+    
+    const sendToOpenAI = async (requestBody) => {
+        try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                setLauraError(data.error.message || 'Intelligence network error. Retry connection.');
+                setLauraMessages(prev => [...prev, { 
+                    role: 'assistant', 
+                    content: '⚠️ NETWORK ERROR: Unable to process query. Please retry.'
+                }]);
+            } else {
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: data.choices[0].message.content
+                };
+                setLauraMessages(prev => [...prev, assistantMessage]);
+            }
+        } catch (error) {
+            setLauraError('OpenAI connection failed.');
+            setLauraMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: '⚠️ ERROR: Failed to connect to OpenAI. Check API key.'
+            }]);
+        } finally {
+            setLauraLoading(false);
+            setTimeout(() => scrollToBottom(), 100);
+        }
+    };
+    
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const handleGeopoliticalSearch = async () => {
+        if (!searchQuery.trim()) return;
+        
+        setSearchLoading(true);
+        setSearchError('');
+        
+        try {
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "anthropic-version": "2023-06-01"
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 2048,
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Search and provide detailed geopolitical analysis on: ${searchQuery}`
+                        }
+                    ],
+                    tools: [
+                        {
+                            type: "web_search_20250305",
+                            name: "web_search"
+                        }
+                    ]
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                setSearchError(data.error.message || 'Search operation failed. Retry query.');
+            } else {
+                const fullResponse = data.content
+                    .map(item => (item.type === "text" ? item.text : ""))
+                    .filter(Boolean)
+                    .join("\n");
+                
+                setLauraMessages(prev => [...prev, 
+                    { role: 'user', content: `🔍 SEARCH QUERY: ${searchQuery}` },
+                    { role: 'assistant', content: fullResponse || 'No intelligence found. Refine search parameters.' }
+                ]);
+                setSearchQuery('');
+                setShowLaura(true);
+            }
+        } catch (error) {
+            setSearchError('Search network offline. Unable to query global intelligence database.');
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleNewLauraConversation = () => {
+        setLauraMessages([{
+            role: 'assistant',
+            content: '🟣 LAURA AI ANALYST ONLINE\n\nClassified intelligence terminal active. I have access to all economic data you\'ve queried. Ask me about geopolitical situations, economic trends, or specific country analyses.'
+        }]);
+        setLauraError('');
+        setSelectedImage(null);
+        setImagePreview(null);
+    };
+    
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleVoiceChange = (e) => {
+        const voiceName = e.target.value;
+        const voice = availableVoices.find(v => v.name === voiceName);
+        setSelectedVoice(voice);
+        localStorage.setItem('lauraVoice', voiceName);
+    };
+    
+    const speakMessage = (text) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            utterance.onstart = () => setIsSpeaking(true);
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utterance);
+        }
+    };
+    
+    const stopSpeaking = () => {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+    };
+
+    const handlePolygonClick = (polygon) => {
+        const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
+        handleCountryClick(countryName);
+    };
+
+    const renderAnalysisModal = () => {
+        const analysis = economicAnalysis[selectedCountry];
+        if (!analysis) return null;
+
+        const aiData = analysis.aiAnalysis;
+        const targetCountry = countries.find(c => c.name === selectedCountry);
+        const newsArticles = analysis.newsData || [];
+
+        return (
+            <div style={styles.analysisModal}>
+                <div style={styles.analysisModalContent}>
+                    <div style={styles.analysisModalHeader}>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                                <Eye size={24} />
+                                <h3 style={styles.analysisModalTitle}>
+                                    INTEL BRIEF: {analysis.country.toUpperCase()}
+                                </h3>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#64748b', letterSpacing: '1px' }}>
+                                CLASSIFICATION: {targetCountry?.threat || 'UNKNOWN'} PRIORITY | PAIR: {analysis.currencyPair}
+                            </div>
+                        </div>
+                        <button 
+                            style={styles.analysisCloseButton}
+                            onClick={handleCloseAnalysisModal}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.analysisModalBody}>
+                        {analysis.has_data ? (
+                            <div>
+                                <div style={styles.threatPanel}>
+                                    <div style={styles.threatHeader}>
+                                        <AlertTriangle size={16} />
+                                        <span>ECONOMIC THREAT ASSESSMENT</span>
+                                    </div>
+                                    <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
+                                        {aiData.overall_sentiment.toUpperCase()}
+                                    </div>
+                                </div>
+
+                                {/* News Intelligence Section */}
+                                {newsArticles.length > 0 && (
+                                    <div style={styles.newsIntelSection}>
+                                        <div style={styles.sectionHeader}>
+                                            <div style={styles.sectionLine} />
+                                            <h4 style={styles.sectionTitle}>
+                                                🔴 LIVE INTELLIGENCE FEED - {analysis.currencyPair}
+                                            </h4>
+                                        </div>
+                                        <div style={styles.newsGrid}>
+                                            {newsArticles.slice(0, 6).map((article, index) => (
+                                                <div key={index} style={styles.newsCard} className="newsCard">
+                                                    <div style={styles.newsHeader}>
+                                                        <span style={styles.newsSource}>{article.source}</span>
+                                                        <span style={styles.newsAsset}>{article.asset}</span>
+                                                    </div>
+                                                    <h5 style={styles.newsTitle}>{article.title}</h5>
+                                                    {article.highlights && (
+                                                        <p style={styles.newsHighlight}>
+                                                            ⚡ {typeof article.highlights === 'string' 
+                                                                ? article.highlights 
+                                                                : JSON.stringify(article.highlights).substring(0, 150) + '...'}
+                                                        </p>
+                                                    )}
+                                                    <a 
+                                                        href={article.url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        style={styles.newsLink}
+                                                        className="newsLink"
+                                                    >
+                                                        ACCESS FULL INTEL →
+                                                    </a>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div style={styles.intelSection}>
+                                    <div style={styles.sectionHeader}>
+                                        <div style={styles.sectionLine} />
+                                        <h4 style={styles.sectionTitle}>EXECUTIVE SUMMARY</h4>
+                                    </div>
+                                    <p style={styles.summaryText}>{aiData.summary}</p>
+                                </div>
+                                
+                                <div style={styles.intelSection}>
+                                    <div style={styles.sectionHeader}>
+                                        <div style={styles.sectionLine} />
+                                        <h4 style={styles.sectionTitle}>KEY INTELLIGENCE</h4>
+                                    </div>
+                                    <div style={styles.highlightsList}>
+                                        {aiData.key_highlights.map((highlight, index) => (
+                                            <div key={index} style={styles.highlightItem}>
+                                                <span style={styles.bulletPoint}>▸</span>
+                                                {highlight}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                {aiData.major_events.length > 0 && (
+                                    <div style={styles.intelSection}>
+                                        <div style={styles.sectionHeader}>
+                                            <div style={styles.sectionLine} />
+                                            <h4 style={styles.sectionTitle}>SIGNIFICANT EVENTS</h4>
+                                        </div>
+                                        {aiData.major_events.map((event, index) => (
+                                            <div key={index} style={styles.eventCard}>
+                                                <div style={styles.eventHeader}>
+                                                    <span style={styles.eventName}>{event.event_name}</span>
+                                                    <span style={styles.impactBadge(event.impact_level)}>
+                                                        {event.impact_level.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <p style={styles.eventSummary}>{event.summary}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                <div style={styles.analysisGrid}>
+                                    {aiData.risk_factors.length > 0 && (
+                                        <div style={styles.riskPanel}>
+                                            <div style={styles.panelHeader}>
+                                                <AlertTriangle size={14} />
+                                                <span>RISK FACTORS</span>
+                                            </div>
+                                            <div style={styles.factorsList}>
+                                                {aiData.risk_factors.map((risk, index) => (
+                                                    <div key={index} style={styles.riskItem}>
+                                                        <span style={styles.riskBullet}>◆</span>
+                                                        {risk}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {aiData.opportunities.length > 0 && (
+                                        <div style={styles.opportunityPanel}>
+                                            <div style={styles.panelHeader}>
+                                                <TrendingUp size={14} />
+                                                <span>OPPORTUNITIES</span>
+                                            </div>
+                                            <div style={styles.factorsList}>
+                                                {aiData.opportunities.map((opportunity, index) => (
+                                                    <div key={index} style={styles.opportunityItem}>
+                                                        <span style={styles.opportunityBullet}>◆</span>
+                                                        {opportunity}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div style={styles.metaInfo}>
+                                    <div style={styles.metaItem}>
+                                        <DollarSign size={12} />
+                                        <span>CURRENCY: {analysis.currency}</span>
+                                    </div>
+                                    <div style={styles.metaSeparator}>|</div>
+                                    <div style={styles.metaItem}>
+                                        <span>PERIOD: {aiData.analysis_period}</span>
+                                    </div>
+                                    <div style={styles.metaSeparator}>|</div>
+                                    <div style={styles.metaItem}>
+                                        <span>CLASSIFIED</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={styles.noDataContainer}>
+                                <div style={styles.noDataIcon}>
+                                    <Shield size={48} color="#475569" />
+                                </div>
+                                <h4 style={styles.noDataTitle}>INSUFFICIENT INTEL</h4>
+                                <p style={styles.noDataMessage}>
+                                    {analysis.message}
+                                </p>
+                                {aiData.summary && (
+                                    <p style={styles.noDataSummary}>
+                                        {aiData.summary}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const LauraModal = () => {
+        return (
+            <div style={styles.lauraModal} onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    setShowLaura(false);
+                }
+            }}>
+                <div style={styles.lauraContent}>
+                    <div style={styles.lauraHeader}>
+                        <h3 style={styles.lauraTitle}>
+                            🟣 LAURA AI ANALYST
+                        </h3>
+                        <button 
+                            style={styles.lauraCloseButton}
+                            onClick={() => setShowLaura(false)}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.lauraMessagesContainer}>
+                        {/* Geopolitical Search Section */}
+                        <div style={styles.searchContainer}>
+                            <div style={styles.searchTitle}>
+                                🔍 GEOPOLITICAL INTELLIGENCE SEARCH
+                            </div>
+                            <div style={styles.searchInputGroup}>
+                                <input
+                                    type="text"
+                                    placeholder="Search global events, conflicts, economic policies..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && !searchLoading && handleGeopoliticalSearch()}
+                                    style={styles.searchInput}
+                                />
+                                <button
+                                    onClick={handleGeopoliticalSearch}
+                                    disabled={searchLoading}
+                                    style={styles.searchButton}
+                                >
+                                    {searchLoading ? 'SEARCHING...' : 'SEARCH'}
+                                </button>
+                            </div>
+                            {searchError && (
+                                <div style={styles.lauraError}>
+                                    ⚠️ {searchError}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Chat Messages */}
+                        {lauraMessages.length === 0 && (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '40px 20px',
+                                color: '#a855f7',
+                                fontSize: isMobile ? '13px' : '14px',
+                                letterSpacing: '1px'
+                            }}>
+                                🟣 LAURA AI ANALYST READY
+                                <br /><br />
+                                Ask me about any country's economic data you've queried,
+                                <br />
+                                or use the search above for live geopolitical intelligence.
+                            </div>
+                        )}
+                        
+                        {lauraMessages.map((msg, idx) => (
+                            <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
+                                <div style={styles.lauraMessageBubble(msg.role === 'user')}>
+                                    {msg.content}
+                                    {msg.image && (
+                                        <img src={msg.image} alt="Uploaded" style={styles.messageImage} />
+                                    )}
+                                </div>
+                                {msg.role === 'assistant' && (
+                                    <button
+                                        style={styles.speakButton}
+                                        onClick={() => isSpeaking ? stopSpeaking() : speakMessage(msg.content)}
+                                    >
+                                        {isSpeaking ? '⏸ STOP' : '🔊 SPEAK'}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        
+                        {lauraLoading && (
+                            <div style={styles.lauraMessage(false)}>
+                                <div style={{
+                                    ...styles.lauraMessageBubble(false),
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
+                                }}>
+                                    <div style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        border: '3px solid rgba(255,255,255,0.3)',
+                                        borderTop: '3px solid #fff',
+                                        borderRadius: '50%',
+                                        animation: 'spin 1s linear infinite'
+                                    }}></div>
+                                    Analyzing intelligence...
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div ref={messagesEndRef} />
+                    </div>
+                    
+                    <div style={styles.lauraInputContainer}>
+                        {lauraError && (
+                            <div style={styles.lauraError}>
+                                ⚠️ {lauraError}
+                            </div>
+                        )}
+                        
+                        {/* Voice Selector and Image Upload */}
+                        <div style={styles.imageUploadContainer}>
+                            <select 
+                                value={selectedVoice?.name || ''} 
+                                onChange={handleVoiceChange}
+                                style={styles.voiceSelector}
+                            >
+                                <option value="">SELECT VOICE</option>
+                                {availableVoices.map((voice, idx) => (
+                                    <option key={idx} value={voice.name}>
+                                        {voice.name} ({voice.lang})
+                                    </option>
+                                ))}
+                            </select>
+                            
+                            <label style={styles.imageUploadButton}>
+                                📷 UPLOAD IMAGE
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+                            
+                            {imagePreview && (
+                                <div style={styles.imagePreviewContainer}>
+                                    <img src={imagePreview} alt="Preview" style={styles.imagePreviewThumb} />
+                                    <button
+                                        style={styles.removeImageButton}
+                                        onClick={() => {
+                                            setSelectedImage(null);
+                                            setImagePreview(null);
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <textarea
+                            placeholder="Query Laura about economic data, trends, or country analyses..."
+                            value={lauraInput}
+                            onChange={(e) => setLauraInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (!lauraLoading) {
+                                        handleLauraQuery();
+                                    }
+                                }
+                            }}
+                            style={styles.lauraInput}
+                        />
+                        <div style={styles.lauraButtonContainer}>
+                            <button
+                                onClick={handleLauraQuery}
+                                disabled={lauraLoading || (!lauraInput.trim() && !selectedImage)}
+                                style={{
+                                    ...styles.lauraSendButton,
+                                    opacity: lauraLoading || (!lauraInput.trim() && !selectedImage) ? 0.5 : 1
+                                }}
+                            >
+                                {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
+                            </button>
+                            <button
+                                onClick={handleNewLauraConversation}
+                                style={styles.lauraNewChatButton}
+                            >
+                                NEW CHAT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const MediaCenterModal = () => {
+        const videoId = isVideoPlaying ? extractYouTubeId(videoUrl) : null;
+        
+        return (
+            <div style={styles.mediaCenterModal} onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    handleCloseMediaCenter();
+                }
+            }}>
+                <div style={styles.mediaCenterContent}>
+                    <div style={styles.mediaCenterHeader}>
+                        <h3 style={styles.mediaCenterTitle}>
+                            <span>📡</span> MEDIA SURVEILLANCE CENTER
+                        </h3>
+                        <button 
+                            style={styles.mediaCloseButton}
+                            onClick={handleCloseMediaCenter}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.mediaWarning}>
+                        ⚠️ CLASSIFIED MEDIA ACCESS - Enter YouTube URL for intelligence briefing playback. All sessions are monitored and logged.
+                    </div>
+                    
+                    {!isVideoPlaying && (
+                        <div style={styles.mediaInputContainer}>
+                            <input
+                                type="text"
+                                placeholder="ENTER YOUTUBE URL (e.g., https://www.youtube.com/watch?v=...)"
+                                value={videoUrl}
+                                onChange={(e) => setVideoUrl(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handlePlayVideo()}
+                                style={styles.mediaInput}
+                            />
+                            <button
+                                onClick={handlePlayVideo}
+                                style={styles.mediaButton}
+                                onMouseEnter={(e) => {
+                                    e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.4)';
+                                }}
+                            >
+                                INITIATE PLAYBACK
+                            </button>
+                        </div>
+                    )}
+                    
+                    {isVideoPlaying && videoId ? (
+                        <div>
+                            <div style={styles.videoContainer}>
+                                <iframe
+                                    key={videoId}
+                                    style={styles.videoIframe}
+                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                                    title="Intelligence Briefing Video"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setIsVideoPlaying(false);
+                                    setVideoUrl('');
+                                }}
+                                style={{
+                                    ...styles.mediaButton,
+                                    marginTop: '15px',
+                                    background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)'
+                                }}
+                            >
+                                TERMINATE PLAYBACK
+                            </button>
+                        </div>
+                    ) : !isVideoPlaying ? (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '40px 20px',
+                            color: '#64748b',
+                            fontSize: isMobile ? '12px' : '14px',
+                            letterSpacing: '1px'
+                        }}>
+                            AWAITING VIDEO INTELLIGENCE SOURCE...
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+        );
+    };
+
+    const styles = {
         container: {
             background: 'linear-gradient(to bottom, #0f1419 0%, #1a1f2e 100%)',
             minHeight: '100vh',
@@ -1157,1262 +2408,6 @@ const styles = {
             gap: '5px',
             transition: 'color 0.3s ease'
         }
-    };
-
-export default function SnowAIEarth() {
-    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
-    const [view3D, setView3D] = useState(true);
-    const [selectedCountry, setSelectedCountry] = useState('');
-    const [countries, setCountries] = useState([]);
-    const [worldData, setWorldData] = useState({ features: [] });
-    const [globeTheme, setGlobeTheme] = useState('night-ops');
-    const [isMobile, setIsMobile] = useState(false);
-    const [geoJsonData, setGeoJsonData] = useState(null);
-    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-    const [economicAnalysis, setEconomicAnalysis] = useState({});
-    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-    const [clickedCountry, setClickedCountry] = useState('');
-    const svgRef = useRef();
-    const globeRef = useRef();
-    const mapContainerRef = useRef();
-    const zoomRef = useRef();
-    const [searchCountry, setSearchCountry] = useState('');
-    const [autoRotate, setAutoRotate] = useState(true);
-    const [intelStatus, setIntelStatus] = useState('STANDBY');
-    const [threatLevel] = useState('MODERATE');
-    const [showMediaCenter, setShowMediaCenter] = useState(false);
-    const [videoUrl, setVideoUrl] = useState('');
-    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-    const [showLaura, setShowLaura] = useState(false);
-    const [lauraMessages, setLauraMessages] = useState([]);
-    const [lauraInput, setLauraInput] = useState('');
-    const [lauraLoading, setLauraLoading] = useState(false);
-    const [lauraError, setLauraError] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchLoading, setSearchLoading] = useState(false);
-    const [searchError, setSearchError] = useState('');
-    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
-    const [selectedImage, setSelectedImage] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
-    const [availableVoices, setAvailableVoices] = useState([]);
-    const [selectedVoice, setSelectedVoice] = useState(null);
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const messagesEndRef = useRef(null);
-
-    const globeThemes = {
-        'night-ops': {
-            name: 'NIGHT OPS',
-            globeImage: "//unpkg.com/three-globe/example/img/earth-night.jpg",
-            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
-            background: "//unpkg.com/three-globe/example/img/night-sky.png"
-        },
-        'satellite': {
-            name: 'SATELLITE',
-            globeImage: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
-            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
-            background: "//unpkg.com/three-globe/example/img/night-sky.png"
-        },
-        'recon': {
-            name: 'RECON',
-            globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
-            bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
-            background: "//unpkg.com/three-globe/example/img/night-sky.png"
-        }
-    };
-    
-    const countryData = [
-        // United States - Major Centers
-        { name: 'Washington D.C.', lat: 38.9072, lng: -77.0369, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Political/Military' },
-        { name: 'New York', lat: 40.7128, lng: -74.0060, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
-        { name: 'San Francisco', lat: 37.7749, lng: -122.4194, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
-        { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Economic' },
-        { name: 'Chicago', lat: 41.8781, lng: -87.6298, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
-        
-        // China - Major Centers
-        { name: 'Beijing', lat: 39.9042, lng: 116.4074, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Political/Military' },
-        { name: 'Shanghai', lat: 31.2304, lng: 121.4737, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
-        { name: 'Shenzhen', lat: 22.5431, lng: 114.0579, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Tech/Economic' },
-        { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
-        
-        // Europe - Major Centers
-        { name: 'London', lat: 51.5074, lng: -0.1278, color: '#2563eb', iso: 'GB', threat: 'LOW', type: 'Financial' },
-        { name: 'Frankfurt', lat: 50.1109, lng: 8.6821, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Financial' },
-        { name: 'Paris', lat: 48.8566, lng: 2.3522, color: '#3b82f6', iso: 'FR', threat: 'LOW', type: 'Political/Economic' },
-        { name: 'Brussels', lat: 50.8503, lng: 4.3517, color: '#3b82f6', iso: 'BE', threat: 'LOW', type: 'Political/Diplomatic' },
-        { name: 'Geneva', lat: 46.2044, lng: 6.1432, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Diplomatic' },
-        { name: 'Zurich', lat: 47.3769, lng: 8.5417, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Financial' },
-        { name: 'Berlin', lat: 52.5200, lng: 13.4050, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Political' },
-        { name: 'Amsterdam', lat: 52.3676, lng: 4.9041, color: '#3b82f6', iso: 'NL', threat: 'LOW', type: 'Financial' },
-        
-        // Asia-Pacific
-        { name: 'Tokyo', lat: 35.6762, lng: 139.6503, color: '#3b82f6', iso: 'JP', threat: 'LOW', type: 'Economic/Financial' },
-        { name: 'Singapore', lat: 1.3521, lng: 103.8198, color: '#3b82f6', iso: 'SG', threat: 'LOW', type: 'Financial' },
-        { name: 'Seoul', lat: 37.5665, lng: 126.9780, color: '#f59e0b', iso: 'KR', threat: 'MEDIUM', type: 'Tech/Economic' },
-        { name: 'Mumbai', lat: 19.0760, lng: 72.8777, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Financial' },
-        { name: 'New Delhi', lat: 28.6139, lng: 77.2090, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Political' },
-        { name: 'Sydney', lat: -33.8688, lng: 151.2093, color: '#3b82f6', iso: 'AU', threat: 'LOW', type: 'Financial' },
-        { name: 'Dubai', lat: 25.2048, lng: 55.2708, color: '#f59e0b', iso: 'AE', threat: 'MEDIUM', type: 'Financial' },
-        
-        // Russia
-        { name: 'Moscow', lat: 55.7558, lng: 37.6173, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Political/Military' },
-        { name: 'St. Petersburg', lat: 59.9343, lng: 30.3351, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Economic' },
-        
-        // Middle East
-        { name: 'Tel Aviv', lat: 32.0853, lng: 34.7818, color: '#f59e0b', iso: 'IL', threat: 'MEDIUM', type: 'Tech/Military' },
-        { name: 'Riyadh', lat: 24.7136, lng: 46.6753, color: '#f59e0b', iso: 'SA', threat: 'MEDIUM', type: 'Political/Economic' },
-        { name: 'Istanbul', lat: 41.0082, lng: 28.9784, color: '#f59e0b', iso: 'TR', threat: 'MEDIUM', type: 'Economic/Strategic' },
-        
-        // Americas
-        { name: 'Toronto', lat: 43.6532, lng: -79.3832, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Financial' },
-        { name: 'São Paulo', lat: -23.5505, lng: -46.6333, color: '#60a5fa', iso: 'BR', threat: 'MEDIUM', type: 'Economic/Financial' },
-        { name: 'Mexico City', lat: 19.4326, lng: -99.1332, color: '#f59e0b', iso: 'MX', threat: 'MEDIUM', type: 'Political/Economic' },
-        { name: 'Buenos Aires', lat: -34.6037, lng: -58.3816, color: '#60a5fa', iso: 'AR', threat: 'MEDIUM', type: 'Economic' },
-        
-        // Africa
-        { name: 'Johannesburg', lat: -26.2041, lng: 28.0473, color: '#f59e0b', iso: 'ZA', threat: 'MEDIUM', type: 'Economic/Financial' },
-        { name: 'Cairo', lat: 30.0444, lng: 31.2357, color: '#f59e0b', iso: 'EG', threat: 'MEDIUM', type: 'Political/Strategic' },
-        { name: 'Lagos', lat: 6.5244, lng: 3.3792, color: '#f59e0b', iso: 'NG', threat: 'MEDIUM', type: 'Economic' },
-        
-        // Additional Strategic Points
-        { name: 'Vancouver', lat: 49.2827, lng: -123.1207, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Economic' },
-        { name: 'Miami', lat: 25.7617, lng: -80.1918, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
-        { name: 'Boston', lat: 42.3601, lng: -71.0589, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Financial' },
-        { name: 'Seattle', lat: 47.6062, lng: -122.3321, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
-        { name: 'Austin', lat: 30.2672, lng: -97.7431, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech' },
-        { name: 'Taipei', lat: 25.0330, lng: 121.5654, color: '#f59e0b', iso: 'TW', threat: 'MEDIUM', type: 'Tech/Strategic' },
-        { name: 'Bangkok', lat: 13.7563, lng: 100.5018, color: '#f59e0b', iso: 'TH', threat: 'MEDIUM', type: 'Economic' },
-        { name: 'Kuala Lumpur', lat: 3.1390, lng: 101.6869, color: '#f59e0b', iso: 'MY', threat: 'MEDIUM', type: 'Economic' },
-        { name: 'Vienna', lat: 48.2082, lng: 16.3738, color: '#3b82f6', iso: 'AT', threat: 'LOW', type: 'Diplomatic' },
-        { name: 'Stockholm', lat: 59.3293, lng: 18.0686, color: '#3b82f6', iso: 'SE', threat: 'LOW', type: 'Economic/Tech' },
-        { name: 'Copenhagen', lat: 55.6761, lng: 12.5683, color: '#3b82f6', iso: 'DK', threat: 'LOW', type: 'Economic' },
-        { name: 'Oslo', lat: 59.9139, lng: 10.7522, color: '#3b82f6', iso: 'NO', threat: 'LOW', type: 'Economic' },
-        { name: 'Warsaw', lat: 52.2297, lng: 21.0122, color: '#3b82f6', iso: 'PL', threat: 'LOW', type: 'Political/Economic' },
-        { name: 'Prague', lat: 50.0755, lng: 14.4378, color: '#3b82f6', iso: 'CZ', threat: 'LOW', type: 'Economic' },
-        { name: 'Milan', lat: 45.4642, lng: 9.1900, color: '#3b82f6', iso: 'IT', threat: 'LOW', type: 'Economic/Financial' },
-        { name: 'Madrid', lat: 40.4168, lng: -3.7038, color: '#3b82f6', iso: 'ES', threat: 'LOW', type: 'Political/Economic' },
-        { name: 'Lisbon', lat: 38.7223, lng: -9.1393, color: '#3b82f6', iso: 'PT', threat: 'LOW', type: 'Economic' },
-        { name: 'Dublin', lat: 53.3498, lng: -6.2603, color: '#3b82f6', iso: 'IE', threat: 'LOW', type: 'Tech/Financial' },
-        { name: 'Luxembourg', lat: 49.6116, lng: 6.1319, color: '#3b82f6', iso: 'LU', threat: 'LOW', type: 'Financial' },
-        { name: 'Monaco', lat: 43.7384, lng: 7.4246, color: '#3b82f6', iso: 'MC', threat: 'LOW', type: 'Financial' }
-    ];
-
-    useEffect(() => {
-        setCountries(countryData);
-        
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth <= 768);
-        };
-        
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        
-        fetch(geoUrl)
-            .then(res => res.json())
-            .then(data => {
-                setGeoJsonData(data);
-                setWorldData(data);
-            })
-            .catch(err => {
-                console.error('Error loading world data:', err);
-                setWorldData({ features: [] });
-                setGeoJsonData({ features: [] });
-            });
-        
-        // Fetch OpenAI API key
-        fetchDataFromAPI();
-        
-        // Load available voices
-        const loadVoices = () => {
-            const voices = window.speechSynthesis.getVoices();
-            setAvailableVoices(voices);
-            
-            // Try to load saved voice preference
-            const savedVoiceName = localStorage.getItem('lauraVoice');
-            if (savedVoiceName) {
-                const savedVoice = voices.find(v => v.name === savedVoiceName);
-                if (savedVoice) setSelectedVoice(savedVoice);
-            } else if (voices.length > 0) {
-                setSelectedVoice(voices[0]);
-            }
-        };
-        
-        loadVoices();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = loadVoices;
-        }
-            
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
-
-    const fetchDataFromAPI = async () => {
-        try {
-            const response = await fetch(`${baseUrl}/get_openai_key`);
-            if (!response.ok) {
-                throw new Error("Network response was not ok");
-            }
-            const { OPENAI_API_KEY } = await response.json();
-            setOPENAI_API_KEY(OPENAI_API_KEY);
-        } catch (error) {
-            console.error("Error fetching OpenAI key:", error);
-        }
-    };
-
-    const handleCountrySearch = () => {
-        if (!searchCountry.trim() || !globeRef.current) return;
-        
-        let targetCountry = countryData.find(country => 
-            country.name.toLowerCase().includes(searchCountry.toLowerCase())
-        );
-        
-        if (targetCountry) {
-            globeRef.current.pointOfView({
-                lat: targetCountry.lat,
-                lng: targetCountry.lng,
-                altitude: 2.5
-            }, 2000);
-            
-            setSelectedCountry(targetCountry.name);
-            setSearchCountry('');
-            return;
-        }
-        
-        const foundFeature = worldData.features?.find(feature => {
-            const countryName = feature.properties?.NAME || feature.properties?.name || '';
-            return countryName.toLowerCase().includes(searchCountry.toLowerCase());
-        });
-        
-        if (foundFeature && foundFeature.properties) {
-            const coords = foundFeature.geometry.coordinates;
-            let lat = 0, lng = 0;
-            
-            if (foundFeature.geometry.type === 'Polygon') {
-                const coordArray = coords[0];
-                coordArray.forEach(coord => {
-                    lng += coord[0];
-                    lat += coord[1];
-                });
-                lng /= coordArray.length;
-                lat /= coordArray.length;
-            } else if (foundFeature.geometry.type === 'MultiPolygon') {
-                let totalPoints = 0;
-                coords.forEach(polygon => {
-                    polygon[0].forEach(coord => {
-                        lng += coord[0];
-                        lat += coord[1];
-                        totalPoints++;
-                    });
-                });
-                lng /= totalPoints;
-                lat /= totalPoints;
-            }
-            
-            globeRef.current.pointOfView({
-                lat: lat,
-                lng: lng,
-                altitude: 2.5
-            }, 2000);
-            
-            const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
-            setSelectedCountry(countryName);
-            setSearchCountry('');
-        } else {
-            alert(`TARGET "${searchCountry}" NOT FOUND IN DATABASE. VERIFY INTEL.`);
-        }
-    };
-
-    const drawD3Map = useCallback(() => {
-        if (!geoJsonData || !geoJsonData.features || !svgRef.current || !mapContainerRef.current) {
-            return;
-        }
-
-        const svg = d3.select(svgRef.current);
-        const existingContent = svg.selectAll("g").size();
-        
-        // Only redraw if no content exists
-        if (existingContent > 0) {
-            return;
-        }
-        
-        svg.selectAll("*").remove();
-
-        const container = mapContainerRef.current;
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-
-        svg.attr("width", width).attr("height", height);
-
-        const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 9 : width / 10)
-            .translate([width / 2, height / 2]);
-
-        const path = d3.geoPath().projection(projection);
-
-        const zoom = d3.zoom()
-            .scaleExtent([0.5, 8])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
-
-        zoomRef.current = zoom;
-        svg.call(zoom);
-
-        const g = svg.append("g");
-
-        g.append("g")
-            .selectAll("path")
-            .data(geoJsonData.features)
-            .enter()
-            .append("path")
-            .attr("d", path)
-            .attr("fill", d => {
-                const countryName = d.properties?.NAME || d.properties?.name;
-                return selectedCountry === countryName ? "#2563eb" : "#1e293b";
-            })
-            .attr("stroke", "#334155")
-            .attr("stroke-width", 0.5)
-            .style("cursor", "pointer")
-            .on("mouseover", function(event, d) {
-                d3.select(this)
-                    .attr("fill", "#3b82f6")
-                    .attr("stroke-width", 1);
-            })
-            .on("mouseout", function(event, d) {
-                const countryName = d.properties?.NAME || d.properties?.name;
-                d3.select(this)
-                    .attr("fill", selectedCountry === countryName ? "#2563eb" : "#1e293b")
-                    .attr("stroke-width", 0.5);
-            })
-            .on("click", function(event, d) {
-                event.stopPropagation();
-                const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
-                handleCountryClick({ name: countryName });
-            });
-
-        g.append("g")
-            .selectAll("circle")
-            .data(countries)
-            .enter()
-            .append("circle")
-            .attr("cx", d => {
-                const coords = projection([d.lng, d.lat]);
-                return coords ? coords[0] : 0;
-            })
-            .attr("cy", d => {
-                const coords = projection([d.lng, d.lat]);
-                return coords ? coords[1] : 0;
-            })
-            .attr("r", isMobile ? 3 : 4)
-            .attr("fill", d => d.color)
-            .attr("stroke", "#0f172a")
-            .attr("stroke-width", 1.5)
-            .style("cursor", "pointer")
-            .style("filter", "drop-shadow(0 0 6px rgba(37, 99, 235, 0.8))")
-            .on("click", function(event, d) {
-                event.stopPropagation();
-                handleCountryClick(d);
-            })
-            .append("title")
-            .text(d => `${d.name} - THREAT: ${d.threat}\nTYPE: ${d.type}`);
-
-    }, [geoJsonData, isMobile, countries]);
-
-    const resetZoom = () => {
-        if (zoomRef.current && svgRef.current) {
-            d3.select(svgRef.current)
-                .transition()
-                .duration(750)
-                .call(zoomRef.current.transform, d3.zoomIdentity);
-        }
-    };
-
-    useEffect(() => {
-        if (!view3D && geoJsonData) {
-            const timer = setTimeout(() => {
-                drawD3Map();
-            }, 100);
-            
-            return () => clearTimeout(timer);
-        }
-    }, [view3D, geoJsonData, drawD3Map]);
-
-    useEffect(() => {
-        const handleResize = () => {
-            if (!view3D) {
-                const timer = setTimeout(() => {
-                    drawD3Map();
-                }, 200);
-                return () => clearTimeout(timer);
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [view3D, drawD3Map]);
-
-    const fetchEconomicData = async (countryName) => {
-        setLoadingAnalysis(true);
-        try {
-            // Fetch economic data
-            const econResponse = await fetch(`${baseUrl}/api/economic-data-map/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    country_name: countryName
-                })
-            });
-
-            const econData = await econResponse.json();
-            
-            // Get currency code for news data
-            const currencyMap = {
-                'United States': 'USD', 'USA': 'USD', 'US': 'USD',
-                'Canada': 'CAD', 'United Kingdom': 'GBP', 'UK': 'GBP',
-                'Japan': 'JPY', 'Australia': 'AUD', 'Switzerland': 'CHF',
-                'China': 'CNY', 'Brazil': 'BRL', 'Mexico': 'MXN',
-                'South Africa': 'ZAR', 'India': 'INR', 'Russia': 'RUB',
-                'South Korea': 'KRW', 'Sweden': 'SEK', 'Norway': 'NOK',
-                'Germany': 'EUR', 'France': 'EUR', 'Italy': 'EUR', 'Spain': 'EUR'
-            };
-            
-            const currency = currencyMap[countryName] || 'USD';
-            const currencyPair = `${currency}USD`;
-            
-            // Fetch news data
-            let newsData = { message: [] };
-            try {
-                const newsResponse = await fetch(`${baseUrl}/api/fetch_news_data_api/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        assets: [currencyPair],
-                        user_email: 'intel@classified.gov'
-                    })
-                });
-                
-                if (newsResponse.ok) {
-                    newsData = await newsResponse.json();
-                }
-            } catch (newsError) {
-                console.log('News data unavailable:', newsError);
-            }
-            
-            if (econData.success) {
-                const analysisData = {
-                    ...econData,
-                    aiAnalysis: JSON.parse(econData.ai_analysis),
-                    newsData: newsData.message || [],
-                    currencyPair: currencyPair
-                };
-                
-                setEconomicAnalysis(prev => ({
-                    ...prev,
-                    [countryName]: analysisData
-                }));
-                
-                return analysisData;
-            } else {
-                console.error('Failed to fetch economic data:', econData.error);
-                return null;
-            }
-        } catch (error) {
-            console.error('Error fetching economic data:', error);
-            return null;
-        } finally {
-            setLoadingAnalysis(false);
-        }
-    };
-
-    const handleCountryClick = (country) => {
-        const countryName = typeof country === 'string' ? country : country.name;
-        setClickedCountry(countryName);
-        setSelectedCountry(countryName);
-        setShowConfirmationModal(true);
-        setIntelStatus('QUERYING');
-        // Don't change view - keep the map visible
-    };
-
-    const handleConfirmAnalysis = async () => {
-        setShowConfirmationModal(false);
-        setIntelStatus('ANALYZING');
-        
-        if (!economicAnalysis[clickedCountry]) {
-            await fetchEconomicData(clickedCountry);
-        }
-        
-        setShowAnalysisModal(true);
-        setIntelStatus('ACTIVE');
-    };
-
-    const handleDeclineAnalysis = () => {
-        setShowConfirmationModal(false);
-        setSelectedCountry('');
-        setClickedCountry('');
-        setIntelStatus('STANDBY');
-    };
-
-    const handleCloseAnalysisModal = () => {
-        setShowAnalysisModal(false);
-        setSelectedCountry('');
-        setIntelStatus('STANDBY');
-    };
-
-    const extractYouTubeId = (url) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
-
-    const handlePlayVideo = () => {
-        const videoId = extractYouTubeId(videoUrl);
-        if (videoId) {
-            setIsVideoPlaying(true);
-        } else {
-            alert('INVALID YOUTUBE URL FORMAT. PLEASE VERIFY INTEL SOURCE.');
-        }
-    };
-
-    const handleCloseMediaCenter = () => {
-        setShowMediaCenter(false);
-        setVideoUrl('');
-        setIsVideoPlaying(false);
-    };
-
-    
-    const handleLauraQuery = async () => {
-        if (!lauraInput.trim() && !selectedImage) return;
-        
-        setLauraLoading(true);
-        setLauraError('');
-        
-        // Store the current input BEFORE clearing it
-        const currentInput = lauraInput;
-        const currentImage = selectedImage;
-        
-        // Add user message to chat
-        const userMessage = { 
-            role: 'user', 
-            content: currentInput,
-            image: imagePreview 
-        };
-        setLauraMessages(prev => [...prev, userMessage]);
-        
-        // NOW clear the input fields
-        setLauraInput('');
-        setSelectedImage(null);
-        setImagePreview(null);
-        
-        // Scroll to bottom after adding user message
-        setTimeout(() => scrollToBottom(), 100);
-        
-        try {
-            // Build context from stored economic analysis
-            let context = "Available economic intelligence data:\n\n";
-            Object.entries(economicAnalysis).forEach(([country, data]) => {
-                if (data.has_data) {
-                    context += `${country}: ${JSON.stringify(data.aiAnalysis)}\n`;
-                }
-            });
-            
-            const messages = [
-                {
-                    role: "system",
-                    content: `You are Laura, an AI intelligence analyst. You have access to economic and geopolitical data. Here's the current intelligence:\n\n${context}`
-                },
-                ...lauraMessages.filter(m => !m.image).map(m => ({
-                    role: m.role === 'user' ? 'user' : 'assistant',
-                    content: m.content
-                })),
-                {
-                    role: "user",
-                    content: currentInput || "Analyze this image"
-                }
-            ];
-            
-            const requestBody = {
-                model: "gpt-4o-mini",
-                messages: messages,
-                max_tokens: 1000
-            };
-            
-            // Add image if present
-            if (currentImage) {
-                const reader = new FileReader();
-                reader.onloadend = async () => {
-                    const base64Image = reader.result.split(',')[1];
-                    requestBody.messages[requestBody.messages.length - 1] = {
-                        role: "user",
-                        content: [
-                            { type: "text", text: currentInput || "Analyze this image" },
-                            { 
-                                type: "image_url", 
-                                image_url: { url: `data:image/jpeg;base64,${base64Image}` }
-                            }
-                        ]
-                    };
-                    await sendToOpenAI(requestBody);
-                };
-                reader.readAsDataURL(currentImage);
-            } else {
-                await sendToOpenAI(requestBody);
-            }
-            
-        } catch (error) {
-            setLauraError('Connection to intelligence network failed. Check classified network status.');
-            setLauraMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: '⚠️ CRITICAL ERROR: Intelligence network unreachable. Retry connection or contact system administrator.'
-            }]);
-            setLauraLoading(false);
-            setTimeout(() => scrollToBottom(), 100);
-        }
-    };
-    
-    const sendToOpenAI = async (requestBody) => {
-        try {
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${OPENAI_API_KEY}`
-                },
-                body: JSON.stringify(requestBody)
-            });
-            
-            const data = await response.json();
-            
-            if (data.error) {
-                setLauraError(data.error.message || 'Intelligence network error. Retry connection.');
-                setLauraMessages(prev => [...prev, { 
-                    role: 'assistant', 
-                    content: '⚠️ NETWORK ERROR: Unable to process query. Please retry.'
-                }]);
-            } else {
-                const assistantMessage = {
-                    role: 'assistant',
-                    content: data.choices[0].message.content
-                };
-                setLauraMessages(prev => [...prev, assistantMessage]);
-            }
-        } catch (error) {
-            setLauraError('OpenAI connection failed.');
-            setLauraMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: '⚠️ ERROR: Failed to connect to OpenAI. Check API key.'
-            }]);
-        } finally {
-            setLauraLoading(false);
-            setTimeout(() => scrollToBottom(), 100);
-        }
-    };
-    
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    const handleGeopoliticalSearch = async () => {
-        if (!searchQuery.trim()) return;
-        
-        setSearchLoading(true);
-        setSearchError('');
-        
-        try {
-            const response = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "anthropic-version": "2023-06-01"
-                },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-20250514",
-                    max_tokens: 2048,
-                    messages: [
-                        {
-                            role: "user",
-                            content: `Search and provide detailed geopolitical analysis on: ${searchQuery}`
-                        }
-                    ],
-                    tools: [
-                        {
-                            type: "web_search_20250305",
-                            name: "web_search"
-                        }
-                    ]
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.error) {
-                setSearchError(data.error.message || 'Search operation failed. Retry query.');
-            } else {
-                const fullResponse = data.content
-                    .map(item => (item.type === "text" ? item.text : ""))
-                    .filter(Boolean)
-                    .join("\n");
-                
-                setLauraMessages(prev => [...prev, 
-                    { role: 'user', content: `🔍 SEARCH QUERY: ${searchQuery}` },
-                    { role: 'assistant', content: fullResponse || 'No intelligence found. Refine search parameters.' }
-                ]);
-                setSearchQuery('');
-                setShowLaura(true);
-            }
-        } catch (error) {
-            setSearchError('Search network offline. Unable to query global intelligence database.');
-        } finally {
-            setSearchLoading(false);
-        }
-    };
-
-    const handleNewLauraConversation = () => {
-        setLauraMessages([{
-            role: 'assistant',
-            content: '🟣 LAURA AI ANALYST ONLINE\n\nClassified intelligence terminal active. I have access to all economic data you\'ve queried. Ask me about geopolitical situations, economic trends, or specific country analyses.'
-        }]);
-        setLauraError('');
-        setSelectedImage(null);
-        setImagePreview(null);
-    };
-    
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setSelectedImage(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
-    const handleVoiceChange = (e) => {
-        const voiceName = e.target.value;
-        const voice = availableVoices.find(v => v.name === voiceName);
-        setSelectedVoice(voice);
-        localStorage.setItem('lauraVoice', voiceName);
-    };
-    
-    const speakMessage = (text) => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-            utterance.onstart = () => setIsSpeaking(true);
-            utterance.onend = () => setIsSpeaking(false);
-            utterance.onerror = () => setIsSpeaking(false);
-            window.speechSynthesis.speak(utterance);
-        }
-    };
-    
-    const stopSpeaking = () => {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-    };
-
-    const handlePolygonClick = (polygon) => {
-        const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
-        handleCountryClick(countryName);
-    };
-
-    const renderAnalysisModal = () => {
-        const analysis = economicAnalysis[selectedCountry];
-        if (!analysis) return null;
-
-        const aiData = analysis.aiAnalysis;
-        const targetCountry = countries.find(c => c.name === selectedCountry);
-        const newsArticles = analysis.newsData || [];
-
-        return (
-            <div style={styles.analysisModal}>
-                <div style={styles.analysisModalContent}>
-                    <div style={styles.analysisModalHeader}>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                                <Eye size={24} />
-                                <h3 style={styles.analysisModalTitle}>
-                                    INTEL BRIEF: {analysis.country.toUpperCase()}
-                                </h3>
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#64748b', letterSpacing: '1px' }}>
-                                CLASSIFICATION: {targetCountry?.threat || 'UNKNOWN'} PRIORITY | PAIR: {analysis.currencyPair}
-                            </div>
-                        </div>
-                        <button 
-                            style={styles.analysisCloseButton}
-                            onClick={handleCloseAnalysisModal}
-                        >
-                            ×
-                        </button>
-                    </div>
-                    
-                    <div style={styles.analysisModalBody}>
-                        {analysis.has_data ? (
-                            <div>
-                                <div style={styles.threatPanel}>
-                                    <div style={styles.threatHeader}>
-                                        <AlertTriangle size={16} />
-                                        <span>ECONOMIC THREAT ASSESSMENT</span>
-                                    </div>
-                                    <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
-                                        {aiData.overall_sentiment.toUpperCase()}
-                                    </div>
-                                </div>
-
-                                {/* News Intelligence Section */}
-                                {newsArticles.length > 0 && (
-                                    <div style={styles.newsIntelSection}>
-                                        <div style={styles.sectionHeader}>
-                                            <div style={styles.sectionLine} />
-                                            <h4 style={styles.sectionTitle}>
-                                                🔴 LIVE INTELLIGENCE FEED - {analysis.currencyPair}
-                                            </h4>
-                                        </div>
-                                        <div style={styles.newsGrid}>
-                                            {newsArticles.slice(0, 6).map((article, index) => (
-                                                <div key={index} style={styles.newsCard} className="newsCard">
-                                                    <div style={styles.newsHeader}>
-                                                        <span style={styles.newsSource}>{article.source}</span>
-                                                        <span style={styles.newsAsset}>{article.asset}</span>
-                                                    </div>
-                                                    <h5 style={styles.newsTitle}>{article.title}</h5>
-                                                    {article.highlights && (
-                                                        <p style={styles.newsHighlight}>
-                                                            ⚡ {typeof article.highlights === 'string' 
-                                                                ? article.highlights 
-                                                                : JSON.stringify(article.highlights).substring(0, 150) + '...'}
-                                                        </p>
-                                                    )}
-                                                    <a 
-                                                        href={article.url} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        style={styles.newsLink}
-                                                        className="newsLink"
-                                                    >
-                                                        ACCESS FULL INTEL →
-                                                    </a>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                <div style={styles.intelSection}>
-                                    <div style={styles.sectionHeader}>
-                                        <div style={styles.sectionLine} />
-                                        <h4 style={styles.sectionTitle}>EXECUTIVE SUMMARY</h4>
-                                    </div>
-                                    <p style={styles.summaryText}>{aiData.summary}</p>
-                                </div>
-                                
-                                <div style={styles.intelSection}>
-                                    <div style={styles.sectionHeader}>
-                                        <div style={styles.sectionLine} />
-                                        <h4 style={styles.sectionTitle}>KEY INTELLIGENCE</h4>
-                                    </div>
-                                    <div style={styles.highlightsList}>
-                                        {aiData.key_highlights.map((highlight, index) => (
-                                            <div key={index} style={styles.highlightItem}>
-                                                <span style={styles.bulletPoint}>▸</span>
-                                                {highlight}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                
-                                {aiData.major_events.length > 0 && (
-                                    <div style={styles.intelSection}>
-                                        <div style={styles.sectionHeader}>
-                                            <div style={styles.sectionLine} />
-                                            <h4 style={styles.sectionTitle}>SIGNIFICANT EVENTS</h4>
-                                        </div>
-                                        {aiData.major_events.map((event, index) => (
-                                            <div key={index} style={styles.eventCard}>
-                                                <div style={styles.eventHeader}>
-                                                    <span style={styles.eventName}>{event.event_name}</span>
-                                                    <span style={styles.impactBadge(event.impact_level)}>
-                                                        {event.impact_level.toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                <p style={styles.eventSummary}>{event.summary}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                
-                                <div style={styles.analysisGrid}>
-                                    {aiData.risk_factors.length > 0 && (
-                                        <div style={styles.riskPanel}>
-                                            <div style={styles.panelHeader}>
-                                                <AlertTriangle size={14} />
-                                                <span>RISK FACTORS</span>
-                                            </div>
-                                            <div style={styles.factorsList}>
-                                                {aiData.risk_factors.map((risk, index) => (
-                                                    <div key={index} style={styles.riskItem}>
-                                                        <span style={styles.riskBullet}>◆</span>
-                                                        {risk}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {aiData.opportunities.length > 0 && (
-                                        <div style={styles.opportunityPanel}>
-                                            <div style={styles.panelHeader}>
-                                                <TrendingUp size={14} />
-                                                <span>OPPORTUNITIES</span>
-                                            </div>
-                                            <div style={styles.factorsList}>
-                                                {aiData.opportunities.map((opportunity, index) => (
-                                                    <div key={index} style={styles.opportunityItem}>
-                                                        <span style={styles.opportunityBullet}>◆</span>
-                                                        {opportunity}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                <div style={styles.metaInfo}>
-                                    <div style={styles.metaItem}>
-                                        <DollarSign size={12} />
-                                        <span>CURRENCY: {analysis.currency}</span>
-                                    </div>
-                                    <div style={styles.metaSeparator}>|</div>
-                                    <div style={styles.metaItem}>
-                                        <span>PERIOD: {aiData.analysis_period}</span>
-                                    </div>
-                                    <div style={styles.metaSeparator}>|</div>
-                                    <div style={styles.metaItem}>
-                                        <span>CLASSIFIED</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={styles.noDataContainer}>
-                                <div style={styles.noDataIcon}>
-                                    <Shield size={48} color="#475569" />
-                                </div>
-                                <h4 style={styles.noDataTitle}>INSUFFICIENT INTEL</h4>
-                                <p style={styles.noDataMessage}>
-                                    {analysis.message}
-                                </p>
-                                {aiData.summary && (
-                                    <p style={styles.noDataSummary}>
-                                        {aiData.summary}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const LauraModal = () => {
-        return (
-            <div style={styles.lauraModal} onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                    setShowLaura(false);
-                }
-            }}>
-                <div style={styles.lauraContent}>
-                    <div style={styles.lauraHeader}>
-                        <h3 style={styles.lauraTitle}>
-                            🟣 LAURA AI ANALYST
-                        </h3>
-                        <button 
-                            style={styles.lauraCloseButton}
-                            onClick={() => setShowLaura(false)}
-                        >
-                            ×
-                        </button>
-                    </div>
-                    
-                    <div style={styles.lauraMessagesContainer}>
-                        {/* Geopolitical Search Section */}
-                        <div style={styles.searchContainer}>
-                            <div style={styles.searchTitle}>
-                                🔍 GEOPOLITICAL INTELLIGENCE SEARCH
-                            </div>
-                            <div style={styles.searchInputGroup}>
-                                <input
-                                    type="text"
-                                    placeholder="Search global events, conflicts, economic policies..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && !searchLoading && handleGeopoliticalSearch()}
-                                    style={styles.searchInput}
-                                />
-                                <button
-                                    onClick={handleGeopoliticalSearch}
-                                    disabled={searchLoading}
-                                    style={styles.searchButton}
-                                >
-                                    {searchLoading ? 'SEARCHING...' : 'SEARCH'}
-                                </button>
-                            </div>
-                            {searchError && (
-                                <div style={styles.lauraError}>
-                                    ⚠️ {searchError}
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Chat Messages */}
-                        {lauraMessages.length === 0 && (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: '40px 20px',
-                                color: '#a855f7',
-                                fontSize: isMobile ? '13px' : '14px',
-                                letterSpacing: '1px'
-                            }}>
-                                🟣 LAURA AI ANALYST READY
-                                <br /><br />
-                                Ask me about any country's economic data you've queried,
-                                <br />
-                                or use the search above for live geopolitical intelligence.
-                            </div>
-                        )}
-                        
-                        {lauraMessages.map((msg, idx) => (
-                            <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
-                                <div style={styles.lauraMessageBubble(msg.role === 'user')}>
-                                    {msg.content}
-                                    {msg.image && (
-                                        <img src={msg.image} alt="Uploaded" style={styles.messageImage} />
-                                    )}
-                                </div>
-                                {msg.role === 'assistant' && (
-                                    <button
-                                        style={styles.speakButton}
-                                        onClick={() => isSpeaking ? stopSpeaking() : speakMessage(msg.content)}
-                                    >
-                                        {isSpeaking ? '⏸ STOP' : '🔊 SPEAK'}
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        
-                        {lauraLoading && (
-                            <div style={styles.lauraMessage(false)}>
-                                <div style={{
-                                    ...styles.lauraMessageBubble(false),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px'
-                                }}>
-                                    <div style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        border: '3px solid rgba(255,255,255,0.3)',
-                                        borderTop: '3px solid #fff',
-                                        borderRadius: '50%',
-                                        animation: 'spin 1s linear infinite'
-                                    }}></div>
-                                    Analyzing intelligence...
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div ref={messagesEndRef} />
-                    </div>
-                    
-                    <div style={styles.lauraInputContainer}>
-                        {lauraError && (
-                            <div style={styles.lauraError}>
-                                ⚠️ {lauraError}
-                            </div>
-                        )}
-                        
-                        {/* Voice Selector and Image Upload */}
-                        <div style={styles.imageUploadContainer}>
-                            <select 
-                                value={selectedVoice?.name || ''} 
-                                onChange={handleVoiceChange}
-                                style={styles.voiceSelector}
-                            >
-                                <option value="">SELECT VOICE</option>
-                                {availableVoices.map((voice, idx) => (
-                                    <option key={idx} value={voice.name}>
-                                        {voice.name} ({voice.lang})
-                                    </option>
-                                ))}
-                            </select>
-                            
-                            <label style={styles.imageUploadButton}>
-                                📷 UPLOAD IMAGE
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    style={{ display: 'none' }}
-                                />
-                            </label>
-                            
-                            {imagePreview && (
-                                <div style={styles.imagePreviewContainer}>
-                                    <img src={imagePreview} alt="Preview" style={styles.imagePreviewThumb} />
-                                    <button
-                                        style={styles.removeImageButton}
-                                        onClick={() => {
-                                            setSelectedImage(null);
-                                            setImagePreview(null);
-                                        }}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        
-                        <textarea
-                            placeholder="Query Laura about economic data, trends, or country analyses..."
-                            value={lauraInput}
-                            onChange={(e) => setLauraInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if (!lauraLoading) {
-                                        handleLauraQuery();
-                                    }
-                                }
-                            }}
-                            style={styles.lauraInput}
-                            disabled={lauraLoading}
-                        />
-                        <div style={styles.lauraButtonContainer}>
-                            <button
-                                onClick={handleLauraQuery}
-                                disabled={lauraLoading || (!lauraInput.trim() && !selectedImage)}
-                                style={{
-                                    ...styles.lauraSendButton,
-                                    opacity: lauraLoading || (!lauraInput.trim() && !selectedImage) ? 0.5 : 1
-                                }}
-                            >
-                                {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
-                            </button>
-                            <button
-                                onClick={handleNewLauraConversation}
-                                style={styles.lauraNewChatButton}
-                            >
-                                NEW CHAT
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const MediaCenterModal = () => {
-        const videoId = isVideoPlaying ? extractYouTubeId(videoUrl) : null;
-        
-        return (
-            <div style={styles.mediaCenterModal} onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                    handleCloseMediaCenter();
-                }
-            }}>
-                <div style={styles.mediaCenterContent}>
-                    <div style={styles.mediaCenterHeader}>
-                        <h3 style={styles.mediaCenterTitle}>
-                            <span>📡</span> MEDIA SURVEILLANCE CENTER
-                        </h3>
-                        <button 
-                            style={styles.mediaCloseButton}
-                            onClick={handleCloseMediaCenter}
-                        >
-                            ×
-                        </button>
-                    </div>
-                    
-                    <div style={styles.mediaWarning}>
-                        ⚠️ CLASSIFIED MEDIA ACCESS - Enter YouTube URL for intelligence briefing playback. All sessions are monitored and logged.
-                    </div>
-                    
-                    {!isVideoPlaying && (
-                        <div style={styles.mediaInputContainer}>
-                            <input
-                                type="text"
-                                placeholder="ENTER YOUTUBE URL (e.g., https://www.youtube.com/watch?v=...)"
-                                value={videoUrl}
-                                onChange={(e) => setVideoUrl(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handlePlayVideo()}
-                                style={styles.mediaInput}
-                            />
-                            <button
-                                onClick={handlePlayVideo}
-                                style={styles.mediaButton}
-                                onMouseEnter={(e) => {
-                                    e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.4)';
-                                }}
-                            >
-                                INITIATE PLAYBACK
-                            </button>
-                        </div>
-                    )}
-                    
-                    {isVideoPlaying && videoId ? (
-                        <div>
-                            <div style={styles.videoContainer}>
-                                <iframe
-                                    key={videoId}
-                                    style={styles.videoIframe}
-                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                                    title="Intelligence Briefing Video"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                ></iframe>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    setIsVideoPlaying(false);
-                                    setVideoUrl('');
-                                }}
-                                style={{
-                                    ...styles.mediaButton,
-                                    marginTop: '15px',
-                                    background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)'
-                                }}
-                            >
-                                TERMINATE PLAYBACK
-                            </button>
-                        </div>
-                    ) : !isVideoPlaying ? (
-                        <div style={{
-                            textAlign: 'center',
-                            padding: '40px 20px',
-                            color: '#64748b',
-                            fontSize: isMobile ? '12px' : '14px',
-                            letterSpacing: '1px'
-                        }}>
-                            AWAITING VIDEO INTELLIGENCE SOURCE...
-                        </div>
-                    ) : null}
-                </div>
-            </div>
-        );
     };
 
     const getGlobeSize = () => {
