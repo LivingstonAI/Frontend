@@ -7,7 +7,7 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function SnowAIEarth() {
+export default function CIAMacroIntel() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
@@ -1131,21 +1131,16 @@ export default function SnowAIEarth() {
                         <textarea
                             placeholder="Query Laura about economic data, trends, or country analyses..."
                             value={lauraInput}
-                            onChange={(e) => {
-                                e.stopPropagation();
-                                setLauraInput(e.target.value);
-                            }}
+                            onChange={(e) => setLauraInput(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    e.stopPropagation();
                                     if (!lauraLoading) {
                                         handleLauraQuery();
                                     }
                                 }
                             }}
                             style={styles.lauraInput}
-                            rows={1}
                         />
                         <div style={styles.lauraButtonContainer}>
                             <button
@@ -1526,17 +1521,18 @@ export default function SnowAIEarth() {
         },
         lauraInput: {
             width: '100%',
-            padding: isMobile ? '6px 10px' : '8px 12px',
+            padding: isMobile ? '8px 12px' : '10px 14px',
             background: '#312e81',
             border: '1px solid #7c3aed',
             borderRadius: '6px',
             color: '#e2e8f0',
             fontSize: isMobile ? '13px' : '14px',
             outline: 'none',
-            resize: 'none',
-            height: isMobile ? '32px' : '36px',
+            resize: 'vertical',
+            minHeight: isMobile ? '44px' : '50px',
+            maxHeight: '100px',
             fontFamily: 'inherit',
-            lineHeight: '1.4'
+            lineHeight: '1.5'
         },
         imageUploadContainer: {
             display: 'flex',
