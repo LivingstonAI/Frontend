@@ -1,13 +1,13 @@
+import Header from "./header";
+import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
 import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide-react';
-import Header from "./header";
-import SideNavs from "./side_navs";
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function SnowAIEarth() {
+export default function CIAMacroIntel() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
@@ -40,6 +40,12 @@ export default function SnowAIEarth() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState('');
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [availableVoices, setAvailableVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [isSpeaking, setIsSpeaking] = useState(false);
 
     const globeThemes = {
         'night-ops': {
@@ -159,9 +165,45 @@ export default function SnowAIEarth() {
                 setWorldData({ features: [] });
                 setGeoJsonData({ features: [] });
             });
+        
+        // Fetch OpenAI API key
+        fetchDataFromAPI();
+        
+        // Load available voices
+        const loadVoices = () => {
+            const voices = window.speechSynthesis.getVoices();
+            setAvailableVoices(voices);
+            
+            // Try to load saved voice preference
+            const savedVoiceName = localStorage.getItem('lauraVoice');
+            if (savedVoiceName) {
+                const savedVoice = voices.find(v => v.name === savedVoiceName);
+                if (savedVoice) setSelectedVoice(savedVoice);
+            } else if (voices.length > 0) {
+                setSelectedVoice(voices[0]);
+            }
+        };
+        
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
             
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    const fetchDataFromAPI = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/get_openai_key`);
+            if (!response.ok) {
+                throw new Error("Network response was not ok");
+            }
+            const { OPENAI_API_KEY } = await response.json();
+            setOPENAI_API_KEY(OPENAI_API_KEY);
+        } catch (error) {
+            console.error("Error fetching OpenAI key:", error);
+        }
+    };
 
     const handleCountrySearch = () => {
         if (!searchCountry.trim() || !globeRef.current) return;
@@ -483,14 +525,24 @@ export default function SnowAIEarth() {
     };
 
     const handleLauraQuery = async () => {
-        if (!lauraInput.trim()) return;
+        if (!lauraInput.trim() && !selectedImage) return;
         
         setLauraLoading(true);
         setLauraError('');
         
-        const userMessage = { role: 'user', content: lauraInput };
+        const userMessage = { 
+            role: 'user', 
+            content: lauraInput,
+            image: imagePreview 
+        };
         setLauraMessages(prev => [...prev, userMessage]);
+        
+        const currentInput = lauraInput;
+        const currentImage = selectedImage;
+        
         setLauraInput('');
+        setSelectedImage(null);
+        setImagePreview(null);
         
         try {
             // Build context from stored economic analysis
@@ -501,24 +553,68 @@ export default function SnowAIEarth() {
                 }
             });
             
-            const response = await fetch("https://api.anthropic.com/v1/messages", {
+            const messages = [
+                {
+                    role: "system",
+                    content: `You are Laura, an AI intelligence analyst. You have access to economic and geopolitical data. Here's the current intelligence:\n\n${context}`
+                },
+                ...lauraMessages.filter(m => !m.image).map(m => ({
+                    role: m.role === 'user' ? 'user' : 'assistant',
+                    content: m.content
+                })),
+                {
+                    role: "user",
+                    content: currentInput || "Analyze this image"
+                }
+            ];
+            
+            const requestBody = {
+                model: "gpt-4o-mini",
+                messages: messages,
+                max_tokens: 1000
+            };
+            
+            // Add image if present
+            if (currentImage) {
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Image = reader.result.split(',')[1];
+                    requestBody.messages[requestBody.messages.length - 1] = {
+                        role: "user",
+                        content: [
+                            { type: "text", text: currentInput || "Analyze this image" },
+                            { 
+                                type: "image_url", 
+                                image_url: { url: `data:image/jpeg;base64,${base64Image}` }
+                            }
+                        ]
+                    };
+                    await sendToOpenAI(requestBody);
+                };
+                reader.readAsDataURL(currentImage);
+            } else {
+                await sendToOpenAI(requestBody);
+            }
+            
+        } catch (error) {
+            setLauraError('Connection to intelligence network failed. Check classified network status.');
+            setLauraMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: '⚠️ CRITICAL ERROR: Intelligence network unreachable. Retry connection or contact system administrator.'
+            }]);
+            setLauraLoading(false);
+        }
+    };
+    
+    const sendToOpenAI = async (requestBody) => {
+        try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "anthropic-version": "2023-06-01"
+                    "Authorization": `Bearer ${OPENAI_API_KEY}`
                 },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-20250514",
-                    max_tokens: 1024,
-                    messages: [
-                        ...lauraMessages,
-                        userMessage,
-                        {
-                            role: "user",
-                            content: `You are Laura, an AI intelligence analyst. You have access to economic and geopolitical data. Here's the current intelligence:\n\n${context}\n\nUser query: ${lauraInput}`
-                        }
-                    ]
-                })
+                body: JSON.stringify(requestBody)
             });
             
             const data = await response.json();
@@ -532,15 +628,15 @@ export default function SnowAIEarth() {
             } else {
                 const assistantMessage = {
                     role: 'assistant',
-                    content: data.content[0].text
+                    content: data.choices[0].message.content
                 };
                 setLauraMessages(prev => [...prev, assistantMessage]);
             }
         } catch (error) {
-            setLauraError('Connection to intelligence network failed. Check classified network status.');
+            setLauraError('OpenAI connection failed.');
             setLauraMessages(prev => [...prev, { 
                 role: 'assistant', 
-                content: '⚠️ CRITICAL ERROR: Intelligence network unreachable. Retry connection or contact system administrator.'
+                content: '⚠️ ERROR: Failed to connect to OpenAI. Check API key.'
             }]);
         } finally {
             setLauraLoading(false);
@@ -608,6 +704,46 @@ export default function SnowAIEarth() {
             content: '🟣 LAURA AI ANALYST ONLINE\n\nClassified intelligence terminal active. I have access to all economic data you\'ve queried. Ask me about geopolitical situations, economic trends, or specific country analyses.'
         }]);
         setLauraError('');
+        setSelectedImage(null);
+        setImagePreview(null);
+    };
+    
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleVoiceChange = (e) => {
+        const voiceName = e.target.value;
+        const voice = availableVoices.find(v => v.name === voiceName);
+        setSelectedVoice(voice);
+        localStorage.setItem('lauraVoice', voiceName);
+    };
+    
+    const speakMessage = (text) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            utterance.onstart = () => setIsSpeaking(true);
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utterance);
+        }
+    };
+    
+    const stopSpeaking = () => {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
     };
 
     const handlePolygonClick = (polygon) => {
@@ -885,7 +1021,18 @@ export default function SnowAIEarth() {
                             <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
                                 <div style={styles.lauraMessageBubble(msg.role === 'user')}>
                                     {msg.content}
+                                    {msg.image && (
+                                        <img src={msg.image} alt="Uploaded" style={styles.messageImage} />
+                                    )}
                                 </div>
+                                {msg.role === 'assistant' && (
+                                    <button
+                                        style={styles.speakButton}
+                                        onClick={() => isSpeaking ? stopSpeaking() : speakMessage(msg.content)}
+                                    >
+                                        {isSpeaking ? '⏸ STOP' : '🔊 SPEAK'}
+                                    </button>
+                                )}
                             </div>
                         ))}
                         
@@ -917,11 +1064,53 @@ export default function SnowAIEarth() {
                                 ⚠️ {lauraError}
                             </div>
                         )}
+                        
+                        {/* Voice Selector and Image Upload */}
+                        <div style={styles.imageUploadContainer}>
+                            <select 
+                                value={selectedVoice?.name || ''} 
+                                onChange={handleVoiceChange}
+                                style={styles.voiceSelector}
+                            >
+                                <option value="">SELECT VOICE</option>
+                                {availableVoices.map((voice, idx) => (
+                                    <option key={idx} value={voice.name}>
+                                        {voice.name} ({voice.lang})
+                                    </option>
+                                ))}
+                            </select>
+                            
+                            <label style={styles.imageUploadButton}>
+                                📷 UPLOAD IMAGE
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+                            
+                            {imagePreview && (
+                                <div style={styles.imagePreviewContainer}>
+                                    <img src={imagePreview} alt="Preview" style={styles.imagePreviewThumb} />
+                                    <button
+                                        style={styles.removeImageButton}
+                                        onClick={() => {
+                                            setSelectedImage(null);
+                                            setImagePreview(null);
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        
                         <textarea
                             placeholder="Query Laura about economic data, trends, or country analyses..."
                             value={lauraInput}
                             onChange={(e) => setLauraInput(e.target.value)}
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
                                     !lauraLoading && handleLauraQuery();
@@ -932,10 +1121,10 @@ export default function SnowAIEarth() {
                         <div style={styles.lauraButtonContainer}>
                             <button
                                 onClick={handleLauraQuery}
-                                disabled={lauraLoading || !lauraInput.trim()}
+                                disabled={lauraLoading || (!lauraInput.trim() && !selectedImage)}
                                 style={{
                                     ...styles.lauraSendButton,
-                                    opacity: lauraLoading || !lauraInput.trim() ? 0.5 : 1
+                                    opacity: lauraLoading || (!lauraInput.trim() && !selectedImage) ? 0.5 : 1
                                 }}
                             >
                                 {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
@@ -1215,8 +1404,8 @@ export default function SnowAIEarth() {
             borderRadius: '12px',
             border: '2px solid #7c3aed',
             boxShadow: '0 0 60px rgba(124, 58, 237, 0.5)',
-            width: isMobile ? '95%' : '700px',
-            height: isMobile ? '90vh' : '80vh',
+            width: isMobile ? '95%' : '650px',
+            height: isMobile ? '90vh' : '85vh',
             maxWidth: '95vw',
             display: 'flex',
             flexDirection: 'column',
@@ -1263,10 +1452,11 @@ export default function SnowAIEarth() {
         lauraMessage: (isUser) => ({
             marginBottom: '15px',
             display: 'flex',
-            justifyContent: isUser ? 'flex-end' : 'flex-start'
+            flexDirection: 'column',
+            alignItems: isUser ? 'flex-end' : 'flex-start'
         }),
         lauraMessageBubble: (isUser) => ({
-            maxWidth: '75%',
+            maxWidth: '80%',
             padding: isMobile ? '10px 14px' : '12px 16px',
             borderRadius: '12px',
             background: isUser 
@@ -1278,26 +1468,100 @@ export default function SnowAIEarth() {
             wordWrap: 'break-word',
             whiteSpace: 'pre-wrap'
         }),
+        messageImage: {
+            maxWidth: '200px',
+            maxHeight: '200px',
+            borderRadius: '8px',
+            marginTop: '8px',
+            border: '2px solid rgba(255,255,255,0.3)'
+        },
+        speakButton: {
+            marginTop: '8px',
+            padding: '6px 12px',
+            background: 'rgba(255,255,255,0.2)',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: '11px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            letterSpacing: '0.5px'
+        },
         lauraInputContainer: {
-            padding: isMobile ? '15px' : '20px',
+            padding: isMobile ? '12px' : '15px',
             background: '#1e1b4b',
             borderTop: '1px solid #4c1d95',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px'
+            gap: '8px'
         },
         lauraInput: {
             width: '100%',
-            padding: isMobile ? '10px 14px' : '12px 16px',
+            padding: isMobile ? '8px 12px' : '10px 14px',
             background: '#312e81',
             border: '1px solid #7c3aed',
             borderRadius: '6px',
             color: '#e2e8f0',
             fontSize: isMobile ? '13px' : '14px',
             outline: 'none',
-            resize: 'vertical',
-            minHeight: '40px',
-            maxHeight: '120px'
+            resize: 'none',
+            minHeight: isMobile ? '36px' : '40px',
+            maxHeight: '80px',
+            fontFamily: 'inherit'
+        },
+        imageUploadContainer: {
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+            flexWrap: 'wrap'
+        },
+        imageUploadButton: {
+            padding: '6px 12px',
+            background: 'rgba(124, 58, 237, 0.3)',
+            border: '1px solid #7c3aed',
+            borderRadius: '6px',
+            color: '#a855f7',
+            fontSize: '11px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            letterSpacing: '0.5px'
+        },
+        imagePreviewContainer: {
+            position: 'relative',
+            display: 'inline-block'
+        },
+        imagePreviewThumb: {
+            width: '50px',
+            height: '50px',
+            borderRadius: '6px',
+            objectFit: 'cover',
+            border: '2px solid #7c3aed'
+        },
+        removeImageButton: {
+            position: 'absolute',
+            top: '-6px',
+            right: '-6px',
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: '#ef4444',
+            border: 'none',
+            color: '#fff',
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+        },
+        voiceSelector: {
+            padding: '6px 10px',
+            background: '#312e81',
+            border: '1px solid #7c3aed',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+            fontSize: '11px',
+            outline: 'none',
+            cursor: 'pointer'
         },
         lauraButtonContainer: {
             display: 'flex',
