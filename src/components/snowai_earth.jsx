@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
 import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide-react';
+import Header from "./header";
+import SideNavs from "./side_navs";
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
