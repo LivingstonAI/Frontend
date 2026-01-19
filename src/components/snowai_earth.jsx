@@ -7,7 +7,7 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function CIAMacroIntel() {
+export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
@@ -2619,7 +2619,7 @@ export default function CIAMacroIntel() {
                                 onChange={(e) => setSearchCountry(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handleCountrySearch()}
                                 style={styles.searchInput}
-                            />
+                            /><br />
                             <button
                                 onClick={handleCountrySearch}
                                 style={styles.searchButton}
