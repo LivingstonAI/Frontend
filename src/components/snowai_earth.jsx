@@ -1,5 +1,3 @@
-import Header from "./header";
-import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
@@ -7,7 +5,7 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-export default function CIAMacroIntel() {
+export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
     const [selectedCountry, setSelectedCountry] = useState('');
@@ -32,6 +30,14 @@ export default function CIAMacroIntel() {
     const [showMediaCenter, setShowMediaCenter] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [showLaura, setShowLaura] = useState(false);
+    const [lauraMessages, setLauraMessages] = useState([]);
+    const [lauraInput, setLauraInput] = useState('');
+    const [lauraLoading, setLauraLoading] = useState(false);
+    const [lauraError, setLauraError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState('');
 
     const globeThemes = {
         'night-ops': {
@@ -237,7 +243,7 @@ export default function CIAMacroIntel() {
         svg.attr("width", width).attr("height", height);
 
         const projection = d3.geoNaturalEarth1()
-            .scale(isMobile ? width / 4.5 : width / 12)
+            .scale(isMobile ? width / 9 : width / 10)
             .translate([width / 2, height / 2]);
 
         const path = d3.geoPath().projection(projection);
@@ -425,6 +431,7 @@ export default function CIAMacroIntel() {
         setSelectedCountry(countryName);
         setShowConfirmationModal(true);
         setIntelStatus('QUERYING');
+        // Don't change view - keep the map visible
     };
 
     const handleConfirmAnalysis = async () => {
@@ -471,6 +478,134 @@ export default function CIAMacroIntel() {
         setShowMediaCenter(false);
         setVideoUrl('');
         setIsVideoPlaying(false);
+    };
+
+    const handleLauraQuery = async () => {
+        if (!lauraInput.trim()) return;
+        
+        setLauraLoading(true);
+        setLauraError('');
+        
+        const userMessage = { role: 'user', content: lauraInput };
+        setLauraMessages(prev => [...prev, userMessage]);
+        setLauraInput('');
+        
+        try {
+            // Build context from stored economic analysis
+            let context = "Available economic intelligence data:\n\n";
+            Object.entries(economicAnalysis).forEach(([country, data]) => {
+                if (data.has_data) {
+                    context += `${country}: ${JSON.stringify(data.aiAnalysis)}\n`;
+                }
+            });
+            
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "anthropic-version": "2023-06-01"
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 1024,
+                    messages: [
+                        ...lauraMessages,
+                        userMessage,
+                        {
+                            role: "user",
+                            content: `You are Laura, an AI intelligence analyst. You have access to economic and geopolitical data. Here's the current intelligence:\n\n${context}\n\nUser query: ${lauraInput}`
+                        }
+                    ]
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                setLauraError(data.error.message || 'Intelligence network error. Retry connection.');
+                setLauraMessages(prev => [...prev, { 
+                    role: 'assistant', 
+                    content: '⚠️ NETWORK ERROR: Unable to process query. Please retry.'
+                }]);
+            } else {
+                const assistantMessage = {
+                    role: 'assistant',
+                    content: data.content[0].text
+                };
+                setLauraMessages(prev => [...prev, assistantMessage]);
+            }
+        } catch (error) {
+            setLauraError('Connection to intelligence network failed. Check classified network status.');
+            setLauraMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: '⚠️ CRITICAL ERROR: Intelligence network unreachable. Retry connection or contact system administrator.'
+            }]);
+        } finally {
+            setLauraLoading(false);
+        }
+    };
+
+    const handleGeopoliticalSearch = async () => {
+        if (!searchQuery.trim()) return;
+        
+        setSearchLoading(true);
+        setSearchError('');
+        
+        try {
+            const response = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "anthropic-version": "2023-06-01"
+                },
+                body: JSON.stringify({
+                    model: "claude-sonnet-4-20250514",
+                    max_tokens: 2048,
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Search and provide detailed geopolitical analysis on: ${searchQuery}`
+                        }
+                    ],
+                    tools: [
+                        {
+                            type: "web_search_20250305",
+                            name: "web_search"
+                        }
+                    ]
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                setSearchError(data.error.message || 'Search operation failed. Retry query.');
+            } else {
+                const fullResponse = data.content
+                    .map(item => (item.type === "text" ? item.text : ""))
+                    .filter(Boolean)
+                    .join("\n");
+                
+                setLauraMessages(prev => [...prev, 
+                    { role: 'user', content: `🔍 SEARCH QUERY: ${searchQuery}` },
+                    { role: 'assistant', content: fullResponse || 'No intelligence found. Refine search parameters.' }
+                ]);
+                setSearchQuery('');
+                setShowLaura(true);
+            }
+        } catch (error) {
+            setSearchError('Search network offline. Unable to query global intelligence database.');
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleNewLauraConversation = () => {
+        setLauraMessages([{
+            role: 'assistant',
+            content: '🟣 LAURA AI ANALYST ONLINE\n\nClassified intelligence terminal active. I have access to all economic data you\'ve queried. Ask me about geopolitical situations, economic trends, or specific country analyses.'
+        }]);
+        setLauraError('');
     };
 
     const handlePolygonClick = (polygon) => {
@@ -671,6 +806,145 @@ export default function CIAMacroIntel() {
                                 )}
                             </div>
                         )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const LauraModal = () => {
+        return (
+            <div style={styles.lauraModal} onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    setShowLaura(false);
+                }
+            }}>
+                <div style={styles.lauraContent}>
+                    <div style={styles.lauraHeader}>
+                        <h3 style={styles.lauraTitle}>
+                            🟣 LAURA AI ANALYST
+                        </h3>
+                        <button 
+                            style={styles.lauraCloseButton}
+                            onClick={() => setShowLaura(false)}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    
+                    <div style={styles.lauraMessagesContainer}>
+                        {/* Geopolitical Search Section */}
+                        <div style={styles.searchContainer}>
+                            <div style={styles.searchTitle}>
+                                🔍 GEOPOLITICAL INTELLIGENCE SEARCH
+                            </div>
+                            <div style={styles.searchInputGroup}>
+                                <input
+                                    type="text"
+                                    placeholder="Search global events, conflicts, economic policies..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && !searchLoading && handleGeopoliticalSearch()}
+                                    style={styles.searchInput}
+                                />
+                                <button
+                                    onClick={handleGeopoliticalSearch}
+                                    disabled={searchLoading}
+                                    style={styles.searchButton}
+                                >
+                                    {searchLoading ? 'SEARCHING...' : 'SEARCH'}
+                                </button>
+                            </div>
+                            {searchError && (
+                                <div style={styles.lauraError}>
+                                    ⚠️ {searchError}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Chat Messages */}
+                        {lauraMessages.length === 0 && (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '40px 20px',
+                                color: '#a855f7',
+                                fontSize: isMobile ? '13px' : '14px',
+                                letterSpacing: '1px'
+                            }}>
+                                🟣 LAURA AI ANALYST READY
+                                <br /><br />
+                                Ask me about any country's economic data you've queried,
+                                <br />
+                                or use the search above for live geopolitical intelligence.
+                            </div>
+                        )}
+                        
+                        {lauraMessages.map((msg, idx) => (
+                            <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
+                                <div style={styles.lauraMessageBubble(msg.role === 'user')}>
+                                    {msg.content}
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {lauraLoading && (
+                            <div style={styles.lauraMessage(false)}>
+                                <div style={{
+                                    ...styles.lauraMessageBubble(false),
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
+                                }}>
+                                    <div style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        border: '3px solid rgba(255,255,255,0.3)',
+                                        borderTop: '3px solid #fff',
+                                        borderRadius: '50%',
+                                        animation: 'spin 1s linear infinite'
+                                    }}></div>
+                                    Analyzing intelligence...
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div style={styles.lauraInputContainer}>
+                        {lauraError && (
+                            <div style={styles.lauraError}>
+                                ⚠️ {lauraError}
+                            </div>
+                        )}
+                        <textarea
+                            placeholder="Query Laura about economic data, trends, or country analyses..."
+                            value={lauraInput}
+                            onChange={(e) => setLauraInput(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    !lauraLoading && handleLauraQuery();
+                                }
+                            }}
+                            style={styles.lauraInput}
+                        />
+                        <div style={styles.lauraButtonContainer}>
+                            <button
+                                onClick={handleLauraQuery}
+                                disabled={lauraLoading || !lauraInput.trim()}
+                                style={{
+                                    ...styles.lauraSendButton,
+                                    opacity: lauraLoading || !lauraInput.trim() ? 0.5 : 1
+                                }}
+                            >
+                                {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
+                            </button>
+                            <button
+                                onClick={handleNewLauraConversation}
+                                style={styles.lauraNewChatButton}
+                            >
+                                NEW CHAT
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -899,6 +1173,215 @@ export default function CIAMacroIntel() {
             width: isMobile ? '200px' : '280px',
             fontFamily: 'monospace',
             letterSpacing: '1px'
+        },
+        lauraButton: {
+            position: 'fixed',
+            bottom: '30px',
+            right: isMobile ? '95px' : '110px',
+            width: isMobile ? '50px' : '60px',
+            height: isMobile ? '50px' : '60px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+            border: '2px solid #fff',
+            color: '#fff',
+            fontSize: isMobile ? '20px' : '24px',
+            cursor: 'pointer',
+            boxShadow: '0 0 30px rgba(124, 58, 237, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9998,
+            transition: 'all 0.3s ease',
+            animation: 'pulse 2s infinite',
+            fontWeight: 'bold'
+        },
+        lauraModal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10003,
+            backdropFilter: 'blur(10px)'
+        },
+        lauraContent: {
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+            borderRadius: '12px',
+            border: '2px solid #7c3aed',
+            boxShadow: '0 0 60px rgba(124, 58, 237, 0.5)',
+            width: isMobile ? '95%' : '700px',
+            height: isMobile ? '90vh' : '80vh',
+            maxWidth: '95vw',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        },
+        lauraHeader: {
+            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+            padding: isMobile ? '15px 20px' : '20px 25px',
+            borderBottom: '2px solid #a855f7',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+        },
+        lauraTitle: {
+            fontSize: isMobile ? '1.1rem' : '1.3rem',
+            fontWeight: '700',
+            color: '#fff',
+            margin: 0,
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
+        },
+        lauraCloseButton: {
+            background: 'none',
+            border: 'none',
+            color: '#fff',
+            fontSize: '32px',
+            cursor: 'pointer',
+            padding: '0',
+            width: '40px',
+            height: '40px',
+            borderRadius: '6px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            transition: 'background 0.3s ease',
+            fontWeight: '300'
+        },
+        lauraMessagesContainer: {
+            flex: 1,
+            overflowY: 'auto',
+            padding: isMobile ? '15px' : '20px',
+            background: '#1e1b4b'
+        },
+        lauraMessage: (isUser) => ({
+            marginBottom: '15px',
+            display: 'flex',
+            justifyContent: isUser ? 'flex-end' : 'flex-start'
+        }),
+        lauraMessageBubble: (isUser) => ({
+            maxWidth: '75%',
+            padding: isMobile ? '10px 14px' : '12px 16px',
+            borderRadius: '12px',
+            background: isUser 
+                ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
+                : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+            color: '#fff',
+            fontSize: isMobile ? '13px' : '14px',
+            lineHeight: '1.5',
+            wordWrap: 'break-word',
+            whiteSpace: 'pre-wrap'
+        }),
+        lauraInputContainer: {
+            padding: isMobile ? '15px' : '20px',
+            background: '#1e1b4b',
+            borderTop: '1px solid #4c1d95',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+        },
+        lauraInput: {
+            width: '100%',
+            padding: isMobile ? '10px 14px' : '12px 16px',
+            background: '#312e81',
+            border: '1px solid #7c3aed',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+            fontSize: isMobile ? '13px' : '14px',
+            outline: 'none',
+            resize: 'vertical',
+            minHeight: '40px',
+            maxHeight: '120px'
+        },
+        lauraButtonContainer: {
+            display: 'flex',
+            gap: '10px'
+        },
+        lauraSendButton: {
+            flex: 1,
+            padding: isMobile ? '10px 16px' : '12px 20px',
+            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: isMobile ? '12px' : '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 0 20px rgba(124, 58, 237, 0.4)'
+        },
+        lauraNewChatButton: {
+            padding: isMobile ? '10px 16px' : '12px 20px',
+            background: 'transparent',
+            border: '1px solid #7c3aed',
+            borderRadius: '6px',
+            color: '#a855f7',
+            fontSize: isMobile ? '12px' : '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            transition: 'all 0.3s ease'
+        },
+        lauraError: {
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.5)',
+            borderRadius: '6px',
+            padding: '10px',
+            color: '#fca5a5',
+            fontSize: isMobile ? '11px' : '12px',
+            marginBottom: '10px'
+        },
+        searchContainer: {
+            background: 'rgba(124, 58, 237, 0.1)',
+            border: '1px solid #7c3aed',
+            borderRadius: '8px',
+            padding: isMobile ? '15px' : '20px',
+            marginBottom: '20px'
+        },
+        searchTitle: {
+            fontSize: isMobile ? '13px' : '14px',
+            fontWeight: '700',
+            color: '#a855f7',
+            marginBottom: '10px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
+        },
+        searchInputGroup: {
+            display: 'flex',
+            gap: '10px',
+            flexDirection: isMobile ? 'column' : 'row'
+        },
+        searchInput: {
+            flex: 1,
+            padding: isMobile ? '10px 14px' : '12px 16px',
+            background: '#1e1b4b',
+            border: '1px solid #7c3aed',
+            borderRadius: '6px',
+            color: '#e2e8f0',
+            fontSize: isMobile ? '13px' : '14px',
+            outline: 'none'
+        },
+        searchButton: {
+            padding: isMobile ? '10px 20px' : '12px 24px',
+            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+            border: 'none',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: isMobile ? '12px' : '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 0 15px rgba(124, 58, 237, 0.3)',
+            whiteSpace: 'nowrap'
         },
         searchButton: {
             padding: '10px 20px',
@@ -1992,8 +2475,31 @@ export default function CIAMacroIntel() {
                 📡
             </button>
 
+            {/* Laura AI Floating Button */}
+            <button
+                style={styles.lauraButton}
+                onClick={() => {
+                    setShowLaura(true);
+                    if (lauraMessages.length === 0) {
+                        handleNewLauraConversation();
+                    }
+                }}
+                title="Laura AI Analyst"
+                onMouseEnter={(e) => {
+                    e.target.style.transform = 'scale(1.1)';
+                    e.target.style.boxShadow = '0 0 40px rgba(124, 58, 237, 0.8), 0 4px 25px rgba(0, 0, 0, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                    e.target.style.transform = 'scale(1)';
+                    e.target.style.boxShadow = '0 0 30px rgba(124, 58, 237, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)';
+                }}
+            >
+                L
+            </button>
+
             {showConfirmationModal && <ConfirmationModal />}
             {showMediaCenter && <MediaCenterModal />}
+            {showLaura && <LauraModal />}
 
             <style>{`
                 @keyframes spin {
@@ -2050,8 +2556,16 @@ export default function CIAMacroIntel() {
                     animation: none !important;
                 }
                 
+                .lauraButton:hover {
+                    animation: none !important;
+                }
+                
                 .mediaCloseButton:hover {
                     background: rgba(220, 38, 38, 0.2) !important;
+                }
+                
+                .lauraCloseButton:hover {
+                    background: rgba(124, 58, 237, 0.2) !important;
                 }
             `}</style>
         </div>
