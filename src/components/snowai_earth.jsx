@@ -33,7 +33,8 @@ const LauraModalContent = ({
     speakMessage,
     stopSpeaking,
     styles,
-    setShowLaura
+    setShowLaura,
+    fileInputRef
 }) => {
     return (
         <div style={styles.lauraModal} onClick={(e) => {
@@ -169,6 +170,7 @@ const LauraModalContent = ({
                         <label style={styles.imageUploadButton}>
                             📷 UPLOAD IMAGE
                             <input
+                                ref={fileInputRef}
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageUpload}
@@ -270,6 +272,7 @@ export default function SnowAIEarth() {
     const [selectedVoice, setSelectedVoice] = useState(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const globeThemes = {
         'night-ops': {
@@ -958,16 +961,20 @@ export default function SnowAIEarth() {
     };
     
     const handleImageUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setSelectedImage(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+    const file = e.target.files[0];
+    if (file) {
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+    }
+    // Reset the file input so you can upload again
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+};
     
     const handleVoiceChange = (e) => {
         const voiceName = e.target.value;
@@ -2851,6 +2858,8 @@ export default function SnowAIEarth() {
                 stopSpeaking={stopSpeaking}
                 styles={styles}
                 setShowLaura={setShowLaura}
+                fileInputRef={fileInputRef}  // <-- Add this
+
             />}
 
             <style>{`
