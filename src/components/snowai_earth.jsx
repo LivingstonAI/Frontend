@@ -791,6 +791,9 @@ export default function SnowAIEarth() {
         const updatedMessages = [...lauraMessages, userMessage];
         setLauraMessages(updatedMessages);
 
+        // Scroll immediately after adding user message
+        setTimeout(() => scrollToBottom(), 100);
+
         // Build context
         let context = "Available economic intelligence data:\n\n";
         Object.entries(economicAnalysis).forEach(([country, data]) => {
@@ -833,7 +836,6 @@ export default function SnowAIEarth() {
                         ]
                     };
                     await sendToOpenAI(requestBody);
-                    // Removed setLauraInput('') from here - already cleared at the top
                 };
                 reader.onerror = () => {
                     setLauraError('Image upload failed.');
@@ -842,13 +844,13 @@ export default function SnowAIEarth() {
                 reader.readAsDataURL(currentImage);
             } else {
                 await sendToOpenAI(requestBody);
-                // Removed setLauraInput('') from here - already cleared at the top
             }
         } catch (error) {
             setLauraError('Connection to intelligence network failed.');
             setLauraMessages(prev => [...prev, { role: 'assistant', content: '⚠️ CRITICAL ERROR: Intelligence network unreachable.' }]);
         } finally {
             setLauraLoading(false);
+            // Scroll again after Laura's response
             setTimeout(() => scrollToBottom(), 100);
         }
     };
