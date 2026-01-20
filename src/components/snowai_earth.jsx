@@ -538,12 +538,19 @@ export default function SnowAIEarth() {
     const handleLauraQuery = async () => {
         if (!lauraInput.trim() && !selectedImage) return;
 
-        setLauraLoading(true);
-        setLauraError('');
-
+        // Store the current input values BEFORE clearing them
         const currentInput = lauraInput;
         const currentImage = selectedImage;
 
+        // Clear the input fields immediately so user can type new message
+        setLauraInput('');
+        setSelectedImage(null);
+        setImagePreview(null);
+
+        setLauraLoading(true);
+        setLauraError('');
+
+        // Use the stored values instead of state
         const userMessage = { 
             role: 'user', 
             content: currentInput,
@@ -557,22 +564,22 @@ export default function SnowAIEarth() {
         let context = "Available economic intelligence data:\n\n";
         Object.entries(economicAnalysis).forEach(([country, data]) => {
             if (data.has_data) {
-            context += `${country}: ${JSON.stringify(data.aiAnalysis)}\n`;
+                context += `${country}: ${JSON.stringify(data.aiAnalysis)}\n`;
             }
         });
 
         const messages = [
             {
-            role: "system",
-            content: `You are Laura, an AI intelligence analyst. Here's the current intelligence:\n\n${context}`
+                role: "system",
+                content: `You are Laura, an AI intelligence analyst. Here's the current intelligence:\n\n${context}`
             },
             ...updatedMessages.filter(m => !m.image).map(m => ({
-            role: m.role,
-            content: m.content
+                role: m.role,
+                content: m.content
             })),
             {
-            role: "user",
-            content: currentInput || "Analyze this image"
+                role: "user",
+                content: currentInput || "Analyze this image"
             }
         ];
 
@@ -584,31 +591,27 @@ export default function SnowAIEarth() {
 
         try {
             if (currentImage) {
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-                const base64Image = reader.result.split(',')[1];
-                requestBody.messages[requestBody.messages.length - 1] = {
-                role: "user",
-                content: [
-                    { type: "text", text: currentInput || "Analyze this image" },
-                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
-                ]
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Image = reader.result.split(',')[1];
+                    requestBody.messages[requestBody.messages.length - 1] = {
+                        role: "user",
+                        content: [
+                            { type: "text", text: currentInput || "Analyze this image" },
+                            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+                        ]
+                    };
+                    await sendToOpenAI(requestBody);
+                    // Removed setLauraInput('') from here - already cleared at the top
                 };
-                await sendToOpenAI(requestBody);
-                setLauraInput(''); // clear AFTER success
-                setSelectedImage(null);
-                setImagePreview(null);
-            };
-            reader.onerror = () => {
-                setLauraError('Image upload failed.');
-                setLauraLoading(false);
-            };
-            reader.readAsDataURL(currentImage);
+                reader.onerror = () => {
+                    setLauraError('Image upload failed.');
+                    setLauraLoading(false);
+                };
+                reader.readAsDataURL(currentImage);
             } else {
-            await sendToOpenAI(requestBody);
-            setLauraInput('');
-            setSelectedImage(null);
-            setImagePreview(null);
+                await sendToOpenAI(requestBody);
+                // Removed setLauraInput('') from here - already cleared at the top
             }
         } catch (error) {
             setLauraError('Connection to intelligence network failed.');
@@ -617,8 +620,7 @@ export default function SnowAIEarth() {
             setLauraLoading(false);
             setTimeout(() => scrollToBottom(), 100);
         }
-        };
-
+    };
     
     const sendToOpenAI = async (requestBody) => {
         try {
