@@ -7,6 +7,229 @@ import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
+const LauraModalContent = ({ 
+    isMobile, 
+    searchQuery, 
+    setSearchQuery,
+    searchLoading,
+    searchError,
+    handleGeopoliticalSearch,
+    lauraMessages,
+    lauraLoading,
+    messagesEndRef,
+    lauraError,
+    availableVoices,
+    selectedVoice,
+    handleVoiceChange,
+    imagePreview,
+    handleImageUpload,
+    setSelectedImage,
+    setImagePreview,
+    lauraInput,
+    setLauraInput,
+    handleLauraQuery,
+    handleNewLauraConversation,
+    isSpeaking,
+    speakMessage,
+    stopSpeaking,
+    styles,
+    setShowLaura
+}) => {
+    return (
+        <div style={styles.lauraModal} onClick={(e) => {
+            if (e.target === e.currentTarget) {
+                setShowLaura(false);
+            }
+        }}>
+            <div style={styles.lauraContent}>
+                <div style={styles.lauraHeader}>
+                    <h3 style={styles.lauraTitle}>
+                        🟣 LAURA AI ANALYST
+                    </h3>
+                    <button 
+                        style={styles.lauraCloseButton}
+                        onClick={() => setShowLaura(false)}
+                    >
+                        ×
+                    </button>
+                </div>
+                
+                <div style={styles.lauraMessagesContainer}>
+                    {/* Geopolitical Search Section */}
+                    <div style={styles.searchContainer}>
+                        <div style={styles.searchTitle}>
+                            🔍 GEOPOLITICAL INTELLIGENCE SEARCH
+                        </div>
+                        <div style={styles.searchInputGroup}>
+                            <input
+                                type="text"
+                                placeholder="Search global events, conflicts, economic policies..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && !searchLoading && handleGeopoliticalSearch()}
+                                style={styles.searchInput}
+                            />
+                            <button
+                                onClick={handleGeopoliticalSearch}
+                                disabled={searchLoading}
+                                style={styles.searchButton}
+                            >
+                                {searchLoading ? 'SEARCHING...' : 'SEARCH'}
+                            </button>
+                        </div>
+                        {searchError && (
+                            <div style={styles.lauraError}>
+                                ⚠️ {searchError}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Chat Messages */}
+                    {lauraMessages.length === 0 && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '40px 20px',
+                            color: '#a855f7',
+                            fontSize: isMobile ? '13px' : '14px',
+                            letterSpacing: '1px'
+                        }}>
+                            🟣 LAURA AI ANALYST READY
+                            <br /><br />
+                            Ask me about any country's economic data you've queried,
+                            <br />
+                            or use the search above for live geopolitical intelligence.
+                        </div>
+                    )}
+                    
+                    {lauraMessages.map((msg, idx) => (
+                        <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
+                            <div style={styles.lauraMessageBubble(msg.role === 'user')}>
+                                {msg.content}
+                                {msg.image && (
+                                    <img src={msg.image} alt="Uploaded" style={styles.messageImage} />
+                                )}
+                            </div>
+                            {msg.role === 'assistant' && (
+                                <button
+                                    style={styles.speakButton}
+                                    onClick={() => isSpeaking ? stopSpeaking() : speakMessage(msg.content)}
+                                >
+                                    {isSpeaking ? '⏸ STOP' : '🔊 SPEAK'}
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    
+                    {lauraLoading && (
+                        <div style={styles.lauraMessage(false)}>
+                            <div style={{
+                                ...styles.lauraMessageBubble(false),
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                <div style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    border: '3px solid rgba(255,255,255,0.3)',
+                                    borderTop: '3px solid #fff',
+                                    borderRadius: '50%',
+                                    animation: 'spin 1s linear infinite'
+                                }}></div>
+                                Analyzing intelligence...
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div ref={messagesEndRef} />
+                </div>
+                
+                <div style={styles.lauraInputContainer}>
+                    {lauraError && (
+                        <div style={styles.lauraError}>
+                            ⚠️ {lauraError}
+                        </div>
+                    )}
+                    
+                    {/* Voice Selector and Image Upload */}
+                    <div style={styles.imageUploadContainer}>
+                        <select 
+                            value={selectedVoice?.name || ''} 
+                            onChange={handleVoiceChange}
+                            style={styles.voiceSelector}
+                        >
+                            <option value="">SELECT VOICE</option>
+                            {availableVoices.map((voice, idx) => (
+                                <option key={idx} value={voice.name}>
+                                    {voice.name} ({voice.lang})
+                                </option>
+                            ))}
+                        </select>
+                        
+                        <label style={styles.imageUploadButton}>
+                            📷 UPLOAD IMAGE
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                style={{ display: 'none' }}
+                            />
+                        </label>
+                        
+                        {imagePreview && (
+                            <div style={styles.imagePreviewContainer}>
+                                <img src={imagePreview} alt="Preview" style={styles.imagePreviewThumb} />
+                                <button
+                                    style={styles.removeImageButton}
+                                    onClick={() => {
+                                        setSelectedImage(null);
+                                        setImagePreview(null);
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <textarea
+                        placeholder="Query Laura about economic data, trends, or country analyses..."
+                        value={lauraInput}
+                        onChange={(e) => setLauraInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (!lauraLoading) {
+                                    handleLauraQuery();
+                                }
+                            }
+                        }}
+                        style={styles.lauraInput}
+                    />
+                    <div style={styles.lauraButtonContainer}>
+                        <button
+                            onClick={handleLauraQuery}
+                            disabled={lauraLoading || (!lauraInput.trim() && !imagePreview)}
+                            style={{
+                                ...styles.lauraSendButton,
+                                opacity: lauraLoading || (!lauraInput.trim() && !imagePreview) ? 0.5 : 1
+                            }}
+                        >
+                            {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
+                        </button>
+                        <button
+                            onClick={handleNewLauraConversation}
+                            style={styles.lauraNewChatButton}
+                        >
+                            NEW CHAT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
@@ -976,202 +1199,7 @@ export default function SnowAIEarth() {
         );
     };
 
-    const LauraModal = () => {
-        return (
-            <div style={styles.lauraModal} onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                    setShowLaura(false);
-                }
-            }}>
-                <div style={styles.lauraContent}>
-                    <div style={styles.lauraHeader}>
-                        <h3 style={styles.lauraTitle}>
-                            🟣 LAURA AI ANALYST
-                        </h3>
-                        <button 
-                            style={styles.lauraCloseButton}
-                            onClick={() => setShowLaura(false)}
-                        >
-                            ×
-                        </button>
-                    </div>
-                    
-                    <div style={styles.lauraMessagesContainer}>
-                        {/* Geopolitical Search Section */}
-                        <div style={styles.searchContainer}>
-                            <div style={styles.searchTitle}>
-                                🔍 GEOPOLITICAL INTELLIGENCE SEARCH
-                            </div>
-                            <div style={styles.searchInputGroup}>
-                                <input
-                                    type="text"
-                                    placeholder="Search global events, conflicts, economic policies..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && !searchLoading && handleGeopoliticalSearch()}
-                                    style={styles.searchInput}
-                                />
-                                <button
-                                    onClick={handleGeopoliticalSearch}
-                                    disabled={searchLoading}
-                                    style={styles.searchButton}
-                                >
-                                    {searchLoading ? 'SEARCHING...' : 'SEARCH'}
-                                </button>
-                            </div>
-                            {searchError && (
-                                <div style={styles.lauraError}>
-                                    ⚠️ {searchError}
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Chat Messages */}
-                        {lauraMessages.length === 0 && (
-                            <div style={{
-                                textAlign: 'center',
-                                padding: '40px 20px',
-                                color: '#a855f7',
-                                fontSize: isMobile ? '13px' : '14px',
-                                letterSpacing: '1px'
-                            }}>
-                                🟣 LAURA AI ANALYST READY
-                                <br /><br />
-                                Ask me about any country's economic data you've queried,
-                                <br />
-                                or use the search above for live geopolitical intelligence.
-                            </div>
-                        )}
-                        
-                        {lauraMessages.map((msg, idx) => (
-                            <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
-                                <div style={styles.lauraMessageBubble(msg.role === 'user')}>
-                                    {msg.content}
-                                    {msg.image && (
-                                        <img src={msg.image} alt="Uploaded" style={styles.messageImage} />
-                                    )}
-                                </div>
-                                {msg.role === 'assistant' && (
-                                    <button
-                                        style={styles.speakButton}
-                                        onClick={() => isSpeaking ? stopSpeaking() : speakMessage(msg.content)}
-                                    >
-                                        {isSpeaking ? '⏸ STOP' : '🔊 SPEAK'}
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        
-                        {lauraLoading && (
-                            <div style={styles.lauraMessage(false)}>
-                                <div style={{
-                                    ...styles.lauraMessageBubble(false),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px'
-                                }}>
-                                    <div style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        border: '3px solid rgba(255,255,255,0.3)',
-                                        borderTop: '3px solid #fff',
-                                        borderRadius: '50%',
-                                        animation: 'spin 1s linear infinite'
-                                    }}></div>
-                                    Analyzing intelligence...
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div ref={messagesEndRef} />
-                    </div>
-                    
-                    <div style={styles.lauraInputContainer}>
-                        {lauraError && (
-                            <div style={styles.lauraError}>
-                                ⚠️ {lauraError}
-                            </div>
-                        )}
-                        
-                        {/* Voice Selector and Image Upload */}
-                        <div style={styles.imageUploadContainer}>
-                            <select 
-                                value={selectedVoice?.name || ''} 
-                                onChange={handleVoiceChange}
-                                style={styles.voiceSelector}
-                            >
-                                <option value="">SELECT VOICE</option>
-                                {availableVoices.map((voice, idx) => (
-                                    <option key={idx} value={voice.name}>
-                                        {voice.name} ({voice.lang})
-                                    </option>
-                                ))}
-                            </select>
-                            
-                            <label style={styles.imageUploadButton}>
-                                📷 UPLOAD IMAGE
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    style={{ display: 'none' }}
-                                />
-                            </label>
-                            
-                            {imagePreview && (
-                                <div style={styles.imagePreviewContainer}>
-                                    <img src={imagePreview} alt="Preview" style={styles.imagePreviewThumb} />
-                                    <button
-                                        style={styles.removeImageButton}
-                                        onClick={() => {
-                                            setSelectedImage(null);
-                                            setImagePreview(null);
-                                        }}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        
-                        <textarea
-                            placeholder="Query Laura about economic data, trends, or country analyses..."
-                            value={lauraInput}
-                            onChange={handleLauraInputChange} // Use the memoized handler
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if (!lauraLoading) {
-                                        handleLauraQuery();
-                                    }
-                                }
-                            }}
-                            style={styles.lauraInput}
-                        />
-                        <div style={styles.lauraButtonContainer}>
-                            <button
-                                onClick={handleLauraQuery}
-                                disabled={lauraLoading || (!lauraInput.trim() && !selectedImage)}
-                                style={{
-                                    ...styles.lauraSendButton,
-                                    opacity: lauraLoading || (!lauraInput.trim() && !selectedImage) ? 0.5 : 1
-                                }}
-                            >
-                                {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
-                            </button>
-                            <button
-                                onClick={handleNewLauraConversation}
-                                style={styles.lauraNewChatButton}
-                            >
-                                NEW CHAT
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
+    
     const MediaCenterModal = () => {
         const videoId = isVideoPlaying ? extractYouTubeId(videoUrl) : null;
         
@@ -2796,7 +2824,34 @@ export default function SnowAIEarth() {
 
             {showConfirmationModal && <ConfirmationModal />}
             {showMediaCenter && <MediaCenterModal />}
-            {showLaura && <LauraModal />}
+            {showLaura && <LauraModalContent 
+                isMobile={isMobile}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                searchLoading={searchLoading}
+                searchError={searchError}
+                handleGeopoliticalSearch={handleGeopoliticalSearch}
+                lauraMessages={lauraMessages}
+                lauraLoading={lauraLoading}
+                messagesEndRef={messagesEndRef}
+                lauraError={lauraError}
+                availableVoices={availableVoices}
+                selectedVoice={selectedVoice}
+                handleVoiceChange={handleVoiceChange}
+                imagePreview={imagePreview}
+                handleImageUpload={handleImageUpload}
+                setSelectedImage={setSelectedImage}
+                setImagePreview={setImagePreview}
+                lauraInput={lauraInput}
+                setLauraInput={setLauraInput}
+                handleLauraQuery={handleLauraQuery}
+                handleNewLauraConversation={handleNewLauraConversation}
+                isSpeaking={isSpeaking}
+                speakMessage={speakMessage}
+                stopSpeaking={stopSpeaking}
+                styles={styles}
+                setShowLaura={setShowLaura}
+            />}
 
             <style>{`
                 @keyframes spin {
