@@ -206,6 +206,11 @@ export default function SnowAIEarth() {
         }
     };
 
+    // Add this near your other useCallback/useMemo hooks
+    const handleLauraInputChange = useCallback((e) => {
+        setLauraInput(e.target.value);
+    }, []);
+
     const handleCountrySearch = () => {
         if (!searchCountry.trim() || !globeRef.current) return;
         
@@ -534,7 +539,7 @@ export default function SnowAIEarth() {
         setIsVideoPlaying(false);
     };
 
-    
+
     const handleLauraQuery = async () => {
         if (!lauraInput.trim() && !selectedImage) return;
 
@@ -1132,7 +1137,7 @@ export default function SnowAIEarth() {
                         <textarea
                             placeholder="Query Laura about economic data, trends, or country analyses..."
                             value={lauraInput}
-                            onChange={(e) => setLauraInput(e.target.value)}
+                            onChange={handleLauraInputChange} // Use the memoized handler
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
