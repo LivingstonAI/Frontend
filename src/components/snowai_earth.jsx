@@ -1,6 +1,6 @@
 import Header from "./header";
 import SideNavs from "./side_navs";
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
 import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide-react';
