@@ -1265,7 +1265,7 @@ export default function SnowAIEarth() {
         );
     };
 
-    const styles = {
+    const styles = useMemo(() => ({
         container: {
             background: 'linear-gradient(to bottom, #0f1419 0%, #1a1f2e 100%)',
             minHeight: '100vh',
@@ -2415,7 +2415,7 @@ export default function SnowAIEarth() {
             gap: '5px',
             transition: 'color 0.3s ease'
         }
-    };
+    }), [isMobile]);
 
     const getGlobeSize = () => {
         const baseSize = isMobile ? 
