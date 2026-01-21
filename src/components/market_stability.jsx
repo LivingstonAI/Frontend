@@ -1815,6 +1815,299 @@ export default function MarketStabilityScore() {
     const [priceTargetData, setPriceTargetData] = useState({});
     const [loadingPriceTarget, setLoadingPriceTarget] = useState({});
 
+    // Add these states at the top with your other states
+const [chartData, setChartData] = useState({});
+const [loadingCharts, setLoadingCharts] = useState({});
+const [showChart, setShowChart] = useState({});
+const [loadingAllCharts, setLoadingAllCharts] = useState(false);
+const [tvLoaded, setTvLoaded] = useState(false);
+
+// Load TradingView CDN (add this useEffect)
+useEffect(() => {
+    const loadTradingViewCharts = async () => {
+        if (window.LightweightCharts) {
+            setTvLoaded(true);
+            return;
+        }
+        try {
+            const cdnSources = [
+                'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js',
+                'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js'
+            ];
+            let loaded = false;
+            
+            for (const src of cdnSources) {
+                if (loaded) break;
+                
+                try {
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.crossOrigin = 'anonymous';
+                        script.onload = () => {
+                            console.log(`TradingView Lightweight Charts loaded from: ${src}`);
+                            setTimeout(() => {
+                                if (window.LightweightCharts && window.LightweightCharts.createChart) {
+                                    loaded = true;
+                                    setTvLoaded(true);
+                                    resolve();
+                                } else {
+                                    reject();
+                                }
+                            }, 500);
+                        };
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+                } catch (e) {
+                    continue;
+                }
+            }
+            if (!loaded) {
+                console.error('All CDN sources failed');
+                setTvLoaded(false);
+            }
+            
+        } catch (error) {
+            console.error('Error loading TradingView Lightweight Charts:', error);
+            setTvLoaded(false);
+        }
+    };
+    loadTradingViewCharts();
+}, []);
+
+// Function to fetch chart data for single asset
+const fetchChartData = async (symbol) => {
+    if (!tvLoaded) {
+        alert('Chart library still loading, please wait...');
+        return;
+    }
+    
+    setLoadingCharts(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-fetch-chart-data-for-visualization/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: [symbol]
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.data[symbol]?.success) {
+            setChartData(prev => ({
+                ...prev,
+                [symbol]: data.data[symbol].data
+            }));
+            setShowChart(prev => ({ ...prev, [symbol]: !prev[symbol] })); // Toggle
+        } else {
+            alert(`Error loading chart: ${data.data[symbol]?.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error fetching chart:', error);
+        alert('Failed to load chart data');
+    } finally {
+        setLoadingCharts(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Function to fetch all charts (displays inline on cards)
+const fetchAllCharts = async () => {
+    if (!tvLoaded) {
+        alert('Chart library still loading, please wait...');
+        return;
+    }
+    
+    setLoadingAllCharts(true);
+    
+    try {
+        const symbols = filteredData.map(asset => asset.symbol);
+        
+        const response = await fetch(`${baseUrl}/api/mss-fetch-chart-data-for-visualization/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: symbols
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const chartsMap = {};
+            const showChartsMap = {};
+            
+            Object.keys(data.data).forEach(symbol => {
+                if (data.data[symbol].success) {
+                    chartsMap[symbol] = data.data[symbol].data;
+                    showChartsMap[symbol] = true; // Show all charts
+                }
+            });
+            
+            setChartData(chartsMap);
+            setShowChart(showChartsMap);
+            alert(`✅ Loaded charts for ${Object.keys(chartsMap).length} assets!`);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error fetching all charts:', error);
+        alert('Failed to load charts');
+    } finally {
+        setLoadingAllCharts(false);
+    }
+};
+
+// Function to fetch sector charts
+const fetchSectorCharts = async (sector) => {
+    if (!tvLoaded) {
+        alert('Chart library still loading, please wait...');
+        return;
+    }
+    
+    setLoadingAllCharts(true);
+    
+    try {
+        // Get all symbols in this sector
+        const sectorAssets = mssData.filter(asset => asset.sector === sector);
+        const symbols = sectorAssets.map(asset => asset.symbol);
+        
+        if (symbols.length === 0) {
+            alert('No assets found in this sector');
+            setLoadingAllCharts(false);
+            return;
+        }
+        
+        const response = await fetch(`${baseUrl}/api/mss-fetch-chart-data-for-visualization/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: symbols
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const chartsMap = {};
+            const showChartsMap = {};
+            
+            Object.keys(data.data).forEach(symbol => {
+                if (data.data[symbol].success) {
+                    chartsMap[symbol] = data.data[symbol].data;
+                    showChartsMap[symbol] = true;
+                }
+            });
+            
+            setChartData(prev => ({ ...prev, ...chartsMap }));
+            setShowChart(prev => ({ ...prev, ...showChartsMap }));
+            alert(`✅ Loaded charts for ${Object.keys(chartsMap).length} ${sector} stocks!`);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error fetching sector charts:', error);
+        alert('Failed to load sector charts');
+    } finally {
+        setLoadingAllCharts(false);
+    }
+};
+
+// TradingView Chart Component
+const TradingViewChart = ({ data, symbol }) => {
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    
+    useEffect(() => {
+        if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) return;
+        
+        // Create chart
+        const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
+            width: chartContainerRef.current.clientWidth,
+            height: 300,
+            layout: {
+                background: { color: '#1a1a1a' },
+                textColor: '#d1d5db',
+            },
+            grid: {
+                vertLines: { color: '#2a2a2a' },
+                horzLines: { color: '#2a2a2a' },
+            },
+            crosshair: {
+                mode: 1,
+            },
+            rightPriceScale: {
+                borderColor: '#2a2a2a',
+            },
+            timeScale: {
+                borderColor: '#2a2a2a',
+                timeVisible: true,
+                secondsVisible: false,
+            },
+        });
+        
+        // Add candlestick series with green/red colors
+        const candlestickSeries = chart.addCandlestickSeries({
+            upColor: '#10b981',
+            downColor: '#ef4444',
+            borderUpColor: '#10b981',
+            borderDownColor: '#ef4444',
+            wickUpColor: '#10b981',
+            wickDownColor: '#ef4444',
+        });
+        
+        candlestickSeries.setData(data);
+        
+        // Fit content
+        chart.timeScale().fitContent();
+        
+        chartRef.current = chart;
+        
+        // Handle resize
+        const handleResize = () => {
+            if (chartContainerRef.current && chartRef.current) {
+                chartRef.current.applyOptions({
+                    width: chartContainerRef.current.clientWidth,
+                });
+            }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (chartRef.current) {
+                chartRef.current.remove();
+            }
+        };
+    }, [data]);
+    
+    return (
+        <div style={{ width: '100%', position: 'relative' }}>
+            <div style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#e5e7eb',
+                marginBottom: '8px',
+                padding: '8px',
+                background: '#2a2a2a',
+                borderRadius: '6px'
+            }}>
+                {symbol} - 1H Chart (45 Days)
+            </div>
+            <div ref={chartContainerRef} style={{ width: '100%', height: '300px' }} />
+        </div>
+    );
+};
+
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
         const targetPrice = targetPriceInput[symbol];
@@ -3477,7 +3770,20 @@ return (
                             }}
                         >
                             {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
-                        </button>
+                        </button><br />
+
+                        <button
+                            className="mss-calculate-btn"
+                            onClick={fetchAllCharts}
+                            disabled={loadingAllCharts || filteredData.length === 0 || !tvLoaded}
+                            style={{ 
+                                padding: '12px 24px', 
+                                fontSize: '14px',
+                                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                            }}
+                        >
+                            {loadingAllCharts ? '📊 Loading...' : !tvLoaded ? '⏳ Loading Charts...' : '📊 View All Charts'}
+                        </button><br />
                         
                         
                         {Object.keys(trendDurations).length > 0 && (
@@ -3548,7 +3854,23 @@ return (
                                     >
                                         {sector.sector} ({sector.avg_return >= 0 ? '+' : ''}{sector.avg_return.toFixed(1)}%)
                                     </button>
+                                    
                                 ))}
+                                {selectedSector !== 'all' && (
+                                    <button
+                                        className="mss-calculate-btn"
+                                        onClick={() => fetchSectorCharts(selectedSector)}
+                                        disabled={loadingAllCharts || !tvLoaded}
+                                        style={{
+                                            padding: '10px 20px',
+                                            fontSize: '13px',
+                                            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                            marginLeft: '10px'
+                                        }}
+                                    >
+                                        {loadingAllCharts ? '📊 Loading...' : `📊 View ${selectedSector} Charts`}
+                                    </button>
+                                )}
                             </div>
 
                             <div className="sector-charts-grid">
@@ -3892,6 +4214,16 @@ return (
                                             >
                                                 {loadingCharts[asset.symbol] ? '📊 Loading...' : '📊 View Chart'}
                                             </button>
+                                            {/* 3. Individual "View Chart" Button - per asset card in card-actions */}
+                                            <button
+                                                className="calculate-retracement-btn"
+                                                onClick={() => fetchChartData(asset.symbol)}
+                                                disabled={loadingCharts[asset.symbol] || !tvLoaded}
+                                                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+                                            >
+                                                {loadingCharts[asset.symbol] ? '📊 Loading...' : 
+                                                 showChart[asset.symbol] ? '📊 Hide Chart' : '📊 View Chart'}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -3956,6 +4288,8 @@ return (
                                         )}
                                     </div>
                                 )}
+
+                                
 
                                 {retracementData[asset.symbol] && (
                                     <div className="retracement-analysis-container">
@@ -4504,6 +4838,22 @@ return (
                                     </div>
                                 </div>
                             )}
+
+                                {/* Add this INSIDE each mss-card, after all your existing analysis containers */}
+                                {showChart[asset.symbol] && chartData[asset.symbol] && (
+                                    <div style={{
+                                        marginTop: '15px',
+                                        padding: '15px',
+                                        background: '#1a1a1a',
+                                        borderRadius: '12px',
+                                        border: '2px solid #4f46e5'
+                                    }}>
+                                        <TradingViewChart 
+                                            data={chartData[asset.symbol]} 
+                                            symbol={asset.symbol}
+                                        />
+                                    </div>
+                                )}
                                 
                                 <div className="card-metrics">
                                     <div className="metric">
