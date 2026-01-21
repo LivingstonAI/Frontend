@@ -2,6 +2,8 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { createChart } from 'lightweight-charts';
+
 
 
 const elasticityStyles = `
@@ -1821,9 +1823,6 @@ const [loadingCharts, setLoadingCharts] = useState({});
 const [showChart, setShowChart] = useState({});
 const [loadingAllCharts, setLoadingAllCharts] = useState(false);
 const [showAllChartsModal, setShowAllChartsModal] = useState(false);
-
-// Import if you haven't already
-import { createChart } from 'lightweight-charts';
 
 // Function to fetch chart data for single asset
 const fetchChartData = async (symbol) => {
