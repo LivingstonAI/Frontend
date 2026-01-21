@@ -2,8 +2,6 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { createChart } from 'lightweight-charts';
-
 
 
 const elasticityStyles = `
@@ -1816,13 +1814,6 @@ export default function MarketStabilityScore() {
     const [targetPriceInput, setTargetPriceInput] = useState({});
     const [priceTargetData, setPriceTargetData] = useState({});
     const [loadingPriceTarget, setLoadingPriceTarget] = useState({});
-
-    // Add these states at the top
-    const [chartData, setChartData] = useState({});
-    const [loadingCharts, setLoadingCharts] = useState({});
-    const [showChart, setShowChart] = useState({});
-    const [loadingAllCharts, setLoadingAllCharts] = useState(false);
-    const [showAllChartsModal, setShowAllChartsModal] = useState(false);
 
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
