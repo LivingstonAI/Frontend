@@ -4803,6 +4803,76 @@ return (
         )}
     </div>
 
+          {/* Add this modal for viewing all charts */}
+{showAllChartsModal && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        zIndex: 9999,
+        overflow: 'auto',
+        padding: '20px'
+    }}>
+        <div style={{
+            maxWidth: '1400px',
+            margin: '0 auto',
+            background: '#1a1a1a',
+            borderRadius: '16px',
+            padding: '30px'
+        }}>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '30px'
+            }}>
+                <h2 style={{ color: 'white', margin: 0 }}>
+                    All Charts ({Object.keys(chartData).length} Assets)
+                </h2>
+                <button
+                    onClick={() => setShowAllChartsModal(false)}
+                    style={{
+                        padding: '10px 20px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 600
+                    }}
+                >
+                    ✕ Close
+                </button>
+            </div>
+            
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(600px, 1fr))',
+                gap: '20px'
+            }}>
+                {Object.keys(chartData).map(symbol => (
+                    chartData[symbol] && (
+                        <div key={symbol} style={{
+                            background: '#2a2a2a',
+                            padding: '15px',
+                            borderRadius: '12px'
+                        }}>
+                            <TradingViewChart 
+                                data={chartData[symbol]} 
+                                symbol={symbol}
+                            />
+                        </div>
+                    )
+                ))}
+            </div>
+        </div>
+    </div>
+)}
+
     {/* AI Chatbot */}
     {showChatbot && (
         <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
@@ -4901,75 +4971,6 @@ return (
             <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
         </svg>
     </div>
-        {/* Add this modal for viewing all charts */}
-{showAllChartsModal && (
-    <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        zIndex: 9999,
-        overflow: 'auto',
-        padding: '20px'
-    }}>
-        <div style={{
-            maxWidth: '1400px',
-            margin: '0 auto',
-            background: '#1a1a1a',
-            borderRadius: '16px',
-            padding: '30px'
-        }}>
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '30px'
-            }}>
-                <h2 style={{ color: 'white', margin: 0 }}>
-                    All Charts ({Object.keys(chartData).length} Assets)
-                </h2>
-                <button
-                    onClick={() => setShowAllChartsModal(false)}
-                    style={{
-                        padding: '10px 20px',
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 600
-                    }}
-                >
-                    ✕ Close
-                </button>
-            </div>
-            
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(600px, 1fr))',
-                gap: '20px'
-            }}>
-                {Object.keys(chartData).map(symbol => (
-                    chartData[symbol] && (
-                        <div key={symbol} style={{
-                            background: '#2a2a2a',
-                            padding: '15px',
-                            borderRadius: '12px'
-                        }}>
-                            <TradingViewChart 
-                                data={chartData[symbol]} 
-                                symbol={symbol}
-                            />
-                        </div>
-                    )
-                ))}
-            </div>
-        </div>
-    </div>
-)}
 </div>
     );
 }
