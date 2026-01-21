@@ -1815,6 +1815,177 @@ export default function MarketStabilityScore() {
     const [priceTargetData, setPriceTargetData] = useState({});
     const [loadingPriceTarget, setLoadingPriceTarget] = useState({});
 
+    // Add these states at the top
+const [chartData, setChartData] = useState({});
+const [loadingCharts, setLoadingCharts] = useState({});
+const [showChart, setShowChart] = useState({});
+const [loadingAllCharts, setLoadingAllCharts] = useState(false);
+const [showAllChartsModal, setShowAllChartsModal] = useState(false);
+
+// Import if you haven't already
+import { createChart } from 'lightweight-charts';
+
+// Function to fetch chart data for single asset
+const fetchChartData = async (symbol) => {
+    setLoadingCharts(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-fetch-chart-data-for-visualization/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: [symbol]
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.data[symbol]?.success) {
+            setChartData(prev => ({
+                ...prev,
+                [symbol]: data.data[symbol].data
+            }));
+            setShowChart(prev => ({ ...prev, [symbol]: true }));
+        } else {
+            alert(`Error loading chart: ${data.data[symbol]?.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error fetching chart:', error);
+        alert('Failed to load chart data');
+    } finally {
+        setLoadingCharts(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Function to fetch all charts
+const fetchAllCharts = async () => {
+    setLoadingAllCharts(true);
+    
+    try {
+        const symbols = filteredData.map(asset => asset.symbol);
+        
+        const response = await fetch(`${baseUrl}/api/mss-fetch-chart-data-for-visualization/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: symbols
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const chartsMap = {};
+            Object.keys(data.data).forEach(symbol => {
+                if (data.data[symbol].success) {
+                    chartsMap[symbol] = data.data[symbol].data;
+                }
+            });
+            setChartData(chartsMap);
+            setShowAllChartsModal(true);
+            alert(`✅ Loaded charts for ${Object.keys(chartsMap).length} assets!`);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error fetching all charts:', error);
+        alert('Failed to load charts');
+    } finally {
+        setLoadingAllCharts(false);
+    }
+};
+
+// Chart component
+const TradingViewChart = ({ data, symbol }) => {
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    
+    useEffect(() => {
+        if (!data || data.length === 0 || !chartContainerRef.current) return;
+        
+        // Create chart
+        const chart = createChart(chartContainerRef.current, {
+            width: chartContainerRef.current.clientWidth,
+            height: 300,
+            layout: {
+                background: { color: '#1a1a1a' },
+                textColor: '#d1d5db',
+            },
+            grid: {
+                vertLines: { color: '#2a2a2a' },
+                horzLines: { color: '#2a2a2a' },
+            },
+            crosshair: {
+                mode: 1,
+            },
+            rightPriceScale: {
+                borderColor: '#2a2a2a',
+            },
+            timeScale: {
+                borderColor: '#2a2a2a',
+                timeVisible: true,
+                secondsVisible: false,
+            },
+        });
+        
+        // Add candlestick series
+        const candlestickSeries = chart.addCandlestickSeries({
+            upColor: '#10b981',
+            downColor: '#ef4444',
+            borderUpColor: '#10b981',
+            borderDownColor: '#ef4444',
+            wickUpColor: '#10b981',
+            wickDownColor: '#ef4444',
+        });
+        
+        candlestickSeries.setData(data);
+        
+        // Fit content
+        chart.timeScale().fitContent();
+        
+        chartRef.current = chart;
+        
+        // Handle resize
+        const handleResize = () => {
+            if (chartContainerRef.current && chartRef.current) {
+                chartRef.current.applyOptions({
+                    width: chartContainerRef.current.clientWidth,
+                });
+            }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (chartRef.current) {
+                chartRef.current.remove();
+            }
+        };
+    }, [data]);
+    
+    return (
+        <div style={{ width: '100%', position: 'relative' }}>
+            <div style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#1e40af',
+                marginBottom: '8px',
+                padding: '8px',
+                background: '#f8fafc',
+                borderRadius: '6px'
+            }}>
+                {symbol} - 1H Chart (45 Days)
+            </div>
+            <div ref={chartContainerRef} style={{ width: '100%', height: '300px' }} />
+        </div>
+    );
+};
+
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
         const targetPrice = targetPriceInput[symbol];
@@ -3478,6 +3649,19 @@ return (
                         >
                             {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
                         </button>
+                        {/* Add this with your other bulk buttons */}
+                        <button
+                            className="mss-calculate-btn"
+                            onClick={fetchAllCharts}
+                            disabled={loadingAllCharts || filteredData.length === 0}
+                            style={{ 
+                                padding: '12px 24px', 
+                                fontSize: '14px',
+                                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                            }}
+                        >
+                            {loadingAllCharts ? '📊 Loading Charts...' : '📊 View All Charts'}
+                        </button>
                         
                         {Object.keys(trendDurations).length > 0 && (
                             <button
@@ -3882,6 +4066,15 @@ return (
                                             >
                                                 {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
                                             </button>
+                                            {/* In card-actions */}
+                                            <button
+                                                className="calculate-retracement-btn"
+                                                onClick={() => fetchChartData(asset.symbol)}
+                                                disabled={loadingCharts[asset.symbol]}
+                                                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+                                            >
+                                                {loadingCharts[asset.symbol] ? '📊 Loading...' : '📊 View Chart'}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -4015,6 +4208,38 @@ return (
                                                 </div>
                                             </>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Display chart below card if loaded */}
+                                {showChart[asset.symbol] && chartData[asset.symbol] && (
+                                    <div style={{
+                                        marginTop: '15px',
+                                        padding: '15px',
+                                        background: '#1a1a1a',
+                                        borderRadius: '12px',
+                                        border: '2px solid #4f46e5'
+                                    }}>
+                                        <TradingViewChart 
+                                            data={chartData[asset.symbol]} 
+                                            symbol={asset.symbol}
+                                        />
+                                        <button
+                                            onClick={() => setShowChart(prev => ({ ...prev, [asset.symbol]: false }))}
+                                            style={{
+                                                marginTop: '10px',
+                                                padding: '8px 16px',
+                                                background: '#ef4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            ✕ Hide Chart
+                                        </button>
                                     </div>
                                 )}
 
@@ -4676,6 +4901,75 @@ return (
             <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
         </svg>
     </div>
+        {/* Add this modal for viewing all charts */}
+{showAllChartsModal && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        zIndex: 9999,
+        overflow: 'auto',
+        padding: '20px'
+    }}>
+        <div style={{
+            maxWidth: '1400px',
+            margin: '0 auto',
+            background: '#1a1a1a',
+            borderRadius: '16px',
+            padding: '30px'
+        }}>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '30px'
+            }}>
+                <h2 style={{ color: 'white', margin: 0 }}>
+                    All Charts ({Object.keys(chartData).length} Assets)
+                </h2>
+                <button
+                    onClick={() => setShowAllChartsModal(false)}
+                    style={{
+                        padding: '10px 20px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 600
+                    }}
+                >
+                    ✕ Close
+                </button>
+            </div>
+            
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(600px, 1fr))',
+                gap: '20px'
+            }}>
+                {Object.keys(chartData).map(symbol => (
+                    chartData[symbol] && (
+                        <div key={symbol} style={{
+                            background: '#2a2a2a',
+                            padding: '15px',
+                            borderRadius: '12px'
+                        }}>
+                            <TradingViewChart 
+                                data={chartData[symbol]} 
+                                symbol={symbol}
+                            />
+                        </div>
+                    )
+                ))}
+            </div>
+        </div>
+    </div>
+)}
 </div>
     );
 }
