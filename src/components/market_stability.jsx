@@ -4204,16 +4204,8 @@ return (
                                                 }}
                                             >
                                                 {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
-                                            </button>
-                                            {/* In card-actions */}
-                                            <button
-                                                className="calculate-retracement-btn"
-                                                onClick={() => fetchChartData(asset.symbol)}
-                                                disabled={loadingCharts[asset.symbol]}
-                                                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
-                                            >
-                                                {loadingCharts[asset.symbol] ? '📊 Loading...' : '📊 View Chart'}
-                                            </button>
+                                            </button><br />
+                                            
                                             {/* 3. Individual "View Chart" Button - per asset card in card-actions */}
                                             <button
                                                 className="calculate-retracement-btn"
@@ -4223,7 +4215,8 @@ return (
                                             >
                                                 {loadingCharts[asset.symbol] ? '📊 Loading...' : 
                                                  showChart[asset.symbol] ? '📊 Hide Chart' : '📊 View Chart'}
-                                            </button>
+                                            </button><br />
+                                            
                                         </div>
                                     </div>
                                 </div>
