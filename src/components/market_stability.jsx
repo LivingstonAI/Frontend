@@ -3,6 +3,16 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+const chartStyles = `
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+`;
 
 const elasticityStyles = `
 .elasticity-analysis-container {
@@ -297,6 +307,7 @@ const monteCarloStyles = `
 const styles = `
 ${monteCarloStyles}
 ${elasticityStyles}
+${chartStyles}
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -2031,8 +2042,7 @@ const fetchSectorCharts = async (sector) => {
     }
 };
 
-    // Updated TradingView Chart Component with overlays
-const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
+    const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
     const currentTimeframe = chartTimeframes[symbol] || '1h';
@@ -2087,7 +2097,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 const aggressiveLine = chart.addLineSeries({
                     color: '#10b981',
                     lineWidth: 2,
-                    lineStyle: 2, // Dashed
+                    lineStyle: 2,
                     title: `Aggressive Entry: $${zones.aggressive_entry}`,
                 });
                 const aggressiveData = data.map(d => ({ time: d.time, value: zones.aggressive_entry }));
@@ -2097,7 +2107,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 const optimalLine = chart.addLineSeries({
                     color: '#fbbf24',
                     lineWidth: 3,
-                    lineStyle: 0, // Solid
+                    lineStyle: 0,
                     title: `Optimal Entry: $${zones.optimal_entry}`,
                 });
                 const optimalData = data.map(d => ({ time: d.time, value: zones.optimal_entry }));
@@ -2107,7 +2117,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 const conservativeLine = chart.addLineSeries({
                     color: '#3b82f6',
                     lineWidth: 2,
-                    lineStyle: 2, // Dashed
+                    lineStyle: 2,
                     title: `Conservative Entry: $${zones.conservative_entry}`,
                 });
                 const conservativeData = data.map(d => ({ time: d.time, value: zones.conservative_entry }));
@@ -2117,40 +2127,63 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 const invalidationLine = chart.addLineSeries({
                     color: '#ef4444',
                     lineWidth: 2,
-                    lineStyle: 3, // Dotted
+                    lineStyle: 3,
                     title: `Stop Loss: $${zones.invalidation_level}`,
                 });
                 const invalidationData = data.map(d => ({ time: d.time, value: zones.invalidation_level }));
                 invalidationLine.setData(invalidationData);
             }
             
-            // 2. Trend Elasticity Bands Overlay
+            // 2. FIXED Trend Elasticity Bands Overlay
             if (elasticityData[symbol]) {
-                const currentPrice = data[data.length - 1].close;
                 const elasticity = elasticityData[symbol].overall_elasticity;
                 
-                // Calculate band width based on elasticity
-                // Lower elasticity = wider bands (more retracement expected)
-                const bandWidth = currentPrice * (1 - elasticity) * 0.5; // 50% of expected retracement
+                // Calculate ATR-based band width (much tighter)
+                // Use recent price volatility to determine band width
+                const recentData = data.slice(-20); // Last 20 bars
+                const atr = recentData.reduce((sum, bar, i) => {
+                    if (i === 0) return sum;
+                    const tr = Math.max(
+                        bar.high - bar.low,
+                        Math.abs(bar.high - recentData[i-1].close),
+                        Math.abs(bar.low - recentData[i-1].close)
+                    );
+                    return sum + tr;
+                }, 0) / Math.max(recentData.length - 1, 1);
                 
-                // Upper band (resistance for pullbacks)
+                // Band width based on elasticity and ATR
+                // Lower elasticity = wider bands (more expected retracement)
+                // Multiply ATR by elasticity factor for tighter bands
+                const elasticityFactor = 1 - elasticity; // 0 to 1, where 1 = weak elasticity
+                const bandMultiplier = 1 + (elasticityFactor * 2); // 1x to 3x ATR
+                const bandWidth = atr * bandMultiplier;
+                
+                // Calculate bands using moving average as baseline
+                const maData = [];
+                for (let i = 19; i < data.length; i++) {
+                    const slice = data.slice(i - 19, i + 1);
+                    const avg = slice.reduce((sum, bar) => sum + bar.close, 0) / 20;
+                    maData.push({ time: data[i].time, value: avg });
+                }
+                
+                // Upper band
                 const upperBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
-                    title: `Elasticity Upper Band`,
+                    title: `Elasticity Upper`,
                 });
-                const upperData = data.map(d => ({ time: d.time, value: d.close + bandWidth }));
+                const upperData = maData.map(d => ({ time: d.time, value: d.value + bandWidth }));
                 upperBand.setData(upperData);
                 
-                // Lower band (support for pullbacks)
+                // Lower band
                 const lowerBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
-                    title: `Elasticity Lower Band`,
+                    title: `Elasticity Lower`,
                 });
-                const lowerData = data.map(d => ({ time: d.time, value: d.close - bandWidth }));
+                const lowerData = maData.map(d => ({ time: d.time, value: d.value - bandWidth }));
                 lowerBand.setData(lowerData);
             }
             
@@ -2159,7 +2192,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 const targetLine = chart.addLineSeries({
                     color: '#8b5cf6',
                     lineWidth: 3,
-                    lineStyle: 1, // Dashed
+                    lineStyle: 1,
                     title: `Target: $${priceTargetData[symbol].target_price}`,
                 });
                 const targetData = data.map(d => ({ 
@@ -2195,9 +2228,31 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         };
     }, [data, isFullscreen, retracementData, elasticityData, priceTargetData]);
     
+    // Helper function to extract sentiment from AI analysis
+    const getSentiment = () => {
+        if (!assetAnalysis[symbol] || assetAnalysis[symbol].noData || assetAnalysis[symbol].error) {
+            return null;
+        }
+        
+        const analysis = assetAnalysis[symbol].analysis?.toLowerCase() || '';
+        
+        // Check for sentiment keywords
+        if (analysis.includes('bullish') || analysis.includes('positive')) {
+            return { label: 'Bullish', color: '#10b981' };
+        } else if (analysis.includes('bearish') || analysis.includes('negative')) {
+            return { label: 'Bearish', color: '#ef4444' };
+        } else if (analysis.includes('neutral') || analysis.includes('mixed')) {
+            return { label: 'Neutral', color: '#6b7280' };
+        }
+        
+        return null;
+    };
+    
+    const sentiment = isFullscreen ? getSentiment() : null;
+    
     return (
         <div style={{ width: '100%', position: 'relative' }}>
-            {/* Header with timeframe selector */}
+            {/* Header with timeframe selector and sentiment */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -2208,11 +2263,33 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 marginBottom: '0'
             }}>
                 <div style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
                 }}>
-                    {symbol} - {currentTimeframe.toUpperCase()} Chart (60 Days)
+                    <div style={{
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#e5e7eb',
+                    }}>
+                        {symbol} - {currentTimeframe.toUpperCase()} Chart (60 Days)
+                    </div>
+                    
+                    {/* AI Sentiment Badge (fullscreen only) */}
+                    {sentiment && (
+                        <div style={{
+                            padding: '6px 12px',
+                            background: sentiment.color,
+                            color: 'white',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            boxShadow: `0 0 10px ${sentiment.color}80`,
+                            animation: 'pulse 2s infinite'
+                        }}>
+                            🤖 AI: {sentiment.label}
+                        </div>
+                    )}
                 </div>
                 
                 {/* Timeframe Selector */}
@@ -2274,7 +2351,6 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         </div>
     );
 };
-
     
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
