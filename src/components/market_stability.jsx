@@ -1816,11 +1816,14 @@ export default function MarketStabilityScore() {
     const [loadingPriceTarget, setLoadingPriceTarget] = useState({});
 
     // Add these states at the top with your other states
-const [chartData, setChartData] = useState({});
-const [loadingCharts, setLoadingCharts] = useState({});
-const [showChart, setShowChart] = useState({});
-const [loadingAllCharts, setLoadingAllCharts] = useState(false);
-const [tvLoaded, setTvLoaded] = useState(false);
+    const [chartData, setChartData] = useState({});
+    const [loadingCharts, setLoadingCharts] = useState({});
+    const [showChart, setShowChart] = useState({});
+    const [loadingAllCharts, setLoadingAllCharts] = useState(false);
+    const [tvLoaded, setTvLoaded] = useState(false);
+        // Add these new states
+    const [chartTimeframes, setChartTimeframes] = useState({}); // Track timeframe per symbol
+    const [fullscreenChart, setFullscreenChart] = useState(null); // Which chart is fullscreen
 
 // Load TradingView CDN (add this useEffect)
 useEffect(() => {
@@ -1876,8 +1879,8 @@ useEffect(() => {
     loadTradingViewCharts();
 }, []);
 
-// Function to fetch chart data for single asset
-const fetchChartData = async (symbol) => {
+// Updated fetch function with timeframe support
+const fetchChartData = async (symbol, timeframe = '1h') => {
     if (!tvLoaded) {
         alert('Chart library still loading, please wait...');
         return;
@@ -1892,7 +1895,9 @@ const fetchChartData = async (symbol) => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                symbols: [symbol]
+                symbols: [symbol],
+                timeframe: timeframe,
+                lookback_days: 60
             })
         });
 
@@ -1903,7 +1908,11 @@ const fetchChartData = async (symbol) => {
                 ...prev,
                 [symbol]: data.data[symbol].data
             }));
-            setShowChart(prev => ({ ...prev, [symbol]: !prev[symbol] })); // Toggle
+            setChartTimeframes(prev => ({
+                ...prev,
+                [symbol]: timeframe
+            }));
+            setShowChart(prev => ({ ...prev, [symbol]: true }));
         } else {
             alert(`Error loading chart: ${data.data[symbol]?.error || 'Unknown error'}`);
         }
@@ -1914,6 +1923,7 @@ const fetchChartData = async (symbol) => {
         setLoadingCharts(prev => ({ ...prev, [symbol]: false }));
     }
 };
+
 
 // Function to fetch all charts (displays inline on cards)
 const fetchAllCharts = async () => {
@@ -2021,10 +2031,11 @@ const fetchSectorCharts = async (sector) => {
     }
 };
 
-// TradingView Chart Component
-const TradingViewChart = ({ data, symbol }) => {
+    // Updated TradingView Chart Component with overlays
+const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
+    const currentTimeframe = chartTimeframes[symbol] || '1h';
     
     useEffect(() => {
         if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) return;
@@ -2032,7 +2043,7 @@ const TradingViewChart = ({ data, symbol }) => {
         // Create chart
         const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
             width: chartContainerRef.current.clientWidth,
-            height: 300,
+            height: isFullscreen ? window.innerHeight - 150 : 300,
             layout: {
                 background: { color: '#1a1a1a' },
                 textColor: '#d1d5db',
@@ -2054,7 +2065,7 @@ const TradingViewChart = ({ data, symbol }) => {
             },
         });
         
-        // Add candlestick series with green/red colors
+        // Add candlestick series
         const candlestickSeries = chart.addCandlestickSeries({
             upColor: '#10b981',
             downColor: '#ef4444',
@@ -2066,6 +2077,99 @@ const TradingViewChart = ({ data, symbol }) => {
         
         candlestickSeries.setData(data);
         
+        // Add overlays ONLY in fullscreen mode
+        if (isFullscreen) {
+            // 1. Entry Points Overlay
+            if (retracementData[symbol]?.entry_zones) {
+                const zones = retracementData[symbol].entry_zones;
+                
+                // Aggressive entry line (green)
+                const aggressiveLine = chart.addLineSeries({
+                    color: '#10b981',
+                    lineWidth: 2,
+                    lineStyle: 2, // Dashed
+                    title: `Aggressive Entry: $${zones.aggressive_entry}`,
+                });
+                const aggressiveData = data.map(d => ({ time: d.time, value: zones.aggressive_entry }));
+                aggressiveLine.setData(aggressiveData);
+                
+                // Optimal entry line (yellow)
+                const optimalLine = chart.addLineSeries({
+                    color: '#fbbf24',
+                    lineWidth: 3,
+                    lineStyle: 0, // Solid
+                    title: `Optimal Entry: $${zones.optimal_entry}`,
+                });
+                const optimalData = data.map(d => ({ time: d.time, value: zones.optimal_entry }));
+                optimalLine.setData(optimalData);
+                
+                // Conservative entry line (blue)
+                const conservativeLine = chart.addLineSeries({
+                    color: '#3b82f6',
+                    lineWidth: 2,
+                    lineStyle: 2, // Dashed
+                    title: `Conservative Entry: $${zones.conservative_entry}`,
+                });
+                const conservativeData = data.map(d => ({ time: d.time, value: zones.conservative_entry }));
+                conservativeLine.setData(conservativeData);
+                
+                // Invalidation level (red)
+                const invalidationLine = chart.addLineSeries({
+                    color: '#ef4444',
+                    lineWidth: 2,
+                    lineStyle: 3, // Dotted
+                    title: `Stop Loss: $${zones.invalidation_level}`,
+                });
+                const invalidationData = data.map(d => ({ time: d.time, value: zones.invalidation_level }));
+                invalidationLine.setData(invalidationData);
+            }
+            
+            // 2. Trend Elasticity Bands Overlay
+            if (elasticityData[symbol]) {
+                const currentPrice = data[data.length - 1].close;
+                const elasticity = elasticityData[symbol].overall_elasticity;
+                
+                // Calculate band width based on elasticity
+                // Lower elasticity = wider bands (more retracement expected)
+                const bandWidth = currentPrice * (1 - elasticity) * 0.5; // 50% of expected retracement
+                
+                // Upper band (resistance for pullbacks)
+                const upperBand = chart.addLineSeries({
+                    color: '#ec4899',
+                    lineWidth: 2,
+                    lineStyle: 2,
+                    title: `Elasticity Upper Band`,
+                });
+                const upperData = data.map(d => ({ time: d.time, value: d.close + bandWidth }));
+                upperBand.setData(upperData);
+                
+                // Lower band (support for pullbacks)
+                const lowerBand = chart.addLineSeries({
+                    color: '#ec4899',
+                    lineWidth: 2,
+                    lineStyle: 2,
+                    title: `Elasticity Lower Band`,
+                });
+                const lowerData = data.map(d => ({ time: d.time, value: d.close - bandWidth }));
+                lowerBand.setData(lowerData);
+            }
+            
+            // 3. Price Target Overlay
+            if (priceTargetData[symbol]?.target_price) {
+                const targetLine = chart.addLineSeries({
+                    color: '#8b5cf6',
+                    lineWidth: 3,
+                    lineStyle: 1, // Dashed
+                    title: `Target: $${priceTargetData[symbol].target_price}`,
+                });
+                const targetData = data.map(d => ({ 
+                    time: d.time, 
+                    value: priceTargetData[symbol].target_price 
+                }));
+                targetLine.setData(targetData);
+            }
+        }
+        
         // Fit content
         chart.timeScale().fitContent();
         
@@ -2076,6 +2180,7 @@ const TradingViewChart = ({ data, symbol }) => {
             if (chartContainerRef.current && chartRef.current) {
                 chartRef.current.applyOptions({
                     width: chartContainerRef.current.clientWidth,
+                    height: isFullscreen ? window.innerHeight - 150 : 300,
                 });
             }
         };
@@ -2088,26 +2193,89 @@ const TradingViewChart = ({ data, symbol }) => {
                 chartRef.current.remove();
             }
         };
-    }, [data]);
+    }, [data, isFullscreen, retracementData, elasticityData, priceTargetData]);
     
     return (
         <div style={{ width: '100%', position: 'relative' }}>
+            {/* Header with timeframe selector */}
             <div style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#e5e7eb',
-                marginBottom: '8px',
-                padding: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px',
                 background: '#2a2a2a',
-                borderRadius: '6px'
+                borderRadius: '8px 8px 0 0',
+                marginBottom: '0'
             }}>
-                {symbol} - 1H Chart (45 Days)
+                <div style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#e5e7eb',
+                }}>
+                    {symbol} - {currentTimeframe.toUpperCase()} Chart (60 Days)
+                </div>
+                
+                {/* Timeframe Selector */}
+                <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center'
+                }}>
+                    {['1h', '4h', '1d', '1w'].map(tf => (
+                        <button
+                            key={tf}
+                            onClick={() => changeChartTimeframe(symbol, tf)}
+                            disabled={loadingCharts[symbol]}
+                            style={{
+                                padding: '6px 12px',
+                                background: currentTimeframe === tf ? '#4f46e5' : '#374151',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tf.toUpperCase()}
+                        </button>
+                    ))}
+                    
+                    {/* Fullscreen Button */}
+                    {!isFullscreen && (
+                        <button
+                            onClick={() => setFullscreenChart(symbol)}
+                            style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                marginLeft: '8px'
+                            }}
+                        >
+                            ⛶ Fullscreen
+                        </button>
+                    )}
+                </div>
             </div>
-            <div ref={chartContainerRef} style={{ width: '100%', height: '300px' }} />
+            
+            {/* Chart */}
+            <div ref={chartContainerRef} style={{ 
+                width: '100%', 
+                height: isFullscreen ? `${window.innerHeight - 150}px` : '300px',
+                background: '#1a1a1a',
+                borderRadius: '0 0 8px 8px'
+            }} />
         </div>
     );
 };
 
+    
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
         const targetPrice = targetPriceInput[symbol];
@@ -4204,20 +4372,18 @@ return (
                                                 }}
                                             >
                                                 {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
-                                            </button><br />
-                                            
-                                            {/* 3. Individual "View Chart" Button - per asset card in card-actions */}
-                                            <button
-                                                className="calculate-retracement-btn"
-                                                onClick={() => fetchChartData(asset.symbol)}
-                                                disabled={loadingCharts[asset.symbol] || !tvLoaded}
-                                                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
-                                            >
-                                                {loadingCharts[asset.symbol] ? '📊 Loading...' : 
-                                                 showChart[asset.symbol] ? '📊 Hide Chart' : '📊 View Chart'}
-                                            </button><br />
-                                            
-                                        </div>
+                                            </button>
+                                        
+                                        </div><br />
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => fetchChartData(asset.symbol, chartTimeframes[asset.symbol] || '1h')}
+                                            disabled={loadingCharts[asset.symbol] || !tvLoaded}
+                                            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+                                        >
+                                            {loadingCharts[asset.symbol] ? '📊 Loading...' : 
+                                             showChart[asset.symbol] ? '📊 Hide Chart' : '📊 View Chart'}
+                                        </button>
                                     </div>
                                 </div>
                                 <p className="status">{asset.status}</p>
@@ -4832,7 +4998,8 @@ return (
                                 </div>
                             )}
 
-                                {/* Add this INSIDE each mss-card, after all your existing analysis containers */}
+
+                                {/* Display chart in card (normal size, no overlays) */}
                                 {showChart[asset.symbol] && chartData[asset.symbol] && (
                                     <div style={{
                                         marginTop: '15px',
@@ -4844,6 +5011,7 @@ return (
                                         <TradingViewChart 
                                             data={chartData[asset.symbol]} 
                                             symbol={asset.symbol}
+                                            isFullscreen={false}
                                         />
                                     </div>
                                 )}
@@ -4921,6 +5089,93 @@ return (
                 </div>
             </>
         )}
+
+            {/* Fullscreen Chart Modal */}
+            {fullscreenChart && chartData[fullscreenChart] && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.95)',
+                    zIndex: 99999,
+                    padding: '20px',
+                    overflow: 'auto'
+                }}>
+                    <div style={{
+                        maxWidth: '1600px',
+                        margin: '0 auto',
+                        background: '#1a1a1a',
+                        borderRadius: '16px',
+                        padding: '20px'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px'
+                        }}>
+                            <h2 style={{ color: 'white', margin: 0 }}>
+                                {fullscreenChart} - Detailed Analysis
+                            </h2>
+                            <button
+                                onClick={() => setFullscreenChart(null)}
+                                style={{
+                                    padding: '10px 20px',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: 600
+                                }}
+                            >
+                                ✕ Close
+                            </button>
+                        </div>
+                        
+                        {/* Legend for overlays */}
+                        {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                            <div style={{
+                                background: '#2a2a2a',
+                                padding: '15px',
+                                borderRadius: '8px',
+                                marginBottom: '20px',
+                                color: '#e5e7eb',
+                                fontSize: '13px'
+                            }}>
+                                <strong>Chart Overlays:</strong>
+                                <div style={{ display: 'flex', gap: '20px', marginTop: '8px', flexWrap: 'wrap' }}>
+                                    {retracementData[fullscreenChart]?.entry_zones && (
+                                        <>
+                                            <span style={{color: '#10b981'}}>● Aggressive Entry</span>
+                                            <span style={{color: '#fbbf24'}}>● Optimal Entry</span>
+                                            <span style={{color: '#3b82f6'}}>● Conservative Entry</span>
+                                            <span style={{color: '#ef4444'}}>● Stop Loss</span>
+                                        </>
+                                    )}
+                                    {elasticityData[fullscreenChart] && (
+                                        <span style={{color: '#ec4899'}}>● Elasticity Bands</span>
+                                    )}
+                                    {priceTargetData[fullscreenChart] && (
+                                        <span style={{color: '#8b5cf6'}}>● Price Target</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Fullscreen Chart */}
+                        <TradingViewChart 
+                            data={chartData[fullscreenChart]} 
+                            symbol={fullscreenChart}
+                            isFullscreen={true}
+                        />
+                    </div>
+                </div>
+            )}
 
         {!loading && mssData.length === 0 && (
             <div className="mss-empty">
