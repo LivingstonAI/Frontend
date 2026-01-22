@@ -2042,7 +2042,8 @@ const fetchSectorCharts = async (sector) => {
     }
 };
 
-    const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
+    // Updated TradingView Chart Component
+const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
     const currentTimeframe = chartTimeframes[symbol] || '1h';
@@ -2050,10 +2051,13 @@ const fetchSectorCharts = async (sector) => {
     useEffect(() => {
         if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) return;
         
-        // Create chart
+        // Create chart with responsive width
+        const containerWidth = chartContainerRef.current.clientWidth;
+        const chartHeight = isFullscreen ? Math.min(window.innerHeight - 200, 800) : 300;
+        
         const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
-            width: chartContainerRef.current.clientWidth,
-            height: isFullscreen ? window.innerHeight - 150 : 300,
+            width: containerWidth,
+            height: chartHeight,
             layout: {
                 background: { color: '#1a1a1a' },
                 textColor: '#d1d5db',
@@ -2089,6 +2093,8 @@ const fetchSectorCharts = async (sector) => {
         
         // Add overlays ONLY in fullscreen mode
         if (isFullscreen) {
+            const currentPrice = data[data.length - 1]?.close || 0;
+            
             // 1. Entry Points Overlay
             if (retracementData[symbol]?.entry_zones) {
                 const zones = retracementData[symbol].entry_zones;
@@ -2097,8 +2103,8 @@ const fetchSectorCharts = async (sector) => {
                 const aggressiveLine = chart.addLineSeries({
                     color: '#10b981',
                     lineWidth: 2,
-                    lineStyle: 2,
-                    title: `Aggressive Entry: $${zones.aggressive_entry}`,
+                    lineStyle: 2, // Dashed
+                    priceLineVisible: false,
                 });
                 const aggressiveData = data.map(d => ({ time: d.time, value: zones.aggressive_entry }));
                 aggressiveLine.setData(aggressiveData);
@@ -2107,8 +2113,8 @@ const fetchSectorCharts = async (sector) => {
                 const optimalLine = chart.addLineSeries({
                     color: '#fbbf24',
                     lineWidth: 3,
-                    lineStyle: 0,
-                    title: `Optimal Entry: $${zones.optimal_entry}`,
+                    lineStyle: 0, // Solid
+                    priceLineVisible: false,
                 });
                 const optimalData = data.map(d => ({ time: d.time, value: zones.optimal_entry }));
                 optimalLine.setData(optimalData);
@@ -2117,8 +2123,8 @@ const fetchSectorCharts = async (sector) => {
                 const conservativeLine = chart.addLineSeries({
                     color: '#3b82f6',
                     lineWidth: 2,
-                    lineStyle: 2,
-                    title: `Conservative Entry: $${zones.conservative_entry}`,
+                    lineStyle: 2, // Dashed
+                    priceLineVisible: false,
                 });
                 const conservativeData = data.map(d => ({ time: d.time, value: zones.conservative_entry }));
                 conservativeLine.setData(conservativeData);
@@ -2127,8 +2133,8 @@ const fetchSectorCharts = async (sector) => {
                 const invalidationLine = chart.addLineSeries({
                     color: '#ef4444',
                     lineWidth: 2,
-                    lineStyle: 3,
-                    title: `Stop Loss: $${zones.invalidation_level}`,
+                    lineStyle: 3, // Dotted
+                    priceLineVisible: false,
                 });
                 const invalidationData = data.map(d => ({ time: d.time, value: zones.invalidation_level }));
                 invalidationLine.setData(invalidationData);
@@ -2138,52 +2144,35 @@ const fetchSectorCharts = async (sector) => {
             if (elasticityData[symbol]) {
                 const elasticity = elasticityData[symbol].overall_elasticity;
                 
-                // Calculate ATR-based band width (much tighter)
-                // Use recent price volatility to determine band width
-                const recentData = data.slice(-20); // Last 20 bars
-                const atr = recentData.reduce((sum, bar, i) => {
-                    if (i === 0) return sum;
-                    const tr = Math.max(
-                        bar.high - bar.low,
-                        Math.abs(bar.high - recentData[i-1].close),
-                        Math.abs(bar.low - recentData[i-1].close)
-                    );
-                    return sum + tr;
-                }, 0) / Math.max(recentData.length - 1, 1);
+                // Calculate realistic band width based on elasticity and recent volatility
+                // Get last 20 candles for volatility calculation
+                const recentData = data.slice(-20);
+                const highLowRanges = recentData.map(d => d.high - d.low);
+                const avgRange = highLowRanges.reduce((a, b) => a + b, 0) / highLowRanges.length;
                 
-                // Band width based on elasticity and ATR
-                // Lower elasticity = wider bands (more expected retracement)
-                // Multiply ATR by elasticity factor for tighter bands
-                const elasticityFactor = 1 - elasticity; // 0 to 1, where 1 = weak elasticity
-                const bandMultiplier = 1 + (elasticityFactor * 2); // 1x to 3x ATR
-                const bandWidth = atr * bandMultiplier;
+                // Band width: lower elasticity = wider bands, but keep it reasonable
+                // Use average range as base, scaled by elasticity
+                const bandMultiplier = (1 - elasticity) * 2; // Max 2x the average range
+                const bandWidth = avgRange * Math.max(0.5, bandMultiplier); // Minimum 0.5x range
                 
-                // Calculate bands using moving average as baseline
-                const maData = [];
-                for (let i = 19; i < data.length; i++) {
-                    const slice = data.slice(i - 19, i + 1);
-                    const avg = slice.reduce((sum, bar) => sum + bar.close, 0) / 20;
-                    maData.push({ time: data[i].time, value: avg });
-                }
-                
-                // Upper band
+                // Upper band (resistance for pullbacks)
                 const upperBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
-                    title: `Elasticity Upper`,
+                    priceLineVisible: false,
                 });
-                const upperData = maData.map(d => ({ time: d.time, value: d.value + bandWidth }));
+                const upperData = data.map(d => ({ time: d.time, value: d.close + bandWidth }));
                 upperBand.setData(upperData);
                 
-                // Lower band
+                // Lower band (support for pullbacks)
                 const lowerBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
-                    title: `Elasticity Lower`,
+                    priceLineVisible: false,
                 });
-                const lowerData = maData.map(d => ({ time: d.time, value: d.value - bandWidth }));
+                const lowerData = data.map(d => ({ time: d.time, value: d.close - bandWidth }));
                 lowerBand.setData(lowerData);
             }
             
@@ -2192,8 +2181,8 @@ const fetchSectorCharts = async (sector) => {
                 const targetLine = chart.addLineSeries({
                     color: '#8b5cf6',
                     lineWidth: 3,
-                    lineStyle: 1,
-                    title: `Target: $${priceTargetData[symbol].target_price}`,
+                    lineStyle: 1, // Dashed
+                    priceLineVisible: false,
                 });
                 const targetData = data.map(d => ({ 
                     time: d.time, 
@@ -2211,9 +2200,11 @@ const fetchSectorCharts = async (sector) => {
         // Handle resize
         const handleResize = () => {
             if (chartContainerRef.current && chartRef.current) {
+                const newWidth = chartContainerRef.current.clientWidth;
+                const newHeight = isFullscreen ? Math.min(window.innerHeight - 200, 800) : 300;
                 chartRef.current.applyOptions({
-                    width: chartContainerRef.current.clientWidth,
-                    height: isFullscreen ? window.innerHeight - 150 : 300,
+                    width: newWidth,
+                    height: newHeight,
                 });
             }
         };
@@ -2234,29 +2225,31 @@ const fetchSectorCharts = async (sector) => {
             return null;
         }
         
-        const analysis = assetAnalysis[symbol].analysis?.toLowerCase() || '';
+        const analysis = assetAnalysis[symbol].analysis || '';
+        const lowerAnalysis = analysis.toLowerCase();
         
-        // Check for sentiment keywords
-        if (analysis.includes('bullish') || analysis.includes('positive')) {
-            return { label: 'Bullish', color: '#10b981' };
-        } else if (analysis.includes('bearish') || analysis.includes('negative')) {
-            return { label: 'Bearish', color: '#ef4444' };
-        } else if (analysis.includes('neutral') || analysis.includes('mixed')) {
-            return { label: 'Neutral', color: '#6b7280' };
+        if (lowerAnalysis.includes('bullish')) {
+            return { label: 'BULLISH', color: '#10b981' };
+        } else if (lowerAnalysis.includes('bearish')) {
+            return { label: 'BEARISH', color: '#ef4444' };
+        } else if (lowerAnalysis.includes('neutral')) {
+            return { label: 'NEUTRAL', color: '#6b7280' };
         }
         
         return null;
     };
     
-    const sentiment = isFullscreen ? getSentiment() : null;
+    const sentiment = getSentiment();
     
     return (
-        <div style={{ width: '100%', position: 'relative' }}>
-            {/* Header with timeframe selector and sentiment */}
+        <div style={{ width: '100%', position: 'relative', maxWidth: '100%', overflow: 'hidden' }}>
+            {/* Header with timeframe selector */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '10px',
                 padding: '12px',
                 background: '#2a2a2a',
                 borderRadius: '8px 8px 0 0',
@@ -2265,29 +2258,29 @@ const fetchSectorCharts = async (sector) => {
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '12px'
+                    gap: '12px',
+                    flexWrap: 'wrap'
                 }}>
                     <div style={{
                         fontSize: '14px',
                         fontWeight: 600,
                         color: '#e5e7eb',
                     }}>
-                        {symbol} - {currentTimeframe.toUpperCase()} Chart (60 Days)
+                        {symbol} - {currentTimeframe.toUpperCase()}
                     </div>
                     
-                    {/* AI Sentiment Badge (fullscreen only) */}
-                    {sentiment && (
+                    {/* Sentiment Badge (only in fullscreen if AI analysis exists) */}
+                    {isFullscreen && sentiment && (
                         <div style={{
-                            padding: '6px 12px',
+                            padding: '4px 12px',
                             background: sentiment.color,
                             color: 'white',
-                            borderRadius: '6px',
+                            borderRadius: '12px',
                             fontSize: '12px',
                             fontWeight: 700,
-                            boxShadow: `0 0 10px ${sentiment.color}80`,
-                            animation: 'pulse 2s infinite'
+                            letterSpacing: '0.5px'
                         }}>
-                            🤖 AI: {sentiment.label}
+                            {sentiment.label}
                         </div>
                     )}
                 </div>
@@ -2295,8 +2288,9 @@ const fetchSectorCharts = async (sector) => {
                 {/* Timeframe Selector */}
                 <div style={{
                     display: 'flex',
-                    gap: '8px',
-                    alignItems: 'center'
+                    gap: '6px',
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
                 }}>
                     {['1h', '4h', '1d', '1w'].map(tf => (
                         <button
@@ -2304,15 +2298,16 @@ const fetchSectorCharts = async (sector) => {
                             onClick={() => changeChartTimeframe(symbol, tf)}
                             disabled={loadingCharts[symbol]}
                             style={{
-                                padding: '6px 12px',
+                                padding: '6px 10px',
                                 background: currentTimeframe === tf ? '#4f46e5' : '#374151',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '6px',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                minWidth: '40px'
                             }}
                         >
                             {tf.toUpperCase()}
@@ -2329,25 +2324,30 @@ const fetchSectorCharts = async (sector) => {
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '6px',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                marginLeft: '8px'
+                                whiteSpace: 'nowrap'
                             }}
                         >
-                            ⛶ Fullscreen
+                            ⛶ Full
                         </button>
                     )}
                 </div>
             </div>
             
-            {/* Chart */}
-            <div ref={chartContainerRef} style={{ 
-                width: '100%', 
-                height: isFullscreen ? `${window.innerHeight - 150}px` : '300px',
-                background: '#1a1a1a',
-                borderRadius: '0 0 8px 8px'
-            }} />
+            {/* Chart - FIXED for mobile responsiveness */}
+            <div 
+                ref={chartContainerRef} 
+                style={{ 
+                    width: '100%',
+                    maxWidth: '100%', // Prevent overflow
+                    height: isFullscreen ? `${Math.min(window.innerHeight - 200, 800)}px` : '300px',
+                    background: '#1a1a1a',
+                    borderRadius: '0 0 8px 8px',
+                    overflow: 'hidden' // Prevent chart from pushing screen
+                }} 
+            />
         </div>
     );
 };
@@ -5167,92 +5167,104 @@ return (
         )}
 
             {/* Fullscreen Chart Modal */}
-            {fullscreenChart && chartData[fullscreenChart] && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.95)',
-                    zIndex: 99999,
-                    padding: '20px',
-                    overflow: 'auto'
+{fullscreenChart && chartData[fullscreenChart] && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.95)',
+        zIndex: 99999,
+        padding: window.innerWidth < 768 ? '10px' : '20px',
+        overflow: 'auto'
+    }}>
+        <div style={{
+            maxWidth: '1600px',
+            margin: '0 auto',
+            background: '#1a1a1a',
+            borderRadius: '16px',
+            padding: window.innerWidth < 768 ? '10px' : '20px',
+            width: '100%',
+            boxSizing: 'border-box'
+        }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '15px',
+                flexWrap: 'wrap',
+                gap: '10px'
+            }}>
+                <h2 style={{ 
+                    color: 'white', 
+                    margin: 0,
+                    fontSize: window.innerWidth < 768 ? '18px' : '24px'
                 }}>
-                    <div style={{
-                        maxWidth: '1600px',
-                        margin: '0 auto',
-                        background: '#1a1a1a',
-                        borderRadius: '16px',
-                        padding: '20px'
+                    {fullscreenChart} - Analysis
+                </h2>
+                <button
+                    onClick={() => setFullscreenChart(null)}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}
+                >
+                    ✕ Close
+                </button>
+            </div>
+            
+            {/* Legend for overlays */}
+            {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                <div style={{
+                    background: '#2a2a2a',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '15px',
+                    color: '#e5e7eb',
+                    fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                }}>
+                    <strong>Overlays:</strong>
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: window.innerWidth < 768 ? '8px' : '15px', 
+                        marginTop: '8px', 
+                        flexWrap: 'wrap' 
                     }}>
-                        {/* Header */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '20px'
-                        }}>
-                            <h2 style={{ color: 'white', margin: 0 }}>
-                                {fullscreenChart} - Detailed Analysis
-                            </h2>
-                            <button
-                                onClick={() => setFullscreenChart(null)}
-                                style={{
-                                    padding: '10px 20px',
-                                    background: '#ef4444',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: 600
-                                }}
-                            >
-                                ✕ Close
-                            </button>
-                        </div>
-                        
-                        {/* Legend for overlays */}
-                        {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
-                            <div style={{
-                                background: '#2a2a2a',
-                                padding: '15px',
-                                borderRadius: '8px',
-                                marginBottom: '20px',
-                                color: '#e5e7eb',
-                                fontSize: '13px'
-                            }}>
-                                <strong>Chart Overlays:</strong>
-                                <div style={{ display: 'flex', gap: '20px', marginTop: '8px', flexWrap: 'wrap' }}>
-                                    {retracementData[fullscreenChart]?.entry_zones && (
-                                        <>
-                                            <span style={{color: '#10b981'}}>● Aggressive Entry</span>
-                                            <span style={{color: '#fbbf24'}}>● Optimal Entry</span>
-                                            <span style={{color: '#3b82f6'}}>● Conservative Entry</span>
-                                            <span style={{color: '#ef4444'}}>● Stop Loss</span>
-                                        </>
-                                    )}
-                                    {elasticityData[fullscreenChart] && (
-                                        <span style={{color: '#ec4899'}}>● Elasticity Bands</span>
-                                    )}
-                                    {priceTargetData[fullscreenChart] && (
-                                        <span style={{color: '#8b5cf6'}}>● Price Target</span>
-                                    )}
-                                </div>
-                            </div>
+                        {retracementData[fullscreenChart]?.entry_zones && (
+                            <>
+                                <span style={{color: '#10b981'}}>● Aggressive</span>
+                                <span style={{color: '#fbbf24'}}>● Optimal</span>
+                                <span style={{color: '#3b82f6'}}>● Conservative</span>
+                                <span style={{color: '#ef4444'}}>● Stop</span>
+                            </>
                         )}
-                        
-                        {/* Fullscreen Chart */}
-                        <TradingViewChart 
-                            data={chartData[fullscreenChart]} 
-                            symbol={fullscreenChart}
-                            isFullscreen={true}
-                        />
+                        {elasticityData[fullscreenChart] && (
+                            <span style={{color: '#ec4899'}}>● Elastic Bands</span>
+                        )}
+                        {priceTargetData[fullscreenChart] && (
+                            <span style={{color: '#8b5cf6'}}>● Target</span>
+                        )}
                     </div>
                 </div>
             )}
-
+            
+            {/* Fullscreen Chart */}
+            <TradingViewChart 
+                data={chartData[fullscreenChart]} 
+                symbol={fullscreenChart}
+                isFullscreen={true}
+            />
+        </div>
+    </div>
+)}
         {!loading && mssData.length === 0 && (
             <div className="mss-empty">
                 <div className="empty-icon">📊</div>
