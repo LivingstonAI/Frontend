@@ -4976,7 +4976,7 @@ return (
                                                 }}
                                             >
                                                 {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
-                                            </button>
+                                            </button><br />
                                             <button
                                                 className="calculate-retracement-btn"
                                                 onClick={() => analyzeMeanReversion(asset.symbol)}
