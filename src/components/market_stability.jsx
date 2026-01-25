@@ -6347,9 +6347,139 @@ return (
                     </div>
                 </div>
             )}
+            <div className="main-wrapper">
+    {/* Fullscreen Chart */}
+    <TradingViewChart data={chartData[fullscreenChart]} symbol={fullscreenChart} isFullscreen={true} />
+
+    {!loading && mssData.length === 0 && (
+      <div className="mss-empty">
+        <div className="empty-icon">📊</div>
+        <h3>Ready to Analyze</h3>
+        <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
+      </div>
+    )}
+
+    {/* AI Chatbot */}
+    {showChatbot && (
+      <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
+        <div className="ai-chatbot-header">
+          <h3>
+            <span>🎯</span>
+            <span>Simons - Trading Assistant</span>
+          </h3>
+          <button className="ai-chatbot-close" onClick={() => {
+              setShowChatbot(false);
+              setShowOrb(true); // Show orb when closing chat
+            }}
+          >
+            ✕
+          </button>
+        </div>
+        
+        <div className="ai-chatbot-messages">
+          {chatMessages.length === 0 && (
+            <div className="ai-welcome-message">
+              Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
+            </div>
+          )}
+          {chatMessages.map((msg, idx) => (
+            <div key={idx} className={`ai-message ${msg.role}`}>
+              {msg.image && (
+                <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+              )}
+              <div>{msg.content}</div>
+            </div>
+          ))}
+          {chatLoading && (
+            <div className="ai-loading">
+              <div className="ai-loading-spinner"></div>
+              <span>Simons is analyzing...</span>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <div className="ai-chatbot-input-container">
+          {/* Chart Context Controls */}
+          <div style={{ width: '100%', display: 'flex', gap: '10px', marginBottom: '10px', padding: '8px', background: '#f3f4f6', borderRadius: '8px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+              <input type="checkbox" checked={useChartContext} onChange={(e) => setUseChartContext(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              Use Trading Chart
+            </label>
+            
+            {useChartContext && (
+              <select value={chartContextSymbol || ''} onChange={(e) => setChartContextSymbol(e.target.value)}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: '2px solid #2563eb',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  flex: 1
+                }}
+              >
+                <option value="">Select asset...</option>
+                {Object.keys(chartData).map(sym => (
+                  <option key={sym} value={sym}>{sym}</option>
+                ))}
+              </select>
+            )}
+            
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+              <input type="checkbox" checked={voiceSettings.enabled} onChange={(e) => saveVoiceSettings({ 
+                  ...voiceSettings, 
+                  enabled: e.target.checked 
+                })}
+                style={{ cursor: 'pointer' }}
+              />
+              🔊 Voice Reader
+            </label>
+          </div>
+          
+          <label className="ai-file-upload-btn" title="Upload chart image">
+            📎
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
+          </label>
+          <input type="text" className="ai-chatbot-input" placeholder={useChartContext && chartContextSymbol ? `Ask about ${chartContextSymbol}...` : "Ask Simons about markets, trends, or upload a chart..."} value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+            disabled={chatLoading}
+          />
+          <button className="ai-chatbot-send" onClick={handleChatSend} disabled={chatLoading || (!chatInput.trim() && !chatImage)} >
+            {chatLoading ? '...' : 'Send'}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {chatImage && (
+      <div className="ai-image-attached">
+        <span>📷 Chart attached</span>
+        <button className="ai-image-remove" onClick={() => setChatImage(null)}
+          title="Remove image"
+        >
+          ✕
+        </button>
+      </div>
+    )}
+            
+    {/* Chatbot Orb */}
+    <div className="ai-chatbot-orb" onClick={() => {
+        setShowChatbot(!showChatbot);
+        setShowOrb(false);
+      }}
+      title="Chat with Simons"
+      style={{ display: showOrb ? 'flex' : 'none' }}
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+      </svg>
+    </div>
             
 </div>
     </div>
+        }
 
     );
 }
