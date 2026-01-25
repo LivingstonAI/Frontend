@@ -177,6 +177,249 @@ const elasticityStyles = `
 }
 `;
 
+const meanReversionStyles = `
+.mean-reversion-container {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #3b82f6;
+}
+
+.mean-reversion-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.mean-reversion-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.mean-reversion-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+.regime-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.mr-score-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 15px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mr-score-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.mr-score-value {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.mr-signals-list {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+.mr-signal-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13px;
+    color: #1f2937;
+}
+
+.mr-signal-item:last-child {
+    border-bottom: none;
+}
+
+.mr-targets-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 15px 0;
+}
+
+.mr-target-card {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid #dbeafe;
+}
+
+.mr-target-label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mr-target-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+.sector-peers-chart-container {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #6366f1;
+}
+
+.sector-peers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.sector-peers-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #4f46e5;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.chart-control-btn {
+    padding: 6px 12px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #1f2937;
+}
+
+.chart-control-btn:hover {
+    border-color: #4f46e5;
+    background: #eff6ff;
+}
+
+.chart-control-btn.active {
+    background: #4f46e5;
+    color: white;
+    border-color: #4f46e5;
+}
+
+.ai-overlay-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 15px;
+    border-radius: 12px;
+    max-width: 300px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: 2px solid #8b5cf6;
+    z-index: 10;
+}
+
+.ai-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ai-overlay-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6d28d9;
+}
+
+.ai-overlay-close {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+}
+
+.ai-overlay-content {
+    font-size: 12px;
+    color: #1f2937;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .mean-reversion-container {
+        padding: 15px;
+    }
+    
+    .mr-targets-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sector-peers-chart-container {
+        padding: 15px;
+    }
+    
+    .chart-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .chart-control-btn {
+        width: 100%;
+    }
+    
+    .ai-overlay-container {
+        position: relative;
+        top: 0;
+        right: 0;
+        max-width: 100%;
+        margin-top: 10px;
+    }
+}
+`;
+
 const monteCarloStyles = `
 
 .monte-carlo-btn {
@@ -308,6 +551,8 @@ const styles = `
 ${monteCarloStyles}
 ${elasticityStyles}
 ${chartStyles}
+${meanReversionStyles}
+
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -1835,6 +2080,22 @@ export default function MarketStabilityScore() {
         // Add these new states
     const [chartTimeframes, setChartTimeframes] = useState({}); // Track timeframe per symbol
     const [fullscreenChart, setFullscreenChart] = useState(null); // Which chart is fullscreen
+    // Mean Reversion Analysis States
+    const [meanReversionData, setMeanReversionData] = useState({});
+    const [loadingMeanReversion, setLoadingMeanReversion] = useState({});
+    const [loadingAllMeanReversion, setLoadingAllMeanReversion] = useState(false);
+    
+    // Sector Peers Comparison States
+    const [sectorPeersData, setSectorPeersData] = useState({});
+    const [loadingSectorPeers, setLoadingSectorPeers] = useState({});
+    const [showSectorPeersChart, setShowSectorPeersChart] = useState({});
+    
+    // Chart Auto-Refresh States
+    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState({});
+    const [refreshingChart, setRefreshingChart] = useState({});
+    
+    // Chart AI Analysis Overlay State
+    const [showAIOverlay, setShowAIOverlay] = useState({});
 
 // Load TradingView CDN (add this useEffect)
 useEffect(() => {
@@ -2351,6 +2612,188 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         </div>
     );
 };
+
+    // Single asset mean reversion analysis
+const analyzeMeanReversion = async (symbol) => {
+    setLoadingMeanReversion(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-mean-reversion-regime-detector-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: [symbol],
+                lookback_days: 100
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            setMeanReversionData(prev => ({
+                ...prev,
+                [symbol]: data.data[0]
+            }));
+        } else {
+            alert(`Error: ${data.error || 'No data available'}`);
+        }
+    } catch (error) {
+        console.error('Error analyzing mean reversion:', error);
+        alert('Failed to analyze mean reversion');
+    } finally {
+        setLoadingMeanReversion(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Bulk mean reversion analysis for all assets
+const analyzeAllMeanReversion = async () => {
+    setLoadingAllMeanReversion(true);
+    
+    try {
+        const symbols = filteredData.map(asset => asset.symbol);
+        
+        const response = await fetch(`${baseUrl}/api/mss-mean-reversion-regime-detector-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: symbols,
+                lookback_days: 100
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const mrMap = {};
+            data.data.forEach(item => {
+                mrMap[item.symbol] = item;
+            });
+            setMeanReversionData(mrMap);
+            alert(`✅ Analyzed ${data.data.length} assets for mean reversion!`);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error analyzing all mean reversion:', error);
+        alert('Failed to analyze mean reversion');
+    } finally {
+        setLoadingAllMeanReversion(false);
+    }
+};
+
+
+// ================================
+// SECTOR PEERS COMPARISON FUNCTIONS
+// ================================
+
+const fetchSectorPeersIndex = async (symbol) => {
+    setLoadingSectorPeers(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-sector-peers-normalized-index-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                lookback_days: 60
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            setSectorPeersData(prev => ({
+                ...prev,
+                [symbol]: data
+            }));
+            setShowSectorPeersChart(prev => ({
+                ...prev,
+                [symbol]: true
+            }));
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error fetching sector peers:', error);
+        alert('Failed to fetch sector peers data');
+    } finally {
+        setLoadingSectorPeers(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+
+// ================================
+// CHART REFRESH FUNCTIONS
+// ================================
+
+// Manual refresh for a single chart
+const refreshChartData = async (symbol) => {
+    setRefreshingChart(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const timeframe = chartTimeframes[symbol] || '1h';
+        await fetchChartData(symbol, timeframe);
+    } catch (error) {
+        console.error('Error refreshing chart:', error);
+    } finally {
+        setRefreshingChart(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Toggle auto-refresh (every 60 seconds)
+const toggleAutoRefresh = (symbol) => {
+    const newState = !autoRefreshEnabled[symbol];
+    setAutoRefreshEnabled(prev => ({
+        ...prev,
+        [symbol]: newState
+    }));
+    
+    if (newState) {
+        // Auto-refresh every 60 seconds
+        alert(`✅ Auto-refresh enabled for ${symbol} (every 60s)`);
+    } else {
+        alert(`⏸️ Auto-refresh disabled for ${symbol}`);
+    }
+};
+
+// Auto-refresh effect
+useEffect(() => {
+    const intervals = {};
+    
+    Object.keys(autoRefreshEnabled).forEach(symbol => {
+        if (autoRefreshEnabled[symbol]) {
+            intervals[symbol] = setInterval(() => {
+                refreshChartData(symbol);
+            }, 60000); // 60 seconds
+        }
+    });
+    
+    return () => {
+        Object.values(intervals).forEach(clearInterval);
+    };
+}, [autoRefreshEnabled]);
+
+
+// ================================
+// UPDATED CHART TIMEFRAME CHANGER (FIXED)
+// ================================
+
+const changeChartTimeframe = async (symbol, newTimeframe) => {
+    setChartTimeframes(prev => ({
+        ...prev,
+        [symbol]: newTimeframe
+    }));
+    
+    // Re-fetch chart data with new timeframe
+    await fetchChartData(symbol, newTimeframe);
+};
+
     
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
@@ -3929,6 +4372,7 @@ return (
                                     )}
                                 </>
                             )}
+                            
                             {hasVolumeData && (
                                 <>
                                     <button
@@ -4015,6 +4459,7 @@ return (
                         >
                             {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
                         </button><br />
+                        
 
                         <button
                             className="mss-calculate-btn"
@@ -4028,6 +4473,20 @@ return (
                         >
                             {loadingAllCharts ? '📊 Loading...' : !tvLoaded ? '⏳ Loading Charts...' : '📊 View All Charts'}
                         </button><br />
+                        <button
+                            className="mss-calculate-btn"
+                            onClick={analyzeAllMeanReversion}
+                            disabled={loadingAllMeanReversion || filteredData.length === 0}
+                            style={{ 
+                                padding: '12px 24px', 
+                                fontSize: '14px',
+                                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                marginLeft: '10px'
+                            }}
+                        >
+                            {loadingAllMeanReversion ? '🔄 Analyzing...' : '🔄 Analyze All Mean Reversion'}
+                        </button><br />
+
                         
                         
                         {Object.keys(trendDurations).length > 0 && (
@@ -4449,6 +4908,26 @@ return (
                                             >
                                                 {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
                                             </button>
+                                            <button
+                                                className="calculate-retracement-btn"
+                                                onClick={() => analyzeMeanReversion(asset.symbol)}
+                                                disabled={loadingMeanReversion[asset.symbol]}
+                                                style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
+                                            >
+                                                {loadingMeanReversion[asset.symbol] ? '🔄 Analyzing...' : '🔄 Mean Reversion'}
+                                            </button>
+                                            
+                                            {/* Sector Peers button - only for stocks */}
+                                            {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && asset.sector && (
+                                                <button
+                                                    className="calculate-retracement-btn"
+                                                    onClick={() => fetchSectorPeersIndex(asset.symbol)}
+                                                    disabled={loadingSectorPeers[asset.symbol]}
+                                                    style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+                                                >
+                                                    {loadingSectorPeers[asset.symbol] ? '📊 Loading...' : '📊 vs Sector Peers'}
+                                                </button>
+                                            )}
                                         
                                         </div><br />
                                         <button
@@ -4957,6 +5436,284 @@ return (
                                     )}
                                 </div>
                             )}
+
+                                
+
+                                {meanReversionData[asset.symbol] && (
+                                <div className="mean-reversion-container">
+                                    <div className="mean-reversion-header">
+                                        <div className="mean-reversion-icon">🔄</div>
+                                        <div className="mean-reversion-title">Mean Reversion Analysis</div>
+                                    </div>
+                                    
+                                    {/* Regime Badge */}
+                                    <div className="regime-badge" style={{
+                                        background: meanReversionData[asset.symbol].regime_color,
+                                        color: 'white',
+                                        display: 'block'
+                                    }}>
+                                        {meanReversionData[asset.symbol].regime_label}
+                                    </div>
+                                    
+                                    {/* Mean Reversion Score */}
+                                    <div className="mr-score-container">
+                                        <div className="mr-score-label">Mean Reversion Probability</div>
+                                        <div className="mr-score-value" style={{
+                                            color: meanReversionData[asset.symbol].mean_reversion_color
+                                        }}>
+                                            {meanReversionData[asset.symbol].mean_reversion_score}%
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: 700,
+                                            color: meanReversionData[asset.symbol].mean_reversion_color
+                                        }}>
+                                            {meanReversionData[asset.symbol].mean_reversion_label}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Regime Description */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '15px',
+                                        fontSize: '13px',
+                                        color: '#1f2937'
+                                    }}>
+                                        <strong>Regime:</strong> {meanReversionData[asset.symbol].regime_description}
+                                    </div>
+                                    
+                                    {/* Mean Reversion Signals */}
+                                    {meanReversionData[asset.symbol].mean_reversion_signals.length > 0 && (
+                                        <div className="mr-signals-list">
+                                            <div style={{ fontWeight: 700, marginBottom: '10px', color: '#1e40af' }}>
+                                                Active Signals:
+                                            </div>
+                                            {meanReversionData[asset.symbol].mean_reversion_signals.map((signal, idx) => (
+                                                <div key={idx} className="mr-signal-item">
+                                                    • {signal}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Key Metrics Grid */}
+                                    <div className="mr-targets-grid">
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">RSI</div>
+                                            <div className="mr-target-value" style={{
+                                                color: meanReversionData[asset.symbol].rsi > 70 ? '#ef4444' :
+                                                       meanReversionData[asset.symbol].rsi < 30 ? '#10b981' : '#6b7280'
+                                            }}>
+                                                {meanReversionData[asset.symbol].rsi}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">BB Position</div>
+                                            <div className="mr-target-value">
+                                                {meanReversionData[asset.symbol].bb_position_pct}%
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">vs 20-day MA</div>
+                                            <div className="mr-target-value" style={{
+                                                color: meanReversionData[asset.symbol].sma_20_distance_pct >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {meanReversionData[asset.symbol].sma_20_distance_pct >= 0 ? '+' : ''}
+                                                {meanReversionData[asset.symbol].sma_20_distance_pct}%
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">vs 200-day MA</div>
+                                            <div className="mr-target-value" style={{
+                                                color: meanReversionData[asset.symbol].sma_200_distance_pct >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {meanReversionData[asset.symbol].sma_200_distance_pct >= 0 ? '+' : ''}
+                                                {meanReversionData[asset.symbol].sma_200_distance_pct}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Reversion Targets */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '15px',
+                                        borderRadius: '10px',
+                                        marginTop: '15px'
+                                    }}>
+                                        <div style={{ fontWeight: 700, marginBottom: '10px', color: '#1e40af' }}>
+                                            Expected Reversion Target:
+                                        </div>
+                                        <div style={{ fontSize: '14px', color: '#1f2937', marginBottom: '8px' }}>
+                                            <strong>{meanReversionData[asset.symbol].primary_target_name}:</strong> ${meanReversionData[asset.symbol].primary_target}
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                                            Expected move: {meanReversionData[asset.symbol].expected_move_pct >= 0 ? '+' : ''}
+                                            {meanReversionData[asset.symbol].expected_move_pct}%
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Trading Recommendation */}
+                                    <div style={{
+                                        background: '#f9fafb',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginTop: '15px',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        color: '#1f2937',
+                                        textAlign: 'center'
+                                    }}>
+                                        {meanReversionData[asset.symbol].recommendation}
+                                    </div>
+                                </div>
+                            )}
+
+                                {showSectorPeersChart[asset.symbol] && sectorPeersData[asset.symbol] && (
+                                <div className="sector-peers-chart-container">
+                                    <div className="sector-peers-header">
+                                        <div className="sector-peers-title">
+                                            📊 {asset.symbol} vs {sectorPeersData[asset.symbol].sector} Sector
+                                        </div>
+                                        <button
+                                            onClick={() => setShowSectorPeersChart(prev => ({
+                                                ...prev,
+                                                [asset.symbol]: false
+                                            }))}
+                                            style={{
+                                                background: '#ef4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '6px 12px',
+                                                fontSize: '12px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ✕ Close
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Performance Summary */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '15px',
+                                        borderRadius: '10px',
+                                        marginBottom: '15px'
+                                    }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    {asset.symbol} Return
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].target_stock_return >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].target_stock_return >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].target_stock_return}%
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    Sector Avg
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].sector_avg_return}%
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    Outperformance
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].outperformance >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].outperformance >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].outperformance}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Normalized Chart */}
+                                    <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '320px' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart margin={{ top: 10, right: 15, left: 5, bottom: 10 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '10px' }}
+                                                    tick={{ fontSize: 10 }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '10px' }}
+                                                    tick={{ fontSize: 10 }}
+                                                    label={{ value: 'Normalized (Start = 100)', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        background: 'white', 
+                                                        border: '2px solid #4f46e5',
+                                                        borderRadius: '8px',
+                                                        fontSize: '11px'
+                                                    }}
+                                                />
+                                                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                                
+                                                {/* Sector Index Line */}
+                                                <Line 
+                                                    data={sectorPeersData[asset.symbol].sector_index}
+                                                    type="monotone" 
+                                                    dataKey="index_value" 
+                                                    stroke="#6b7280" 
+                                                    strokeWidth={3}
+                                                    strokeDasharray="5 5"
+                                                    name={`${sectorPeersData[asset.symbol].sector} Index`}
+                                                    dot={false}
+                                                />
+                                                
+                                                {/* Target Stock Line */}
+                                                <Line 
+                                                    data={sectorPeersData[asset.symbol].target_normalized}
+                                                    type="monotone" 
+                                                    dataKey="value" 
+                                                    stroke="#4f46e5" 
+                                                    strokeWidth={3}
+                                                    name={asset.symbol}
+                                                    dot={false}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    
+                                    {/* Peers Summary */}
+                                    <div style={{
+                                        marginTop: '15px',
+                                        fontSize: '12px',
+                                        color: '#6b7280',
+                                        textAlign: 'center'
+                                    }}>
+                                        Compared against {sectorPeersData[asset.symbol].peers_analyzed} sector peers
+                                    </div>
+                                </div>
+                            )}
+
+
 
                                 {monteCarloResults[asset.symbol] && (
                                     <div className="monte-carlo-results">
