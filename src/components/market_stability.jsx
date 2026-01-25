@@ -2115,6 +2115,92 @@ export default function MarketStabilityScore() {
     // Chart AI Analysis Overlay State
     const [showAIOverlay, setShowAIOverlay] = useState({});
 
+    // Add these with your other states
+    const [voiceSettings, setVoiceSettings] = useState({
+        enabled: false,
+        voice: null,
+        rate: 1.0,
+        pitch: 1.0
+    });
+    const [availableVoices, setAvailableVoices] = useState([]);
+    const [isReading, setIsReading] = useState({});
+
+    // Add with your other chatbot states
+    const [useChartContext, setUseChartContext] = useState(false);
+    const [chartContextSymbol, setChartContextSymbol] = useState(null);
+
+    // Load available voices
+useEffect(() => {
+    const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        setAvailableVoices(voices);
+        
+        // Load saved voice settings from localStorage
+        const savedSettings = localStorage.getItem('aiVoiceSettings');
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            setVoiceSettings(prev => ({
+                ...prev,
+                ...parsed,
+                voice: voices.find(v => v.name === parsed.voiceName) || voices[0]
+            }));
+        } else if (voices.length > 0) {
+            setVoiceSettings(prev => ({
+                ...prev,
+                voice: voices[0]
+            }));
+        }
+    };
+    
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}, []);
+
+    // Voice reading function
+const readText = (text, symbol) => {
+    if (!voiceSettings.enabled || !voiceSettings.voice) return;
+    
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = voiceSettings.voice;
+    utterance.rate = voiceSettings.rate;
+    utterance.pitch = voiceSettings.pitch;
+    
+    utterance.onstart = () => {
+        setIsReading(prev => ({ ...prev, [symbol]: true }));
+    };
+    
+    utterance.onend = () => {
+        setIsReading(prev => ({ ...prev, [symbol]: false }));
+    };
+    
+    utterance.onerror = () => {
+        setIsReading(prev => ({ ...prev, [symbol]: false }));
+    };
+    
+    window.speechSynthesis.speak(utterance);
+};
+
+// Stop reading function
+const stopReading = (symbol) => {
+    window.speechSynthesis.cancel();
+    setIsReading(prev => ({ ...prev, [symbol]: false }));
+};
+
+// Save voice settings
+const saveVoiceSettings = (newSettings) => {
+    const settingsToSave = {
+        enabled: newSettings.enabled,
+        voiceName: newSettings.voice?.name,
+        rate: newSettings.rate,
+        pitch: newSettings.pitch
+    };
+    localStorage.setItem('aiVoiceSettings', JSON.stringify(settingsToSave));
+    setVoiceSettings(newSettings);
+};
+
 // Load TradingView CDN (add this useEffect)
 useEffect(() => {
     const loadTradingViewCharts = async () => {
@@ -2658,21 +2744,128 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 </div>
             </div>
             
-            {/* AI Overlay */}
+            {/* Enhanced AI Overlay with Voice */}
             {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
-                <div className="ai-overlay-container">
+                <div className="ai-overlay-container" style={{
+                    maxWidth: '400px',
+                    maxHeight: '500px'
+                }}>
                     <div className="ai-overlay-header">
                         <div className="ai-overlay-title">🤖 AI Analysis</div>
-                        <button
-                            className="ai-overlay-close"
-                            onClick={() => setShowAIOverlay(prev => ({
-                                ...prev,
-                                [symbol]: false
-                            }))}
-                        >
-                            ✕
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {/* Voice Control Button */}
+                            {voiceSettings.enabled && (
+                                <button
+                                    onClick={() => {
+                                        if (isReading[symbol]) {
+                                            stopReading(symbol);
+                                        } else {
+                                            readText(assetAnalysis[symbol].analysis, symbol);
+                                        }
+                                    }}
+                                    style={{
+                                        background: isReading[symbol] ? '#ef4444' : '#10b981',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '4px 8px',
+                                        cursor: 'pointer',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    {isReading[symbol] ? '⏸️ Stop' : '🔊 Read'}
+                                </button>
+                            )}
+                            
+                            <button
+                                className="ai-overlay-close"
+                                onClick={() => {
+                                    stopReading(symbol);
+                                    setShowAIOverlay(prev => ({
+                                        ...prev,
+                                        [symbol]: false
+                                    }));
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
                     </div>
+                    
+                    {/* Voice Settings Panel */}
+                    {voiceSettings.enabled && (
+                        <div style={{
+                            background: '#f9fafb',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            marginBottom: '10px',
+                            fontSize: '11px'
+                        }}>
+                            <div style={{ marginBottom: '8px' }}>
+                                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                                    Voice:
+                                </label>
+                                <select
+                                    value={voiceSettings.voice?.name || ''}
+                                    onChange={(e) => {
+                                        const newVoice = availableVoices.find(v => v.name === e.target.value);
+                                        saveVoiceSettings({ ...voiceSettings, voice: newVoice });
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '4px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #d1d5db'
+                                    }}
+                                >
+                                    {availableVoices.map(voice => (
+                                        <option key={voice.name} value={voice.name}>
+                                            {voice.name} ({voice.lang})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                                        Speed: {voiceSettings.rate}x
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0.5"
+                                        max="2"
+                                        step="0.1"
+                                        value={voiceSettings.rate}
+                                        onChange={(e) => saveVoiceSettings({ 
+                                            ...voiceSettings, 
+                                            rate: parseFloat(e.target.value) 
+                                        })}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                                        Pitch: {voiceSettings.pitch}x
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0.5"
+                                        max="2"
+                                        step="0.1"
+                                        value={voiceSettings.pitch}
+                                        onChange={(e) => saveVoiceSettings({ 
+                                            ...voiceSettings, 
+                                            pitch: parseFloat(e.target.value) 
+                                        })}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
                     <div className="ai-overlay-content">
                         {assetAnalysis[symbol].analysis}
                     </div>
@@ -4748,12 +4941,38 @@ return (
                                     </div>
                                     <div className="comparison-chart">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={stockVsSectorData.comparison_data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                            <LineChart 
+                                                data={(() => {
+                                                    // Merge stock and sector data by date
+                                                    const mergedData = [];
+                                                    const dateMap = new Map();
+                                                    
+                                                    // Add stock data
+                                                    stockVsSectorData.comparison_data.forEach(item => {
+                                                        dateMap.set(item.date, {
+                                                            date: item.date,
+                                                            stock_return: item.stock_return,
+                                                            sector_return: item.sector_return
+                                                        });
+                                                    });
+                                                    
+                                                    // Convert to array and sort by date
+                                                    const sorted = Array.from(dateMap.values()).sort((a, b) => 
+                                                        new Date(a.date) - new Date(b.date)
+                                                    );
+                                                    
+                                                    return sorted;
+                                                })()}
+                                                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                                            >
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis 
                                                     dataKey="date" 
                                                     stroke="#6b7280"
                                                     style={{ fontSize: '11px' }}
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
                                                 />
                                                 <YAxis 
                                                     stroke="#6b7280"
@@ -4773,17 +4992,19 @@ return (
                                                     type="monotone" 
                                                     dataKey="stock_return" 
                                                     stroke="#2563eb" 
-                                                    strokeWidth={2}
+                                                    strokeWidth={3}
                                                     name={`${selectedStock} %`}
                                                     dot={false}
+                                                    connectNulls
                                                 />
                                                 <Line 
                                                     type="monotone" 
                                                     dataKey="sector_return" 
                                                     stroke="#ef4444" 
-                                                    strokeWidth={2}
+                                                    strokeWidth={3}
                                                     name={`${stockVsSectorData.sector} %`}
                                                     dot={false}
+                                                    connectNulls
                                                 />
                                             </LineChart>
                                         </ResponsiveContainer>
@@ -4801,8 +5022,6 @@ return (
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    )}
 
                     <div className="category-filter">
                         <button 
@@ -6153,6 +6372,75 @@ return (
             </div>
             
             <div className="ai-chatbot-input-container">
+    {/* Chart Context Controls */}
+                <div style={{
+                    width: '100%',
+                    display: 'flex',
+                    gap: '10px',
+                    marginBottom: '10px',
+                    padding: '8px',
+                    background: '#f3f4f6',
+                    borderRadius: '8px',
+                    alignItems: 'center'
+                }}>
+                    <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}>
+                        <input
+                            type="checkbox"
+                            checked={useChartContext}
+                            onChange={(e) => setUseChartContext(e.target.checked)}
+                            style={{ cursor: 'pointer' }}
+                        />
+                        Use Trading Chart
+                    </label>
+                    
+                    {useChartContext && (
+                        <select
+                            value={chartContextSymbol || ''}
+                            onChange={(e) => setChartContextSymbol(e.target.value)}
+                            style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                border: '2px solid #2563eb',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                flex: 1
+                            }}
+                        >
+                            <option value="">Select asset...</option>
+                            {Object.keys(chartData).map(sym => (
+                                <option key={sym} value={sym}>{sym}</option>
+                            ))}
+                        </select>
+                    )}
+                    
+                    <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                    }}>
+                        <input
+                            type="checkbox"
+                            checked={voiceSettings.enabled}
+                            onChange={(e) => saveVoiceSettings({ 
+                                ...voiceSettings, 
+                                enabled: e.target.checked 
+                            })}
+                            style={{ cursor: 'pointer' }}
+                        />
+                        🔊 Voice Reader
+                    </label>
+                </div>
+                
                 <label className="ai-file-upload-btn" title="Upload chart image">
                     📎
                     <input 
@@ -6164,7 +6452,9 @@ return (
                 <input
                     type="text"
                     className="ai-chatbot-input"
-                    placeholder="Ask Simons about markets, trends, or upload a chart..."
+                    placeholder={useChartContext && chartContextSymbol 
+                        ? `Ask about ${chartContextSymbol}...` 
+                        : "Ask Simons about markets, trends, or upload a chart..."}
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
