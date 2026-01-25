@@ -4283,100 +4283,137 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
     };
 
     const handleChatSend = async () => {
-    if ((!chatInput.trim() && !chatImage) || chatLoading) return;
-
-    const userMessage = chatInput.trim();
-    const imageToSend = chatImage;
+        if ((!chatInput.trim() && !chatImage) || chatLoading) return;
     
-    setChatInput('');
-    setChatImage(null);
+        const userMessage = chatInput.trim();
+        const imageToSend = chatImage;
+        
+        setChatInput('');
+        setChatImage(null);
+        
+        const messageContent = userMessage || "Please analyze this image";
+        setChatMessages(prev => [...prev, { 
+            role: 'user', 
+            content: messageContent,
+            image: imageToSend 
+        }]);
+        
+        setChatLoading(true);
     
-    const messageContent = userMessage || "Please analyze this image";
-    setChatMessages(prev => [...prev, { 
-        role: 'user', 
-        content: messageContent,
-        image: imageToSend 
-    }]);
+        try {
+            // Prepare MSS data context
+            const mssContext = mssData.length > 0 
+                ? `Current Market Data Analysis:
+    ${mssData.slice(0, 10).map(asset => 
+        `- ${asset.symbol}: MSS ${asset.mss}, Trend: ${asset.trend || 'unknown'}, Price: $${asset.current_price}, Change: ${asset.price_change}%${asset.sector ? `, Sector: ${asset.sector}` : ''}`
+    ).join('\n')}`
+                : 'No market data currently loaded.';
     
-    setChatLoading(true);
-
-    try {
-        // Prepare MSS data context
-        const mssContext = mssData.length > 0 
-            ? `Current Market Data Analysis:
-${mssData.slice(0, 10).map(asset => 
-    `- ${asset.symbol}: MSS ${asset.mss}, Trend: ${asset.trend || 'unknown'}, Price: $${asset.current_price}, Change: ${asset.price_change}%${asset.sector ? `, Sector: ${asset.sector}` : ''}`
-).join('\n')}`
-            : 'No market data currently loaded.';
-
-        const messages = [
-            {
-                role: 'system',
-                content: `You are Simons, a professional yet friendly trading and investing assistant named after legendary investor Jim Simons. Your purpose is to help traders analyze markets, understand trends, and make informed decisions.
-
-${mssContext}
-
-You have access to real-time Market Stability Score (MSS) data, which evaluates assets based on volatility, trend clarity, and liquidity. Higher MSS scores indicate better trading conditions.
-
-Be concise, actionable, and insightful. Focus on practical trading advice while maintaining a professional but approachable tone.`
-            },
-            ...chatMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }))
-        ];
-
-        // Add image if present
-        if (imageToSend) {
-            messages.push({
-                role: 'user',
-                content: [
-                    { type: 'text', text: userMessage || 'Please analyze this chart/image' },
-                    { 
-                        type: 'image_url', 
-                        image_url: { url: imageToSend }
-                    }
-                ]
+            // Prepare chart context if enabled
+            let chartContext = '';
+            if (useChartContext && chartContextSymbol && chartData[chartContextSymbol]) {
+                const chart = chartData[chartContextSymbol];
+                const recentCandles = chart.slice(-20);
+                
+                chartContext = `\n\nCHART ANALYSIS FOR ${chartContextSymbol}:
+    - Current Price: $${recentCandles[recentCandles.length - 1].close}
+    - 20-Period High: $${Math.max(...recentCandles.map(c => c.high))}
+    - 20-Period Low: $${Math.min(...recentCandles.map(c => c.low))}
+    - Recent Trend: ${recentCandles[recentCandles.length - 1].close > recentCandles[0].close ? 'Upward' : 'Downward'}
+    - Volatility: ${((Math.max(...recentCandles.map(c => c.high)) - Math.min(...recentCandles.map(c => c.low))) / recentCandles[0].close * 100).toFixed(2)}%`;
+    
+                // Add retracement data if available
+                if (retracementData[chartContextSymbol]) {
+                    chartContext += `\n- Optimal Entry: $${retracementData[chartContextSymbol].entry_zones.optimal_entry}`;
+                }
+                
+                // Add mean reversion data if available
+                if (meanReversionData[chartContextSymbol]) {
+                    chartContext += `\n- Mean Reversion Score: ${meanReversionData[chartContextSymbol].mean_reversion_score}%`;
+                    chartContext += `\n- Regime: ${meanReversionData[chartContextSymbol].regime_label}`;
+                }
+                
+                // Add elasticity data if available
+                if (elasticityData[chartContextSymbol]) {
+                    chartContext += `\n- Trend Elasticity: ${(elasticityData[chartContextSymbol].overall_elasticity * 100).toFixed(1)}%`;
+                }
+            }
+    
+            const messages = [
+                {
+                    role: 'system',
+                    content: `You are Simons, a professional yet friendly trading and investing assistant named after legendary investor Jim Simons. Your purpose is to help traders analyze markets, understand trends, and make informed decisions.
+    
+    ${mssContext}${chartContext}
+    
+    ${useChartContext && chartContextSymbol ? `You are currently analyzing the ${chartContextSymbol} chart. Use the chart data provided to give specific, actionable insights about price levels, trends, and potential trading opportunities.` : ''}
+    
+    You have access to real-time Market Stability Score (MSS) data, which evaluates assets based on volatility, trend clarity, and liquidity. Higher MSS scores indicate better trading conditions.
+    
+    Be concise, actionable, and insightful. Focus on practical trading advice while maintaining a professional but approachable tone.`
+                },
+                ...chatMessages.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }))
+            ];
+    
+            // Add image if present
+            if (imageToSend) {
+                messages.push({
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: userMessage || 'Please analyze this chart/image' },
+                        { 
+                            type: 'image_url', 
+                            image_url: { url: imageToSend }
+                        }
+                    ]
+                });
+            } else {
+                messages.push({
+                    role: 'user',
+                    content: userMessage
+                });
+            }
+    
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 500
+                })
             });
-        } else {
-            messages.push({
-                role: 'user',
-                content: userMessage
-            });
+    
+            const aiData = await aiResponse.json();
+            const response = aiData.choices[0].message.content;
+    
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: response
+            }]);
+            
+            // Read response if voice is enabled
+            if (voiceSettings.enabled && voiceSettings.voice) {
+                readText(response, 'chatbot');
+            }
+    
+        } catch (error) {
+            console.error('Error in chat:', error);
+            setChatMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, I encountered an error. Please try again.'
+            }]);
+        } finally {
+            setChatLoading(false);
         }
-
-        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o',
-                messages: messages,
-                temperature: 0.7,
-                max_tokens: 500
-            })
-        });
-
-        const aiData = await aiResponse.json();
-        const response = aiData.choices[0].message.content;
-
-        setChatMessages(prev => [...prev, {
-            role: 'assistant',
-            content: response
-        }]);
-
-    } catch (error) {
-        console.error('Error in chat:', error);
-        setChatMessages(prev => [...prev, {
-            role: 'assistant',
-            content: 'Sorry, I encountered an error. Please try again.'
-        }]);
-    } finally {
-        setChatLoading(false);
-    }
-};
+    };
     
     const filteredData = mssData
     .filter(item => {
