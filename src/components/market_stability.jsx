@@ -6255,7 +6255,7 @@ return (
                         </div>
                     ))}
                 </div>
-            </>
+            </div> {/* CHANGED: Replaced </> with </div> to match the opening container */}
         )}
 
             {/* Fullscreen Chart Modal */}
@@ -6476,7 +6476,6 @@ return (
       </svg>
     </div>
     </div>
-        
 
-    )
-}
+    );
+};
