@@ -2506,109 +2506,178 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         <div style={{ width: '100%', position: 'relative', maxWidth: '100%', overflow: 'hidden' }}>
             {/* Header with timeframe selector */}
             <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '10px',
-                padding: '12px',
-                background: '#2a2a2a',
-                borderRadius: '8px 8px 0 0',
-                marginBottom: '0'
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
+    padding: '12px',
+    background: '#2a2a2a',
+    borderRadius: '8px 8px 0 0',
+    marginBottom: '0'
+}}>
+    <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        flexWrap: 'wrap'
+    }}>
+        <div style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: '#e5e7eb',
+        }}>
+            {symbol} - {currentTimeframe.toUpperCase()}
+        </div>
+        
+        {/* Sentiment Badge */}
+        {isFullscreen && sentiment && (
+            <div style={{
+                padding: '4px 12px',
+                background: sentiment.color,
+                color: 'white',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.5px'
             }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    flexWrap: 'wrap'
-                }}>
-                    <div style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#e5e7eb',
-                    }}>
-                        {symbol} - {currentTimeframe.toUpperCase()}
-                    </div>
-                    
-                    {/* Sentiment Badge (only in fullscreen if AI analysis exists) */}
-                    {isFullscreen && sentiment && (
-                        <div style={{
-                            padding: '4px 12px',
-                            background: sentiment.color,
-                            color: 'white',
-                            borderRadius: '12px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            letterSpacing: '0.5px'
-                        }}>
-                            {sentiment.label}
-                        </div>
-                    )}
-                </div>
-                
-                {/* Timeframe Selector */}
-                <div style={{
-                    display: 'flex',
-                    gap: '6px',
-                    alignItems: 'center',
-                    flexWrap: 'wrap'
-                }}>
-                    {['1h', '4h', '1d', '1w'].map(tf => (
-                        <button
-                            key={tf}
-                            onClick={() => changeChartTimeframe(symbol, tf)}
-                            disabled={loadingCharts[symbol]}
-                            style={{
-                                padding: '6px 10px',
-                                background: currentTimeframe === tf ? '#4f46e5' : '#374151',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                minWidth: '40px'
-                            }}
-                        >
-                            {tf.toUpperCase()}
-                        </button>
-                    ))}
-                    
-                    {/* Fullscreen Button */}
-                    {!isFullscreen && (
-                        <button
-                            onClick={() => setFullscreenChart(symbol)}
-                            style={{
-                                padding: '6px 12px',
-                                background: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
-                            ⛶ Full
-                        </button>
-                    )}
-                </div>
+                {sentiment.label}
             </div>
-            
-            {/* Chart - FIXED for mobile responsiveness */}
-            <div 
-                ref={chartContainerRef} 
-                style={{ 
-                    width: '100%',
-                    maxWidth: '100%', // Prevent overflow
-                    height: isFullscreen ? `${Math.min(window.innerHeight - 200, 800)}px` : '300px',
-                    background: '#1a1a1a',
-                    borderRadius: '0 0 8px 8px',
-                    overflow: 'hidden' // Prevent chart from pushing screen
-                }} 
-            />
+        )}
+        
+        {/* NEW: AI Analysis Toggle (only in fullscreen) */}
+        {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
+            <button
+                onClick={() => setShowAIOverlay(prev => ({
+                    ...prev,
+                    [symbol]: !prev[symbol]
+                }))}
+                style={{
+                    padding: '6px 12px',
+                    background: showAIOverlay[symbol] ? '#8b5cf6' : '#374151',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                }}
+            >
+                {showAIOverlay[symbol] ? '👁️ Hide AI' : '🤖 Show AI'}
+            </button>
+        )}
+    </div>
+    
+    {/* Timeframe + Controls */}
+    <div style={{
+        display: 'flex',
+        gap: '6px',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+    }}>
+        {/* Timeframe Selector */}
+        {['1h', '4h', '1d', '1w'].map(tf => (
+            <button
+                key={tf}
+                onClick={() => changeChartTimeframe(symbol, tf)}
+                disabled={loadingCharts[symbol]}
+                style={{
+                    padding: '6px 10px',
+                    background: currentTimeframe === tf ? '#4f46e5' : '#374151',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    minWidth: '40px'
+                }}
+            >
+                {tf.toUpperCase()}
+            </button>
+        ))}
+        
+        {/* NEW: Refresh Button */}
+        <button
+            onClick={() => refreshChartData(symbol)}
+            disabled={refreshingChart[symbol]}
+            style={{
+                padding: '6px 12px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+        }}
+    >
+        {refreshingChart[symbol] ? '⏳' : '🔄 Refresh'}
+    </button>
+    
+    {/* NEW: Auto-Refresh Toggle */}
+    <button
+        onClick={() => toggleAutoRefresh(symbol)}
+        style={{
+            padding: '6px 12px',
+            background: autoRefreshEnabled[symbol] ? '#f59e0b' : '#374151',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+        }}
+    >
+        {autoRefreshEnabled[symbol] ? '⏸️ Auto' : '▶️ Auto'}
+    </button>
+    
+    {/* Fullscreen Button */}
+    {!isFullscreen && (
+        <button
+            onClick={() => setFullscreenChart(symbol)}
+            style={{
+                padding: '6px 12px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+            }}
+        >
+            ⛶ Full
+        </button>
+    )}
+                </div>
+                </div>
+            {/* NEW: AI Analysis Overlay (in chart container) */}
+                    {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
+                    <div className="ai-overlay-container">
+                    <div className="ai-overlay-header">
+                    <div className="ai-overlay-title">🤖 AI Analysis</div>
+                    <button
+                    className="ai-overlay-close"
+                    onClick={() => setShowAIOverlay(prev => ({
+                    ...prev,
+                    [symbol]: false
+                    }))}
+                    >
+                    ✕
+                    </button>
+                    </div>
+                    <div className="ai-overlay-content">
+                    {assetAnalysis[symbol].analysis}
+                    </div>
+            </div>
+            )}
+
+
         </div>
     );
 };
