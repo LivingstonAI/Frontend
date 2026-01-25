@@ -6166,7 +6166,317 @@ return (
                                 </div>
                             )}
 
-
+                                {/* Display chart in card (normal size, no overlays) */}
+                            {showChart[asset.symbol] && chartData[asset.symbol] && (
+                                <div style={{
+                                    marginTop: '15px',
+                                    padding: '15px',
+                                    background: '#1a1a1a',
+                                    borderRadius: '12px',
+                                    border: '2px solid #4f46e5'
+                                }}>
+                                    <TradingViewChart 
+                                        data={chartData[asset.symbol]} 
+                                        symbol={asset.symbol}
+                                        isFullscreen={false}
+                                    />
+                                </div>
+                            )}
+                            
+                            <div className="card-metrics">
+                                <div className="metric">
+                                    <span className="metric-label">MSS:</span>
+                                    <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
+                                </div>
+                                <div className="metric">
+                                    <span className="metric-label">Price:</span>
+                                    <span className="metric-value">${asset.current_price}</span>
+                                </div>
+                                <div className="metric">
+                                    <span className="metric-label">Change:</span>
+                                    <span 
+                                        className="metric-value"
+                                        style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
+                                    >
+                                        {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
+                                    </span>
+                                </div>
                             </div>
+                            {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
+                                <div style={{ 
+                                    background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
+                                               asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
+                                               'rgba(59, 130, 246, 0.1)',
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    marginBottom: '18px'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
+                                            Relative Volume:
+                                        </span>
+                                        <span style={{ 
+                                            fontSize: '15px', 
+                                            fontWeight: 700,
+                                            color: asset.volumeCategory === 'high' ? '#059669' : 
+                                                   asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                        }}>
+                                            {asset.relativeVolume}x
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                        Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
+                                    </div>
+                                    <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
+                                        {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
+                                        {asset.volumeCategory?.toUpperCase()} VOLUME
+                                    </span>
+                                </div>
+                            )}
+                            <div className="card-details">
+                                <div className="detail-item">
+                                    <span>Norm. Volatility:</span>
+                                    <span>{asset.normalized_volatility}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <span>R² (Trend):</span>
+                                    <span>{asset.r_squared}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <span>Liquidity Factor:</span>
+                                    <span>{asset.liquidity_factor}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <span>Avg Volume:</span>
+                                    <span>{asset.avg_volume.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div> {/* FIXED: Changed from </> to </div> to match the opening div of this container */}
+        )}
+
+        {/* Fullscreen Chart Modal */}
+        {fullscreenChart && chartData[fullscreenChart] && (
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.95)',
+                zIndex: 99999,
+                padding: window.innerWidth < 768 ? '10px' : '20px',
+                overflow: 'auto'
+            }}>
+                <div style={{
+                    maxWidth: '1600px',
+                    margin: '0 auto',
+                    background: '#1a1a1a',
+                    borderRadius: '16px',
+                    padding: window.innerWidth < 768 ? '10px' : '20px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                }}>
+                    {/* Header */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '15px',
+                        flexWrap: 'wrap',
+                        gap: '10px'
+                    }}>
+                        <h2 style={{ 
+                            color: 'white', 
+                            margin: 0,
+                            fontSize: window.innerWidth < 768 ? '18px' : '24px'
+                        }}>
+                            {fullscreenChart} - Analysis
+                        </h2>
+                        <button
+                            onClick={() => setFullscreenChart(null)}
+                            style={{
+                                padding: '8px 16px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 600
+                            }}
+                        >
+                            ✕ Close
+                        </button>
+                    </div>
+                    
+                    {/* Legend for overlays */}
+                    {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                        <div style={{
+                            background: '#2a2a2a',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            marginBottom: '15px',
+                            color: '#e5e7eb',
+                            fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                        }}>
+                            <strong>Overlays:</strong>
+                            <div style={{ 
+                                display: 'flex', 
+                                gap: window.innerWidth < 768 ? '8px' : '15px', 
+                                marginTop: '8px', 
+                                flexWrap: 'wrap' 
+                            }}>
+                                {retracementData[fullscreenChart]?.entry_zones && (
+                                    <>
+                                        <span style={{color: '#10b981'}}>● Aggressive</span>
+                                        <span style={{color: '#fbbf24'}}>● Optimal</span>
+                                        <span style={{color: '#3b82f6'}}>● Conservative</span>
+                                        <span style={{color: '#ef4444'}}>● Stop</span>
+                                    </>
+                                )}
+                                {elasticityData[fullscreenChart] && (
+                                    <span style={{color: '#ec4899'}}>● Elastic Bands</span>
+                                )}
+                                {priceTargetData[fullscreenChart] && (
+                                    <span style={{color: '#8b5cf6'}}>● Target</span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {/* Fullscreen Chart */}
+                    <TradingViewChart data={chartData[fullscreenChart]} symbol={fullscreenChart} isFullscreen={true} />
+                </div>
+            </div>
+        )}
+
+        {!loading && mssData.length === 0 && (
+            <div className="mss-empty">
+                <div className="empty-icon">📊</div>
+                <h3>Ready to Analyze</h3>
+                <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
+            </div>
+        )}
+
+        {/* AI Chatbot */}
+        {showChatbot && (
+            <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
+                <div className="ai-chatbot-header">
+                    <h3>
+                        <span>🎯</span>
+                        <span>Simons - Trading Assistant</span>
+                    </h3>
+                    <button className="ai-chatbot-close" onClick={() => {
+                        setShowChatbot(false);
+                        setShowOrb(true); // Show orb when closing chat
+                    }}
+                    >
+                        ✕
+                    </button>
+                </div>
+                
+                <div className="ai-chatbot-messages">
+                    {chatMessages.length === 0 && (
+                        <div className="ai-welcome-message">
+                            Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
+                        </div>
+                    )}
+                    {chatMessages.map((msg, idx) => (
+                        <div key={idx} className={`ai-message ${msg.role}`}>
+                            {msg.image && (
+                                <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                            )}
+                            <div>{msg.content}</div>
+                        </div>
+                    ))}
+                    {chatLoading && (
+                        <div className="ai-loading">
+                            <div className="ai-loading-spinner"></div>
+                            <span>Simons is analyzing...</span>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+                
+                <div className="ai-chatbot-input-container">
+                    {/* Chart Context Controls */}
+                    <div style={{ width: '100%', display: 'flex', gap: '10px', marginBottom: '10px', padding: '8px', background: '#f3f4f6', borderRadius: '8px', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={useChartContext} onChange={(e) => setUseChartContext(e.target.checked)}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            Use Trading Chart
+                        </label>
+                        
+                        {useChartContext && (
+                            <select value={chartContextSymbol || ''} onChange={(e) => setChartContextSymbol(e.target.value)}
+                                style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '6px',
+                                    border: '2px solid #2563eb',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    flex: 1
+                                }}
+                            >
+                                <option value="">Select asset...</option>
+                                {Object.keys(chartData).map(sym => (
+                                    <option key={sym} value={sym}>{sym}</option>
+                                ))}
+                            </select>
+                        )}
+                        
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={voiceSettings.enabled} onChange={(e) => saveVoiceSettings({ 
+                                    ...voiceSettings, 
+                                    enabled: e.target.checked 
+                                })}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            🔊 Voice Reader
+                        </label>
+                    </div>
+                    
+                    <label className="ai-file-upload-btn" title="Upload chart image">
+                        📎
+                        <input type="file" accept="image/*" onChange={handleImageUpload} />
+                    </label>
+                    <input type="text" className="ai-chatbot-input" placeholder={useChartContext && chartContextSymbol ? `Ask about ${chartContextSymbol}...` : "Ask Simons about markets, trends, or upload a chart..."} value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                        disabled={chatLoading}
+                    />
+                    <button className="ai-chatbot-send" onClick={handleChatSend} disabled={chatLoading || (!chatInput.trim() && !chatImage)} >
+                        {chatLoading ? '...' : 'Send'}
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {chatImage && (
+            <div className="ai-image-attached">
+                <span>📷 Chart attached</span>
+                <button className="ai-image-remove" onClick={() => setChatImage(null)}
+                    title="Remove image"
+                >
+                    ✕
+                </button>
+            </div>
+        )}
+            
+        {/* Chatbot Orb */}
+        <div className="ai-chatbot-orb" onClick={() => {
+            setShowChatbot(!showChatbot);
+            setShowOrb(false);
+        }}
+            title="Chat with Simons"
+            style={{ display: showOrb ? 'flex' : 'none' }}
+        >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+            </svg>
+        </div>
+    </div>
                         
 };
