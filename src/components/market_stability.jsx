@@ -2009,6 +2009,24 @@ grid-template-columns: 1fr;
 .sector-chart-container {
 padding: 15px;
 }
+.comparison-chart {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    height: 500px; /* Increased from 320px */
+    overflow: hidden;
+}
+
+.sector-chart-container {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+.sector-chart-container > div {
+    width: 100%;
+    height: 400px !important; /* Increased from 280px */
+}
 
 
 
@@ -2310,11 +2328,27 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
     const currentTimeframe = chartTimeframes[symbol] || '1h';
     
     useEffect(() => {
-        if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) return;
+        if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) {
+            console.log('Chart conditions not met:', {
+                hasData: !!data,
+                dataLength: data?.length,
+                hasContainer: !!chartContainerRef.current,
+                hasLightweightCharts: !!window.LightweightCharts
+            });
+            return;
+        }
+        
+        // Clear previous chart
+        if (chartRef.current) {
+            chartRef.current.remove();
+            chartRef.current = null;
+        }
         
         // Create chart with responsive width
         const containerWidth = chartContainerRef.current.clientWidth;
         const chartHeight = isFullscreen ? Math.min(window.innerHeight - 200, 800) : 300;
+        
+        console.log('Creating chart:', { symbol, dataPoints: data.length, width: containerWidth, height: chartHeight });
         
         const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
             width: containerWidth,
@@ -2350,106 +2384,82 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
             wickDownColor: '#ef4444',
         });
         
+        // Set data
         candlestickSeries.setData(data);
         
         // Add overlays ONLY in fullscreen mode
         if (isFullscreen) {
-            const currentPrice = data[data.length - 1]?.close || 0;
-            
-            // 1. Entry Points Overlay
+            // Entry Points Overlay
             if (retracementData[symbol]?.entry_zones) {
                 const zones = retracementData[symbol].entry_zones;
                 
-                // Aggressive entry line (green)
                 const aggressiveLine = chart.addLineSeries({
                     color: '#10b981',
                     lineWidth: 2,
-                    lineStyle: 2, // Dashed
+                    lineStyle: 2,
                     priceLineVisible: false,
                 });
-                const aggressiveData = data.map(d => ({ time: d.time, value: zones.aggressive_entry }));
-                aggressiveLine.setData(aggressiveData);
+                aggressiveLine.setData(data.map(d => ({ time: d.time, value: zones.aggressive_entry })));
                 
-                // Optimal entry line (yellow)
                 const optimalLine = chart.addLineSeries({
                     color: '#fbbf24',
                     lineWidth: 3,
-                    lineStyle: 0, // Solid
+                    lineStyle: 0,
                     priceLineVisible: false,
                 });
-                const optimalData = data.map(d => ({ time: d.time, value: zones.optimal_entry }));
-                optimalLine.setData(optimalData);
+                optimalLine.setData(data.map(d => ({ time: d.time, value: zones.optimal_entry })));
                 
-                // Conservative entry line (blue)
                 const conservativeLine = chart.addLineSeries({
                     color: '#3b82f6',
                     lineWidth: 2,
-                    lineStyle: 2, // Dashed
+                    lineStyle: 2,
                     priceLineVisible: false,
                 });
-                const conservativeData = data.map(d => ({ time: d.time, value: zones.conservative_entry }));
-                conservativeLine.setData(conservativeData);
+                conservativeLine.setData(data.map(d => ({ time: d.time, value: zones.conservative_entry })));
                 
-                // Invalidation level (red)
                 const invalidationLine = chart.addLineSeries({
                     color: '#ef4444',
                     lineWidth: 2,
-                    lineStyle: 3, // Dotted
+                    lineStyle: 3,
                     priceLineVisible: false,
                 });
-                const invalidationData = data.map(d => ({ time: d.time, value: zones.invalidation_level }));
-                invalidationLine.setData(invalidationData);
+                invalidationLine.setData(data.map(d => ({ time: d.time, value: zones.invalidation_level })));
             }
             
-            // 2. FIXED Trend Elasticity Bands Overlay
+            // Elasticity Bands Overlay
             if (elasticityData[symbol]) {
-                const elasticity = elasticityData[symbol].overall_elasticity;
-                
-                // Calculate realistic band width based on elasticity and recent volatility
-                // Get last 20 candles for volatility calculation
                 const recentData = data.slice(-20);
                 const highLowRanges = recentData.map(d => d.high - d.low);
                 const avgRange = highLowRanges.reduce((a, b) => a + b, 0) / highLowRanges.length;
+                const bandMultiplier = (1 - elasticityData[symbol].overall_elasticity) * 2;
+                const bandWidth = avgRange * Math.max(0.5, bandMultiplier);
                 
-                // Band width: lower elasticity = wider bands, but keep it reasonable
-                // Use average range as base, scaled by elasticity
-                const bandMultiplier = (1 - elasticity) * 2; // Max 2x the average range
-                const bandWidth = avgRange * Math.max(0.5, bandMultiplier); // Minimum 0.5x range
-                
-                // Upper band (resistance for pullbacks)
                 const upperBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
                     priceLineVisible: false,
                 });
-                const upperData = data.map(d => ({ time: d.time, value: d.close + bandWidth }));
-                upperBand.setData(upperData);
+                upperBand.setData(data.map(d => ({ time: d.time, value: d.close + bandWidth })));
                 
-                // Lower band (support for pullbacks)
                 const lowerBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
                     priceLineVisible: false,
                 });
-                const lowerData = data.map(d => ({ time: d.time, value: d.close - bandWidth }));
-                lowerBand.setData(lowerData);
+                lowerBand.setData(data.map(d => ({ time: d.time, value: d.close - bandWidth })));
             }
             
-            // 3. Price Target Overlay
+            // Price Target Overlay
             if (priceTargetData[symbol]?.target_price) {
                 const targetLine = chart.addLineSeries({
                     color: '#8b5cf6',
                     lineWidth: 3,
-                    lineStyle: 1, // Dashed
+                    lineStyle: 1,
                     priceLineVisible: false,
                 });
-                const targetData = data.map(d => ({ 
-                    time: d.time, 
-                    value: priceTargetData[symbol].target_price 
-                }));
-                targetLine.setData(targetData);
+                targetLine.setData(data.map(d => ({ time: d.time, value: priceTargetData[symbol].target_price })));
             }
         }
         
@@ -2476,12 +2486,12 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
             window.removeEventListener('resize', handleResize);
             if (chartRef.current) {
                 chartRef.current.remove();
+                chartRef.current = null;
             }
         };
-    }, [data, isFullscreen, retracementData, elasticityData, priceTargetData]);
+    }, [data, symbol, isFullscreen, retracementData, elasticityData, priceTargetData]);
     
-    // Helper function to extract sentiment from AI analysis
-    const getSentiment = () => {
+    const sentiment = (() => {
         if (!assetAnalysis[symbol] || assetAnalysis[symbol].noData || assetAnalysis[symbol].error) {
             return null;
         }
@@ -2498,190 +2508,190 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         }
         
         return null;
-    };
-    
-    const sentiment = getSentiment();
+    })();
     
     return (
         <div style={{ width: '100%', position: 'relative', maxWidth: '100%', overflow: 'hidden' }}>
-            {/* Header with timeframe selector */}
+            {/* Header */}
             <div style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '10px',
-    padding: '12px',
-    background: '#2a2a2a',
-    borderRadius: '8px 8px 0 0',
-    marginBottom: '0'
-}}>
-    <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        flexWrap: 'wrap'
-    }}>
-        <div style={{
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#e5e7eb',
-        }}>
-            {symbol} - {currentTimeframe.toUpperCase()}
-        </div>
-        
-        {/* Sentiment Badge */}
-        {isFullscreen && sentiment && (
-            <div style={{
-                padding: '4px 12px',
-                background: sentiment.color,
-                color: 'white',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '0.5px'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '10px',
+                padding: '12px',
+                background: '#2a2a2a',
+                borderRadius: '8px 8px 0 0',
+                marginBottom: '0'
             }}>
-                {sentiment.label}
-            </div>
-        )}
-        
-        {/* NEW: AI Analysis Toggle (only in fullscreen) */}
-        {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
-            <button
-                onClick={() => setShowAIOverlay(prev => ({
-                    ...prev,
-                    [symbol]: !prev[symbol]
-                }))}
-                style={{
-                    padding: '6px 12px',
-                    background: showAIOverlay[symbol] ? '#8b5cf6' : '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                {showAIOverlay[symbol] ? '👁️ Hide AI' : '🤖 Show AI'}
-            </button>
-        )}
-    </div>
-    
-    {/* Timeframe + Controls */}
-    <div style={{
-        display: 'flex',
-        gap: '6px',
-        alignItems: 'center',
-        flexWrap: 'wrap'
-    }}>
-        {/* Timeframe Selector */}
-        {['1h', '4h', '1d', '1w'].map(tf => (
-            <button
-                key={tf}
-                onClick={() => changeChartTimeframe(symbol, tf)}
-                disabled={loadingCharts[symbol]}
-                style={{
-                    padding: '6px 10px',
-                    background: currentTimeframe === tf ? '#4f46e5' : '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    minWidth: '40px'
-                }}
-            >
-                {tf.toUpperCase()}
-            </button>
-        ))}
-        
-        {/* NEW: Refresh Button */}
-        <button
-            onClick={() => refreshChartData(symbol)}
-            disabled={refreshingChart[symbol]}
-            style={{
-                padding: '6px 12px',
-                background: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap'
-        }}
-    >
-        {refreshingChart[symbol] ? '⏳' : '🔄 Refresh'}
-    </button>
-    
-    {/* NEW: Auto-Refresh Toggle */}
-    <button
-        onClick={() => toggleAutoRefresh(symbol)}
-        style={{
-            padding: '6px 12px',
-            background: autoRefreshEnabled[symbol] ? '#f59e0b' : '#374151',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap'
-        }}
-    >
-        {autoRefreshEnabled[symbol] ? '⏸️ Auto' : '▶️ Auto'}
-    </button>
-    
-    {/* Fullscreen Button */}
-    {!isFullscreen && (
-        <button
-            onClick={() => setFullscreenChart(symbol)}
-            style={{
-                padding: '6px 12px',
-                background: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-            }}
-        >
-            ⛶ Full
-        </button>
-    )}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap'
+                }}>
+                    <div style={{
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#e5e7eb',
+                    }}>
+                        {symbol} - {currentTimeframe.toUpperCase()}
+                    </div>
+                    
+                    {isFullscreen && sentiment && (
+                        <div style={{
+                            padding: '4px 12px',
+                            background: sentiment.color,
+                            color: 'white',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            letterSpacing: '0.5px'
+                        }}>
+                            {sentiment.label}
+                        </div>
+                    )}
+                    
+                    {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
+                        <button
+                            onClick={() => setShowAIOverlay(prev => ({
+                                ...prev,
+                                [symbol]: !prev[symbol]
+                            }))}
+                            style={{
+                                padding: '6px 12px',
+                                background: showAIOverlay[symbol] ? '#8b5cf6' : '#374151',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {showAIOverlay[symbol] ? '👁️ Hide AI' : '🤖 Show AI'}
+                        </button>
+                    )}
                 </div>
-                </div>
-            {/* NEW: AI Analysis Overlay (in chart container) */}
-                    {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
-                    <div className="ai-overlay-container">
-                    <div className="ai-overlay-header">
-                    <div className="ai-overlay-title">🤖 AI Analysis</div>
+                
+                <div style={{
+                    display: 'flex',
+                    gap: '6px',
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
+                }}>
+                    {['1h', '4h', '1d', '1w'].map(tf => (
+                        <button
+                            key={tf}
+                            onClick={() => changeChartTimeframe(symbol, tf)}
+                            disabled={loadingCharts[symbol]}
+                            style={{
+                                padding: '6px 10px',
+                                background: currentTimeframe === tf ? '#4f46e5' : '#374151',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                minWidth: '40px'
+                            }}
+                        >
+                            {tf.toUpperCase()}
+                        </button>
+                    ))}
+                    
                     <button
-                    className="ai-overlay-close"
-                    onClick={() => setShowAIOverlay(prev => ({
-                    ...prev,
-                    [symbol]: false
-                    }))}
+                        onClick={() => refreshChartData(symbol)}
+                        disabled={refreshingChart[symbol]}
+                        style={{
+                            padding: '6px 12px',
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                        }}
                     >
-                    ✕
+                        {refreshingChart[symbol] ? '⏳' : '🔄 Refresh'}
                     </button>
+                    
+                    <button
+                        onClick={() => toggleAutoRefresh(symbol)}
+                        style={{
+                            padding: '6px 12px',
+                            background: autoRefreshEnabled[symbol] ? '#f59e0b' : '#374151',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        {autoRefreshEnabled[symbol] ? '⏸️ Auto' : '▶️ Auto'}
+                    </button>
+                    
+                    {!isFullscreen && (
+                        <button
+                            onClick={() => setFullscreenChart(symbol)}
+                            style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            ⛶ Full
+                        </button>
+                    )}
+                </div>
+            </div>
+            
+            {/* AI Overlay */}
+            {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
+                <div className="ai-overlay-container">
+                    <div className="ai-overlay-header">
+                        <div className="ai-overlay-title">🤖 AI Analysis</div>
+                        <button
+                            className="ai-overlay-close"
+                            onClick={() => setShowAIOverlay(prev => ({
+                                ...prev,
+                                [symbol]: false
+                            }))}
+                        >
+                            ✕
+                        </button>
                     </div>
                     <div className="ai-overlay-content">
-                    {assetAnalysis[symbol].analysis}
+                        {assetAnalysis[symbol].analysis}
                     </div>
-            </div>
+                </div>
             )}
-
-
+            
+            {/* THE ACTUAL CHART CONTAINER */}
+            <div 
+                ref={chartContainerRef} 
+                style={{ 
+                    width: '100%', 
+                    height: isFullscreen ? Math.min(window.innerHeight - 200, 800) : 300,
+                    background: '#1a1a1a',
+                    borderRadius: '0 0 8px 8px'
+                }} 
+            />
         </div>
     );
 };
-
     // Single asset mean reversion analysis
 const analyzeMeanReversion = async (symbol) => {
     setLoadingMeanReversion(prev => ({ ...prev, [symbol]: true }));
@@ -5718,7 +5728,7 @@ return (
                                     </div>
                                     
                                     {/* Normalized Chart */}
-                                    <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '320px' }}>
+                                    <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '500px' }}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart margin={{ top: 10, right: 15, left: 5, bottom: 10 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
