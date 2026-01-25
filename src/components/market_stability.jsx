@@ -6520,6 +6520,7 @@ return (
             </button>
         </div>
     )}
+            
 
     {/* Chatbot Orb */}
     <div 
@@ -6536,5 +6537,7 @@ return (
         </svg>
     </div>
 </div>
+</div> {/* Close main wrapper */}
+
     );
 }
