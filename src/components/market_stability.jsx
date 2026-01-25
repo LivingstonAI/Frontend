@@ -6347,7 +6347,6 @@ return (
                     </div>
                 </div>
             )}
-            <div className="main-wrapper">
     {/* Fullscreen Chart */}
     <TradingViewChart data={chartData[fullscreenChart]} symbol={fullscreenChart} isFullscreen={true} />
 
