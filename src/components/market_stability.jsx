@@ -1836,6 +1836,23 @@ export default function MarketStabilityScore() {
     const [chartTimeframes, setChartTimeframes] = useState({}); // Track timeframe per symbol
     const [fullscreenChart, setFullscreenChart] = useState(null); // Which chart is fullscreen
 
+        // Mean Reversion Analysis States
+    const [meanReversionData, setMeanReversionData] = useState({});
+    const [loadingMeanReversion, setLoadingMeanReversion] = useState({});
+    const [loadingAllMeanReversion, setLoadingAllMeanReversion] = useState(false);
+
+    // Sector Peers Comparison States
+    const [sectorPeersData, setSectorPeersData] = useState({});
+    const [loadingSectorPeers, setLoadingSectorPeers] = useState({});
+    const [showSectorPeersChart, setShowSectorPeersChart] = useState({});
+    
+    // Chart Auto-Refresh States
+    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState({});
+    const [refreshingChart, setRefreshingChart] = useState({});
+    
+    // Chart AI Analysis Overlay State
+    const [showAIOverlay, setShowAIOverlay] = useState({});
+
 // Load TradingView CDN (add this useEffect)
 useEffect(() => {
     const loadTradingViewCharts = async () => {
@@ -2041,6 +2058,7 @@ const fetchSectorCharts = async (sector) => {
         setLoadingAllCharts(false);
     }
 };
+    
 
     // Updated TradingView Chart Component
 const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
@@ -2351,6 +2369,173 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         </div>
     );
 };
+
+    // Single asset mean reversion analysis
+const analyzeMeanReversion = async (symbol) => {
+    setLoadingMeanReversion(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-mean-reversion-regime-detector-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: [symbol],
+                lookback_days: 100
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+            setMeanReversionData(prev => ({
+                ...prev,
+                [symbol]: data.data[0]
+            }));
+        } else {
+            alert(`Error: ${data.error || 'No data available'}`);
+        }
+    } catch (error) {
+        console.error('Error analyzing mean reversion:', error);
+        alert('Failed to analyze mean reversion');
+    } finally {
+        setLoadingMeanReversion(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Bulk mean reversion analysis for all assets
+const analyzeAllMeanReversion = async () => {
+    setLoadingAllMeanReversion(true);
+    
+    try {
+        const symbols = filteredData.map(asset => asset.symbol);
+        
+        const response = await fetch(`${baseUrl}/api/mss-mean-reversion-regime-detector-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbols: symbols,
+                lookback_days: 100
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            const mrMap = {};
+            data.data.forEach(item => {
+                mrMap[item.symbol] = item;
+            });
+            setMeanReversionData(mrMap);
+            alert(`✅ Analyzed ${data.data.length} assets for mean reversion!`);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error analyzing all mean reversion:', error);
+        alert('Failed to analyze mean reversion');
+    } finally {
+        setLoadingAllMeanReversion(false);
+    }
+};
+
+
+// ================================
+// SECTOR PEERS COMPARISON FUNCTIONS
+// ================================
+
+const fetchSectorPeersIndex = async (symbol) => {
+    setLoadingSectorPeers(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const response = await fetch(`${baseUrl}/api/mss-sector-peers-normalized-index-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                lookback_days: 60
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            setSectorPeersData(prev => ({
+                ...prev,
+                [symbol]: data
+            }));
+            setShowSectorPeersChart(prev => ({
+                ...prev,
+                [symbol]: true
+            }));
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error fetching sector peers:', error);
+        alert('Failed to fetch sector peers data');
+    } finally {
+        setLoadingSectorPeers(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+
+// ================================
+// CHART REFRESH FUNCTIONS
+// ================================
+
+// Manual refresh for a single chart
+const refreshChartData = async (symbol) => {
+    setRefreshingChart(prev => ({ ...prev, [symbol]: true }));
+    
+    try {
+        const timeframe = chartTimeframes[symbol] || '1h';
+        await fetchChartData(symbol, timeframe);
+    } catch (error) {
+        console.error('Error refreshing chart:', error);
+    } finally {
+        setRefreshingChart(prev => ({ ...prev, [symbol]: false }));
+    }
+};
+
+// Toggle auto-refresh (every 60 seconds)
+const toggleAutoRefresh = (symbol) => {
+    const newState = !autoRefreshEnabled[symbol];
+    setAutoRefreshEnabled(prev => ({
+        ...prev,
+        [symbol]: newState
+    }));
+    
+    if (newState) {
+        // Auto-refresh every 60 seconds
+        alert(`✅ Auto-refresh enabled for ${symbol} (every 60s)`);
+    } else {
+        alert(`⏸️ Auto-refresh disabled for ${symbol}`);
+    }
+};
+
+// Auto-refresh effect
+useEffect(() => {
+    const intervals = {};
+    
+    Object.keys(autoRefreshEnabled).forEach(symbol => {
+        if (autoRefreshEnabled[symbol]) {
+            intervals[symbol] = setInterval(() => {
+                refreshChartData(symbol);
+            }, 60000); // 60 seconds
+        }
+    });
+    
+    return () => {
+        Object.values(intervals).forEach(clearInterval);
+    };
+}, [autoRefreshEnabled]);
+
     
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
