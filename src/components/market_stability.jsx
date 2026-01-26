@@ -14,6 +14,110 @@ const chartStyles = `
 }
 `;
 
+const aiOverlayStyles = `
+.ai-overlay-container {
+    position: absolute;
+    top: 60px;
+    right: 15px;
+    background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+    padding: 20px;
+    border-radius: 16px;
+    max-width: 350px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    border: 3px solid #8b5cf6;
+    z-index: 10;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.ai-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.ai-overlay-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #6d28d9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-overlay-close {
+    background: #f3f4f6;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.ai-overlay-close:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.ai-overlay-content {
+    font-size: 13px;
+    color: #1f2937;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.ai-voice-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.ai-voice-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-voice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.ai-voice-btn.stop {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.ai-voice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+@media (max-width: 768px) {
+    .ai-overlay-container {
+        position: relative;
+        top: 0;
+        right: 0;
+        max-width: 100%;
+        margin-top: 10px;
+    }
+}
+`;
+
 const aiChatbotStyles = `
 /* Chatbot Panel - Blue-Dark Theme */
 .ai-chatbot-panel {
@@ -2395,6 +2499,7 @@ grid-template-columns: 1fr;
 padding: 15px;
 }
 
+${aiOverlayStyles}
 ${aiChatbotStyles}
 
 
