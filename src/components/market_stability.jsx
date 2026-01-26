@@ -2742,26 +2742,28 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 >
                     {autoRefreshEnabled[symbol] ? '⏸️ Auto' : '▶️ Auto'}
                 </button>
-                
                 {/* Fullscreen Button */}
-                {!isFullscreen && (
-                    <button
-                        onClick={() => setFullscreenChart(symbol)}
-                        style={{
-                            padding: '6px 12px',
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                        }}
-                    >
-                        ⛶ Full
-                    </button>
-                )}
+                    {!isFullscreen && (
+                        <button
+                            onClick={() => {
+                                setFullscreenChart(symbol);
+                                setCurrentChartSymbol(symbol); // ✅ Set chart context when opening
+                            }}
+                            style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            ⛶ Full
+                        </button>
+                    )}
             </div>
             </div>
             {/* NEW: Enhanced AI Analysis Overlay with Voice */}
