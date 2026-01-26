@@ -3189,7 +3189,7 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
                 'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
+                model: 'gpt-4o',
                 messages: messages,
                 temperature: 0.7,
                 max_tokens: 500
@@ -3219,7 +3219,6 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
         setChatLoading(false);
     }
 };
-
     
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
