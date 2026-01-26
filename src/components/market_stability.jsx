@@ -2607,12 +2607,12 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                             padding: '6px 12px',
                             background: '#10b981',
                             color: 'white',
-                            border: 'none',// Update the TradingViewChart component header to include new controls:
-            continue from here please. from over but from here :)25 Jan            borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
+                            border: 'none',            
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
                     }}
                 >
                     {refreshingChart[symbol] ? '⏳' : '🔄 Refresh'}
