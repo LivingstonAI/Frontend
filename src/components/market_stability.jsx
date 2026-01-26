@@ -14,6 +14,111 @@ const chartStyles = `
 }
 `;
 
+// Update AI overlay styles in your styles constant:
+const aiOverlayStyles = `
+.ai-overlay-container {
+    position: absolute;
+    top: 60px;
+    right: 15px;
+    background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+    padding: 20px;
+    border-radius: 16px;
+    max-width: 350px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    border: 3px solid #8b5cf6;
+    z-index: 10;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.ai-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.ai-overlay-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #6d28d9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-overlay-close {
+    background: #f3f4f6;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.ai-overlay-close:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.ai-overlay-content {
+    font-size: 13px;
+    color: #1f2937;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.ai-voice-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.ai-voice-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-voice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.ai-voice-btn.stop {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.ai-voice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+@media (max-width: 768px) {
+    .ai-overlay-container {
+        position: relative;
+        top: 0;
+        right: 0;
+        max-width: 100%;
+        margin-top: 10px;
+    }
+}
+`;
+
 const meanReversionStyles = `
 .mean-reversion-container {
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
@@ -552,6 +657,7 @@ ${monteCarloStyles}
 ${elasticityStyles}
 ${chartStyles}
 ${meanReversionStyles}
+${aiOverlayStyles}
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -2096,6 +2202,7 @@ export default function MarketStabilityScore() {
     
     // Chart AI Analysis Overlay State
     const [showAIOverlay, setShowAIOverlay] = useState({});
+    
 
 // Load TradingView CDN (add this useEffect)
 useEffect(() => {
@@ -2657,30 +2764,52 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 )}
             </div>
             </div>
-            {/* NEW: AI Analysis Overlay (in chart container) */}
+            {/* NEW: Enhanced AI Analysis Overlay with Voice */}
             {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
-            <div className="ai-overlay-container">
-            <div className="ai-overlay-header">
-            <div className="ai-overlay-title">🤖 AI Analysis</div>
-            <button
-            className="ai-overlay-close"
-            onClick={() => setShowAIOverlay(prev => ({
-            ...prev,
-            [symbol]: false
-            }))}
-            >
-            ✕
-            </button>
-            </div>
-            <div className="ai-overlay-content">
-            {assetAnalysis[symbol].analysis}
-            </div>
-            </div>
+                <div className="ai-overlay-container">
+                    <div className="ai-overlay-header">
+                        <div className="ai-overlay-title">
+                            <span>🤖</span>
+                            <span>AI Analysis</span>
+                        </div>
+                        <button 
+                            className="ai-overlay-close"
+                            onClick={() => setShowAIOverlay(prev => ({
+                                ...prev,
+                                [symbol]: false
+                            }))}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="ai-overlay-content">
+                        {assetAnalysis[symbol].analysis}
+                    </div>
+                    
+                    {/* Voice Controls */}
+                    {voiceEnabled && (
+                        <div className="ai-voice-controls">
+                            <button 
+                                className="ai-voice-btn"
+                                onClick={() => speakText(assetAnalysis[symbol].analysis)}
+                                disabled={isSpeaking}
+                            >
+                                {isSpeaking ? '🔊 Speaking...' : '🔊 Read Aloud'}
+                            </button>
+                            {isSpeaking && (
+                                <button 
+                                    className="ai-voice-btn stop"
+                                    onClick={stopSpeaking}
+                                >
+                                    ⏹️ Stop
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             )}
-            // ================================
-            // UPDATED CHART COMPONENT (Reduced Height)
-            // ================================
-            // Update the chart container div height:
+            
+
             <div 
                 ref={chartContainerRef} 
                 style={{ 
@@ -2863,6 +2992,233 @@ useEffect(() => {
         Object.values(intervals).forEach(clearInterval);
     };
 }, [autoRefreshEnabled]);
+
+    // ================================
+// NEW STATE VARIABLES - Voice & Chart Features
+// ================================
+
+// Voice Settings
+const [voiceEnabled, setVoiceEnabled] = useState(false);
+const [selectedVoice, setSelectedVoice] = useState(null);
+const [availableVoices, setAvailableVoices] = useState([]);
+const [isSpeaking, setIsSpeaking] = useState(false);
+
+// Chart Context for AI
+const [useChartContext, setUseChartContext] = useState(false);
+const [currentChartSymbol, setCurrentChartSymbol] = useState(null);
+
+// Load voices on mount
+useEffect(() => {
+    const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        setAvailableVoices(voices);
+        
+        // Load saved voice from localStorage
+        const savedVoiceName = localStorage.getItem('preferred_voice');
+        if (savedVoiceName && voices.length > 0) {
+            const voice = voices.find(v => v.name === savedVoiceName);
+            if (voice) setSelectedVoice(voice);
+        }
+    };
+    
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}, []);
+
+
+// ================================
+// VOICE FUNCTIONS
+// ================================
+
+const speakText = (text) => {
+    if (!voiceEnabled || !text) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+    }
+    
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+};
+
+const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+};
+
+const handleVoiceChange = (voiceName) => {
+    const voice = availableVoices.find(v => v.name === voiceName);
+    setSelectedVoice(voice);
+    
+    // Save to localStorage
+    localStorage.setItem('preferred_voice', voiceName);
+};
+
+
+// ================================
+// CHART CONTEXT FOR AI
+// ================================
+
+const fetchChartContextForAI = async (symbol) => {
+    try {
+        const timeframe = chartTimeframes[symbol] || '1h';
+        
+        const response = await fetch(`${baseUrl}/api/mss-generate-chart-context-for-ai-v2/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol: symbol,
+                timeframe: timeframe,
+                lookback_days: 60
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.chart_context;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching chart context:', error);
+        return null;
+    }
+};
+    const openFullscreenChart = (symbol) => {
+setFullscreenChart(symbol);
+setCurrentChartSymbol(symbol); // Enable chart context for this symbol
+};
+
+
+// ================================
+// UPDATED CHAT SEND WITH CHART CONTEXT
+// ================================
+
+const handleChatSend = async () => {
+    if ((!chatInput.trim() && !chatImage) || chatLoading) return;
+
+    const userMessage = chatInput.trim();
+    const imageToSend = chatImage;
+    
+    setChatInput('');
+    setChatImage(null);
+    
+    const messageContent = userMessage || "Please analyze this image";
+    setChatMessages(prev => [...prev, { 
+        role: 'user', 
+        content: messageContent,
+        image: imageToSend 
+    }]);
+    
+    setChatLoading(true);
+
+    try {
+        // Prepare MSS data context
+        const mssContext = mssData.length > 0 
+            ? `Current Market Data Analysis:
+${mssData.slice(0, 10).map(asset => 
+    `- ${asset.symbol}: MSS ${asset.mss}, Trend: ${asset.trend || 'unknown'}, Price: $${asset.current_price}, Change: ${asset.price_change}%${asset.sector ? `, Sector: ${asset.sector}` : ''}`
+).join('\n')}`
+            : 'No market data currently loaded.';
+
+        // Get chart context if enabled
+        let chartContextText = '';
+        if (useChartContext && currentChartSymbol) {
+            const chartContext = await fetchChartContextForAI(currentChartSymbol);
+            if (chartContext) {
+                chartContextText = `\n\nCURRENT CHART ANALYSIS:\n${chartContext}`;
+            }
+        }
+
+        const messages = [
+            {
+                role: 'system',
+                content: `You are Simons, a professional yet friendly trading and investing assistant named after legendary investor Jim Simons. Your purpose is to help traders analyze markets, understand trends, and make informed decisions.
+
+${mssContext}${chartContextText}
+
+You have access to real-time Market Stability Score (MSS) data, which evaluates assets based on volatility, trend clarity, and liquidity. Higher MSS scores indicate better trading conditions.
+
+${useChartContext && currentChartSymbol ? `You also have access to detailed chart analysis for ${currentChartSymbol}, including technical indicators, support/resistance levels, and price action patterns.` : ''}
+
+Be concise, actionable, and insightful. Focus on practical trading advice while maintaining a professional but approachable tone.`
+            },
+            ...chatMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }))
+        ];
+
+        // Add image if present
+        if (imageToSend) {
+            messages.push({
+                role: 'user',
+                content: [
+                    { type: 'text', text: userMessage || 'Please analyze this chart/image' },
+                    { 
+                        type: 'image_url', 
+                        image_url: { url: imageToSend }
+                    }
+                ]
+            });
+        } else {
+            messages.push({
+                role: 'user',
+                content: userMessage
+            });
+        }
+
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        const aiData = await aiResponse.json();
+        const response = aiData.choices[0].message.content;
+
+        setChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: response
+        }]);
+        
+        // Speak response if voice enabled
+        if (voiceEnabled) {
+            speakText(response);
+        }
+
+    } catch (error) {
+        console.error('Error in chat:', error);
+        setChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Sorry, I encountered an error. Please try again.'
+        }]);
+    } finally {
+        setChatLoading(false);
+    }
+};
 
     
     // Function to estimate price target
@@ -5647,145 +6003,181 @@ return (
                             )}
 
                                 {showSectorPeersChart[asset.symbol] && sectorPeersData[asset.symbol] && (
-                                    <div className="sector-peers-chart-container">
-                                        <div className="sector-peers-header">
-                                            <div className="sector-peers-title">
-                                                📊 {asset.symbol} vs {sectorPeersData[asset.symbol].sector} Sector
-                                            </div>
-                                            <button
-                                                onClick={() => setShowSectorPeersChart(prev => ({
-                                                    ...prev,
-                                                    [asset.symbol]: false
-                                                }))}
-                                                style={{
-                                                    background: '#ef4444',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '6px',
-                                                    padding: '6px 12px',
-                                                    fontSize: '12px',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                ✕ Close
-                                            </button>
+                                <div className="sector-peers-chart-container">
+                                    <div className="sector-peers-header">
+                                        <div className="sector-peers-title">
+                                            📊 {asset.symbol} vs {sectorPeersData[asset.symbol].sector} Sector
                                         </div>
-                                        
-                                        {/* Performance Summary */}
-                                        <div style={{
-                                            background: 'white',
-                                            padding: '15px',
-                                            borderRadius: '10px',
-                                            marginBottom: '15px'
-                                        }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                                                        {asset.symbol} Return
-                                                    </div>
-                                                    <div style={{ 
-                                                        fontSize: '18px', 
-                                                        fontWeight: 700,
-                                                        color: sectorPeersData[asset.symbol].target_stock_return >= 0 ? '#10b981' : '#ef4444'
-                                                    }}>
-                                                        {sectorPeersData[asset.symbol].target_stock_return >= 0 ? '+' : ''}
-                                                        {sectorPeersData[asset.symbol].target_stock_return}%
-                                                    </div>
+                                        <button
+                                            onClick={() => setShowSectorPeersChart(prev => ({
+                                                ...prev,
+                                                [asset.symbol]: false
+                                            }))}
+                                            style={{
+                                                background: '#ef4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '6px 12px',
+                                                fontSize: '12px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ✕ Close
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Performance Summary */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '15px',
+                                        borderRadius: '10px',
+                                        marginBottom: '15px'
+                                    }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    {asset.symbol} Return
                                                 </div>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                                                        Sector Avg
-                                                    </div>
-                                                    <div style={{ 
-                                                        fontSize: '18px', 
-                                                        fontWeight: 700,
-                                                        color: sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '#10b981' : '#ef4444'
-                                                    }}>
-                                                        {sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '+' : ''}
-                                                        {sectorPeersData[asset.symbol].sector_avg_return}%
-                                                    </div>
-                                                </div>
-                                                <div style={{ textAlign: 'center' }}>
-                                                    <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                                                        Outperformance
-                                                    </div>
-                                                    <div style={{ 
-                                                        fontSize: '18px', 
-                                                        fontWeight: 700,
-                                                        color: sectorPeersData[asset.symbol].outperformance >= 0 ? '#10b981' : '#ef4444'
-                                                    }}>
-                                                        {sectorPeersData[asset.symbol].outperformance >= 0 ? '+' : ''}
-                                                        {sectorPeersData[asset.symbol].outperformance}%
-                                                    </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].target_stock_return >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].target_stock_return >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].target_stock_return}%
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        {/* Normalized Chart */}
-                                        <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '320px' }}>
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart margin={{ top: 10, right: 15, left: 5, bottom: 10 }}>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                    <XAxis 
-                                                        dataKey="date" 
-                                                        stroke="#6b7280"
-                                                        style={{ fontSize: '10px' }}
-                                                        tick={{ fontSize: 10 }}
-                                                    />
-                                                    <YAxis 
-                                                        stroke="#6b7280"
-                                                        style={{ fontSize: '10px' }}
-                                                        tick={{ fontSize: 10 }}
-                                                        label={{ value: 'Normalized (Start = 100)', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
-                                                    />
-                                                    <Tooltip 
-                                                        contentStyle={{ 
-                                                            background: 'white', 
-                                                            border: '2px solid #4f46e5',
-                                                            borderRadius: '8px',
-                                                            fontSize: '11px'
-                                                        }}
-                                                    />
-                                                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                                                    
-                                                    {/* Sector Index Line */}
-                                                    <Line 
-                                                        data={sectorPeersData[asset.symbol].sector_index}
-                                                        type="monotone" 
-                                                        dataKey="index_value" 
-                                                        stroke="#6b7280" 
-                                                        strokeWidth={3}
-                                                        strokeDasharray="5 5"
-                                                        name={`${sectorPeersData[asset.symbol].sector} Index`}
-                                                        dot={false}
-                                                    />
-                                                    
-                                                    {/* Target Stock Line */}
-                                                    <Line 
-                                                        data={sectorPeersData[asset.symbol].target_normalized}
-                                                        type="monotone" 
-                                                        dataKey="value" 
-                                                        stroke="#4f46e5" 
-                                                        strokeWidth={3}
-                                                        name={asset.symbol}
-                                                        dot={false}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                        
-                                        {/* Peers Summary */}
-                                        <div style={{
-                                            marginTop: '15px',
-                                            fontSize: '12px',
-                                            color: '#6b7280',
-                                            textAlign: 'center'
-                                        }}>
-                                            Compared against {sectorPeersData[asset.symbol].peers_analyzed} sector peers
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    Sector Avg
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].sector_avg_return}%
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    Outperformance
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].outperformance >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].outperformance >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].outperformance}%
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
+                                    
+                                    {/* FIXED: Normalized Chart with Combined Data */}
+                                    <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '320px' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart 
+                                                data={(() => {
+                                                    // Combine both datasets into one array with all dates
+                                                    const combinedData = [];
+                                                    const dateMap = new Map();
+                                                    
+                                                    // Add sector index data
+                                                    sectorPeersData[asset.symbol].sector_index.forEach(point => {
+                                                        dateMap.set(point.date, {
+                                                            date: point.date,
+                                                            sectorIndex: point.index_value,
+                                                            stock: null
+                                                        });
+                                                    });
+                                                    
+                                                    // Add target stock data
+                                                    sectorPeersData[asset.symbol].target_normalized.forEach(point => {
+                                                        if (dateMap.has(point.date)) {
+                                                            dateMap.get(point.date).stock = point.value;
+                                                        } else {
+                                                            dateMap.set(point.date, {
+                                                                date: point.date,
+                                                                sectorIndex: null,
+                                                                stock: point.value
+                                                            });
+                                                        }
+                                                    });
+                                                    
+                                                    // Convert to array and sort
+                                                    return Array.from(dateMap.values()).sort((a, b) => 
+                                                        new Date(a.date) - new Date(b.date)
+                                                    );
+                                                })()}
+                                                margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '10px' }}
+                                                    tick={{ fontSize: 10 }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '10px' }}
+                                                    tick={{ fontSize: 10 }}
+                                                    domain={['auto', 'auto']}
+                                                    label={{ value: 'Normalized (Start = 100)', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        background: 'white', 
+                                                        border: '2px solid #4f46e5',
+                                                        borderRadius: '8px',
+                                                        fontSize: '11px'
+                                                    }}
+                                                />
+                                                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                                
+                                                {/* Sector Index Line */}
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="sectorIndex" 
+                                                    stroke="#6b7280" 
+                                                    strokeWidth={3}
+                                                    strokeDasharray="5 5"
+                                                    name={`${sectorPeersData[asset.symbol].sector} Index`}
+                                                    dot={false}
+                                                    connectNulls={true}
+                                                />
+                                                
+                                                {/* Target Stock Line */}
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="stock" 
+                                                    stroke="#4f46e5" 
+                                                    strokeWidth={3}
+                                                    name={asset.symbol}
+                                                    dot={false}
+                                                    connectNulls={true}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    
+                                    {/* Peers Summary */}
+                                    <div style={{
+                                        marginTop: '15px',
+                                        fontSize: '12px',
+                                        color: '#6b7280',
+                                        textAlign: 'center'
+                                    }}>
+                                        Compared against {sectorPeersData[asset.symbol].peers_analyzed} sector peers
+                                    </div>
+                                </div>
+                            )}
 
+                                
 
                                 {monteCarloResults[asset.symbol] && (
                                     <div className="monte-carlo-results">
@@ -6115,12 +6507,147 @@ return (
                     className="ai-chatbot-close" 
                     onClick={() => {
                         setShowChatbot(false);
-                        setShowOrb(true); // Show orb when closing chat
+                        setShowOrb(true);
+                        stopSpeaking(); // Stop any ongoing speech
                     }}
                 >
                     ✕
                 </button>
             </div>
+
+            {/* NEW: Voice & Chart Settings */}
+                <div style={{
+                    background: '#f3f4f6',
+                    padding: '12px 20px',
+                    borderBottom: '2px solid #e5e7eb',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                }}>
+                    {/* Voice Enable Toggle */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <label style={{
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: '#1f2937',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer'
+                        }}>
+                            <input
+                                type="checkbox"
+                                checked={voiceEnabled}
+                                onChange={(e) => setVoiceEnabled(e.target.checked)}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                            <span>🔊 Voice Reader</span>
+                        </label>
+                        
+                        {isSpeaking && (
+                            <button
+                                onClick={stopSpeaking}
+                                style={{
+                                    padding: '4px 12px',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                }}
+                            > 
+                                22:53⏹️ Stop </button>
+                )}
+                </div>
+                    {voiceEnabled && (
+                    <div>
+                        <label style={{
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            marginBottom: '4px',
+                            display: 'block'
+                        }}>
+                            Select Voice:
+                        </label>
+                        <select
+                            value={selectedVoice?.name || ''}
+                            onChange={(e) => handleVoiceChange(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '2px solid #e5e7eb',
+                                fontSize: '12px',
+                                background: 'white'
+                            }}
+                        >
+                            <option value="">Default Voice</option>
+                            {availableVoices.map((voice, idx) => (
+                                <option key={idx} value={voice.name}>
+                                    {voice.name} ({voice.lang})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                
+                {/* Chart Context Toggle */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '8px',
+                    paddingTop: '10px',
+                    borderTop: '1px solid #e5e7eb'
+                }}>
+                    <label style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: '#1f2937',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer'
+                    }}>
+                        <input
+                            type="checkbox"
+                            checked={useChartContext}
+                            onChange={(e) => setUseChartContext(e.target.checked)}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        <span>📊 Use Trading Chart</span>
+                    </label>
+                    
+                    {useChartContext && currentChartSymbol && (
+                        <div style={{
+                            fontSize: '11px',
+                            color: '#059669',
+                            fontWeight: 600,
+                            background: '#d1fae5',
+                            padding: '4px 8px',
+                            borderRadius: '6px'
+                        }}>
+                            {currentChartSymbol}
+                        </div>
+                    )}
+                </div>
+                
+                {useChartContext && !currentChartSymbol && (
+                    <div style={{
+                        fontSize: '11px',
+                        color: '#f59e0b',
+                        fontStyle: 'italic'
+                    }}>
+                        ⚠️ View a chart first to enable this feature
+                    </div>
+                )}
+                </div>
             
             <div className="ai-chatbot-messages">
                 {chatMessages.length === 0 && (
