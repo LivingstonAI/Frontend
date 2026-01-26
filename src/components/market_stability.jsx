@@ -177,249 +177,6 @@ const elasticityStyles = `
 }
 `;
 
-const meanReversionStyles = `
-.mean-reversion-container {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    padding: 20px;
-    border-radius: 12px;
-    margin-top: 15px;
-    border: 2px solid #3b82f6;
-}
-
-.mean-reversion-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.mean-reversion-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 18px;
-}
-
-.mean-reversion-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1e40af;
-}
-
-.regime-badge {
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    margin: 10px 0;
-    text-align: center;
-}
-
-.mr-score-container {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    margin: 15px 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.mr-score-label {
-    font-size: 13px;
-    color: #6b7280;
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-.mr-score-value {
-    font-size: 48px;
-    font-weight: 700;
-    margin: 10px 0;
-}
-
-.mr-signals-list {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    margin: 15px 0;
-}
-
-.mr-signal-item {
-    padding: 8px 0;
-    border-bottom: 1px solid #e5e7eb;
-    font-size: 13px;
-    color: #1f2937;
-}
-
-.mr-signal-item:last-child {
-    border-bottom: none;
-}
-
-.mr-targets-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin: 15px 0;
-}
-
-.mr-target-card {
-    background: white;
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    border: 2px solid #dbeafe;
-}
-
-.mr-target-label {
-    font-size: 11px;
-    color: #6b7280;
-    margin-bottom: 6px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.mr-target-value {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1e40af;
-}
-
-.sector-peers-chart-container {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 12px;
-    margin-top: 15px;
-    border: 2px solid #6366f1;
-}
-
-.sector-peers-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.sector-peers-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #4f46e5;
-}
-
-.chart-controls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-}
-
-.chart-control-btn {
-    padding: 6px 12px;
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #1f2937;
-}
-
-.chart-control-btn:hover {
-    border-color: #4f46e5;
-    background: #eff6ff;
-}
-
-.chart-control-btn.active {
-    background: #4f46e5;
-    color: white;
-    border-color: #4f46e5;
-}
-
-.ai-overlay-container {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px;
-    border-radius: 12px;
-    max-width: 300px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border: 2px solid #8b5cf6;
-    z-index: 10;
-}
-
-.ai-overlay-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.ai-overlay-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: #6d28d9;
-}
-
-.ai-overlay-close {
-    background: none;
-    border: none;
-    color: #6b7280;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-}
-
-.ai-overlay-content {
-    font-size: 12px;
-    color: #1f2937;
-    line-height: 1.6;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-    .mean-reversion-container {
-        padding: 15px;
-    }
-    
-    .mr-targets-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .sector-peers-chart-container {
-        padding: 15px;
-    }
-    
-    .chart-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .chart-control-btn {
-        width: 100%;
-    }
-    
-    .ai-overlay-container {
-        position: relative;
-        top: 0;
-        right: 0;
-        max-width: 100%;
-        margin-top: 10px;
-    }
-}
-`;
-
 const monteCarloStyles = `
 
 .monte-carlo-btn {
@@ -551,8 +308,6 @@ const styles = `
 ${monteCarloStyles}
 ${elasticityStyles}
 ${chartStyles}
-${meanReversionStyles}
-
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -2009,24 +1764,6 @@ grid-template-columns: 1fr;
 .sector-chart-container {
 padding: 15px;
 }
-.comparison-chart {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    height: 500px; /* Increased from 320px */
-    overflow: hidden;
-}
-
-.sector-chart-container {
-    background: #f8fafc;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-.sector-chart-container > div {
-    width: 100%;
-    height: 400px !important; /* Increased from 280px */
-}
 
 
 
@@ -2098,108 +1835,6 @@ export default function MarketStabilityScore() {
         // Add these new states
     const [chartTimeframes, setChartTimeframes] = useState({}); // Track timeframe per symbol
     const [fullscreenChart, setFullscreenChart] = useState(null); // Which chart is fullscreen
-    // Mean Reversion Analysis States
-    const [meanReversionData, setMeanReversionData] = useState({});
-    const [loadingMeanReversion, setLoadingMeanReversion] = useState({});
-    const [loadingAllMeanReversion, setLoadingAllMeanReversion] = useState(false);
-    
-    // Sector Peers Comparison States
-    const [sectorPeersData, setSectorPeersData] = useState({});
-    const [loadingSectorPeers, setLoadingSectorPeers] = useState({});
-    const [showSectorPeersChart, setShowSectorPeersChart] = useState({});
-    
-    // Chart Auto-Refresh States
-    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState({});
-    const [refreshingChart, setRefreshingChart] = useState({});
-    
-    // Chart AI Analysis Overlay State
-    const [showAIOverlay, setShowAIOverlay] = useState({});
-
-    // Add these with your other states
-    const [voiceSettings, setVoiceSettings] = useState({
-        enabled: false,
-        voice: null,
-        rate: 1.0,
-        pitch: 1.0
-    });
-    const [availableVoices, setAvailableVoices] = useState([]);
-    const [isReading, setIsReading] = useState({});
-
-    // Add with your other chatbot states
-    const [useChartContext, setUseChartContext] = useState(false);
-    const [chartContextSymbol, setChartContextSymbol] = useState(null);
-
-    // Load available voices
-useEffect(() => {
-    const loadVoices = () => {
-        const voices = window.speechSynthesis.getVoices();
-        setAvailableVoices(voices);
-        
-        // Load saved voice settings from localStorage
-        const savedSettings = localStorage.getItem('aiVoiceSettings');
-        if (savedSettings) {
-            const parsed = JSON.parse(savedSettings);
-            setVoiceSettings(prev => ({
-                ...prev,
-                ...parsed,
-                voice: voices.find(v => v.name === parsed.voiceName) || voices[0]
-            }));
-        } else if (voices.length > 0) {
-            setVoiceSettings(prev => ({
-                ...prev,
-                voice: voices[0]
-            }));
-        }
-    };
-    
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-}, []);
-
-    // Voice reading function
-const readText = (text, symbol) => {
-    if (!voiceSettings.enabled || !voiceSettings.voice) return;
-    
-    // Stop any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = voiceSettings.voice;
-    utterance.rate = voiceSettings.rate;
-    utterance.pitch = voiceSettings.pitch;
-    
-    utterance.onstart = () => {
-        setIsReading(prev => ({ ...prev, [symbol]: true }));
-    };
-    
-    utterance.onend = () => {
-        setIsReading(prev => ({ ...prev, [symbol]: false }));
-    };
-    
-    utterance.onerror = () => {
-        setIsReading(prev => ({ ...prev, [symbol]: false }));
-    };
-    
-    window.speechSynthesis.speak(utterance);
-};
-
-// Stop reading function
-const stopReading = (symbol) => {
-    window.speechSynthesis.cancel();
-    setIsReading(prev => ({ ...prev, [symbol]: false }));
-};
-
-// Save voice settings
-const saveVoiceSettings = (newSettings) => {
-    const settingsToSave = {
-        enabled: newSettings.enabled,
-        voiceName: newSettings.voice?.name,
-        rate: newSettings.rate,
-        pitch: newSettings.pitch
-    };
-    localStorage.setItem('aiVoiceSettings', JSON.stringify(settingsToSave));
-    setVoiceSettings(newSettings);
-};
 
 // Load TradingView CDN (add this useEffect)
 useEffect(() => {
@@ -2414,27 +2049,11 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
     const currentTimeframe = chartTimeframes[symbol] || '1h';
     
     useEffect(() => {
-        if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) {
-            console.log('Chart conditions not met:', {
-                hasData: !!data,
-                dataLength: data?.length,
-                hasContainer: !!chartContainerRef.current,
-                hasLightweightCharts: !!window.LightweightCharts
-            });
-            return;
-        }
-        
-        // Clear previous chart
-        if (chartRef.current) {
-            chartRef.current.remove();
-            chartRef.current = null;
-        }
+        if (!data || data.length === 0 || !chartContainerRef.current || !window.LightweightCharts) return;
         
         // Create chart with responsive width
         const containerWidth = chartContainerRef.current.clientWidth;
         const chartHeight = isFullscreen ? Math.min(window.innerHeight - 200, 800) : 300;
-        
-        console.log('Creating chart:', { symbol, dataPoints: data.length, width: containerWidth, height: chartHeight });
         
         const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
             width: containerWidth,
@@ -2470,82 +2089,106 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
             wickDownColor: '#ef4444',
         });
         
-        // Set data
         candlestickSeries.setData(data);
         
         // Add overlays ONLY in fullscreen mode
         if (isFullscreen) {
-            // Entry Points Overlay
+            const currentPrice = data[data.length - 1]?.close || 0;
+            
+            // 1. Entry Points Overlay
             if (retracementData[symbol]?.entry_zones) {
                 const zones = retracementData[symbol].entry_zones;
                 
+                // Aggressive entry line (green)
                 const aggressiveLine = chart.addLineSeries({
                     color: '#10b981',
                     lineWidth: 2,
-                    lineStyle: 2,
+                    lineStyle: 2, // Dashed
                     priceLineVisible: false,
                 });
-                aggressiveLine.setData(data.map(d => ({ time: d.time, value: zones.aggressive_entry })));
+                const aggressiveData = data.map(d => ({ time: d.time, value: zones.aggressive_entry }));
+                aggressiveLine.setData(aggressiveData);
                 
+                // Optimal entry line (yellow)
                 const optimalLine = chart.addLineSeries({
                     color: '#fbbf24',
                     lineWidth: 3,
-                    lineStyle: 0,
+                    lineStyle: 0, // Solid
                     priceLineVisible: false,
                 });
-                optimalLine.setData(data.map(d => ({ time: d.time, value: zones.optimal_entry })));
+                const optimalData = data.map(d => ({ time: d.time, value: zones.optimal_entry }));
+                optimalLine.setData(optimalData);
                 
+                // Conservative entry line (blue)
                 const conservativeLine = chart.addLineSeries({
                     color: '#3b82f6',
                     lineWidth: 2,
-                    lineStyle: 2,
+                    lineStyle: 2, // Dashed
                     priceLineVisible: false,
                 });
-                conservativeLine.setData(data.map(d => ({ time: d.time, value: zones.conservative_entry })));
+                const conservativeData = data.map(d => ({ time: d.time, value: zones.conservative_entry }));
+                conservativeLine.setData(conservativeData);
                 
+                // Invalidation level (red)
                 const invalidationLine = chart.addLineSeries({
                     color: '#ef4444',
                     lineWidth: 2,
-                    lineStyle: 3,
+                    lineStyle: 3, // Dotted
                     priceLineVisible: false,
                 });
-                invalidationLine.setData(data.map(d => ({ time: d.time, value: zones.invalidation_level })));
+                const invalidationData = data.map(d => ({ time: d.time, value: zones.invalidation_level }));
+                invalidationLine.setData(invalidationData);
             }
             
-            // Elasticity Bands Overlay
+            // 2. FIXED Trend Elasticity Bands Overlay
             if (elasticityData[symbol]) {
+                const elasticity = elasticityData[symbol].overall_elasticity;
+                
+                // Calculate realistic band width based on elasticity and recent volatility
+                // Get last 20 candles for volatility calculation
                 const recentData = data.slice(-20);
                 const highLowRanges = recentData.map(d => d.high - d.low);
                 const avgRange = highLowRanges.reduce((a, b) => a + b, 0) / highLowRanges.length;
-                const bandMultiplier = (1 - elasticityData[symbol].overall_elasticity) * 2;
-                const bandWidth = avgRange * Math.max(0.5, bandMultiplier);
                 
+                // Band width: lower elasticity = wider bands, but keep it reasonable
+                // Use average range as base, scaled by elasticity
+                const bandMultiplier = (1 - elasticity) * 2; // Max 2x the average range
+                const bandWidth = avgRange * Math.max(0.5, bandMultiplier); // Minimum 0.5x range
+                
+                // Upper band (resistance for pullbacks)
                 const upperBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
                     priceLineVisible: false,
                 });
-                upperBand.setData(data.map(d => ({ time: d.time, value: d.close + bandWidth })));
+                const upperData = data.map(d => ({ time: d.time, value: d.close + bandWidth }));
+                upperBand.setData(upperData);
                 
+                // Lower band (support for pullbacks)
                 const lowerBand = chart.addLineSeries({
                     color: '#ec4899',
                     lineWidth: 2,
                     lineStyle: 2,
                     priceLineVisible: false,
                 });
-                lowerBand.setData(data.map(d => ({ time: d.time, value: d.close - bandWidth })));
+                const lowerData = data.map(d => ({ time: d.time, value: d.close - bandWidth }));
+                lowerBand.setData(lowerData);
             }
             
-            // Price Target Overlay
+            // 3. Price Target Overlay
             if (priceTargetData[symbol]?.target_price) {
                 const targetLine = chart.addLineSeries({
                     color: '#8b5cf6',
                     lineWidth: 3,
-                    lineStyle: 1,
+                    lineStyle: 1, // Dashed
                     priceLineVisible: false,
                 });
-                targetLine.setData(data.map(d => ({ time: d.time, value: priceTargetData[symbol].target_price })));
+                const targetData = data.map(d => ({ 
+                    time: d.time, 
+                    value: priceTargetData[symbol].target_price 
+                }));
+                targetLine.setData(targetData);
             }
         }
         
@@ -2572,12 +2215,12 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
             window.removeEventListener('resize', handleResize);
             if (chartRef.current) {
                 chartRef.current.remove();
-                chartRef.current = null;
             }
         };
-    }, [data, symbol, isFullscreen, retracementData, elasticityData, priceTargetData]);
+    }, [data, isFullscreen, retracementData, elasticityData, priceTargetData]);
     
-    const sentiment = (() => {
+    // Helper function to extract sentiment from AI analysis
+    const getSentiment = () => {
         if (!assetAnalysis[symbol] || assetAnalysis[symbol].noData || assetAnalysis[symbol].error) {
             return null;
         }
@@ -2594,11 +2237,13 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
         }
         
         return null;
-    })();
+    };
+    
+    const sentiment = getSentiment();
     
     return (
         <div style={{ width: '100%', position: 'relative', maxWidth: '100%', overflow: 'hidden' }}>
-            {/* Header */}
+            {/* Header with timeframe selector */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -2624,6 +2269,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                         {symbol} - {currentTimeframe.toUpperCase()}
                     </div>
                     
+                    {/* Sentiment Badge (only in fullscreen if AI analysis exists) */}
                     {isFullscreen && sentiment && (
                         <div style={{
                             padding: '4px 12px',
@@ -2637,29 +2283,9 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                             {sentiment.label}
                         </div>
                     )}
-                    
-                    {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
-                        <button
-                            onClick={() => setShowAIOverlay(prev => ({
-                                ...prev,
-                                [symbol]: !prev[symbol]
-                            }))}
-                            style={{
-                                padding: '6px 12px',
-                                background: showAIOverlay[symbol] ? '#8b5cf6' : '#374151',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {showAIOverlay[symbol] ? '👁️ Hide AI' : '🤖 Show AI'}
-                        </button>
-                    )}
                 </div>
                 
+                {/* Timeframe Selector */}
                 <div style={{
                     display: 'flex',
                     gap: '6px',
@@ -2688,41 +2314,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                         </button>
                     ))}
                     
-                    <button
-                        onClick={() => refreshChartData(symbol)}
-                        disabled={refreshingChart[symbol]}
-                        style={{
-                            padding: '6px 12px',
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                        }}
-                    >
-                        {refreshingChart[symbol] ? '⏳' : '🔄 Refresh'}
-                    </button>
-                    
-                    <button
-                        onClick={() => toggleAutoRefresh(symbol)}
-                        style={{
-                            padding: '6px 12px',
-                            background: autoRefreshEnabled[symbol] ? '#f59e0b' : '#374151',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                        }}
-                    >
-                        {autoRefreshEnabled[symbol] ? '⏸️ Auto' : '▶️ Auto'}
-                    </button>
-                    
+                    {/* Fullscreen Button */}
                     {!isFullscreen && (
                         <button
                             onClick={() => setFullscreenChart(symbol)}
@@ -2744,328 +2336,21 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                 </div>
             </div>
             
-            {/* Enhanced AI Overlay with Voice */}
-            {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
-                <div className="ai-overlay-container" style={{
-                    maxWidth: '400px',
-                    maxHeight: '500px'
-                }}>
-                    <div className="ai-overlay-header">
-                        <div className="ai-overlay-title">🤖 AI Analysis</div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            {/* Voice Control Button */}
-                            {voiceSettings.enabled && (
-                                <button
-                                    onClick={() => {
-                                        if (isReading[symbol]) {
-                                            stopReading(symbol);
-                                        } else {
-                                            readText(assetAnalysis[symbol].analysis, symbol);
-                                        }
-                                    }}
-                                    style={{
-                                        background: isReading[symbol] ? '#ef4444' : '#10b981',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '4px 8px',
-                                        cursor: 'pointer',
-                                        fontSize: '12px'
-                                    }}
-                                >
-                                    {isReading[symbol] ? '⏸️ Stop' : '🔊 Read'}
-                                </button>
-                            )}
-                            
-                            <button
-                                className="ai-overlay-close"
-                                onClick={() => {
-                                    stopReading(symbol);
-                                    setShowAIOverlay(prev => ({
-                                        ...prev,
-                                        [symbol]: false
-                                    }));
-                                }}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                    
-                    {/* Voice Settings Panel */}
-                    {voiceSettings.enabled && (
-                        <div style={{
-                            background: '#f9fafb',
-                            padding: '10px',
-                            borderRadius: '8px',
-                            marginBottom: '10px',
-                            fontSize: '11px'
-                        }}>
-                            <div style={{ marginBottom: '8px' }}>
-                                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
-                                    Voice:
-                                </label>
-                                <select
-                                    value={voiceSettings.voice?.name || ''}
-                                    onChange={(e) => {
-                                        const newVoice = availableVoices.find(v => v.name === e.target.value);
-                                        saveVoiceSettings({ ...voiceSettings, voice: newVoice });
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '4px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #d1d5db'
-                                    }}
-                                >
-                                    {availableVoices.map(voice => (
-                                        <option key={voice.name} value={voice.name}>
-                                            {voice.name} ({voice.lang})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
-                                        Speed: {voiceSettings.rate}x
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0.5"
-                                        max="2"
-                                        step="0.1"
-                                        value={voiceSettings.rate}
-                                        onChange={(e) => saveVoiceSettings({ 
-                                            ...voiceSettings, 
-                                            rate: parseFloat(e.target.value) 
-                                        })}
-                                        style={{ width: '100%' }}
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
-                                        Pitch: {voiceSettings.pitch}x
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0.5"
-                                        max="2"
-                                        step="0.1"
-                                        value={voiceSettings.pitch}
-                                        onChange={(e) => saveVoiceSettings({ 
-                                            ...voiceSettings, 
-                                            pitch: parseFloat(e.target.value) 
-                                        })}
-                                        style={{ width: '100%' }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div className="ai-overlay-content">
-                        {assetAnalysis[symbol].analysis}
-                    </div>
-                </div>
-            )}
-            
-            {/* THE ACTUAL CHART CONTAINER */}
+            {/* Chart - FIXED for mobile responsiveness */}
             <div 
                 ref={chartContainerRef} 
                 style={{ 
-                    width: '100%', 
-                    height: isFullscreen ? Math.min(window.innerHeight - 200, 800) : 300,
+                    width: '100%',
+                    maxWidth: '100%', // Prevent overflow
+                    height: isFullscreen ? `${Math.min(window.innerHeight - 200, 800)}px` : '300px',
                     background: '#1a1a1a',
-                    borderRadius: '0 0 8px 8px'
+                    borderRadius: '0 0 8px 8px',
+                    overflow: 'hidden' // Prevent chart from pushing screen
                 }} 
             />
         </div>
     );
 };
-    // Single asset mean reversion analysis
-const analyzeMeanReversion = async (symbol) => {
-    setLoadingMeanReversion(prev => ({ ...prev, [symbol]: true }));
-    
-    try {
-        const response = await fetch(`${baseUrl}/api/mss-mean-reversion-regime-detector-v2/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                symbols: [symbol],
-                lookback_days: 100
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success && data.data.length > 0) {
-            setMeanReversionData(prev => ({
-                ...prev,
-                [symbol]: data.data[0]
-            }));
-        } else {
-            alert(`Error: ${data.error || 'No data available'}`);
-        }
-    } catch (error) {
-        console.error('Error analyzing mean reversion:', error);
-        alert('Failed to analyze mean reversion');
-    } finally {
-        setLoadingMeanReversion(prev => ({ ...prev, [symbol]: false }));
-    }
-};
-
-// Bulk mean reversion analysis for all assets
-const analyzeAllMeanReversion = async () => {
-    setLoadingAllMeanReversion(true);
-    
-    try {
-        const symbols = filteredData.map(asset => asset.symbol);
-        
-        const response = await fetch(`${baseUrl}/api/mss-mean-reversion-regime-detector-v2/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                symbols: symbols,
-                lookback_days: 100
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            const mrMap = {};
-            data.data.forEach(item => {
-                mrMap[item.symbol] = item;
-            });
-            setMeanReversionData(mrMap);
-            alert(`✅ Analyzed ${data.data.length} assets for mean reversion!`);
-        } else {
-            alert(`Error: ${data.error}`);
-        }
-    } catch (error) {
-        console.error('Error analyzing all mean reversion:', error);
-        alert('Failed to analyze mean reversion');
-    } finally {
-        setLoadingAllMeanReversion(false);
-    }
-};
-
-
-// ================================
-// SECTOR PEERS COMPARISON FUNCTIONS
-// ================================
-
-const fetchSectorPeersIndex = async (symbol) => {
-    setLoadingSectorPeers(prev => ({ ...prev, [symbol]: true }));
-    
-    try {
-        const response = await fetch(`${baseUrl}/api/mss-sector-peers-normalized-index-v2/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                symbol: symbol,
-                lookback_days: 60
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            setSectorPeersData(prev => ({
-                ...prev,
-                [symbol]: data
-            }));
-            setShowSectorPeersChart(prev => ({
-                ...prev,
-                [symbol]: true
-            }));
-        } else {
-            alert(`Error: ${data.error}`);
-        }
-    } catch (error) {
-        console.error('Error fetching sector peers:', error);
-        alert('Failed to fetch sector peers data');
-    } finally {
-        setLoadingSectorPeers(prev => ({ ...prev, [symbol]: false }));
-    }
-};
-
-
-// ================================
-// CHART REFRESH FUNCTIONS
-// ================================
-
-// Manual refresh for a single chart
-const refreshChartData = async (symbol) => {
-    setRefreshingChart(prev => ({ ...prev, [symbol]: true }));
-    
-    try {
-        const timeframe = chartTimeframes[symbol] || '1h';
-        await fetchChartData(symbol, timeframe);
-    } catch (error) {
-        console.error('Error refreshing chart:', error);
-    } finally {
-        setRefreshingChart(prev => ({ ...prev, [symbol]: false }));
-    }
-};
-
-// Toggle auto-refresh (every 60 seconds)
-const toggleAutoRefresh = (symbol) => {
-    const newState = !autoRefreshEnabled[symbol];
-    setAutoRefreshEnabled(prev => ({
-        ...prev,
-        [symbol]: newState
-    }));
-    
-    if (newState) {
-        // Auto-refresh every 60 seconds
-        alert(`✅ Auto-refresh enabled for ${symbol} (every 60s)`);
-    } else {
-        alert(`⏸️ Auto-refresh disabled for ${symbol}`);
-    }
-};
-
-// Auto-refresh effect
-useEffect(() => {
-    const intervals = {};
-    
-    Object.keys(autoRefreshEnabled).forEach(symbol => {
-        if (autoRefreshEnabled[symbol]) {
-            intervals[symbol] = setInterval(() => {
-                refreshChartData(symbol);
-            }, 60000); // 60 seconds
-        }
-    });
-    
-    return () => {
-        Object.values(intervals).forEach(clearInterval);
-    };
-}, [autoRefreshEnabled]);
-
-
-// ================================
-// UPDATED CHART TIMEFRAME CHANGER (FIXED)
-// ================================
-
-const changeChartTimeframe = async (symbol, newTimeframe) => {
-    setChartTimeframes(prev => ({
-        ...prev,
-        [symbol]: newTimeframe
-    }));
-    
-    // Re-fetch chart data with new timeframe
-    await fetchChartData(symbol, newTimeframe);
-};
-
     
     // Function to estimate price target
     const estimatePriceTarget = async (symbol) => {
@@ -4283,137 +3568,100 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
     };
 
     const handleChatSend = async () => {
-        if ((!chatInput.trim() && !chatImage) || chatLoading) return;
+    if ((!chatInput.trim() && !chatImage) || chatLoading) return;
+
+    const userMessage = chatInput.trim();
+    const imageToSend = chatImage;
     
-        const userMessage = chatInput.trim();
-        const imageToSend = chatImage;
-        
-        setChatInput('');
-        setChatImage(null);
-        
-        const messageContent = userMessage || "Please analyze this image";
-        setChatMessages(prev => [...prev, { 
-            role: 'user', 
-            content: messageContent,
-            image: imageToSend 
-        }]);
-        
-        setChatLoading(true);
+    setChatInput('');
+    setChatImage(null);
     
-        try {
-            // Prepare MSS data context
-            const mssContext = mssData.length > 0 
-                ? `Current Market Data Analysis:
-    ${mssData.slice(0, 10).map(asset => 
-        `- ${asset.symbol}: MSS ${asset.mss}, Trend: ${asset.trend || 'unknown'}, Price: $${asset.current_price}, Change: ${asset.price_change}%${asset.sector ? `, Sector: ${asset.sector}` : ''}`
-    ).join('\n')}`
-                : 'No market data currently loaded.';
+    const messageContent = userMessage || "Please analyze this image";
+    setChatMessages(prev => [...prev, { 
+        role: 'user', 
+        content: messageContent,
+        image: imageToSend 
+    }]);
     
-            // Prepare chart context if enabled
-            let chartContext = '';
-            if (useChartContext && chartContextSymbol && chartData[chartContextSymbol]) {
-                const chart = chartData[chartContextSymbol];
-                const recentCandles = chart.slice(-20);
-                
-                chartContext = `\n\nCHART ANALYSIS FOR ${chartContextSymbol}:
-    - Current Price: $${recentCandles[recentCandles.length - 1].close}
-    - 20-Period High: $${Math.max(...recentCandles.map(c => c.high))}
-    - 20-Period Low: $${Math.min(...recentCandles.map(c => c.low))}
-    - Recent Trend: ${recentCandles[recentCandles.length - 1].close > recentCandles[0].close ? 'Upward' : 'Downward'}
-    - Volatility: ${((Math.max(...recentCandles.map(c => c.high)) - Math.min(...recentCandles.map(c => c.low))) / recentCandles[0].close * 100).toFixed(2)}%`;
-    
-                // Add retracement data if available
-                if (retracementData[chartContextSymbol]) {
-                    chartContext += `\n- Optimal Entry: $${retracementData[chartContextSymbol].entry_zones.optimal_entry}`;
-                }
-                
-                // Add mean reversion data if available
-                if (meanReversionData[chartContextSymbol]) {
-                    chartContext += `\n- Mean Reversion Score: ${meanReversionData[chartContextSymbol].mean_reversion_score}%`;
-                    chartContext += `\n- Regime: ${meanReversionData[chartContextSymbol].regime_label}`;
-                }
-                
-                // Add elasticity data if available
-                if (elasticityData[chartContextSymbol]) {
-                    chartContext += `\n- Trend Elasticity: ${(elasticityData[chartContextSymbol].overall_elasticity * 100).toFixed(1)}%`;
-                }
-            }
-    
-            const messages = [
-                {
-                    role: 'system',
-                    content: `You are Simons, a professional yet friendly trading and investing assistant named after legendary investor Jim Simons. Your purpose is to help traders analyze markets, understand trends, and make informed decisions.
-    
-    ${mssContext}${chartContext}
-    
-    ${useChartContext && chartContextSymbol ? `You are currently analyzing the ${chartContextSymbol} chart. Use the chart data provided to give specific, actionable insights about price levels, trends, and potential trading opportunities.` : ''}
-    
-    You have access to real-time Market Stability Score (MSS) data, which evaluates assets based on volatility, trend clarity, and liquidity. Higher MSS scores indicate better trading conditions.
-    
-    Be concise, actionable, and insightful. Focus on practical trading advice while maintaining a professional but approachable tone.`
-                },
-                ...chatMessages.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }))
-            ];
-    
-            // Add image if present
-            if (imageToSend) {
-                messages.push({
-                    role: 'user',
-                    content: [
-                        { type: 'text', text: userMessage || 'Please analyze this chart/image' },
-                        { 
-                            type: 'image_url', 
-                            image_url: { url: imageToSend }
-                        }
-                    ]
-                });
-            } else {
-                messages.push({
-                    role: 'user',
-                    content: userMessage
-                });
-            }
-    
-            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: messages,
-                    temperature: 0.7,
-                    max_tokens: 500
-                })
+    setChatLoading(true);
+
+    try {
+        // Prepare MSS data context
+        const mssContext = mssData.length > 0 
+            ? `Current Market Data Analysis:
+${mssData.slice(0, 10).map(asset => 
+    `- ${asset.symbol}: MSS ${asset.mss}, Trend: ${asset.trend || 'unknown'}, Price: $${asset.current_price}, Change: ${asset.price_change}%${asset.sector ? `, Sector: ${asset.sector}` : ''}`
+).join('\n')}`
+            : 'No market data currently loaded.';
+
+        const messages = [
+            {
+                role: 'system',
+                content: `You are Simons, a professional yet friendly trading and investing assistant named after legendary investor Jim Simons. Your purpose is to help traders analyze markets, understand trends, and make informed decisions.
+
+${mssContext}
+
+You have access to real-time Market Stability Score (MSS) data, which evaluates assets based on volatility, trend clarity, and liquidity. Higher MSS scores indicate better trading conditions.
+
+Be concise, actionable, and insightful. Focus on practical trading advice while maintaining a professional but approachable tone.`
+            },
+            ...chatMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }))
+        ];
+
+        // Add image if present
+        if (imageToSend) {
+            messages.push({
+                role: 'user',
+                content: [
+                    { type: 'text', text: userMessage || 'Please analyze this chart/image' },
+                    { 
+                        type: 'image_url', 
+                        image_url: { url: imageToSend }
+                    }
+                ]
             });
-    
-            const aiData = await aiResponse.json();
-            const response = aiData.choices[0].message.content;
-    
-            setChatMessages(prev => [...prev, {
-                role: 'assistant',
-                content: response
-            }]);
-            
-            // Read response if voice is enabled
-            if (voiceSettings.enabled && voiceSettings.voice) {
-                readText(response, 'chatbot');
-            }
-    
-        } catch (error) {
-            console.error('Error in chat:', error);
-            setChatMessages(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error. Please try again.'
-            }]);
-        } finally {
-            setChatLoading(false);
+        } else {
+            messages.push({
+                role: 'user',
+                content: userMessage
+            });
         }
-    };
+
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+
+        const aiData = await aiResponse.json();
+        const response = aiData.choices[0].message.content;
+
+        setChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: response
+        }]);
+
+    } catch (error) {
+        console.error('Error in chat:', error);
+        setChatMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Sorry, I encountered an error. Please try again.'
+        }]);
+    } finally {
+        setChatLoading(false);
+    }
+};
     
     const filteredData = mssData
     .filter(item => {
@@ -4681,7 +3929,6 @@ return (
                                     )}
                                 </>
                             )}
-                            
                             {hasVolumeData && (
                                 <>
                                     <button
@@ -4768,7 +4015,6 @@ return (
                         >
                             {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
                         </button><br />
-                        
 
                         <button
                             className="mss-calculate-btn"
@@ -4782,20 +4028,6 @@ return (
                         >
                             {loadingAllCharts ? '📊 Loading...' : !tvLoaded ? '⏳ Loading Charts...' : '📊 View All Charts'}
                         </button><br />
-                        <button
-                            className="mss-calculate-btn"
-                            onClick={analyzeAllMeanReversion}
-                            disabled={loadingAllMeanReversion || filteredData.length === 0}
-                            style={{ 
-                                padding: '12px 24px', 
-                                fontSize: '14px',
-                                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                marginLeft: '10px'
-                            }}
-                        >
-                            {loadingAllMeanReversion ? '🔄 Analyzing...' : '🔄 Analyze All Mean Reversion'}
-                        </button><br />
-
                         
                         
                         {Object.keys(trendDurations).length > 0 && (
@@ -4978,38 +4210,12 @@ return (
                                     </div>
                                     <div className="comparison-chart">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart 
-                                                data={(() => {
-                                                    // Merge stock and sector data by date
-                                                    const mergedData = [];
-                                                    const dateMap = new Map();
-                                                    
-                                                    // Add stock data
-                                                    stockVsSectorData.comparison_data.forEach(item => {
-                                                        dateMap.set(item.date, {
-                                                            date: item.date,
-                                                            stock_return: item.stock_return,
-                                                            sector_return: item.sector_return
-                                                        });
-                                                    });
-                                                    
-                                                    // Convert to array and sort by date
-                                                    const sorted = Array.from(dateMap.values()).sort((a, b) => 
-                                                        new Date(a.date) - new Date(b.date)
-                                                    );
-                                                    
-                                                    return sorted;
-                                                })()}
-                                                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                                            >
+                                            <LineChart data={stockVsSectorData.comparison_data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                                 <XAxis 
                                                     dataKey="date" 
                                                     stroke="#6b7280"
                                                     style={{ fontSize: '11px' }}
-                                                    angle={-45}
-                                                    textAnchor="end"
-                                                    height={60}
                                                 />
                                                 <YAxis 
                                                     stroke="#6b7280"
@@ -5029,19 +4235,17 @@ return (
                                                     type="monotone" 
                                                     dataKey="stock_return" 
                                                     stroke="#2563eb" 
-                                                    strokeWidth={3}
+                                                    strokeWidth={2}
                                                     name={`${selectedStock} %`}
                                                     dot={false}
-                                                    connectNulls
                                                 />
                                                 <Line 
                                                     type="monotone" 
                                                     dataKey="sector_return" 
                                                     stroke="#ef4444" 
-                                                    strokeWidth={3}
+                                                    strokeWidth={2}
                                                     name={`${stockVsSectorData.sector} %`}
                                                     dot={false}
-                                                    connectNulls
                                                 />
                                             </LineChart>
                                         </ResponsiveContainer>
@@ -5059,6 +4263,8 @@ return (
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
 
                     <div className="category-filter">
                         <button 
@@ -5242,27 +4448,7 @@ return (
                                                 }}
                                             >
                                                 {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
-                                            </button><br />
-                                            <button
-                                                className="calculate-retracement-btn"
-                                                onClick={() => analyzeMeanReversion(asset.symbol)}
-                                                disabled={loadingMeanReversion[asset.symbol]}
-                                                style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
-                                            >
-                                                {loadingMeanReversion[asset.symbol] ? '🔄 Analyzing...' : '🔄 Mean Reversion'}
                                             </button>
-                                            
-                                            {/* Sector Peers button - only for stocks */}
-                                            {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && asset.sector && (
-                                                <button
-                                                    className="calculate-retracement-btn"
-                                                    onClick={() => fetchSectorPeersIndex(asset.symbol)}
-                                                    disabled={loadingSectorPeers[asset.symbol]}
-                                                    style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
-                                                >
-                                                    {loadingSectorPeers[asset.symbol] ? '📊 Loading...' : '📊 vs Sector Peers'}
-                                                </button>
-                                            )}
                                         
                                         </div><br />
                                         <button
@@ -5772,284 +4958,6 @@ return (
                                 </div>
                             )}
 
-                                
-
-                                {meanReversionData[asset.symbol] && (
-                                <div className="mean-reversion-container">
-                                    <div className="mean-reversion-header">
-                                        <div className="mean-reversion-icon">🔄</div>
-                                        <div className="mean-reversion-title">Mean Reversion Analysis</div>
-                                    </div>
-                                    
-                                    {/* Regime Badge */}
-                                    <div className="regime-badge" style={{
-                                        background: meanReversionData[asset.symbol].regime_color,
-                                        color: 'white',
-                                        display: 'block'
-                                    }}>
-                                        {meanReversionData[asset.symbol].regime_label}
-                                    </div>
-                                    
-                                    {/* Mean Reversion Score */}
-                                    <div className="mr-score-container">
-                                        <div className="mr-score-label">Mean Reversion Probability</div>
-                                        <div className="mr-score-value" style={{
-                                            color: meanReversionData[asset.symbol].mean_reversion_color
-                                        }}>
-                                            {meanReversionData[asset.symbol].mean_reversion_score}%
-                                        </div>
-                                        <div style={{
-                                            fontSize: '14px',
-                                            fontWeight: 700,
-                                            color: meanReversionData[asset.symbol].mean_reversion_color
-                                        }}>
-                                            {meanReversionData[asset.symbol].mean_reversion_label}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Regime Description */}
-                                    <div style={{
-                                        background: 'white',
-                                        padding: '12px',
-                                        borderRadius: '8px',
-                                        marginBottom: '15px',
-                                        fontSize: '13px',
-                                        color: '#1f2937'
-                                    }}>
-                                        <strong>Regime:</strong> {meanReversionData[asset.symbol].regime_description}
-                                    </div>
-                                    
-                                    {/* Mean Reversion Signals */}
-                                    {meanReversionData[asset.symbol].mean_reversion_signals.length > 0 && (
-                                        <div className="mr-signals-list">
-                                            <div style={{ fontWeight: 700, marginBottom: '10px', color: '#1e40af' }}>
-                                                Active Signals:
-                                            </div>
-                                            {meanReversionData[asset.symbol].mean_reversion_signals.map((signal, idx) => (
-                                                <div key={idx} className="mr-signal-item">
-                                                    • {signal}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    
-                                    {/* Key Metrics Grid */}
-                                    <div className="mr-targets-grid">
-                                        <div className="mr-target-card">
-                                            <div className="mr-target-label">RSI</div>
-                                            <div className="mr-target-value" style={{
-                                                color: meanReversionData[asset.symbol].rsi > 70 ? '#ef4444' :
-                                                       meanReversionData[asset.symbol].rsi < 30 ? '#10b981' : '#6b7280'
-                                            }}>
-                                                {meanReversionData[asset.symbol].rsi}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="mr-target-card">
-                                            <div className="mr-target-label">BB Position</div>
-                                            <div className="mr-target-value">
-                                                {meanReversionData[asset.symbol].bb_position_pct}%
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="mr-target-card">
-                                            <div className="mr-target-label">vs 20-day MA</div>
-                                            <div className="mr-target-value" style={{
-                                                color: meanReversionData[asset.symbol].sma_20_distance_pct >= 0 ? '#10b981' : '#ef4444'
-                                            }}>
-                                                {meanReversionData[asset.symbol].sma_20_distance_pct >= 0 ? '+' : ''}
-                                                {meanReversionData[asset.symbol].sma_20_distance_pct}%
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="mr-target-card">
-                                            <div className="mr-target-label">vs 200-day MA</div>
-                                            <div className="mr-target-value" style={{
-                                                color: meanReversionData[asset.symbol].sma_200_distance_pct >= 0 ? '#10b981' : '#ef4444'
-                                            }}>
-                                                {meanReversionData[asset.symbol].sma_200_distance_pct >= 0 ? '+' : ''}
-                                                {meanReversionData[asset.symbol].sma_200_distance_pct}%
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Reversion Targets */}
-                                    <div style={{
-                                        background: 'white',
-                                        padding: '15px',
-                                        borderRadius: '10px',
-                                        marginTop: '15px'
-                                    }}>
-                                        <div style={{ fontWeight: 700, marginBottom: '10px', color: '#1e40af' }}>
-                                            Expected Reversion Target:
-                                        </div>
-                                        <div style={{ fontSize: '14px', color: '#1f2937', marginBottom: '8px' }}>
-                                            <strong>{meanReversionData[asset.symbol].primary_target_name}:</strong> ${meanReversionData[asset.symbol].primary_target}
-                                        </div>
-                                        <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                                            Expected move: {meanReversionData[asset.symbol].expected_move_pct >= 0 ? '+' : ''}
-                                            {meanReversionData[asset.symbol].expected_move_pct}%
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Trading Recommendation */}
-                                    <div style={{
-                                        background: '#f9fafb',
-                                        padding: '12px',
-                                        borderRadius: '8px',
-                                        marginTop: '15px',
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        color: '#1f2937',
-                                        textAlign: 'center'
-                                    }}>
-                                        {meanReversionData[asset.symbol].recommendation}
-                                    </div>
-                                </div>
-                            )}
-
-                                {showSectorPeersChart[asset.symbol] && sectorPeersData[asset.symbol] && (
-                                <div className="sector-peers-chart-container">
-                                    <div className="sector-peers-header">
-                                        <div className="sector-peers-title">
-                                            📊 {asset.symbol} vs {sectorPeersData[asset.symbol].sector} Sector
-                                        </div>
-                                        <button
-                                            onClick={() => setShowSectorPeersChart(prev => ({
-                                                ...prev,
-                                                [asset.symbol]: false
-                                            }))}
-                                            style={{
-                                                background: '#ef4444',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                padding: '6px 12px',
-                                                fontSize: '12px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            ✕ Close
-                                        </button>
-                                    </div>
-                                    
-                                    {/* Performance Summary */}
-                                    <div style={{
-                                        background: 'white',
-                                        padding: '15px',
-                                        borderRadius: '10px',
-                                        marginBottom: '15px'
-                                    }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                                                    {asset.symbol} Return
-                                                </div>
-                                                <div style={{ 
-                                                    fontSize: '18px', 
-                                                    fontWeight: 700,
-                                                    color: sectorPeersData[asset.symbol].target_stock_return >= 0 ? '#10b981' : '#ef4444'
-                                                }}>
-                                                    {sectorPeersData[asset.symbol].target_stock_return >= 0 ? '+' : ''}
-                                                    {sectorPeersData[asset.symbol].target_stock_return}%
-                                                </div>
-                                            </div>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                                                    Sector Avg
-                                                </div>
-                                                <div style={{ 
-                                                    fontSize: '18px', 
-                                                    fontWeight: 700,
-                                                    color: sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '#10b981' : '#ef4444'
-                                                }}>
-                                                    {sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '+' : ''}
-                                                    {sectorPeersData[asset.symbol].sector_avg_return}%
-                                                </div>
-                                            </div>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
-                                                    Outperformance
-                                                </div>
-                                                <div style={{ 
-                                                    fontSize: '18px', 
-                                                    fontWeight: 700,
-                                                    color: sectorPeersData[asset.symbol].outperformance >= 0 ? '#10b981' : '#ef4444'
-                                                }}>
-                                                    {sectorPeersData[asset.symbol].outperformance >= 0 ? '+' : ''}
-                                                    {sectorPeersData[asset.symbol].outperformance}%
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Normalized Chart */}
-                                    <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '500px' }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart margin={{ top: 10, right: 15, left: 5, bottom: 10 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                                <XAxis 
-                                                    dataKey="date" 
-                                                    stroke="#6b7280"
-                                                    style={{ fontSize: '10px' }}
-                                                    tick={{ fontSize: 10 }}
-                                                />
-                                                <YAxis 
-                                                    stroke="#6b7280"
-                                                    style={{ fontSize: '10px' }}
-                                                    tick={{ fontSize: 10 }}
-                                                    label={{ value: 'Normalized (Start = 100)', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
-                                                />
-                                                <Tooltip 
-                                                    contentStyle={{ 
-                                                        background: 'white', 
-                                                        border: '2px solid #4f46e5',
-                                                        borderRadius: '8px',
-                                                        fontSize: '11px'
-                                                    }}
-                                                />
-                                                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                                                
-                                                {/* Sector Index Line */}
-                                                <Line 
-                                                    data={sectorPeersData[asset.symbol].sector_index}
-                                                    type="monotone" 
-                                                    dataKey="index_value" 
-                                                    stroke="#6b7280" 
-                                                    strokeWidth={3}
-                                                    strokeDasharray="5 5"
-                                                    name={`${sectorPeersData[asset.symbol].sector} Index`}
-                                                    dot={false}
-                                                />
-                                                
-                                                {/* Target Stock Line */}
-                                                <Line 
-                                                    data={sectorPeersData[asset.symbol].target_normalized}
-                                                    type="monotone" 
-                                                    dataKey="value" 
-                                                    stroke="#4f46e5" 
-                                                    strokeWidth={3}
-                                                    name={asset.symbol}
-                                                    dot={false}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    
-                                    {/* Peers Summary */}
-                                    <div style={{
-                                        marginTop: '15px',
-                                        fontSize: '12px',
-                                        color: '#6b7280',
-                                        textAlign: 'center'
-                                    }}>
-                                        Compared against {sectorPeersData[asset.symbol].peers_analyzed} sector peers
-                                    </div>
-                                </div>
-                            )}
-
-
-
                                 {monteCarloResults[asset.symbol] && (
                                     <div className="monte-carlo-results">
                                         <div className="monte-carlo-header">
@@ -6166,8 +5074,9 @@ return (
                                 </div>
                             )}
 
-                           {showChart[asset.symbol] && chartData[asset.symbol] && (
-                                <>
+
+                                {/* Display chart in card (normal size, no overlays) */}
+                                {showChart[asset.symbol] && chartData[asset.symbol] && (
                                     <div style={{
                                         marginTop: '15px',
                                         padding: '15px',
@@ -6181,355 +5090,288 @@ return (
                                             isFullscreen={false}
                                         />
                                     </div>
-                            
-                                    <div className="card-metrics">
-                                        <div className="metric">
-                                            <span className="metric-label">MSS:</span>
-                                            <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
-                                        </div>
-                                        <div className="metric">
-                                            <span className="metric-label">Price:</span>
-                                            <span className="metric-value">${asset.current_price}</span>
-                                        </div>
-                                        <div className="metric">
-                                            <span className="metric-label">Change:</span>
-                                            <span 
-                                                className="metric-value"
-                                                style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
-                                            >
-                                                {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
-                                            </span>
-                                        </div>
+                                )}
+                                
+                                <div className="card-metrics">
+                                    <div className="metric">
+                                        <span className="metric-label">MSS:</span>
+                                        <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
                                     </div>
-                            
-                                    {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
-                                        <div style={{ 
-                                            background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
-                                                       asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
-                                                       'rgba(59, 130, 246, 0.1)',
-                                            padding: '12px',
-                                            borderRadius: '8px',
-                                            marginBottom: '18px'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
-                                                    Relative Volume:
-                                                </span>
-                                                <span style={{ 
-                                                    fontSize: '15px', 
-                                                    fontWeight: 700,
-                                                    color: asset.volumeCategory === 'high' ? '#059669' : 
-                                                           asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
-                                                }}>
-                                                    {asset.relativeVolume}x
-                                                </span>
-                                            </div>
-                                            <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                                                Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
-                                            </div>
-                                            <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
-                                                {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
-                                                {asset.volumeCategory?.toUpperCase()} VOLUME
-                                            </span>
-                                        </div>
-                                    )}
-                            
-                                    <div className="card-details">
-                                        <div className="detail-item">
-                                            <span>Norm. Volatility:</span>
-                                            <span>{asset.normalized_volatility}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span>R² (Trend):</span>
-                                            <span>{asset.r_squared}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span>Liquidity Factor:</span>
-                                            <span>{asset.liquidity_factor}</span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <span>Avg Volume:</span>
-                                            <span>{asset.avg_volume.toLocaleString()}</span>
-                                        </div>
+                                    <div className="metric">
+                                        <span className="metric-label">Price:</span>
+                                        <span className="metric-value">${asset.current_price}</span>
                                     </div>
-                                </>
-                            )}
-
-
-        {/* Fullscreen Chart Modal */}
-                        {fullscreenChart && chartData[fullscreenChart] && (
-                            <div style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                background: 'rgba(0, 0, 0, 0.95)',
-                                zIndex: 99999,
-                                padding: window.innerWidth < 768 ? '10px' : '20px',
-                                overflow: 'auto'
-                            }}>
-                                <div style={{
-                                    maxWidth: '1600px',
-                                    margin: '0 auto',
-                                    background: '#1a1a1a',
-                                    borderRadius: '16px',
-                                    padding: window.innerWidth < 768 ? '10px' : '20px',
-                                    width: '100%',
-                                    boxSizing: 'border-box'
-                                }}>
-                                    {/* Header */}
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        marginBottom: '15px',
-                                        flexWrap: 'wrap',
-                                        gap: '10px'
-                                    }}>
-                                        <h2 style={{ 
-                                            color: 'white', 
-                                            margin: 0,
-                                            fontSize: window.innerWidth < 768 ? '18px' : '24px'
-                                        }}>
-                                            {fullscreenChart} - Analysis
-                                        </h2>
-                                        <button
-                                            onClick={() => setFullscreenChart(null)}
-                                            style={{
-                                                padding: '8px 16px',
-                                                background: '#ef4444',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                fontSize: '13px',
-                                                fontWeight: 600
-                                            }}
+                                    <div className="metric">
+                                        <span className="metric-label">Change:</span>
+                                        <span 
+                                            className="metric-value"
+                                            style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
                                         >
-                                            ✕ Close
-                                        </button>
+                                            {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
+                                        </span>
                                     </div>
-                                    
-                                    {/* Legend for overlays */}
-                                    {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
-                                        <div style={{
-                                            background: '#2a2a2a',
-                                            padding: '12px',
-                                            borderRadius: '8px',
-                                            marginBottom: '15px',
-                                            color: '#e5e7eb',
-                                            fontSize: window.innerWidth < 768 ? '11px' : '13px'
-                                        }}>
-                                            <strong>Overlays:</strong>
-                                            <div style={{ 
-                                                display: 'flex', 
-                                                gap: window.innerWidth < 768 ? '8px' : '15px', 
-                                                marginTop: '8px', 
-                                                flexWrap: 'wrap' 
-                                            }}>
-                                                {retracementData[fullscreenChart]?.entry_zones && (
-                                                    <>
-                                                        <span style={{color: '#10b981'}}>● Aggressive</span>
-                                                        <span style={{color: '#fbbf24'}}>● Optimal</span>
-                                                        <span style={{color: '#3b82f6'}}>● Conservative</span>
-                                                        <span style={{color: '#ef4444'}}>● Stop</span>
-                                                    </>
-                                                )}
-                                                {elasticityData[fullscreenChart] && (
-                                                    <span style={{color: '#ec4899'}}>● Elastic Bands</span>
-                                                )}
-                                                {priceTargetData[fullscreenChart] && (
-                                                    <span style={{color: '#8b5cf6'}}>● Target</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Fullscreen Chart */}
-                                    <TradingViewChart 
-                                        data={chartData[fullscreenChart]} 
-                                        symbol={fullscreenChart} 
-                                        isFullscreen={true} 
-                                    />
                                 </div>
-                            </div>
-                        )}
-            {!loading && mssData.length === 0 && (
-                            <div className="mss-empty">
-                                <div className="empty-icon">📊</div>
-                                <h3>Ready to Analyze</h3>
-                                <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
-                            </div>
-                        )}
-        {/* AI Chatbot */}
-                        {showChatbot && (
-                            <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
-                                <div className="ai-chatbot-header">
-                                    <h3>
-                                        <span>🎯</span>
-                                        <span>Simons - Trading Assistant</span>
-                                    </h3>
-                                    <button 
-                                        className="ai-chatbot-close" 
-                                        onClick={() => {
-                                            setShowChatbot(false);
-                                            setShowOrb(true);
-                                        }}
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                                
-                                <div className="ai-chatbot-messages">
-                                    {chatMessages.length === 0 && (
-                                        <div className="ai-welcome-message">
-                                            Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
-                                        </div>
-                                    )}
-                                    {chatMessages.map((msg, idx) => (
-                                        <div key={idx} className={`ai-message ${msg.role}`}>
-                                            {msg.image && (
-                                                <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
-                                            )}
-                                            <div>{msg.content}</div>
-                                        </div>
-                                    ))}
-                                    {chatLoading && (
-                                        <div className="ai-loading">
-                                            <div className="ai-loading-spinner"></div>
-                                            <span>Simons is analyzing...</span>
-                                        </div>
-                                    )}
-                                    <div ref={messagesEndRef} />
-                                </div>
-                                
-                                <div className="ai-chatbot-input-container">
-                                    {/* Chart Context Controls */}
+                                {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
                                     <div style={{ 
-                                        width: '100%', 
-                                        display: 'flex', 
-                                        gap: '10px', 
-                                        marginBottom: '10px', 
-                                        padding: '8px', 
-                                        background: '#f3f4f6', 
-                                        borderRadius: '8px', 
-                                        alignItems: 'center' 
+                                        background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
+                                                   asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
+                                                   'rgba(59, 130, 246, 0.1)',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '18px'
                                     }}>
-                                        <label style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '6px', 
-                                            fontSize: '12px', 
-                                            fontWeight: 600, 
-                                            cursor: 'pointer' 
-                                        }}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={useChartContext} 
-                                                onChange={(e) => setUseChartContext(e.target.checked)}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            Use Trading Chart
-                                        </label>
-                                        
-                                        {useChartContext && (
-                                            <select 
-                                                value={chartContextSymbol || ''} 
-                                                onChange={(e) => setChartContextSymbol(e.target.value)}
-                                                style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '6px',
-                                                    border: '2px solid #2563eb',
-                                                    fontSize: '12px',
-                                                    fontWeight: 600,
-                                                    flex: 1
-                                                }}
-                                            >
-                                                <option value="">Select asset...</option>
-                                                {Object.keys(chartData).map(sym => (
-                                                    <option key={sym} value={sym}>{sym}</option>
-                                                ))}
-                                            </select>
-                                        )}
-                                        
-                                        <label style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '6px', 
-                                            fontSize: '12px', 
-                                            fontWeight: 600, 
-                                            cursor: 'pointer' 
-                                        }}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={voiceSettings.enabled} 
-                                                onChange={(e) => saveVoiceSettings({ 
-                                                    ...voiceSettings, 
-                                                    enabled: e.target.checked 
-                                                })}
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            🔊 Voice Reader
-                                        </label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
+                                                Relative Volume:
+                                            </span>
+                                            <span style={{ 
+                                                fontSize: '15px', 
+                                                fontWeight: 700,
+                                                color: asset.volumeCategory === 'high' ? '#059669' : 
+                                                       asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                            }}>
+                                                {asset.relativeVolume}x
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                            Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
+                                        </div>
+                                        <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
+                                            {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
+                                            {asset.volumeCategory?.toUpperCase()} VOLUME
+                                        </span>
                                     </div>
-                                    
-                                    <label className="ai-file-upload-btn" title="Upload chart image">
-                                        📎
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            onChange={handleImageUpload} 
-                                        />
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        className="ai-chatbot-input" 
-                                        placeholder={useChartContext && chartContextSymbol ? `Ask about ${chartContextSymbol}...` : "Ask Simons about markets, trends, or upload a chart..."} 
-                                        value={chatInput} 
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
-                                        disabled={chatLoading}
-                                    />
-                                    <button 
-                                        className="ai-chatbot-send" 
-                                        onClick={handleChatSend} 
-                                        disabled={chatLoading || (!chatInput.trim() && !chatImage)}
-                                    >
-                                        {chatLoading ? '...' : 'Send'}
-                                    </button>
-                                </div>
+                                )}
+                                <div className="card-details">
+                                    <div className="detail-item">
+                                        <span>Norm. Volatility:</span>
+                                        <span>{asset.normalized_volatility}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span>R² (Trend):</span>
+                                        <span>{asset.r_squared}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span>Liquidity Factor:</span>
+                                        <span>{asset.liquidity_factor}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span>Avg Volume:</span>
+                                        <span>{asset.avg_volume.toLocaleString()}</span>
+                                        </div>
                             </div>
-                        )}
+                        </div>
+                    ))}
+                </div>
+            </>
+        )}
 
-                    
-                        {chatImage && (
-                            <div className="ai-image-attached">
-                                <span>📷 Chart attached</span>
-                                <button 
-                                    className="ai-image-remove" 
-                                    onClick={() => setChatImage(null)}
-                                    title="Remove image"
-                                >
-                                    ✕
-                                </button>
-                            </div>
+            {/* Fullscreen Chart Modal */}
+{fullscreenChart && chartData[fullscreenChart] && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.95)',
+        zIndex: 99999,
+        padding: window.innerWidth < 768 ? '10px' : '20px',
+        overflow: 'auto'
+    }}>
+        <div style={{
+            maxWidth: '1600px',
+            margin: '0 auto',
+            background: '#1a1a1a',
+            borderRadius: '16px',
+            padding: window.innerWidth < 768 ? '10px' : '20px',
+            width: '100%',
+            boxSizing: 'border-box'
+        }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '15px',
+                flexWrap: 'wrap',
+                gap: '10px'
+            }}>
+                <h2 style={{ 
+                    color: 'white', 
+                    margin: 0,
+                    fontSize: window.innerWidth < 768 ? '18px' : '24px'
+                }}>
+                    {fullscreenChart} - Analysis
+                </h2>
+                <button
+                    onClick={() => setFullscreenChart(null)}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}
+                >
+                    ✕ Close
+                </button>
+            </div>
+            
+            {/* Legend for overlays */}
+            {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                <div style={{
+                    background: '#2a2a2a',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '15px',
+                    color: '#e5e7eb',
+                    fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                }}>
+                    <strong>Overlays:</strong>
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: window.innerWidth < 768 ? '8px' : '15px', 
+                        marginTop: '8px', 
+                        flexWrap: 'wrap' 
+                    }}>
+                        {retracementData[fullscreenChart]?.entry_zones && (
+                            <>
+                                <span style={{color: '#10b981'}}>● Aggressive</span>
+                                <span style={{color: '#fbbf24'}}>● Optimal</span>
+                                <span style={{color: '#3b82f6'}}>● Conservative</span>
+                                <span style={{color: '#ef4444'}}>● Stop</span>
+                            </>
                         )}
-                     {/* Chatbot Orb */}
-                    <div 
-                        className="ai-chatbot-orb" 
-                        onClick={() => {
-                            setShowChatbot(!showChatbot);
-                            setShowOrb(false);
-                        }}
-                        title="Chat with Simons"
-                        style={{ display: showOrb ? 'flex' : 'none' }}
-                    >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
-                        </svg>
+                        {elasticityData[fullscreenChart] && (
+                            <span style={{color: '#ec4899'}}>● Elastic Bands</span>
+                        )}
+                        {priceTargetData[fullscreenChart] && (
+                            <span style={{color: '#8b5cf6'}}>● Target</span>
+                        )}
                     </div>
                 </div>
-                )
-            }
+            )}
+            
+            {/* Fullscreen Chart */}
+            <TradingViewChart 
+                data={chartData[fullscreenChart]} 
+                symbol={fullscreenChart}
+                isFullscreen={true}
+            />
+        </div>
+    </div>
+)}
+        {!loading && mssData.length === 0 && (
+            <div className="mss-empty">
+                <div className="empty-icon">📊</div>
+                <h3>Ready to Analyze</h3>
+                <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
+            </div>
+        )}
+    </div>
 
+    {/* AI Chatbot */}
+    {showChatbot && (
+        <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
+            <div className="ai-chatbot-header">
+                <h3>
+                    <span>🎯</span>
+                    <span>Simons - Trading Assistant</span>
+                </h3>
+                <button 
+                    className="ai-chatbot-close" 
+                    onClick={() => {
+                        setShowChatbot(false);
+                        setShowOrb(true); // Show orb when closing chat
+                    }}
+                >
+                    ✕
+                </button>
+            </div>
+            
+            <div className="ai-chatbot-messages">
+                {chatMessages.length === 0 && (
+                    <div className="ai-welcome-message">
+                        Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
+                    </div>
+                )}
+                {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`ai-message ${msg.role}`}>
+                        {msg.image && (
+                            <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                        )}
+                        <div>{msg.content}</div>
+                    </div>
+                ))}
+                {chatLoading && (
+                    <div className="ai-loading">
+                        <div className="ai-loading-spinner"></div>
+                        <span>Simons is analyzing...</span>
+                    </div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+            
+            <div className="ai-chatbot-input-container">
+                <label className="ai-file-upload-btn" title="Upload chart image">
+                    📎
+                    <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                    />
+                </label>
+                <input
+                    type="text"
+                    className="ai-chatbot-input"
+                    placeholder="Ask Simons about markets, trends, or upload a chart..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                    disabled={chatLoading}
+                />
+                <button 
+                    className="ai-chatbot-send"
+                    onClick={handleChatSend}
+                    disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+                >
+                    {chatLoading ? '...' : 'Send'}
+                </button>
+            </div>
+        </div>
+    )}
+
+    {chatImage && (
+        <div className="ai-image-attached">
+            <span>📷 Chart attached</span>
+            <button 
+                className="ai-image-remove"
+                onClick={() => setChatImage(null)}
+                title="Remove image"
+            >
+                ✕
+            </button>
+        </div>
+    )}
+
+    {/* Chatbot Orb */}
+    <div 
+    className="ai-chatbot-orb"
+    onClick={() => {
+        setShowChatbot(!showChatbot);
+        setShowOrb(false);
+    }}
+    title="Chat with Simons"
+    style={{ display: showOrb ? 'flex' : 'none' }}
+    >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+        </svg>
+    </div>
+</div>
+    );
+}
