@@ -6252,9 +6252,9 @@ return (
                                 </div>
                             </div>
                         </div>
-                    ))}
+                ))}
                 </div>
-            </>
+            </div>
         )}
 
         {/* Fullscreen Chart Modal */}
@@ -6356,15 +6356,13 @@ return (
                                 </div>
                             </div>
                         )}
-
-         {!loading && mssData.length === 0 && (
+            {!loading && mssData.length === 0 && (
                             <div className="mss-empty">
                                 <div className="empty-icon">📊</div>
                                 <h3>Ready to Analyze</h3>
                                 <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
                             </div>
-        )}
-
+                        )}
         {/* AI Chatbot */}
                         {showChatbot && (
                             <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
@@ -6504,8 +6502,9 @@ return (
                                 </div>
                             </div>
                         )}
+
                     
-        {chatImage && (
+                        {chatImage && (
                             <div className="ai-image-attached">
                                 <span>📷 Chart attached</span>
                                 <button 
@@ -6516,9 +6515,9 @@ return (
                                     ✕
                                 </button>
                             </div>
-            )}
+                        )}
             
-                       {/* Chatbot Orb */}
+         {/* Chatbot Orb */}
                         <div 
                             className="ai-chatbot-orb" 
                             onClick={() => {
@@ -6533,7 +6532,5 @@ return (
                             </svg>
                         </div>
                     </div>
-                </div>
-            </div>
-        )
-    };
+                );
+            }
