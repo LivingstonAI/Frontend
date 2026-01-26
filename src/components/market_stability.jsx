@@ -1042,6 +1042,8 @@ ${monteCarloStyles}
 ${elasticityStyles}
 ${chartStyles}
 ${meanReversionStyles}
+${aiOverlayStyles}
+${aiChatbotStyles}
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -2498,11 +2500,6 @@ grid-template-columns: 1fr;
 .sector-chart-container {
 padding: 15px;
 }
-
-${aiOverlayStyles}
-${aiChatbotStyles}
-
-
 
 }
 `;
