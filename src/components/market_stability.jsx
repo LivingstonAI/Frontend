@@ -6995,7 +6995,7 @@ return (
                 </div>
             )}
         </div>
-    </div>
+    
 )}
         
         {!loading && mssData.length === 0 && (
