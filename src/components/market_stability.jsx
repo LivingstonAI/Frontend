@@ -2652,6 +2652,53 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                             {sentiment.label}
                         </div>
                     )}
+
+                    {fullscreenChart && (
+                            <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.95)',
+                            zIndex: 99999,
+                            padding: window.innerWidth < 768 ? '10px' : '20px',
+                            overflow: 'auto'
+                            }}>
+                            <div style={{
+                            maxWidth: '1600px',
+                            margin: '0 auto',
+                            background: '#1a1a1a',
+                            borderRadius: '16px',
+                            padding: window.innerWidth < 768 ? '10px' : '20px',
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            position: 'relative'
+                        }}>
+
+                        {/* Chatbot Orb in Chart */}
+                            <div 
+                                className="ai-chatbot-orb"
+                                onClick={() => {
+                                    setShowChatbot(!showChatbot);
+                                    setShowOrb(false);
+                                }}
+                                title="Chat with Simons about this chart"
+                                style={{ 
+                                    display: showOrb ? 'flex' : 'none',
+                                    position: 'absolute',
+                                    bottom: '30px',
+                                    right: '30px',
+                                    zIndex: 1001
+                                }}
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    )}
                     
                     {/* NEW: AI Analysis Toggle (only in fullscreen) */}
                     {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
