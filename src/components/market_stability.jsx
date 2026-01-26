@@ -6811,16 +6811,17 @@ return (
                     pointerEvents: 'none' // Don't block chatbot
                 }} />
             )}
-            {/* ✅ CHATBOT PANEL - Add this entire section */}
+
             {showChatbot && (
                 <div className="ai-chatbot-panel" style={{ 
-                        display: 'flex',
-                        position: 'absolute', // Changed from fixed
-                        bottom: '30px',
-                        right: '30px',
-                        zIndex: 1002,
-                        pointerEvents: 'auto' // Ensure it captures clicks
-                    }}>
+                    display: 'flex',
+                    position: 'absolute',
+                    bottom: '30px',
+                    right: '30px',
+                    zIndex: 1002,
+                    pointerEvents: 'auto'
+                }}>
+                    {/* Header */}
                     <div className="ai-chatbot-header">
                         <h3>
                             <span>🎯</span>
@@ -6837,85 +6838,85 @@ return (
                             ✕
                         </button>
                     </div>
-
-                        {/* Voice & Chart Settings - COMPACT */}
-                        <div className="ai-chatbot-settings">
-                            {/* Row 1: Voice Toggle + Stop Button */}
-                            <div className="ai-setting-row">
-                                <label style={{
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    color: '#cbd5e1',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    cursor: 'pointer'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={voiceEnabled}
-                                        onChange={(e) => setVoiceEnabled(e.target.checked)}
-                                        className="ai-setting-checkbox"
-                                    />
-                                    <span>🔊 Voice</span>
-                                </label>
-                                
-                                {isSpeaking && (
-                                    <button onClick={stopSpeaking} className="ai-stop-btn">
-                                        ⏹️ Stop
-                                    </button>
-                                )}
-                            </div>
+            
+                    {/* Voice & Chart Settings - COMPACT */}
+                    <div className="ai-chatbot-settings">
+                        {/* Row 1: Voice Toggle + Stop Button */}
+                        <div className="ai-setting-row">
+                            <label style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: '#cbd5e1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={voiceEnabled}
+                                    onChange={(e) => setVoiceEnabled(e.target.checked)}
+                                    className="ai-setting-checkbox"
+                                />
+                                <span>🔊 Voice</span>
+                            </label>
                             
-                            {/* Row 2: Voice Selector (only if enabled) */}
-                            {voiceEnabled && (
-                                <select
-                                    value={selectedVoice?.name || ''}
-                                    onChange={(e) => handleVoiceChange(e.target.value)}
-                                    className="ai-voice-select"
-                                >
-                                    <option value="">Default Voice</option>
-                                    {availableVoices.map((voice, idx) => (
-                                        <option key={idx} value={voice.name}>
-                                            {voice.name} ({voice.lang})
-                                        </option>
-                                    ))}
-                                </select>
+                            {isSpeaking && (
+                                <button onClick={stopSpeaking} className="ai-stop-btn">
+                                    ⏹️ Stop
+                                </button>
                             )}
+                        </div>
+                        
+                        {/* Row 2: Voice Selector (only if enabled) */}
+                        {voiceEnabled && (
+                            <select
+                                value={selectedVoice?.name || ''}
+                                onChange={(e) => handleVoiceChange(e.target.value)}
+                                className="ai-voice-select"
+                            >
+                                <option value="">Default Voice</option>
+                                {availableVoices.map((voice, idx) => (
+                                    <option key={idx} value={voice.name}>
+                                        {voice.name} ({voice.lang})
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        
+                        {/* Row 3: Chart Context Toggle */}
+                        <div className="ai-setting-row" style={{ marginTop: '4px' }}>
+                            <label style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: '#cbd5e1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={useChartContext}
+                                    onChange={(e) => setUseChartContext(e.target.checked)}
+                                    className="ai-setting-checkbox"
+                                />
+                                <span>📊 Chart Context</span>
+                            </label>
                             
-                            {/* Row 3: Chart Context Toggle */}
-                            <div className="ai-setting-row" style={{ marginTop: '4px' }}>
-                                <label style={{
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    color: '#cbd5e1',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    cursor: 'pointer'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={useChartContext}
-                                        onChange={(e) => setUseChartContext(e.target.checked)}
-                                        className="ai-setting-checkbox"
-                                    />
-                                    <span>📊 Chart Context</span>
-                                </label>
-                                
-                                {useChartContext && currentChartSymbol && (
-                                    <div className="ai-chart-badge">
-                                        {currentChartSymbol}
-                                    </div>
-                                )}
-                            </div>
+                            {useChartContext && currentChartSymbol && (
+                                <div className="ai-chart-badge">
+                                    {currentChartSymbol}
+                                </div>
+                            )}
                         </div>
                         
                         {useChartContext && !currentChartSymbol && (
                             <div style={{
                                 fontSize: '11px',
                                 color: '#f59e0b',
-                                fontStyle: 'italic'
+                                fontStyle: 'italic',
+                                marginTop: '4px'
                             }}>
                                 ⚠️ Chart context active for {fullscreenChart}
                             </div>
@@ -6980,7 +6981,7 @@ return (
             {chatImage && showChatbot && (
                 <div className="ai-image-attached" style={{
                     position: 'fixed',
-                    bottom: window.innerWidth < 768 ? '670px' : '790px',
+                    bottom: window.innerWidth < 768 ? '670px' : '730px',
                     right: window.innerWidth < 768 ? '30px' : '50px',
                     zIndex: 1003
                 }}>
@@ -6995,6 +6996,8 @@ return (
                 </div>
             )}
         </div>
+        </div>
+
     
 )}
         
