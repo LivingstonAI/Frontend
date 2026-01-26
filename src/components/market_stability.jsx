@@ -2395,7 +2395,7 @@ grid-template-columns: 1fr;
 padding: 15px;
 }
 
-${aiOverlayStyles}
+${aiChatbotStyles}
 
 
 
