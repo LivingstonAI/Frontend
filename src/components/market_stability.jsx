@@ -6427,7 +6427,7 @@ return (
         )}
     </div>
 
-    {/* AI Chatbot */}
+        {/* AI Chatbot */}
     {showChatbot && (
         <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
             <div className="ai-chatbot-header">
@@ -6439,96 +6439,13 @@ return (
                     className="ai-chatbot-close" 
                     onClick={() => {
                         setShowChatbot(false);
-                        setShowOrb(true);
-                        stopSpeaking(); // Stop any ongoing speech
+                        setShowOrb(true); // Show orb when closing chat
                     }}
                 >
                     ✕
                 </button>
             </div>
-
-            {/* NEW: Voice & Chart Settings */}
-                <div style={{
-                    background: '#f3f4f6',
-                    padding: '12px 20px',
-                    borderBottom: '2px solid #e5e7eb',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
-                }}>
-                    {/* Voice Enable Toggle */}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
-                        <label style={{
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: '#1f2937',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            cursor: 'pointer'
-                        }}>
-                            <input
-                                type="checkbox"
-                                checked={voiceEnabled}
-                                onChange={(e) => setVoiceEnabled(e.target.checked)}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                            />
-                            <span>🔊 Voice Reader</span>
-                        </label>
-                        
-                        {isSpeaking && (
-                            <button
-                                onClick={stopSpeaking}
-                                style={{
-                                    padding: '4px 12px',
-                                    background: '#ef4444',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                }}
-                            > 
-                                22:53⏹️ Stop </button>
-                )}
-                </div>
-                    {voiceEnabled && (
-                    <div>
-                        <label style={{
-                            fontSize: '12px',
-                            color: '#6b7280',
-                            marginBottom: '4px',
-                            display: 'block'
-                        }}>
-                            Select Voice:
-                        </label>
-                        <select
-                            value={selectedVoice?.name || ''}
-                            onChange={(e) => handleVoiceChange(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '8px',
-                                borderRadius: '6px',
-                                border: '2px solid #e5e7eb',
-                                fontSize: '12px',
-                                background: 'white'
-                            }}
-                        >
-                            <option value="">Default Voice</option>
-                            {availableVoices.map((voice, idx) => (
-                                <option key={idx} value={voice.name}>
-                                    {voice.name} ({voice.lang})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-                
+            
             <div className="ai-chatbot-messages">
                 {chatMessages.length === 0 && (
                     <div className="ai-welcome-message">
