@@ -14,107 +14,388 @@ const chartStyles = `
 }
 `;
 
-// Update AI overlay styles in your styles constant:
-const aiOverlayStyles = `
-.ai-overlay-container {
-    position: absolute;
-    top: 60px;
-    right: 15px;
-    background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
-    padding: 20px;
-    border-radius: 16px;
-    max-width: 350px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-    border: 3px solid #8b5cf6;
-    z-index: 10;
-    max-height: 500px;
-    overflow-y: auto;
+const aiChatbotStyles = `
+/* Chatbot Panel - Blue-Dark Theme */
+.ai-chatbot-panel {
+    position: fixed;
+    bottom: 120px;
+    right: 30px;
+    width: 450px;
+    height: 600px; /* Reduced from 650px to fit settings */
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 24px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 2px solid #3b82f6;
+    max-height: calc(100vh - 140px);
 }
 
-.ai-overlay-header {
+/* Header - Blue Theme */
+.ai-chatbot-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 20px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    flex-shrink: 0;
 }
 
-.ai-overlay-title {
-    font-size: 15px;
+.ai-chatbot-header h3 {
+    margin: 0;
+    font-size: 18px;
     font-weight: 700;
-    color: #6d28d9;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
-.ai-overlay-close {
-    background: #f3f4f6;
+.ai-chatbot-close {
+    background: rgba(255, 255, 255, 0.15);
     border: none;
-    color: #6b7280;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
     cursor: pointer;
     font-size: 18px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s;
 }
 
-.ai-overlay-close:hover {
-    background: #e5e7eb;
-    color: #1f2937;
+.ai-chatbot-close:hover {
+    background: rgba(255, 255, 255, 0.25);
 }
 
-.ai-overlay-content {
-    font-size: 13px;
-    color: #1f2937;
-    line-height: 1.7;
-    white-space: pre-wrap;
-}
-
-.ai-voice-controls {
+/* Settings Section - Compact Blue-Dark */
+.ai-chatbot-settings {
+    background: #1e293b;
+    padding: 12px 16px;
+    border-bottom: 1px solid #334155;
     display: flex;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 2px solid #e5e7eb;
+    flex-shrink: 0;
 }
 
-.ai-voice-btn {
-    flex: 1;
-    padding: 8px 12px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+.ai-setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ai-setting-label {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#cbd5e1',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    cursor: 'pointer'
+}
+
+.ai-setting-checkbox {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.ai-voice-select {
+    width: 100%;
+    padding: 6px 8px;
+    borderRadius: 6px;
+    border: 1px solid #334155;
+    fontSize: 11px;
+    background: #0f172a;
+    color: #cbd5e1;
+}
+
+.ai-voice-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.ai-stop-btn {
+    padding: 4px 10px;
+    background: #ef4444;
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 12px;
+    borderRadius: 6px;
+    fontSize: 10px;
+    fontWeight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ai-chart-badge {
+    fontSize: 10px;
+    color: #10b981;
+    fontWeight: 600;
+    background: rgba(16, 185, 129, 0.15);
+    padding: 3px 8px;
+    borderRadius: 6px;
+    border: 1px solid #10b981;
+}
+
+/* Messages Container - LARGER */
+.ai-chatbot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: linear-gradient(to bottom, #0f172a 0%, #1e293b 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    max-height: 100%;
+    overflow-anchor: none;
+}
+
+/* Message Bubbles - Blue-Dark Theme */
+.ai-message {
+    padding: 12px 16px;
+    border-radius: 16px;
+    max-width: 75%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    line-height: 1.6;
+    font-size: 13px;
+    white-space: pre-wrap;
+    position: relative;
+    animation: messageSlideIn 0.3s ease-out;
+}
+
+.ai-message.user {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    margin-left: auto;
+    align-self: flex-end;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    border-bottom-right-radius: 4px;
+}
+
+.ai-message.assistant {
+    margin-right: auto;
+    align-self: flex-start;
+    background: #1e293b;
+    border: 2px solid #334155;
+    color: #e2e8f0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    border-bottom-left-radius: 4px;
+}
+
+/* Welcome Message - Blue-Dark */
+.ai-welcome-message {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    padding: 16px;
+    border-radius: 16px;
+    border: 2px solid #3b82f6;
+    max-width: 90%;
+    align-self: flex-start;
+    line-height: 1.6;
+    color: #dbeafe;
+    font-size: 13px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+/* Loading - Blue Theme */
+.ai-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #3b82f6;
     font-weight: 600;
+    padding: 12px 16px;
+    background: #1e293b;
+    border-radius: 16px;
+    border: 2px solid #334155;
+    max-width: 70%;
+    align-self: flex-start;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+    border-bottom-left-radius: 4px;
+}
+
+.ai-loading-spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid #334155;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Image Preview - Dark Border */
+.ai-image-preview {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    object-fit: contain;
+    display: block;
+    border: 2px solid #334155;
+}
+
+/* Input Container - Blue-Dark */
+.ai-chatbot-input-container {
+    padding: 16px 20px;
+    background: #1e293b;
+    border-top: 1px solid #334155;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+}
+
+.ai-chatbot-input {
+    flex: 1;
+    padding: 12px 14px;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    font-size: 13px;
+    transition: all 0.2s;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.ai-chatbot-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: #1e293b;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.ai-chatbot-input::placeholder {
+    color: #64748b;
+}
+
+/* File Upload - Blue Theme */
+.ai-file-upload-btn {
+    padding: 12px;
+    background: #1e293b;
+    border: 2px solid #334155;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    min-width: 44px;
+    height: 44px;
 }
 
-.ai-voice-btn:hover {
+.ai-file-upload-btn:hover {
+    background: #334155;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+}
+
+/* Send Button - Blue Theme */
+.ai-chatbot-send {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    min-width: 70px;
+}
+
+.ai-chatbot-send:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
-.ai-voice-btn.stop {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-.ai-voice-btn:disabled {
+.ai-chatbot-send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
 }
 
+/* Scrollbar - Blue-Dark */
+.ai-chatbot-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 10px;
+}
+
+.ai-chatbot-messages::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Image Attached Indicator - Blue Theme */
+.ai-image-attached {
+    position: fixed;
+    bottom: 730px;
+    right: 50px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    animation: slideUp 0.3s ease-out;
+    z-index: 1000;
+}
+
+.ai-image-remove {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ai-image-remove:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile Responsive */
 @media (max-width: 768px) {
-    .ai-overlay-container {
-        position: relative;
-        top: 0;
-        right: 0;
-        max-width: 100%;
-        margin-top: 10px;
+    .ai-chatbot-panel {
+        width: calc(100vw - 40px);
+        right: 20px;
+        bottom: 20px;
+        height: calc(100vh - 100px);
+        max-height: calc(100vh - 100px);
+    }
+    
+    .ai-image-attached {
+        right: 30px;
+        bottom: calc(100vh - 50px);
     }
 }
 `;
@@ -657,7 +938,6 @@ ${monteCarloStyles}
 ${elasticityStyles}
 ${chartStyles}
 ${meanReversionStyles}
-${aiOverlayStyles}
 .retracement-analysis-container {
     background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
     padding: 20px;
@@ -2115,6 +2395,7 @@ grid-template-columns: 1fr;
 padding: 15px;
 }
 
+${aiOverlayStyles}
 
 
 
@@ -6417,16 +6698,27 @@ return (
                     </svg>
                 </div>
             )}
-            
+            {showChatbot && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1001,
+                    pointerEvents: 'none' // Don't block chatbot
+                }} />
+            )}
             {/* ✅ CHATBOT PANEL - Add this entire section */}
             {showChatbot && (
                 <div className="ai-chatbot-panel" style={{ 
-                    display: 'flex',
-                    position: 'fixed',
-                    bottom: window.innerWidth < 768 ? '20px' : '30px',
-                    right: window.innerWidth < 768 ? '20px' : '30px',
-                    zIndex: 1002
-                }}>
+                        display: 'flex',
+                        position: 'absolute', // Changed from fixed
+                        bottom: '30px',
+                        right: '30px',
+                        zIndex: 1002,
+                        pointerEvents: 'auto' // Ensure it captures clicks
+                    }}>
                     <div className="ai-chatbot-header">
                         <h3>
                             <span>🎯</span>
@@ -6443,7 +6735,7 @@ return (
                             ✕
                         </button>
                     </div>
-                    
+                    {/* 
                     {/* Voice & Chart Settings */}
                     <div style={{
                         background: '#f3f4f6',
@@ -6568,6 +6860,79 @@ return (
                                     {currentChartSymbol}
                                 </div>
                             )}
+                        </div> */}
+
+                        {/* Voice & Chart Settings - COMPACT */}
+                        <div className="ai-chatbot-settings">
+                            {/* Row 1: Voice Toggle + Stop Button */}
+                            <div className="ai-setting-row">
+                                <label style={{
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    color: '#cbd5e1',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={voiceEnabled}
+                                        onChange={(e) => setVoiceEnabled(e.target.checked)}
+                                        className="ai-setting-checkbox"
+                                    />
+                                    <span>🔊 Voice</span>
+                                </label>
+                                
+                                {isSpeaking && (
+                                    <button onClick={stopSpeaking} className="ai-stop-btn">
+                                        ⏹️ Stop
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {/* Row 2: Voice Selector (only if enabled) */}
+                            {voiceEnabled && (
+                                <select
+                                    value={selectedVoice?.name || ''}
+                                    onChange={(e) => handleVoiceChange(e.target.value)}
+                                    className="ai-voice-select"
+                                >
+                                    <option value="">Default Voice</option>
+                                    {availableVoices.map((voice, idx) => (
+                                        <option key={idx} value={voice.name}>
+                                            {voice.name} ({voice.lang})
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            
+                            {/* Row 3: Chart Context Toggle */}
+                            <div className="ai-setting-row" style={{ marginTop: '4px' }}>
+                                <label style={{
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    color: '#cbd5e1',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={useChartContext}
+                                        onChange={(e) => setUseChartContext(e.target.checked)}
+                                        className="ai-setting-checkbox"
+                                    />
+                                    <span>📊 Chart Context</span>
+                                </label>
+                                
+                                {useChartContext && currentChartSymbol && (
+                                    <div className="ai-chart-badge">
+                                        {currentChartSymbol}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         
                         {useChartContext && !currentChartSymbol && (
