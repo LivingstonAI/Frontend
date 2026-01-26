@@ -2531,7 +2531,7 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                         {symbol} - {currentTimeframe.toUpperCase()}
                     </div>
                     
-                    {/* Sentiment Badge (only in fullscreen if AI analysis exists) */}
+                    {/* Sentiment Badge */}
                     {isFullscreen && sentiment && (
                         <div style={{
                             padding: '4px 12px',
@@ -2545,15 +2545,38 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                             {sentiment.label}
                         </div>
                     )}
+                    
+                    {/* NEW: AI Analysis Toggle (only in fullscreen) */}
+                    {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
+                        <button
+                            onClick={() => setShowAIOverlay(prev => ({
+                                ...prev,
+                                [symbol]: !prev[symbol]
+                            }))}
+                            style={{
+                                padding: '6px 12px',
+                                background: showAIOverlay[symbol] ? '#8b5cf6' : '#374151',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {showAIOverlay[symbol] ? '👁️ Hide AI' : '🤖 Show AI'}
+                        </button>
+                    )}
                 </div>
                 
-                {/* Timeframe Selector */}
+                {/* Timeframe + Controls */}
                 <div style={{
                     display: 'flex',
                     gap: '6px',
                     alignItems: 'center',
                     flexWrap: 'wrap'
                 }}>
+                    {/* Timeframe Selector */}
                     {['1h', '4h', '1d', '1w'].map(tf => (
                         <button
                             key={tf}
@@ -2576,40 +2599,101 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                         </button>
                     ))}
                     
-                    {/* Fullscreen Button */}
-                    {!isFullscreen && (
-                        <button
-                            onClick={() => setFullscreenChart(symbol)}
-                            style={{
-                                padding: '6px 12px',
-                                background: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
-                            ⛶ Full
-                        </button>
-                    )}
-                </div>
+                    {/* NEW: Refresh Button */}
+                    <button
+                        onClick={() => refreshChartData(symbol)}
+                        disabled={refreshingChart[symbol]}
+                        style={{
+                            padding: '6px 12px',
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',// Update the TradingViewChart component header to include new controls:
+            continue from here please. from over but from here :)25 Jan            borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    {refreshingChart[symbol] ? '⏳' : '🔄 Refresh'}
+                </button>
+                
+                {/* NEW: Auto-Refresh Toggle */}
+                <button
+                    onClick={() => toggleAutoRefresh(symbol)}
+                    style={{
+                        padding: '6px 12px',
+                        background: autoRefreshEnabled[symbol] ? '#f59e0b' : '#374151',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    {autoRefreshEnabled[symbol] ? '⏸️ Auto' : '▶️ Auto'}
+                </button>
+                
+                {/* Fullscreen Button */}
+                {!isFullscreen && (
+                    <button
+                        onClick={() => setFullscreenChart(symbol)}
+                        style={{
+                            padding: '6px 12px',
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        ⛶ Full
+                    </button>
+                )}
             </div>
-            
-            {/* Chart - FIXED for mobile responsiveness */}
+            </div>
+            {/* NEW: AI Analysis Overlay (in chart container) */}
+            {isFullscreen && showAIOverlay[symbol] && assetAnalysis[symbol] && (
+            <div className="ai-overlay-container">
+            <div className="ai-overlay-header">
+            <div className="ai-overlay-title">🤖 AI Analysis</div>
+            <button
+            className="ai-overlay-close"
+            onClick={() => setShowAIOverlay(prev => ({
+            ...prev,
+            [symbol]: false
+            }))}
+            >
+            ✕
+            </button>
+            </div>
+            <div className="ai-overlay-content">
+            {assetAnalysis[symbol].analysis}
+            </div>
+            </div>
+            )}
+            // ================================
+            // UPDATED CHART COMPONENT (Reduced Height)
+            // ================================
+            // Update the chart container div height:
             <div 
                 ref={chartContainerRef} 
                 style={{ 
                     width: '100%',
-                    maxWidth: '100%', // Prevent overflow
-                    height: isFullscreen ? `${Math.min(window.innerHeight - 200, 800)}px` : '300px',
+                    maxWidth: '100%',
+                    height: isFullscreen ? `${Math.min(window.innerHeight - 200, 700)}px` : '280px', // Reduced from 300px
                     background: '#1a1a1a',
                     borderRadius: '0 0 8px 8px',
-                    overflow: 'hidden' // Prevent chart from pushing screen
+                    overflow: 'hidden',
+                    position: 'relative' // For AI overlay positioning
                 }} 
             />
+
         </div>
     );
 };
