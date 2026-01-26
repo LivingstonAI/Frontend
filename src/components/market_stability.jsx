@@ -2653,53 +2653,6 @@ const TradingViewChart = ({ data, symbol, isFullscreen = false }) => {
                         </div>
                     )}
 
-                    {fullscreenChart && (
-                            <div style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'rgba(0, 0, 0, 0.95)',
-                            zIndex: 99999,
-                            padding: window.innerWidth < 768 ? '10px' : '20px',
-                            overflow: 'auto'
-                            }}>
-                            <div style={{
-                            maxWidth: '1600px',
-                            margin: '0 auto',
-                            background: '#1a1a1a',
-                            borderRadius: '16px',
-                            padding: window.innerWidth < 768 ? '10px' : '20px',
-                            width: '100%',
-                            boxSizing: 'border-box',
-                            position: 'relative'
-                        }}>
-
-                        {/* Chatbot Orb in Chart */}
-                            <div 
-                                className="ai-chatbot-orb"
-                                onClick={() => {
-                                    setShowChatbot(!showChatbot);
-                                    setShowOrb(false);
-                                }}
-                                title="Chat with Simons about this chart"
-                                style={{ 
-                                    display: showOrb ? 'flex' : 'none',
-                                    position: 'absolute',
-                                    bottom: '30px',
-                                    right: '30px',
-                                    zIndex: 1001
-                                }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    )}
-                    
                     {/* NEW: AI Analysis Toggle (only in fullscreen) */}
                     {isFullscreen && assetAnalysis[symbol] && !assetAnalysis[symbol].noData && !assetAnalysis[symbol].error && (
                         <button
@@ -6338,105 +6291,131 @@ return (
             </>
         )}
 
-            {/* Fullscreen Chart Modal */}
-{fullscreenChart && chartData[fullscreenChart] && (
-    <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.95)',
-        zIndex: 99999,
-        padding: window.innerWidth < 768 ? '10px' : '20px',
-        overflow: 'auto'
-    }}>
-        <div style={{
-            maxWidth: '1600px',
-            margin: '0 auto',
-            background: '#1a1a1a',
-            borderRadius: '16px',
-            padding: window.innerWidth < 768 ? '10px' : '20px',
-            width: '100%',
-            boxSizing: 'border-box'
-        }}>
-            {/* Header */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '15px',
-                flexWrap: 'wrap',
-                gap: '10px'
-            }}>
-                <h2 style={{ 
-                    color: 'white', 
-                    margin: 0,
-                    fontSize: window.innerWidth < 768 ? '18px' : '24px'
-                }}>
-                    {fullscreenChart} - Analysis
-                </h2>
-                <button
-                    onClick={() => setFullscreenChart(null)}
-                    style={{
-                        padding: '8px 16px',
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 600
-                    }}
-                >
-                    ✕ Close
-                </button>
-            </div>
-            
-            {/* Legend for overlays */}
-            {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+        {/* Fullscreen Chart Modal */}
+            {fullscreenChart && chartData[fullscreenChart] && (
                 <div style={{
-                    background: '#2a2a2a',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    marginBottom: '15px',
-                    color: '#e5e7eb',
-                    fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.95)',
+                    zIndex: 99999,
+                    padding: window.innerWidth < 768 ? '10px' : '20px',
+                    overflow: 'auto'
                 }}>
-                    <strong>Overlays:</strong>
-                    <div style={{ 
-                        display: 'flex', 
-                        gap: window.innerWidth < 768 ? '8px' : '15px', 
-                        marginTop: '8px', 
-                        flexWrap: 'wrap' 
+                    <div style={{
+                        maxWidth: '1600px',
+                        margin: '0 auto',
+                        background: '#1a1a1a',
+                        borderRadius: '16px',
+                        padding: window.innerWidth < 768 ? '10px' : '20px',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        position: 'relative' // Important for orb positioning
                     }}>
-                        {retracementData[fullscreenChart]?.entry_zones && (
-                            <>
-                                <span style={{color: '#10b981'}}>● Aggressive</span>
-                                <span style={{color: '#fbbf24'}}>● Optimal</span>
-                                <span style={{color: '#3b82f6'}}>● Conservative</span>
-                                <span style={{color: '#ef4444'}}>● Stop</span>
-                            </>
+                        {/* Header */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '15px',
+                            flexWrap: 'wrap',
+                            gap: '10px'
+                        }}>
+                            <h2 style={{ 
+                                color: 'white', 
+                                margin: 0,
+                                fontSize: window.innerWidth < 768 ? '18px' : '24px'
+                            }}>
+                                {fullscreenChart} - Analysis
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setFullscreenChart(null);
+                                    setCurrentChartSymbol(null); // Clear chart context
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: 600
+                                }}
+                            >
+                                ✕ Close
+                            </button>
+                        </div>
+                        
+                        {/* Legend for overlays */}
+                        {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                            <div style={{
+                                background: '#2a2a2a',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                marginBottom: '15px',
+                                color: '#e5e7eb',
+                                fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                            }}>
+                                <strong>Overlays:</strong>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: window.innerWidth < 768 ? '8px' : '15px', 
+                                    marginTop: '8px', 
+                                    flexWrap: 'wrap' 
+                                }}>
+                                    {retracementData[fullscreenChart]?.entry_zones && (
+                                        <>
+                                            <span style={{color: '#10b981'}}>● Aggressive</span>
+                                            <span style={{color: '#fbbf24'}}>● Optimal</span>
+                                            <span style={{color: '#3b82f6'}}>● Conservative</span>
+                                            <span style={{color: '#ef4444'}}>● Stop</span>
+                                        </>
+                                    )}
+                                    {elasticityData[fullscreenChart] && (
+                                        <span style={{color: '#ec4899'}}>● Elastic Bands</span>
+                                    )}
+                                    {priceTargetData[fullscreenChart] && (
+                                        <span style={{color: '#8b5cf6'}}>● Target</span>
+                                    )}
+                                </div>
+                            </div>
                         )}
-                        {elasticityData[fullscreenChart] && (
-                            <span style={{color: '#ec4899'}}>● Elastic Bands</span>
-                        )}
-                        {priceTargetData[fullscreenChart] && (
-                            <span style={{color: '#8b5cf6'}}>● Target</span>
+                        
+                        {/* Fullscreen Chart */}
+                        <TradingViewChart 
+                            data={chartData[fullscreenChart]} 
+                            symbol={fullscreenChart}
+                            isFullscreen={true}
+                        />
+                        
+                        {/* ✅ CHATBOT ORB - Place it here, after the chart */}
+                        {showOrb && (
+                            <div 
+                                className="ai-chatbot-orb"
+                                onClick={() => {
+                                    setShowChatbot(true);
+                                    setShowOrb(false);
+                                }}
+                                title="Chat with Simons about this chart"
+                                style={{ 
+                                    position: 'absolute',
+                                    bottom: '30px',
+                                    right: '30px',
+                                    zIndex: 1001
+                                }}
+                            >
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+                                </svg>
+                            </div>
                         )}
                     </div>
                 </div>
             )}
-            
-            {/* Fullscreen Chart */}
-            <TradingViewChart 
-                data={chartData[fullscreenChart]} 
-                symbol={fullscreenChart}
-                isFullscreen={true}
-            />
-        </div>
-    </div>
-)}
         {!loading && mssData.length === 0 && (
             <div className="mss-empty">
                 <div className="empty-icon">📊</div>
@@ -6548,58 +6527,6 @@ return (
                     </div>
                 )}
                 
-                {/* Chart Context Toggle */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '8px',
-                    paddingTop: '10px',
-                    borderTop: '1px solid #e5e7eb'
-                }}>
-                    <label style={{
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: '#1f2937',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer'
-                    }}>
-                        <input
-                            type="checkbox"
-                            checked={useChartContext}
-                            onChange={(e) => setUseChartContext(e.target.checked)}
-                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        />
-                        <span>📊 Use Trading Chart</span>
-                    </label>
-                    
-                    {useChartContext && currentChartSymbol && (
-                        <div style={{
-                            fontSize: '11px',
-                            color: '#059669',
-                            fontWeight: 600,
-                            background: '#d1fae5',
-                            padding: '4px 8px',
-                            borderRadius: '6px'
-                        }}>
-                            {currentChartSymbol}
-                        </div>
-                    )}
-                </div>
-                
-                {useChartContext && !currentChartSymbol && (
-                    <div style={{
-                        fontSize: '11px',
-                        color: '#f59e0b',
-                        fontStyle: 'italic'
-                    }}>
-                        ⚠️ View a chart first to enable this feature
-                    </div>
-                )}
-                </div>
-            
             <div className="ai-chatbot-messages">
                 {chatMessages.length === 0 && (
                     <div className="ai-welcome-message">
