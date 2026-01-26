@@ -6254,7 +6254,7 @@ return (
                         </div>
                 ))}
                 </div>
-            </div>
+            </>
         )}
 
         {/* Fullscreen Chart Modal */}
