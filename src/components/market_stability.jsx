@@ -6531,5 +6531,6 @@ return (
                             </svg>
                     </div>
                 </div>
+    )
     );
 }
