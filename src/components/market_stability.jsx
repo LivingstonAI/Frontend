@@ -6293,131 +6293,370 @@ return (
             </>
         )}
 
-        {/* Fullscreen Chart Modal */}
-            {fullscreenChart && chartData[fullscreenChart] && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.95)',
-                    zIndex: 99999,
-                    padding: window.innerWidth < 768 ? '10px' : '20px',
-                    overflow: 'auto'
+            {/* Fullscreen Chart Modal */}
+{fullscreenChart && chartData[fullscreenChart] && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.95)',
+        zIndex: 99999,
+        padding: window.innerWidth < 768 ? '10px' : '20px',
+        overflow: 'auto'
+    }}>
+        <div style={{
+            maxWidth: '1600px',
+            margin: '0 auto',
+            background: '#1a1a1a',
+            borderRadius: '16px',
+            padding: window.innerWidth < 768 ? '10px' : '20px',
+            width: '100%',
+            boxSizing: 'border-box',
+            position: 'relative'
+        }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '15px',
+                flexWrap: 'wrap',
+                gap: '10px'
+            }}>
+                <h2 style={{ 
+                    color: 'white', 
+                    margin: 0,
+                    fontSize: window.innerWidth < 768 ? '18px' : '24px'
                 }}>
-                    <div style={{
-                        maxWidth: '1600px',
-                        margin: '0 auto',
-                        background: '#1a1a1a',
-                        borderRadius: '16px',
-                        padding: window.innerWidth < 768 ? '10px' : '20px',
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        position: 'relative' // Important for orb positioning
+                    {fullscreenChart} - Analysis
+                </h2>
+                <button
+                    onClick={() => {
+                        setFullscreenChart(null);
+                        setCurrentChartSymbol(null);
+                        setShowChatbot(false); // Close chatbot when closing chart
+                        setShowOrb(true); // Reset orb
+                    }}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}
+                >
+                    ✕ Close
+                </button>
+            </div>
+            
+            {/* Legend for overlays */}
+            {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                <div style={{
+                    background: '#2a2a2a',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '15px',
+                    color: '#e5e7eb',
+                    fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                }}>
+                    <strong>Overlays:</strong>
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: window.innerWidth < 768 ? '8px' : '15px', 
+                        marginTop: '8px', 
+                        flexWrap: 'wrap' 
                     }}>
-                        {/* Header */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '15px',
-                            flexWrap: 'wrap',
-                            gap: '10px'
-                        }}>
-                            <h2 style={{ 
-                                color: 'white', 
-                                margin: 0,
-                                fontSize: window.innerWidth < 768 ? '18px' : '24px'
-                            }}>
-                                {fullscreenChart} - Analysis
-                            </h2>
-                            <button
-                                onClick={() => {
-                                    setFullscreenChart(null);
-                                    setCurrentChartSymbol(null); // Clear chart context
-                                }}
-                                style={{
-                                    padding: '8px 16px',
-                                    background: '#ef4444',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    fontWeight: 600
-                                }}
-                            >
-                                ✕ Close
-                            </button>
-                        </div>
-                        
-                        {/* Legend for overlays */}
-                        {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
-                            <div style={{
-                                background: '#2a2a2a',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                marginBottom: '15px',
-                                color: '#e5e7eb',
-                                fontSize: window.innerWidth < 768 ? '11px' : '13px'
-                            }}>
-                                <strong>Overlays:</strong>
-                                <div style={{ 
-                                    display: 'flex', 
-                                    gap: window.innerWidth < 768 ? '8px' : '15px', 
-                                    marginTop: '8px', 
-                                    flexWrap: 'wrap' 
-                                }}>
-                                    {retracementData[fullscreenChart]?.entry_zones && (
-                                        <>
-                                            <span style={{color: '#10b981'}}>● Aggressive</span>
-                                            <span style={{color: '#fbbf24'}}>● Optimal</span>
-                                            <span style={{color: '#3b82f6'}}>● Conservative</span>
-                                            <span style={{color: '#ef4444'}}>● Stop</span>
-                                        </>
-                                    )}
-                                    {elasticityData[fullscreenChart] && (
-                                        <span style={{color: '#ec4899'}}>● Elastic Bands</span>
-                                    )}
-                                    {priceTargetData[fullscreenChart] && (
-                                        <span style={{color: '#8b5cf6'}}>● Target</span>
-                                    )}
-                                </div>
-                            </div>
+                        {retracementData[fullscreenChart]?.entry_zones && (
+                            <>
+                                <span style={{color: '#10b981'}}>● Aggressive</span>
+                                <span style={{color: '#fbbf24'}}>● Optimal</span>
+                                <span style={{color: '#3b82f6'}}>● Conservative</span>
+                                <span style={{color: '#ef4444'}}>● Stop</span>
+                            </>
                         )}
-                        
-                        {/* Fullscreen Chart */}
-                        <TradingViewChart 
-                            data={chartData[fullscreenChart]} 
-                            symbol={fullscreenChart}
-                            isFullscreen={true}
-                        />
-                        
-                        {/* ✅ CHATBOT ORB - Place it here, after the chart */}
-                        {showOrb && (
-                            <div 
-                                className="ai-chatbot-orb"
-                                onClick={() => {
-                                    setShowChatbot(true);
-                                    setShowOrb(false);
-                                }}
-                                title="Chat with Simons about this chart"
-                                style={{ 
-                                    position: 'absolute',
-                                    bottom: '30px',
-                                    right: '30px',
-                                    zIndex: 1001
-                                }}
-                            >
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
-                                </svg>
-                            </div>
+                        {elasticityData[fullscreenChart] && (
+                            <span style={{color: '#ec4899'}}>● Elastic Bands</span>
+                        )}
+                        {priceTargetData[fullscreenChart] && (
+                            <span style={{color: '#8b5cf6'}}>● Target</span>
                         )}
                     </div>
                 </div>
             )}
+            
+            {/* Fullscreen Chart */}
+            <TradingViewChart 
+                data={chartData[fullscreenChart]} 
+                symbol={fullscreenChart}
+                isFullscreen={true}
+            />
+            
+            {/* ✅ CHATBOT ORB */}
+            {showOrb && (
+                <div 
+                    className="ai-chatbot-orb"
+                    onClick={() => {
+                        setShowChatbot(true);
+                        setShowOrb(false);
+                    }}
+                    title="Chat with Simons about this chart"
+                    style={{ 
+                        position: 'absolute',
+                        bottom: '30px',
+                        right: '30px',
+                        zIndex: 1001
+                    }}
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+                    </svg>
+                </div>
+            )}
+            
+            {/* ✅ CHATBOT PANEL - Add this entire section */}
+            {showChatbot && (
+                <div className="ai-chatbot-panel" style={{ 
+                    display: 'flex',
+                    position: 'fixed',
+                    bottom: window.innerWidth < 768 ? '20px' : '30px',
+                    right: window.innerWidth < 768 ? '20px' : '30px',
+                    zIndex: 1002
+                }}>
+                    <div className="ai-chatbot-header">
+                        <h3>
+                            <span>🎯</span>
+                            <span>Simons - Trading Assistant</span>
+                        </h3>
+                        <button 
+                            className="ai-chatbot-close" 
+                            onClick={() => {
+                                setShowChatbot(false);
+                                setShowOrb(true);
+                                stopSpeaking();
+                            }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    
+                    {/* Voice & Chart Settings */}
+                    <div style={{
+                        background: '#f3f4f6',
+                        padding: '12px 20px',
+                        borderBottom: '2px solid #e5e7eb',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                    }}>
+                        {/* Voice Enable Toggle */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <label style={{
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#1f2937',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={voiceEnabled}
+                                    onChange={(e) => setVoiceEnabled(e.target.checked)}
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                />
+                                <span>🔊 Voice Reader</span>
+                            </label>
+                            
+                            {isSpeaking && (
+                                <button
+                                    onClick={stopSpeaking}
+                                    style={{
+                                        padding: '4px 12px',
+                                        background: '#ef4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ⏹️ Stop
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* Voice Selection */}
+                        {voiceEnabled && (
+                            <div>
+                                <label style={{
+                                    fontSize: '12px',
+                                    color: '#6b7280',
+                                    marginBottom: '4px',
+                                    display: 'block'
+                                }}>
+                                    Select Voice:
+                                </label>
+                                <select
+                                    value={selectedVoice?.name || ''}
+                                    onChange={(e) => handleVoiceChange(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        borderRadius: '6px',
+                                        border: '2px solid #e5e7eb',
+                                        fontSize: '12px',
+                                        background: 'white'
+                                    }}
+                                >
+                                    <option value="">Default Voice</option>
+                                    {availableVoices.map((voice, idx) => (
+                                        <option key={idx} value={voice.name}>
+                                            {voice.name} ({voice.lang})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        
+                        {/* Chart Context Toggle */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '8px',
+                            paddingTop: '10px',
+                            borderTop: '1px solid #e5e7eb'
+                        }}>
+                            <label style={{
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: '#1f2937',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={useChartContext}
+                                    onChange={(e) => setUseChartContext(e.target.checked)}
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                />
+                                <span>📊 Use Trading Chart</span>
+                            </label>
+                            
+                            {useChartContext && currentChartSymbol && (
+                                <div style={{
+                                    fontSize: '11px',
+                                    color: '#059669',
+                                    fontWeight: 600,
+                                    background: '#d1fae5',
+                                    padding: '4px 8px',
+                                    borderRadius: '6px'
+                                }}>
+                                    {currentChartSymbol}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {useChartContext && !currentChartSymbol && (
+                            <div style={{
+                                fontSize: '11px',
+                                color: '#f59e0b',
+                                fontStyle: 'italic'
+                            }}>
+                                ⚠️ Chart context active for {fullscreenChart}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Messages */}
+                    <div className="ai-chatbot-messages">
+                        {chatMessages.length === 0 && (
+                            <div className="ai-welcome-message">
+                                Hey there! I'm Simons, your trading assistant. I can analyze the {fullscreenChart} chart and help you make informed decisions. What would you like to explore?
+                            </div>
+                        )}
+                        {chatMessages.map((msg, idx) => (
+                            <div key={idx} className={`ai-message ${msg.role}`}>
+                                {msg.image && (
+                                    <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                                )}
+                                <div>{msg.content}</div>
+                            </div>
+                        ))}
+                        {chatLoading && (
+                            <div className="ai-loading">
+                                <div className="ai-loading-spinner"></div>
+                                <span>Simons is analyzing...</span>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    
+                    {/* Input */}
+                    <div className="ai-chatbot-input-container">
+                        <label className="ai-file-upload-btn" title="Upload chart image">
+                            📎
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                        </label>
+                        <input
+                            type="text"
+                            className="ai-chatbot-input"
+                            placeholder="Ask Simons about this chart..."
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                            disabled={chatLoading}
+                        />
+                        <button 
+                            className="ai-chatbot-send"
+                            onClick={handleChatSend}
+                            disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+                        >
+                            {chatLoading ? '...' : 'Send'}
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Image Attached Indicator */}
+            {chatImage && showChatbot && (
+                <div className="ai-image-attached" style={{
+                    position: 'fixed',
+                    bottom: window.innerWidth < 768 ? '670px' : '790px',
+                    right: window.innerWidth < 768 ? '30px' : '50px',
+                    zIndex: 1003
+                }}>
+                    <span>📷 Chart attached</span>
+                    <button 
+                        className="ai-image-remove"
+                        onClick={() => setChatImage(null)}
+                        title="Remove image"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+        </div>
+    </div>
+)}
+        
         {!loading && mssData.length === 0 && (
             <div className="mss-empty">
                 <div className="empty-icon">📊</div>
