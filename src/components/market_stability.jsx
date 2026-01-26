@@ -3472,7 +3472,7 @@ Be concise, actionable, and insightful. Focus on practical trading advice while 
                 'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o',
+                model: 'gpt-4o-mini',
                 messages: messages,
                 temperature: 0.7,
                 max_tokens: 500
