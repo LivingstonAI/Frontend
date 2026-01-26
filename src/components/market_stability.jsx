@@ -6166,97 +6166,95 @@ return (
                                 </div>
                             )}
 
-                                {/* Display chart in card (normal size, no overlays) */}
-                            {showChart[asset.symbol] && chartData[asset.symbol] && (
-                                <div style={{
-                                    marginTop: '15px',
-                                    padding: '15px',
-                                    background: '#1a1a1a',
-                                    borderRadius: '12px',
-                                    border: '2px solid #4f46e5'
-                                }}>
-                                    <TradingViewChart 
-                                        data={chartData[asset.symbol]} 
-                                        symbol={asset.symbol}
-                                        isFullscreen={false}
-                                    />
-                                </div>
-                            )}
+                           {showChart[asset.symbol] && chartData[asset.symbol] && (
+                                <>
+                                    <div style={{
+                                        marginTop: '15px',
+                                        padding: '15px',
+                                        background: '#1a1a1a',
+                                        borderRadius: '12px',
+                                        border: '2px solid #4f46e5'
+                                    }}>
+                                        <TradingViewChart 
+                                            data={chartData[asset.symbol]} 
+                                            symbol={asset.symbol}
+                                            isFullscreen={false}
+                                        />
+                                    </div>
                             
-                            <div className="card-metrics">
-                                <div className="metric">
-                                    <span className="metric-label">MSS:</span>
-                                    <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
-                                </div>
-                                <div className="metric">
-                                    <span className="metric-label">Price:</span>
-                                    <span className="metric-value">${asset.current_price}</span>
-                                </div>
-                                <div className="metric">
-                                    <span className="metric-label">Change:</span>
-                                    <span 
-                                        className="metric-value"
-                                        style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
-                                    >
-                                        {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
-                                    </span>
-                                </div>
-                            </div>
-                            {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
-                                <div style={{ 
-                                    background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
-                                               asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
-                                               'rgba(59, 130, 246, 0.1)',
-                                    padding: '12px',
-                                    borderRadius: '8px',
-                                    marginBottom: '18px'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
-                                            Relative Volume:
-                                        </span>
-                                        <span style={{ 
-                                            fontSize: '15px', 
-                                            fontWeight: 700,
-                                            color: asset.volumeCategory === 'high' ? '#059669' : 
-                                                   asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                    <div className="card-metrics">
+                                        <div className="metric">
+                                            <span className="metric-label">MSS:</span>
+                                            <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
+                                        </div>
+                                        <div className="metric">
+                                            <span className="metric-label">Price:</span>
+                                            <span className="metric-value">${asset.current_price}</span>
+                                        </div>
+                                        <div className="metric">
+                                            <span className="metric-label">Change:</span>
+                                            <span 
+                                                className="metric-value"
+                                                style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
+                                            >
+                                                {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
+                                            </span>
+                                        </div>
+                                    </div>
+                            
+                                    {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
+                                        <div style={{ 
+                                            background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
+                                                       asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
+                                                       'rgba(59, 130, 246, 0.1)',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            marginBottom: '18px'
                                         }}>
-                                            {asset.relativeVolume}x
-                                        </span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
+                                                    Relative Volume:
+                                                </span>
+                                                <span style={{ 
+                                                    fontSize: '15px', 
+                                                    fontWeight: 700,
+                                                    color: asset.volumeCategory === 'high' ? '#059669' : 
+                                                           asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                                }}>
+                                                    {asset.relativeVolume}x
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                                Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
+                                            </div>
+                                            <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
+                                                {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
+                                                {asset.volumeCategory?.toUpperCase()} VOLUME
+                                            </span>
+                                        </div>
+                                    )}
+                            
+                                    <div className="card-details">
+                                        <div className="detail-item">
+                                            <span>Norm. Volatility:</span>
+                                            <span>{asset.normalized_volatility}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span>R² (Trend):</span>
+                                            <span>{asset.r_squared}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span>Liquidity Factor:</span>
+                                            <span>{asset.liquidity_factor}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                            <span>Avg Volume:</span>
+                                            <span>{asset.avg_volume.toLocaleString()}</span>
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                                        Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
-                                    </div>
-                                    <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
-                                        {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
-                                        {asset.volumeCategory?.toUpperCase()} VOLUME
-                                    </span>
-                                </div>
+                                </>
                             )}
-                            <div className="card-details">
-                                <div className="detail-item">
-                                    <span>Norm. Volatility:</span>
-                                    <span>{asset.normalized_volatility}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span>R² (Trend):</span>
-                                    <span>{asset.r_squared}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span>Liquidity Factor:</span>
-                                    <span>{asset.liquidity_factor}</span>
-                                </div>
-                                <div className="detail-item">
-                                    <span>Avg Volume:</span>
-                                    <span>{asset.avg_volume.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        </div>
-                       ))}
-                    </div>
-                </div>
-            </>
-        )}
+
 
         {/* Fullscreen Chart Modal */}
                         {fullscreenChart && chartData[fullscreenChart] && (
