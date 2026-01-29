@@ -4159,199 +4159,194 @@ const changeChartTimeframe = async (symbol, newTimeframe) => {
         }
     };
 
-    const saveToForwardTest = async (asset) => {
-        setSavingModels(prev => ({ ...prev, [asset.symbol]: true }));
 
-        try {
-            let modelCode = '';
-            if (asset.trend === 'uptrend') {
-                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
-    set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
-    if num_positions == 0:
-        # 5-Layer confirmation system with R² trend strength
-        if is_uptrend(data=dataset, lookback_days=30):
-            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
-                if is_bullish_market_retracement(data=dataset, lookback_period=20):
-                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
-                        if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                            return_statement = 'buy'`;
-            } else if (asset.trend === 'downtrend') {
-                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
-    set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+const saveToForwardTest = async (asset) => {
+    setSavingModels(prev => ({ ...prev, [asset.symbol]: true }));
 
-    if num_positions == 0:
-        # 5-Layer confirmation system with R² trend strength
-        if is_downtrend(data=dataset, lookback_days=30):
-            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
-                if is_bearish_market_retracement(data=dataset, lookback_period=20):
-                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
-                        if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                            return_statement = 'sell'`;
-            } else {
-                alert(`Cannot save ${asset.symbol}: No clear trend detected`);
-                setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
-                return;
-            }
+    try {
+        let modelCode = '';
+        if (asset.trend === 'uptrend') {
+            modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
-            const response = await fetch(`${baseUrl}/api/snowai-models/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: `[MSS-R²-MC] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
-                    asset: asset.symbol,
-                    interval: '1h',
-                    model_code: modelCode,
-                    initial_equity: 10000,
-                    num_positions: 1,
-                    take_profit: 4,
-                    take_profit_type: 'PERCENTAGE',
-                    stop_loss: 2,
-                    stop_loss_type: 'PERCENTAGE',
-                })
-            });
+if num_positions == 0:
+    # 3-Layer Elite Uptrend Strategy
+    if is_uptrend(data=dataset, lookback_days=30):
+        if is_bullish_market_retracement(data=dataset, lookback_period=20):
+            if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                return_statement = 'buy'`;
+        } else if (asset.trend === 'downtrend') {
+            modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
-            const data = await response.json();
-            
-            if (response.ok) {
-                setSavedModels(prev => new Set([...prev, asset.symbol]));
-                setActiveModels(prev => ({
-                    ...prev,
-                    [asset.symbol]: { id: data.id, isActive: true }
-                }));
-                alert(`✅ Successfully saved ${asset.symbol} with 5-Layer Elite Strategy:\n✓ Trend\n✓ R² Strength (20d)\n✓ Retracement\n✓ Avg Retracement\n✓ Monte Carlo`);
-                fetchExistingModels();
-            } else {
-                alert(`Error: ${data.error || 'Failed to save model'}`);
-            }
-        } catch (error) {
-            console.error('Error saving model:', error);
-            alert('Failed to save model. Please try again.');
-        } finally {
+if num_positions == 0:
+    # 3-Layer Elite Downtrend Strategy
+    if is_downtrend(data=dataset, lookback_days=30):
+        if is_bearish_market_retracement(data=dataset, lookback_period=20):
+            if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                return_statement = 'sell'`;
+        } else {
+            alert(`Cannot save ${asset.symbol}: No clear trend detected`);
             setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
-        }
-    };
-
-
-    const deactivateModel = async (asset) => {
-        if (!window.confirm(`Are you sure you want to deactivate the model for ${asset.symbol}?`)) {
             return;
         }
 
-        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
+        const response = await fetch(`${baseUrl}/api/snowai-models/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: `[Elite 3-Layer] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
+                asset: asset.symbol,
+                interval: '1h',
+                model_code: modelCode,
+                initial_equity: 10000,
+                num_positions: 1,
+                take_profit: 4,
+                take_profit_type: 'PERCENTAGE',
+                stop_loss: 2,
+                stop_loss_type: 'PERCENTAGE',
+            })
+        });
 
-        try {
-            const modelInfo = activeModels[asset.symbol];
-            if (!modelInfo) {
-                alert('Model not found');
-                return;
-            }
-
-            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_active: false
-                })
-            });
-
-            if (response.ok) {
-                setActiveModels(prev => ({
-                    ...prev,
-                    [asset.symbol]: { ...prev[asset.symbol], isActive: false }
-                }));
-                alert(`⏸️ Successfully deactivated ${asset.symbol}`);
-                fetchExistingModels();
-            } else {
-                alert('Failed to deactivate model');
-            }
-        } catch (error) {
-            console.error('Error deactivating model:', error);
-            alert('Failed to deactivate model. Please try again.');
-        } finally {
-            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+        const data = await response.json();
+        
+        if (response.ok) {
+            setSavedModels(prev => new Set([...prev, asset.symbol]));
+            setActiveModels(prev => ({
+                ...prev,
+                [asset.symbol]: { id: data.id, isActive: true }
+            }));
+            alert(`✅ Successfully saved ${asset.symbol} with 3-Layer Elite Strategy:\n✓ Trend (30d)\n✓ Market Retracement (20d)\n✓ Average Retracement Pattern`);
+            fetchExistingModels();
+        } else {
+            alert(`Error: ${data.error || 'Failed to save model'}`);
         }
-    };
+    } catch (error) {
+        console.error('Error saving model:', error);
+        alert('Failed to save model. Please try again.');
+    } finally {
+        setSavingModels(prev => ({ ...prev, [asset.symbol]: false }));
+    }
+};
 
-    const reactivateModel = async (asset) => {
-        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
 
-        try {
-            const modelInfo = activeModels[asset.symbol];
-            if (!modelInfo) {
-                alert('Model not found');
-                return;
-            }
+const deactivateModel = async (asset) => {
+    if (!window.confirm(`Are you sure you want to deactivate the model for ${asset.symbol}?`)) {
+        return;
+    }
 
-            if (!asset.trend || asset.trend === 'ranging' || asset.trend === 'unknown') {
-                alert(`❌ Cannot reactivate ${asset.symbol}: No clear trend detected. Current market is ${asset.trend || 'unknown'}.`);
-                setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
-                return;
-            }
+    setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
 
-            let modelCode = '';
-            if (asset.trend === 'uptrend') {
-                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
-    set_stop_loss(number=2, type_of_setting='PERCENTAGE')
-
-    if num_positions == 0:
-        # 5-Layer confirmation system with R² trend strength
-        if is_uptrend(data=dataset, lookback_days=30):
-            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
-                if is_bullish_market_retracement(data=dataset, lookback_period=20):
-                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
-                        if is_monte_carlo_bullish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                            return_statement = 'buy'`;
-            } else if (asset.trend === 'downtrend') {
-                modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
-    set_stop_loss(number=2, type_of_setting='PERCENTAGE')
-
-    if num_positions == 0:
-        # 5-Layer confirmation system with R² trend strength
-        if is_downtrend(data=dataset, lookback_days=30):
-            if is_high_r_squared(data=dataset, lookback_period=20, threshold=0.7):
-                if is_bearish_market_retracement(data=dataset, lookback_period=20):
-                    if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
-                        if is_monte_carlo_bearish_prediction(data=dataset, lookback_days=30, forecast_days=5, threshold=0.60):
-                            return_statement = 'sell'`;
-            }
-
-            const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_active: true,
-                    model_code: modelCode,
-                    name: `[MSS-R²-MC] ${asset.symbol} - ${asset.trend.toUpperCase()}`
-                })
-            });
-
-            if (response.ok) {
-                setActiveModels(prev => ({
-                    ...prev,
-                    [asset.symbol]: { ...prev[asset.symbol], isActive: true }
-                }));
-                alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} + 5-Layer Confirmation:\n✓ Trend\n✓ R² Strength (20d)\n✓ Retracement\n✓ Avg Retracement\n✓ Monte Carlo`);
-                fetchExistingModels();
-            } else {
-                alert('Failed to reactivate model');
-            }
-        } catch (error) {
-            console.error('Error reactivating model:', error);
-            alert('Failed to reactivate model. Please try again.');
-        } finally {
-            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+    try {
+        const modelInfo = activeModels[asset.symbol];
+        if (!modelInfo) {
+            alert('Model not found');
+            return;
         }
-    };
 
+        const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                is_active: false
+            })
+        });
 
-    const deleteModel = async (asset) => {
+        if (response.ok) {
+            setActiveModels(prev => ({
+                ...prev,
+                [asset.symbol]: { ...prev[asset.symbol], isActive: false }
+            }));
+            alert(`⏸️ Successfully deactivated ${asset.symbol}`);
+            fetchExistingModels();
+        } else {
+            alert('Failed to deactivate model');
+        }
+    } catch (error) {
+        console.error('Error deactivating model:', error);
+        alert('Failed to deactivate model. Please try again.');
+    } finally {
+        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+    }
+};
+
+const reactivateModel = async (asset) => {
+    setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: true }));
+
+    try {
+        const modelInfo = activeModels[asset.symbol];
+        if (!modelInfo) {
+            alert('Model not found');
+            return;
+        }
+
+        if (!asset.trend || asset.trend === 'ranging' || asset.trend === 'unknown') {
+            alert(`❌ Cannot reactivate ${asset.symbol}: No clear trend detected. Current market is ${asset.trend || 'unknown'}.`);
+            setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+            return;
+        }
+
+        let modelCode = '';
+        if (asset.trend === 'uptrend') {
+            modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+
+if num_positions == 0:
+    # 3-Layer Elite Uptrend Strategy
+    if is_uptrend(data=dataset, lookback_days=30):
+        if is_bullish_market_retracement(data=dataset, lookback_period=20):
+            if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                return_statement = 'buy'`;
+        } else if (asset.trend === 'downtrend') {
+            modelCode = `set_take_profit(number=4, type_of_setting='PERCENTAGE')
+set_stop_loss(number=2, type_of_setting='PERCENTAGE')
+
+if num_positions == 0:
+    # 3-Layer Elite Downtrend Strategy
+    if is_downtrend(data=dataset, lookback_days=30):
+        if is_bearish_market_retracement(data=dataset, lookback_period=20):
+            if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
+                return_statement = 'sell'`;
+        }
+
+        const response = await fetch(`${baseUrl}/api/snowai-models/${modelInfo.id}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                is_active: true,
+                model_code: modelCode,
+                name: `[Elite 3-Layer] ${asset.symbol} - ${asset.trend.toUpperCase()}`
+            })
+        });
+
+        if (response.ok) {
+            setActiveModels(prev => ({
+                ...prev,
+                [asset.symbol]: { ...prev[asset.symbol], isActive: true }
+            }));
+            alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} + 3-Layer Elite:\n✓ Trend (30d)\n✓ Market Retracement (20d)\n✓ Average Retracement Pattern`);
+            fetchExistingModels();
+        } else {
+            alert('Failed to reactivate model');
+        }
+    } catch (error) {
+        console.error('Error reactivating model:', error);
+        alert('Failed to reactivate model. Please try again.');
+    } finally {
+        setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
+    }
+};    
+
+    
+
+const deleteModel = async (asset) => {
         if (!window.confirm(`⚠️ Are you sure you want to DELETE the model for ${asset.symbol}? This will remove all trading history and cannot be undone!`)) {
             return;
         }
