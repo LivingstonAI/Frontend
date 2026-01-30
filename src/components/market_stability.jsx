@@ -4171,7 +4171,7 @@ const saveToForwardTest = async (asset) => {
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # 3-Layer Elite Uptrend Strategy
+    # MSS-R²-MC Strategy - 3-Layer Confirmation
     if is_uptrend(data=dataset, lookback_days=30):
         if is_bullish_market_retracement(data=dataset, lookback_period=20):
             if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
@@ -4181,7 +4181,7 @@ if num_positions == 0:
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # 3-Layer Elite Downtrend Strategy
+    # MSS-R²-MC Strategy - 3-Layer Confirmation
     if is_downtrend(data=dataset, lookback_days=30):
         if is_bearish_market_retracement(data=dataset, lookback_period=20):
             if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
@@ -4198,7 +4198,7 @@ if num_positions == 0:
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                name: `[Elite 3-Layer] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
+                name: `[MSS-R²-MC] ${asset.symbol} - ${asset.trend.toUpperCase()}`,
                 asset: asset.symbol,
                 interval: '1h',
                 model_code: modelCode,
@@ -4219,7 +4219,7 @@ if num_positions == 0:
                 ...prev,
                 [asset.symbol]: { id: data.id, isActive: true }
             }));
-            alert(`✅ Successfully saved ${asset.symbol} with 3-Layer Elite Strategy:\n✓ Trend (30d)\n✓ Market Retracement (20d)\n✓ Average Retracement Pattern`);
+            alert(`✅ Successfully saved ${asset.symbol} with MSS-R²-MC Strategy:\n✓ Trend (30d)\n✓ Market Retracement (20d)\n✓ Average Retracement Pattern`);
             fetchExistingModels();
         } else {
             alert(`Error: ${data.error || 'Failed to save model'}`);
@@ -4297,7 +4297,7 @@ const reactivateModel = async (asset) => {
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # 3-Layer Elite Uptrend Strategy
+    # MSS-R²-MC Strategy - 3-Layer Confirmation
     if is_uptrend(data=dataset, lookback_days=30):
         if is_bullish_market_retracement(data=dataset, lookback_period=20):
             if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
@@ -4307,7 +4307,7 @@ if num_positions == 0:
 set_stop_loss(number=2, type_of_setting='PERCENTAGE')
 
 if num_positions == 0:
-    # 3-Layer Elite Downtrend Strategy
+    # MSS-R²-MC Strategy - 3-Layer Confirmation
     if is_downtrend(data=dataset, lookback_days=30):
         if is_bearish_market_retracement(data=dataset, lookback_period=20):
             if average_retracement(data=dataset, min_patterns=3, sensitivity='medium'):
@@ -4322,7 +4322,7 @@ if num_positions == 0:
             body: JSON.stringify({
                 is_active: true,
                 model_code: modelCode,
-                name: `[Elite 3-Layer] ${asset.symbol} - ${asset.trend.toUpperCase()}`
+                name: `[MSS-R²-MC] ${asset.symbol} - ${asset.trend.toUpperCase()}`
             })
         });
 
@@ -4331,7 +4331,7 @@ if num_positions == 0:
                 ...prev,
                 [asset.symbol]: { ...prev[asset.symbol], isActive: true }
             }));
-            alert(`▶️ Successfully reactivated ${asset.symbol} with ${asset.trend.toUpperCase()} + 3-Layer Elite:\n✓ Trend (30d)\n✓ Market Retracement (20d)\n✓ Average Retracement Pattern`);
+            alert(`▶️ Successfully reactivated ${asset.symbol} with MSS-R²-MC:\n✓ Trend (30d)\n✓ Market Retracement (20d)\n✓ Average Retracement Pattern`);
             fetchExistingModels();
         } else {
             alert('Failed to reactivate model');
@@ -4342,7 +4342,8 @@ if num_positions == 0:
     } finally {
         setDeactivatingModels(prev => ({ ...prev, [asset.symbol]: false }));
     }
-};    
+};
+
 
     
 
