@@ -828,7 +828,9 @@ export default function SnowAIPeopleofInterest() {
     };
 
     const getYoutubeEmbedUrl = (url) => {
-        const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([\w-]{11})/);
+        const videoIdMatch = url.match(
+            /(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=|\/shorts\/))([\w-]{11})/
+        );
         return videoIdMatch ? `https://www.youtube.com/embed/${videoIdMatch[1]}` : null;
     };
 
