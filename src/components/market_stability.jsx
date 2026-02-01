@@ -5760,7 +5760,7 @@ return (
         <SideNavs />
         <div className="mss-wrapper">
             <div className="mss-header">
-                <h1>Market Stability Score</h1>
+                <h1>Market Stability Score Tester</h1>
                 <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
             </div>
 
@@ -6059,7 +6059,7 @@ return (
                         }}
                     >
                         {loadingSp500VsTech ? '📈 Analyzing...' : '📈 S&P 500 vs Tech'}
-                    </button><br />
+                    </button>
                     {/* NEW: Trend Duration Controls */}
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
                         <button
