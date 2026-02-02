@@ -3,8 +3,9 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+
 // ============================================================
-// NEW CSS — Correlation Analysis Modal + Per-Card Alignment Panel
+// CSS — Correlation Modal + Sentiment + Trade Recs + Per-Card
 // ============================================================
 
 const correlationModalStyles = `
@@ -21,11 +22,7 @@ const correlationModalStyles = `
     padding: 16px;
     animation: corrModalFadeIn 0.25s ease;
 }
-
-@keyframes corrModalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+@keyframes corrModalFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* ── Modal Shell ── */
 .corr-modal {
@@ -33,429 +30,333 @@ const correlationModalStyles = `
     border: 2px solid #334155;
     border-radius: 20px;
     width: 100%;
-    max-width: 760px;
+    max-width: 800px;
     max-height: 88vh;
     overflow-y: auto;
     box-shadow: 0 32px 80px rgba(0,0,0,0.5);
     animation: corrModalSlideUp 0.3s cubic-bezier(0.22,1,0.36,1);
 }
-
 @keyframes corrModalSlideUp {
     from { opacity: 0; transform: translateY(40px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Modal Header ── */
+/* ── Header ── */
 .corr-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 22px 28px 18px;
     border-bottom: 1px solid #334155;
-    position: sticky;
-    top: 0;
+    position: sticky; top: 0; z-index: 2;
     background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
-    z-index: 2;
     border-radius: 20px 20px 0 0;
 }
-
 .corr-modal-header h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: #f1f5f9;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    margin: 0; font-size: 20px; font-weight: 700; color: #f1f5f9;
+    display: flex; align-items: center; gap: 10px;
 }
-
 .corr-modal-close {
-    background: #334155;
-    border: none;
-    color: #94a3b8;
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: #334155; border: none; color: #94a3b8;
+    width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
 }
-.corr-modal-close:hover {
-    background: #ef4444;
-    color: white;
-}
+.corr-modal-close:hover { background: #ef4444; color: white; }
 
-/* ── Regime Badge ── */
+/* ── Regime Banner ── */
 .corr-regime-banner {
     margin: 20px 28px 0;
     padding: 14px 20px;
     border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
+    display: flex; align-items: center; gap: 14px;
 }
 .corr-regime-label {
-    font-size: 15px;
-    font-weight: 700;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    white-space: nowrap;
+    font-size: 15px; font-weight: 700; color: white;
+    text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;
 }
-.corr-regime-desc {
-    font-size: 13px;
-    color: rgba(255,255,255,0.85);
-    line-height: 1.5;
+.corr-regime-desc { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.5; }
+
+/* ── Sentiment Row (new) ── */
+.corr-sentiment-row {
+    margin: 14px 28px 0;
+    padding: 14px 20px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    display: flex; align-items: center; gap: 18px;
 }
+.corr-sentiment-badge {
+    padding: 8px 18px;
+    border-radius: 24px;
+    font-size: 14px; font-weight: 700;
+    color: white; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}
+.corr-sentiment-details { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.corr-sentiment-score {
+    font-size: 12px; color: #94a3b8;
+}
+.corr-sentiment-score strong { color: #cbd5e1; }
+.corr-sentiment-desc { font-size: 12px; color: #64748b; line-height: 1.4; }
 
 /* ── Stats Row ── */
 .corr-stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 12px;
-    padding: 20px 28px;
+    grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+    gap: 10px; padding: 18px 28px;
 }
 .corr-stat-card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 14px 10px;
-    text-align: center;
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: 10px; padding: 13px 8px; text-align: center;
 }
 .corr-stat-label {
-    font-size: 11px;
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    font-size: 10px; color: #64748b; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
 }
-.corr-stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: #f1f5f9;
-}
+.corr-stat-value { font-size: 20px; font-weight: 700; color: #f1f5f9; }
 
-/* ── Accordion Section ── */
-.corr-accordion {
-    margin: 0 28px 12px;
-}
+/* ── Accordion ── */
+.corr-accordion { margin: 0 28px 10px; }
 .corr-accordion-trigger {
-    width: 100%;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 14px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #cbd5e1;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: left;
+    width: 100%; background: #1e293b; border: 1px solid #334155;
+    border-radius: 10px; padding: 13px 18px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; transition: all 0.2s;
+    color: #cbd5e1; font-size: 14px; font-weight: 600; text-align: left;
 }
-.corr-accordion-trigger:hover {
-    background: #334155;
-    border-color: #475569;
-}
+.corr-accordion-trigger:hover { background: #334155; border-color: #475569; }
 .corr-accordion-trigger .corr-acc-arrow {
-    font-size: 12px;
-    transition: transform 0.25s;
-    color: #64748b;
+    font-size: 11px; transition: transform 0.25s; color: #64748b;
 }
-.corr-accordion-trigger.open .corr-acc-arrow {
-    transform: rotate(180deg);
-}
+.corr-accordion-trigger.open .corr-acc-arrow { transform: rotate(180deg); }
 .corr-accordion-body {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-top: none;
-    border-radius: 0 0 10px 10px;
-    padding: 18px;
+    background: #1e293b; border: 1px solid #334155; border-top: none;
+    border-radius: 0 0 10px 10px; padding: 18px;
     animation: corrAccFade 0.2s ease;
 }
 @keyframes corrAccFade {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Insights List ── */
-.corr-insights-list {
-    list-style: none;
-    padding: 0; margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+.corr-insights-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .corr-insights-list li {
-    font-size: 13px;
-    color: #cbd5e1;
-    line-height: 1.6;
-    padding: 10px 14px;
-    background: #0f172a;
-    border-radius: 8px;
-    border-left: 3px solid #3b82f6;
+    font-size: 13px; color: #cbd5e1; line-height: 1.6;
+    padding: 10px 14px; background: #0f172a;
+    border-radius: 8px; border-left: 3px solid #3b82f6;
 }
 
-/* ── Commodity Breakdown Table ── */
-.corr-breakdown-table {
-    width: 100%;
-    border-collapse: collapse;
+/* ── Trade Recs Table (new) ── */
+.trade-recs-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
 }
+.trade-recs-filter {
+    display: flex; gap: 6px; flex-wrap: wrap;
+}
+.trade-filter-btn {
+    padding: 4px 12px; border-radius: 14px; border: 1px solid #334155;
+    background: transparent; color: #64748b; font-size: 11px;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.trade-filter-btn:hover { border-color: #475569; color: #94a3b8; }
+.trade-filter-btn.active { background: #334155; color: #e2e8f0; border-color: #475569; }
+
+.trade-recs-table { width: 100%; border-collapse: collapse; }
+.trade-recs-table th {
+    font-size: 10px; color: #64748b; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 7px 8px; text-align: left;
+    border-bottom: 1px solid #334155; font-weight: 600;
+    white-space: nowrap;
+}
+.trade-recs-table th[data-sort] { cursor: pointer; user-select: none; }
+.trade-recs-table th[data-sort]:hover { color: #94a3b8; }
+.trade-recs-table td {
+    padding: 9px 8px; font-size: 12px; color: #cbd5e1;
+    border-bottom: 1px solid #1e293b; vertical-align: middle;
+}
+.trade-recs-table tr:last-child td { border-bottom: none; }
+.trade-recs-table tr:hover td { background: rgba(51,65,85,0.3); }
+
+/* Action badge */
+.trade-action-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; color: white;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+/* Ticker badge */
+.corr-ticker-badge {
+    display: inline-block; background: #334155;
+    padding: 3px 10px; border-radius: 6px;
+    font-weight: 600; color: #e2e8f0; font-size: 12px;
+}
+/* Expandable row detail */
+.trade-rec-detail {
+    background: #0f172a; border-radius: 8px;
+    padding: 12px 14px; margin: 4px 0 8px;
+    border-left: 3px solid #475569;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.trade-rec-detail-row { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+.trade-rec-detail-row strong { color: #cbd5e1; }
+
+/* ── Breakdown Table (commodities / contributors) ── */
+.corr-breakdown-table { width: 100%; border-collapse: collapse; }
 .corr-breakdown-table th {
-    font-size: 11px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 8px 10px;
-    text-align: left;
-    border-bottom: 1px solid #334155;
-    font-weight: 600;
+    font-size: 10px; color: #64748b; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 7px 8px; text-align: left;
+    border-bottom: 1px solid #334155; font-weight: 600;
 }
 .corr-breakdown-table td {
-    padding: 10px;
-    font-size: 13px;
-    color: #cbd5e1;
+    padding: 9px 8px; font-size: 13px; color: #cbd5e1;
     border-bottom: 1px solid #1e293b;
 }
-.corr-breakdown-table tr:last-child td {
-    border-bottom: none;
-}
-.corr-breakdown-table .corr-ticker-badge {
-    display: inline-block;
-    background: #334155;
-    padding: 3px 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    color: #e2e8f0;
-    font-size: 12px;
-}
+.corr-breakdown-table tr:last-child td { border-bottom: none; }
 
-/* ── Chart inside modal ── */
-.corr-chart-wrap {
-    background: #0f172a;
-    border-radius: 10px;
-    padding: 16px;
-    height: 220px;
-}
+/* ── Chart wrap ── */
+.corr-chart-wrap { background: #0f172a; border-radius: 10px; padding: 14px; height: 220px; }
 
-/* ── Modal bottom spacer ── */
+/* ── Footer ── */
 .corr-modal-footer {
-    padding: 16px 28px 22px;
-    font-size: 11px;
-    color: #475569;
-    text-align: center;
-    font-style: italic;
+    padding: 14px 28px 20px; font-size: 11px; color: #475569;
+    text-align: center; font-style: italic;
 }
 
 /* ============================================================
-   PER-CARD: Individual Stock Commodity Alignment Panel
+   PER-CARD: Stock Alignment Panel + Trade Rec Card
    ============================================================ */
 
 .stock-alignment-toggle {
     padding: 8px 16px;
     background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
+    color: white; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3);
+    box-shadow: 0 2px 6px rgba(168,85,247,0.3);
 }
 .stock-alignment-toggle:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 4px 10px rgba(168,85,247,0.4);
 }
-.stock-alignment-toggle:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
+.stock-alignment-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .stock-alignment-panel {
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-    border: 2px solid #6366f1;
-    border-radius: 12px;
-    margin-top: 14px;
-    overflow: hidden;
+    border: 2px solid #6366f1; border-radius: 12px;
+    margin-top: 14px; overflow: hidden;
     animation: alignPanelSlide 0.3s cubic-bezier(0.22,1,0.36,1);
 }
 @keyframes alignPanelSlide {
     from { opacity: 0; max-height: 0; }
-    to { opacity: 1; max-height: 600px; }
+    to   { opacity: 1; max-height: 800px; }
 }
 
 .align-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    cursor: pointer;
-    background: rgba(99, 102, 241, 0.15);
-    user-select: none;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; cursor: pointer;
+    background: rgba(99,102,241,0.15); user-select: none;
 }
-.align-panel-header-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.align-panel-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #c7d2fe;
-}
-.align-panel-chevron {
-    font-size: 12px;
-    color: #6366f1;
-    transition: transform 0.25s;
-}
-.align-panel-chevron.open {
-    transform: rotate(180deg);
-}
+.align-panel-header-left { display: flex; align-items: center; gap: 10px; }
+.align-panel-title { font-size: 14px; font-weight: 700; color: #c7d2fe; }
+.align-panel-chevron { font-size: 12px; color: #6366f1; transition: transform 0.25s; }
+.align-panel-chevron.open { transform: rotate(180deg); }
+.align-panel-body { padding: 16px; animation: corrAccFade 0.2s ease; }
 
-.align-panel-body {
-    padding: 16px;
-    animation: corrAccFade 0.2s ease;
-}
-
-/* Signal banner inside per-card panel */
+/* Signal banner */
 .align-signal-banner {
-    padding: 10px 16px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: white;
+    padding: 10px 16px; border-radius: 8px; text-align: center;
+    margin-bottom: 14px; font-size: 13px; font-weight: 600; color: white;
 }
 
 /* Score ring */
-.align-score-ring {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 14px;
-}
+.align-score-ring { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
 .align-score-circle {
-    width: 72px; height: 72px;
-    border-radius: 50%;
-    border: 4px solid;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
+    width: 72px; height: 72px; border-radius: 50%; border: 4px solid;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
 }
-.align-score-number {
-    font-size: 22px;
-    font-weight: 700;
-    color: #e0e7ff;
-}
-.align-score-sub {
-    font-size: 9px;
-    color: #6366f1;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-.align-score-details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.align-score-detail-row {
-    font-size: 12px;
-    color: #a5b4fc;
-}
-.align-score-detail-row strong {
-    color: #e0e7ff;
-}
+.align-score-number { font-size: 22px; font-weight: 700; color: #e0e7ff; }
+.align-score-sub { font-size: 9px; color: #6366f1; font-weight: 600; text-transform: uppercase; }
+.align-score-details { display: flex; flex-direction: column; gap: 4px; }
+.align-score-detail-row { font-size: 12px; color: #a5b4fc; }
+.align-score-detail-row strong { color: #e0e7ff; }
 
-/* Mini stats grid */
-.align-mini-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
-}
+/* Mini stats */
+.align-mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
 .align-mini-stat {
-    background: rgba(99, 102, 241, 0.12);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
+    background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 8px; padding: 10px; text-align: center;
 }
-.align-mini-stat-label {
-    font-size: 10px;
-    color: #6366f1;
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
-.align-mini-stat-value {
-    font-size: 16px;
-    font-weight: 700;
-    color: #e0e7ff;
-}
+.align-mini-stat-label { font-size: 10px; color: #6366f1; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+.align-mini-stat-value { font-size: 16px; font-weight: 700; color: #e0e7ff; }
 
-/* Per-commodity mini table */
+/* Per-commodity rows */
 .align-comm-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(99,102,241,0.15);
-    font-size: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid rgba(99,102,241,0.15); font-size: 12px;
 }
 .align-comm-row:last-child { border-bottom: none; }
-.align-comm-ticker {
-    color: #a5b4fc;
-    font-weight: 600;
+.align-comm-ticker { color: #a5b4fc; font-weight: 600; }
+
+/* Stock sentiment mini-badge (new) */
+.align-stock-sentiment {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 8px;
+    background: rgba(99,102,241,0.1); margin-bottom: 12px;
 }
-.align-comm-corr {
-    color: #c7d2fe;
-    font-weight: 600;
+.align-stock-sentiment-badge {
+    padding: 4px 12px; border-radius: 14px;
+    font-size: 11px; font-weight: 700; color: white;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
 }
+.align-stock-sentiment-info { font-size: 11px; color: #a5b4fc; line-height: 1.4; }
+
+/* Trade rec card inside per-card panel (new) */
+.align-trade-rec-card {
+    border-radius: 10px; padding: 14px;
+    margin-bottom: 12px; border: 1px solid;
+}
+.align-trade-rec-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+}
+.align-trade-rec-action {
+    display: inline-block; padding: 5px 16px; border-radius: 8px;
+    font-size: 14px; font-weight: 700; color: white;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}
+.align-trade-rec-confidence {
+    font-size: 11px; color: #6366f1; font-weight: 600;
+}
+.align-trade-rec-body { display: flex; flex-direction: column; gap: 8px; }
+.align-trade-rec-row { font-size: 12px; color: #a5b4fc; line-height: 1.5; }
+.align-trade-rec-row strong { color: #c7d2fe; }
 
 /* Implications */
 .align-implications {
-    margin-top: 10px;
-    padding: 10px 12px;
-    background: rgba(99,102,241,0.1);
-    border-radius: 8px;
+    margin-top: 10px; padding: 10px 12px;
+    background: rgba(99,102,241,0.1); border-radius: 8px;
     border-left: 3px solid #6366f1;
 }
-.align-implications p {
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: #a5b4fc;
-    line-height: 1.5;
-}
+.align-implications p { margin: 4px 0 0; font-size: 12px; color: #a5b4fc; line-height: 1.5; }
 .align-implications p:first-child { margin-top: 0; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-    .corr-modal {
-        max-height: 92vh;
-        border-radius: 16px;
-    }
-    .corr-modal-header {
-        padding: 18px 20px 14px;
-        border-radius: 16px 16px 0 0;
-    }
+    .corr-modal { max-height: 92vh; border-radius: 16px; }
+    .corr-modal-header { padding: 18px 20px 14px; border-radius: 16px 16px 0 0; }
     .corr-modal-header h2 { font-size: 17px; }
-    .corr-regime-banner { margin: 16px 20px 0; }
-    .corr-stats-row { padding: 16px 20px; grid-template-columns: repeat(2, 1fr); }
-    .corr-accordion { margin: 0 20px 10px; }
-    .corr-modal-footer { padding: 14px 20px 18px; }
-    .align-mini-stats { grid-template-columns: 1fr 1fr; }
+    .corr-regime-banner { margin: 14px 20px 0; }
+    .corr-sentiment-row { margin: 10px 20px 0; flex-direction: column; align-items: flex-start; }
+    .corr-stats-row { padding: 14px 20px; grid-template-columns: repeat(2, 1fr); }
+    .corr-accordion { margin: 0 20px 8px; }
+    .corr-modal-footer { padding: 12px 20px 16px; }
+    .trade-recs-table th, .trade-recs-table td { padding: 7px 5px; font-size: 11px; }
 }
 `;
-
 
 
 const chartStyles = `
@@ -3041,9 +2942,6 @@ export default function MarketStabilityScore() {
     // Chart AI Analysis Overlay State
     const [showAIOverlay, setShowAIOverlay] = useState({});
 
-    
-    // (Add these alongside your existing useState declarations)
-
     const [commodityVsMaterialsData, setCommodityVsMaterialsData] = useState(null);
     const [loadingCommodityVsMaterials, setLoadingCommodityVsMaterials] = useState(false);
     const [showCommodityModal, setShowCommodityModal] = useState(false);
@@ -3052,19 +2950,18 @@ export default function MarketStabilityScore() {
     const [loadingSp500VsTech, setLoadingSp500VsTech] = useState(false);
     const [showSp500Modal, setShowSp500Modal] = useState(false);
 
-    const [stockAlignmentData, setStockAlignmentData] = useState({});       // { symbol: data }
-    const [loadingStockAlignment, setLoadingStockAlignment] = useState({});  // { symbol: bool }
-    const [showAlignmentPanel, setShowAlignmentPanel] = useState({});        // { symbol: bool }
+    const [stockAlignmentData, setStockAlignmentData] = useState({});
+    const [loadingStockAlignment, setLoadingStockAlignment] = useState({});
+    const [showAlignmentPanel, setShowAlignmentPanel] = useState({});
 
-    
-
-    // Accordion open state for modal sections
     const [modalAccordions, setModalAccordions] = useState({
-        chart: true,       // chart open by default
-        insights: true,    // insights open by default
-        breakdown: false,  // breakdown collapsed by default
+        chart: true, insights: true, tradeRecs: true, breakdown: false
     });
 
+    // Trade recs filter + expand state (per modal)
+    const [tradeRecFilter, setTradeRecFilter] = useState('ALL');         // ALL | BUY | SELL | HOLD | ...
+    const [expandedTradeRec, setExpandedTradeRec] = useState(null);
+    
     // ============================================================
     // NEW FUNCTIONS — Fetch correlation analysis data
     // ============================================================
@@ -5460,296 +5357,484 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
 
     // (Define this as a helper inside MarketStabilityScore or just before the return)
 
-    const CorrelationModal = ({ config, onClose }) => {
-        /*
-        * config shape:
-        * {
-        *   title: string,
-        *   icon: string (emoji),
-        *   data: <the API response object>,
-        *   type: 'commodity' | 'sp500',
-        *   // for chart labels:
-        *   line1Label: string,   e.g. "Commodities"
-        *   line2Label: string,   e.g. "Materials"
-        *   line1Key: string,     e.g. "commodities"  (key in timeseries)
-        *   line2Key: string,     e.g. "materials"
-        *   // for breakdown section:
-        *   breakdownTitle: string,
-        *   breakdownItems: array  (commodity_breakdowns or top_contributors)
-        * }
-        */
-        const { title, icon, data, line1Label, line2Label, line1Key, line2Key, breakdownTitle, breakdownItems } = config;
+    const fetchCommodityVsMaterials = async () => {
+    setLoadingCommodityVsMaterials(true);
+    try {
+        const res  = await fetch(`${baseUrl}/api/mss-commodity-vs-materials-analyzer/`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lookback_hours: 720 })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setCommodityVsMaterialsData(data);
+            setShowCommodityModal(true);
+            setModalAccordions({ chart: true, insights: true, tradeRecs: true, breakdown: false });
+            setTradeRecFilter('ALL');
+            setExpandedTradeRec(null);
+        } else alert(`Error: ${data.error}`);
+    } catch (e) {
+        console.error(e);
+        alert('Failed to fetch analysis.');
+    } finally setLoadingCommodityVsMaterials(false);
+};
 
-        // Colour helpers
-        const corrColor = data.recent_correlation >= 0.6 ? '#10b981' : data.recent_correlation >= 0.3 ? '#f59e0b' : '#ef4444';
+const fetchSp500VsTech = async () => {
+    setLoadingSp500VsTech(true);
+    try {
+        const res  = await fetch(`${baseUrl}/api/mss-sp500-vs-tech-sector-analyzer/`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lookback_hours: 720 })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setSp500VsTechData(data);
+            setShowSp500Modal(true);
+            setModalAccordions({ chart: true, insights: true, tradeRecs: true, contributors: false });
+            setTradeRecFilter('ALL');
+            setExpandedTradeRec(null);
+        } else alert(`Error: ${data.error}`);
+    } catch (e) {
+        console.error(e);
+        alert('Failed to fetch analysis.');
+    } finally setLoadingSp500VsTech(false);
+};
 
-        return (
-            <div className="corr-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-                <div className="corr-modal">
+const fetchStockCommodityAlignment = async (symbol) => {
+    setLoadingStockAlignment(prev => ({ ...prev, [symbol]: true }));
+    try {
+        const res  = await fetch(`${baseUrl}/api/mss-individual-stock-commodity-alignment/`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol, lookback_hours: 720 })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setStockAlignmentData(prev => ({ ...prev, [symbol]: data }));
+            setShowAlignmentPanel(prev => ({ ...prev, [symbol]: true }));
+        } else alert(`Error: ${data.error}`);
+    } catch (e) {
+        console.error(e);
+        alert('Failed to fetch alignment.');
+    } finally setLoadingStockAlignment(prev => ({ ...prev, [symbol]: false }));
+};
 
-                    {/* Header */}
-                    <div className="corr-modal-header">
-                        <h2>{icon} {title}</h2>
-                        <button className="corr-modal-close" onClick={onClose}>✕</button>
+const toggleAccordion = (key) => setModalAccordions(prev => ({ ...prev, [key]: !prev[key] }));
+
+
+// ============================================================
+// COMPONENT — CorrelationModal (shared for both bulk modals)
+// Now includes: Sentiment row, Trade Recs accordion with
+// filterable/expandable table.
+// ============================================================
+
+const CorrelationModal = ({ config, onClose }) => {
+    const { title, icon, data, line1Label, line2Label, line1Key, line2Key, breakdownTitle, breakdownItems } = config;
+
+    const corrColor = data.recent_correlation >= 0.6 ? '#10b981'
+                    : data.recent_correlation >= 0.3 ? '#f59e0b' : '#ef4444';
+
+    // Filter trade recs
+    const filteredRecs = (data.trade_recommendations || []).filter(r =>
+        tradeRecFilter === 'ALL' || r.action === tradeRecFilter
+    );
+
+    // Action filter pills
+    const actionCounts = {};
+    (data.trade_recommendations || []).forEach(r => {
+        actionCounts[r.action] = (actionCounts[r.action] || 0) + 1;
+    });
+    const filterOptions = ['ALL', ...Object.keys(actionCounts).sort((a, b) => {
+        const order = { BUY: 0, HOLD: 1, WATCH: 2, TRIM: 3, SELL: 4, WAIT: 5 };
+        return (order[a] ?? 99) - (order[b] ?? 99);
+    })];
+
+    return (
+        <div className="corr-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+          <div className="corr-modal">
+
+            {/* Header */}
+            <div className="corr-modal-header">
+                <h2>{icon} {title}</h2>
+                <button className="corr-modal-close" onClick={onClose}>✕</button>
+            </div>
+
+            {/* Regime Banner */}
+            <div className="corr-regime-banner" style={{ background: data.regime_color + '22', border: `1px solid ${data.regime_color}55` }}>
+                <div style={{ background: data.regime_color, padding: '6px 14px', borderRadius: '20px' }}>
+                    <span className="corr-regime-label">{data.regime}</span>
+                </div>
+                <span className="corr-regime-desc">{data.regime_description}</span>
+            </div>
+
+            {/* Sentiment Row (new) */}
+            {data.sector_sentiment && (
+                <div className="corr-sentiment-row">
+                    <div className="corr-sentiment-badge" style={{ background: data.sector_sentiment.color }}>
+                        {data.sector_sentiment.label}
                     </div>
-
-                    {/* Regime Banner */}
-                    <div className="corr-regime-banner" style={{ background: data.regime_color + '22', border: `1px solid ${data.regime_color}55` }}>
-                        <div style={{
-                            background: data.regime_color,
-                            padding: '6px 14px',
-                            borderRadius: '20px',
-                            whiteSpace: 'nowrap'
-                        }}>
-                            <span className="corr-regime-label">{data.regime}</span>
+                    <div className="corr-sentiment-details">
+                        <div className="corr-sentiment-score">
+                            <strong>Score: {data.sector_sentiment.score}/100</strong>
+                            &nbsp;•&nbsp;Confidence: <strong>{data.sector_sentiment.confidence}</strong>
+                            &nbsp;•&nbsp;Timeframe: <strong>1h</strong>
                         </div>
-                        <span className="corr-regime-desc">{data.regime_description}</span>
-                    </div>
-
-                    {/* Stats Row */}
-                    <div className="corr-stats-row">
-                        <div className="corr-stat-card">
-                            <div className="corr-stat-label">Correlation</div>
-                            <div className="corr-stat-value" style={{ color: corrColor }}>{data.full_correlation}</div>
-                        </div>
-                        <div className="corr-stat-card">
-                            <div className="corr-stat-label">Recent Corr</div>
-                            <div className="corr-stat-value" style={{ color: corrColor }}>{data.recent_correlation}</div>
-                        </div>
-                        <div className="corr-stat-card">
-                            <div className="corr-stat-label">Beta</div>
-                            <div className="corr-stat-value" style={{ color: data.beta > 1 ? '#60a5fa' : '#94a3b8' }}>{data.beta}</div>
-                        </div>
-                        <div className="corr-stat-card">
-                            <div className="corr-stat-label">Divergence</div>
-                            <div className="corr-stat-value" style={{ color: data.divergence_score > 0 ? '#10b981' : '#ef4444' }}>
-                                {data.divergence_score > 0 ? '+' : ''}{data.divergence_score}
-                            </div>
-                        </div>
-                        {/* Alpha only for S&P modal */}
-                        {data.alpha !== undefined && (
-                            <div className="corr-stat-card">
-                                <div className="corr-stat-label">Alpha</div>
-                                <div className="corr-stat-value" style={{ color: data.alpha >= 0 ? '#10b981' : '#ef4444' }}>
-                                    {data.alpha > 0 ? '+' : ''}{data.alpha}%
-                                </div>
-                            </div>
-                        )}
-                        <div className="corr-stat-card">
-                            <div className="corr-stat-label">Corr Trend</div>
-                            <div className="corr-stat-value" style={{ fontSize: '16px', color: data.correlation_trend === 'rising' ? '#10b981' : data.correlation_trend === 'falling' ? '#ef4444' : '#94a3b8' }}>
-                                {data.correlation_trend === 'rising' ? '📈' : data.correlation_trend === 'falling' ? '📉' : '➡️'} {data.correlation_trend}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Accordion: Chart */}
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${modalAccordions.chart ? 'open' : ''}`}
-                            onClick={() => toggleAccordion('chart')}
-                        >
-                            <span>📊 Price Comparison Chart</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {modalAccordions.chart && (
-                            <div className="corr-accordion-body">
-                                <div className="corr-chart-wrap">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={data.timeseries} margin={{ top: 8, right: 12, left: -10, bottom: 4 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                            <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                                            <YAxis stroke="#475569" tick={{ fontSize: 9 }} domain={['auto','auto']} />
-                                            <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px', color: '#cbd5e1' }} />
-                                            <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                                            <Line type="monotone" dataKey={line1Key} stroke="#f59e0b" strokeWidth={2} dot={false} name={line1Label} />
-                                            <Line type="monotone" dataKey={line2Key} stroke="#60a5fa" strokeWidth={2} dot={false} name={line2Label} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Accordion: Insights */}
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${modalAccordions.insights ? 'open' : ''}`}
-                            onClick={() => toggleAccordion('insights')}
-                        >
-                            <span>💡 Insights & Signals</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {modalAccordions.insights && (
-                            <div className="corr-accordion-body">
-                                <ul className="corr-insights-list">
-                                    {data.insights.map((insight, i) => (
-                                        <li key={i}>{insight}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Accordion: Breakdown (commodities or top contributors) */}
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${modalAccordions.breakdown ? 'open' : ''}`}
-                            onClick={() => toggleAccordion('breakdown')}
-                        >
-                            <span>{breakdownTitle}</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {modalAccordions.breakdown && (
-                            <div className="corr-accordion-body">
-                                <table className="corr-breakdown-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Asset</th>
-                                            <th style={{ textAlign: 'right' }}>Correlation</th>
-                                            <th style={{ textAlign: 'right' }}>Period Return</th>
-                                            {/* S&P modal has weight + contribution columns */}
-                                            {data.top_contributors && <th style={{ textAlign: 'right' }}>Weight</th>}
-                                            {data.top_contributors && <th style={{ textAlign: 'right' }}>Contribution</th>}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {breakdownItems.map((item, i) => (
-                                            <tr key={i}>
-                                                <td><span className="corr-ticker-badge">{item.ticker || item.symbol}</span></td>
-                                                <td style={{ textAlign: 'right', color: item.correlation >= 0.5 ? '#10b981' : item.correlation >= 0.2 ? '#f59e0b' : '#ef4444' }}>
-                                                    {item.correlation?.toFixed(3) ?? '—'}
-                                                </td>
-                                                <td style={{ textAlign: 'right', color: item['period_return'] >= 0 || item['return'] >= 0 ? '#10b981' : '#ef4444' }}>
-                                                    {(item['period_return'] ?? item['return'] ?? 0) >= 0 ? '+' : ''}
-                                                    {(item['period_return'] ?? item['return'] ?? 0).toFixed(2)}%
-                                                </td>
-                                                {data.top_contributors && <td style={{ textAlign: 'right', color: '#94a3b8' }}>{item.weight}%</td>}
-                                                {data.top_contributors && (
-                                                    <td style={{ textAlign: 'right', color: item.contribution >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                                                        {item.contribution >= 0 ? '+' : ''}{item.contribution.toFixed(2)}%
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                        <div className="corr-sentiment-desc">{data.sector_sentiment.description}</div>
+                        {/* Sub-component scores */}
+                        {data.sector_sentiment.components && (
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '5px', flexWrap: 'wrap' }}>
+                                {Object.entries(data.sector_sentiment.components).map(([k, v]) => (
+                                    <span key={k} style={{ fontSize: '10px', color: '#64748b' }}>
+                                        {k.charAt(0).toUpperCase() + k.slice(1)}: <span style={{ color: v >= 60 ? '#10b981' : v <= 40 ? '#ef4444' : '#f59e0b', fontWeight: 600 }}>{v}</span>
+                                    </span>
+                                ))}
                             </div>
                         )}
                     </div>
+                </div>
+            )}
 
-                    {/* Footer */}
-                    <div className="corr-modal-footer">
-                        Analysed {data.commodities_analyzed || data.tech_stocks_analyzed || '—'} assets • {data.timestamp && new Date(data.timestamp).toLocaleString()}
+            {/* Stats Row */}
+            <div className="corr-stats-row">
+                <div className="corr-stat-card">
+                    <div className="corr-stat-label">Correlation</div>
+                    <div className="corr-stat-value" style={{ color: corrColor }}>{data.full_correlation}</div>
+                </div>
+                <div className="corr-stat-card">
+                    <div className="corr-stat-label">Recent Corr</div>
+                    <div className="corr-stat-value" style={{ color: corrColor }}>{data.recent_correlation}</div>
+                </div>
+                <div className="corr-stat-card">
+                    <div className="corr-stat-label">Beta</div>
+                    <div className="corr-stat-value" style={{ color: data.beta > 1 ? '#60a5fa' : '#94a3b8' }}>{data.beta}</div>
+                </div>
+                <div className="corr-stat-card">
+                    <div className="corr-stat-label">Divergence</div>
+                    <div className="corr-stat-value" style={{ color: data.divergence_score > 0 ? '#10b981' : '#ef4444' }}>
+                        {data.divergence_score > 0 ? '+' : ''}{data.divergence_score}
+                    </div>
+                </div>
+                {data.alpha !== undefined && (
+                    <div className="corr-stat-card">
+                        <div className="corr-stat-label">Alpha</div>
+                        <div className="corr-stat-value" style={{ color: data.alpha >= 0 ? '#10b981' : '#ef4444' }}>
+                            {data.alpha > 0 ? '+' : ''}{data.alpha}%
+                        </div>
+                    </div>
+                )}
+                <div className="corr-stat-card">
+                    <div className="corr-stat-label">Corr Trend</div>
+                    <div className="corr-stat-value" style={{ fontSize: '15px', color: data.correlation_trend === 'rising' ? '#10b981' : data.correlation_trend === 'falling' ? '#ef4444' : '#94a3b8' }}>
+                        {data.correlation_trend === 'rising' ? '📈' : data.correlation_trend === 'falling' ? '📉' : '➡️'} {data.correlation_trend}
                     </div>
                 </div>
             </div>
-        );
-    };
 
-    // ============================================================
-    // NEW COMPONENT — Per-Card Stock Alignment Panel (collapsible)
-    // Renders inline on each Materials stock MSS card.
-    // ============================================================
-
-    const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
-        // Colour for alignment score
-        const scoreColor = data.alignment_score >= 65 ? '#10b981' : data.alignment_score >= 35 ? '#f59e0b' : '#ef4444';
-        const scoreBorder = data.alignment_score >= 65 ? '#10b98155' : data.alignment_score >= 35 ? '#f59e0b55' : '#ef444455';
-
-        return (
-            <div className="stock-alignment-panel">
-                {/* Collapsible Header */}
-                <div className="align-panel-header" onClick={onToggle}>
-                    <div className="align-panel-header-left">
-                        <span style={{ fontSize: '18px' }}>🌾</span>
-                        <span className="align-panel-title">Commodity Alignment — {symbol}</span>
-                    </div>
-                    <span className={`align-panel-chevron ${isOpen ? 'open' : ''}`}>▼</span>
-                </div>
-
-                {/* Body — only rendered when open */}
-                {isOpen && (
-                    <div className="align-panel-body">
-
-                        {/* Signal Banner */}
-                        <div className="align-signal-banner" style={{ background: data.signal_color }}>
-                            {data.signal === 'OUTPERFORMING' && '📈 '}
-                            {data.signal === 'UNDERPERFORMING' && '📉 '}
-                            {data.signal === 'ALIGNED' && '✅ '}
-                            <strong>{data.signal}</strong> — {data.signal_description}
-                        </div>
-
-                        {/* Score Ring + Details */}
-                        <div className="align-score-ring">
-                            <div className="align-score-circle" style={{ borderColor: scoreColor }}>
-                                <span className="align-score-number" style={{ color: scoreColor }}>{data.alignment_score}</span>
-                                <span className="align-score-sub">Score</span>
-                            </div>
-                            <div className="align-score-details">
-                                <div className="align-score-detail-row">Correlation: <strong style={{ color: scoreColor }}>{data.correlation}</strong></div>
-                                <div className="align-score-detail-row">Beta: <strong style={{ color: '#a5b4fc' }}>{data.beta}</strong></div>
-                                <div className="align-score-detail-row">Gap: <strong style={{ color: data.return_gap >= 0 ? '#10b981' : '#ef4444' }}>{data.return_gap >= 0 ? '+' : ''}{data.return_gap}%</strong></div>
-                            </div>
-                        </div>
-
-                        {/* Mini Stats: Expected vs Actual */}
-                        <div className="align-mini-stats">
-                            <div className="align-mini-stat">
-                                <div className="align-mini-stat-label">Expected Return</div>
-                                <div className="align-mini-stat-value" style={{ color: data.expected_return >= 0 ? '#10b981' : '#ef4444' }}>
-                                    {data.expected_return >= 0 ? '+' : ''}{data.expected_return}%
-                                </div>
-                            </div>
-                            <div className="align-mini-stat">
-                                <div className="align-mini-stat-label">Actual Return</div>
-                                <div className="align-mini-stat-value" style={{ color: data.actual_return >= 0 ? '#10b981' : '#ef4444' }}>
-                                    {data.actual_return >= 0 ? '+' : ''}{data.actual_return}%
-                                </div>
-                            </div>
-                            <div className="align-mini-stat">
-                                <div className="align-mini-stat-label">Commodity Basket</div>
-                                <div className="align-mini-stat-value" style={{ color: data.commodity_total_return >= 0 ? '#10b981' : '#ef4444' }}>
-                                    {data.commodity_total_return >= 0 ? '+' : ''}{data.commodity_total_return}%
-                                </div>
-                            </div>
-                            <div className="align-mini-stat">
-                                <div className="align-mini-stat-label">Alignment</div>
-                                <div className="align-mini-stat-value" style={{ color: scoreColor }}>{data.alignment_score}/100</div>
-                            </div>
-                        </div>
-
-                        {/* Per-Commodity Correlations */}
-                        <div style={{ marginBottom: '12px' }}>
-                            <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                                Per-Commodity Correlation
-                            </div>
-                            {data.per_commodity_correlations.slice(0, 4).map((item, i) => (
-                                <div key={i} className="align-comm-row">
-                                    <span className="align-comm-ticker">{item.ticker}</span>
-                                    <span style={{ display: 'flex', gap: '16px' }}>
-                                        <span style={{ color: '#64748b', fontSize: '11px' }}>{item.period_return >= 0 ? '+' : ''}{item.period_return}%</span>
-                                        <span className="align-comm-corr" style={{ color: Math.abs(item.correlation) >= 0.5 ? '#10b981' : '#f59e0b' }}>
-                                            {item.correlation >= 0 ? '+' : ''}{item.correlation.toFixed(2)}
-                                        </span>
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Trading Implications */}
-                        <div className="align-implications">
-                            <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>💡 Implications</div>
-                            {data.implications.map((imp, i) => (
-                                <p key={i}>{imp}</p>
-                            ))}
+            {/* Accordion: Chart */}
+            <div className="corr-accordion">
+                <button className={`corr-accordion-trigger ${modalAccordions.chart ? 'open' : ''}`} onClick={() => toggleAccordion('chart')}>
+                    <span>📊 Price Comparison (1h)</span>
+                    <span className="corr-acc-arrow">▼</span>
+                </button>
+                {modalAccordions.chart && (
+                    <div className="corr-accordion-body">
+                        <div className="corr-chart-wrap">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={data.timeseries} margin={{ top: 8, right: 12, left: -10, bottom: 4 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                    <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
+                                    <YAxis stroke="#475569" tick={{ fontSize: 9 }} domain={['auto','auto']} />
+                                    <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px', color: '#cbd5e1' }} />
+                                    <Legend wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
+                                    <Line type="monotone" dataKey={line1Key} stroke="#f59e0b" strokeWidth={2} dot={false} name={line1Label} />
+                                    <Line type="monotone" dataKey={line2Key} stroke="#60a5fa" strokeWidth={2} dot={false} name={line2Label} />
+                                </LineChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
                 )}
             </div>
-        );
-    };
 
+            {/* Accordion: Trade Recommendations (new) */}
+            {data.trade_recommendations && data.trade_recommendations.length > 0 && (
+                <div className="corr-accordion">
+                    <button className={`corr-accordion-trigger ${modalAccordions.tradeRecs ? 'open' : ''}`} onClick={() => toggleAccordion('tradeRecs')}>
+                        <span>🎯 Trade Recommendations ({data.trade_recommendations.length})</span>
+                        <span className="corr-acc-arrow">▼</span>
+                    </button>
+                    {modalAccordions.tradeRecs && (
+                        <div className="corr-accordion-body">
+                            {/* Filter pills */}
+                            <div className="trade-recs-toolbar">
+                                <div className="trade-recs-filter">
+                                    {filterOptions.map(opt => (
+                                        <button key={opt} className={`trade-filter-btn ${tradeRecFilter === opt ? 'active' : ''}`}
+                                                onClick={() => setTradeRecFilter(opt)}>
+                                            {opt}{opt !== 'ALL' && actionCounts[opt] ? ` (${actionCounts[opt]})` : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                                <span style={{ fontSize: '11px', color: '#475569' }}>Click row to expand</span>
+                            </div>
+
+                            {/* Table */}
+                            <table className="trade-recs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Action</th>
+                                        <th>Stock</th>
+                                        <th style={{ textAlign: 'right' }}>Return</th>
+                                        <th style={{ textAlign: 'right' }}>Expected</th>
+                                        <th style={{ textAlign: 'right' }}>Gap</th>
+                                        <th style={{ textAlign: 'right' }}>Corr</th>
+                                        <th style={{ textAlign: 'right' }}>Align</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredRecs.map((rec, i) => (
+                                        <>
+                                            <tr key={rec.symbol} style={{ cursor: 'pointer' }}
+                                                onClick={() => setExpandedTradeRec(expandedTradeRec === rec.symbol ? null : rec.symbol)}>
+                                                <td><span className="trade-action-badge" style={{ background: rec.action_color }}>{rec.action}</span></td>
+                                                <td><span className="corr-ticker-badge">{rec.symbol}</span></td>
+                                                <td style={{ textAlign: 'right', color: rec.stock_return >= 0 ? '#10b981' : '#ef4444' }}>
+                                                    {rec.stock_return >= 0 ? '+' : ''}{rec.stock_return}%
+                                                </td>
+                                                <td style={{ textAlign: 'right', color: '#64748b' }}>
+                                                    {rec.expected_return >= 0 ? '+' : ''}{rec.expected_return}%
+                                                </td>
+                                                <td style={{ textAlign: 'right', color: rec.return_gap >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                    {rec.return_gap >= 0 ? '+' : ''}{rec.return_gap}%
+                                                </td>
+                                                <td style={{ textAlign: 'right', color: rec.correlation >= 0.5 ? '#10b981' : rec.correlation >= 0.2 ? '#f59e0b' : '#ef4444' }}>
+                                                    {rec.correlation?.toFixed(2)}
+                                                </td>
+                                                <td style={{ textAlign: 'right', color: rec.alignment_score >= 65 ? '#10b981' : rec.alignment_score >= 35 ? '#f59e0b' : '#ef4444' }}>
+                                                    {rec.alignment_score}
+                                                </td>
+                                            </tr>
+                                            {/* Expandable detail row */}
+                                            {expandedTradeRec === rec.symbol && (
+                                                <tr key={`${rec.symbol}-detail`}>
+                                                    <td colSpan={7} style={{ padding: '4px 8px 10px' }}>
+                                                        <div className="trade-rec-detail">
+                                                            <div className="trade-rec-detail-row"><strong>📋 Rationale:</strong> {rec.rationale}</div>
+                                                            <div className="trade-rec-detail-row"><strong>📍 Entry:</strong> {rec.entry}</div>
+                                                            <div className="trade-rec-detail-row"><strong>⚖️ Risk/Reward:</strong> {rec.risk_reward}</div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {filteredRecs.length === 0 && (
+                                <div style={{ textAlign: 'center', color: '#475569', fontSize: '13px', padding: '16px 0' }}>
+                                    No stocks match this filter.
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Accordion: Insights */}
+            <div className="corr-accordion">
+                <button className={`corr-accordion-trigger ${modalAccordions.insights ? 'open' : ''}`} onClick={() => toggleAccordion('insights')}>
+                    <span>💡 Insights & Signals</span>
+                    <span className="corr-acc-arrow">▼</span>
+                </button>
+                {modalAccordions.insights && (
+                    <div className="corr-accordion-body">
+                        <ul className="corr-insights-list">
+                            {data.insights.map((ins, i) => <li key={i}>{ins}</li>)}
+                        </ul>
+                    </div>
+                )}
+            </div>
+
+            {/* Accordion: Breakdown */}
+            <div className="corr-accordion">
+                <button className={`corr-accordion-trigger ${modalAccordions.breakdown ? 'open' : ''}`} onClick={() => toggleAccordion('breakdown')}>
+                    <span>{breakdownTitle}</span>
+                    <span className="corr-acc-arrow">▼</span>
+                </button>
+                {modalAccordions.breakdown && (
+                    <div className="corr-accordion-body">
+                        <table className="corr-breakdown-table">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th style={{ textAlign: 'right' }}>Correlation</th>
+                                    <th style={{ textAlign: 'right' }}>Period Return</th>
+                                    {data.top_contributors && <th style={{ textAlign: 'right' }}>Weight</th>}
+                                    {data.top_contributors && <th style={{ textAlign: 'right' }}>Contribution</th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {breakdownItems.map((item, i) => (
+                                    <tr key={i}>
+                                        <td><span className="corr-ticker-badge">{item.ticker || item.symbol}</span></td>
+                                        <td style={{ textAlign: 'right', color: (item.correlation ?? 0) >= 0.5 ? '#10b981' : (item.correlation ?? 0) >= 0.2 ? '#f59e0b' : '#ef4444' }}>
+                                            {item.correlation?.toFixed(3) ?? '—'}
+                                        </td>
+                                        <td style={{ textAlign: 'right', color: (item.period_return ?? item.return ?? 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {(item.period_return ?? item.return ?? 0) >= 0 ? '+' : ''}{(item.period_return ?? item.return ?? 0).toFixed(2)}%
+                                        </td>
+                                        {data.top_contributors && <td style={{ textAlign: 'right', color: '#94a3b8' }}>{item.weight}%</td>}
+                                        {data.top_contributors && (
+                                            <td style={{ textAlign: 'right', color: item.contribution >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                {item.contribution >= 0 ? '+' : ''}{item.contribution.toFixed(2)}%
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            <div className="corr-modal-footer">
+                {data.timeframe && <span>Timeframe: 1h &nbsp;•&nbsp;</span>}
+                Analysed {data.commodities_analyzed || data.tech_stocks_analyzed || '—'} assets
+                &nbsp;•&nbsp;{data.timestamp && new Date(data.timestamp).toLocaleString()}
+            </div>
+          </div>
+        </div>
+    );
+};
+
+
+// ============================================================
+// COMPONENT — StockAlignmentPanel (per-card, collapsible)
+// Now includes: stock sentiment badge + trade rec card
+// ============================================================
+
+const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
+    const scoreColor = data.alignment_score >= 65 ? '#10b981' : data.alignment_score >= 35 ? '#f59e0b' : '#ef4444';
+    const rec = data.trade_recommendation || {};
+
+    // Trade rec card background tint
+    const recBg = rec.action === 'BUY'  ? 'rgba(16,185,129,0.08)'
+               : rec.action === 'SELL' ? 'rgba(239,68,68,0.08)'
+               : rec.action === 'HOLD' ? 'rgba(59,130,246,0.08)'
+               : rec.action === 'TRIM' ? 'rgba(245,158,11,0.08)'
+               : 'rgba(107,114,128,0.08)';
+    const recBorder = rec.action_color || '#6366f1';
+
+    return (
+        <div className="stock-alignment-panel">
+            {/* Header */}
+            <div className="align-panel-header" onClick={onToggle}>
+                <div className="align-panel-header-left">
+                    <span style={{ fontSize: '18px' }}>🌾</span>
+                    <span className="align-panel-title">Commodity Alignment — {symbol}</span>
+                </div>
+                <span className={`align-panel-chevron ${isOpen ? 'open' : ''}`}>▼</span>
+            </div>
+
+            {isOpen && (
+                <div className="align-panel-body">
+
+                    {/* Signal Banner */}
+                    <div className="align-signal-banner" style={{ background: data.signal_color }}>
+                        {data.signal === 'OUTPERFORMING' && '📈 '}
+                        {data.signal === 'UNDERPERFORMING' && '📉 '}
+                        {data.signal === 'ALIGNED' && '✅ '}
+                        <strong>{data.signal}</strong> — {data.signal_description}
+                    </div>
+
+                    {/* Stock Sentiment Badge (new) */}
+                    {data.stock_sentiment && (
+                        <div className="align-stock-sentiment">
+                            <div className="align-stock-sentiment-badge" style={{ background: data.stock_sentiment.color }}>
+                                {data.stock_sentiment.label}
+                            </div>
+                            <div className="align-stock-sentiment-info">
+                                <strong style={{ color: '#c7d2fe' }}>Score: {data.stock_sentiment.score}/100</strong>
+                                &nbsp;• Confidence: {data.stock_sentiment.confidence} • 1h
+                                <br/>{data.stock_sentiment.description}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Trade Rec Card (new) */}
+                    {rec.action && (
+                        <div className="align-trade-rec-card" style={{ background: recBg, borderColor: recBorder }}>
+                            <div className="align-trade-rec-header">
+                                <span className="align-trade-rec-action" style={{ background: rec.action_color }}>{rec.action}</span>
+                                <span className="align-trade-rec-confidence">Confidence: {rec.sector_confidence}</span>
+                            </div>
+                            <div className="align-trade-rec-body">
+                                <div className="align-trade-rec-row"><strong>📋 Why:</strong> {rec.rationale}</div>
+                                <div className="align-trade-rec-row"><strong>📍 Entry:</strong> {rec.entry}</div>
+                                <div className="align-trade-rec-row"><strong>⚖️ Risk/Reward:</strong> {rec.risk_reward}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Score Ring + Details */}
+                    <div className="align-score-ring">
+                        <div className="align-score-circle" style={{ borderColor: scoreColor }}>
+                            <span className="align-score-number" style={{ color: scoreColor }}>{data.alignment_score}</span>
+                            <span className="align-score-sub">Score</span>
+                        </div>
+                        <div className="align-score-details">
+                            <div className="align-score-detail-row">Correlation: <strong style={{ color: scoreColor }}>{data.correlation}</strong></div>
+                            <div className="align-score-detail-row">Beta: <strong style={{ color: '#a5b4fc' }}>{data.beta}</strong></div>
+                            <div className="align-score-detail-row">Gap: <strong style={{ color: data.return_gap >= 0 ? '#10b981' : '#ef4444' }}>{data.return_gap >= 0 ? '+' : ''}{data.return_gap}%</strong></div>
+                        </div>
+                    </div>
+
+                    {/* Mini Stats */}
+                    <div className="align-mini-stats">
+                        <div className="align-mini-stat">
+                            <div className="align-mini-stat-label">Expected</div>
+                            <div className="align-mini-stat-value" style={{ color: data.expected_return >= 0 ? '#10b981' : '#ef4444' }}>
+                                {data.expected_return >= 0 ? '+' : ''}{data.expected_return}%
+                            </div>
+                        </div>
+                        <div className="align-mini-stat">
+                            <div className="align-mini-stat-label">Actual</div>
+                            <div className="align-mini-stat-value" style={{ color: data.actual_return >= 0 ? '#10b981' : '#ef4444' }}>
+                                {data.actual_return >= 0 ? '+' : ''}{data.actual_return}%
+                            </div>
+                        </div>
+                        <div className="align-mini-stat">
+                            <div className="align-mini-stat-label">Basket</div>
+                            <div className="align-mini-stat-value" style={{ color: data.commodity_total_return >= 0 ? '#10b981' : '#ef4444' }}>
+                                {data.commodity_total_return >= 0 ? '+' : ''}{data.commodity_total_return}%
+                            </div>
+                        </div>
+                        <div className="align-mini-stat">
+                            <div className="align-mini-stat-label">Alignment</div>
+                            <div className="align-mini-stat-value" style={{ color: scoreColor }}>{data.alignment_score}/100</div>
+                        </div>
+                    </div>
+
+                    {/* Per-Commodity Correlations */}
+                    <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                            Per-Commodity Correlation (1h)
+                        </div>
+                        {(data.per_commodity_correlations || []).slice(0, 4).map((item, i) => (
+                            <div key={i} className="align-comm-row">
+                                <span className="align-comm-ticker">{item.ticker}</span>
+                                <span style={{ display: 'flex', gap: '16px' }}>
+                                    <span style={{ color: '#64748b', fontSize: '11px' }}>{item.period_return >= 0 ? '+' : ''}{item.period_return}%</span>
+                                    <span style={{ color: Math.abs(item.correlation) >= 0.5 ? '#10b981' : '#f59e0b', fontWeight: 600 }}>
+                                        {item.correlation >= 0 ? '+' : ''}{item.correlation.toFixed(2)}
+                                    </span>
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 
 
@@ -5760,7 +5845,7 @@ return (
         <SideNavs />
         <div className="mss-wrapper">
             <div className="mss-header">
-                <h1>Market Stability Score Tester</h1>
+                <h1>Market Stability Score</h1>
                 <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
             </div>
 
@@ -6021,7 +6106,7 @@ return (
                         }}
                     >
                         {loadingAllADR ? '📊 Calculating...' : '📊 Calculate All ADR'}
-                    </button><br />
+                    </button><br /><br />
                     <button
                         className="mss-calculate-btn"
                         onClick={analyzeAllMeanReversion}
@@ -6034,7 +6119,7 @@ return (
                         }}
                     >
                         {loadingAllMeanReversion ? '🔄 Analyzing...' : '🔄 Analyze All Mean Reversion'}
-                    </button><br />
+                    </button><br /><br />
                     <button
                         className="mss-calculate-btn"
                         onClick={fetchCommodityVsMaterials}
@@ -6046,7 +6131,7 @@ return (
                         }}
                     >
                         {loadingCommodityVsMaterials ? '🌾 Analyzing...' : '🌾 Commodities vs Materials'}
-                    </button><br />
+                    </button><br /><br />
 
                     <button
                         className="mss-calculate-btn"
@@ -6059,7 +6144,7 @@ return (
                         }}
                     >
                         {loadingSp500VsTech ? '📈 Analyzing...' : '📈 S&P 500 vs Tech'}
-                    </button>
+                    </button><br />
                     {/* NEW: Trend Duration Controls */}
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
                         <button
@@ -8020,39 +8105,35 @@ return (
         </svg>
     </div>
 
-    {showCommodityModal && commodityVsMaterialsData && (
-           <CorrelationModal
-               config={{
-                   title: 'Commodities vs Materials Sector',
-                   icon: '🌾',
-                   data: commodityVsMaterialsData,
-                   line1Label: 'Commodity Basket',
-                   line2Label: 'Materials Index',
-                   line1Key: 'commodities',
-                   line2Key: 'materials',
-                   breakdownTitle: '📊 Per-Commodity Correlations',
-                   breakdownItems: commodityVsMaterialsData.commodity_breakdowns
-               }}
-               onClose={() => setShowCommodityModal(false)}
-           />
-       )}
+        {showCommodityModal && commodityVsMaterialsData && (
+            <CorrelationModal
+                config={{
+                    title: 'Commodities vs Materials Sector',
+                    icon: '🌾',
+                    data: commodityVsMaterialsData,
+                    line1Label: 'Commodity Basket', line2Label: 'Materials Index',
+                    line1Key: 'commodities',       line2Key: 'materials',
+                    breakdownTitle: '📊 Per-Commodity Correlations',
+                    breakdownItems: commodityVsMaterialsData.commodity_breakdowns
+                }}
+                onClose={() => setShowCommodityModal(false)}
+            />
+        )}
 
-       {showSp500Modal && sp500VsTechData && (
-           <CorrelationModal
-               config={{
-                   title: 'S&P 500 vs Technology Sector',
-                   icon: '📈',
-                   data: sp500VsTechData,
-                   line1Label: 'S&P 500',
-                   line2Label: 'Technology Index',
-                   line1Key: 'sp500',
-                   line2Key: 'technology',
-                   breakdownTitle: '🏆 Top Tech Contributors',
-                   breakdownItems: sp500VsTechData.top_contributors
-               }}
-               onClose={() => setShowSp500Modal(false)}
-           />
-       )}
-    </div>
+        {showSp500Modal && sp500VsTechData && (
+            <CorrelationModal
+                config={{
+                    title: 'S&P 500 vs Technology Sector',
+                    icon: '📈',
+                    data: sp500VsTechData,
+                    line1Label: 'S&P 500',          line2Label: 'Technology Index',
+                    line1Key: 'sp500',              line2Key: 'technology',
+                    breakdownTitle: '🏆 Top Tech Contributors',
+                    breakdownItems: sp500VsTechData.top_contributors
+                }}
+                onClose={() => setShowSp500Modal(false)}
+            />
+        )}
+        </div>
     );
 }
