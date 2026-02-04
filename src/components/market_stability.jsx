@@ -5,6 +5,253 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 
 // ============================================================
+// CSS — Institutional vs Retail Analysis Panel
+// ============================================================
+
+const institutionalRetailStyles = `
+/* ── Institutional vs Retail Toggle Button ── */
+.inst-retail-toggle {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(124,58,237,0.3);
+}
+.inst-retail-toggle:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(124,58,237,0.4);
+}
+.inst-retail-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Panel Container ── */
+.inst-retail-panel {
+    background: linear-gradient(135deg, #2e1065 0%, #4c1d95 100%);
+    border: 2px solid #7c3aed;
+    border-radius: 12px;
+    margin-top: 14px;
+    overflow: hidden;
+    animation: instPanelSlide 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes instPanelSlide {
+    from { opacity: 0; max-height: 0; }
+    to   { opacity: 1; max-height: 1200px; }
+}
+
+.inst-retail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: rgba(124,58,237,0.15);
+    user-select: none;
+}
+.inst-retail-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e9d5ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.inst-retail-chevron {
+    font-size: 12px;
+    color: #7c3aed;
+    transition: transform 0.25s;
+}
+.inst-retail-chevron.open {
+    transform: rotate(180deg);
+}
+
+.inst-retail-body {
+    padding: 16px;
+    animation: corrAccFade 0.2s ease;
+}
+
+/* ── Reliability Banner ── */
+.inst-reliability-banner {
+    padding: 12px 18px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    border: 2px solid;
+}
+
+/* ── Score Gauges (Dual Circular Progress) ── */
+.inst-score-gauges {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 18px;
+    gap: 16px;
+}
+.inst-gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+.inst-gauge-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 6px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+    background: rgba(0,0,0,0.2);
+}
+.inst-gauge-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f3e8ff;
+}
+.inst-gauge-label {
+    font-size: 10px;
+    color: #a78bfa;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+.inst-gauge-sublabel {
+    font-size: 9px;
+    color: #6b21a8;
+    margin-top: 2px;
+}
+
+/* ── Confidence Badge ── */
+.inst-confidence-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 10px 16px;
+    background: rgba(124,58,237,0.1);
+    border-radius: 10px;
+}
+.inst-confidence-badge {
+    padding: 5px 16px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+}
+.inst-confidence-text {
+    font-size: 12px;
+    color: #c4b5fd;
+}
+
+/* ── Interpretation Section ── */
+.inst-interpretation {
+    background: rgba(124,58,237,0.08);
+    border-left: 3px solid #7c3aed;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+.inst-interpretation-text {
+    font-size: 13px;
+    color: #e9d5ff;
+    line-height: 1.6;
+}
+
+/* ── Signal Breakdown Grid ── */
+.inst-signal-breakdown {
+    margin-bottom: 16px;
+}
+.inst-signal-breakdown-title {
+    font-size: 12px;
+    color: #7c3aed;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+.inst-signal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+}
+.inst-signal-card {
+    background: rgba(124,58,237,0.12);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.inst-signal-name {
+    font-size: 10px;
+    color: #7c3aed;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.inst-signal-score {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f3e8ff;
+    margin-bottom: 2px;
+}
+.inst-signal-interp {
+    font-size: 9px;
+    color: #a78bfa;
+    line-height: 1.3;
+}
+
+/* ── Implications List ── */
+.inst-implications {
+    background: rgba(124,58,237,0.08);
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+.inst-implications-title {
+    font-size: 12px;
+    color: #7c3aed;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.inst-implications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.inst-implication-item {
+    font-size: 12px;
+    color: #c4b5fd;
+    line-height: 1.5;
+    padding-left: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .inst-score-gauges {
+        flex-direction: column;
+        align-items: center;
+    }
+    .inst-signal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+`;
+
+
+
+// ============================================================
 // CSS ADDITIONS — Tech Subsector Modal + Per-Card Peer Panel
 // ============================================================
 
@@ -3416,6 +3663,172 @@ export default function MarketStabilityScore() {
         subsectors: true,
     });
 
+    const [instRetailData, setInstRetailData] = useState({});           // { symbol: data }
+    const [loadingInstRetail, setLoadingInstRetail] = useState({});     // { symbol: bool }
+    const [showInstRetailPanel, setShowInstRetailPanel] = useState({}); // { symbol: bool }
+
+    const fetchInstRetailAnalysis = async (symbol) => {
+        setLoadingInstRetail(prev => ({ ...prev, [symbol]: true }));
+        try {
+            const res = await fetch(`${baseUrl}/api/mss-institutional-vs-retail-analyzer/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol, lookback_hours: 720 })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setInstRetailData(prev => ({ ...prev, [symbol]: data }));
+                setShowInstRetailPanel(prev => ({ ...prev, [symbol]: true }));
+            } else alert(`Error: ${data.error}`);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to fetch institutional vs retail analysis.');
+        } finally {
+            setLoadingInstRetail(prev => ({ ...prev, [symbol]: false }));
+        }
+    };
+
+
+    // ============================================================
+    // COMPONENT — InstRetailPanel
+    // Shows institutional vs retail scoring with signal breakdown
+    // ============================================================
+
+    const InstRetailPanel = ({ symbol, data, onToggle, isOpen }) => {
+        const instScore = data.institutional_score || 0;
+        const retailScore = data.retail_score || 0;
+        
+        // Gauge colors (gradient based on score)
+        const instColor = instScore >= 70 ? '#10b981' : instScore >= 50 ? '#f59e0b' : '#ef4444';
+        const retailColor = retailScore >= 70 ? '#ef4444' : retailScore >= 50 ? '#f59e0b' : '#10b981';
+        
+        // Signal breakdown sorted by score (highest first)
+        const signals = data.signal_breakdown ? Object.entries(data.signal_breakdown).map(([key, val]) => ({
+            name: key.replace('_', ' ').toUpperCase(),
+            ...val
+        })).sort((a, b) => b.score - a.score) : [];
+        
+        return (
+            <div className="inst-retail-panel">
+                {/* Header */}
+                <div className="inst-retail-header" onClick={onToggle}>
+                    <div className="inst-retail-title">
+                        <span style={{ fontSize: '18px' }}>🏛️</span>
+                        Institutional vs Retail — {symbol}
+                    </div>
+                    <span className={`inst-retail-chevron ${isOpen ? 'open' : ''}`}>▼</span>
+                </div>
+
+                {isOpen && (
+                    <div className="inst-retail-body">
+
+                        {/* Reliability Banner */}
+                        <div className="inst-reliability-banner" style={{
+                            background: data.reliability_color + '22',
+                            borderColor: data.reliability_color
+                        }}>
+                            {data.reliability === 'HIGH' && '🎯 '}
+                            {data.reliability === 'MODERATE' && '⚖️ '}
+                            {data.reliability === 'LOW' && '⚠️ '}
+                            <strong>{data.reliability} RELIABILITY</strong> — {data.interpretation?.split('.')[0]}.
+                        </div>
+
+                        {/* Score Gauges */}
+                        <div className="inst-score-gauges">
+                            <div className="inst-gauge">
+                                <div className="inst-gauge-circle" style={{ borderColor: instColor }}>
+                                    <span className="inst-gauge-number" style={{ color: instColor }}>{instScore}</span>
+                                    <span style={{ fontSize: '10px', color: '#a78bfa' }}>%</span>
+                                </div>
+                                <div className="inst-gauge-label">Institutional</div>
+                                <div className="inst-gauge-sublabel">
+                                    {instScore >= 70 ? 'Dominant' : instScore >= 50 ? 'Present' : 'Limited'}
+                                </div>
+                            </div>
+                            <div className="inst-gauge">
+                                <div className="inst-gauge-circle" style={{ borderColor: retailColor }}>
+                                    <span className="inst-gauge-number" style={{ color: retailColor }}>{retailScore}</span>
+                                    <span style={{ fontSize: '10px', color: '#a78bfa' }}>%</span>
+                                </div>
+                                <div className="inst-gauge-label">Retail</div>
+                                <div className="inst-gauge-sublabel">
+                                    {retailScore >= 70 ? 'Dominant' : retailScore >= 50 ? 'Present' : 'Limited'}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Confidence Row */}
+                        <div className="inst-confidence-row">
+                            <span className="inst-confidence-badge" style={{ background: data.confidence_color }}>
+                                {data.confidence} CONFIDENCE
+                            </span>
+                            <span className="inst-confidence-text">
+                                Signal agreement: {data.confidence === 'High' ? 'Strong' : data.confidence === 'Medium' ? 'Moderate' : 'Weak'}
+                            </span>
+                        </div>
+
+                        {/* Interpretation */}
+                        <div className="inst-interpretation">
+                            <div className="inst-interpretation-text">
+                                {data.interpretation}
+                            </div>
+                        </div>
+
+                        {/* Signal Breakdown */}
+                        {signals.length > 0 && (
+                            <div className="inst-signal-breakdown">
+                                <div className="inst-signal-breakdown-title">📊 Signal Breakdown (1h)</div>
+                                <div className="inst-signal-grid">
+                                    {signals.map((sig, i) => (
+                                        <div key={i} className="inst-signal-card">
+                                            <div className="inst-signal-name">{sig.name}</div>
+                                            <div className="inst-signal-score" style={{
+                                                color: sig.score >= 70 ? '#10b981' : sig.score >= 50 ? '#f59e0b' : '#ef4444'
+                                            }}>
+                                                {sig.score}
+                                            </div>
+                                            <div className="inst-signal-interp">{sig.interpretation}</div>
+                                            <div style={{ fontSize: '8px', color: '#6b21a8', marginTop: '2px' }}>
+                                                Weight: {(sig.weight * 100).toFixed(0)}%
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Trading Implications */}
+                        {data.implications && data.implications.length > 0 && (
+                            <div className="inst-implications">
+                                <div className="inst-implications-title">💡 Trading Implications</div>
+                                <div className="inst-implications-list">
+                                    {data.implications.map((imp, i) => (
+                                        <div key={i} className="inst-implication-item">{imp}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Metadata Footer */}
+                        <div style={{
+                            marginTop: '12px',
+                            padding: '8px 12px',
+                            background: 'rgba(124,58,237,0.08)',
+                            borderRadius: '6px',
+                            fontSize: '10px',
+                            color: '#6b21a8',
+                            textAlign: 'center'
+                        }}>
+                            Analysis Period: {data.analysis_period} • Timeframe: {data.timeframe}
+                            {data.institutional_trend && ` • Trend: ${data.institutional_trend}`}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+
     // ============================================================
 // FUNCTIONS
 // ============================================================
@@ -6615,7 +7028,7 @@ const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
 
 return (
     <div>
-        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}</style>
+        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}{institutionalRetailStyles}</style>
         <Header />
         <SideNavs />
         <div className="mss-wrapper">
@@ -7390,6 +7803,17 @@ return (
                                             </button>
                                         )}
 
+                                          <button className="inst-retail-toggle"
+                                                onClick={() => {
+                                                    if (instRetailData[asset.symbol])
+                                                        setShowInstRetailPanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }));
+                                                    else
+                                                        fetchInstRetailAnalysis(asset.symbol);
+                                                }}
+                                                disabled={loadingInstRetail[asset.symbol]}>
+                                            {loadingInstRetail[asset.symbol] ? '🏛️ Analyzing...' : '🏛️ Inst vs Retail'}
+                                        </button>
+
 
                                         <div style={{ 
                                             display: 'flex', 
@@ -7956,6 +8380,18 @@ return (
                                     )}
                                 </div>
                             )}
+
+                            {instRetailData[asset.symbol] && (
+                                    <InstRetailPanel
+                                        symbol={asset.symbol}
+                                        data={instRetailData[asset.symbol]}
+                                        isOpen={showInstRetailPanel[asset.symbol]}
+                                        onToggle={() => setShowInstRetailPanel(p => ({
+                                            ...p, [asset.symbol]: !p[asset.symbol]
+                                        }))}
+                                    />
+                                )}
+
 
                                 {meanReversionData[asset.symbol] && (
                                 <div className="mean-reversion-container">
