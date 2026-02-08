@@ -7994,7 +7994,7 @@ return (
                                         background:'linear-gradient(135deg,#0891b2 0%,#06b6d4 100%)' }}>
                         {loadingTechSubsector ? '💻 Analyzing...' : '💻 Tech Subsectors'}
                     </button><br />
-                    //
+                    
                     <div className="sector-selector-group">
                         <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '6px', width: '100%' }}>
                             🏢 Sector Deep Dive:
