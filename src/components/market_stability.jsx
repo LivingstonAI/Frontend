@@ -261,6 +261,7 @@ const sectorDeepDiveStyles = `
 }
 `;
 
+
 // ============================================================
 // CSS — Institutional vs Retail Analysis Panel
 // ============================================================
@@ -3928,6 +3929,9 @@ export default function MarketStabilityScore() {
 // ============================================================
 // STATE ADDITIONS
 // ============================================================
+// ============================================================
+// STATE ADDITIONS
+// ============================================================
 
 const [sectorDeepDiveData, setSectorDeepDiveData] = useState(null);
 const [loadingSectorDive, setLoadingSectorDive] = useState(false);
@@ -3958,8 +3962,6 @@ const AVAILABLE_SECTORS = [
     'Materials',
     'Utilities'
 ];
-
-
 // ============================================================
 // FUNCTIONS
 // ============================================================
@@ -3999,328 +4001,336 @@ const toggleSectorDiveAccordion = (key) => {
 };
 
 
-    // ============================================================
-    // COMPONENT — SectorDeepDiveModal
-    // ============================================================
+// ============================================================
+// COMPONENT — SectorDeepDiveModal
+// ============================================================
 
-    const SectorDeepDiveModal = ({ data, onClose }) => {
-        return (
-            <div className="corr-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-            <div className="corr-modal sector-dive-modal">
+const SectorDeepDiveModal = ({ data, onClose }) => {
+    return (
+        <div className="corr-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+          <div className="corr-modal sector-dive-modal">
 
-                {/* Header */}
-                <div className="corr-modal-header">
-                    <h2>🏢 {data.sector_name} Deep Dive (1h)</h2>
-                    <button className="corr-modal-close" onClick={onClose}>✕</button>
-                </div>
+            {/* Header */}
+            <div className="corr-modal-header">
+                <h2>🏢 {data.sector_name} Deep Dive (1h)</h2>
+                <button className="corr-modal-close" onClick={onClose}>✕</button>
+            </div>
 
-                {/* Summary Stats */}
-                <div style={{ padding: '18px 28px 0' }}>
-                    <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '10px' }}>
-                        Analysed <strong style={{ color: '#e2e8f0' }}>{data.total_stocks}</strong> stocks in {data.sector_name}.
-                        {data.insights && data.insights.length > 0 && (
-                            <div style={{ marginTop: '8px', padding: '10px 14px', background: '#1e293b', borderRadius: '8px', borderLeft: '3px solid #0891b2' }}>
-                                {data.insights.map((ins, i) => <div key={i} style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>{ins}</div>)}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Health Dashboard */}
-                <div className="corr-accordion" style={{ marginTop: '10px' }}>
-                    <button
-                        className={`corr-accordion-trigger ${sectorDiveAccordions.health ? 'open' : ''}`}
-                        onClick={() => toggleSectorDiveAccordion('health')}
-                    >
-                        <span>💚 Sector Health Dashboard</span>
-                        <span className="corr-acc-arrow">▼</span>
-                    </button>
-                    {sectorDiveAccordions.health && (
-                        <div className="corr-accordion-body" style={{ padding: 0 }}>
-                            <div className="sector-health-dashboard">
-                                {/* Health Score */}
-                                <div className="sector-health-card" style={{ borderColor: data.health_color }}>
-                                    <div className="sector-health-label">Health Score</div>
-                                    <div className="sector-health-value" style={{ color: data.health_color }}>{data.health_score}</div>
-                                    <div className="sector-health-sub">{data.health_label}</div>
-                                </div>
-
-                                {/* Return */}
-                                <div className="sector-health-card">
-                                    <div className="sector-health-label">Sector Return</div>
-                                    <div className="sector-health-value" style={{ color: data.sector_return >= 0 ? '#10b981' : '#ef4444' }}>
-                                        {data.sector_return >= 0 ? '+' : ''}{data.sector_return}%
-                                    </div>
-                                    <div className="sector-health-sub">on 1h</div>
-                                </div>
-
-                                {/* Breadth */}
-                                <div className="sector-health-card">
-                                    <div className="sector-health-label">Breadth</div>
-                                    <div className="sector-health-value" style={{ color: data.breadth_pct >= 60 ? '#10b981' : data.breadth_pct >= 40 ? '#f59e0b' : '#ef4444' }}>
-                                        {data.breadth_pct}%
-                                    </div>
-                                    <div className="sector-health-sub">stocks positive</div>
-                                </div>
-
-                                {/* Momentum */}
-                                <div className="sector-health-card">
-                                    <div className="sector-health-label">Momentum</div>
-                                    <div className="sector-health-value" style={{ color: data.momentum_score >= 0 ? '#10b981' : '#ef4444' }}>
-                                        {data.momentum_score >= 0 ? '+' : ''}{data.momentum_score}%
-                                    </div>
-                                    <div className="sector-health-sub">EMA slope</div>
-                                </div>
-
-                                {/* Volatility */}
-                                <div className="sector-health-card">
-                                    <div className="sector-health-label">Volatility</div>
-                                    <div className="sector-health-value">{data.sector_volatility}%</div>
-                                    <div className="sector-health-sub">annualized</div>
-                                </div>
-
-                                {/* vs SPY */}
-                                {data.spy_return !== null && (
-                                    <div className="sector-health-card" style={{ borderColor: data.vs_spy_color }}>
-                                        <div className="sector-health-label">vs SPY</div>
-                                        <div className="sector-health-value" style={{ color: data.vs_spy_color }}>
-                                            {data.relative_strength >= 0 ? '+' : ''}{data.relative_strength}%
-                                        </div>
-                                        <div className="sector-health-sub">{data.vs_spy_label}</div>
-                                    </div>
-                                )}
-
-                                {/* Sentiment */}
-                                <div className="sector-health-card">
-                                    <div className="sector-health-label">Sentiment</div>
-                                    <div className="sector-health-value" style={{
-                                        color: data.sector_sentiment.label === 'BULLISH' ? '#10b981' :
-                                            data.sector_sentiment.label === 'BEARISH' ? '#ef4444' : '#f59e0b',
-                                        fontSize: '16px'
-                                    }}>
-                                        {data.sector_sentiment.label}
-                                    </div>
-                                    <div className="sector-health-sub">Score: {data.sector_sentiment.score}/100</div>
-                                </div>
-
-                                {/* Concentration */}
-                                <div className="sector-health-card">
-                                    <div className="concentration-gauge-wrap" style={{ padding: 0 }}>
-                                        <div className="concentration-circle" style={{
-                                            borderColor: data.concentration_pct > 60 ? '#ef4444' : data.concentration_pct > 40 ? '#f59e0b' : '#10b981',
-                                            width: '80px',
-                                            height: '80px'
-                                        }}>
-                                            <span className="concentration-number" style={{ fontSize: '20px' }}>{data.concentration_pct}%</span>
-                                        </div>
-                                        <div className="concentration-label">Top 5 Impact</div>
-                                    </div>
-                                </div>
-                            </div>
+            {/* Summary Stats */}
+            <div style={{ padding: '18px 28px 0' }}>
+                <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '10px' }}>
+                    Analysed <strong style={{ color: '#e2e8f0' }}>{data.total_stocks}</strong> stocks in {data.sector_name}.
+                    {data.insights && data.insights.length > 0 && (
+                        <div style={{ marginTop: '8px', padding: '10px 14px', background: '#1e293b', borderRadius: '8px', borderLeft: '3px solid #0891b2' }}>
+                            {data.insights.map((ins, i) => <div key={i} style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>{ins}</div>)}
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Index Drivers */}
-                {data.index_drivers && data.index_drivers.length > 0 && (
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${sectorDiveAccordions.drivers ? 'open' : ''}`}
-                            onClick={() => toggleSectorDiveAccordion('drivers')}
-                        >
-                            <span>⚡ Index Drivers (Top 10 by Impact)</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {sectorDiveAccordions.drivers && (
-                            <div className="corr-accordion-body">
-                                <div className="index-drivers-grid">
-                                    {data.index_drivers.map((d, i) => (
-                                        <div key={i} className="driver-card" style={{
-                                            color: d.contribution >= 0 ? '#10b981' : '#ef4444'
-                                        }}>
-                                            <div className="driver-symbol">{d.symbol}</div>
-                                            <div className="driver-contrib">{d.contribution >= 0 ? '+' : ''}{d.contribution}%</div>
-                                            <div className="driver-weight">Weight: {d.weight}% • Ret: {d.return >= 0 ? '+' : ''}{d.return}%</div>
-                                        </div>
-                                    ))}
+            {/* Health Dashboard */}
+            <div className="corr-accordion" style={{ marginTop: '10px' }}>
+                <button
+                    className={`corr-accordion-trigger ${sectorDiveAccordions.health ? 'open' : ''}`}
+                    onClick={() => toggleSectorDiveAccordion('health')}
+                >
+                    <span>💚 Sector Health Dashboard</span>
+                    <span className="corr-acc-arrow">▼</span>
+                </button>
+                {sectorDiveAccordions.health && (
+                    <div className="corr-accordion-body" style={{ padding: 0 }}>
+                        <div className="sector-health-dashboard">
+                            {/* Health Score */}
+                            <div className="sector-health-card" style={{ borderColor: data.health_color }}>
+                                <div className="sector-health-label">Health Score</div>
+                                <div className="sector-health-value" style={{ color: data.health_color }}>{data.health_score}</div>
+                                <div className="sector-health-sub">{data.health_label}</div>
+                            </div>
+
+                            {/* Return */}
+                            <div className="sector-health-card">
+                                <div className="sector-health-label">Sector Return</div>
+                                <div className="sector-health-value" style={{ color: data.sector_return >= 0 ? '#10b981' : '#ef4444' }}>
+                                    {data.sector_return >= 0 ? '+' : ''}{data.sector_return}%
+                                </div>
+                                <div className="sector-health-sub">on 1h</div>
+                            </div>
+
+                            {/* Breadth */}
+                            <div className="sector-health-card">
+                                <div className="sector-health-label">Breadth</div>
+                                <div className="sector-health-value" style={{ color: data.breadth_pct >= 60 ? '#10b981' : data.breadth_pct >= 40 ? '#f59e0b' : '#ef4444' }}>
+                                    {data.breadth_pct}%
+                                </div>
+                                <div className="sector-health-sub">stocks positive</div>
+                            </div>
+
+                            {/* Momentum */}
+                            <div className="sector-health-card">
+                                <div className="sector-health-label">Momentum</div>
+                                <div className="sector-health-value" style={{ color: data.momentum_score >= 0 ? '#10b981' : '#ef4444' }}>
+                                    {data.momentum_score >= 0 ? '+' : ''}{data.momentum_score}%
+                                </div>
+                                <div className="sector-health-sub">EMA slope</div>
+                            </div>
+
+                            {/* Volatility */}
+                            <div className="sector-health-card">
+                                <div className="sector-health-label">Volatility</div>
+                                <div className="sector-health-value">{data.sector_volatility}%</div>
+                                <div className="sector-health-sub">annualized</div>
+                            </div>
+
+                            {/* vs SPY */}
+                            {data.spy_return !== null && (
+                                <div className="sector-health-card" style={{ borderColor: data.vs_spy_color }}>
+                                    <div className="sector-health-label">vs SPY</div>
+                                    <div className="sector-health-value" style={{ color: data.vs_spy_color }}>
+                                        {data.relative_strength >= 0 ? '+' : ''}{data.relative_strength}%
+                                    </div>
+                                    <div className="sector-health-sub">{data.vs_spy_label}</div>
+                                </div>
+                            )}
+
+                            {/* Sentiment */}
+                            <div className="sector-health-card">
+                                <div className="sector-health-label">Sentiment</div>
+                                <div className="sector-health-value" style={{
+                                    color: data.sector_sentiment.label === 'BULLISH' ? '#10b981' :
+                                           data.sector_sentiment.label === 'BEARISH' ? '#ef4444' : '#f59e0b',
+                                    fontSize: '16px'
+                                }}>
+                                    {data.sector_sentiment.label}
+                                </div>
+                                <div className="sector-health-sub">Score: {data.sector_sentiment.score}/100</div>
+                            </div>
+
+                            {/* Concentration */}
+                            <div className="sector-health-card">
+                                <div className="concentration-gauge-wrap" style={{ padding: 0 }}>
+                                    <div className="concentration-circle" style={{
+                                        borderColor: data.concentration_pct > 60 ? '#ef4444' : data.concentration_pct > 40 ? '#f59e0b' : '#10b981',
+                                        width: '80px',
+                                        height: '80px'
+                                    }}>
+                                        <span className="concentration-number" style={{ fontSize: '20px' }}>{data.concentration_pct}%</span>
+                                    </div>
+                                    <div className="concentration-label">Top 5 Impact</div>
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 )}
+            </div>
 
-                {/* Top & Bottom Performers */}
+            {/* Index Drivers */}
+            {data.index_drivers && data.index_drivers.length > 0 && (
                 <div className="corr-accordion">
                     <button
-                        className={`corr-accordion-trigger ${sectorDiveAccordions.topBottom ? 'open' : ''}`}
-                        onClick={() => toggleSectorDiveAccordion('topBottom')}
+                        className={`corr-accordion-trigger ${sectorDiveAccordions.drivers ? 'open' : ''}`}
+                        onClick={() => toggleSectorDiveAccordion('drivers')}
                     >
-                        <span>🏆 Top 10 & Bottom 10 Performers</span>
+                        <span>⚡ Index Drivers (Top 10 by Impact)</span>
                         <span className="corr-acc-arrow">▼</span>
                     </button>
-                    {sectorDiveAccordions.topBottom && (
+                    {sectorDiveAccordions.drivers && (
                         <div className="corr-accordion-body">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                {/* Top 10 */}
-                                <div>
-                                    <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 700, marginBottom: '8px' }}>TOP 10</div>
-                                    <table className="stock-perf-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Symbol</th>
-                                                <th>Return</th>
-                                                <th>Weight</th>
-                                                <th>Corr</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.top_10.map((s, i) => (
-                                                <tr key={i}>
-                                                    <td className="stock-symbol-cell">{s.symbol}</td>
-                                                    <td style={{ color: s.return >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                                                        {s.return >= 0 ? '+' : ''}{s.return}%
-                                                    </td>
-                                                    <td>{s.weight}%</td>
-                                                    <td>{s.correlation}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Bottom 10 */}
-                                <div>
-                                    <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700, marginBottom: '8px' }}>BOTTOM 10</div>
-                                    <table className="stock-perf-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Symbol</th>
-                                                <th>Return</th>
-                                                <th>Weight</th>
-                                                <th>Corr</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.bottom_10.map((s, i) => (
-                                                <tr key={i}>
-                                                    <td className="stock-symbol-cell">{s.symbol}</td>
-                                                    <td style={{ color: s.return >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
-                                                        {s.return >= 0 ? '+' : ''}{s.return}%
-                                                    </td>
-                                                    <td>{s.weight}%</td>
-                                                    <td>{s.correlation}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Trade Opportunities */}
-                {data.trade_opportunities && data.trade_opportunities.length > 0 && (
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${sectorDiveAccordions.opportunities ? 'open' : ''}`}
-                            onClick={() => toggleSectorDiveAccordion('opportunities')}
-                        >
-                            <span>💡 Trade Opportunities ({data.trade_opportunities.length})</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {sectorDiveAccordions.opportunities && (
-                            <div className="corr-accordion-body">
-                                <div className="trade-opp-grid">
-                                    {data.trade_opportunities.map((opp, i) => (
-                                        <div key={i} className="trade-opp-card" style={{ borderLeftColor: opp.action_color }}>
-                                            <div className="trade-opp-header">
-                                                <div className="trade-opp-symbol">{opp.symbol}</div>
-                                                <div className="trade-opp-action" style={{ background: opp.action_color }}>{opp.action}</div>
-                                            </div>
-                                            <div className="trade-opp-body">{opp.rationale}</div>
-                                            <div className="trade-opp-metrics">
-                                                <span>Ret: <strong style={{ color: opp.return >= 0 ? '#10b981' : '#ef4444' }}>{opp.return >= 0 ? '+' : ''}{opp.return}%</strong></span>
-                                                <span>Gap: <strong>{opp.gap_vs_sector >= 0 ? '+' : ''}{opp.gap_vs_sector}%</strong></span>
-                                                <span>Corr: <strong>{opp.correlation}</strong></span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Rotation Signals */}
-                {data.rotation_signals && data.rotation_signals.length > 0 && (
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${sectorDiveAccordions.rotation ? 'open' : ''}`}
-                            onClick={() => toggleSectorDiveAccordion('rotation')}
-                        >
-                            <span>🔄 Rotation Signals ({data.rotation_signals.length})</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {sectorDiveAccordions.rotation && (
-                            <div className="corr-accordion-body">
-                                {data.rotation_signals.map((sig, i) => (
-                                    <div key={i} className="rotation-signal-item">
-                                        <div className="rotation-signal-badge" style={{
-                                            background: sig.signal.includes('ACCELERATING') ? '#10b981' :
-                                                    sig.signal.includes('ROLLING') ? '#ef4444' :
-                                                    sig.signal.includes('BOTTOM') ? '#f59e0b' : '#0891b2'
-                                        }}>
-                                            {sig.signal}
-                                        </div>
-                                        <div className="rotation-signal-text">{sig.description}</div>
+                            <div className="index-drivers-grid">
+                                {data.index_drivers.map((d, i) => (
+                                    <div key={i} className="driver-card" style={{
+                                        color: d.contribution >= 0 ? '#10b981' : '#ef4444'
+                                    }}>
+                                        <div className="driver-symbol">{d.symbol}</div>
+                                        <div className="driver-contrib">{d.contribution >= 0 ? '+' : ''}{d.contribution}%</div>
+                                        <div className="driver-weight">Weight: {d.weight}% • Ret: {d.return >= 0 ? '+' : ''}{d.return}%</div>
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Chart */}
-                {data.timeseries && (
-                    <div className="corr-accordion">
-                        <button
-                            className={`corr-accordion-trigger ${sectorDiveAccordions.chart ? 'open' : ''}`}
-                            onClick={() => toggleSectorDiveAccordion('chart')}
-                        >
-                            <span>📈 Sector vs SPY (1h)</span>
-                            <span className="corr-acc-arrow">▼</span>
-                        </button>
-                        {sectorDiveAccordions.chart && (
-                            <div className="corr-accordion-body">
-                                <div className="corr-chart-wrap">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={data.timeseries} margin={{ top: 8, right: 12, left: -10, bottom: 4 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                                            <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
-                                            <YAxis stroke="#475569" tick={{ fontSize: 9 }} domain={['auto','auto']} />
-                                            <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px' }} />
-                                            <Legend wrapperStyle={{ fontSize: '11px' }} />
-                                            <Line type="monotone" dataKey="sector" stroke="#0891b2" strokeWidth={2} dot={false} name={data.sector_name} />
-                                            {data.spy_return !== null && (
-                                                <Line type="monotone" dataKey="spy" stroke="#f59e0b" strokeWidth={2} dot={false} name="SPY" />
-                                            )}
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <div className="corr-modal-footer">
-                    Timeframe: 1h • {data.timestamp && new Date(data.timestamp).toLocaleString()}
+                        </div>
+                    )}
                 </div>
-            </div>
-            </div>
-        );
-    };
+            )}
 
+            {/* Top & Bottom Performers */}
+            <div className="corr-accordion">
+                <button
+                    className={`corr-accordion-trigger ${sectorDiveAccordions.topBottom ? 'open' : ''}`}
+                    onClick={() => toggleSectorDiveAccordion('topBottom')}
+                >
+                    <span>🏆 Top 10 & Bottom 10 Performers</span>
+                    <span className="corr-acc-arrow">▼</span>
+                </button>
+                {sectorDiveAccordions.topBottom && (
+                    <div className="corr-accordion-body">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            {/* Top 10 */}
+                            <div>
+                                <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 700, marginBottom: '8px' }}>TOP 10</div>
+                                <table className="stock-perf-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Return</th>
+                                            <th>Weight</th>
+                                            <th>Corr</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.top_10.map((s, i) => (
+                                            <tr key={i}>
+                                                <td className="stock-symbol-cell">{s.symbol}</td>
+                                                <td style={{ color: s.return >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                    {s.return >= 0 ? '+' : ''}{s.return}%
+                                                </td>
+                                                <td>{s.weight}%</td>
+                                                <td>{s.correlation}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Bottom 10 */}
+                            <div>
+                                <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 700, marginBottom: '8px' }}>BOTTOM 10</div>
+                                <table className="stock-perf-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Return</th>
+                                            <th>Weight</th>
+                                            <th>Corr</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.bottom_10.map((s, i) => (
+                                            <tr key={i}>
+                                                <td className="stock-symbol-cell">{s.symbol}</td>
+                                                <td style={{ color: s.return >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                    {s.return >= 0 ? '+' : ''}{s.return}%
+                                                </td>
+                                                <td>{s.weight}%</td>
+                                                <td>{s.correlation}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Trade Opportunities */}
+            {data.trade_opportunities && data.trade_opportunities.length > 0 && (
+                <div className="corr-accordion">
+                    <button
+                        className={`corr-accordion-trigger ${sectorDiveAccordions.opportunities ? 'open' : ''}`}
+                        onClick={() => toggleSectorDiveAccordion('opportunities')}
+                    >
+                        <span>💡 Trade Opportunities ({data.trade_opportunities.length})</span>
+                        <span className="corr-acc-arrow">▼</span>
+                    </button>
+                    {sectorDiveAccordions.opportunities && (
+                        <div className="corr-accordion-body">
+                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px', padding: '8px 12px', background: 'rgba(8,145,178,0.08)', borderRadius: '6px', borderLeft: '3px solid #0891b2' }}>
+                                📊 <strong>Methodology:</strong> Signals based on trend quality, regime detection (trending vs mean-reverting), trend elasticity, and institutional flow. Prioritizes clean trends with institutional backing over pure mean reversion.
+                            </div>
+                            <div className="trade-opp-grid">
+                                {data.trade_opportunities.map((opp, i) => (
+                                    <div key={i} className="trade-opp-card" style={{ borderLeftColor: opp.action_color }}>
+                                        <div className="trade-opp-header">
+                                            <div className="trade-opp-symbol">{opp.symbol}</div>
+                                            <div className="trade-opp-action" style={{ background: opp.action_color }}>{opp.action}</div>
+                                        </div>
+                                        <div className="trade-opp-body">{opp.rationale}</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '8px', fontSize: '10px', color: '#64748b' }}>
+                                            <div>Trend: <strong style={{ color: opp.trend_quality >= 0.6 ? '#10b981' : opp.trend_quality >= 0.4 ? '#f59e0b' : '#ef4444' }}>{opp.trend_quality}</strong></div>
+                                            <div>Regime: <strong style={{ color: opp.is_trending ? '#10b981' : '#f59e0b' }}>{opp.is_trending ? 'Trending' : 'Mean-Rev'}</strong></div>
+                                            <div>Beta: <strong style={{ color: opp.elasticity > 1.2 ? '#0891b2' : opp.elasticity < 0.8 ? '#6b7280' : '#94a3b8' }}>{opp.elasticity}x</strong></div>
+                                            <div>Inst: <strong style={{ color: opp.inst_score >= 60 ? '#10b981' : opp.inst_score >= 40 ? '#f59e0b' : '#ef4444' }}>{opp.inst_score}/100</strong></div>
+                                        </div>
+                                        <div className="trade-opp-metrics">
+                                            <span>Ret: <strong style={{ color: opp.return >= 0 ? '#10b981' : '#ef4444' }}>{opp.return >= 0 ? '+' : ''}{opp.return}%</strong></span>
+                                            <span>Gap: <strong>{opp.gap_vs_sector >= 0 ? '+' : ''}{opp.gap_vs_sector}%</strong></span>
+                                            <span>Corr: <strong>{opp.correlation}</strong></span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Rotation Signals */}
+            {data.rotation_signals && data.rotation_signals.length > 0 && (
+                <div className="corr-accordion">
+                    <button
+                        className={`corr-accordion-trigger ${sectorDiveAccordions.rotation ? 'open' : ''}`}
+                        onClick={() => toggleSectorDiveAccordion('rotation')}
+                    >
+                        <span>🔄 Rotation Signals ({data.rotation_signals.length})</span>
+                        <span className="corr-acc-arrow">▼</span>
+                    </button>
+                    {sectorDiveAccordions.rotation && (
+                        <div className="corr-accordion-body">
+                            {data.rotation_signals.map((sig, i) => (
+                                <div key={i} className="rotation-signal-item">
+                                    <div className="rotation-signal-badge" style={{
+                                        background: sig.signal.includes('ACCELERATING') ? '#10b981' :
+                                                   sig.signal.includes('ROLLING') ? '#ef4444' :
+                                                   sig.signal.includes('BOTTOM') ? '#f59e0b' : '#0891b2'
+                                    }}>
+                                        {sig.signal}
+                                    </div>
+                                    <div className="rotation-signal-text">{sig.description}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Chart */}
+            {data.timeseries && (
+                <div className="corr-accordion">
+                    <button
+                        className={`corr-accordion-trigger ${sectorDiveAccordions.chart ? 'open' : ''}`}
+                        onClick={() => toggleSectorDiveAccordion('chart')}
+                    >
+                        <span>📈 Sector vs SPY (1h)</span>
+                        <span className="corr-acc-arrow">▼</span>
+                    </button>
+                    {sectorDiveAccordions.chart && (
+                        <div className="corr-accordion-body">
+                            <div className="corr-chart-wrap">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={data.timeseries} margin={{ top: 8, right: 12, left: -10, bottom: 4 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                        <XAxis dataKey="date" stroke="#475569" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
+                                        <YAxis stroke="#475569" tick={{ fontSize: 9 }} domain={['auto','auto']} />
+                                        <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '11px' }} />
+                                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                        <Line type="monotone" dataKey="sector" stroke="#0891b2" strokeWidth={2} dot={false} name={data.sector_name} />
+                                        {data.spy_return !== null && (
+                                            <Line type="monotone" dataKey="spy" stroke="#f59e0b" strokeWidth={2} dot={false} name="SPY" />
+                                        )}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="corr-modal-footer">
+                Timeframe: 1h • {data.timestamp && new Date(data.timestamp).toLocaleString()}
+            </div>
+          </div>
+        </div>
+    );
+};
 
     const fetchInstRetailAnalysis = async (symbol) => {
         setLoadingInstRetail(prev => ({ ...prev, [symbol]: true }));
@@ -7998,18 +8008,18 @@ return (
                     <div className="sector-selector-group">
                         <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '6px', width: '100%' }}>
                             🏢 Sector Deep Dive:
-                    </div>
+                        </div>
                         {AVAILABLE_SECTORS.map(sector => (
-                            <button
-                                key={sector}
-                                className={`sector-select-btn ${selectedSector === sector ? 'active' : ''}`}
-                                onClick={() => fetchSectorDeepDive(sector)}
-                                disabled={loadingSectorDive && selectedSector === sector}
-                            >
-                                {loadingSectorDive && selectedSector === sector ? '⏳' : ''} {sector}
-                            </button>
-                        ))}
-                    </div>
+                        <button
+                            key={sector}
+                            className={`sector-select-btn ${selectedSector === sector ? 'active' : ''}`}
+                            onClick={() => fetchSectorDeepDive(sector)}
+                            disabled={loadingSectorDive && selectedSector === sector}
+                        >
+                            {loadingSectorDive && selectedSector === sector ? '⏳' : ''} {sector}
+                        </button>
+                    ))}
+                </div>
                     {/* NEW: Trend Duration Controls */}
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
                         <button
@@ -10052,10 +10062,10 @@ return (
            />
        )}
         {showSectorDiveModal && sectorDeepDiveData && (
-            <SectorDeepDiveModal
-                data={sectorDeepDiveData}
-                onClose={() => setShowSectorDiveModal(false)}
-            />
+                <SectorDeepDiveModal
+                    data={sectorDeepDiveData}
+                    onClose={() => setShowSectorDiveModal(false)}
+                />
         )}
         </div>
     );
