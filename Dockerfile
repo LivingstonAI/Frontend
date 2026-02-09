@@ -15,8 +15,8 @@ RUN npm run build
 # Install a static file server
 RUN npm install -g serve
 
-# Expose Railway's dynamic port
+# Expose a default port (Railway overrides with $PORT)
 EXPOSE 3000
 
-# Use shell form so $PORT expands correctly
+# Use shell form so $PORT expands, with fallback
 CMD sh -c "serve -s dist -l ${PORT:-3000}"
