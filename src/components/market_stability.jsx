@@ -8084,6 +8084,7 @@ return (
                                 background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
                             }}
                         >
+                            
                             {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
                         </button><br />
 
