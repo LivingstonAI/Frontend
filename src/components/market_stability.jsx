@@ -7699,9 +7699,19 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
         }
     };
 
-    
-    const filteredData = mssData
+    // Replace your current filteredData with this enhanced version:
+const filteredData = mssData
     .filter(item => {
+        // First apply the saved assets filter if active
+        if (showingSavedOnly && !savedAssetSymbols.includes(item.symbol)) {
+            return false;
+        }
+        
+        // Then apply sector filter if active
+        if (sectorFilter && item.sector !== sectorFilter) {
+            return false;
+        }
+        
         // Existing search filter
         if (searchQuery && !item.symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -7729,14 +7739,14 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
             }
         }
 
-        // Existing sector filter
+        // Existing sector filter (from sector analysis)
         if (selectedSector !== 'all' && item.sector) {
             if (selectedSector !== item.sector) {
                 return false;
             }
         }
 
-        // NEW: R² filter
+        // Existing R² filter
         if (rSquaredFilter !== 'all') {
             const rSquared = parseFloat(item.r_squared);
             if (rSquaredFilter === 'high' && rSquared < 0.7) {
@@ -7752,14 +7762,32 @@ Provide sector outlook, key drivers, and investment considerations. Keep respons
         if (selectedCategory === 'all') return true;
         return item.category === selectedCategory;
     })
-    // NEW: Sort by R² (highest to lowest) when filter is active
+    // Sort by R² when filter is active
     .sort((a, b) => {
         if (rSquaredFilter !== 'all') {
             return parseFloat(b.r_squared) - parseFloat(a.r_squared);
         }
-        return 0; // Keep original order when no R² filter
+        return 0;
     });
 
+    // ============================================================
+    // FILTERED ASSETS LOGIC - Assets of Interest Feature
+    // ============================================================
+
+    // This gets the filtered list based on whether we're showing saved assets only
+    const getFilteredAssetsList = () => {
+        if (showingSavedOnly) {
+            // Show only assets that were saved today
+            return mssData.filter(asset => savedAssetSymbols.includes(asset.symbol));
+        } else if (sectorFilter) {
+            // Show assets from selected sector (from Sector Deep Dive)
+            return mssData.filter(asset => asset.sector === sectorFilter);
+        } else {
+            // Show all assets (default view)
+            return mssData;
+        }
+    };
+    
     const stableAssets = filteredData.filter(item => item.category === 'stable');
     const choppyAssets = filteredData.filter(item => item.category === 'choppy');
     const volatileAssets = filteredData.filter(item => item.category === 'volatile');
@@ -8185,15 +8213,7 @@ const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
     );
 };
 
-       const filteredAssets = showingSavedOnly
-           ? mssData.filter(asset => savedAssetSymbols.includes(asset.symbol))
-           : (sectorFilter 
-               ? mssData.filter(asset => asset.sector === sectorFilter)
-               : mssData);
        
-       {filteredAssets.map(asset => (
-           <MSSCard key={asset.symbol} asset={asset} />
-       ))}
 
         useEffect(() => {
            fetchTodaysSavedAssets('stocks');
