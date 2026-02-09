@@ -8186,10 +8186,10 @@ const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
 };
 
        const filteredAssets = showingSavedOnly
-           ? mssAssets.filter(asset => savedAssetSymbols.includes(asset.symbol))
+           ? mssData.filter(asset => savedAssetSymbols.includes(asset.symbol))
            : (sectorFilter 
-               ? mssAssets.filter(asset => asset.sector === sectorFilter)
-               : mssAssets);
+               ? mssData.filter(asset => asset.sector === sectorFilter)
+               : mssData);
        
        {filteredAssets.map(asset => (
            <MSSCard key={asset.symbol} asset={asset} />
@@ -8532,7 +8532,7 @@ return (
                         className="sector-select-btn"
                         onClick={() => {
                             setSectorFilter(null);
-                            setSelectedSector(null);  // Add this line
+                            setSelectedSector("all");  // Add this line
                         }}
                         style={{ 
                             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
