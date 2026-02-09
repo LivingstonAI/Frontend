@@ -8184,3 +8184,2458 @@ const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
         </div>
     );
 };
+
+       const filteredAssets = showingSavedOnly
+           ? mssAssets.filter(asset => savedAssetSymbols.includes(asset.symbol))
+           : (sectorFilter 
+               ? mssAssets.filter(asset => asset.sector === sectorFilter)
+               : mssAssets);
+       
+       {filteredAssets.map(asset => (
+           <MSSCard key={asset.symbol} asset={asset} />
+       ))}
+
+        useEffect(() => {
+           fetchTodaysSavedAssets('stocks');
+       }, []);
+
+
+return (
+    <div>
+        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}{institutionalRetailStyles}{sectorDeepDiveStyles}{assetInterestStyles}</style>
+        <Header />
+        <SideNavs />
+        <div className="mss-wrapper">
+            <div className="mss-header">
+                <h1>Market Stability Score</h1>
+                <p>The Market Stability Score (MSS) evaluates asset tradability based on volatility, trend clarity, and liquidity. Higher scores indicate better trading conditions.</p>
+            </div>
+
+            <div className="mss-controls">
+                <div className="control-row">
+                    <div className="control-group">
+                        <label>Asset Class:</label>
+                        <select 
+                            value={selectedAssetClass} 
+                            onChange={(e) => setSelectedAssetClass(e.target.value)}
+                            disabled={loading}
+                        >
+                            <option value="forex">Forex</option>
+                            <option value="stocks">Stocks</option>
+                            <option value="indices">Stock Indices</option>
+                            <option value="commodities">Commodities</option>
+                            <option value="bonds">Bonds & Yields</option>
+                            <option value="custom">Custom Symbols</option>
+                        </select>
+                    </div>
+
+                    {selectedAssetClass === 'custom' && (
+                        <div className="control-group">
+                            <label>Symbols (comma-separated):</label>
+                            <input
+                                type="text"
+                                value={customSymbols}
+                                onChange={(e) => setCustomSymbols(e.target.value)}
+                                placeholder="AAPL, MSFT, TSLA"
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
+
+                    <div className="control-group">
+                        <label>Period (days):</label>
+                        <select 
+                            value={period} 
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setPeriod(val);
+                                if (val !== 0) {
+                                    setCustomPeriod('');
+                                }
+                            }}
+                            disabled={loading}
+                        >
+                            <option value={10}>10 Days</option>
+                            <option value={15}>15 Days</option>
+                            <option value={20}>20 Days</option>
+                            <option value={30}>30 Days</option>
+                            <option value={60}>60 Days</option>
+                            <option value={90}>90 Days</option>
+                            <option value={180}>180 Days</option>
+                            <option value={0}>Custom...</option>
+                        </select>
+                    </div>
+
+                    {period === 0 && (
+                        <div className="control-group">
+                            <label>Custom Period (days):</label>
+                            <input
+                                type="number"
+                                value={customPeriod}
+                                onChange={(e) => setCustomPeriod(e.target.value)}
+                                placeholder="Enter days (e.g., 45)"
+                                min="1"
+                                max="730"
+                                disabled={loading}
+                            />
+                        </div>
+                    )}
+
+                    <button 
+                        className="mss-calculate-btn"
+                        onClick={calculateMSS}
+                        disabled={loading}
+                    >
+                        {loading ? 'Calculating...' : 'Calculate MSS'}
+                    </button>
+                </div>
+            </div>
+
+            {loading && (
+                <div className="mss-loading">
+                    <div className="spinner"></div>
+                    <p>Analyzing market data...</p>
+                </div>
+            )}
+
+            {!loading && mssData.length > 0 && (
+                <>
+                    <div className="mss-summary">
+                        <div className="summary-card stable">
+                            <h3>🟢 Stable</h3>
+                            <p className="big-number">{stableAssets.length}</p>
+                            <p className="label">Assets (MSS ≥ 60)</p>
+                        </div>
+                        <div className="summary-card choppy">
+                            <h3>🟡 Choppy</h3>
+                            <p className="big-number">{choppyAssets.length}</p>
+                            <p className="label">Assets (40-60)</p>
+                        </div>
+                        <div className="summary-card volatile">
+                            <h3>🔴 Volatile</h3>
+                            <p className="big-number">{volatileAssets.length}</p>
+                            <p className="label">Assets (MSS &lt; 40)</p>
+                        </div>
+                    </div>
+
+                    <div className="search-filter-container">
+                        <input
+                            type="text"
+                            className="search-box"
+                            placeholder="🔍 Search by asset name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <div className="filter-buttons">
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'all' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('all')}
+                            >
+                                All Models
+                            </button>
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'active' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('active')}
+                            >
+                                ▶️ Active
+                            </button>
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'paused' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('paused')}
+                            >
+                                ⏸️ Paused
+                            </button>
+                            <button
+                                className={`filter-btn ${modelStatusFilter === 'unsaved' ? 'active' : ''}`}
+                                onClick={() => setModelStatusFilter('unsaved')}
+                            >
+                                💾 Unsaved
+                            </button>
+                            {/* NEW BATCH UPDATE BUTTON */}
+                            <button
+                                className="mss-calculate-btn"
+                                onClick={batchUpdateAllModels}
+                                disabled={batchUpdating || savedModels.size === 0}
+                                style={{ 
+                                    padding: '12px 24px', 
+                                    fontSize: '14px',
+                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                                    marginLeft: '12px'
+                                }}
+                            >
+                                {batchUpdating ? '🔄 Updating All Models...' : '🔄 Auto-Update All Models'}
+                            </button>
+                        </div>
+                        <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                            <button
+                                className="mss-calculate-btn"
+                                onClick={calculateRelativeVolume}
+                                disabled={loadingVolume}
+                                style={{ padding: '12px 24px', fontSize: '14px' }}
+                            >
+                                {loadingVolume ? '📊 Calculating Volume...' : '📊 Calculate Relative Volume'}
+                            </button>
+                            {selectedAssetClass === 'stocks' && (
+                                <>
+                                    {!sectorData ? (
+                                        <button
+                                            className="mss-calculate-btn"
+                                            onClick={analyzeSectorPerformance}
+                                            disabled={loadingSectors}
+                                            style={{ padding: '12px 24px', fontSize: '14px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+                                        >
+                                            {loadingSectors ? '🎯 Analyzing Sectors...' : '🎯 Analyze Sectors'}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            className="sector-toggle-btn"
+                                            onClick={() => setShowSectorAnalysis(!showSectorAnalysis)}
+                                            style={{ padding: '12px 24px', fontSize: '14px' }}
+                                        >
+                                            {showSectorAnalysis ? '👁️ Hide Sector Analysis' : '👁️ Show Sector Analysis'}
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                            {hasVolumeData && (
+                                <>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'all' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('all')}
+                                    >
+                                        All Volume
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'high' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('high')}
+                                    >
+                                        🔥 High Volume
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'average' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('average')}
+                                    >
+                                        📊 Average Volume
+                                    </button>
+                                    <button
+                                        className={`filter-btn ${volumeFilter === 'low' ? 'active' : ''}`}
+                                        onClick={() => setVolumeFilter('low')}
+                                    >
+                                        💤 Low Volume
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('all')}
+                        >
+                            All R² Values
+                        </button>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'high' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('high')}
+                        >
+                            🎯 Strong Trend (R² ≥ 0.7)
+                        </button>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'medium' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('medium')}
+                        >
+                            📊 Moderate Trend (0.4-0.7)
+                        </button>
+                        <button
+                            className={`filter-btn ${rSquaredFilter === 'low' ? 'active' : ''}`}
+                            onClick={() => setRSquaredFilter('low')}
+                        >
+                            💤 Weak Trend (R² less than 0.4)
+                        </button>
+                    </div>
+
+                    <br />
+                    {/* Add this with your other bulk analysis buttons */}
+                    <button
+                        className="mss-calculate-btn"
+                        onClick={getAllAverageDailyRanges}
+                        disabled={loadingAllADR || filteredData.length === 0}
+                        style={{ 
+                            padding: '12px 24px', 
+                            fontSize: '14px',
+                            background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+                        }}
+                    >
+                        {loadingAllADR ? '📊 Calculating...' : '📊 Calculate All ADR'}
+                    </button><br /><br />
+                    <button
+                        className="mss-calculate-btn"
+                        onClick={analyzeAllMeanReversion}
+                        disabled={loadingAllMeanReversion || filteredData.length === 0}
+                        style={{ 
+                            padding: '12px 24px', 
+                            fontSize: '14px',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            marginLeft: '10px'
+                        }}
+                    >
+                        {loadingAllMeanReversion ? '🔄 Analyzing...' : '🔄 Analyze All Mean Reversion'}
+                    </button><br /><br />
+                    <button
+                        className="mss-calculate-btn"
+                        onClick={fetchCommodityVsMaterials}
+                        disabled={loadingCommodityVsMaterials}
+                        style={{
+                            padding: '12px 24px',
+                            fontSize: '14px',
+                            background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)'
+                        }}
+                    >
+                        {loadingCommodityVsMaterials ? '🌾 Analyzing...' : '🌾 Commodities vs Materials'}
+                    </button><br /><br />
+
+                    <button
+                        className="mss-calculate-btn"
+                        onClick={fetchSp500VsTech}
+                        disabled={loadingSp500VsTech}
+                        style={{
+                            padding: '12px 24px',
+                            fontSize: '14px',
+                            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
+                        }}
+                    >
+                        {loadingSp500VsTech ? '📈 Analyzing...' : '📈 S&P 500 vs Tech'}
+                    </button><br /><br />
+                    <button className="mss-calculate-btn" onClick={fetchTechSubsectorAnalysis}
+                            disabled={loadingTechSubsector}
+                            style={{ padding:'12px 24px', fontSize:'14px',
+                                        background:'linear-gradient(135deg,#0891b2 0%,#06b6d4 100%)' }}>
+                        {loadingTechSubsector ? '💻 Analyzing...' : '💻 Tech Subsectors'}
+                    </button><br /><br />
+                    
+                    <div className="sector-selector-group">
+                        <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '6px', width: '100%' }}>
+                            🏢 Sector Deep Dive:
+                        </div>
+                        {AVAILABLE_SECTORS.map(sector => (
+                        <button
+                            key={sector}
+                            className={`sector-select-btn ${selectedSector === sector ? 'active' : ''}`}
+                            onClick={() => fetchSectorDeepDive(sector)}
+                            disabled={loadingSectorDive && selectedSector === sector}
+                        >
+                            {loadingSectorDive && selectedSector === sector ? '⏳' : ''} {sector}
+                        </button>
+                    ))}<br /><br />
+                    <button
+                        className="sector-select-btn"
+                        onClick={() => {
+                            setSectorFilter(null);
+                            setSelectedSector(null);  // Add this line
+                        }}
+                        style={{ 
+                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                            borderColor: '#ef4444',
+                            color: 'white',
+                            fontSize: '12px',
+                            padding: '6px 12px'
+                        }}
+                    >
+                        ✕ Show All Assets
+                    </button><br /><br />
+                    <button 
+                        className={`show-saved-assets-btn ${showingSavedOnly ? 'active' : ''}`}
+                        onClick={toggleShowSavedOnly}
+                    >
+                        {showingSavedOnly ? '✓ Showing Saved Assets' : '⭐ Show Saved Assets'}
+                    </button>
+                    
+
+
+                </div>
+                    {/* NEW: Trend Duration Controls */}
+                    <div className="filter-buttons" style={{ marginTop: '12px' }}>
+                        <button
+                            className="mss-calculate-btn"
+                            onClick={getAllTrendDurations}
+                            disabled={loadingAllDurations || filteredData.length === 0}
+                            style={{ 
+                                padding: '12px 24px', 
+                                fontSize: '14px',
+                                background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+                            }}
+                        >
+                            
+                            {loadingAllDurations ? '⏱️ Analyzing...' : '⏱️ Analyze All Trend Durations'}
+                        </button><br />
+
+                        <button
+                            className="mss-calculate-btn"
+                            onClick={fetchAllCharts}
+                            disabled={loadingAllCharts || filteredData.length === 0 || !tvLoaded}
+                            style={{ 
+                                padding: '12px 24px', 
+                                fontSize: '14px',
+                                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                            }}
+                        >
+                            {loadingAllCharts ? '📊 Loading...' : !tvLoaded ? '⏳ Loading Charts...' : '📊 View All Charts'}
+                        </button><br />
+                        
+                        
+                        {Object.keys(trendDurations).length > 0 && (
+                            <button
+                                className="filter-btn"
+                                onClick={sortByTrendDuration}
+                                style={{ marginLeft: '12px' }}
+                            >
+                                {durationSortOrder === 'desc' ? '⬇️ Longest First' : '⬆️ Shortest First'}
+                            </button>
+                        )}
+                    </div><br />
+
+                    {showSectorAnalysis && sectorData && (
+                        <div className="sector-analysis-container">
+                            <div className="sector-header">
+                                <h2>📊 Sector Performance Analysis</h2>
+                                <button className="sector-close-btn" onClick={() => setShowSectorAnalysis(false)}>
+                                    ✕ Close
+                                </button>
+                            </div>
+
+                            <div className="sector-stats-grid">
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Total Sectors</div>
+                                    <div className="sector-stat-value">{sectorData.sector_performance?.length || 0}</div>
+                                </div>
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Strongest Sector</div>
+                                    <div className="sector-stat-value" style={{ fontSize: '16px' }}>
+                                        {sectorData.sector_performance?.[0]?.sector || 'N/A'}
+                                    </div>
+                                </div>
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Avg Sector Return</div>
+                                    <div className="sector-stat-value" style={{ color: sectorData.overall_avg_return >= 0 ? '#059669' : '#dc2626' }}>
+                                        {sectorData.overall_avg_return?.toFixed(2)}%
+                                    </div>
+                                </div>
+                                <div className="sector-stat-card">
+                                    <div className="sector-stat-label">Total Money Flow</div>
+                                    <div className="sector-stat-value" style={{ fontSize: '16px' }}>
+                                        ${(sectorData.total_volume_dollars / 1e9).toFixed(2)}B
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="sector-filters">
+                                <button
+                                    className={`sector-filter-btn ${selectedSector === 'all' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setSelectedSector('all');
+                                        setSelectedStock(null);
+                                        setStockVsSectorData(null);
+                                    }}
+                                >
+                                    All Sectors
+                                </button>
+                                {sectorData.sector_performance?.map(sector => (
+                                    <button
+                                        key={sector.sector}
+                                        className={`sector-filter-btn ${selectedSector === sector.sector ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setSelectedSector(sector.sector);
+                                            setSelectedStock(null);
+                                            setStockVsSectorData(null);
+                                        }}
+                                    >
+                                        {sector.sector} ({sector.avg_return >= 0 ? '+' : ''}{sector.avg_return.toFixed(1)}%)
+                                    </button>
+                                    
+                                ))}
+                                {selectedSector !== 'all' && (
+                                    <button
+                                        className="mss-calculate-btn"
+                                        onClick={() => fetchSectorCharts(selectedSector)}
+                                        disabled={loadingAllCharts || !tvLoaded}
+                                        style={{
+                                            padding: '10px 20px',
+                                            fontSize: '13px',
+                                            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                            marginLeft: '10px'
+                                        }}
+                                    >
+                                        {loadingAllCharts ? '📊 Loading...' : `📊 View ${selectedSector} Charts`}
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="sector-charts-grid">
+                                {sectorData.sector_timeseries
+                                    ?.filter(sectorTS => selectedSector === 'all' || sectorTS.sector === selectedSector)
+                                    .map(sectorTS => {
+                                        const baselineValue = sectorTS.data[0]?.index || 100;
+                                        const enhancedData = sectorTS.data.map(point => ({
+                                            ...point,
+                                            change_pct: parseFloat(((point.index - baselineValue) / baselineValue * 100).toFixed(2))
+                                        }));
+                                        
+                                        const values = enhancedData.map(d => d.change_pct);
+                                        const minValue = Math.min(...values);
+                                        const maxValue = Math.max(...values);
+                                        const range = maxValue - minValue;
+                                        const padding = range * 0.15;
+                                        const yMin = minValue - padding;
+                                        const yMax = maxValue + padding;
+                                        
+                                        const latestChange = enhancedData[enhancedData.length - 1]?.change_pct || 0;
+                                        
+                                        return (
+                                            <div key={sectorTS.sector} className="sector-chart-container">
+                                                <div className="sector-chart-title">
+                                                    {sectorTS.sector} - Performance
+                                                    <span style={{ 
+                                                        marginLeft: '10px',
+                                                        color: latestChange >= 0 ? '#059669' : '#dc2626',
+                                                        fontWeight: 700
+                                                    }}>
+                                                        ({latestChange >= 0 ? '+' : ''}{latestChange.toFixed(2)}%)
+                                                    </span>
+                                                </div>
+                                                <div style={{ width: '100%', height: '280px' }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart 
+                                                            data={enhancedData} 
+                                                            margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
+                                                        >
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                            <XAxis 
+                                                                dataKey="date" 
+                                                                stroke="#6b7280"
+                                                                style={{ fontSize: '8px' }}
+                                                                interval="preserveStartEnd"
+                                                                tick={{ fontSize: 8 }}
+                                                                height={30}
+                                                            />
+                                                            <YAxis 
+                                                                stroke="#6b7280"
+                                                                style={{ fontSize: '8px' }}
+                                                                width={32}
+                                                                domain={[yMin, yMax]}
+                                                                tick={{ fontSize: 8 }}
+                                                            />
+                                                            <Tooltip 
+                                                                contentStyle={{ 
+                                                                    background: 'white', 
+                                                                    border: '2px solid #2563eb',
+                                                                    borderRadius: '8px',
+                                                                    padding: '6px',
+                                                                    fontSize: '10px'
+                                                                }}
+                                                            />
+                                                            <Line 
+                                                                type="monotone" 
+                                                                dataKey="change_pct" 
+                                                                stroke="#2563eb" 
+                                                                strokeWidth={2}
+                                                                name="% Change"
+                                                                dot={false}
+                                                                isAnimationActive={false}
+                                                            />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+
+                            {selectedStock && stockVsSectorData && (
+                                <div className="stock-comparison-container">
+                                    <div className="stock-comparison-header">
+                                        <h3>📈 {selectedStock} vs {stockVsSectorData.sector} Sector</h3>
+                                        <button 
+                                            className="sector-close-btn"
+                                            onClick={() => { setSelectedStock(null); setStockVsSectorData(null); }}
+                                        >
+                                            ✕ Close
+                                        </button>
+                                    </div>
+                                    <div className="comparison-chart">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={stockVsSectorData.comparison_data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '11px' }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '11px' }}
+                                                    domain={['auto', 'auto']}
+                                                    label={{ value: '% Return', angle: -90, position: 'insideLeft', style: { fontSize: '11px' } }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        background: 'white', 
+                                                        border: '2px solid #2563eb',
+                                                        borderRadius: '8px'
+                                                    }}
+                                                />
+                                                <Legend />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="stock_return" 
+                                                    stroke="#2563eb" 
+                                                    strokeWidth={2}
+                                                    name={`${selectedStock} %`}
+                                                    dot={false}
+                                                />
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="sector_return" 
+                                                    stroke="#ef4444" 
+                                                    strokeWidth={2}
+                                                    name={`${stockVsSectorData.sector} %`}
+                                                    dot={false}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div style={{ marginTop: '15px', padding: '15px', background: 'white', borderRadius: '8px' }}>
+                                        <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
+                                            <strong>Stock Performance:</strong> {stockVsSectorData.stock_performance >= 0 ? '+' : ''}{stockVsSectorData.stock_performance.toFixed(2)}%
+                                        </p>
+                                        <p style={{ margin: '5px 0', color: '#1e40af', fontWeight: 600 }}>
+                                            <strong>Sector Performance:</strong> {stockVsSectorData.sector_performance >= 0 ? '+' : ''}{stockVsSectorData.sector_performance.toFixed(2)}%
+                                        </p>
+                                        <p style={{ margin: '5px 0', color: stockVsSectorData.outperformance >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
+                                            <strong>Outperformance:</strong> {stockVsSectorData.outperformance >= 0 ? '+' : ''}{stockVsSectorData.outperformance.toFixed(2)}%
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="category-filter">
+                        <button 
+                            className={selectedCategory === 'all' ? 'active' : ''}
+                            onClick={() => setSelectedCategory('all')}
+                        >
+                            All ({filteredData.length})
+                        </button>
+                        <button 
+                            className={selectedCategory === 'stable' ? 'active' : ''}
+                            onClick={() => setSelectedCategory('stable')}
+                        >
+                            Stable ({stableAssets.length})
+                        </button>
+                        <button 
+                            className={selectedCategory === 'choppy' ? 'active' : ''}
+                            onClick={() => setSelectedCategory('choppy')}
+                        >
+                            Choppy ({choppyAssets.length})
+                        </button>
+                        <button 
+                            className={selectedCategory === 'volatile' ? 'active' : ''}
+                            onClick={() => setSelectedCategory('volatile')}
+                        >
+                            Volatile ({volatileAssets.length})
+                        </button>
+                    </div>
+
+                    <div className="mss-grid">
+                        {filteredData.map((asset, index) => (
+                            <div key={index} className="mss-card">
+                                <div className="card-header">
+                                    <div className="card-header-left">
+                                        <h4>{asset.symbol}</h4>
+                                        {asset.sector && (
+                                            <span className={`sector-name-badge sector-${asset.sector.replace(/\s+/g, '-')}`}>
+                                                🏢 {asset.sector}
+                                            </span>
+                                        )}
+                                        {asset.trend && (
+                                            <span className={`trend-badge ${asset.trend}`}>
+                                                {asset.trend === 'uptrend' ? '📈 ' : asset.trend === 'downtrend' ? '📉 ' : '➡️ '}
+                                                {asset.trend.toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="card-actions">
+                                        <a 
+                                            href={`https://www.tradingview.com/chart/?symbol=${asset.symbol}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="chart-link"
+                                        >
+                                            📈 Chart
+                                        </a>
+                                        <button
+                                            className="monte-carlo-btn"
+                                            onClick={() => runMonteCarloSimulation(asset.symbol)}
+                                            disabled={monteCarloLoading[asset.symbol]}
+                                        >
+                                            {monteCarloLoading[asset.symbol] ? '🎲 Simulating...' : '🎲 Monte Carlo'}
+                                        </button>
+                                        {savedModels.has(asset.symbol) ? (
+                                            <>
+                                                {activeModels[asset.symbol]?.isActive ? (
+                                                    <button
+                                                        className="deactivate-model-btn"
+                                                        onClick={() => deactivateModel(asset)}
+                                                        disabled={deactivatingModels[asset.symbol]}
+                                                    >
+                                                        {deactivatingModels[asset.symbol] ? '⏸️ Pausing...' : '⏸️ Pause'}
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="save-model-btn reactivate"
+                                                        onClick={() => reactivateModel(asset)}
+                                                        disabled={deactivatingModels[asset.symbol]}
+                                                    >
+                                                        {deactivatingModels[asset.symbol] ? '▶️ Activating...' : '▶️ Reactivate'}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="delete-model-btn"
+                                                    onClick={() => deleteModel(asset)}
+                                                    disabled={deletingModels[asset.symbol]}
+                                                >
+                                                    {deletingModels[asset.symbol] ? '🗑️ Deleting...' : '🗑️ Delete'}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                className="save-model-btn"
+                                                onClick={() => saveToForwardTest(asset)}
+                                                disabled={
+                                                    savingModels[asset.symbol] || 
+                                                    !asset.trend ||
+                                                    asset.trend === 'ranging'
+                                                }
+                                            >
+                                                {savingModels[asset.symbol] ? '💾 Saving...' : '💾 Save Model'}
+                                            </button>
+                                        )}
+                                        {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && sectorData && asset.sector && (
+                                            <button
+                                                className="chart-link"
+                                                onClick={() => compareStockToSector(asset.symbol)}
+                                                style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' }}
+                                            >
+                                                🎯 vs Sector
+                                            </button>
+                                        )}
+                                        <button
+                                            className="analyze-asset-btn"
+                                            onClick={() => analyzeAssetSentiment(asset.symbol)}
+                                            disabled={analyzingAsset[asset.symbol]}
+                                        >
+                                            {analyzingAsset[asset.symbol] ? '🤖 Analyzing...' : '🤖 AI Analysis'}
+                                        </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => calculateRetracementEntry(asset.symbol)}
+                                            disabled={loadingRetracement[asset.symbol]}
+                                        >
+                                            {loadingRetracement[asset.symbol] ? '📊 Calculating...' : '📊 Entry Points'}
+                                        </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => calculateTrendElasticity(asset.symbol)}
+                                            disabled={loadingElasticity[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}
+                                        >
+                                            {loadingElasticity[asset.symbol] ? '⚡ Calculating...' : '⚡ Trend Elasticity'}
+                                        </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => getTrendDuration(asset.symbol)}
+                                            disabled={loadingDurations[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
+                                        >
+                                            {loadingDurations[asset.symbol] ? '⏱️ Analyzing...' : '⏱️ Trend Age'}
+                                        </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => getAverageDailyRange(asset.symbol)}
+                                            disabled={loadingADR[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}
+                                        >
+                                            {loadingADR[asset.symbol] ? '📊 Calculating...' : '📊 Daily Range'}
+                                        </button>
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => analyzeMeanReversion(asset.symbol)}
+                                            disabled={loadingMeanReversion[asset.symbol]}
+                                            style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
+                                        >
+                                            {loadingMeanReversion[asset.symbol] ? '🔄 Analyzing...' : '🔄 Mean Reversion'}
+                                        </button>
+                                        {/* Sector Peers button - only for stocks */}
+                                        {!asset.symbol.includes('=') && !asset.symbol.startsWith('^') && asset.sector && (
+                                            <button
+                                                className="calculate-retracement-btn"
+                                                onClick={() => fetchSectorPeersIndex(asset.symbol)}
+                                                disabled={loadingSectorPeers[asset.symbol]}
+                                                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+                                            >
+                                                {loadingSectorPeers[asset.symbol] ? '📊 Loading...' : '📊 vs Sector Peers'}
+                                            </button>
+                                        )}
+                                        {asset.sector === 'Materials' && (
+                                            <button
+                                                className="stock-alignment-toggle"
+                                                onClick={() => {
+                                                    if (stockAlignmentData[asset.symbol]) {
+                                                        // Already fetched — just toggle visibility
+                                                        setShowAlignmentPanel(prev => ({
+                                                            ...prev,
+                                                            [asset.symbol]: !prev[asset.symbol]
+                                                        }));
+                                                    } else {
+                                                        fetchStockCommodityAlignment(asset.symbol);
+                                                    }
+                                                }}
+                                                disabled={loadingStockAlignment[asset.symbol]}
+                                            >
+                                                {loadingStockAlignment[asset.symbol] ? '🌾 Analyzing...' : '🌾 Commodity Fit'}
+                                            </button>
+                                        )}
+                                        {asset.sector === 'Technology' && (
+                                            <button className="tech-peer-toggle"
+                                                    onClick={() => {
+                                                        if (techPeerData[asset.symbol])
+                                                            setShowTechPeerPanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }));
+                                                        else
+                                                            fetchTechPeerAlignment(asset.symbol);
+                                                    }}
+                                                    disabled={loadingTechPeer[asset.symbol]}>
+                                                {loadingTechPeer[asset.symbol] ? '💻 Analyzing...' : '💻 vs Peers'}
+                                            </button>
+                                        )}
+
+                                          <button className="inst-retail-toggle"
+                                                onClick={() => {
+                                                    if (instRetailData[asset.symbol])
+                                                        setShowInstRetailPanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }));
+                                                    else
+                                                        fetchInstRetailAnalysis(asset.symbol);
+                                                }}
+                                                disabled={loadingInstRetail[asset.symbol]}>
+                                            {loadingInstRetail[asset.symbol] ? '🏛️ Analyzing...' : '🏛️ Inst vs Retail'}
+                                        </button>
+
+                                          {/* Asset of Interest Button */}
+                                          <button
+                                            className={`asset-interest-btn ${assetsSaved[asset.symbol] ? 'saved' : ''}`}
+                                            onClick={() => toggleAssetOfInterest(asset.symbol, 'stocks', asset.sector)}
+                                            disabled={loadingSaveAsset[asset.symbol]}
+                                        >
+                                            {loadingSaveAsset[asset.symbol] ? '⏳' : (assetsSaved[asset.symbol] ? '⭐ Saved' : '☆ Save')}
+                                        </button>
+
+                                        {/* Stock Popularity Button */}
+                                        <button
+                                            className="stock-popularity-btn"
+                                            onClick={() => {
+                                                if (popularityData[asset.symbol])
+                                                    setShowPopularityPanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }));
+                                                else
+                                                    fetchStockPopularity(asset.symbol);
+                                            }}
+                                            disabled={loadingPopularity[asset.symbol]}
+                                        >
+                                            {loadingPopularity[asset.symbol] ? '⭐ Analyzing...' : '⭐ Popularity'}
+                                        </button>
+
+
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            gap: '8px', 
+                                            alignItems: 'center',
+                                            marginTop: '10px',
+                                            width: '100%'
+                                        }}>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder={`Target price (current: $${asset.current_price})`}
+                                                value={targetPriceInput[asset.symbol] || ''}
+                                                onChange={(e) => setTargetPriceInput(prev => ({
+                                                    ...prev,
+                                                    [asset.symbol]: e.target.value
+                                                }))}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #e5e7eb',
+                                                    fontSize: '13px'
+                                                }}
+                                            />
+                                            <button
+                                                className="calculate-retracement-btn"
+                                                onClick={() => estimatePriceTarget(asset.symbol)}
+                                                disabled={loadingPriceTarget[asset.symbol]}
+                                                style={{ 
+                                                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                            >
+                                                {loadingPriceTarget[asset.symbol] ? '🎯 Calculating...' : '🎯 Estimate'}
+                                            </button>
+                                        
+                                        </div><br />
+                                        <button
+                                            className="calculate-retracement-btn"
+                                            onClick={() => fetchChartData(asset.symbol, chartTimeframes[asset.symbol] || '1h')}
+                                            disabled={loadingCharts[asset.symbol] || !tvLoaded}
+                                            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' }}
+                                        >
+                                            {loadingCharts[asset.symbol] ? '📊 Loading...' : 
+                                             showChart[asset.symbol] ? '📊 Hide Chart' : '📊 View Chart'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="status">{asset.status}</p>
+                                
+                                {assetAnalysis[asset.symbol] && (
+                                    <div className="ai-analysis-container">
+                                        {assetAnalysis[asset.symbol].noData ? (
+                                            <>
+                                                <div className="ai-analysis-header">
+                                                    <div className="ai-analysis-icon">📊</div>
+                                                    <div className="ai-analysis-title">No Data Available</div>
+                                                </div>
+                                                <div className="ai-analysis-content">
+                                                    <p style={{ margin: 0, color: '#6b7280' }}>
+                                                        {assetAnalysis[asset.symbol].message}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        ) : assetAnalysis[asset.symbol].error ? (
+                                            <>
+                                                <div className="ai-analysis-header">
+                                                    <div className="ai-analysis-icon">⚠️</div>
+                                                    <div className="ai-analysis-title">Analysis Error</div>
+                                                </div>
+                                                <div className="ai-analysis-content">
+                                                    <p style={{ margin: 0, color: '#dc2626' }}>
+                                                        {assetAnalysis[asset.symbol].message}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="ai-analysis-header">
+                                                    <div className="ai-analysis-icon">🤖</div>
+                                                    <div className="ai-analysis-title">AI Sentiment Analysis</div>
+                                                </div>
+                                                <div className="ai-analysis-content">
+                                                    {assetAnalysis[asset.symbol].analysis.split('\n\n').map((section, idx) => {
+                                                        const lines = section.split('\n');
+                                                        const title = lines[0];
+                                                        const content = lines.slice(1).join('\n');
+                                                        
+                                                        let sentimentClass = '';
+                                                        if (title.toLowerCase().includes('bullish')) sentimentClass = 'ai-sentiment-positive';
+                                                        else if (title.toLowerCase().includes('bearish')) sentimentClass = 'ai-sentiment-negative';
+                                                        else if (title.toLowerCase().includes('neutral')) sentimentClass = 'ai-sentiment-neutral';
+                                                        
+                                                        return (
+                                                            <div key={idx} className="ai-analysis-section">
+                                                                <div className={`ai-analysis-section-title ${sentimentClass}`}>
+                                                                    {title}
+                                                                </div>
+                                                                <div style={{ whiteSpace: 'pre-line' }}>
+                                                                    {content}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                
+
+                                {techPeerData[asset.symbol] && (
+                                    <TechPeerPanel
+                                        symbol={asset.symbol}
+                                        data={techPeerData[asset.symbol]}
+                                        isOpen={showTechPeerPanel[asset.symbol]}
+                                        onToggle={() => setShowTechPeerPanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }))}
+                                    />
+                                )}
+
+                                
+
+                                {retracementData[asset.symbol] && (
+                                    <div className="retracement-analysis-container">
+                                        <div className="retracement-header">
+                                            <div className="retracement-icon">📊</div>
+                                            <div className="retracement-title">Optimal Entry Analysis</div>
+                                        </div>
+                                        
+                                        {retracementData[asset.symbol].entry_signal && (
+                                            <div className={`entry-signal-banner ${retracementData[asset.symbol].entry_quality}`}>
+                                                <strong>{retracementData[asset.symbol].entry_signal}</strong>
+                                            </div>
+                                        )}
+                                        
+                                        {retracementData[asset.symbol].entry_zones && (
+                                            <>
+                                                <div className="entry-zones-grid">
+                                                    <div className="entry-zone-card aggressive">
+                                                        <div className="entry-zone-label">🎯 Aggressive</div>
+                                                        <div className="entry-zone-price">
+                                                            ${retracementData[asset.symbol].entry_zones.aggressive_entry}
+                                                        </div>
+                                                    </div>
+                                                    <div className="entry-zone-card optimal">
+                                                        <div className="entry-zone-label">✅ Optimal</div>
+                                                        <div className="entry-zone-price">
+                                                            ${retracementData[asset.symbol].entry_zones.optimal_entry}
+                                                        </div>
+                                                    </div>
+                                                    <div className="entry-zone-card conservative">
+                                                        <div className="entry-zone-label">🛡️ Conservative</div>
+                                                        <div className="entry-zone-price">
+                                                            ${retracementData[asset.symbol].entry_zones.conservative_entry}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="retracement-stats-grid">
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Current Price</div>
+                                                        <div className="retracement-stat-value">
+                                                            ${retracementData[asset.symbol].current_price}
+                                                        </div>
+                                                    </div>
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Invalidation Level</div>
+                                                        <div className="retracement-stat-value" style={{color: '#dc2626'}}>
+                                                            ${retracementData[asset.symbol].entry_zones.invalidation_level}
+                                                        </div>
+                                                    </div>
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Avg Retracement</div>
+                                                        <div className="retracement-stat-value">
+                                                            {retracementData[asset.symbol].current_trend === 'uptrend' 
+                                                                ? retracementData[asset.symbol].bullish_retracements.median_retracement_pct
+                                                                : retracementData[asset.symbol].bearish_retracements.median_retracement_pct}%
+                                                        </div>
+                                                    </div>
+                                                    <div className="retracement-stat-item">
+                                                        <div className="retracement-stat-label">Patterns Analyzed</div>
+                                                        <div className="retracement-stat-value">
+                                                            {retracementData[asset.symbol].current_trend === 'uptrend'
+                                                                ? retracementData[asset.symbol].bullish_retracements.count
+                                                                : retracementData[asset.symbol].bearish_retracements.count}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {adrData[asset.symbol] && (
+                                    <div className="retracement-analysis-container" style={{
+                                        background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+                                        borderColor: adrData[asset.symbol].volatility_color
+                                    }}>
+                                        <div className="retracement-header">
+                                            <div className="retracement-icon" style={{
+                                                background: `linear-gradient(135deg, ${adrData[asset.symbol].volatility_color} 0%, ${adrData[asset.symbol].volatility_color}dd 100%)`
+                                            }}>
+                                                📊
+                                            </div>
+                                            <div className="retracement-title">Average Daily Range Analysis</div>
+                                        </div>
+                                        
+                                        <div className="entry-signal-banner" style={{
+                                            background: adrData[asset.symbol].volatility_color,
+                                            color: 'white'
+                                        }}>
+                                            <strong>{adrData[asset.symbol].volatility_label}</strong>
+                                            <br />
+                                            ADR: ${adrData[asset.symbol].adr_dollars} ({adrData[asset.symbol].adr_pct}%)
+                                        </div>
+                                        
+                                        <div className="entry-signal-banner" style={{
+                                            background: adrData[asset.symbol].range_completion_pct >= 70 ? '#f59e0b' : '#10b981',
+                                            color: 'white',
+                                            marginTop: '10px'
+                                        }}>
+                                            <strong>{adrData[asset.symbol].range_status}</strong>
+                                            <br />
+                                            Today's Range: ${adrData[asset.symbol].current_range} ({adrData[asset.symbol].range_completion_pct}% of ADR used)
+                                        </div>
+                                        
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '15px',
+                                            marginTop: '15px'
+                                        }}>
+                                            {/* Bullish Scenario */}
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                                                padding: '15px',
+                                                borderRadius: '10px',
+                                                border: '2px solid #10b981'
+                                            }}>
+                                                <div style={{
+                                                    fontSize: '14px',
+                                                    fontWeight: 700,
+                                                    color: '#065f46',
+                                                    marginBottom: '10px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    📈 BULLISH SCENARIO ({adrData[asset.symbol].bullish_probability}%)
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#047857', marginBottom: '5px'}}>
+                                                    <strong>EOD Target:</strong> ${adrData[asset.symbol].bullish_eod_projection}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#047857', marginBottom: '5px'}}>
+                                                    <strong>Potential High:</strong> ${adrData[asset.symbol].bullish_potential_high}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#047857'}}>
+                                                    <strong>Potential Low:</strong> ${adrData[asset.symbol].bullish_potential_low}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Bearish Scenario */}
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                                                padding: '15px',
+                                                borderRadius: '10px',
+                                                border: '2px solid #ef4444'
+                                            }}>
+                                                <div style={{
+                                                    fontSize: '14px',
+                                                    fontWeight: 700,
+                                                    color: '#7f1d1d',
+                                                    marginBottom: '10px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    📉 BEARISH SCENARIO ({adrData[asset.symbol].bearish_probability}%)
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#991b1b', marginBottom: '5px'}}>
+                                                    <strong>EOD Target:</strong> ${adrData[asset.symbol].bearish_eod_projection}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#991b1b', marginBottom: '5px'}}>
+                                                    <strong>Potential High:</strong> ${adrData[asset.symbol].bearish_potential_high}
+                                                </div>
+                                                <div style={{fontSize: '12px', color: '#991b1b'}}>
+                                                    <strong>Potential Low:</strong> ${adrData[asset.symbol].bearish_potential_low}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="retracement-stats-grid" style={{marginTop: '15px'}}>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Current Price</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].current_price}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Today's Open</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].today_open}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Today's High</div>
+                                                <div className="retracement-stat-value" style={{color: '#10b981'}}>
+                                                    ${adrData[asset.symbol].today_high}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Today's Low</div>
+                                                <div className="retracement-stat-value" style={{color: '#ef4444'}}>
+                                                    ${adrData[asset.symbol].today_low}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Remaining Range</div>
+                                                <div className="retracement-stat-value">
+                                                    ${adrData[asset.symbol].remaining_range_dollars}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Aggressive High</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].aggressive_high}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Aggressive Low</div>
+                                                <div className="retracement-stat-value">${adrData[asset.symbol].aggressive_low}</div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Days Analyzed</div>
+                                                <div className="retracement-stat-value">{adrData[asset.symbol].lookback_period}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {popularityData[asset.symbol] && (
+                                    <StockPopularityPanel
+                                        symbol={asset.symbol}
+                                        data={popularityData[asset.symbol]}
+                                        isOpen={showPopularityPanel[asset.symbol]}
+                                        onToggle={() => setShowPopularityPanel(p => ({
+                                            ...p, [asset.symbol]: !p[asset.symbol]
+                                        }))}
+                                    />
+                                )}
+
+                                {priceTargetData[asset.symbol] && (
+                                <div className="retracement-analysis-container" style={{
+                                    background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                                    borderColor: priceTargetData[asset.symbol].timeline_color
+                                }}>
+                                    <div className="retracement-header">
+                                        <div className="retracement-icon" style={{
+                                            background: `linear-gradient(135deg, ${priceTargetData[asset.symbol].timeline_color} 0%, ${priceTargetData[asset.symbol].timeline_color}dd 100%)`
+                                        }}>
+                                            🎯
+                                        </div>
+                                        <div className="retracement-title">Price Target Timeline</div>
+                                    </div>
+                                    
+                                    <div className={`entry-signal-banner`} style={{
+                                        background: priceTargetData[asset.symbol].timeline_color,
+                                        color: 'white'
+                                    }}>
+                                        <strong>{priceTargetData[asset.symbol].timeline_label}</strong>
+                                        <br />
+                                        {priceTargetData[asset.symbol].estimated_days > 0 
+                                            ? `Estimated: ${priceTargetData[asset.symbol].estimated_days} days`
+                                            : 'Target unlikely to be reached'}
+                                    </div>
+                                    
+                                    <div className="entry-zones-grid">
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Current Price</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                ${priceTargetData[asset.symbol].current_price}
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Target Price</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                ${priceTargetData[asset.symbol].target_price}
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Distance</div>
+                                            <div className="entry-zone-price" style={{
+                                                fontSize: '14px',
+                                                color: priceTargetData[asset.symbol].price_distance >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {priceTargetData[asset.symbol].price_distance >= 0 ? '+' : ''}
+                                                {priceTargetData[asset.symbol].price_distance_pct.toFixed(2)}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '12px'
+                                    }}>
+                                        <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '8px'}}>
+                                            <strong>Trend Analysis:</strong>
+                                        </div>
+                                        <div style={{fontSize: '13px', color: '#1f2937', marginBottom: '6px'}}>
+                                            {priceTargetData[asset.symbol].trend_emoji} {priceTargetData[asset.symbol].analysis_trend}
+                                        </div>
+                                        <div style={{fontSize: '13px', color: '#1f2937', marginBottom: '6px'}}>
+                                            {priceTargetData[asset.symbol].risk_assessment}
+                                        </div>
+                                        <div style={{fontSize: '12px', color: '#6b7280', fontStyle: 'italic'}}>
+                                            {priceTargetData[asset.symbol].context}
+                                        </div>
+                                    </div>
+                                    
+                                    {priceTargetData[asset.symbol].estimated_days > 0 && (
+                                        <div className="retracement-stats-grid">
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Probability</div>
+                                                <div className="retracement-stat-value" style={{
+                                                    color: priceTargetData[asset.symbol].probability >= 60 ? '#10b981' :
+                                                        priceTargetData[asset.symbol].probability >= 40 ? '#f59e0b' : '#ef4444'
+                                                }}>
+                                                    {priceTargetData[asset.symbol].probability}%
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Best Case</div>
+                                                <div className="retracement-stat-value">
+                                                    {priceTargetData[asset.symbol].best_case_days > 0 
+                                                        ? `${priceTargetData[asset.symbol].best_case_days} days` 
+                                                        : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Worst Case</div>
+                                                <div className="retracement-stat-value">
+                                                    {priceTargetData[asset.symbol].worst_case_days > 0 && priceTargetData[asset.symbol].worst_case_days < 999
+                                                        ? `${priceTargetData[asset.symbol].worst_case_days} days` 
+                                                        : 'N/A'}
+                                                </div>
+                                            </div>
+                                            <div className="retracement-stat-item">
+                                                <div className="retracement-stat-label">Trend Compatible</div>
+                                                <div className="retracement-stat-value" style={{fontSize: '18px'}}>
+                                                    {priceTargetData[asset.symbol].trend_compatible ? '✅' : '❌'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <div style={{
+                                        background: '#f9fafb',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        color: '#1f2937',
+                                        lineHeight: '1.6',
+                                        marginTop: '12px'
+                                    }}>
+                                        <strong>Recommendation:</strong>
+                                        <br />
+                                        {priceTargetData[asset.symbol].recommendation}
+                                    </div>
+                                </div>
+                            )}
+
+                            {stockAlignmentData[asset.symbol] && (
+                                <StockAlignmentPanel
+                                    symbol={asset.symbol}
+                                    data={stockAlignmentData[asset.symbol]}
+                                    isOpen={showAlignmentPanel[asset.symbol]}
+                                    onToggle={() => setShowAlignmentPanel(prev => ({
+                                        ...prev,
+                                        [asset.symbol]: !prev[asset.symbol]
+                                    }))}
+                                />
+                            )}
+
+                                {elasticityData[asset.symbol] && (
+                                <div className="elasticity-analysis-container">
+                                    <div className="elasticity-header">
+                                        <div className="elasticity-icon">⚡</div>
+                                        <div className="elasticity-title">Trend Elasticity Analysis</div>
+                                    </div>
+                                    
+                                    {elasticityData[asset.symbol].overall_elasticity && (
+                                        <>
+                                            <div className={`elasticity-signal-banner ${elasticityData[asset.symbol].elasticity_category}`}>
+                                                <strong>
+                                                    {elasticityData[asset.symbol].elasticity_category === 'strong' && '💪 STRONG TREND - Minimal retracements, powerful momentum'}
+                                                    {elasticityData[asset.symbol].elasticity_category === 'moderate' && '📊 MODERATE TREND - Balanced retracements, steady movement'}
+                                                    {elasticityData[asset.symbol].elasticity_category === 'weak' && '⚠️ WEAK TREND - Deep retracements, choppy movement'}
+                                                </strong>
+                                            </div>
+                                            
+                                            <div className="elasticity-metrics-grid">
+                                                <div className="elasticity-metric-card overall">
+                                                    <div className="elasticity-metric-label">Overall Elasticity Score</div>
+                                                    <div className="elasticity-metric-value" style={{
+                                                        color: elasticityData[asset.symbol].overall_elasticity >= 0.7 ? '#059669' :
+                                                            elasticityData[asset.symbol].overall_elasticity >= 0.4 ? '#f59e0b' : '#dc2626'
+                                                    }}>
+                                                        {(elasticityData[asset.symbol].overall_elasticity * 100).toFixed(1)}%
+                                                    </div>
+                                                    <div className="elasticity-metric-sublabel">
+                                                        {elasticityData[asset.symbol].overall_elasticity >= 0.7 ? 'Excellent' :
+                                                        elasticityData[asset.symbol].overall_elasticity >= 0.4 ? 'Good' : 'Poor'}
+                                                    </div>
+                                                </div>
+                                                
+                                                {elasticityData[asset.symbol].bullish_elasticity && (
+                                                    <div className="elasticity-metric-card bullish">
+                                                        <div className="elasticity-metric-label">📈 Bullish Elasticity</div>
+                                                        <div className="elasticity-metric-value bullish">
+                                                            {(elasticityData[asset.symbol].bullish_elasticity.elasticity_score * 100).toFixed(1)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Avg Retracement: {elasticityData[asset.symbol].bullish_elasticity.avg_retracement_pct.toFixed(2)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Patterns: {elasticityData[asset.symbol].bullish_elasticity.pattern_count}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {elasticityData[asset.symbol].bearish_elasticity && (
+                                                    <div className="elasticity-metric-card bearish">
+                                                        <div className="elasticity-metric-label">📉 Bearish Elasticity</div>
+                                                        <div className="elasticity-metric-value bearish">
+                                                            {(elasticityData[asset.symbol].bearish_elasticity.elasticity_score * 100).toFixed(1)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Avg Retracement: {elasticityData[asset.symbol].bearish_elasticity.avg_retracement_pct.toFixed(2)}%
+                                                        </div>
+                                                        <div className="elasticity-metric-detail">
+                                                            Patterns: {elasticityData[asset.symbol].bearish_elasticity.pattern_count}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="elasticity-interpretation">
+                                                <div className="interpretation-title">📖 What This Means:</div>
+                                                <div className="interpretation-content">
+                                                    {elasticityData[asset.symbol].overall_elasticity >= 0.7 ? (
+                                                        <p>This asset shows <strong style={{color: '#059669'}}>strong trend elasticity</strong>. 
+                                                        Retracements are shallow and brief, indicating powerful momentum. 
+                                                        Ideal for trend-following strategies with tight stops.</p>
+                                                    ) : elasticityData[asset.symbol].overall_elasticity >= 0.4 ? (
+                                                        <p>This asset has <strong style={{color: '#f59e0b'}}>moderate trend elasticity</strong>. 
+                                                        Retracements are balanced - not too deep, not too shallow. 
+                                                        Good for swing trading with medium-sized stops.</p>
+                                                    ) : (
+                                                        <p>This asset exhibits <strong style={{color: '#dc2626'}}>weak trend elasticity</strong>. 
+                                                        Deep retracements and choppy movement suggest unstable trends. 
+                                                        Consider wider stops or wait for clearer trend confirmation.</p>
+                                                    )}
+                                                    
+                                                    {asset.trend === 'uptrend' && elasticityData[asset.symbol].bullish_elasticity && (
+                                                        <p style={{marginTop: '10px'}}>
+                                                            Current uptrend shows average pullbacks of <strong>
+                                                            {elasticityData[asset.symbol].bullish_elasticity.avg_retracement_pct.toFixed(2)}%</strong> before continuation.
+                                                            Consider entries near this retracement level.
+                                                        </p>
+                                                    )}
+                                                    
+                                                    {asset.trend === 'downtrend' && elasticityData[asset.symbol].bearish_elasticity && (
+                                                        <p style={{marginTop: '10px'}}>
+                                                            Current downtrend shows average bounces of <strong>
+                                                            {elasticityData[asset.symbol].bearish_elasticity.avg_retracement_pct.toFixed(2)}%</strong> before continuation.
+                                                            Consider entries near this retracement level.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {instRetailData[asset.symbol] && (
+                                    <InstRetailPanel
+                                        symbol={asset.symbol}
+                                        data={instRetailData[asset.symbol]}
+                                        isOpen={showInstRetailPanel[asset.symbol]}
+                                        onToggle={() => setShowInstRetailPanel(p => ({
+                                            ...p, [asset.symbol]: !p[asset.symbol]
+                                        }))}
+                                    />
+                                )}
+
+
+                                {meanReversionData[asset.symbol] && (
+                                <div className="mean-reversion-container">
+                                    <div className="mean-reversion-header">
+                                        <div className="mean-reversion-icon">🔄</div>
+                                        <div className="mean-reversion-title">Mean Reversion Analysis</div>
+                                    </div>
+                                    
+                                    {/* Regime Badge */}
+                                    <div className="regime-badge" style={{
+                                        background: meanReversionData[asset.symbol].regime_color,
+                                        color: 'white',
+                                        display: 'block'
+                                    }}>
+                                        {meanReversionData[asset.symbol].regime_label}
+                                    </div>
+                                    
+                                    {/* Mean Reversion Score */}
+                                    <div className="mr-score-container">
+                                        <div className="mr-score-label">Mean Reversion Probability</div>
+                                        <div className="mr-score-value" style={{
+                                            color: meanReversionData[asset.symbol].mean_reversion_color
+                                        }}>
+                                            {meanReversionData[asset.symbol].mean_reversion_score}%
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: 700,
+                                            color: meanReversionData[asset.symbol].mean_reversion_color
+                                        }}>
+                                            {meanReversionData[asset.symbol].mean_reversion_label}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Regime Description */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '15px',
+                                        fontSize: '13px',
+                                        color: '#1f2937'
+                                    }}>
+                                        <strong>Regime:</strong> {meanReversionData[asset.symbol].regime_description}
+                                    </div>
+                                    
+                                    {/* Mean Reversion Signals */}
+                                    {meanReversionData[asset.symbol].mean_reversion_signals.length > 0 && (
+                                        <div className="mr-signals-list">
+                                            <div style={{ fontWeight: 700, marginBottom: '10px', color: '#1e40af' }}>
+                                                Active Signals:
+                                            </div>
+                                            {meanReversionData[asset.symbol].mean_reversion_signals.map((signal, idx) => (
+                                                <div key={idx} className="mr-signal-item">
+                                                    • {signal}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Key Metrics Grid */}
+                                    <div className="mr-targets-grid">
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">RSI</div>
+                                            <div className="mr-target-value" style={{
+                                                color: meanReversionData[asset.symbol].rsi > 70 ? '#ef4444' :
+                                                       meanReversionData[asset.symbol].rsi < 30 ? '#10b981' : '#6b7280'
+                                            }}>
+                                                {meanReversionData[asset.symbol].rsi}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">BB Position</div>
+                                            <div className="mr-target-value">
+                                                {meanReversionData[asset.symbol].bb_position_pct}%
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">vs 20-day MA</div>
+                                            <div className="mr-target-value" style={{
+                                                color: meanReversionData[asset.symbol].sma_20_distance_pct >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {meanReversionData[asset.symbol].sma_20_distance_pct >= 0 ? '+' : ''}
+                                                {meanReversionData[asset.symbol].sma_20_distance_pct}%
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mr-target-card">
+                                            <div className="mr-target-label">vs 200-day MA</div>
+                                            <div className="mr-target-value" style={{
+                                                color: meanReversionData[asset.symbol].sma_200_distance_pct >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {meanReversionData[asset.symbol].sma_200_distance_pct >= 0 ? '+' : ''}
+                                                {meanReversionData[asset.symbol].sma_200_distance_pct}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Reversion Targets */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '15px',
+                                        borderRadius: '10px',
+                                        marginTop: '15px'
+                                    }}>
+                                        <div style={{ fontWeight: 700, marginBottom: '10px', color: '#1e40af' }}>
+                                            Expected Reversion Target:
+                                        </div>
+                                        <div style={{ fontSize: '14px', color: '#1f2937', marginBottom: '8px' }}>
+                                            <strong>{meanReversionData[asset.symbol].primary_target_name}:</strong> ${meanReversionData[asset.symbol].primary_target}
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                                            Expected move: {meanReversionData[asset.symbol].expected_move_pct >= 0 ? '+' : ''}
+                                            {meanReversionData[asset.symbol].expected_move_pct}%
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Trading Recommendation */}
+                                    <div style={{
+                                        background: '#f9fafb',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginTop: '15px',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        color: '#1f2937',
+                                        textAlign: 'center'
+                                    }}>
+                                        {meanReversionData[asset.symbol].recommendation}
+                                    </div>
+                                </div>
+                            )}
+
+                                {showSectorPeersChart[asset.symbol] && sectorPeersData[asset.symbol] && (
+                                <div className="sector-peers-chart-container">
+                                    <div className="sector-peers-header">
+                                        <div className="sector-peers-title">
+                                            📊 {asset.symbol} vs {sectorPeersData[asset.symbol].sector} Sector
+                                        </div>
+                                        <button
+                                            onClick={() => setShowSectorPeersChart(prev => ({
+                                                ...prev,
+                                                [asset.symbol]: false
+                                            }))}
+                                            style={{
+                                                background: '#ef4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                padding: '6px 12px',
+                                                fontSize: '12px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ✕ Close
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Performance Summary */}
+                                    <div style={{
+                                        background: 'white',
+                                        padding: '15px',
+                                        borderRadius: '10px',
+                                        marginBottom: '15px'
+                                    }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    {asset.symbol} Return
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].target_stock_return >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].target_stock_return >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].target_stock_return}%
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    Sector Avg
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].sector_avg_return >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].sector_avg_return}%
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
+                                                    Outperformance
+                                                </div>
+                                                <div style={{ 
+                                                    fontSize: '18px', 
+                                                    fontWeight: 700,
+                                                    color: sectorPeersData[asset.symbol].outperformance >= 0 ? '#10b981' : '#ef4444'
+                                                }}>
+                                                    {sectorPeersData[asset.symbol].outperformance >= 0 ? '+' : ''}
+                                                    {sectorPeersData[asset.symbol].outperformance}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* FIXED: Normalized Chart with Combined Data */}
+                                    <div style={{ background: 'white', padding: '15px', borderRadius: '10px', height: '320px' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart 
+                                                data={(() => {
+                                                    // Combine both datasets into one array with all dates
+                                                    const combinedData = [];
+                                                    const dateMap = new Map();
+                                                    
+                                                    // Add sector index data
+                                                    sectorPeersData[asset.symbol].sector_index.forEach(point => {
+                                                        dateMap.set(point.date, {
+                                                            date: point.date,
+                                                            sectorIndex: point.index_value,
+                                                            stock: null
+                                                        });
+                                                    });
+                                                    
+                                                    // Add target stock data
+                                                    sectorPeersData[asset.symbol].target_normalized.forEach(point => {
+                                                        if (dateMap.has(point.date)) {
+                                                            dateMap.get(point.date).stock = point.value;
+                                                        } else {
+                                                            dateMap.set(point.date, {
+                                                                date: point.date,
+                                                                sectorIndex: null,
+                                                                stock: point.value
+                                                            });
+                                                        }
+                                                    });
+                                                    
+                                                    // Convert to array and sort
+                                                    return Array.from(dateMap.values()).sort((a, b) => 
+                                                        new Date(a.date) - new Date(b.date)
+                                                    );
+                                                })()}
+                                                margin={{ top: 10, right: 15, left: 5, bottom: 10 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '10px' }}
+                                                    tick={{ fontSize: 10 }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    style={{ fontSize: '10px' }}
+                                                    tick={{ fontSize: 10 }}
+                                                    domain={['auto', 'auto']}
+                                                    label={{ value: 'Normalized (Start = 100)', angle: -90, position: 'insideLeft', style: { fontSize: '10px' } }}
+                                                />
+                                                <Tooltip 
+                                                    contentStyle={{ 
+                                                        background: 'white', 
+                                                        border: '2px solid #4f46e5',
+                                                        borderRadius: '8px',
+                                                        fontSize: '11px'
+                                                    }}
+                                                />
+                                                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                                
+                                                {/* Sector Index Line */}
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="sectorIndex" 
+                                                    stroke="#6b7280" 
+                                                    strokeWidth={3}
+                                                    strokeDasharray="5 5"
+                                                    name={`${sectorPeersData[asset.symbol].sector} Index`}
+                                                    dot={false}
+                                                    connectNulls={true}
+                                                />
+                                                
+                                                {/* Target Stock Line */}
+                                                <Line 
+                                                    type="monotone" 
+                                                    dataKey="stock" 
+                                                    stroke="#4f46e5" 
+                                                    strokeWidth={3}
+                                                    name={asset.symbol}
+                                                    dot={false}
+                                                    connectNulls={true}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    
+                                    {/* Peers Summary */}
+                                    <div style={{
+                                        marginTop: '15px',
+                                        fontSize: '12px',
+                                        color: '#6b7280',
+                                        textAlign: 'center'
+                                    }}>
+                                        Compared against {sectorPeersData[asset.symbol].peers_analyzed} sector peers
+                                    </div>
+                                </div>
+                            )}
+
+                                
+
+                                {monteCarloResults[asset.symbol] && (
+                                    <div className="monte-carlo-results">
+                                        <div className="monte-carlo-header">
+                                            <div className="monte-carlo-icon">🎲</div>
+                                            <div className="monte-carlo-title">Monte Carlo Prediction</div>
+                                        </div>
+                                        
+                                        <div className="monte-carlo-probabilities">
+                                            <div className="probability-card">
+                                                <div className="probability-label">📈 Bullish Probability</div>
+                                                <div className="probability-value bullish">
+                                                    {(monteCarloResults[asset.symbol].bullishProb * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                            <div className="probability-card">
+                                                <div className="probability-label">📉 Bearish Probability</div>
+                                                <div className="probability-value bearish">
+                                                    {(monteCarloResults[asset.symbol].bearishProb * 100).toFixed(1)}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className={`monte-carlo-signal ${
+                                            monteCarloResults[asset.symbol].isBullish ? 'bullish' : 
+                                            monteCarloResults[asset.symbol].isBearish ? 'bearish' : 
+                                            'neutral'
+                                        }`}>
+                                            {monteCarloResults[asset.symbol].isBullish && '🚀 BULLISH SIGNAL - High probability of upward movement'}
+                                            {monteCarloResults[asset.symbol].isBearish && '⚠️ BEARISH SIGNAL - High probability of downward movement'}
+                                            {!monteCarloResults[asset.symbol].isBullish && !monteCarloResults[asset.symbol].isBearish && 
+                                                '➡️ NEUTRAL - No strong directional bias'}
+                                        </div>
+                                        
+                                        <div className="monte-carlo-timestamp">
+                                            Based on 85-day analysis • {new Date(monteCarloResults[asset.symbol].timestamp).toLocaleTimeString()}
+                                        </div>
+                                    </div>
+                                )}
+                                {trendDurations[asset.symbol] && (
+                                <div className="retracement-analysis-container" style={{
+                                    background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+                                    borderColor: trendDurations[asset.symbol].trend_color
+                                }}>
+                                    <div className="retracement-header">
+                                        <div className="retracement-icon" style={{
+                                            background: `linear-gradient(135deg, ${trendDurations[asset.symbol].trend_color} 0%, ${trendDurations[asset.symbol].trend_color}dd 100%)`
+                                        }}>
+                                            {trendDurations[asset.symbol].trend_emoji}
+                                        </div>
+                                        <div className="retracement-title">Trend Duration Analysis</div>
+                                    </div>
+                                    
+                                    <div className={`entry-signal-banner ${
+                                        trendDurations[asset.symbol].entry_priority === 'highest' ? 'excellent' :
+                                        trendDurations[asset.symbol].entry_priority === 'high' ? 'good' :
+                                        trendDurations[asset.symbol].entry_priority === 'medium' ? 'fair' : 'poor'
+                                    }`}>
+                                        <strong>{trendDurations[asset.symbol].entry_recommendation}</strong>
+                                    </div>
+                                    
+                                    <div className="entry-zones-grid">
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Trend Type</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                {trendDurations[asset.symbol].current_trend.toUpperCase()}
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Duration</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                {trendDurations[asset.symbol].trend_duration_days} days
+                                            </div>
+                                        </div>
+                                        <div className="entry-zone-card">
+                                            <div className="entry-zone-label">Age Status</div>
+                                            <div className="entry-zone-price" style={{fontSize: '14px'}}>
+                                                {trendDurations[asset.symbol].age_label}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="retracement-stats-grid">
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Freshness Score</div>
+                                            <div className="retracement-stat-value" style={{
+                                                color: trendDurations[asset.symbol].freshness_score >= 80 ? '#10b981' :
+                                                    trendDurations[asset.symbol].freshness_score >= 60 ? '#f59e0b' : '#ef4444'
+                                            }}>
+                                                {trendDurations[asset.symbol].freshness_score}/100
+                                            </div>
+                                        </div>
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Total Move</div>
+                                            <div className="retracement-stat-value" style={{
+                                                color: trendDurations[asset.symbol].total_move_pct >= 0 ? '#10b981' : '#ef4444'
+                                            }}>
+                                                {trendDurations[asset.symbol].total_move_pct >= 0 ? '+' : ''}
+                                                {trendDurations[asset.symbol].total_move_pct}%
+                                            </div>
+                                        </div>
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Avg/Day</div>
+                                            <div className="retracement-stat-value">
+                                                {trendDurations[asset.symbol].avg_move_per_day}%
+                                            </div>
+                                        </div>
+                                        <div className="retracement-stat-item">
+                                            <div className="retracement-stat-label">Entry Priority</div>
+                                            <div className="retracement-stat-value" style={{textTransform: 'uppercase', fontSize: '12px'}}>
+                                                {trendDurations[asset.symbol].entry_priority}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+
+                                {/* Display chart in card (normal size, no overlays) */}
+                                {showChart[asset.symbol] && chartData[asset.symbol] && (
+                                    <div style={{
+                                        marginTop: '15px',
+                                        padding: '15px',
+                                        background: '#1a1a1a',
+                                        borderRadius: '12px',
+                                        border: '2px solid #4f46e5'
+                                    }}>
+                                        <TradingViewChart 
+                                            data={chartData[asset.symbol]} 
+                                            symbol={asset.symbol}
+                                            isFullscreen={false}
+                                        />
+                                    </div>
+                                )}
+                                
+                                <div className="card-metrics">
+                                    <div className="metric">
+                                        <span className="metric-label">MSS:</span>
+                                        <span className="metric-value" style={{ color: '#2563eb' }}>{asset.mss}</span>
+                                    </div>
+                                    <div className="metric">
+                                        <span className="metric-label">Price:</span>
+                                        <span className="metric-value">${asset.current_price}</span>
+                                    </div>
+                                    <div className="metric">
+                                        <span className="metric-label">Change:</span>
+                                        <span 
+                                            className="metric-value"
+                                            style={{ color: asset.price_change >= 0 ? '#2563eb' : '#60a5fa' }}
+                                        >
+                                            {asset.price_change >= 0 ? '+' : ''}{asset.price_change}%
+                                        </span>
+                                    </div>
+                                </div>
+                                {asset.relativeVolume !== null && asset.relativeVolume !== undefined && (
+                                    <div style={{ 
+                                        background: asset.volumeCategory === 'high' ? 'rgba(16, 185, 129, 0.1)' : 
+                                                   asset.volumeCategory === 'low' ? 'rgba(239, 68, 68, 0.1)' : 
+                                                   'rgba(59, 130, 246, 0.1)',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        marginBottom: '18px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e40af' }}>
+                                                Relative Volume:
+                                            </span>
+                                            <span style={{ 
+                                                fontSize: '15px', 
+                                                fontWeight: 700,
+                                                color: asset.volumeCategory === 'high' ? '#059669' : 
+                                                       asset.volumeCategory === 'low' ? '#dc2626' : '#2563eb'
+                                            }}>
+                                                {asset.relativeVolume}x
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                            Current: {asset.currentVolume?.toLocaleString()} | Avg: {asset.avgVolume?.toLocaleString()}
+                                        </div>
+                                        <span className={`trend-badge ${asset.volumeCategory}`} style={{ marginTop: '6px' }}>
+                                            {asset.volumeCategory === 'high' ? '🔥 ' : asset.volumeCategory === 'low' ? '💤 ' : '📊 '}
+                                            {asset.volumeCategory?.toUpperCase()} VOLUME
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="card-details">
+                                    <div className="detail-item">
+                                        <span>Norm. Volatility:</span>
+                                        <span>{asset.normalized_volatility}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span>R² (Trend):</span>
+                                        <span>{asset.r_squared}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span>Liquidity Factor:</span>
+                                        <span>{asset.liquidity_factor}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <span>Avg Volume:</span>
+                                        <span>{asset.avg_volume.toLocaleString()}</span>
+                                        </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </>
+        )}
+
+            {/* Fullscreen Chart Modal */}
+{fullscreenChart && chartData[fullscreenChart] && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.95)',
+        zIndex: 99999,
+        padding: window.innerWidth < 768 ? '10px' : '20px',
+        overflow: 'auto'
+    }}>
+        <div style={{
+            maxWidth: '1600px',
+            margin: '0 auto',
+            background: '#1a1a1a',
+            borderRadius: '16px',
+            padding: window.innerWidth < 768 ? '10px' : '20px',
+            width: '100%',
+            boxSizing: 'border-box',
+            position: 'relative'
+        }}>
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '15px',
+                flexWrap: 'wrap',
+                gap: '10px'
+            }}>
+                <h2 style={{ 
+                    color: 'white', 
+                    margin: 0,
+                    fontSize: window.innerWidth < 768 ? '18px' : '24px'
+                }}>
+                    {fullscreenChart} - Analysis
+                </h2>
+                <button
+                    onClick={() => {
+                        setFullscreenChart(null);
+                        setCurrentChartSymbol(null);
+                        setShowChatbot(false); // Close chatbot when closing chart
+                        setShowOrb(true); // Reset orb
+                    }}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}
+                >
+                    ✕ Close
+                </button>
+            </div>
+            
+            {/* Legend for overlays */}
+            {(retracementData[fullscreenChart] || elasticityData[fullscreenChart] || priceTargetData[fullscreenChart]) && (
+                <div style={{
+                    background: '#2a2a2a',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '15px',
+                    color: '#e5e7eb',
+                    fontSize: window.innerWidth < 768 ? '11px' : '13px'
+                }}>
+                    <strong>Overlays:</strong>
+                    <div style={{ 
+                        display: 'flex', 
+                        gap: window.innerWidth < 768 ? '8px' : '15px', 
+                        marginTop: '8px', 
+                        flexWrap: 'wrap' 
+                    }}>
+                        {retracementData[fullscreenChart]?.entry_zones && (
+                            <>
+                                <span style={{color: '#10b981'}}>● Aggressive</span>
+                                <span style={{color: '#fbbf24'}}>● Optimal</span>
+                                <span style={{color: '#3b82f6'}}>● Conservative</span>
+                                <span style={{color: '#ef4444'}}>● Stop</span>
+                            </>
+                        )}
+                        {elasticityData[fullscreenChart] && (
+                            <span style={{color: '#ec4899'}}>● Elastic Bands</span>
+                        )}
+                        {priceTargetData[fullscreenChart] && (
+                            <span style={{color: '#8b5cf6'}}>● Target</span>
+                        )}
+                    </div>
+                </div>
+            )}
+            
+            {/* Fullscreen Chart */}
+            <TradingViewChart 
+                data={chartData[fullscreenChart]} 
+                symbol={fullscreenChart}
+                isFullscreen={true}
+            />
+            
+            {/* ✅ CHATBOT ORB */}
+            {showOrb && (
+                <div 
+                    className="ai-chatbot-orb"
+                    onClick={() => {
+                        setShowChatbot(true);
+                        setShowOrb(false);
+                    }}
+                    title="Chat with Simons about this chart"
+                    style={{ 
+                        position: 'absolute',
+                        bottom: '30px',
+                        right: '30px',
+                        zIndex: 1001
+                    }}
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+                    </svg>
+                </div>
+            )}
+            {showChatbot && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1001,
+                    pointerEvents: 'none' // Don't block chatbot
+                }} />
+            )}
+
+            {showChatbot && (
+                <div className="ai-chatbot-panel" style={{ 
+                    display: 'flex',
+                    position: 'absolute',
+                    bottom: '30px',
+                    right: '30px',
+                    zIndex: 1002,
+                    pointerEvents: 'auto'
+                }}>
+                    {/* Header */}
+                    <div className="ai-chatbot-header">
+                        <h3>
+                            <span>🎯</span>
+                            <span>Simons - Trading Assistant</span>
+                        </h3>
+                        <button 
+                            className="ai-chatbot-close" 
+                            onClick={() => {
+                                setShowChatbot(false);
+                                setShowOrb(true);
+                                stopSpeaking();
+                            }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+            
+                    {/* Voice & Chart Settings - COMPACT */}
+                    <div className="ai-chatbot-settings">
+                        {/* Row 1: Voice Toggle + Stop Button */}
+                        <div className="ai-setting-row">
+                            <label style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: '#cbd5e1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={voiceEnabled}
+                                    onChange={(e) => setVoiceEnabled(e.target.checked)}
+                                    className="ai-setting-checkbox"
+                                />
+                                <span>🔊 Voice</span>
+                            </label>
+                            
+                            {isSpeaking && (
+                                <button onClick={stopSpeaking} className="ai-stop-btn">
+                                    ⏹️ Stop
+                                </button>
+                            )}
+                        </div>
+                        
+                        {/* Row 2: Voice Selector (only if enabled) */}
+                        {voiceEnabled && (
+                            <select
+                                value={selectedVoice?.name || ''}
+                                onChange={(e) => handleVoiceChange(e.target.value)}
+                                className="ai-voice-select"
+                            >
+                                <option value="">Default Voice</option>
+                                {availableVoices.map((voice, idx) => (
+                                    <option key={idx} value={voice.name}>
+                                        {voice.name} ({voice.lang})
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        
+                        {/* Row 3: Chart Context Toggle */}
+                        <div className="ai-setting-row" style={{ marginTop: '4px' }}>
+                            <label style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: '#cbd5e1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer'
+                            }}>
+                                <input
+                                    type="checkbox"
+                                    checked={useChartContext}
+                                    onChange={(e) => setUseChartContext(e.target.checked)}
+                                    className="ai-setting-checkbox"
+                                />
+                                <span>📊 Chart Context</span>
+                            </label>
+                            
+                            {useChartContext && currentChartSymbol && (
+                                <div className="ai-chart-badge">
+                                    {currentChartSymbol}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {useChartContext && !currentChartSymbol && (
+                            <div style={{
+                                fontSize: '11px',
+                                color: '#f59e0b',
+                                fontStyle: 'italic',
+                                marginTop: '4px'
+                            }}>
+                                ⚠️ Chart context active for {fullscreenChart}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Messages */}
+                    <div className="ai-chatbot-messages">
+                        {chatMessages.length === 0 && (
+                            <div className="ai-welcome-message">
+                                Hey there! I'm Simons, your trading assistant. I can analyze the {fullscreenChart} chart and help you make informed decisions. What would you like to explore?
+                            </div>
+                        )}
+                        {chatMessages.map((msg, idx) => (
+                            <div key={idx} className={`ai-message ${msg.role}`}>
+                                {msg.image && (
+                                    <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                                )}
+                                <div>{msg.content}</div>
+                            </div>
+                        ))}
+                        {chatLoading && (
+                            <div className="ai-loading">
+                                <div className="ai-loading-spinner"></div>
+                                <span>Simons is analyzing...</span>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    
+                    {/* Input */}
+                    <div className="ai-chatbot-input-container">
+                        <label className="ai-file-upload-btn" title="Upload chart image">
+                            📎
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                        </label>
+                        <input
+                            type="text"
+                            className="ai-chatbot-input"
+                            placeholder="Ask Simons about this chart..."
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                            disabled={chatLoading}
+                        />
+                        <button 
+                            className="ai-chatbot-send"
+                            onClick={handleChatSend}
+                            disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+                        >
+                            {chatLoading ? '...' : 'Send'}
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Image Attached Indicator */}
+            {chatImage && showChatbot && (
+                <div className="ai-image-attached" style={{
+                    position: 'fixed',
+                    bottom: window.innerWidth < 768 ? '670px' : '730px',
+                    right: window.innerWidth < 768 ? '30px' : '50px',
+                    zIndex: 1003
+                }}>
+                    <span>📷 Chart attached</span>
+                    <button 
+                        className="ai-image-remove"
+                        onClick={() => setChatImage(null)}
+                        title="Remove image"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+        </div>
+        </div>
+
+    
+)}
+        
+        {!loading && mssData.length === 0 && (
+            <div className="mss-empty">
+                <div className="empty-icon">📊</div>
+                <h3>Ready to Analyze</h3>
+                <p>Select an asset class and period, then click "Calculate MSS" to evaluate market stability.</p>
+            </div>
+        )}
+    </div>
+
+        {/* AI Chatbot */}
+    {showChatbot && (
+        <div className="ai-chatbot-panel" style={{ display: 'flex' }}>
+            <div className="ai-chatbot-header">
+                <h3>
+                    <span>🎯</span>
+                    <span>Simons - Trading Assistant</span>
+                </h3>
+                <button 
+                    className="ai-chatbot-close" 
+                    onClick={() => {
+                        setShowChatbot(false);
+                        setShowOrb(true); // Show orb when closing chat
+                    }}
+                >
+                    ✕
+                </button>
+            </div>
+            
+            <div className="ai-chatbot-messages">
+                {chatMessages.length === 0 && (
+                    <div className="ai-welcome-message">
+                        Hey there! I'm Simons, your trading assistant. I can help you analyze markets, understand trends, and review charts. What would you like to explore today?
+                    </div>
+                )}
+                {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`ai-message ${msg.role}`}>
+                        {msg.image && (
+                            <img src={msg.image} alt="Uploaded chart" className="ai-image-preview" />
+                        )}
+                        <div>{msg.content}</div>
+                    </div>
+                ))}
+                {chatLoading && (
+                    <div className="ai-loading">
+                        <div className="ai-loading-spinner"></div>
+                        <span>Simons is analyzing...</span>
+                    </div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+            
+            <div className="ai-chatbot-input-container">
+                <label className="ai-file-upload-btn" title="Upload chart image">
+                    📎
+                    <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                    />
+                </label>
+                <input
+                    type="text"
+                    className="ai-chatbot-input"
+                    placeholder="Ask Simons about markets, trends, or upload a chart..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                    disabled={chatLoading}
+                />
+                <button 
+                    className="ai-chatbot-send"
+                    onClick={handleChatSend}
+                    disabled={chatLoading || (!chatInput.trim() && !chatImage)}
+                >
+                    {chatLoading ? '...' : 'Send'}
+                </button>
+            </div>
+        </div>
+    )}
+
+    {chatImage && (
+        <div className="ai-image-attached">
+            <span>📷 Chart attached</span>
+            <button 
+                className="ai-image-remove"
+                onClick={() => setChatImage(null)}
+                title="Remove image"
+            >
+                ✕
+            </button>
+        </div>
+    )}
+
+    {/* Chatbot Orb */}
+    <div 
+    className="ai-chatbot-orb"
+    onClick={() => {
+        setShowChatbot(!showChatbot);
+        setShowOrb(false);
+    }}
+    title="Chat with Simons"
+    style={{ display: showOrb ? 'flex' : 'none' }}
+    >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 3 .97 4.29L2 22l5.71-.97C9 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.38 0-2.68-.3-3.86-.84l-.29-.15-2.99.51.51-2.99-.15-.29C4.3 14.68 4 13.38 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/>
+        </svg>
+    </div>
+
+        {showCommodityModal && commodityVsMaterialsData && (
+            <CorrelationModal
+                config={{
+                    title: 'Commodities vs Materials Sector',
+                    icon: '🌾',
+                    data: commodityVsMaterialsData,
+                    line1Label: 'Commodity Basket', line2Label: 'Materials Index',
+                    line1Key: 'commodities',       line2Key: 'materials',
+                    breakdownTitle: '📊 Per-Commodity Correlations',
+                    breakdownItems: commodityVsMaterialsData.commodity_breakdowns
+                }}
+                onClose={() => setShowCommodityModal(false)}
+            />
+        )}
+
+        {showSp500Modal && sp500VsTechData && (
+            <CorrelationModal
+                config={{
+                    title: 'S&P 500 vs Technology Sector',
+                    icon: '📈',
+                    data: sp500VsTechData,
+                    line1Label: 'S&P 500',          line2Label: 'Technology Index',
+                    line1Key: 'sp500',              line2Key: 'technology',
+                    breakdownTitle: '🏆 Top Tech Contributors',
+                    breakdownItems: sp500VsTechData.top_contributors
+                }}
+                onClose={() => setShowSp500Modal(false)}
+            />
+        )}
+        {showTechSubsectorModal && techSubsectorData && (
+           <TechSubsectorModal
+               data={techSubsectorData}
+               onClose={() => setShowTechSubsectorModal(false)}
+           />
+       )}
+        {showSectorDiveModal && sectorDeepDiveData && (
+                <SectorDeepDiveModal
+                    data={sectorDeepDiveData}
+                    onClose={() => setShowSectorDiveModal(false)}
+                />
+        )}
+        </div>
+    );
+}
