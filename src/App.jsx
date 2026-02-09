@@ -88,6 +88,7 @@ import SnowAIIDE from './components/ide.jsx';
 import NeuroLink from './components/neuro.jsx';
 import SnowAISandbox from './components/sandbox.jsx';
 import SnowAIPeopleofInterest from './components/poi.jsx';
+import Valentine from './components/valentine.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -695,6 +696,12 @@ function App() {
                 <PoetryCollection />
               </ProtectedRoute>
             } />
+
+            <Route path="/valentine" element={
+                <Valentine />
+            } />
+
+
 
             {/* 404 route */}
             <Route path="*" element={<h1>404: page not found</h1>} />
