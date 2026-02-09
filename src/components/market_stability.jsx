@@ -258,8 +258,44 @@ const sectorDeepDiveStyles = `
     .trade-opp-grid {
         grid-template-columns: 1fr;
     }
+    
+    /* Fix top/bottom performers on mobile */
+    .corr-accordion-body > div[style*="grid-template-columns: 1fr 1fr"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+    
+    /* Stack sector selector buttons */
+    .sector-selector-group {
+        gap: 6px;
+    }
+    .sector-select-btn {
+        font-size: 12px;
+        padding: 8px 14px;
+    }
+    
+    /* Modal header responsive */
+    .corr-modal-header h2 {
+        font-size: 16px;
+    }
+    
+    /* Trade opp metrics responsive */
+    .trade-opp-metrics {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sector-health-dashboard {
+        grid-template-columns: 1fr;
+    }
 }
 `;
+
+
 
 
 // ============================================================
@@ -3925,11 +3961,7 @@ export default function MarketStabilityScore() {
     const [loadingInstRetail, setLoadingInstRetail] = useState({});     // { symbol: bool }
     const [showInstRetailPanel, setShowInstRetailPanel] = useState({}); // { symbol: bool }
 
-    
-// ============================================================
-// STATE ADDITIONS
-// ============================================================
-// ============================================================
+    // ============================================================
 // STATE ADDITIONS
 // ============================================================
 
@@ -3937,6 +3969,7 @@ const [sectorDeepDiveData, setSectorDeepDiveData] = useState(null);
 const [loadingSectorDive, setLoadingSectorDive] = useState(false);
 const [showSectorDiveModal, setShowSectorDiveModal] = useState(false);
 const [selectedSector, setSelectedSector] = useState(null);
+const [sectorFilter, setSectorFilter] = useState(null);  // NEW: for filtering MSS cards
 
 // Modal accordion state
 const [sectorDiveAccordions, setSectorDiveAccordions] = useState({
@@ -3962,6 +3995,8 @@ const AVAILABLE_SECTORS = [
     'Materials',
     'Utilities'
 ];
+
+
 // ============================================================
 // FUNCTIONS
 // ============================================================
@@ -3969,6 +4004,7 @@ const AVAILABLE_SECTORS = [
 const fetchSectorDeepDive = async (sector) => {
     setLoadingSectorDive(true);
     setSelectedSector(sector);
+    setSectorFilter(sector);  // Set filter when fetching
     try {
         const res = await fetch(`${baseUrl}/api/mss-sector-deep-dive-analyzer/`, {
             method: 'POST',
@@ -4162,7 +4198,7 @@ const SectorDeepDiveModal = ({ data, onClose }) => {
                 </button>
                 {sectorDiveAccordions.topBottom && (
                     <div className="corr-accordion-body">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                             {/* Top 10 */}
                             <div>
                                 <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 700, marginBottom: '8px' }}>TOP 10</div>
@@ -4330,7 +4366,7 @@ const SectorDeepDiveModal = ({ data, onClose }) => {
           </div>
         </div>
     );
-};
+};    
 
     const fetchInstRetailAnalysis = async (symbol) => {
         setLoadingInstRetail(prev => ({ ...prev, [symbol]: true }));
@@ -8003,7 +8039,7 @@ return (
                             style={{ padding:'12px 24px', fontSize:'14px',
                                         background:'linear-gradient(135deg,#0891b2 0%,#06b6d4 100%)' }}>
                         {loadingTechSubsector ? '💻 Analyzing...' : '💻 Tech Subsectors'}
-                    </button><br />
+                    </button><br /><br />
                     
                     <div className="sector-selector-group">
                         <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '6px', width: '100%' }}>
@@ -8018,7 +8054,23 @@ return (
                         >
                             {loadingSectorDive && selectedSector === sector ? '⏳' : ''} {sector}
                         </button>
-                    ))}
+                    ))}<br /><br />
+                    <button
+                        className="sector-select-btn"
+                        onClick={() => {
+                            setSectorFilter(null);
+                            setSelectedSector(null);  // Add this line
+                        }}
+                        style={{ 
+                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                            borderColor: '#ef4444',
+                            color: 'white',
+                            fontSize: '12px',
+                            padding: '6px 12px'
+                        }}
+                    >
+                        ✕ Show All Assets
+                    </button>
                 </div>
                     {/* NEW: Trend Duration Controls */}
                     <div className="filter-buttons" style={{ marginTop: '12px' }}>
