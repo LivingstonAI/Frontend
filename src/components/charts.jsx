@@ -2,53 +2,53 @@ import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-// Dark theme color palette with blue accents
-const darkTheme = {
+// Blue and white theme
+const theme = {
   bg: {
-    primary: '#0a0e1a',
-    secondary: '#121827',
-    tertiary: '#1a2234',
-    elevated: '#1e2740',
-    modal: '#0f1421'
+    primary: '#ffffff',
+    secondary: '#f8fafc',
+    tertiary: '#f1f5f9',
+    elevated: '#ffffff',
+    modal: '#ffffff'
   },
   blue: {
-    50: '#e6f1ff',
-    100: '#b3d9ff',
-    200: '#80c1ff',
-    300: '#4da9ff',
-    400: '#1a91ff',
-    500: '#0077e6',
-    600: '#005db3',
-    700: '#004380',
-    800: '#00294d',
-    900: '#000f1a'
+    50: '#eff6ff',
+    100: '#dbeafe',
+    200: '#bfdbfe',
+    300: '#93c5fd',
+    400: '#60a5fa',
+    500: '#3b82f6',
+    600: '#2563eb',
+    700: '#1d4ed8',
+    800: '#1e40af',
+    900: '#1e3a8a'
   },
   accent: {
-    cyan: '#00d4ff',
-    purple: '#a78bfa',
+    cyan: '#06b6d4',
+    purple: '#8b5cf6',
     green: '#10b981',
     red: '#ef4444',
     orange: '#f59e0b',
     pink: '#ec4899'
   },
   text: {
-    primary: '#e5e7eb',
-    secondary: '#9ca3af',
-    tertiary: '#6b7280',
-    muted: '#4b5563'
+    primary: '#0f172a',
+    secondary: '#475569',
+    tertiary: '#64748b',
+    muted: '#94a3b8'
   },
   border: {
-    light: '#1f2937',
-    medium: '#374151',
-    heavy: '#4b5563'
+    light: '#e2e8f0',
+    medium: '#cbd5e1',
+    heavy: '#94a3b8'
   }
 };
 
 const styles = {
   pageContainer: {
     minHeight: '100vh',
-    background: `linear-gradient(135deg, ${darkTheme.bg.primary} 0%, ${darkTheme.bg.secondary} 100%)`,
-    color: darkTheme.text.primary
+    background: `linear-gradient(135deg, ${theme.bg.secondary} 0%, ${theme.blue[50]} 100%)`,
+    color: theme.text.primary
   },
   mainContainer: {
     width: '100%',
@@ -57,7 +57,7 @@ const styles = {
     padding: '0 20px'
   },
   header: {
-    background: `linear-gradient(135deg, ${darkTheme.blue[700]} 0%, ${darkTheme.blue[900]} 100%)`,
+    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[700]} 100%)`,
     color: 'white',
     padding: '25px',
     borderRadius: '20px',
@@ -65,9 +65,8 @@ const styles = {
     textAlign: 'center',
     fontSize: '2.2rem',
     fontWeight: '800',
-    textShadow: '0 4px 8px rgba(0, 0, 0, 0.5)',
-    boxShadow: `0 20px 50px rgba(0, 119, 230, 0.3)`,
-    border: `2px solid ${darkTheme.blue[600]}`
+    boxShadow: `0 20px 50px rgba(59, 130, 246, 0.3)`,
+    border: `2px solid ${theme.blue[400]}`
   },
   tradingModeSelector: {
     display: 'flex',
@@ -75,10 +74,11 @@ const styles = {
     marginBottom: '25px',
     flexWrap: 'wrap',
     alignItems: 'center',
-    background: darkTheme.bg.elevated,
+    background: theme.bg.elevated,
     padding: '20px',
     borderRadius: '15px',
-    border: `1px solid ${darkTheme.border.medium}`
+    border: `1px solid ${theme.border.light}`,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
   },
   modeButton: {
     padding: '14px 28px',
@@ -92,28 +92,28 @@ const styles = {
     letterSpacing: '0.5px'
   },
   modeButtonActive: {
-    background: `linear-gradient(135deg, ${darkTheme.blue[500]} 0%, ${darkTheme.blue[700]} 100%)`,
+    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[700]} 100%)`,
     color: 'white',
     transform: 'translateY(-2px)',
-    boxShadow: `0 8px 20px ${darkTheme.blue[500]}40`
+    boxShadow: `0 8px 20px ${theme.blue[500]}40`
   },
   modeButtonInactive: {
-    background: darkTheme.bg.tertiary,
-    color: darkTheme.text.secondary,
-    border: `2px solid ${darkTheme.border.medium}`
+    background: theme.bg.tertiary,
+    color: theme.text.secondary,
+    border: `2px solid ${theme.border.medium}`
   },
   controlPanel: {
-    background: darkTheme.bg.elevated,
+    background: theme.bg.elevated,
     padding: '25px',
     borderRadius: '15px',
     marginBottom: '25px',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-    border: `1px solid ${darkTheme.border.medium}`
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+    border: `1px solid ${theme.border.light}`
   },
   sectionTitle: {
     fontSize: '1.3rem',
     fontWeight: '700',
-    color: darkTheme.blue[300],
+    color: theme.blue[700],
     marginBottom: '15px',
     textTransform: 'uppercase',
     letterSpacing: '1px',
@@ -121,52 +121,31 @@ const styles = {
     alignItems: 'center',
     gap: '10px'
   },
-  assetClassSection: {
-    marginBottom: '20px'
-  },
-  assetClassTitle: {
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: darkTheme.blue[400],
-    marginBottom: '12px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
   assetButton: {
-    margin: '5px',
-    padding: '12px 20px',
+    padding: '12px 24px',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: '1rem',
     fontWeight: '600',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px'
-  },
-  assetButtonActive: {
-    background: `linear-gradient(135deg, ${darkTheme.blue[500]} 0%, ${darkTheme.blue[700]} 100%)`,
+    transition: 'all 0.3s ease',
+    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
     color: 'white',
-    transform: 'translateY(-2px) scale(1.05)',
-    boxShadow: `0 8px 20px ${darkTheme.blue[500]}60`
-  },
-  assetButtonInactive: {
-    background: darkTheme.bg.tertiary,
-    color: darkTheme.text.secondary,
-    border: `2px solid ${darkTheme.border.light}`
+    boxShadow: `0 4px 12px ${theme.blue[500]}40`
   },
   chartContainer: {
-    background: darkTheme.bg.elevated,
+    background: theme.bg.elevated,
     borderRadius: '15px',
     padding: '25px',
-    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)',
-    border: `1px solid ${darkTheme.border.medium}`,
-    marginBottom: '25px'
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+    border: `1px solid ${theme.border.light}`,
+    marginBottom: '25px',
+    position: 'relative'
   },
   chartTitle: {
     fontSize: '1.6rem',
     fontWeight: '700',
-    color: darkTheme.text.primary,
+    color: theme.text.primary,
     marginBottom: '20px',
     textAlign: 'center'
   },
@@ -174,140 +153,16 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    background: `linear-gradient(135deg, ${darkTheme.bg.tertiary} 0%, ${darkTheme.bg.secondary} 100%)`,
+    background: `linear-gradient(135deg, ${theme.blue[50]} 0%, ${theme.bg.secondary} 100%)`,
     padding: '20px',
     borderRadius: '12px',
     marginBottom: '20px',
-    border: `1px solid ${darkTheme.border.medium}`
+    border: `1px solid ${theme.border.light}`
   },
   currentPrice: {
     fontSize: '2rem',
     fontWeight: '800',
-    color: darkTheme.blue[300]
-  },
-  tradePanel: {
-    background: darkTheme.bg.elevated,
-    padding: '25px',
-    borderRadius: '15px',
-    marginBottom: '25px',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-    border: `1px solid ${darkTheme.border.medium}`
-  },
-  formGroup: {
-    marginBottom: '20px'
-  },
-  label: {
-    display: 'block',
-    marginBottom: '8px',
-    fontSize: '0.95rem',
-    fontWeight: '600',
-    color: darkTheme.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
-  input: {
-    width: '100%',
-    padding: '14px',
-    background: darkTheme.bg.tertiary,
-    border: `2px solid ${darkTheme.border.medium}`,
-    borderRadius: '10px',
-    color: darkTheme.text.primary,
-    fontSize: '1rem',
-    transition: 'all 0.3s ease',
-    outline: 'none'
-  },
-  select: {
-    width: '100%',
-    padding: '14px',
-    background: darkTheme.bg.tertiary,
-    border: `2px solid ${darkTheme.border.medium}`,
-    borderRadius: '10px',
-    color: darkTheme.text.primary,
-    fontSize: '1rem',
-    cursor: 'pointer',
-    outline: 'none'
-  },
-  buttonPrimary: {
-    width: '100%',
-    padding: '16px',
-    background: `linear-gradient(135deg, ${darkTheme.blue[500]} 0%, ${darkTheme.blue[700]} 100%)`,
-    color: 'white',
-    border: 'none',
-    borderRadius: '12px',
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
-    boxShadow: `0 8px 20px ${darkTheme.blue[500]}40`
-  },
-  buttonSecondary: {
-    width: '100%',
-    padding: '14px',
-    background: darkTheme.bg.tertiary,
-    color: darkTheme.text.primary,
-    border: `2px solid ${darkTheme.border.medium}`,
-    borderRadius: '10px',
-    fontSize: '1rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    textTransform: 'uppercase'
-  },
-  tradeHistoryContainer: {
-    background: darkTheme.bg.elevated,
-    padding: '25px',
-    borderRadius: '15px',
-    marginBottom: '25px',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-    border: `1px solid ${darkTheme.border.medium}`
-  },
-  tradeCard: {
-    background: darkTheme.bg.tertiary,
-    padding: '20px',
-    borderRadius: '12px',
-    marginBottom: '15px',
-    border: `1px solid ${darkTheme.border.medium}`,
-    transition: 'all 0.3s ease'
-  },
-  tradeCardWin: {
-    borderLeft: `5px solid ${darkTheme.accent.green}`,
-    background: `${darkTheme.accent.green}10`
-  },
-  tradeCardLoss: {
-    borderLeft: `5px solid ${darkTheme.accent.red}`,
-    background: `${darkTheme.accent.red}10`
-  },
-  statCard: {
-    background: darkTheme.bg.tertiary,
-    padding: '20px',
-    borderRadius: '12px',
-    textAlign: 'center',
-    border: `1px solid ${darkTheme.border.medium}`
-  },
-  statValue: {
-    fontSize: '2rem',
-    fontWeight: '800',
-    marginBottom: '8px'
-  },
-  statLabel: {
-    fontSize: '0.9rem',
-    color: darkTheme.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
-  searchBar: {
-    width: '100%',
-    padding: '16px',
-    background: darkTheme.bg.tertiary,
-    border: `2px solid ${darkTheme.border.medium}`,
-    borderRadius: '12px',
-    color: darkTheme.text.primary,
-    fontSize: '1rem',
-    marginBottom: '20px',
-    outline: 'none',
-    transition: 'all 0.3s ease'
+    color: theme.blue[700]
   },
   modal: {
     position: 'fixed',
@@ -315,7 +170,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0, 0, 0, 0.85)',
+    background: 'rgba(0, 0, 0, 0.5)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -323,55 +178,57 @@ const styles = {
     padding: '20px'
   },
   modalContent: {
-    background: darkTheme.bg.modal,
+    background: theme.bg.modal,
     borderRadius: '20px',
     padding: '30px',
-    maxWidth: '800px',
+    maxWidth: '900px',
     width: '100%',
     maxHeight: '90vh',
     overflow: 'auto',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-    border: `2px solid ${darkTheme.border.heavy}`
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+    border: `2px solid ${theme.border.medium}`
   },
-  loadingSpinner: {
-    width: '50px',
-    height: '50px',
-    border: `4px solid ${darkTheme.border.medium}`,
-    borderTop: `4px solid ${darkTheme.blue[500]}`,
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    margin: '20px auto'
+  searchBar: {
+    width: '100%',
+    padding: '16px',
+    background: theme.bg.tertiary,
+    border: `2px solid ${theme.border.medium}`,
+    borderRadius: '12px',
+    color: theme.text.primary,
+    fontSize: '1rem',
+    marginBottom: '20px',
+    outline: 'none',
+    transition: 'all 0.3s ease'
   },
-  badge: {
-    display: 'inline-block',
-    padding: '6px 14px',
-    borderRadius: '20px',
-    fontSize: '0.85rem',
-    fontWeight: '700',
+  assetClassSection: {
+    marginBottom: '20px'
+  },
+  assetClassTitle: {
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: theme.blue[600],
+    marginBottom: '12px',
     textTransform: 'uppercase',
     letterSpacing: '0.5px'
   },
-  badgeOpen: {
-    background: darkTheme.blue[500],
-    color: 'white'
+  assetGridButton: {
+    margin: '5px',
+    padding: '12px 20px',
+    border: `2px solid ${theme.border.light}`,
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+    background: theme.bg.primary,
+    color: theme.text.primary
   },
-  badgeClosed: {
-    background: darkTheme.bg.tertiary,
-    color: darkTheme.text.secondary
-  },
-  badgeWin: {
-    background: darkTheme.accent.green,
-    color: 'white'
-  },
-  badgeLoss: {
-    background: darkTheme.accent.red,
-    color: 'white'
-  },
-  timeframeContainer: {
-    display: 'flex',
-    gap: '10px',
-    marginTop: '15px',
-    flexWrap: 'wrap'
+  assetGridButtonActive: {
+    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[700]} 100%)`,
+    color: 'white',
+    transform: 'translateY(-2px)',
+    boxShadow: `0 6px 16px ${theme.blue[500]}50`,
+    border: `2px solid ${theme.blue[600]}`
   },
   timeframeButton: {
     padding: '10px 18px',
@@ -383,33 +240,134 @@ const styles = {
     transition: 'all 0.3s ease'
   },
   timeframeButtonActive: {
-    background: `linear-gradient(135deg, ${darkTheme.accent.orange} 0%, #d97706 100%)`,
+    background: `linear-gradient(135deg, ${theme.accent.orange} 0%, #d97706 100%)`,
     color: 'white',
     boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)'
   },
   timeframeButtonInactive: {
-    background: darkTheme.bg.tertiary,
-    color: darkTheme.text.secondary,
-    border: `1px solid ${darkTheme.border.light}`
+    background: theme.bg.tertiary,
+    color: theme.text.secondary,
+    border: `1px solid ${theme.border.light}`
   },
-  chartOverlay: {
+  orderPanel: {
     position: 'absolute',
-    padding: '8px 12px',
-    borderRadius: '6px',
-    fontSize: '0.8rem',
+    top: '80px',
+    right: '25px',
+    width: '350px',
+    background: theme.bg.elevated,
+    border: `2px solid ${theme.border.light}`,
+    borderRadius: '15px',
+    padding: '20px',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+    zIndex: 100
+  },
+  formGroup: {
+    marginBottom: '15px'
+  },
+  label: {
+    display: 'block',
+    marginBottom: '6px',
+    fontSize: '0.85rem',
     fontWeight: '600',
-    pointerEvents: 'none',
-    zIndex: 10
+    color: theme.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   },
-  overlayWin: {
-    background: `${darkTheme.accent.green}dd`,
-    color: 'white',
-    border: `2px solid ${darkTheme.accent.green}`
+  input: {
+    width: '100%',
+    padding: '10px',
+    background: theme.bg.tertiary,
+    border: `2px solid ${theme.border.medium}`,
+    borderRadius: '8px',
+    color: theme.text.primary,
+    fontSize: '0.95rem',
+    transition: 'all 0.3s ease',
+    outline: 'none',
+    boxSizing: 'border-box'
   },
-  overlayLoss: {
-    background: `${darkTheme.accent.red}dd`,
+  select: {
+    width: '100%',
+    padding: '10px',
+    background: theme.bg.tertiary,
+    border: `2px solid ${theme.border.medium}`,
+    borderRadius: '8px',
+    color: theme.text.primary,
+    fontSize: '0.95rem',
+    cursor: 'pointer',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  buttonPrimary: {
+    width: '100%',
+    padding: '12px',
+    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[700]} 100%)`,
     color: 'white',
-    border: `2px solid ${darkTheme.accent.red}`
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    boxShadow: `0 6px 16px ${theme.blue[500]}40`
+  },
+  buttonSecondary: {
+    width: '100%',
+    padding: '10px',
+    background: theme.bg.tertiary,
+    color: theme.text.primary,
+    border: `2px solid ${theme.border.medium}`,
+    borderRadius: '8px',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    textTransform: 'uppercase'
+  },
+  badge: {
+    display: 'inline-block',
+    padding: '6px 14px',
+    borderRadius: '20px',
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  statCard: {
+    background: theme.bg.tertiary,
+    padding: '20px',
+    borderRadius: '12px',
+    textAlign: 'center',
+    border: `1px solid ${theme.border.light}`
+  },
+  statValue: {
+    fontSize: '2rem',
+    fontWeight: '800',
+    marginBottom: '8px'
+  },
+  statLabel: {
+    fontSize: '0.9rem',
+    color: theme.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  tradeCard: {
+    background: theme.bg.tertiary,
+    padding: '20px',
+    borderRadius: '12px',
+    marginBottom: '15px',
+    border: `1px solid ${theme.border.light}`,
+    transition: 'all 0.3s ease'
+  },
+  loadingSpinner: {
+    width: '50px',
+    height: '50px',
+    border: `4px solid ${theme.border.medium}`,
+    borderTop: `4px solid ${theme.blue[500]}`,
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    margin: '20px auto'
   }
 };
 
@@ -418,10 +376,11 @@ export default function Charts() {
     
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
+    const candlestickSeriesRef = useRef(null);
     const updateIntervalRef = useRef(null);
     const backtestIntervalRef = useRef(null);
     
-    const [tradingMode, setTradingMode] = useState('LIVE'); // LIVE or BACKTEST
+    const [tradingMode, setTradingMode] = useState('LIVE');
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
     const [selectedAssetInfo, setSelectedAssetInfo] = useState(null);
     const [chartType, setChartType] = useState('candlestick');
@@ -434,6 +393,7 @@ export default function Charts() {
     const [error, setError] = useState('');
     
     // Trade execution states
+    const [showOrderPanel, setShowOrderPanel] = useState(false);
     const [orderType, setOrderType] = useState('BUY');
     const [quantity, setQuantity] = useState(1);
     const [stopLoss, setStopLoss] = useState('');
@@ -444,7 +404,11 @@ export default function Charts() {
     const [tradeHistory, setTradeHistory] = useState([]);
     const [showTradeHistory, setShowTradeHistory] = useState(false);
     const [tradeStats, setTradeStats] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    
+    // Asset selection
+    const [showAssetModal, setShowAssetModal] = useState(false);
+    const [assetSearchQuery, setAssetSearchQuery] = useState('');
+    const [allAssets, setAllAssets] = useState({});
     
     // Overall performance states
     const [showOverallPerformance, setShowOverallPerformance] = useState(false);
@@ -452,19 +416,16 @@ export default function Charts() {
     const [assetClassStats, setAssetClassStats] = useState({});
     const [assetBreakdown, setAssetBreakdown] = useState([]);
     const [sortBy, setSortBy] = useState('net_profit');
-    const [sortOrder, setSortOrder] = useState('desc');
     
     // Backtest states
     const [backtestMode, setBacktestMode] = useState(false);
     const [backtestSession, setBacktestSession] = useState(null);
-    const [backtestSpeed, setBacktestSpeed] = useState(2); // seconds per candle
+    const [backtestSpeed, setBacktestSpeed] = useState(2);
     const [backtestCurrentIndex, setBacktestCurrentIndex] = useState(0);
     const [backtestBalance, setBacktestBalance] = useState(10000);
     const [backtestTrades, setBacktestTrades] = useState([]);
     const [backtestPaused, setBacktestPaused] = useState(false);
-    
-    // Open positions
-    const [openPositions, setOpenPositions] = useState([]);
+    const [backtestData, setBacktestData] = useState([]);
 
     const timeframes = {
         '1M': { label: '1 Minute', interval: '1m', binanceInterval: '1m', yfinancePeriod: '1d', updateInterval: 10000 },
@@ -476,48 +437,79 @@ export default function Charts() {
         '1W': { label: '1 Week', interval: '1w', binanceInterval: '1w', yfinancePeriod: '10y', updateInterval: 10000 }
     };
 
-    const assetClasses = {
-        'Crypto': [
-            { symbol: 'BTCUSD', name: 'Bitcoin', binanceSymbol: 'BTCUSDT', yfinanceSymbol: 'BTC-USD', assetClass: 'Crypto' },
-            { symbol: 'ETHUSD', name: 'Ethereum', binanceSymbol: 'ETHUSDT', yfinanceSymbol: 'ETH-USD', assetClass: 'Crypto' },
-            { symbol: 'ADAUSD', name: 'Cardano', binanceSymbol: 'ADAUSDT', yfinanceSymbol: 'ADA-USD', assetClass: 'Crypto' },
-            { symbol: 'SOLUSD', name: 'Solana', binanceSymbol: 'SOLUSDT', yfinanceSymbol: 'SOL-USD', assetClass: 'Crypto' }
-        ],
-        'Indices': [
-            { symbol: 'SPX', name: 'S&P 500', binanceSymbol: null, yfinanceSymbol: '^GSPC', assetClass: 'Indices' },
-            { symbol: 'NDX', name: 'NASDAQ 100', binanceSymbol: null, yfinanceSymbol: '^NDX', assetClass: 'Indices' },
-            { symbol: 'DJI', name: 'Dow Jones', binanceSymbol: null, yfinanceSymbol: '^DJI', assetClass: 'Indices' }
-        ],
-        'Forex': [
-            { symbol: 'EURUSD', name: 'Euro/USD', binanceSymbol: null, yfinanceSymbol: 'EURUSD=X', assetClass: 'Forex' },
-            { symbol: 'GBPUSD', name: 'GBP/USD', binanceSymbol: null, yfinanceSymbol: 'GBPUSD=X', assetClass: 'Forex' },
-            { symbol: 'USDJPY', name: 'USD/JPY', binanceSymbol: null, yfinanceSymbol: 'JPY=X', assetClass: 'Forex' }
-        ],
-        'Stocks': [
-            { symbol: 'AAPL', name: 'Apple Inc.', binanceSymbol: null, yfinanceSymbol: 'AAPL', assetClass: 'Stocks' },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.', binanceSymbol: null, yfinanceSymbol: 'GOOGL', assetClass: 'Stocks' },
-            { symbol: 'TSLA', name: 'Tesla Inc.', binanceSymbol: null, yfinanceSymbol: 'TSLA', assetClass: 'Stocks' },
-            { symbol: 'MSFT', name: 'Microsoft', binanceSymbol: null, yfinanceSymbol: 'MSFT', assetClass: 'Stocks' }
-        ],
-        'Commodities': [
-            { symbol: 'XAUUSD', name: 'Gold', binanceSymbol: null, yfinanceSymbol: 'GC=F', assetClass: 'Commodities' },
-            { symbol: 'XAGUSD', name: 'Silver', binanceSymbol: null, yfinanceSymbol: 'SI=F', assetClass: 'Commodities' },
-            { symbol: 'USOIL', name: 'US Oil (WTI)', binanceSymbol: null, yfinanceSymbol: 'CL=F', assetClass: 'Commodities' }
-        ]
+    // Fetch all assets from backend
+    useEffect(() => {
+        const fetchAllAssets = async () => {
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/get-predefined-asset-lists/`);
+                const result = await response.json();
+                if (result.success) {
+                    setAllAssets(result.asset_lists);
+                }
+            } catch (error) {
+                console.error('Error fetching assets:', error);
+            }
+        };
+        fetchAllAssets();
+    }, []);
+
+    // Convert asset lists to proper format
+    const formatAssetForDisplay = (symbol, category) => {
+        // Map yfinance symbols to display format
+        const mapping = {
+            '^GSPC': { symbol: 'SPX', name: 'S&P 500', assetClass: 'Indices', yfinanceSymbol: '^GSPC' },
+            '^IXIC': { symbol: 'NDX', name: 'NASDAQ', assetClass: 'Indices', yfinanceSymbol: '^IXIC' },
+            '^DJI': { symbol: 'DJI', name: 'Dow Jones', assetClass: 'Indices', yfinanceSymbol: '^DJI' },
+            'EURUSD=X': { symbol: 'EURUSD', name: 'Euro/USD', assetClass: 'Forex', yfinanceSymbol: 'EURUSD=X' },
+            'GBPUSD=X': { symbol: 'GBPUSD', name: 'GBP/USD', assetClass: 'Forex', yfinanceSymbol: 'GBPUSD=X' },
+            'USDJPY=X': { symbol: 'USDJPY', name: 'USD/JPY', assetClass: 'Forex', yfinanceSymbol: 'USDJPY=X' },
+            'GC=F': { symbol: 'XAUUSD', name: 'Gold', assetClass: 'Commodities', yfinanceSymbol: 'GC=F' },
+            'SI=F': { symbol: 'XAGUSD', name: 'Silver', assetClass: 'Commodities', yfinanceSymbol: 'SI=F' },
+            'CL=F': { symbol: 'USOIL', name: 'US Oil (WTI)', assetClass: 'Commodities', yfinanceSymbol: 'CL=F' },
+            'BTC-USD': { symbol: 'BTCUSD', name: 'Bitcoin', assetClass: 'Crypto', yfinanceSymbol: 'BTC-USD', binanceSymbol: 'BTCUSDT' },
+            'ETH-USD': { symbol: 'ETHUSD', name: 'Ethereum', assetClass: 'Crypto', yfinanceSymbol: 'ETH-USD', binanceSymbol: 'ETHUSDT' },
+        };
+
+        if (mapping[symbol]) {
+            return mapping[symbol];
+        }
+
+        // For stocks, use as-is
+        if (category === 'stocks') {
+            return {
+                symbol: symbol,
+                name: symbol,
+                assetClass: 'Stocks',
+                yfinanceSymbol: symbol,
+                binanceSymbol: null
+            };
+        }
+
+        return {
+            symbol: symbol,
+            name: symbol,
+            assetClass: category.charAt(0).toUpperCase() + category.slice(1),
+            yfinanceSymbol: symbol,
+            binanceSymbol: null
+        };
     };
 
-    // Get current asset info
     const getCurrentAssetInfo = () => {
-        for (const category of Object.values(assetClasses)) {
-            const asset = category.find(a => a.symbol === selectedAsset);
-            if (asset) return asset;
+        // Search through all assets
+        for (const [category, symbols] of Object.entries(allAssets)) {
+            for (const symbol of symbols) {
+                const formatted = formatAssetForDisplay(symbol, category);
+                if (formatted.symbol === selectedAsset) {
+                    return formatted;
+                }
+            }
         }
-        return { symbol: selectedAsset, name: selectedAsset, assetClass: 'Unknown' };
+        return { symbol: selectedAsset, name: selectedAsset, assetClass: 'Unknown', yfinanceSymbol: selectedAsset };
     };
 
     useEffect(() => {
         setSelectedAssetInfo(getCurrentAssetInfo());
-    }, [selectedAsset]);
+    }, [selectedAsset, allAssets]);
 
     // Load TradingView Lightweight Charts
     useEffect(() => {
@@ -549,8 +541,9 @@ export default function Charts() {
     }, []);
 
     // Fetch market data
-    const fetchMarketData = async () => {
-        setIsLoading(true);
+    const fetchMarketData = async (isInitial = false) => {
+        if (isInitial) setIsLoading(true);
+        
         const assetInfo = getCurrentAssetInfo();
         
         try {
@@ -582,6 +575,7 @@ export default function Charts() {
                 data = result.data;
             }
             
+            // Update market data
             setMarketData(data);
             
             if (data.length > 0) {
@@ -589,80 +583,94 @@ export default function Charts() {
                 const first = data[0];
                 setCurrentPrice(latest.close);
                 setPriceChange(((latest.close - first.close) / first.close) * 100);
+                
+                // Update chart without reloading - just update the data
+                if (!isInitial && candlestickSeriesRef.current && chartType === 'candlestick') {
+                    candlestickSeriesRef.current.update(latest);
+                } else if (!isInitial && candlestickSeriesRef.current && chartType === 'line') {
+                    candlestickSeriesRef.current.update({ time: latest.time, value: latest.close });
+                }
             }
             
         } catch (error) {
             console.error('Error fetching market data:', error);
             setError(`Failed to fetch data: ${error.message}`);
         } finally {
-            setIsLoading(false);
+            if (isInitial) setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        if (tvLoaded && tradingMode === 'LIVE') {
-            fetchMarketData();
+        if (tvLoaded && tradingMode === 'LIVE' && !backtestMode) {
+            fetchMarketData(true);
             
             const interval = setInterval(() => {
-                fetchMarketData();
+                fetchMarketData(false);
             }, timeframes[timeframe].updateInterval);
             
             return () => clearInterval(interval);
         }
-    }, [selectedAsset, timeframe, tvLoaded, tradingMode]);
+    }, [selectedAsset, timeframe, tvLoaded, tradingMode, backtestMode]);
 
     // Initialize chart
     useEffect(() => {
         if (!tvLoaded || !chartContainerRef.current || marketData.length === 0) return;
 
         try {
-            if (chartRef.current) {
-                chartRef.current.remove();
+            // Only create chart if it doesn't exist
+            if (!chartRef.current) {
+                const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
+                    width: chartContainerRef.current.clientWidth,
+                    height: 600,
+                    layout: {
+                        background: { type: 'solid', color: theme.bg.elevated },
+                        textColor: theme.text.secondary,
+                    },
+                    grid: {
+                        vertLines: { color: theme.border.light },
+                        horzLines: { color: theme.border.light },
+                    },
+                    crosshair: {
+                        mode: window.LightweightCharts.CrosshairMode.Normal,
+                    },
+                    rightPriceScale: {
+                        borderColor: theme.border.medium,
+                    },
+                    timeScale: {
+                        borderColor: theme.border.medium,
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                });
+
+                chartRef.current = chart;
             }
-            chartContainerRef.current.innerHTML = '';
 
-            const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
-                width: chartContainerRef.current.clientWidth,
-                height: 600,
-                layout: {
-                    background: { type: 'solid', color: darkTheme.bg.tertiary },
-                    textColor: darkTheme.text.secondary,
-                },
-                grid: {
-                    vertLines: { color: darkTheme.border.light },
-                    horzLines: { color: darkTheme.border.light },
-                },
-                crosshair: {
-                    mode: window.LightweightCharts.CrosshairMode.Normal,
-                },
-                rightPriceScale: {
-                    borderColor: darkTheme.border.medium,
-                },
-                timeScale: {
-                    borderColor: darkTheme.border.medium,
-                    timeVisible: true,
-                    secondsVisible: false,
-                },
-            });
+            // Remove old series if exists
+            if (candlestickSeriesRef.current) {
+                chartRef.current.removeSeries(candlestickSeriesRef.current);
+            }
 
+            // Add new series
             let mainSeries;
-            
             if (chartType === 'candlestick') {
-                mainSeries = chart.addCandlestickSeries({
-                    upColor: darkTheme.accent.green,
-                    downColor: darkTheme.accent.red,
+                mainSeries = chartRef.current.addCandlestickSeries({
+                    upColor: theme.accent.green,
+                    downColor: theme.accent.red,
                     borderVisible: false,
-                    wickUpColor: darkTheme.accent.green,
-                    wickDownColor: darkTheme.accent.red,
+                    wickUpColor: theme.accent.green,
+                    wickDownColor: theme.accent.red,
                 });
                 mainSeries.setData(marketData);
             } else {
-                mainSeries = chart.addLineSeries({
-                    color: darkTheme.blue[400],
+                mainSeries = chartRef.current.addLineSeries({
+                    color: theme.blue[500],
                     lineWidth: 3,
                 });
                 mainSeries.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
+
+            candlestickSeriesRef.current = mainSeries;
 
             // Add trade markers
             if (tradeHistory.length > 0) {
@@ -673,7 +681,7 @@ export default function Charts() {
                     markers.push({
                         time: entryTime,
                         position: trade.order_type === 'BUY' ? 'belowBar' : 'aboveBar',
-                        color: trade.order_type === 'BUY' ? darkTheme.accent.green : darkTheme.accent.red,
+                        color: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red,
                         shape: trade.order_type === 'BUY' ? 'arrowUp' : 'arrowDown',
                         text: `${trade.order_type} @ ${trade.entry_price}`
                     });
@@ -683,7 +691,7 @@ export default function Charts() {
                         markers.push({
                             time: exitTime,
                             position: trade.order_type === 'BUY' ? 'aboveBar' : 'belowBar',
-                            color: trade.profit_loss > 0 ? darkTheme.accent.green : darkTheme.accent.red,
+                            color: trade.profit_loss > 0 ? theme.accent.green : theme.accent.red,
                             shape: 'circle',
                             text: `EXIT: ${trade.profit_loss > 0 ? '+' : ''}${trade.profit_loss?.toFixed(2)}`
                         });
@@ -692,13 +700,42 @@ export default function Charts() {
                 mainSeries.setMarkers(markers);
             }
 
-            chart.timeScale().fitContent();
-            chartRef.current = chart;
+            chartRef.current.timeScale().fitContent();
 
         } catch (error) {
             console.error('Error initializing chart:', error);
         }
     }, [marketData, chartType, tvLoaded, tradeHistory]);
+
+    // Backtest logic - show candles one by one
+    useEffect(() => {
+        if (backtestMode && !backtestPaused && backtestCurrentIndex < backtestData.length) {
+            backtestIntervalRef.current = setTimeout(() => {
+                const currentCandle = backtestData[backtestCurrentIndex];
+                
+                // Update the visible data by adding one candle at a time
+                setMarketData(prev => [...prev, currentCandle]);
+                setCurrentPrice(currentCandle.close);
+                setBacktestCurrentIndex(prev => prev + 1);
+                
+                // Update chart with new candle
+                if (candlestickSeriesRef.current) {
+                    if (chartType === 'candlestick') {
+                        candlestickSeriesRef.current.update(currentCandle);
+                    } else {
+                        candlestickSeriesRef.current.update({ time: currentCandle.time, value: currentCandle.close });
+                    }
+                }
+                
+            }, backtestSpeed * 1000);
+        }
+        
+        return () => {
+            if (backtestIntervalRef.current) {
+                clearTimeout(backtestIntervalRef.current);
+            }
+        };
+    }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, backtestData, chartType]);
 
     // Execute trade
     const executeTrade = async () => {
@@ -736,6 +773,7 @@ export default function Charts() {
                 setStopLoss('');
                 setTakeProfit('');
                 setTradeNotes('');
+                setShowOrderPanel(false);
                 fetchTradeHistory();
             } else {
                 alert(`Error: ${result.error}`);
@@ -807,14 +845,6 @@ export default function Charts() {
         }
     };
 
-    // Sort asset breakdown
-    const sortAssetBreakdown = (data) => {
-        return [...data].sort((a, b) => {
-            const multiplier = sortOrder === 'desc' ? -1 : 1;
-            return multiplier * (a[sortBy] - b[sortBy]);
-        });
-    };
-
     // Start backtest
     const startBacktest = async () => {
         setBacktestMode(true);
@@ -823,8 +853,13 @@ export default function Charts() {
         setBacktestTrades([]);
         setBacktestPaused(false);
         
+        // Store full data for backtest
+        setBacktestData([...marketData]);
+        
+        // Clear visible market data to show candles one by one
+        setMarketData([]);
+        
         const assetInfo = getCurrentAssetInfo();
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         
         try {
             const response = await fetch(`${BACKEND_API_URL}/api/snowai-start-paper-trading-backtest/`, {
@@ -849,37 +884,28 @@ export default function Charts() {
         }
     };
 
-    // Backtest loop
-    useEffect(() => {
-        if (backtestMode && !backtestPaused && backtestCurrentIndex < marketData.length) {
-            backtestIntervalRef.current = setTimeout(() => {
-                const currentCandle = marketData[backtestCurrentIndex];
-                setCurrentPrice(currentCandle.close);
-                setBacktestCurrentIndex(prev => prev + 1);
-                
-                // Auto check stop loss / take profit
-                // (simplified - you'd implement actual logic here)
-                
-            }, backtestSpeed * 1000);
+    // Filter assets
+    const getFilteredAssets = () => {
+        const filtered = {};
+        
+        for (const [category, symbols] of Object.entries(allAssets)) {
+            const categoryFiltered = symbols.filter(symbol => {
+                const formatted = formatAssetForDisplay(symbol, category);
+                return (
+                    formatted.symbol.toLowerCase().includes(assetSearchQuery.toLowerCase()) ||
+                    formatted.name.toLowerCase().includes(assetSearchQuery.toLowerCase())
+                );
+            });
+            
+            if (categoryFiltered.length > 0) {
+                filtered[category] = categoryFiltered;
+            }
         }
         
-        return () => {
-            if (backtestIntervalRef.current) {
-                clearTimeout(backtestIntervalRef.current);
-            }
-        };
-    }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, marketData]);
+        return filtered;
+    };
 
-    const filteredAssets = Object.entries(assetClasses).reduce((acc, [category, assets]) => {
-        const filtered = assets.filter(asset => 
-            asset.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            asset.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        if (filtered.length > 0) {
-            acc[category] = filtered;
-        }
-        return acc;
-    }, {});
+    const filteredAssets = getFilteredAssets();
 
     return (
         <div style={styles.pageContainer}>
@@ -890,29 +916,14 @@ export default function Charts() {
                         100% { transform: rotate(360deg); }
                     }
                     
-                    ${styles.input}:focus {
-                        border-color: ${darkTheme.blue[500]};
-                        box-shadow: 0 0 0 3px ${darkTheme.blue[500]}30;
+                    input:focus, select:focus {
+                        border-color: ${theme.blue[500]} !important;
+                        box-shadow: 0 0 0 3px ${theme.blue[500]}30 !important;
                     }
                     
-                    ${styles.searchBar}:focus {
-                        border-color: ${darkTheme.blue[500]};
-                        box-shadow: 0 0 0 3px ${darkTheme.blue[500]}30;
-                    }
-                    
-                    .asset-button:hover {
+                    .button-hover:hover {
                         transform: translateY(-2px);
-                        box-shadow: 0 8px 20px rgba(0, 119, 230, 0.3);
-                    }
-                    
-                    .button-primary:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 12px 28px ${darkTheme.blue[500]}60;
-                    }
-                    
-                    .trade-card:hover {
-                        transform: translateX(5px);
-                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
                     }
                 `}
             </style>
@@ -956,9 +967,9 @@ export default function Charts() {
                     
                     {error && (
                         <div style={{ 
-                            background: `${darkTheme.accent.red}20`,
-                            border: `2px solid ${darkTheme.accent.red}`,
-                            color: darkTheme.accent.red,
+                            background: `${theme.accent.red}20`,
+                            border: `2px solid ${theme.accent.red}`,
+                            color: theme.accent.red,
                             padding: '15px',
                             borderRadius: '12px',
                             marginBottom: '20px'
@@ -968,42 +979,21 @@ export default function Charts() {
                     )}
                     
                     <div style={styles.controlPanel}>
-                        <div style={styles.sectionTitle}>
-                            🎯 Select Asset
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={styles.sectionTitle}>
+                                🎯 Current Asset
+                            </div>
+                            <button
+                                style={styles.assetButton}
+                                className="button-hover"
+                                onClick={() => setShowAssetModal(true)}
+                            >
+                                {selectedAssetInfo?.symbol || 'Select Asset'} - {selectedAssetInfo?.name}
+                            </button>
                         </div>
                         
-                        <input
-                            type="text"
-                            placeholder="🔍 Search assets..."
-                            style={styles.searchBar}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        
-                        {Object.entries(filteredAssets).map(([category, assets]) => (
-                            <div key={category} style={styles.assetClassSection}>
-                                <div style={styles.assetClassTitle}>{category}</div>
-                                <div>
-                                    {assets.map(asset => (
-                                        <button
-                                            key={asset.symbol}
-                                            className="asset-button"
-                                            onClick={() => setSelectedAsset(asset.symbol)}
-                                            style={{
-                                                ...styles.assetButton,
-                                                ...(selectedAsset === asset.symbol ? 
-                                                    styles.assetButtonActive : styles.assetButtonInactive)
-                                            }}
-                                        >
-                                            {asset.symbol}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                        
-                        <div style={styles.timeframeContainer}>
-                            <span style={styles.assetClassTitle}>⏰ Timeframe:</span>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ ...styles.assetClassTitle, marginBottom: 0 }}>⏰ Timeframe:</span>
                             {Object.keys(timeframes).map(key => (
                                 <button
                                     key={key}
@@ -1023,7 +1013,7 @@ export default function Charts() {
                     {isLoading && (
                         <div style={{ textAlign: 'center', padding: '40px' }}>
                             <div style={styles.loadingSpinner}></div>
-                            <p style={{ color: darkTheme.text.secondary, marginTop: '20px' }}>
+                            <p style={{ color: theme.text.secondary, marginTop: '20px' }}>
                                 Loading market data...
                             </p>
                         </div>
@@ -1039,14 +1029,14 @@ export default function Charts() {
                                             maximumFractionDigits: 8
                                         })}
                                     </div>
-                                    <div style={{ color: darkTheme.text.secondary, fontSize: '1.1rem' }}>
+                                    <div style={{ color: theme.text.secondary, fontSize: '1.1rem' }}>
                                         {selectedAssetInfo?.name} • {timeframes[timeframe].label}
                                     </div>
                                 </div>
                                 <div style={{
                                     fontSize: '1.5rem',
                                     fontWeight: '800',
-                                    color: priceChange >= 0 ? darkTheme.accent.green : darkTheme.accent.red
+                                    color: priceChange >= 0 ? theme.accent.green : theme.accent.red
                                 }}>
                                     {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
                                 </div>
@@ -1091,114 +1081,159 @@ export default function Charts() {
                                     }}
                                 />
                                 
+                                {/* Floating Order Panel */}
+                                {showOrderPanel && (
+                                    <div style={styles.orderPanel}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                            <h3 style={{ margin: 0, color: theme.blue[700] }}>💼 Execute Trade</h3>
+                                            <button
+                                                onClick={() => setShowOrderPanel(false)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    fontSize: '1.5rem',
+                                                    cursor: 'pointer',
+                                                    color: theme.text.secondary
+                                                }}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                        
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Order Type</label>
+                                            <select 
+                                                style={styles.select}
+                                                value={orderType}
+                                                onChange={(e) => setOrderType(e.target.value)}
+                                            >
+                                                <option value="BUY">🟢 BUY</option>
+                                                <option value="SELL">🔴 SELL</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Quantity</label>
+                                            <input
+                                                type="number"
+                                                style={styles.input}
+                                                value={quantity}
+                                                onChange={(e) => setQuantity(parseFloat(e.target.value))}
+                                                min="0.01"
+                                                step="0.01"
+                                            />
+                                        </div>
+                                        
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Stop Loss</label>
+                                            <input
+                                                type="number"
+                                                style={styles.input}
+                                                placeholder="Optional"
+                                                value={stopLoss}
+                                                onChange={(e) => setStopLoss(e.target.value)}
+                                                step="0.01"
+                                            />
+                                        </div>
+                                        
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Take Profit</label>
+                                            <input
+                                                type="number"
+                                                style={styles.input}
+                                                placeholder="Optional"
+                                                value={takeProfit}
+                                                onChange={(e) => setTakeProfit(e.target.value)}
+                                                step="0.01"
+                                            />
+                                        </div>
+                                        
+                                        <div style={styles.formGroup}>
+                                            <label style={styles.label}>Notes</label>
+                                            <input
+                                                type="text"
+                                                style={styles.input}
+                                                placeholder="Optional"
+                                                value={tradeNotes}
+                                                onChange={(e) => setTradeNotes(e.target.value)}
+                                            />
+                                        </div>
+                                        
+                                        <button
+                                            style={styles.buttonPrimary}
+                                            className="button-hover"
+                                            onClick={executeTrade}
+                                        >
+                                            {orderType === 'BUY' ? '🟢' : '🔴'} Execute @ ${currentPrice.toFixed(2)}
+                                        </button>
+                                    </div>
+                                )}
+                                
                                 {backtestMode && (
                                     <div style={{
                                         marginTop: '15px',
                                         padding: '15px',
-                                        background: darkTheme.bg.tertiary,
+                                        background: theme.bg.tertiary,
                                         borderRadius: '10px',
                                         display: 'flex',
                                         justifyContent: 'space-between',
-                                        alignItems: 'center'
+                                        alignItems: 'center',
+                                        border: `1px solid ${theme.border.light}`
                                     }}>
                                         <div>
-                                            <strong style={{ color: darkTheme.blue[400] }}>Backtest Progress:</strong>{' '}
-                                            {backtestCurrentIndex} / {marketData.length} candles
+                                            <strong style={{ color: theme.blue[600] }}>Backtest Progress:</strong>{' '}
+                                            {backtestCurrentIndex} / {backtestData.length} candles
                                         </div>
                                         <div>
-                                            <strong style={{ color: darkTheme.blue[400] }}>Balance:</strong>{' '}
+                                            <strong style={{ color: theme.blue[600] }}>Balance:</strong>{' '}
                                             ${backtestBalance.toFixed(2)}
                                         </div>
-                                        <button
-                                            onClick={() => setBacktestPaused(!backtestPaused)}
-                                            style={{
-                                                ...styles.buttonSecondary,
-                                                width: 'auto',
-                                                padding: '10px 20px'
-                                            }}
-                                        >
-                                            {backtestPaused ? '▶️ Resume' : '⏸️ Pause'}
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <button
+                                                onClick={() => setBacktestPaused(!backtestPaused)}
+                                                style={{
+                                                    ...styles.buttonSecondary,
+                                                    width: 'auto',
+                                                    padding: '8px 16px'
+                                                }}
+                                            >
+                                                {backtestPaused ? '▶️ Resume' : '⏸️ Pause'}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setBacktestMode(false);
+                                                    setMarketData(backtestData);
+                                                }}
+                                                style={{
+                                                    ...styles.buttonSecondary,
+                                                    width: 'auto',
+                                                    padding: '8px 16px',
+                                                    background: theme.accent.red,
+                                                    color: 'white',
+                                                    border: 'none'
+                                                }}
+                                            >
+                                                ⏹️ Stop
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                             
-                            <div style={styles.tradePanel}>
-                                <div style={styles.sectionTitle}>
-                                    💼 Execute Trade
-                                </div>
-                                
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.label}>Order Type</label>
-                                        <select 
-                                            style={styles.select}
-                                            value={orderType}
-                                            onChange={(e) => setOrderType(e.target.value)}
-                                        >
-                                            <option value="BUY">🟢 BUY</option>
-                                            <option value="SELL">🔴 SELL</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.label}>Quantity</label>
-                                        <input
-                                            type="number"
-                                            style={styles.input}
-                                            value={quantity}
-                                            onChange={(e) => setQuantity(parseFloat(e.target.value))}
-                                            min="0.01"
-                                            step="0.01"
-                                        />
-                                    </div>
-                                    
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.label}>Stop Loss (Optional)</label>
-                                        <input
-                                            type="number"
-                                            style={styles.input}
-                                            placeholder="Enter stop loss price"
-                                            value={stopLoss}
-                                            onChange={(e) => setStopLoss(e.target.value)}
-                                            step="0.01"
-                                        />
-                                    </div>
-                                    
-                                    <div style={styles.formGroup}>
-                                        <label style={styles.label}>Take Profit (Optional)</label>
-                                        <input
-                                            type="number"
-                                            style={styles.input}
-                                            placeholder="Enter take profit price"
-                                            value={takeProfit}
-                                            onChange={(e) => setTakeProfit(e.target.value)}
-                                            step="0.01"
-                                        />
-                                    </div>
-                                </div>
-                                
-                                <div style={styles.formGroup}>
-                                    <label style={styles.label}>Trade Notes (Optional)</label>
-                                    <input
-                                        type="text"
-                                        style={styles.input}
-                                        placeholder="Add notes about this trade..."
-                                        value={tradeNotes}
-                                        onChange={(e) => setTradeNotes(e.target.value)}
-                                    />
-                                </div>
-                                
-                                <button
-                                    className="button-primary"
-                                    style={styles.buttonPrimary}
-                                    onClick={executeTrade}
-                                >
-                                    {orderType === 'BUY' ? '🟢' : '🔴'} Execute {orderType} Order @ ${currentPrice.toFixed(2)}
-                                </button>
-                            </div>
-                            
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+                                <button
+                                    onClick={() => setShowOrderPanel(!showOrderPanel)}
+                                    style={{
+                                        ...styles.buttonSecondary,
+                                        background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[700]} 100%)`,
+                                        color: 'white',
+                                        border: 'none'
+                                    }}
+                                    className="button-hover"
+                                >
+                                    💼 {showOrderPanel ? 'Hide' : 'Show'} Order Panel
+                                </button>
+                                
                                 <button
                                     onClick={() => {
                                         setShowTradeHistory(true);
@@ -1206,12 +1241,13 @@ export default function Charts() {
                                     }}
                                     style={{
                                         ...styles.buttonSecondary,
-                                        background: `linear-gradient(135deg, ${darkTheme.blue[600]} 0%, ${darkTheme.blue[800]} 100%)`,
+                                        background: `linear-gradient(135deg, ${theme.blue[600]} 0%, ${theme.blue[800]} 100%)`,
                                         color: 'white',
                                         border: 'none'
                                     }}
+                                    className="button-hover"
                                 >
-                                    📊 View Trade History
+                                    📊 Trade History
                                 </button>
                                 
                                 <button
@@ -1221,12 +1257,13 @@ export default function Charts() {
                                     }}
                                     style={{
                                         ...styles.buttonSecondary,
-                                        background: `linear-gradient(135deg, ${darkTheme.accent.purple} 0%, #6d28d9 100%)`,
+                                        background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`,
                                         color: 'white',
                                         border: 'none'
                                     }}
+                                    className="button-hover"
                                 >
-                                    🏆 Overall Performance
+                                    🏆 Performance
                                 </button>
                                 
                                 {tradingMode === 'BACKTEST' && !backtestMode && (
@@ -1234,10 +1271,11 @@ export default function Charts() {
                                         onClick={startBacktest}
                                         style={{
                                             ...styles.buttonSecondary,
-                                            background: `linear-gradient(135deg, ${darkTheme.accent.cyan} 0%, #0891b2 100%)`,
+                                            background: `linear-gradient(135deg, ${theme.accent.cyan} 0%, #0891b2 100%)`,
                                             color: 'white',
                                             border: 'none'
                                         }}
+                                        className="button-hover"
                                     >
                                         ⚡ Start Backtest
                                     </button>
@@ -1246,11 +1284,77 @@ export default function Charts() {
                         </>
                     )}
                     
+                    {/* Asset Selection Modal */}
+                    {showAssetModal && (
+                        <div style={styles.modal} onClick={() => setShowAssetModal(false)}>
+                            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
+                                        🎯 Select Trading Asset
+                                    </h2>
+                                    <button
+                                        onClick={() => setShowAssetModal(false)}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: theme.text.primary,
+                                            fontSize: '2rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Search assets..."
+                                    style={styles.searchBar}
+                                    value={assetSearchQuery}
+                                    onChange={(e) => setAssetSearchQuery(e.target.value)}
+                                />
+                                
+                                <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                                    {Object.entries(filteredAssets).map(([category, symbols]) => (
+                                        <div key={category} style={styles.assetClassSection}>
+                                            <div style={styles.assetClassTitle}>
+                                                {category.charAt(0).toUpperCase() + category.slice(1)} ({symbols.length})
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                {symbols.map(symbol => {
+                                                    const formatted = formatAssetForDisplay(symbol, category);
+                                                    return (
+                                                        <button
+                                                            key={symbol}
+                                                            onClick={() => {
+                                                                setSelectedAsset(formatted.symbol);
+                                                                setShowAssetModal(false);
+                                                            }}
+                                                            style={{
+                                                                ...styles.assetGridButton,
+                                                                ...(selectedAsset === formatted.symbol ? 
+                                                                    styles.assetGridButtonActive : {})
+                                                            }}
+                                                            className="button-hover"
+                                                        >
+                                                            {formatted.symbol}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Trade History Modal */}
                     {showTradeHistory && (
                         <div style={styles.modal} onClick={() => setShowTradeHistory(false)}>
                             <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-                                    <h2 style={{ color: darkTheme.blue[300], margin: 0 }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
                                         📊 Trade History - {selectedAssetInfo?.name}
                                     </h2>
                                     <button
@@ -1258,7 +1362,7 @@ export default function Charts() {
                                         style={{
                                             background: 'transparent',
                                             border: 'none',
-                                            color: darkTheme.text.primary,
+                                            color: theme.text.primary,
                                             fontSize: '2rem',
                                             cursor: 'pointer'
                                         }}
@@ -1275,25 +1379,25 @@ export default function Charts() {
                                         marginBottom: '25px'
                                     }}>
                                         <div style={styles.statCard}>
-                                            <div style={{ ...styles.statValue, color: darkTheme.blue[400] }}>
+                                            <div style={{ ...styles.statValue, color: theme.blue[600] }}>
                                                 {tradeStats.closed_trades}
                                             </div>
                                             <div style={styles.statLabel}>Closed Trades</div>
                                         </div>
                                         <div style={styles.statCard}>
-                                            <div style={{ ...styles.statValue, color: darkTheme.accent.green }}>
+                                            <div style={{ ...styles.statValue, color: theme.accent.green }}>
                                                 {tradeStats.winning_trades}
                                             </div>
                                             <div style={styles.statLabel}>Winners</div>
                                         </div>
                                         <div style={styles.statCard}>
-                                            <div style={{ ...styles.statValue, color: darkTheme.accent.red }}>
+                                            <div style={{ ...styles.statValue, color: theme.accent.red }}>
                                                 {tradeStats.losing_trades}
                                             </div>
                                             <div style={styles.statLabel}>Losers</div>
                                         </div>
                                         <div style={styles.statCard}>
-                                            <div style={{ ...styles.statValue, color: darkTheme.accent.cyan }}>
+                                            <div style={{ ...styles.statValue, color: theme.accent.cyan }}>
                                                 {tradeStats.win_rate}%
                                             </div>
                                             <div style={styles.statLabel}>Win Rate</div>
@@ -1301,7 +1405,7 @@ export default function Charts() {
                                         <div style={styles.statCard}>
                                             <div style={{ 
                                                 ...styles.statValue, 
-                                                color: tradeStats.net_profit >= 0 ? darkTheme.accent.green : darkTheme.accent.red 
+                                                color: tradeStats.net_profit >= 0 ? theme.accent.green : theme.accent.red 
                                             }}>
                                                 ${tradeStats.net_profit.toFixed(2)}
                                             </div>
@@ -1314,45 +1418,42 @@ export default function Charts() {
                                     {tradeHistory.map(trade => (
                                         <div 
                                             key={trade.trade_id}
-                                            className="trade-card"
-                                            style={{
-                                                ...styles.tradeCard,
-                                                ...(trade.status === 'CLOSED' && trade.profit_loss > 0 ? styles.tradeCardWin : {}),
-                                                ...(trade.status === 'CLOSED' && trade.profit_loss < 0 ? styles.tradeCardLoss : {})
-                                            }}
+                                            style={styles.tradeCard}
                                         >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                                 <div>
                                                     <span style={{
                                                         ...styles.badge,
-                                                        ...(trade.order_type === 'BUY' ? { background: darkTheme.accent.green, color: 'white' } : { background: darkTheme.accent.red, color: 'white' })
+                                                        background: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red,
+                                                        color: 'white'
                                                     }}>
                                                         {trade.order_type}
                                                     </span>
                                                     <span style={{
                                                         ...styles.badge,
-                                                        ...(trade.status === 'OPEN' ? styles.badgeOpen : styles.badgeClosed),
+                                                        background: trade.status === 'OPEN' ? theme.blue[500] : theme.bg.tertiary,
+                                                        color: trade.status === 'OPEN' ? 'white' : theme.text.secondary,
                                                         marginLeft: '10px'
                                                     }}>
                                                         {trade.status}
                                                     </span>
                                                 </div>
-                                                <div style={{ fontSize: '0.9rem', color: darkTheme.text.tertiary }}>
+                                                <div style={{ fontSize: '0.9rem', color: theme.text.tertiary }}>
                                                     {new Date(trade.entry_timestamp).toLocaleString()}
                                                 </div>
                                             </div>
                                             
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                                                 <div>
-                                                    <div style={{ color: darkTheme.text.tertiary, fontSize: '0.85rem' }}>Entry Price</div>
-                                                    <div style={{ color: darkTheme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
+                                                    <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Entry Price</div>
+                                                    <div style={{ color: theme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
                                                         ${trade.entry_price}
                                                     </div>
                                                 </div>
                                                 {trade.exit_price && (
                                                     <div>
-                                                        <div style={{ color: darkTheme.text.tertiary, fontSize: '0.85rem' }}>Exit Price</div>
-                                                        <div style={{ color: darkTheme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
+                                                        <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Exit Price</div>
+                                                        <div style={{ color: theme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
                                                             ${trade.exit_price}
                                                         </div>
                                                     </div>
@@ -1362,14 +1463,14 @@ export default function Charts() {
                                             {trade.profit_loss !== null && (
                                                 <div style={{
                                                     padding: '10px',
-                                                    background: trade.profit_loss >= 0 ? `${darkTheme.accent.green}20` : `${darkTheme.accent.red}20`,
+                                                    background: trade.profit_loss >= 0 ? `${theme.accent.green}20` : `${theme.accent.red}20`,
                                                     borderRadius: '8px',
                                                     marginBottom: '10px'
                                                 }}>
                                                     <div style={{ 
                                                         fontSize: '1.3rem', 
                                                         fontWeight: '800',
-                                                        color: trade.profit_loss >= 0 ? darkTheme.accent.green : darkTheme.accent.red 
+                                                        color: trade.profit_loss >= 0 ? theme.accent.green : theme.accent.red 
                                                     }}>
                                                         {trade.profit_loss >= 0 ? '+' : ''}${trade.profit_loss.toFixed(2)} ({trade.profit_loss_percentage >= 0 ? '+' : ''}{trade.profit_loss_percentage.toFixed(2)}%)
                                                     </div>
@@ -1381,7 +1482,7 @@ export default function Charts() {
                                                     onClick={() => closeTrade(trade.trade_id)}
                                                     style={{
                                                         ...styles.buttonSecondary,
-                                                        background: darkTheme.accent.red,
+                                                        background: theme.accent.red,
                                                         color: 'white',
                                                         border: 'none',
                                                         marginTop: '10px'
@@ -1397,11 +1498,12 @@ export default function Charts() {
                         </div>
                     )}
                     
+                    {/* Overall Performance Modal */}
                     {showOverallPerformance && overallStats && (
                         <div style={styles.modal} onClick={() => setShowOverallPerformance(false)}>
                             <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-                                    <h2 style={{ color: darkTheme.blue[300], margin: 0 }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
                                         🏆 Overall Trading Performance
                                     </h2>
                                     <button
@@ -1409,7 +1511,7 @@ export default function Charts() {
                                         style={{
                                             background: 'transparent',
                                             border: 'none',
-                                            color: darkTheme.text.primary,
+                                            color: theme.text.primary,
                                             fontSize: '2rem',
                                             cursor: 'pointer'
                                         }}
@@ -1425,19 +1527,19 @@ export default function Charts() {
                                     marginBottom: '30px'
                                 }}>
                                     <div style={styles.statCard}>
-                                        <div style={{ ...styles.statValue, color: darkTheme.blue[400] }}>
+                                        <div style={{ ...styles.statValue, color: theme.blue[600] }}>
                                             {overallStats.total_trades}
                                         </div>
                                         <div style={styles.statLabel}>Total Trades</div>
                                     </div>
                                     <div style={styles.statCard}>
-                                        <div style={{ ...styles.statValue, color: darkTheme.accent.green }}>
+                                        <div style={{ ...styles.statValue, color: theme.accent.green }}>
                                             {overallStats.winning_trades}
                                         </div>
                                         <div style={styles.statLabel}>Winners</div>
                                     </div>
                                     <div style={styles.statCard}>
-                                        <div style={{ ...styles.statValue, color: darkTheme.accent.cyan }}>
+                                        <div style={{ ...styles.statValue, color: theme.accent.cyan }}>
                                             {overallStats.win_rate}%
                                         </div>
                                         <div style={styles.statLabel}>Win Rate</div>
@@ -1445,14 +1547,14 @@ export default function Charts() {
                                     <div style={styles.statCard}>
                                         <div style={{ 
                                             ...styles.statValue, 
-                                            color: overallStats.net_profit >= 0 ? darkTheme.accent.green : darkTheme.accent.red 
+                                            color: overallStats.net_profit >= 0 ? theme.accent.green : theme.accent.red 
                                         }}>
                                             ${overallStats.net_profit.toFixed(2)}
                                         </div>
                                         <div style={styles.statLabel}>Net P&L</div>
                                     </div>
                                     <div style={styles.statCard}>
-                                        <div style={{ ...styles.statValue, color: darkTheme.accent.purple }}>
+                                        <div style={{ ...styles.statValue, color: theme.accent.purple }}>
                                             {overallStats.profit_factor}
                                         </div>
                                         <div style={styles.statLabel}>Profit Factor</div>
@@ -1460,101 +1562,24 @@ export default function Charts() {
                                 </div>
                                 
                                 <div style={{ marginBottom: '20px' }}>
-                                    <h3 style={{ color: darkTheme.blue[400], marginBottom: '15px' }}>
+                                    <h3 style={{ color: theme.blue[600], marginBottom: '15px' }}>
                                         Asset Class Breakdown
                                     </h3>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                                         {Object.entries(assetClassStats).map(([assetClass, stats]) => (
                                             <div key={assetClass} style={styles.statCard}>
-                                                <h4 style={{ color: darkTheme.text.primary, marginBottom: '10px' }}>
+                                                <h4 style={{ color: theme.text.primary, marginBottom: '10px' }}>
                                                     {assetClass}
                                                 </h4>
-                                                <div style={{ fontSize: '0.9rem', color: darkTheme.text.secondary }}>
+                                                <div style={{ fontSize: '0.9rem', color: theme.text.secondary }}>
                                                     <div>Trades: {stats.total_trades}</div>
                                                     <div>Win Rate: {stats.win_rate}%</div>
                                                     <div style={{ 
-                                                        color: stats.net_profit >= 0 ? darkTheme.accent.green : darkTheme.accent.red,
+                                                        color: stats.net_profit >= 0 ? theme.accent.green : theme.accent.red,
                                                         fontWeight: '700',
                                                         marginTop: '5px'
                                                     }}>
                                                         P&L: ${stats.net_profit}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                        <h3 style={{ color: darkTheme.blue[400], margin: 0 }}>
-                                            Per Asset Performance
-                                        </h3>
-                                        <select
-                                            style={{ ...styles.select, width: 'auto', padding: '8px' }}
-                                            value={sortBy}
-                                            onChange={(e) => setSortBy(e.target.value)}
-                                        >
-                                            <option value="net_profit">Sort by P&L</option>
-                                            <option value="win_rate">Sort by Win Rate</option>
-                                            <option value="total_trades">Sort by Trades</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                        {sortAssetBreakdown(assetBreakdown).map(asset => (
-                                            <div key={asset.asset_symbol} style={styles.tradeCard}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div>
-                                                        <h4 style={{ color: darkTheme.text.primary, margin: '0 0 5px 0' }}>
-                                                            {asset.asset_symbol} - {asset.asset_name}
-                                                        </h4>
-                                                        <span style={{ 
-                                                            ...styles.badge,
-                                                            background: darkTheme.bg.primary,
-                                                            color: darkTheme.text.secondary
-                                                        }}>
-                                                            {asset.asset_class}
-                                                        </span>
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: '1.5rem',
-                                                        fontWeight: '800',
-                                                        color: asset.net_profit >= 0 ? darkTheme.accent.green : darkTheme.accent.red
-                                                    }}>
-                                                        ${asset.net_profit.toFixed(2)}
-                                                    </div>
-                                                </div>
-                                                <div style={{ 
-                                                    display: 'grid', 
-                                                    gridTemplateColumns: 'repeat(4, 1fr)', 
-                                                    gap: '10px',
-                                                    marginTop: '15px',
-                                                    fontSize: '0.9rem'
-                                                }}>
-                                                    <div>
-                                                        <div style={{ color: darkTheme.text.tertiary }}>Trades</div>
-                                                        <div style={{ color: darkTheme.text.primary, fontWeight: '600' }}>
-                                                            {asset.total_trades}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div style={{ color: darkTheme.text.tertiary }}>Winners</div>
-                                                        <div style={{ color: darkTheme.accent.green, fontWeight: '600' }}>
-                                                            {asset.winning_trades}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div style={{ color: darkTheme.text.tertiary }}>Losers</div>
-                                                        <div style={{ color: darkTheme.accent.red, fontWeight: '600' }}>
-                                                            {asset.losing_trades}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div style={{ color: darkTheme.text.tertiary }}>Win Rate</div>
-                                                        <div style={{ color: darkTheme.accent.cyan, fontWeight: '600' }}>
-                                                            {asset.win_rate}%
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
