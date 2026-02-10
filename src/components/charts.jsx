@@ -441,7 +441,7 @@ export default function Charts() {
     useEffect(() => {
         const fetchAllAssets = async () => {
             try {
-                const response = await fetch(`${BACKEND_API_URL}/api/get-predefined-asset-lists/`);
+                const response = await fetch(`${BACKEND_API_URL}/api/mss/asset-lists/`);
                 const result = await response.json();
                 if (result.success) {
                     setAllAssets(result.asset_lists);
