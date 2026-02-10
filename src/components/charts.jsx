@@ -348,7 +348,8 @@ export default function Charts() {
     const [selectedAssetInfo, setSelectedAssetInfo] = useState(null);
     const [chartType, setChartType] = useState('candlestick');
     const [timeframe, setTimeframe] = useState('1H');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [tvLoaded, setTvLoaded] = useState(false);
     const [currentPrice, setCurrentPrice] = useState(0);
     const [priceChange, setPriceChange] = useState(0);
@@ -503,8 +504,10 @@ export default function Charts() {
     }, []);
 
     // Fetch market data
-    const fetchMarketData = async () => {
-        setIsLoading(true);
+    const fetchMarketData = async (isInitial = false) => {
+        if (isInitial) {
+            setIsLoading(true);
+        }
         const assetInfo = getCurrentAssetInfo();
         
         try {
@@ -550,16 +553,19 @@ export default function Charts() {
             console.error('Error fetching market data:', error);
             setError(`Failed to fetch data: ${error.message}`);
         } finally {
-            setIsLoading(false);
+            if (isInitial) {
+                setIsLoading(false);
+                setIsInitialLoad(false);
+            }
         }
     };
 
     useEffect(() => {
         if (tvLoaded && tradingMode === 'LIVE' && !backtestMode) {
-            fetchMarketData();
+            fetchMarketData(true); // Initial load with loading spinner
             
             const interval = setInterval(() => {
-                fetchMarketData();
+                fetchMarketData(false); // Subsequent updates without loading spinner
             }, timeframes[timeframe].updateInterval);
             
             return () => clearInterval(interval);
@@ -568,7 +574,7 @@ export default function Charts() {
 
     // Initialize chart ONCE
     useEffect(() => {
-        if (!tvLoaded || !chartContainerRef.current) return;
+        if (!tvLoaded || !chartContainerRef.current || marketData.length === 0) return;
 
         try {
             // Clean up existing chart
@@ -613,6 +619,9 @@ export default function Charts() {
                 });
                 candlestickSeriesRef.current = candleSeries;
                 lineSeriesRef.current = null;
+                
+                // Set initial data
+                candleSeries.setData(marketData);
             } else {
                 const lineSeries = chart.addLineSeries({
                     color: theme.blue[500],
@@ -620,18 +629,25 @@ export default function Charts() {
                 });
                 lineSeriesRef.current = lineSeries;
                 candlestickSeriesRef.current = null;
+                
+                // Set initial data
+                lineSeries.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
 
+            chart.timeScale().fitContent();
             chartRef.current = chart;
 
         } catch (error) {
             console.error('Error initializing chart:', error);
         }
-    }, [tvLoaded, chartType]);
+    }, [tvLoaded, chartType, marketData.length > 0]);
 
-    // Update chart data WITHOUT recreating chart
+    // Update chart data WITHOUT recreating chart (only when data changes, not on every render)
     useEffect(() => {
         if (!chartRef.current || marketData.length === 0) return;
+        
+        // Only update if we already have a series reference (chart is initialized)
+        if (!candlestickSeriesRef.current && !lineSeriesRef.current) return;
 
         try {
             if (chartType === 'candlestick' && candlestickSeriesRef.current) {
@@ -641,7 +657,7 @@ export default function Charts() {
             }
 
             // Add trade markers
-            if (tradeHistory.length > 0 && (candlestickSeriesRef.current || lineSeriesRef.current)) {
+            if (tradeHistory.length > 0) {
                 const markers = [];
                 tradeHistory.forEach(trade => {
                     const entryTime = Math.floor(new Date(trade.entry_timestamp).getTime() / 1000);
@@ -675,7 +691,7 @@ export default function Charts() {
         } catch (error) {
             console.error('Error updating chart data:', error);
         }
-    }, [marketData, tradeHistory, chartType]);
+    }, [marketData, tradeHistory]);
 
     // Execute trade
     const executeTrade = async () => {
@@ -1023,7 +1039,7 @@ export default function Charts() {
                         </div>
                     </div>
                     
-                    {isLoading && (
+                    {isLoading && isInitialLoad && (
                         <div style={{ textAlign: 'center', padding: '40px' }}>
                             <div style={styles.loadingSpinner}></div>
                             <p style={{ color: theme.text.secondary, marginTop: '20px' }}>
@@ -1032,7 +1048,7 @@ export default function Charts() {
                         </div>
                     )}
                     
-                    {!isLoading && marketData.length > 0 && (
+                    {!isInitialLoad && marketData.length > 0 && (
                         <>
                             <div style={styles.priceDisplay}>
                                 <div>
