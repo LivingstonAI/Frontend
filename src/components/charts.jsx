@@ -413,7 +413,7 @@ const styles = {
   }
 };
 
-export default function TradingTerminal() {
+export default function Charts() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
     const chartContainerRef = useRef(null);
