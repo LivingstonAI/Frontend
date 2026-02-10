@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-// Blue and white theme
-const theme = {
+// Light theme (default)
+const lightTheme = {
   bg: {
     primary: '#ffffff',
     secondary: '#f8fafc',
@@ -44,7 +44,49 @@ const theme = {
   }
 };
 
-const styles = {
+// Dark theme
+const darkTheme = {
+  bg: {
+    primary: '#0a0e1a',
+    secondary: '#121827',
+    tertiary: '#1a2234',
+    elevated: '#1e2740',
+    modal: '#0f1421'
+  },
+  blue: {
+    50: '#e6f1ff',
+    100: '#b3d9ff',
+    200: '#80c1ff',
+    300: '#4da9ff',
+    400: '#1a91ff',
+    500: '#0077e6',
+    600: '#005db3',
+    700: '#004380',
+    800: '#00294d',
+    900: '#000f1a'
+  },
+  accent: {
+    cyan: '#00d4ff',
+    purple: '#a78bfa',
+    green: '#10b981',
+    red: '#ef4444',
+    orange: '#f59e0b',
+    pink: '#ec4899'
+  },
+  text: {
+    primary: '#e5e7eb',
+    secondary: '#9ca3af',
+    tertiary: '#6b7280',
+    muted: '#4b5563'
+  },
+  border: {
+    light: '#1f2937',
+    medium: '#374151',
+    heavy: '#4b5563'
+  }
+};
+
+const getStyles = (theme) => ({
   pageContainer: {
     minHeight: '100vh',
     background: `linear-gradient(135deg, ${theme.bg.secondary} 0%, ${theme.blue[50]} 100%)`,
@@ -57,35 +99,54 @@ const styles = {
     padding: '0 20px'
   },
   header: {
-    background: `linear-gradient(135deg, ${theme.blue[600]} 0%, ${theme.blue[700]} 100%)`,
-    color: 'white',
-    padding: '25px',
-    borderRadius: '20px',
-    marginBottom: '30px',
+    background: theme.bg.elevated,
+    color: theme.text.primary,
+    padding: '20px 25px',
+    borderRadius: '12px',
+    marginBottom: '20px',
     textAlign: 'center',
-    fontSize: '2.2rem',
-    fontWeight: '800',
-    boxShadow: '0 10px 40px rgba(37, 99, 235, 0.3)',
-    border: `2px solid ${theme.blue[500]}`
+    fontSize: '1.8rem',
+    fontWeight: '700',
+    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+    border: `1px solid ${theme.border.light}`,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '15px'
+  },
+  themeToggle: {
+    padding: '10px 20px',
+    background: theme.bg.tertiary,
+    border: `2px solid ${theme.border.medium}`,
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    color: theme.text.primary,
+    transition: 'all 0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
   },
   tradingModeSelector: {
     display: 'flex',
     gap: '15px',
-    marginBottom: '25px',
+    marginBottom: '20px',
     flexWrap: 'wrap',
     alignItems: 'center',
     background: theme.bg.elevated,
-    padding: '20px',
-    borderRadius: '15px',
+    padding: '15px',
+    borderRadius: '12px',
     border: `1px solid ${theme.border.light}`,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
   },
   modeButton: {
-    padding: '14px 28px',
+    padding: '12px 24px',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '10px',
     cursor: 'pointer',
-    fontSize: '1rem',
+    fontSize: '0.95rem',
     fontWeight: '700',
     transition: 'all 0.3s ease',
     textTransform: 'uppercase',
@@ -95,7 +156,7 @@ const styles = {
     background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
     color: 'white',
     transform: 'translateY(-2px)',
-    boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)'
+    boxShadow: '0 6px 16px rgba(59, 130, 246, 0.4)'
   },
   modeButtonInactive: {
     background: theme.bg.tertiary,
@@ -104,17 +165,17 @@ const styles = {
   },
   controlPanel: {
     background: theme.bg.elevated,
-    padding: '25px',
-    borderRadius: '15px',
-    marginBottom: '25px',
+    padding: '20px',
+    borderRadius: '12px',
+    marginBottom: '20px',
     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
     border: `1px solid ${theme.border.light}`
   },
   sectionTitle: {
-    fontSize: '1.3rem',
+    fontSize: '1.1rem',
     fontWeight: '700',
     color: theme.blue[700],
-    marginBottom: '15px',
+    marginBottom: '12px',
     textTransform: 'uppercase',
     letterSpacing: '1px',
     display: 'flex',
@@ -131,24 +192,34 @@ const styles = {
     position: 'relative'
   },
   chartTitle: {
-    fontSize: '1.6rem',
+    fontSize: '1.4rem',
     fontWeight: '700',
     color: theme.text.primary,
-    marginBottom: '20px',
+    marginBottom: '15px',
     textAlign: 'center'
+  },
+  chartControls: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '15px',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   priceDisplay: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     background: theme.bg.tertiary,
-    padding: '20px',
-    borderRadius: '12px',
-    marginBottom: '20px',
-    border: `1px solid ${theme.border.light}`
+    padding: '15px 20px',
+    borderRadius: '10px',
+    marginBottom: '15px',
+    border: `1px solid ${theme.border.light}`,
+    flexWrap: 'wrap',
+    gap: '15px'
   },
   currentPrice: {
-    fontSize: '2rem',
+    fontSize: '1.8rem',
     fontWeight: '800',
     color: theme.blue[600]
   },
@@ -181,7 +252,8 @@ const styles = {
     position: 'absolute',
     top: '80px',
     right: '25px',
-    width: '400px',
+    width: '350px',
+    maxWidth: 'calc(100% - 50px)',
     background: theme.bg.elevated,
     borderRadius: '15px',
     padding: '20px',
@@ -190,12 +262,12 @@ const styles = {
     zIndex: 10
   },
   formGroup: {
-    marginBottom: '15px'
+    marginBottom: '12px'
   },
   label: {
     display: 'block',
     marginBottom: '6px',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     fontWeight: '600',
     color: theme.text.secondary,
     textTransform: 'uppercase',
@@ -232,7 +304,7 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: '10px',
-    fontSize: '1rem',
+    fontSize: '0.95rem',
     fontWeight: '700',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
@@ -246,7 +318,7 @@ const styles = {
     color: theme.text.primary,
     border: `2px solid ${theme.border.medium}`,
     borderRadius: '8px',
-    fontSize: '0.95rem',
+    fontSize: '0.9rem',
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.3s ease'
@@ -332,8 +404,7 @@ const styles = {
     animation: 'spin 1s linear infinite',
     margin: '20px auto'
   }
-};
-
+});
 export default function Charts() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
@@ -342,6 +413,12 @@ export default function Charts() {
     const candlestickSeriesRef = useRef(null);
     const lineSeriesRef = useRef(null);
     const backtestIntervalRef = useRef(null);
+    const lastScrollPositionRef = useRef(null);
+    
+    // Theme state
+    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const theme = isDarkTheme ? darkTheme : lightTheme;
+    const styles = getStyles(theme);
     
     const [tradingMode, setTradingMode] = useState('LIVE');
     const [selectedAsset, setSelectedAsset] = useState('BTCUSD');
@@ -389,6 +466,8 @@ export default function Charts() {
     const [backtestTrades, setBacktestTrades] = useState([]);
     const [backtestPaused, setBacktestPaused] = useState(false);
     const [backtestData, setBacktestData] = useState([]);
+    const [showSaveBacktestModal, setShowSaveBacktestModal] = useState(false);
+    const [backtestTradeHistory, setBacktestTradeHistory] = useState([]);
 
     const timeframes = {
         '1M': { label: '1 Minute', interval: '1m', binanceInterval: '1m', yfinancePeriod: '1d', updateInterval: 10000 },
@@ -577,8 +656,13 @@ export default function Charts() {
         if (!tvLoaded || !chartContainerRef.current || marketData.length === 0) return;
 
         try {
-            // Clean up existing chart
+            // Save current scroll position before recreating chart
             if (chartRef.current) {
+                const timeScale = chartRef.current.timeScale();
+                const visibleRange = timeScale.getVisibleLogicalRange();
+                if (visibleRange) {
+                    lastScrollPositionRef.current = visibleRange;
+                }
                 chartRef.current.remove();
             }
             chartContainerRef.current.innerHTML = '';
@@ -634,13 +718,21 @@ export default function Charts() {
                 lineSeries.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
 
-            chart.timeScale().fitContent();
+            // Restore scroll position if it exists
+            if (lastScrollPositionRef.current) {
+                setTimeout(() => {
+                    chart.timeScale().setVisibleLogicalRange(lastScrollPositionRef.current);
+                }, 100);
+            } else {
+                chart.timeScale().fitContent();
+            }
+            
             chartRef.current = chart;
 
         } catch (error) {
             console.error('Error initializing chart:', error);
         }
-    }, [tvLoaded, chartType, marketData.length > 0]);
+    }, [tvLoaded, chartType, marketData.length > 0, isDarkTheme]);
 
     // Update chart data WITHOUT recreating chart (only when data changes, not on every render)
     useEffect(() => {
@@ -650,14 +742,21 @@ export default function Charts() {
         if (!candlestickSeriesRef.current && !lineSeriesRef.current) return;
 
         try {
+            // Save current scroll position
+            const timeScale = chartRef.current.timeScale();
+            const visibleRange = timeScale.getVisibleLogicalRange();
+            if (visibleRange) {
+                lastScrollPositionRef.current = visibleRange;
+            }
+
             if (chartType === 'candlestick' && candlestickSeriesRef.current) {
                 candlestickSeriesRef.current.setData(marketData);
             } else if (chartType === 'line' && lineSeriesRef.current) {
                 lineSeriesRef.current.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
 
-            // Add trade markers
-            if (tradeHistory.length > 0) {
+            // Add trade markers (only for live trades, not backtest)
+            if (tradeHistory.length > 0 && !backtestMode) {
                 const markers = [];
                 tradeHistory.forEach(trade => {
                     const entryTime = Math.floor(new Date(trade.entry_timestamp).getTime() / 1000);
@@ -686,12 +785,17 @@ export default function Charts() {
                 series.setMarkers(markers);
             }
 
-            chartRef.current.timeScale().fitContent();
+            // Restore scroll position
+            if (lastScrollPositionRef.current) {
+                setTimeout(() => {
+                    timeScale.setVisibleLogicalRange(lastScrollPositionRef.current);
+                }, 10);
+            }
 
         } catch (error) {
             console.error('Error updating chart data:', error);
         }
-    }, [marketData, tradeHistory]);
+    }, [marketData, tradeHistory, backtestMode]);
 
     // Execute trade
     const executeTrade = async () => {
@@ -700,6 +804,35 @@ export default function Charts() {
             return;
         }
 
+        // If in backtest mode, handle locally without API call
+        if (backtestMode) {
+            const tradeId = `BACKTEST_${Date.now()}`;
+            const newTrade = {
+                trade_id: tradeId,
+                asset_symbol: selectedAssetInfo.symbol,
+                asset_name: selectedAssetInfo.name,
+                asset_class: selectedAssetInfo.assetClass,
+                order_type: orderType,
+                entry_price: currentPrice,
+                quantity: quantity,
+                stop_loss: stopLoss || null,
+                take_profit: takeProfit || null,
+                status: 'OPEN',
+                entry_timestamp: new Date().toISOString(),
+                notes: tradeNotes,
+                is_backtest: true
+            };
+            
+            setBacktestTradeHistory([...backtestTradeHistory, newTrade]);
+            alert(`${orderType} order placed in backtest!`);
+            setStopLoss('');
+            setTakeProfit('');
+            setTradeNotes('');
+            setShowTradePanel(false);
+            return;
+        }
+
+        // Live trading - use API
         try {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const assetInfo = getCurrentAssetInfo();
@@ -776,6 +909,40 @@ export default function Charts() {
 
     // Close trade
     const closeTrade = async (tradeId) => {
+        // Check if it's a backtest trade
+        if (tradeId.startsWith('BACKTEST_')) {
+            const updatedTrades = backtestTradeHistory.map(trade => {
+                if (trade.trade_id === tradeId && trade.status === 'OPEN') {
+                    const exitPrice = currentPrice;
+                    let profitLoss, profitLossPct;
+                    
+                    if (trade.order_type === 'BUY') {
+                        profitLoss = (exitPrice - trade.entry_price) * trade.quantity;
+                        profitLossPct = ((exitPrice - trade.entry_price) / trade.entry_price) * 100;
+                    } else {
+                        profitLoss = (trade.entry_price - exitPrice) * trade.quantity;
+                        profitLossPct = ((trade.entry_price - exitPrice) / trade.entry_price) * 100;
+                    }
+                    
+                    return {
+                        ...trade,
+                        status: 'CLOSED',
+                        exit_price: exitPrice,
+                        exit_timestamp: new Date().toISOString(),
+                        exit_reason: 'MANUAL',
+                        profit_loss: profitLoss,
+                        profit_loss_percentage: profitLossPct
+                    };
+                }
+                return trade;
+            });
+            
+            setBacktestTradeHistory(updatedTrades);
+            alert('Backtest trade closed!');
+            return;
+        }
+        
+        // Live trade - use API
         try {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             
@@ -887,9 +1054,19 @@ export default function Charts() {
 
     // Stop backtest
     const stopBacktest = () => {
+        if (backtestTradeHistory.length > 0) {
+            setShowSaveBacktestModal(true);
+        } else {
+            finalizeBacktestStop();
+        }
+    };
+    
+    const finalizeBacktestStop = () => {
         setBacktestMode(false);
         setBacktestPaused(false);
         setBacktestCurrentIndex(0);
+        setBacktestTradeHistory([]);
+        setShowSaveBacktestModal(false);
         
         // Restore full market data
         if (candlestickSeriesRef.current) {
@@ -900,6 +1077,58 @@ export default function Charts() {
         
         if (marketData.length > 0) {
             setCurrentPrice(marketData[marketData.length - 1].close);
+        }
+    };
+    
+    const saveBacktestResults = async () => {
+        // Save backtest trades to live database
+        try {
+            for (const trade of backtestTradeHistory) {
+                if (trade.status === 'CLOSED') {
+                    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    
+                    // First create the trade
+                    const createResponse = await fetch(`${BACKEND_API_URL}/api/snowai-execute-trade-order-placement/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            asset_symbol: trade.asset_symbol,
+                            asset_name: trade.asset_name,
+                            asset_class: trade.asset_class,
+                            order_type: trade.order_type,
+                            entry_price: trade.entry_price,
+                            quantity: trade.quantity,
+                            stop_loss: trade.stop_loss,
+                            take_profit: trade.take_profit,
+                            timezone: timezone,
+                            notes: `${trade.notes || ''} [BACKTEST]`,
+                            is_paper_trade: true
+                        })
+                    });
+                    
+                    const createResult = await createResponse.json();
+                    
+                    // Then close it with the exit data
+                    if (createResult.success && trade.exit_price) {
+                        await fetch(`${BACKEND_API_URL}/api/snowai-close-trade-order-execution/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                trade_id: createResult.trade_id,
+                                exit_price: trade.exit_price,
+                                exit_reason: trade.exit_reason || 'MANUAL',
+                                timezone: timezone
+                            })
+                        });
+                    }
+                }
+            }
+            
+            alert('Backtest results saved successfully!');
+            finalizeBacktestStop();
+        } catch (error) {
+            console.error('Error saving backtest results:', error);
+            alert('Error saving backtest results');
         }
     };
 
@@ -937,6 +1166,27 @@ export default function Charts() {
                         transform: translateY(-2px);
                         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
                     }
+                    
+                    @media (max-width: 768px) {
+                        .main-page-body {
+                            flex-direction: column;
+                        }
+                        
+                        div[style*="gridTemplateColumns"] {
+                            grid-template-columns: 1fr !important;
+                        }
+                    }
+                    
+                    @media (max-width: 480px) {
+                        .chart-container {
+                            padding: 15px !important;
+                        }
+                        
+                        .trade-modal-overlay {
+                            width: 90% !important;
+                            right: 5% !important;
+                        }
+                    }
                 `}
             </style>
             
@@ -949,7 +1199,15 @@ export default function Charts() {
                 
                 <div style={styles.mainContainer}>
                     <div style={styles.header}>
-                        ⚡ SnowAI Professional Trading Terminal
+                        <div style={{ fontSize: '1.8rem', fontWeight: '700' }}>
+                            ⚡ SnowAI Professional Trading Terminal
+                        </div>
+                        <button
+                            onClick={() => setIsDarkTheme(!isDarkTheme)}
+                            style={styles.themeToggle}
+                        >
+                            {isDarkTheme ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                        </button>
                     </div>
                     
                     <div style={styles.tradingModeSelector}>
@@ -1076,7 +1334,7 @@ export default function Charts() {
                                     📈 {selectedAssetInfo?.name} ({selectedAsset})
                                 </div>
                                 
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', justifyContent: 'center' }}>
+                                <div style={styles.chartControls}>
                                     <button
                                         onClick={() => setChartType('candlestick')}
                                         style={{
@@ -1107,12 +1365,60 @@ export default function Charts() {
                                             background: `linear-gradient(135deg, ${theme.accent.green} 0%, #059669 100%)`,
                                             color: 'white',
                                             width: 'auto',
-                                            padding: '10px 20px',
-                                            marginLeft: 'auto'
+                                            padding: '10px 20px'
                                         }}
                                     >
                                         💼 {showTradePanel ? 'Hide' : 'Show'} Trade Panel
                                     </button>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setShowTradeHistory(true);
+                                            if (!backtestMode) {
+                                                fetchTradeHistory();
+                                            }
+                                        }}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '10px 20px'
+                                        }}
+                                    >
+                                        📊 Trade History
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setShowOverallPerformance(true);
+                                            fetchOverallPerformance();
+                                        }}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`,
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '10px 20px'
+                                        }}
+                                    >
+                                        🏆 Performance
+                                    </button>
+                                    
+                                    {tradingMode === 'BACKTEST' && !backtestMode && (
+                                        <button
+                                            onClick={startBacktest}
+                                            style={{
+                                                ...styles.buttonSecondary,
+                                                background: `linear-gradient(135deg, ${theme.accent.cyan} 0%, #0891b2 100%)`,
+                                                color: 'white',
+                                                border: 'none',
+                                                padding: '10px 20px'
+                                            }}
+                                        >
+                                            ⚡ Start Backtest
+                                        </button>
+                                    )}
                                 </div>
                                 
                                 <div 
@@ -1253,55 +1559,6 @@ export default function Charts() {
                                     </div>
                                 )}
                             </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px' }}>
-                                <button
-                                    onClick={() => {
-                                        setShowTradeHistory(true);
-                                        fetchTradeHistory();
-                                    }}
-                                    style={{
-                                        ...styles.buttonSecondary,
-                                        background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '14px'
-                                    }}
-                                >
-                                    📊 View Trade History
-                                </button>
-                                
-                                <button
-                                    onClick={() => {
-                                        setShowOverallPerformance(true);
-                                        fetchOverallPerformance();
-                                    }}
-                                    style={{
-                                        ...styles.buttonSecondary,
-                                        background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`,
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '14px'
-                                    }}
-                                >
-                                    🏆 Overall Performance
-                                </button>
-                                
-                                {tradingMode === 'BACKTEST' && !backtestMode && (
-                                    <button
-                                        onClick={startBacktest}
-                                        style={{
-                                            ...styles.buttonSecondary,
-                                            background: `linear-gradient(135deg, ${theme.accent.cyan} 0%, #0891b2 100%)`,
-                                            color: 'white',
-                                            border: 'none',
-                                            padding: '14px'
-                                        }}
-                                    >
-                                        ⚡ Start Backtest
-                                    </button>
-                                )}
-                            </div>
                         </>
                     )}
                     
@@ -1379,7 +1636,7 @@ export default function Charts() {
                             <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                                     <h2 style={{ color: theme.blue[700], margin: 0 }}>
-                                        📊 Trade History - {selectedAssetInfo?.name}
+                                        📊 {backtestMode ? 'Backtest' : 'Live'} Trade History - {selectedAssetInfo?.name}
                                     </h2>
                                     <button
                                         onClick={() => setShowTradeHistory(false)}
@@ -1395,7 +1652,7 @@ export default function Charts() {
                                     </button>
                                 </div>
                                 
-                                {tradeStats && (
+                                {!backtestMode && tradeStats && (
                                     <div style={{ 
                                         display: 'grid', 
                                         gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
@@ -1439,7 +1696,7 @@ export default function Charts() {
                                 )}
                                 
                                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                                    {tradeHistory.map(trade => (
+                                    {(backtestMode ? backtestTradeHistory : tradeHistory).map(trade => (
                                         <div 
                                             key={trade.trade_id}
                                             style={{
@@ -1681,6 +1938,41 @@ export default function Charts() {
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Save Backtest Modal */}
+                    {showSaveBacktestModal && (
+                        <div style={styles.modal} onClick={() => setShowSaveBacktestModal(false)}>
+                            <div style={{...styles.modalContent, maxWidth: '500px'}} onClick={(e) => e.stopPropagation()}>
+                                <h2 style={{ color: theme.blue[700], marginTop: 0 }}>
+                                    💾 Save Backtest Results?
+                                </h2>
+                                <p style={{ color: theme.text.secondary, marginBottom: '25px' }}>
+                                    You have {backtestTradeHistory.filter(t => t.status === 'CLOSED').length} closed trades from this backtest session. 
+                                    Would you like to save them to your trading history?
+                                </p>
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <button
+                                        onClick={saveBacktestResults}
+                                        style={{
+                                            ...styles.buttonPrimary,
+                                            background: `linear-gradient(135deg, ${theme.accent.green} 0%, #059669 100%)`
+                                        }}
+                                    >
+                                        ✅ Yes, Save Results
+                                    </button>
+                                    <button
+                                        onClick={finalizeBacktestStop}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            flex: 1
+                                        }}
+                                    >
+                                        ❌ No, Discard
+                                    </button>
                                 </div>
                             </div>
                         </div>
