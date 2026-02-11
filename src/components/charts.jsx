@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./AIModelBuilder";
+import AIModelBuilder from "./ai_model_builder.jsx";
 
 // Light theme (default)
 const lightTheme = {
