@@ -734,8 +734,8 @@ export default function Charts() {
                 lineSeries.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
 
-            // Restore scroll position if it exists
-            if (lastScrollPositionRef.current) {
+            // Restore scroll position if it exists (but NOT during backtest)
+            if (lastScrollPositionRef.current && !backtestMode) {
                 setTimeout(() => {
                     chart.timeScale().setVisibleLogicalRange(lastScrollPositionRef.current);
                 }, 100);
@@ -1552,10 +1552,11 @@ export default function Charts() {
                                     ref={chartContainerRef}
                                     style={{ 
                                         width: '100%',
-                                        height: '600px',
+                                        height: '500px',
                                         borderRadius: '10px',
                                         overflow: 'hidden',
-                                        position: 'relative'
+                                        position: 'relative',
+                                        display: 'block'
                                     }}
                                 />
                                 
@@ -1789,34 +1790,34 @@ export default function Charts() {
                                     }}>
                                         <div style={styles.statCard}>
                                             <div style={{ ...styles.statValue, color: theme.blue[600] }}>
-                                                {tradeStats.closed_trades}
+                                                {tradeStats.closed_trades || 0}
                                             </div>
                                             <div style={styles.statLabel}>Closed Trades</div>
                                         </div>
                                         <div style={styles.statCard}>
                                             <div style={{ ...styles.statValue, color: theme.accent.green }}>
-                                                {tradeStats.winning_trades}
+                                                {tradeStats.winning_trades || 0}
                                             </div>
                                             <div style={styles.statLabel}>Winners</div>
                                         </div>
                                         <div style={styles.statCard}>
                                             <div style={{ ...styles.statValue, color: theme.accent.red }}>
-                                                {tradeStats.losing_trades}
+                                                {tradeStats.losing_trades || 0}
                                             </div>
                                             <div style={styles.statLabel}>Losers</div>
                                         </div>
                                         <div style={styles.statCard}>
                                             <div style={{ ...styles.statValue, color: theme.accent.cyan }}>
-                                                {tradeStats.win_rate}%
+                                                {tradeStats.win_rate || 0}%
                                             </div>
                                             <div style={styles.statLabel}>Win Rate</div>
                                         </div>
                                         <div style={styles.statCard}>
                                             <div style={{ 
                                                 ...styles.statValue, 
-                                                color: tradeStats.net_profit >= 0 ? theme.accent.green : theme.accent.red 
+                                                color: (tradeStats.net_profit || 0) >= 0 ? theme.accent.green : theme.accent.red 
                                             }}>
-                                                ${tradeStats.net_profit.toFixed(2)}
+                                                ${(tradeStats.net_profit || 0).toFixed(2)}
                                             </div>
                                             <div style={styles.statLabel}>Net P&L</div>
                                         </div>
@@ -1861,20 +1862,20 @@ export default function Charts() {
                                                 <div>
                                                     <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Entry Price</div>
                                                     <div style={{ color: theme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
-                                                        ${trade.entry_price}
+                                                        ${trade.entry_price ? trade.entry_price.toFixed(2) : 'N/A'}
                                                     </div>
                                                 </div>
                                                 {trade.exit_price && (
                                                     <div>
                                                         <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Exit Price</div>
                                                         <div style={{ color: theme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
-                                                            ${trade.exit_price}
+                                                            ${trade.exit_price.toFixed(2)}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
                                             
-                                            {trade.profit_loss !== null && (
+                                            {trade.profit_loss !== null && trade.profit_loss !== undefined && (
                                                 <div style={{
                                                     padding: '10px',
                                                     background: trade.profit_loss >= 0 ? `${theme.accent.green}20` : `${theme.accent.red}20`,
