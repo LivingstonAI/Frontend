@@ -5,6 +5,332 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 
 // ============================================================
+// CSS — Trade Execution Modal
+// ============================================================
+
+const tradeExecutionStyles = `
+/* Trade Execution Button */
+.trade-exec-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.trade-exec-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(59,130,246,0.4);
+}
+.trade-exec-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Modal Backdrop */
+.trade-exec-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Modal Container */
+.trade-exec-modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal Header */
+.trade-exec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 2px solid #e5e7eb;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+.trade-exec-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e3a8a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.trade-exec-symbol {
+    color: #3b82f6;
+}
+.trade-exec-close {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.trade-exec-close:hover {
+    color: #ef4444;
+}
+
+/* Modal Body */
+.trade-exec-body {
+    padding: 24px;
+    background: white;
+}
+
+/* Form Group */
+.trade-form-group {
+    margin-bottom: 20px;
+}
+.trade-form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.trade-form-label.required::after {
+    content: ' *';
+    color: #ef4444;
+}
+.trade-form-input,
+.trade-form-select,
+.trade-form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    color: #1e293b;
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.trade-form-input:focus,
+.trade-form-select:focus,
+.trade-form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: white;
+}
+.trade-form-input::placeholder {
+    color: #94a3b8;
+}
+.trade-form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+.trade-form-helper {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* Order Type Toggle */
+.order-type-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.order-type-btn {
+    padding: 12px 20px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.order-type-btn:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+.order-type-btn.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: #10b981;
+    color: white;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+}
+.order-type-btn.active.sell {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: #ef4444;
+    box-shadow: 0 2px 8px rgba(239,68,68,0.3);
+}
+
+/* Error Display */
+.trade-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #991b1b;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.trade-error-icon {
+    color: #ef4444;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Success Display */
+.trade-success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #166534;
+    font-size: 13px;
+}
+
+/* Modal Footer */
+.trade-exec-footer {
+    padding: 20px 24px;
+    border-top: 2px solid #e5e7eb;
+    background: #f8fafc;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+.trade-cancel-btn {
+    padding: 12px 24px;
+    background: white;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.trade-cancel-btn:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+.trade-submit-btn {
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+}
+.trade-submit-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+}
+.trade-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Two Column Grid for SL/TP */
+.trade-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* Paper Trade Toggle */
+.paper-trade-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.paper-trade-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+.paper-trade-label {
+    font-size: 13px;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .trade-exec-modal {
+        max-width: 100%;
+        border-radius: 12px 12px 0 0;
+        max-height: 95vh;
+    }
+    .trade-exec-header {
+        padding: 16px 20px;
+    }
+    .trade-exec-title {
+        font-size: 16px;
+    }
+    .trade-exec-body {
+        padding: 20px;
+    }
+    .trade-exec-footer {
+        padding: 16px 20px;
+        flex-direction: column-reverse;
+    }
+    .trade-cancel-btn,
+    .trade-submit-btn {
+        width: 100%;
+    }
+    .trade-form-row {
+        grid-template-columns: 1fr;
+    }
+}
+`;
+
+// ============================================================
 // CSS — Asset of Interest + Stock Popularity
 // ============================================================
 
@@ -4242,6 +4568,263 @@ export default function MarketStabilityScore() {
     // STATE ADDITIONS
     // ============================================================
 
+    const [showTradeModal, setShowTradeModal] = useState(false);
+    const [tradeModalAsset, setTradeModalAsset] = useState(null);
+    const [tradeFormData, setTradeFormData] = useState({
+        order_type: 'BUY',
+        entry_price: '',
+        quantity: '1.0',
+        stop_loss: '',
+        take_profit: '',
+        notes: '',
+        is_paper_trade: true
+    });
+    const [tradeError, setTradeError] = useState(null);
+    const [tradeSuccess, setTradeSuccess] = useState(null);
+    const [submittingTrade, setSubmittingTrade] = useState(false);
+
+
+    // ============================================================
+    // FUNCTIONS
+    // ============================================================
+
+    const openTradeModal = (asset) => {
+        setTradeModalAsset(asset);
+        setTradeFormData({
+            order_type: 'BUY',
+            entry_price: asset.current_price || '',  // Pre-fill with current price if available
+            quantity: '1.0',
+            stop_loss: '',
+            take_profit: '',
+            notes: '',
+            is_paper_trade: true
+        });
+        setTradeError(null);
+        setTradeSuccess(null);
+        setShowTradeModal(true);
+    };
+
+    const closeTradeModal = () => {
+        setShowTradeModal(false);
+        setTradeModalAsset(null);
+        setTradeError(null);
+        setTradeSuccess(null);
+    };
+
+    const handleTradeFormChange = (field, value) => {
+        setTradeFormData(prev => ({ ...prev, [field]: value }));
+        setTradeError(null);  // Clear error on input change
+    };
+
+    const submitTradeOrder = async () => {
+        setSubmittingTrade(true);
+        setTradeError(null);
+        setTradeSuccess(null);
+        
+        try {
+            const res = await fetch(`${baseUrl}/api/mss-execute-trade-order/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    asset_symbol: tradeModalAsset.symbol,
+                    asset_name: tradeModalAsset.name || tradeModalAsset.symbol,
+                    asset_class: tradeModalAsset.asset_class || 'Stocks',
+                    order_type: tradeFormData.order_type,
+                    entry_price: tradeFormData.entry_price,
+                    quantity: tradeFormData.quantity,
+                    stop_loss: tradeFormData.stop_loss || null,
+                    take_profit: tradeFormData.take_profit || null,
+                    notes: tradeFormData.notes,
+                    is_paper_trade: tradeFormData.is_paper_trade,
+                    entry_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                setTradeSuccess(data.message);
+                // Reset form after 2 seconds and close modal
+                setTimeout(() => {
+                    closeTradeModal();
+                }, 2000);
+            } else {
+                setTradeError(data.error);
+            }
+        } catch (e) {
+            console.error(e);
+            setTradeError('Failed to execute trade. Please try again.');
+        } finally {
+            setSubmittingTrade(false);
+        }
+    };
+
+
+    // ============================================================
+    // COMPONENT — TradeExecutionModal
+    // ============================================================
+
+    const TradeExecutionModal = ({ asset, formData, onChange, onSubmit, onClose, error, success, submitting }) => {
+        if (!asset) return null;
+        
+        return (
+            <div className="trade-exec-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+                <div className="trade-exec-modal">
+                    {/* Header */}
+                    <div className="trade-exec-header">
+                        <div className="trade-exec-title">
+                            <span>📊</span>
+                            Execute Trade
+                            <span className="trade-exec-symbol">{asset.symbol}</span>
+                        </div>
+                        <button className="trade-exec-close" onClick={onClose}>×</button>
+                    </div>
+
+                    {/* Body */}
+                    <div className="trade-exec-body">
+                        {/* Error Display */}
+                        {error && (
+                            <div className="trade-error">
+                                <span className="trade-error-icon">⚠️</span>
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {/* Success Display */}
+                        {success && (
+                            <div className="trade-success">
+                                ✅ {success}
+                            </div>
+                        )}
+
+                        {/* Order Type */}
+                        <div className="order-type-toggle">
+                            <button
+                                className={`order-type-btn ${formData.order_type === 'BUY' ? 'active' : ''}`}
+                                onClick={() => onChange('order_type', 'BUY')}
+                                disabled={submitting}
+                            >
+                                🟢 BUY
+                            </button>
+                            <button
+                                className={`order-type-btn ${formData.order_type === 'SELL' ? 'active sell' : ''}`}
+                                onClick={() => onChange('order_type', 'SELL')}
+                                disabled={submitting}
+                            >
+                                🔴 SELL
+                            </button>
+                        </div>
+
+                        {/* Entry Price */}
+                        <div className="trade-form-group">
+                            <label className="trade-form-label required">Entry Price</label>
+                            <input
+                                type="number"
+                                step="any"
+                                className="trade-form-input"
+                                value={formData.entry_price}
+                                onChange={(e) => onChange('entry_price', e.target.value)}
+                                placeholder="0.00"
+                                disabled={submitting}
+                            />
+                            <div className="trade-form-helper">Price at which the order will be executed</div>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="trade-form-group">
+                            <label className="trade-form-label">Quantity</label>
+                            <input
+                                type="number"
+                                step="any"
+                                className="trade-form-input"
+                                value={formData.quantity}
+                                onChange={(e) => onChange('quantity', e.target.value)}
+                                placeholder="1.0"
+                                disabled={submitting}
+                            />
+                            <div className="trade-form-helper">Number of units (shares, lots, contracts)</div>
+                        </div>
+
+                        {/* Stop Loss & Take Profit */}
+                        <div className="trade-form-row">
+                            <div className="trade-form-group">
+                                <label className="trade-form-label">Stop Loss</label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    className="trade-form-input"
+                                    value={formData.stop_loss}
+                                    onChange={(e) => onChange('stop_loss', e.target.value)}
+                                    placeholder="Optional"
+                                    disabled={submitting}
+                                />
+                                <div className="trade-form-helper">Exit if price reaches this level</div>
+                            </div>
+
+                            <div className="trade-form-group">
+                                <label className="trade-form-label">Take Profit</label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    className="trade-form-input"
+                                    value={formData.take_profit}
+                                    onChange={(e) => onChange('take_profit', e.target.value)}
+                                    placeholder="Optional"
+                                    disabled={submitting}
+                                />
+                                <div className="trade-form-helper">Exit if price reaches this level</div>
+                            </div>
+                        </div>
+
+                        {/* Notes */}
+                        <div className="trade-form-group">
+                            <label className="trade-form-label">Notes</label>
+                            <textarea
+                                className="trade-form-textarea"
+                                value={formData.notes}
+                                onChange={(e) => onChange('notes', e.target.value)}
+                                placeholder="Trade rationale, setup details, etc..."
+                                disabled={submitting}
+                            />
+                        </div>
+
+                        {/* Paper Trade Toggle */}
+                        <div className="paper-trade-toggle">
+                            <input
+                                type="checkbox"
+                                className="paper-trade-checkbox"
+                                checked={formData.is_paper_trade}
+                                onChange={(e) => onChange('is_paper_trade', e.target.checked)}
+                                disabled={submitting}
+                            />
+                            <label className="paper-trade-label">
+                                📝 Paper Trade (Simulated)
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="trade-exec-footer">
+                        <button className="trade-cancel-btn" onClick={onClose} disabled={submitting}>
+                            Cancel
+                        </button>
+                        <button
+                            className="trade-submit-btn"
+                            onClick={onSubmit}
+                            disabled={submitting || !formData.entry_price}
+                        >
+                            {submitting ? '⏳ Executing...' : `Execute ${formData.order_type}`}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ============================================================
+    // STATE ADDITIONS
+    // ============================================================
+
     const [assetsSaved, setAssetsSaved] = useState({});          // { symbol: bool }
     const [loadingSaveAsset, setLoadingSaveAsset] = useState({}); // { symbol: bool }
     const [showingSavedOnly, setShowingSavedOnly] = useState(false);
@@ -8222,7 +8805,7 @@ const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
 
 return (
     <div>
-        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}{institutionalRetailStyles}{sectorDeepDiveStyles}{assetInterestStyles}</style>
+        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}{institutionalRetailStyles}{sectorDeepDiveStyles}{assetInterestStyles}{tradeExecutionStyles}</style>
         <Header />
         <SideNavs />
         <div className="mss-wrapper">
@@ -9071,6 +9654,14 @@ return (
                                             disabled={loadingPopularity[asset.symbol]}
                                         >
                                             {loadingPopularity[asset.symbol] ? '⭐ Analyzing...' : '⭐ Popularity'}
+                                        </button>
+
+                                        <button
+                                            className="trade-exec-btn"
+                                            onClick={() => openTradeModal(asset)}
+                                        >
+                                            <span>📊</span>
+                                            Execute Trade
                                         </button>
 
 
@@ -10656,6 +11247,18 @@ return (
                     onClose={() => setShowSectorDiveModal(false)}
                 />
         )}
+        {showTradeModal && tradeModalAsset && (
+                <TradeExecutionModal
+                    asset={tradeModalAsset}
+                    formData={tradeFormData}
+                    onChange={handleTradeFormChange}
+                    onSubmit={submitTradeOrder}
+                    onClose={closeTradeModal}
+                    error={tradeError}
+                    success={tradeSuccess}
+                    submitting={submittingTrade}
+                />
+            )}
         </div>
     );
 }
