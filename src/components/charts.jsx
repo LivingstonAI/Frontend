@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./ai_model_builder.jsx";
+import AIModelBuilder from "./AIModelBuilder";
 
 // Light theme (default)
 const lightTheme = {
@@ -406,7 +406,7 @@ const getStyles = (theme) => ({
     margin: '20px auto'
   }
 });
-export default function TradingTerminal() {
+export default function Charts() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
     const chartContainerRef = useRef(null);
@@ -1064,6 +1064,8 @@ export default function TradingTerminal() {
             const currentAsset = selectedAssetInfo.symbol;
             const assetTrades = backtestTradeHistory[currentAsset] || [];
             
+            let newBalance = backtestBalance;
+            
             const updatedTrades = assetTrades.map(trade => {
                 if (trade.trade_id === tradeId && trade.status === 'OPEN') {
                     const exitPrice = currentPrice;
@@ -1077,16 +1079,8 @@ export default function TradingTerminal() {
                         profitLossPct = ((trade.entry_price - exitPrice) / trade.entry_price) * 100;
                     }
                     
-                    // Update balance
-                    const newBalance = backtestBalance + profitLoss;
-                    setBacktestBalance(newBalance);
-                    
-                    // Update equity curve
-                    setBacktestEquityCurve([...backtestEquityCurve, {
-                        timestamp: new Date().toISOString(),
-                        balance: newBalance,
-                        profitLoss: profitLoss
-                    }]);
+                    // Calculate new balance
+                    newBalance = backtestBalance + profitLoss;
                     
                     return {
                         ...trade,
@@ -1101,12 +1095,21 @@ export default function TradingTerminal() {
                 return trade;
             });
             
+            // Update all states together
             setBacktestTradeHistory({
                 ...backtestTradeHistory,
                 [currentAsset]: updatedTrades
             });
             
-            setSuccessMessage('✅ Backtest trade closed!');
+            setBacktestBalance(newBalance);
+            
+            setBacktestEquityCurve([...backtestEquityCurve, {
+                timestamp: new Date().toISOString(),
+                balance: newBalance,
+                profitLoss: newBalance - backtestBalance
+            }]);
+            
+            setSuccessMessage(`✅ Backtest trade closed! New balance: $${newBalance.toFixed(2)}`);
             setTimeout(() => setSuccessMessage(''), 3000);
             return;
         }

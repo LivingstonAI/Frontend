@@ -55,29 +55,42 @@ export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4',
+                    model: 'gpt-4o-mini',
                     messages: [
                         {
                             role: 'system',
-                            content: `You are an expert Python Django developer specializing in creating machine learning models for financial trading. Generate complete, production-ready Django model code based on the user's requirements. The code should:
-1. Use Django ORM models
-2. Include proper field types and validations
-3. Have clear docstrings
-4. Include Meta classes with proper ordering and indexes
-5. Have __str__ methods
-6. Include any helper methods needed
-7. Follow Django best practices
+                            content: `You are an expert Python Django developer specializing in creating backend functions for financial trading applications. Generate complete, production-ready Django view functions that will be placed in views.py.
 
-Return ONLY the Python code without any markdown formatting or explanations.`
+CRITICAL RULES:
+1. Return ONLY the raw Python code - NO markdown formatting, NO code blocks, NO backticks
+2. All code must be designed for views.py (not models.py)
+3. Include all necessary imports at the top
+4. Use @csrf_exempt decorator for API endpoints
+5. Return JsonResponse with proper error handling
+6. Include docstrings explaining the function
+7. Follow Django REST best practices
+8. NO explanatory text before or after the code
+9. Start directly with imports
+
+Example format:
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def my_function(request):
+    """Docstring here"""
+    # code here
+    return JsonResponse({...})`
                         },
                         {
                             role: 'user',
-                            content: `Create a Django model for: ${modelPrompt}
+                            content: `Create a Django view function for: ${modelPrompt}
 
-Model Name: ${modelName}
+Function Name: ${modelName}
 Description: ${modelDescription || 'No additional description provided'}
 
-Generate the complete model code.`
+Generate the complete view function code for views.py. Return ONLY the raw code with no markdown formatting.`
                         }
                     ],
                     temperature: 0.7,
@@ -90,16 +103,21 @@ Generate the complete model code.`
             }
 
             const data = await response.json();
-            const code = data.choices[0].message.content;
+            let code = data.choices[0].message.content;
+            
+            // Clean up any markdown formatting that might have slipped through
+            code = code.replace(/```python\n?/g, '');
+            code = code.replace(/```\n?/g, '');
+            code = code.trim();
             
             setGeneratedCode(code);
             setShowCodePreview(true);
-            setSuccess('✅ Model code generated successfully!');
+            setSuccess('✅ View function code generated successfully!');
             setTimeout(() => setSuccess(''), 3000);
 
         } catch (error) {
             console.error('Error generating model:', error);
-            setError(`❌ Failed to generate model: ${error.message}`);
+            setError(`❌ Failed to generate code: ${error.message}`);
             setTimeout(() => setError(''), 5000);
         } finally {
             setIsGenerating(false);
@@ -109,6 +127,20 @@ Generate the complete model code.`
     const copyToClipboard = () => {
         navigator.clipboard.writeText(generatedCode);
         setSuccess('✅ Code copied to clipboard!');
+        setTimeout(() => setSuccess(''), 2000);
+    };
+    
+    const downloadCode = () => {
+        const blob = new Blob([generatedCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${modelName || 'function'}.py`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setSuccess('✅ Code downloaded!');
         setTimeout(() => setSuccess(''), 2000);
     };
 
@@ -139,7 +171,7 @@ Generate the complete model code.`
                     alignItems: 'center',
                     gap: '10px'
                 }}>
-                    🤖 AI Model Builder
+                    🤖 AI Code Generator
                     <span style={{ 
                         fontSize: '0.7rem', 
                         background: theme.accent.purple,
@@ -152,7 +184,7 @@ Generate the complete model code.`
                     </span>
                 </h2>
                 <p style={{ color: theme.text.secondary, marginBottom: '30px' }}>
-                    Describe your trading model in plain English and let AI generate the Django code automatically.
+                    Describe your trading function in plain English and let AI generate the Django view code for views.py automatically.
                 </p>
 
                 {/* Success Message */}
@@ -186,12 +218,12 @@ Generate the complete model code.`
                 )}
 
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={styles.label}>Model Name *</label>
+                    <label style={styles.label}>Function Name *</label>
                     <input
                         type="text"
                         value={modelName}
                         onChange={(e) => setModelName(e.target.value)}
-                        placeholder="e.g., TradingSignal, PriceAlert, PortfolioAnalysis"
+                        placeholder="e.g., fetch_trading_signals, calculate_portfolio_risk"
                         style={styles.input}
                         disabled={isGenerating}
                     />
@@ -203,18 +235,18 @@ Generate the complete model code.`
                         type="text"
                         value={modelDescription}
                         onChange={(e) => setModelDescription(e.target.value)}
-                        placeholder="Brief description of what this model does"
+                        placeholder="Brief description of what this function does"
                         style={styles.input}
                         disabled={isGenerating}
                     />
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={styles.label}>Describe Your Model *</label>
+                    <label style={styles.label}>Describe Your Function *</label>
                     <textarea
                         value={modelPrompt}
                         onChange={(e) => setModelPrompt(e.target.value)}
-                        placeholder={`Example: "Create a model to track trading signals with fields for asset symbol, signal type (BUY/SELL), confidence score (0-100), timestamp, and optional notes. Include methods to calculate signal accuracy and filter by date range."`}
+                        placeholder={`Example: "Create a function that fetches real-time trading signals from multiple indicators (RSI, MACD, Bollinger Bands) and returns a combined signal with confidence score. Should accept symbol and timeframe as parameters."`}
                         style={{
                             ...styles.input,
                             minHeight: '150px',
@@ -239,7 +271,7 @@ Generate the complete model code.`
                             flex: 1
                         }}
                     >
-                        {isGenerating ? '⏳ Generating Model...' : '🚀 Generate Model Code'}
+                        {isGenerating ? '⏳ Generating Code...' : '🚀 Generate View Function'}
                     </button>
 
                     {generatedCode && (
@@ -265,21 +297,34 @@ Generate the complete model code.`
                     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
                     border: `1px solid ${theme.border.light}`
                 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
                         <h3 style={{ color: theme.text.primary, margin: 0 }}>
-                            📝 Generated Model Code
+                            📝 Generated View Function
                         </h3>
-                        <button
-                            onClick={copyToClipboard}
-                            style={{
-                                ...styles.buttonSecondary,
-                                background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
-                                color: 'white',
-                                border: 'none'
-                            }}
-                        >
-                            📋 Copy Code
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={copyToClipboard}
+                                style={{
+                                    ...styles.buttonSecondary,
+                                    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+                                    color: 'white',
+                                    border: 'none'
+                                }}
+                            >
+                                📋 Copy Code
+                            </button>
+                            <button
+                                onClick={downloadCode}
+                                style={{
+                                    ...styles.buttonSecondary,
+                                    background: `linear-gradient(135deg, ${theme.accent.green} 0%, #059669 100%)`,
+                                    color: 'white',
+                                    border: 'none'
+                                }}
+                            >
+                                💾 Download .py
+                            </button>
+                        </div>
                     </div>
 
                     <pre style={{
@@ -307,11 +352,11 @@ Generate the complete model code.`
                             📚 Next Steps:
                         </p>
                         <ol style={{ color: theme.text.secondary, margin: 0, paddingLeft: '20px' }}>
-                            <li>Copy the generated code</li>
-                            <li>Add it to your Django <code>models.py</code> file</li>
-                            <li>Run <code>python manage.py makemigrations</code></li>
-                            <li>Run <code>python manage.py migrate</code></li>
-                            <li>The model is now ready to use in your backend!</li>
+                            <li>Copy or download the generated code</li>
+                            <li>Add it to your Django <code>views.py</code> file</li>
+                            <li>Add the URL pattern to <code>urls.py</code> (e.g., <code>path('api/your-endpoint/', views.{modelName})</code>)</li>
+                            <li>The function is now ready to use as an API endpoint!</li>
+                            <li>Test it with Postman or your frontend</li>
                         </ol>
                     </div>
                 </div>
