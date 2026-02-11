@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
+import AIModelBuilder from "./ai_model_builder.jsx";
 
 // Light theme (default)
 const lightTheme = {
@@ -405,7 +406,7 @@ const getStyles = (theme) => ({
     margin: '20px auto'
   }
 });
-export default function Charts() {
+export default function TradingTerminal() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
     const chartContainerRef = useRef(null);
@@ -467,17 +468,25 @@ export default function Charts() {
     const [stockInfo, setStockInfo] = useState(null);
     const [loadingStockInfo, setLoadingStockInfo] = useState(false);
     
+    // LLM Model Creator states
+    const [showModelCreator, setShowModelCreator] = useState(false);
+    const [modelPrompt, setModelPrompt] = useState('');
+    const [generatedCode, setGeneratedCode] = useState('');
+    const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState('');
+    
     // Backtest states
     const [backtestMode, setBacktestMode] = useState(false);
     const [backtestSession, setBacktestSession] = useState(null);
-    const [backtestSpeed, setBacktestSpeed] = useState(1);
+    const [backtestSpeed, setBacktestSpeed] = useState(5); // 5 seconds per candle
     const [backtestCurrentIndex, setBacktestCurrentIndex] = useState(0);
     const [backtestBalance, setBacktestBalance] = useState(10000);
     const [backtestTrades, setBacktestTrades] = useState([]);
     const [backtestPaused, setBacktestPaused] = useState(false);
     const [backtestData, setBacktestData] = useState([]);
     const [showSaveBacktestModal, setShowSaveBacktestModal] = useState(false);
-    const [backtestTradeHistory, setBacktestTradeHistory] = useState([]);
+    const [backtestTradeHistory, setBacktestTradeHistory] = useState({});
+    const [backtestEquityCurve, setBacktestEquityCurve] = useState([]);
 
     const timeframes = {
         '1M': { label: '1 Minute', interval: '1m', binanceInterval: '1m', yfinancePeriod: '1d', updateInterval: 10000 },
@@ -565,6 +574,76 @@ export default function Charts() {
         setTradeHistory([]);
         setTradeStats(null);
     }, [selectedAsset, allAssets]);
+
+    // Fetch OpenAI API key
+    useEffect(() => {
+        const fetchOpenAIKey = async () => {
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/get_openai_key`);
+                if (response.ok) {
+                    const { OPENAI_API_KEY } = await response.json();
+                    setOPENAI_API_KEY(OPENAI_API_KEY);
+                }
+            } catch (error) {
+                console.error('Error fetching OpenAI key:', error);
+            }
+        };
+        fetchOpenAIKey();
+    }, []);
+    
+    // Generate model code using LLM
+    const generateModelCode = async () => {
+        if (!modelPrompt.trim()) {
+            setErrorMessage('Please enter a description for your model');
+            setTimeout(() => setErrorMessage(''), 3000);
+            return;
+        }
+        
+        setIsGeneratingCode(true);
+        setErrorMessage('');
+        
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an expert Python/Django developer specializing in creating trading models and backend APIs. Generate clean, production-ready code with proper error handling and documentation.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Create a Django model and API endpoint for: ${modelPrompt}\n\nProvide:\n1. Django model class with all fields\n2. API view function\n3. URL pattern\n4. Brief usage instructions`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.choices && data.choices[0]) {
+                setGeneratedCode(data.choices[0].message.content);
+                setSuccessMessage('✅ Code generated successfully!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setErrorMessage('Failed to generate code');
+                setTimeout(() => setErrorMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error generating code:', error);
+            setErrorMessage(`Failed to generate code: ${error.message}`);
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setIsGeneratingCode(false);
+        }
+    };
 
     // Load TradingView Lightweight Charts
     useEffect(() => {
@@ -758,26 +837,20 @@ export default function Charts() {
         if (!candlestickSeriesRef.current && !lineSeriesRef.current) return;
 
         try {
-            // Only save/restore scroll position if NOT in backtest mode
-            let visibleRange = null;
-            if (!backtestMode) {
-                const timeScale = chartRef.current.timeScale();
-                visibleRange = timeScale.getVisibleLogicalRange();
-                if (visibleRange) {
-                    lastScrollPositionRef.current = visibleRange;
-                }
-            }
-
             if (chartType === 'candlestick' && candlestickSeriesRef.current) {
                 candlestickSeriesRef.current.setData(marketData);
             } else if (chartType === 'line' && lineSeriesRef.current) {
                 lineSeriesRef.current.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
 
-            // Add trade markers (only for live trades, not backtest)
+            // Add trade markers (only for live trades matching current asset, not during backtest)
             if (tradeHistory.length > 0 && !backtestMode) {
+                const currentAssetTrades = tradeHistory.filter(
+                    trade => trade.asset_symbol === selectedAsset
+                );
+                
                 const markers = [];
-                tradeHistory.forEach(trade => {
+                currentAssetTrades.forEach(trade => {
                     const entryTime = Math.floor(new Date(trade.entry_timestamp).getTime() / 1000);
                     
                     markers.push({
@@ -804,7 +877,7 @@ export default function Charts() {
                 series.setMarkers(markers);
             }
 
-            // Restore scroll position only if NOT in backtest mode
+            // NEVER restore scroll position during backtest
             if (!backtestMode && lastScrollPositionRef.current) {
                 setTimeout(() => {
                     chartRef.current.timeScale().setVisibleLogicalRange(lastScrollPositionRef.current);
@@ -814,7 +887,7 @@ export default function Charts() {
         } catch (error) {
             console.error('Error updating chart data:', error);
         }
-    }, [marketData, tradeHistory, backtestMode]);
+    }, [marketData, tradeHistory, backtestMode, selectedAsset]);
 
     // Execute trade
     const executeTrade = async () => {
@@ -848,7 +921,14 @@ export default function Charts() {
                     is_backtest: true
                 };
                 
-                setBacktestTradeHistory([...backtestTradeHistory, newTrade]);
+                // Store per asset
+                const currentAsset = selectedAssetInfo.symbol;
+                const assetTrades = backtestTradeHistory[currentAsset] || [];
+                setBacktestTradeHistory({
+                    ...backtestTradeHistory,
+                    [currentAsset]: [...assetTrades, newTrade]
+                });
+                
                 setSuccessMessage(`✅ ${orderType} order placed in backtest!`);
                 setTimeout(() => setSuccessMessage(''), 3000);
                 setStopLoss('');
@@ -981,7 +1061,10 @@ export default function Charts() {
     const closeTrade = async (tradeId) => {
         // Check if it's a backtest trade
         if (tradeId.startsWith('BACKTEST_')) {
-            const updatedTrades = backtestTradeHistory.map(trade => {
+            const currentAsset = selectedAssetInfo.symbol;
+            const assetTrades = backtestTradeHistory[currentAsset] || [];
+            
+            const updatedTrades = assetTrades.map(trade => {
                 if (trade.trade_id === tradeId && trade.status === 'OPEN') {
                     const exitPrice = currentPrice;
                     let profitLoss, profitLossPct;
@@ -993,6 +1076,17 @@ export default function Charts() {
                         profitLoss = (trade.entry_price - exitPrice) * trade.quantity;
                         profitLossPct = ((trade.entry_price - exitPrice) / trade.entry_price) * 100;
                     }
+                    
+                    // Update balance
+                    const newBalance = backtestBalance + profitLoss;
+                    setBacktestBalance(newBalance);
+                    
+                    // Update equity curve
+                    setBacktestEquityCurve([...backtestEquityCurve, {
+                        timestamp: new Date().toISOString(),
+                        balance: newBalance,
+                        profitLoss: profitLoss
+                    }]);
                     
                     return {
                         ...trade,
@@ -1007,7 +1101,11 @@ export default function Charts() {
                 return trade;
             });
             
-            setBacktestTradeHistory(updatedTrades);
+            setBacktestTradeHistory({
+                ...backtestTradeHistory,
+                [currentAsset]: updatedTrades
+            });
+            
             setSuccessMessage('✅ Backtest trade closed!');
             setTimeout(() => setSuccessMessage(''), 3000);
             return;
@@ -1103,7 +1201,7 @@ export default function Charts() {
                 const newIndex = backtestCurrentIndex + 1;
                 
                 if (newIndex < backtestData.length) {
-                    // Update chart with candles up to current index WITHOUT saving scroll position
+                    // Update chart with candles up to current index
                     const visibleData = backtestData.slice(0, newIndex + 1);
                     
                     if (candlestickSeriesRef.current) {
@@ -1116,10 +1214,7 @@ export default function Charts() {
                     setCurrentPrice(currentCandle.close);
                     setBacktestCurrentIndex(newIndex);
                     
-                    // Keep showing latest candles during backtest
-                    if (chartRef.current) {
-                        chartRef.current.timeScale().scrollToPosition(0, false);
-                    }
+                    // DO NOT touch the chart position at all during backtest
                 }
                 
             }, backtestSpeed * 1000);
@@ -1134,7 +1229,10 @@ export default function Charts() {
 
     // Stop backtest
     const stopBacktest = () => {
-        if (backtestTradeHistory.length > 0) {
+        const currentAsset = selectedAssetInfo.symbol;
+        const currentAssetTrades = backtestTradeHistory[currentAsset] || [];
+        
+        if (currentAssetTrades.length > 0) {
             setShowSaveBacktestModal(true);
         } else {
             finalizeBacktestStop();
@@ -1145,8 +1243,9 @@ export default function Charts() {
         setBacktestMode(false);
         setBacktestPaused(false);
         setBacktestCurrentIndex(0);
-        setBacktestTradeHistory([]);
         setShowSaveBacktestModal(false);
+        setBacktestBalance(10000);
+        setBacktestEquityCurve([]);
         
         // Restore full market data
         if (candlestickSeriesRef.current) {
@@ -1161,9 +1260,12 @@ export default function Charts() {
     };
     
     const saveBacktestResults = async () => {
+        const currentAsset = selectedAssetInfo.symbol;
+        const currentAssetTrades = backtestTradeHistory[currentAsset] || [];
+        
         // Save backtest trades to live database
         try {
-            for (const trade of backtestTradeHistory) {
+            for (const trade of currentAssetTrades) {
                 if (trade.status === 'CLOSED') {
                     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                     
@@ -1204,11 +1306,18 @@ export default function Charts() {
                 }
             }
             
-            alert('Backtest results saved successfully!');
+            // Clear this asset's backtest history after saving
+            const updatedHistory = { ...backtestTradeHistory };
+            delete updatedHistory[currentAsset];
+            setBacktestTradeHistory(updatedHistory);
+            
+            setSuccessMessage('✅ Backtest results saved successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
             finalizeBacktestStop();
         } catch (error) {
             console.error('Error saving backtest results:', error);
-            alert('Error saving backtest results');
+            setErrorMessage('❌ Error saving backtest results');
+            setTimeout(() => setErrorMessage(''), 3000);
         }
     };
 
@@ -1282,12 +1391,25 @@ export default function Charts() {
                         <div style={{ fontSize: '1.8rem', fontWeight: '700' }}>
                             ⚡ SnowAI Professional Trading Terminal
                         </div>
-                        <button
-                            onClick={() => setIsDarkTheme(!isDarkTheme)}
-                            style={styles.themeToggle}
-                        >
-                            {isDarkTheme ? '☀️ Light Mode' : '🌙 Dark Mode'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                                onClick={() => setShowModelCreator(true)}
+                                style={{
+                                    ...styles.themeToggle,
+                                    background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`,
+                                    color: 'white',
+                                    border: 'none'
+                                }}
+                            >
+                                🤖 AI Model Creator
+                            </button>
+                            <button
+                                onClick={() => setIsDarkTheme(!isDarkTheme)}
+                                style={styles.themeToggle}
+                            >
+                                {isDarkTheme ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                            </button>
+                        </div>
                     </div>
                     
                     <div style={styles.tradingModeSelector}>
@@ -1530,6 +1652,19 @@ export default function Charts() {
                                         }}
                                     >
                                         🏆 Performance
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => setShowModelCreator(true)}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            background: `linear-gradient(135deg, ${theme.accent.pink} 0%, #db2777 100%)`,
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '10px 20px'
+                                        }}
+                                    >
+                                        🤖 AI Model Builder
                                     </button>
                                     
                                     {tradingMode === 'BACKTEST' && !backtestMode && (
@@ -1824,8 +1959,30 @@ export default function Charts() {
                                     </div>
                                 )}
                                 
+                                {backtestMode && backtestEquityCurve.length > 0 && (
+                                    <div style={styles.statCard}>
+                                        <div style={{ ...styles.statValue, color: backtestBalance >= 10000 ? theme.accent.green : theme.accent.red }}>
+                                            ${backtestBalance.toFixed(2)}
+                                        </div>
+                                        <div style={styles.statLabel}>Current Equity</div>
+                                        <div style={{ marginTop: '10px', color: theme.text.secondary }}>
+                                            Starting: $10,000.00
+                                        </div>
+                                        <div style={{ 
+                                            marginTop: '5px', 
+                                            color: backtestBalance >= 10000 ? theme.accent.green : theme.accent.red,
+                                            fontWeight: '600'
+                                        }}>
+                                            P&L: {backtestBalance >= 10000 ? '+' : ''}${(backtestBalance - 10000).toFixed(2)}
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                                    {(backtestMode ? backtestTradeHistory : tradeHistory).map(trade => (
+                                    {(backtestMode 
+                                        ? (backtestTradeHistory[selectedAssetInfo?.symbol] || [])
+                                        : tradeHistory
+                                    ).map(trade => (
                                         <div 
                                             key={trade.trade_id}
                                             style={{
@@ -2107,6 +2264,107 @@ export default function Charts() {
                         </div>
                     )}
                     
+                    {/* LLM Model Creator Modal */}
+                    {showModelCreator && (
+                        <div style={styles.modal} onClick={() => setShowModelCreator(false)}>
+                            <div style={{...styles.modalContent, maxWidth: '1000px'}} onClick={(e) => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
+                                        🤖 AI Model Creator
+                                    </h2>
+                                    <button
+                                        onClick={() => setShowModelCreator(false)}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: theme.text.primary,
+                                            fontSize: '2rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <p style={{ color: theme.text.secondary, marginBottom: '20px' }}>
+                                    Describe the trading model you want to create in plain English, and AI will generate the Django backend code for you.
+                                </p>
+                                
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Model Description</label>
+                                    <textarea
+                                        value={modelPrompt}
+                                        onChange={(e) => setModelPrompt(e.target.value)}
+                                        placeholder="Example: Create a model to track daily stock performance with fields for symbol, date, open, high, low, close, volume, and percentage change. Include an API endpoint to fetch the last 30 days of data for a given symbol."
+                                        style={{
+                                            ...styles.input,
+                                            minHeight: '120px',
+                                            resize: 'vertical',
+                                            fontFamily: 'inherit'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <button
+                                    onClick={generateModelCode}
+                                    disabled={isGeneratingCode}
+                                    style={{
+                                        ...styles.buttonPrimary,
+                                        opacity: isGeneratingCode ? 0.6 : 1,
+                                        background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`
+                                    }}
+                                >
+                                    {isGeneratingCode ? '🔄 Generating Code...' : '✨ Generate Model Code'}
+                                </button>
+                                
+                                {generatedCode && (
+                                    <div style={{ marginTop: '25px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <h3 style={{ color: theme.text.primary, margin: 0 }}>Generated Code:</h3>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(generatedCode);
+                                                    setSuccessMessage('✅ Code copied to clipboard!');
+                                                    setTimeout(() => setSuccessMessage(''), 3000);
+                                                }}
+                                                style={styles.buttonSecondary}
+                                            >
+                                                📋 Copy Code
+                                            </button>
+                                        </div>
+                                        <pre style={{
+                                            background: theme.bg.tertiary,
+                                            padding: '20px',
+                                            borderRadius: '10px',
+                                            overflow: 'auto',
+                                            maxHeight: '400px',
+                                            border: `1px solid ${theme.border.medium}`,
+                                            fontSize: '0.9rem',
+                                            lineHeight: '1.5'
+                                        }}>
+                                            <code style={{ color: theme.text.primary }}>
+                                                {generatedCode}
+                                            </code>
+                                        </pre>
+                                        
+                                        <div style={{
+                                            marginTop: '15px',
+                                            padding: '15px',
+                                            background: `${theme.accent.cyan}20`,
+                                            borderRadius: '10px',
+                                            border: `1px solid ${theme.accent.cyan}`
+                                        }}>
+                                            <p style={{ margin: 0, color: theme.text.secondary, fontSize: '0.9rem' }}>
+                                                💡 <strong>Next Steps:</strong> Copy this code and add it to your Django backend. 
+                                                Make sure to run migrations after adding the model, and update your URLs to include the new endpoint.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    
                     {/* Stock Info Modal */}
                     {showStockInfo && stockInfo && (
                         <div style={styles.modal} onClick={() => setShowStockInfo(false)}>
@@ -2179,6 +2437,35 @@ export default function Charts() {
                                         <p style={{ marginTop: '15px', lineHeight: '1.6' }}>{stockInfo.summary}</p>
                                     )}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* AI Model Builder Modal */}
+                    {showModelCreator && (
+                        <div style={styles.modal} onClick={() => setShowModelCreator(false)}>
+                            <div style={{...styles.modalContent, maxWidth: '1000px'}} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    onClick={() => setShowModelCreator(false)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '20px',
+                                        right: '20px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: theme.text.primary,
+                                        fontSize: '2rem',
+                                        cursor: 'pointer',
+                                        zIndex: 10
+                                    }}
+                                >
+                                    ×
+                                </button>
+                                <AIModelBuilder 
+                                    theme={theme} 
+                                    styles={styles}
+                                    BACKEND_API_URL={BACKEND_API_URL}
+                                />
                             </div>
                         </div>
                     )}
