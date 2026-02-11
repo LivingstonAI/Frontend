@@ -59,38 +59,41 @@ export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
                     messages: [
                         {
                             role: 'system',
-                            content: `You are an expert Python Django developer specializing in creating backend functions for financial trading applications. Generate complete, production-ready Django view functions that will be placed in views.py.
+                            content: `You are an expert Python quantitative analyst. Generate pure data analysis functions that work on OHLC (candlestick) datasets.
 
 CRITICAL RULES:
-1. Return ONLY the raw Python code - NO markdown formatting, NO code blocks, NO backticks
-2. All code must be designed for views.py (not models.py)
-3. Include all necessary imports at the top
-4. Use @csrf_exempt decorator for API endpoints
-5. Return JsonResponse with proper error handling
-6. Include docstrings explaining the function
-7. Follow Django REST best practices
-8. NO explanatory text before or after the code
-9. Start directly with imports
+1. Return ONLY raw Python code — NO markdown, NO backticks, NO prose
+2. Functions receive a pandas DataFrame with columns: open, high, low, close, volume, timestamp
+3. Functions MUST return a boolean (True / False) — never a Django response, never JSON
+4. NO Django, NO Flask, NO HTTP, NO requests, NO views, NO decorators
+5. NO imports of web frameworks whatsoever
+6. Include only: pandas, numpy, or standard library imports
+7. Always include a short docstring explaining what the boolean means
+8. Start directly with imports (or the def if no imports needed)
 
-Example format:
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
+CORRECT example:
+import pandas as pd
 
+def is_high_volume(df: pd.DataFrame) -> bool:
+    """Returns True if the most recent candle's volume is above the 20-period average."""
+    if len(df) < 20:
+        return False
+    avg_volume = df['volume'].rolling(20).mean().iloc[-1]
+    return float(df['volume'].iloc[-1]) > float(avg_volume)
+
+WRONG (never do this):
 @csrf_exempt
-def my_function(request):
-    """Docstring here"""
-    # code here
+def my_view(request):
     return JsonResponse({...})`
                         },
                         {
                             role: 'user',
-                            content: `Create a Django view function for: ${modelPrompt}
+                            content: `Create a Python OHLC analysis function for: ${modelPrompt}
 
-Function Name: ${modelName}
-Description: ${modelDescription || 'No additional description provided'}
+Function name: ${modelName}
+Extra context: ${modelDescription || 'none'}
 
-Generate the complete view function code for views.py. Return ONLY the raw code with no markdown formatting.`
+Return ONLY the raw Python code. The function must accept a pandas DataFrame (open/high/low/close/volume columns) and return a boolean.`
                         }
                     ],
                     temperature: 0.7,
@@ -184,7 +187,7 @@ Generate the complete view function code for views.py. Return ONLY the raw code 
                     </span>
                 </h2>
                 <p style={{ color: theme.text.secondary, marginBottom: '30px' }}>
-                    Describe your trading function in plain English and let AI generate the Django view code for views.py automatically.
+                    Describe your trading signal in plain English. The AI will generate a Python function that takes an OHLC dataset and returns <code>True</code> or <code>False</code>.
                 </p>
 
                 {/* Success Message */}
@@ -223,33 +226,33 @@ Generate the complete view function code for views.py. Return ONLY the raw code 
                         type="text"
                         value={modelName}
                         onChange={(e) => setModelName(e.target.value)}
-                        placeholder="e.g., fetch_trading_signals, calculate_portfolio_risk"
+                        placeholder="e.g., is_high_volume, is_bullish_engulfing, is_oversold_rsi"
                         style={styles.input}
                         disabled={isGenerating}
                     />
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={styles.label}>Short Description (Optional)</label>
+                    <label style={styles.label}>Extra Context (Optional)</label>
                     <input
                         type="text"
                         value={modelDescription}
                         onChange={(e) => setModelDescription(e.target.value)}
-                        placeholder="Brief description of what this function does"
+                        placeholder="e.g., use 14-period RSI, threshold at 70"
                         style={styles.input}
                         disabled={isGenerating}
                     />
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={styles.label}>Describe Your Function *</label>
+                    <label style={styles.label}>Describe the Signal *</label>
                     <textarea
                         value={modelPrompt}
                         onChange={(e) => setModelPrompt(e.target.value)}
-                        placeholder={`Example: "Create a function that fetches real-time trading signals from multiple indicators (RSI, MACD, Bollinger Bands) and returns a combined signal with confidence score. Should accept symbol and timeframe as parameters."`}
+                        placeholder={`Example: "Returns True if the last 3 candles are all bullish and the volume on each is increasing — indicating a strong upward momentum burst."`}
                         style={{
                             ...styles.input,
-                            minHeight: '150px',
+                            minHeight: '120px',
                             resize: 'vertical',
                             fontFamily: 'inherit'
                         }}
@@ -349,15 +352,17 @@ Generate the complete view function code for views.py. Return ONLY the raw code 
                         borderRadius: '10px'
                     }}>
                         <p style={{ color: theme.text.primary, margin: '0 0 10px 0', fontWeight: '600' }}>
-                            📚 Next Steps:
+                            📚 How to use this function:
                         </p>
-                        <ol style={{ color: theme.text.secondary, margin: 0, paddingLeft: '20px' }}>
-                            <li>Copy or download the generated code</li>
-                            <li>Add it to your Django <code>views.py</code> file</li>
-                            <li>Add the URL pattern to <code>urls.py</code> (e.g., <code>path('api/your-endpoint/', views.{modelName})</code>)</li>
-                            <li>The function is now ready to use as an API endpoint!</li>
-                            <li>Test it with Postman or your frontend</li>
+                        <ol style={{ color: theme.text.secondary, margin: 0, paddingLeft: '20px', lineHeight: '1.8' }}>
+                            <li>Copy or download the <code>.py</code> file</li>
+                            <li>Import it into your strategy runner: <code>from signals import {modelName}</code></li>
+                            <li>Pass your OHLC DataFrame: <code>result = {modelName}(df)</code></li>
+                            <li>Use the boolean to trigger trades: <code>if result: execute_buy()</code></li>
                         </ol>
+                        <div style={{ marginTop: '12px', padding: '10px', background: theme.bg.tertiary, borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85rem', color: theme.text.primary }}>
+                            df columns expected: <span style={{ color: theme.accent.cyan }}>open, high, low, close, volume, timestamp</span>
+                        </div>
                     </div>
                 </div>
             )}
