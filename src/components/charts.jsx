@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./ai_model_builder.jsx";
+import AIModelBuilder from "./ai_model_builder";
 
 // Light theme (default)
 const lightTheme = {
@@ -1018,38 +1018,85 @@ export default function Charts() {
                 lineSeriesRef.current.setData(marketData.map(d => ({ time: d.time, value: d.close })));
             }
 
-            // Add trade markers (only for live trades matching current asset, not during backtest)
-            if (tradeHistory.length > 0 && !backtestMode) {
-                const currentAssetTrades = tradeHistory.filter(
-                    trade => trade.asset_symbol === selectedAsset
-                );
-                
-                const markers = [];
-                currentAssetTrades.forEach(trade => {
-                    const entryTime = Math.floor(new Date(trade.entry_timestamp).getTime() / 1000);
-                    
-                    markers.push({
-                        time: entryTime,
-                        position: trade.order_type === 'BUY' ? 'belowBar' : 'aboveBar',
-                        color: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red,
-                        shape: trade.order_type === 'BUY' ? 'arrowUp' : 'arrowDown',
-                        text: `${trade.order_type} @ ${trade.entry_price}`
-                    });
-                    
-                    if (trade.exit_timestamp) {
-                        const exitTime = Math.floor(new Date(trade.exit_timestamp).getTime() / 1000);
+            // Add trade markers + price lines for current asset (live only, not backtest)
+            const activeSeries = candlestickSeriesRef.current || lineSeriesRef.current;
+            if (activeSeries) {
+                // Always clear old markers first
+                try { activeSeries.setMarkers([]); } catch(e) {}
+
+                if (tradeHistory.length > 0 && !backtestMode) {
+                    const assetTrades = tradeHistory.filter(t => t.asset_symbol === selectedAsset);
+                    const markers = [];
+
+                    assetTrades.forEach(trade => {
+                        if (!trade.entry_timestamp) return;
+                        const entryTime = Math.floor(new Date(trade.entry_timestamp).getTime() / 1000);
+                        const isBuy     = trade.order_type === 'BUY';
+                        const isClosed  = trade.status === 'CLOSED';
+                        const isWin     = isClosed && trade.profit_loss > 0;
+                        const entryPx   = parseFloat(trade.entry_price);
+                        const qty       = parseFloat(trade.quantity);
+
+                        // Entry arrow
                         markers.push({
-                            time: exitTime,
-                            position: trade.order_type === 'BUY' ? 'aboveBar' : 'belowBar',
-                            color: trade.profit_loss > 0 ? theme.accent.green : theme.accent.red,
-                            shape: 'circle',
-                            text: `EXIT: ${trade.profit_loss > 0 ? '+' : ''}${trade.profit_loss?.toFixed(2)}`
+                            time:     entryTime,
+                            position: isBuy ? 'belowBar' : 'aboveBar',
+                            color:    isBuy ? theme.accent.green : theme.accent.red,
+                            shape:    isBuy ? 'arrowUp' : 'arrowDown',
+                            text:     `${trade.order_type} $${entryPx.toFixed(2)} ×${qty}`
                         });
-                    }
-                });
-                
-                const series = candlestickSeriesRef.current || lineSeriesRef.current;
-                series.setMarkers(markers);
+
+                        if (isClosed && trade.exit_timestamp) {
+                            const exitTime = Math.floor(new Date(trade.exit_timestamp).getTime() / 1000);
+                            const pl = parseFloat(trade.profit_loss || 0);
+                            markers.push({
+                                time:     exitTime,
+                                position: isBuy ? 'aboveBar' : 'belowBar',
+                                color:    isWin ? theme.accent.green : theme.accent.red,
+                                shape:    'circle',
+                                text:     `EXIT ${isWin ? '+' : ''}$${pl.toFixed(2)}`
+                            });
+                        }
+
+                        if (!isClosed) {
+                            // Horizontal price lines for open positions
+                            try {
+                                activeSeries.createPriceLine({
+                                    price: entryPx,
+                                    color: isBuy ? theme.accent.green : theme.accent.red,
+                                    lineWidth: 2,
+                                    lineStyle: 0,
+                                    axisLabelVisible: true,
+                                    title: `${trade.order_type} Entry`
+                                });
+                                if (trade.stop_loss) {
+                                    activeSeries.createPriceLine({
+                                        price: parseFloat(trade.stop_loss),
+                                        color: '#ef4444',
+                                        lineWidth: 1,
+                                        lineStyle: 2,
+                                        axisLabelVisible: true,
+                                        title: 'SL'
+                                    });
+                                }
+                                if (trade.take_profit) {
+                                    activeSeries.createPriceLine({
+                                        price: parseFloat(trade.take_profit),
+                                        color: '#22c55e',
+                                        lineWidth: 1,
+                                        lineStyle: 2,
+                                        axisLabelVisible: true,
+                                        title: 'TP'
+                                    });
+                                }
+                            } catch(e) {}
+                        }
+                    });
+
+                    // LightweightCharts requires markers sorted by time
+                    markers.sort((a, b) => a.time - b.time);
+                    try { activeSeries.setMarkers(markers); } catch(e) {}
+                }
             }
 
             // NEVER restore scroll position during backtest
@@ -2294,18 +2341,81 @@ export default function Charts() {
                                     </div>
                                 )}
                                 
+                                {/* Asset equity summary (live mode only) */}
+                                {!backtestMode && tradeHistory.length > 0 && (() => {
+                                    const assetTrades = tradeHistory.filter(t => t.asset_symbol === selectedAsset);
+                                    const closed  = assetTrades.filter(t => t.status === 'CLOSED');
+                                    const open    = assetTrades.filter(t => t.status === 'OPEN');
+                                    const realisedPnL = closed.reduce((s, t) => s + parseFloat(t.profit_loss || 0), 0);
+                                    const unrealisedPnL = open.reduce((s, t) => {
+                                        const ep = parseFloat(t.entry_price), qty = parseFloat(t.quantity);
+                                        if (!currentPrice || !ep) return s;
+                                        return s + (t.order_type === 'BUY'
+                                            ? (currentPrice - ep) * qty
+                                            : (ep - currentPrice) * qty);
+                                    }, 0);
+                                    const totalPnL = realisedPnL + unrealisedPnL;
+                                    return (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '20px', padding: '16px', background: theme.bg.tertiary, borderRadius: '12px', border: `1px solid ${theme.border.light}` }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '4px' }}>Closed Trades</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: '700', color: theme.text.primary }}>{closed.length}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '4px' }}>Open Trades</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: '700', color: theme.blue[600] }}>{open.length}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '4px' }}>Realised P&L</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: '700', color: realisedPnL >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                    {realisedPnL >= 0 ? '+' : ''}${realisedPnL.toFixed(2)}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '4px' }}>Unrealised P&L</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: '700', color: unrealisedPnL >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                    {unrealisedPnL >= 0 ? '+' : ''}${unrealisedPnL.toFixed(2)}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '4px' }}>Total P&L</div>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: totalPnL >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                    {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                                
                                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
                                     {(backtestMode 
                                         ? (backtestTradeHistory[selectedAssetInfo?.symbol] || [])
                                         : tradeHistory
-                                    ).map(trade => (
+                                    ).map(trade => {
+                                        // Compute live unrealised P&L for open trades
+                                        const isOpen = trade.status === 'OPEN';
+                                        const ep  = parseFloat(trade.entry_price);
+                                        const qty = parseFloat(trade.quantity);
+                                        let uPnL = null, uPct = null;
+                                        if (isOpen && currentPrice && ep && trade.asset_symbol === selectedAsset) {
+                                            uPnL = trade.order_type === 'BUY'
+                                                ? (currentPrice - ep) * qty
+                                                : (ep - currentPrice) * qty;
+                                            uPct = trade.order_type === 'BUY'
+                                                ? ((currentPrice - ep) / ep) * 100
+                                                : ((ep - currentPrice) / ep) * 100;
+                                        }
+                                        const borderColour = isOpen
+                                            ? (uPnL === null ? theme.blue[400] : uPnL >= 0 ? theme.accent.green : theme.accent.red)
+                                            : (trade.profit_loss !== null && trade.profit_loss !== undefined
+                                                ? (trade.profit_loss > 0 ? theme.accent.green : theme.accent.red)
+                                                : theme.border.light);
+                                        return (
                                         <div 
                                             key={trade.trade_id}
                                             style={{
                                                 ...styles.tradeCard,
-                                                borderLeft: trade.status === 'CLOSED' && trade.profit_loss !== null
-                                                    ? `5px solid ${trade.profit_loss > 0 ? theme.accent.green : theme.accent.red}`
-                                                    : 'none'
+                                                borderLeft: `5px solid ${borderColour}`
                                             }}
                                         >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -2335,19 +2445,28 @@ export default function Charts() {
                                                 <div>
                                                     <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Entry Price</div>
                                                     <div style={{ color: theme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
-                                                        ${trade.entry_price ? trade.entry_price.toFixed(2) : 'N/A'}
+                                                        ${ep ? ep.toFixed(2) : 'N/A'}
                                                     </div>
                                                 </div>
                                                 {trade.exit_price && (
                                                     <div>
                                                         <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Exit Price</div>
                                                         <div style={{ color: theme.text.primary, fontSize: '1.1rem', fontWeight: '600' }}>
-                                                            ${trade.exit_price.toFixed(2)}
+                                                            ${parseFloat(trade.exit_price).toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {isOpen && currentPrice && trade.asset_symbol === selectedAsset && (
+                                                    <div>
+                                                        <div style={{ color: theme.text.tertiary, fontSize: '0.85rem' }}>Current Price</div>
+                                                        <div style={{ color: theme.blue[600], fontSize: '1.1rem', fontWeight: '600' }}>
+                                                            ${currentPrice.toFixed(2)}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
                                             
+                                            {/* Realised P&L (closed trades) */}
                                             {trade.profit_loss !== null && trade.profit_loss !== undefined && (
                                                 <div style={{
                                                     padding: '10px',
@@ -2355,12 +2474,37 @@ export default function Charts() {
                                                     borderRadius: '8px',
                                                     marginBottom: '10px'
                                                 }}>
+                                                    <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, marginBottom: '2px' }}>Realised P&L</div>
                                                     <div style={{ 
                                                         fontSize: '1.3rem', 
                                                         fontWeight: '800',
                                                         color: trade.profit_loss >= 0 ? theme.accent.green : theme.accent.red 
                                                     }}>
-                                                        {trade.profit_loss >= 0 ? '+' : ''}${trade.profit_loss.toFixed(2)} ({trade.profit_loss_percentage >= 0 ? '+' : ''}{trade.profit_loss_percentage.toFixed(2)}%)
+                                                        {trade.profit_loss >= 0 ? '+' : ''}${parseFloat(trade.profit_loss).toFixed(2)}&nbsp;
+                                                        <span style={{ fontSize: '1rem' }}>
+                                                            ({trade.profit_loss_percentage >= 0 ? '+' : ''}{parseFloat(trade.profit_loss_percentage || 0).toFixed(2)}%)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Unrealised P&L (open trades on current asset) */}
+                                            {uPnL !== null && (
+                                                <div style={{
+                                                    padding: '10px',
+                                                    background: uPnL >= 0 ? `${theme.accent.green}15` : `${theme.accent.red}15`,
+                                                    border: `1px solid ${uPnL >= 0 ? theme.accent.green : theme.accent.red}`,
+                                                    borderRadius: '8px',
+                                                    marginBottom: '10px'
+                                                }}>
+                                                    <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, marginBottom: '2px' }}>Unrealised P&L (Live)</div>
+                                                    <div style={{ 
+                                                        fontSize: '1.3rem', 
+                                                        fontWeight: '800',
+                                                        color: uPnL >= 0 ? theme.accent.green : theme.accent.red
+                                                    }}>
+                                                        {uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)}&nbsp;
+                                                        <span style={{ fontSize: '1rem' }}>({uPct >= 0 ? '+' : ''}{uPct.toFixed(2)}%)</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -2394,7 +2538,8 @@ export default function Charts() {
                                                 </div>
                                             )}
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -2664,21 +2809,69 @@ export default function Charts() {
                     )}
 
                     {/* Edit Position Modal */}
-                    {editingTrade && (
+                    {editingTrade && (() => {
+                        const entryPx = parseFloat(editingTrade.entry_price);
+                        const qty     = parseFloat(editingTrade.quantity);
+                        const isSameAsset = editingTrade.asset_symbol === selectedAsset;
+                        let uPnL = null, uPct = null;
+                        if (isSameAsset && currentPrice && entryPx) {
+                            uPnL = editingTrade.order_type === 'BUY'
+                                ? (currentPrice - entryPx) * qty
+                                : (entryPx - currentPrice) * qty;
+                            uPct = editingTrade.order_type === 'BUY'
+                                ? ((currentPrice - entryPx) / entryPx) * 100
+                                : ((entryPx - currentPrice) / entryPx) * 100;
+                        }
+                        return (
                         <div style={styles.modal} onClick={() => setEditingTrade(null)}>
-                            <div style={{...styles.modalContent, maxWidth: '500px'}} onClick={e => e.stopPropagation()}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
-                                        ✏️ Edit Open Position
-                                    </h2>
+                            <div style={{...styles.modalContent, maxWidth: '520px'}} onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>✏️ Edit Open Position</h2>
                                     <button onClick={() => setEditingTrade(null)} style={{ background: 'transparent', border: 'none', color: theme.text.primary, fontSize: '2rem', cursor: 'pointer' }}>×</button>
                                 </div>
 
-                                <div style={{ background: theme.bg.tertiary, padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.9rem', color: theme.text.secondary }}>
-                                    <strong style={{ color: theme.text.primary }}>{editingTrade.asset_name}</strong> · {editingTrade.trade_id}
+                                {/* Asset + trade ID */}
+                                <div style={{ background: theme.bg.tertiary, padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.9rem', color: theme.text.secondary }}>
+                                    <strong style={{ color: theme.text.primary }}>{editingTrade.asset_name}</strong> · <span style={{ fontSize: '0.8rem' }}>{editingTrade.trade_id}</span>
                                 </div>
 
-                                {/* Order Type */}
+                                {/* Live Unrealised P&L card */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '10px',
+                                    marginBottom: '20px'
+                                }}>
+                                    <div style={{ ...styles.statCard, padding: '14px' }}>
+                                        <div style={{ fontSize: '0.8rem', color: theme.text.tertiary, marginBottom: '4px', textTransform: 'uppercase' }}>Entry Price</div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.text.primary }}>${entryPx.toFixed(2)}</div>
+                                    </div>
+                                    <div style={{ ...styles.statCard, padding: '14px' }}>
+                                        <div style={{ fontSize: '0.8rem', color: theme.text.tertiary, marginBottom: '4px', textTransform: 'uppercase' }}>Current Price</div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '700', color: theme.blue[600] }}>
+                                            {isSameAsset ? `$${currentPrice.toFixed(2)}` : '—'}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        ...styles.statCard,
+                                        padding: '14px',
+                                        gridColumn: '1 / -1',
+                                        background: uPnL === null ? theme.bg.tertiary : uPnL >= 0 ? `${theme.accent.green}18` : `${theme.accent.red}18`,
+                                        border: `1px solid ${uPnL === null ? theme.border.light : uPnL >= 0 ? theme.accent.green : theme.accent.red}`
+                                    }}>
+                                        <div style={{ fontSize: '0.8rem', color: theme.text.tertiary, marginBottom: '4px', textTransform: 'uppercase' }}>Unrealised P&L</div>
+                                        {uPnL !== null ? (
+                                            <div style={{ fontSize: '1.4rem', fontWeight: '800', color: uPnL >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                {uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)}&nbsp;
+                                                <span style={{ fontSize: '1rem' }}>({uPct >= 0 ? '+' : ''}{uPct.toFixed(2)}%)</span>
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: '0.9rem', color: theme.text.tertiary, fontStyle: 'italic' }}>
+                                                Navigate to {editingTrade.asset_symbol} to see live P&L
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                                 <div style={styles.formGroup}>
                                     <label style={styles.label}>Order Type</label>
                                     <div style={{ display: 'flex', gap: '10px' }}>
@@ -2790,7 +2983,8 @@ export default function Charts() {
                                 </div>
                             </div>
                         </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Save Backtest Modal */}
                     {showSaveBacktestModal && (
