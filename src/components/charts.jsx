@@ -251,7 +251,7 @@ const getStyles = (theme) => ({
   tradeModalOverlay: {
     position: 'absolute',
     top: '80px',
-    right: '25px',
+    left: '25px',
     width: '350px',
     maxWidth: 'calc(100% - 50px)',
     background: theme.bg.elevated,
@@ -457,6 +457,16 @@ export default function Charts() {
     const [assetClassStats, setAssetClassStats] = useState({});
     const [assetBreakdown, setAssetBreakdown] = useState([]);
     
+    // Loading and error states
+    const [isExecutingTrade, setIsExecutingTrade] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    
+    // Stock info states
+    const [showStockInfo, setShowStockInfo] = useState(false);
+    const [stockInfo, setStockInfo] = useState(null);
+    const [loadingStockInfo, setLoadingStockInfo] = useState(false);
+    
     // Backtest states
     const [backtestMode, setBacktestMode] = useState(false);
     const [backtestSession, setBacktestSession] = useState(null);
@@ -551,6 +561,9 @@ export default function Charts() {
 
     useEffect(() => {
         setSelectedAssetInfo(getCurrentAssetInfo());
+        // Clear trade history when switching assets
+        setTradeHistory([]);
+        setTradeStats(null);
     }, [selectedAsset, allAssets]);
 
     // Load TradingView Lightweight Charts
@@ -670,7 +683,7 @@ export default function Charts() {
             // Create new chart
             const chart = window.LightweightCharts.createChart(chartContainerRef.current, {
                 width: chartContainerRef.current.clientWidth,
-                height: 600,
+                height: 500,
                 layout: {
                     background: { type: 'solid', color: theme.bg.elevated },
                     textColor: theme.text.secondary,
@@ -689,6 +702,9 @@ export default function Charts() {
                     borderColor: theme.border.medium,
                     timeVisible: true,
                     secondsVisible: false,
+                    rightOffset: 5,
+                    barSpacing: 6,
+                    minBarSpacing: 3,
                 },
             });
 
@@ -742,11 +758,14 @@ export default function Charts() {
         if (!candlestickSeriesRef.current && !lineSeriesRef.current) return;
 
         try {
-            // Save current scroll position
-            const timeScale = chartRef.current.timeScale();
-            const visibleRange = timeScale.getVisibleLogicalRange();
-            if (visibleRange) {
-                lastScrollPositionRef.current = visibleRange;
+            // Only save/restore scroll position if NOT in backtest mode
+            let visibleRange = null;
+            if (!backtestMode) {
+                const timeScale = chartRef.current.timeScale();
+                visibleRange = timeScale.getVisibleLogicalRange();
+                if (visibleRange) {
+                    lastScrollPositionRef.current = visibleRange;
+                }
             }
 
             if (chartType === 'candlestick' && candlestickSeriesRef.current) {
@@ -785,10 +804,10 @@ export default function Charts() {
                 series.setMarkers(markers);
             }
 
-            // Restore scroll position
-            if (lastScrollPositionRef.current) {
+            // Restore scroll position only if NOT in backtest mode
+            if (!backtestMode && lastScrollPositionRef.current) {
                 setTimeout(() => {
-                    timeScale.setVisibleLogicalRange(lastScrollPositionRef.current);
+                    chartRef.current.timeScale().setVisibleLogicalRange(lastScrollPositionRef.current);
                 }, 10);
             }
 
@@ -800,35 +819,48 @@ export default function Charts() {
     // Execute trade
     const executeTrade = async () => {
         if (!currentPrice) {
-            alert('Wait for price data to load');
+            setErrorMessage('Wait for price data to load');
+            setTimeout(() => setErrorMessage(''), 3000);
             return;
         }
 
+        setIsExecutingTrade(true);
+        setErrorMessage('');
+        setSuccessMessage('');
+
         // If in backtest mode, handle locally without API call
         if (backtestMode) {
-            const tradeId = `BACKTEST_${Date.now()}`;
-            const newTrade = {
-                trade_id: tradeId,
-                asset_symbol: selectedAssetInfo.symbol,
-                asset_name: selectedAssetInfo.name,
-                asset_class: selectedAssetInfo.assetClass,
-                order_type: orderType,
-                entry_price: currentPrice,
-                quantity: quantity,
-                stop_loss: stopLoss || null,
-                take_profit: takeProfit || null,
-                status: 'OPEN',
-                entry_timestamp: new Date().toISOString(),
-                notes: tradeNotes,
-                is_backtest: true
-            };
-            
-            setBacktestTradeHistory([...backtestTradeHistory, newTrade]);
-            alert(`${orderType} order placed in backtest!`);
-            setStopLoss('');
-            setTakeProfit('');
-            setTradeNotes('');
-            setShowTradePanel(false);
+            try {
+                const tradeId = `BACKTEST_${Date.now()}`;
+                const newTrade = {
+                    trade_id: tradeId,
+                    asset_symbol: selectedAssetInfo.symbol,
+                    asset_name: selectedAssetInfo.name,
+                    asset_class: selectedAssetInfo.assetClass,
+                    order_type: orderType,
+                    entry_price: currentPrice,
+                    quantity: quantity,
+                    stop_loss: stopLoss || null,
+                    take_profit: takeProfit || null,
+                    status: 'OPEN',
+                    entry_timestamp: new Date().toISOString(),
+                    notes: tradeNotes,
+                    is_backtest: true
+                };
+                
+                setBacktestTradeHistory([...backtestTradeHistory, newTrade]);
+                setSuccessMessage(`✅ ${orderType} order placed in backtest!`);
+                setTimeout(() => setSuccessMessage(''), 3000);
+                setStopLoss('');
+                setTakeProfit('');
+                setTradeNotes('');
+                setShowTradePanel(false);
+            } catch (error) {
+                setErrorMessage(`❌ Error: ${error.message}`);
+                setTimeout(() => setErrorMessage(''), 3000);
+            } finally {
+                setIsExecutingTrade(false);
+            }
             return;
         }
 
@@ -858,18 +890,23 @@ export default function Charts() {
             const result = await response.json();
             
             if (result.success) {
-                alert(`${orderType} order placed successfully!`);
+                setSuccessMessage(`✅ ${orderType} order placed successfully!`);
+                setTimeout(() => setSuccessMessage(''), 3000);
                 setStopLoss('');
                 setTakeProfit('');
                 setTradeNotes('');
                 setShowTradePanel(false);
                 fetchTradeHistory();
             } else {
-                alert(`Error: ${result.error}`);
+                setErrorMessage(`❌ Error: ${result.error}`);
+                setTimeout(() => setErrorMessage(''), 3000);
             }
         } catch (error) {
             console.error('Error executing trade:', error);
-            alert('Failed to execute trade');
+            setErrorMessage(`❌ Failed to execute trade: ${error.message}`);
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setIsExecutingTrade(false);
         }
     };
 
@@ -907,6 +944,39 @@ export default function Charts() {
         }
     };
 
+    // Fetch stock info
+    const fetchStockInfo = async () => {
+        setLoadingStockInfo(true);
+        setStockInfo(null);
+        const assetInfo = getCurrentAssetInfo();
+        
+        try {
+            const response = await fetch(`${BACKEND_API_URL}/api/snowai-fetch-stock-info/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symbol: assetInfo.yfinanceSymbol || assetInfo.symbol
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                setStockInfo(result.data);
+                setShowStockInfo(true);
+            } else {
+                setErrorMessage(`Failed to fetch stock info: ${result.error}`);
+                setTimeout(() => setErrorMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error fetching stock info:', error);
+            setErrorMessage(`Failed to fetch stock info: ${error.message}`);
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setLoadingStockInfo(false);
+        }
+    };
+
     // Close trade
     const closeTrade = async (tradeId) => {
         // Check if it's a backtest trade
@@ -938,11 +1008,13 @@ export default function Charts() {
             });
             
             setBacktestTradeHistory(updatedTrades);
-            alert('Backtest trade closed!');
+            setSuccessMessage('✅ Backtest trade closed!');
+            setTimeout(() => setSuccessMessage(''), 3000);
             return;
         }
         
         // Live trade - use API
+        setIsExecutingTrade(true);
         try {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             
@@ -960,11 +1032,19 @@ export default function Charts() {
             const result = await response.json();
             
             if (result.success) {
-                alert('Trade closed successfully!');
+                setSuccessMessage('✅ Trade closed successfully!');
+                setTimeout(() => setSuccessMessage(''), 3000);
                 fetchTradeHistory();
+            } else {
+                setErrorMessage(`❌ Error closing trade: ${result.error}`);
+                setTimeout(() => setErrorMessage(''), 3000);
             }
         } catch (error) {
             console.error('Error closing trade:', error);
+            setErrorMessage(`❌ Failed to close trade: ${error.message}`);
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setIsExecutingTrade(false);
         }
     };
 
@@ -1023,7 +1103,7 @@ export default function Charts() {
                 const newIndex = backtestCurrentIndex + 1;
                 
                 if (newIndex < backtestData.length) {
-                    // Update chart with candles up to current index
+                    // Update chart with candles up to current index WITHOUT saving scroll position
                     const visibleData = backtestData.slice(0, newIndex + 1);
                     
                     if (candlestickSeriesRef.current) {
@@ -1036,7 +1116,7 @@ export default function Charts() {
                     setCurrentPrice(currentCandle.close);
                     setBacktestCurrentIndex(newIndex);
                     
-                    // Fit content to show latest
+                    // Keep showing latest candles during backtest
                     if (chartRef.current) {
                         chartRef.current.timeScale().scrollToPosition(0, false);
                     }
@@ -1248,22 +1328,69 @@ export default function Charts() {
                         </div>
                     )}
                     
+                    {/* Success Message */}
+                    {successMessage && (
+                        <div style={{ 
+                            background: `${theme.accent.green}20`,
+                            border: `2px solid ${theme.accent.green}`,
+                            color: theme.accent.green,
+                            padding: '15px',
+                            borderRadius: '12px',
+                            marginBottom: '20px',
+                            fontWeight: '600'
+                        }}>
+                            {successMessage}
+                        </div>
+                    )}
+                    
+                    {/* Error Message */}
+                    {errorMessage && (
+                        <div style={{ 
+                            background: `${theme.accent.red}20`,
+                            border: `2px solid ${theme.accent.red}`,
+                            color: theme.accent.red,
+                            padding: '15px',
+                            borderRadius: '12px',
+                            marginBottom: '20px',
+                            fontWeight: '600'
+                        }}>
+                            {errorMessage}
+                        </div>
+                    )}
+                    
                     <div style={styles.controlPanel}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <div style={styles.sectionTitle}>
                                 🎯 Current Asset: {selectedAssetInfo?.name || selectedAsset}
                             </div>
-                            <button
-                                onClick={() => setShowAssetModal(true)}
-                                style={{
-                                    ...styles.buttonSecondary,
-                                    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
-                                    color: 'white',
-                                    border: 'none'
-                                }}
-                            >
-                                🔍 Search & Select Asset
-                            </button>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {selectedAssetInfo?.assetClass === 'Stocks' && (
+                                    <button
+                                        onClick={fetchStockInfo}
+                                        disabled={loadingStockInfo}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            background: loadingStockInfo ? theme.bg.tertiary : `linear-gradient(135deg, ${theme.accent.cyan} 0%, #0891b2 100%)`,
+                                            color: loadingStockInfo ? theme.text.secondary : 'white',
+                                            border: 'none',
+                                            cursor: loadingStockInfo ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {loadingStockInfo ? '⏳ Loading...' : '📊 Stock Info'}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setShowAssetModal(true)}
+                                    style={{
+                                        ...styles.buttonSecondary,
+                                        background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+                                        color: 'white',
+                                        border: 'none'
+                                    }}
+                                >
+                                    🔍 Search & Select Asset
+                                </button>
+                            </div>
                         </div>
                         
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px' }}>
@@ -1510,10 +1637,11 @@ export default function Charts() {
                                         </div>
                                         
                                         <button
-                                            style={styles.buttonPrimary}
+                                            style={{...styles.buttonPrimary, opacity: isExecutingTrade ? 0.6 : 1}}
                                             onClick={executeTrade}
+                                            disabled={isExecutingTrade}
                                         >
-                                            {orderType === 'BUY' ? '🟢' : '🔴'} Execute @ ${currentPrice.toFixed(2)}
+                                            {isExecutingTrade ? '⏳ Executing...' : `${orderType === 'BUY' ? '🟢' : '🔴'} Execute @ $${currentPrice.toFixed(2)}`}
                                         </button>
                                     </div>
                                 )}
@@ -1973,6 +2101,82 @@ export default function Charts() {
                                     >
                                         ❌ No, Discard
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Stock Info Modal */}
+                    {showStockInfo && stockInfo && (
+                        <div style={styles.modal} onClick={() => setShowStockInfo(false)}>
+                            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
+                                        📊 {stockInfo.longName || selectedAssetInfo?.name}
+                                    </h2>
+                                    <button
+                                        onClick={() => setShowStockInfo(false)}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: theme.text.primary,
+                                            fontSize: '2rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                                    {stockInfo.currentPrice && (
+                                        <div style={styles.statCard}>
+                                            <div style={{ ...styles.statValue, color: theme.blue[600] }}>
+                                                ${stockInfo.currentPrice.toFixed(2)}
+                                            </div>
+                                            <div style={styles.statLabel}>Current Price</div>
+                                        </div>
+                                    )}
+                                    {stockInfo.marketCap && (
+                                        <div style={styles.statCard}>
+                                            <div style={{ ...styles.statValue, color: theme.accent.purple, fontSize: '1.5rem' }}>
+                                                ${(stockInfo.marketCap / 1e9).toFixed(2)}B
+                                            </div>
+                                            <div style={styles.statLabel}>Market Cap</div>
+                                        </div>
+                                    )}
+                                    {stockInfo.peRatio && (
+                                        <div style={styles.statCard}>
+                                            <div style={{ ...styles.statValue, color: theme.accent.cyan }}>
+                                                {stockInfo.peRatio.toFixed(2)}
+                                            </div>
+                                            <div style={styles.statLabel}>P/E Ratio</div>
+                                        </div>
+                                    )}
+                                    {stockInfo.dividendYield && (
+                                        <div style={styles.statCard}>
+                                            <div style={{ ...styles.statValue, color: theme.accent.green }}>
+                                                {(stockInfo.dividendYield * 100).toFixed(2)}%
+                                            </div>
+                                            <div style={styles.statLabel}>Dividend Yield</div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div style={styles.tradeCard}>
+                                    <h3 style={{ color: theme.text.primary, marginTop: 0 }}>Company Info</h3>
+                                    {stockInfo.sector && (
+                                        <p><strong>Sector:</strong> {stockInfo.sector}</p>
+                                    )}
+                                    {stockInfo.industry && (
+                                        <p><strong>Industry:</strong> {stockInfo.industry}</p>
+                                    )}
+                                    {stockInfo.website && (
+                                        <p><strong>Website:</strong> <a href={stockInfo.website} target="_blank" rel="noopener noreferrer" style={{ color: theme.blue[500] }}>{stockInfo.website}</a></p>
+                                    )}
+                                    {stockInfo.summary && (
+                                        <p style={{ marginTop: '15px', lineHeight: '1.6' }}>{stockInfo.summary}</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
