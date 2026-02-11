@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./ai_model_builder.jsx";
+import AIModelBuilder from "./AIModelBuilder";
 
 // Light theme (default)
 const lightTheme = {
@@ -462,6 +462,10 @@ export default function Charts() {
     const [isExecutingTrade, setIsExecutingTrade] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    
+    // Edit position state
+    const [editingTrade, setEditingTrade] = useState(null);
+    const [editForm, setEditForm] = useState({});
     
     // Stock info states
     const [showStockInfo, setShowStockInfo] = useState(false);
@@ -1024,6 +1028,80 @@ export default function Charts() {
         }
     };
 
+    // Edit position
+    const openEditPosition = (trade) => {
+        setEditingTrade(trade);
+        setEditForm({
+            quantity: trade.quantity,
+            stop_loss: trade.stop_loss || '',
+            take_profit: trade.take_profit || '',
+            notes: trade.notes || '',
+            order_type: trade.order_type,
+            entry_price: trade.entry_price
+        });
+    };
+
+    const saveEditPosition = async () => {
+        if (!editingTrade) return;
+
+        // Backtest trade — update locally per-asset
+        if (editingTrade.trade_id.startsWith('BACKTEST_')) {
+            const currentAsset = editingTrade.asset_symbol;
+            const assetTrades = backtestTradeHistory[currentAsset] || [];
+            const updatedTrades = assetTrades.map(t =>
+                t.trade_id === editingTrade.trade_id
+                    ? {
+                        ...t,
+                        quantity: parseFloat(editForm.quantity) || t.quantity,
+                        stop_loss: editForm.stop_loss ? parseFloat(editForm.stop_loss) : null,
+                        take_profit: editForm.take_profit ? parseFloat(editForm.take_profit) : null,
+                        notes: editForm.notes,
+                        order_type: editForm.order_type,
+                        entry_price: parseFloat(editForm.entry_price) || t.entry_price
+                    }
+                    : t
+            );
+            setBacktestTradeHistory({ ...backtestTradeHistory, [currentAsset]: updatedTrades });
+            setSuccessMessage('✅ Backtest position updated!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+            setEditingTrade(null);
+            return;
+        }
+
+        // Live trade — use API
+        setIsExecutingTrade(true);
+        try {
+            const response = await fetch(`${BACKEND_API_URL}/api/snowai-edit-trade-order/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    trade_id: editingTrade.trade_id,
+                    quantity: parseFloat(editForm.quantity),
+                    stop_loss: editForm.stop_loss ? parseFloat(editForm.stop_loss) : null,
+                    take_profit: editForm.take_profit ? parseFloat(editForm.take_profit) : null,
+                    notes: editForm.notes,
+                    order_type: editForm.order_type,
+                    entry_price: parseFloat(editForm.entry_price)
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                setSuccessMessage('✅ Position updated!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+                fetchTradeHistory();
+            } else {
+                setErrorMessage(`❌ Error: ${result.error}`);
+                setTimeout(() => setErrorMessage(''), 3000);
+            }
+        } catch (error) {
+            setErrorMessage(`❌ Failed to update position: ${error.message}`);
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setIsExecutingTrade(false);
+            setEditingTrade(null);
+        }
+    };
+
     // Fetch stock info
     const fetchStockInfo = async () => {
         setLoadingStockInfo(true);
@@ -1250,10 +1328,16 @@ export default function Charts() {
         setBacktestBalance(10000);
         setBacktestEquityCurve([]);
         
+        // Clear chart markers
+        const series = candlestickSeriesRef.current || lineSeriesRef.current;
+        if (series) {
+            try { series.setMarkers([]); } catch(e) {}
+        }
+        
         // Restore full market data
-        if (candlestickSeriesRef.current) {
+        if (candlestickSeriesRef.current && marketData.length > 0) {
             candlestickSeriesRef.current.setData(marketData);
-        } else if (lineSeriesRef.current) {
+        } else if (lineSeriesRef.current && marketData.length > 0) {
             lineSeriesRef.current.setData(marketData.map(d => ({ time: d.time, value: d.close })));
         }
         
@@ -2053,19 +2137,32 @@ export default function Charts() {
                                             )}
                                             
                                             {trade.status === 'OPEN' && (
-                                                <button
-                                                    onClick={() => closeTrade(trade.trade_id)}
-                                                    style={{
-                                                        ...styles.buttonSecondary,
-                                                        background: theme.accent.red,
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        marginTop: '10px',
-                                                        width: '100%'
-                                                    }}
-                                                >
-                                                    Close Position
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                                    <button
+                                                        onClick={() => openEditPosition(trade)}
+                                                        style={{
+                                                            ...styles.buttonSecondary,
+                                                            flex: 1,
+                                                            background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+                                                            color: 'white',
+                                                            border: 'none'
+                                                        }}
+                                                    >
+                                                        ✏️ Edit Position
+                                                    </button>
+                                                    <button
+                                                        onClick={() => closeTrade(trade.trade_id)}
+                                                        style={{
+                                                            ...styles.buttonSecondary,
+                                                            flex: 1,
+                                                            background: theme.accent.red,
+                                                            color: 'white',
+                                                            border: 'none'
+                                                        }}
+                                                    >
+                                                        🔴 Close Position
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -2232,6 +2329,135 @@ export default function Charts() {
                         </div>
                     )}
                     
+                    {/* Edit Position Modal */}
+                    {editingTrade && (
+                        <div style={styles.modal} onClick={() => setEditingTrade(null)}>
+                            <div style={{...styles.modalContent, maxWidth: '500px'}} onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                                    <h2 style={{ color: theme.blue[700], margin: 0 }}>
+                                        ✏️ Edit Open Position
+                                    </h2>
+                                    <button onClick={() => setEditingTrade(null)} style={{ background: 'transparent', border: 'none', color: theme.text.primary, fontSize: '2rem', cursor: 'pointer' }}>×</button>
+                                </div>
+
+                                <div style={{ background: theme.bg.tertiary, padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.9rem', color: theme.text.secondary }}>
+                                    <strong style={{ color: theme.text.primary }}>{editingTrade.asset_name}</strong> · {editingTrade.trade_id}
+                                </div>
+
+                                {/* Order Type */}
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Order Type</label>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        {['BUY', 'SELL'].map(type => (
+                                            <button
+                                                key={type}
+                                                onClick={() => setEditForm({ ...editForm, order_type: type })}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '10px',
+                                                    border: 'none',
+                                                    borderRadius: '8px',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer',
+                                                    background: editForm.order_type === type
+                                                        ? (type === 'BUY' ? theme.accent.green : theme.accent.red)
+                                                        : theme.bg.secondary,
+                                                    color: editForm.order_type === type ? 'white' : theme.text.secondary,
+                                                    border: `2px solid ${editForm.order_type === type ? 'transparent' : theme.border.medium}`
+                                                }}
+                                            >
+                                                {type === 'BUY' ? '🟢' : '🔴'} {type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Entry Price */}
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Entry Price</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={editForm.entry_price}
+                                        onChange={e => setEditForm({ ...editForm, entry_price: e.target.value })}
+                                        style={styles.input}
+                                    />
+                                </div>
+
+                                {/* Quantity */}
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Quantity</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        min="0"
+                                        value={editForm.quantity}
+                                        onChange={e => setEditForm({ ...editForm, quantity: e.target.value })}
+                                        style={styles.input}
+                                    />
+                                </div>
+
+                                {/* Stop Loss */}
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Stop Loss (optional)</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={editForm.stop_loss}
+                                        onChange={e => setEditForm({ ...editForm, stop_loss: e.target.value })}
+                                        placeholder="Leave blank to remove"
+                                        style={styles.input}
+                                    />
+                                </div>
+
+                                {/* Take Profit */}
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Take Profit (optional)</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={editForm.take_profit}
+                                        onChange={e => setEditForm({ ...editForm, take_profit: e.target.value })}
+                                        placeholder="Leave blank to remove"
+                                        style={styles.input}
+                                    />
+                                </div>
+
+                                {/* Notes */}
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Notes</label>
+                                    <textarea
+                                        value={editForm.notes}
+                                        onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                                        placeholder="Optional trade notes..."
+                                        style={{ ...styles.input, minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                                    <button
+                                        onClick={saveEditPosition}
+                                        disabled={isExecutingTrade}
+                                        style={{
+                                            ...styles.buttonPrimary,
+                                            flex: 1,
+                                            opacity: isExecutingTrade ? 0.6 : 1,
+                                            cursor: isExecutingTrade ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {isExecutingTrade ? '⏳ Saving...' : '💾 Save Changes'}
+                                    </button>
+                                    <button
+                                        onClick={() => setEditingTrade(null)}
+                                        style={{ ...styles.buttonSecondary, flex: 0.4 }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Save Backtest Modal */}
                     {showSaveBacktestModal && (
                         <div style={styles.modal} onClick={() => setShowSaveBacktestModal(false)}>
@@ -2240,7 +2466,7 @@ export default function Charts() {
                                     💾 Save Backtest Results?
                                 </h2>
                                 <p style={{ color: theme.text.secondary, marginBottom: '25px' }}>
-                                    You have {backtestTradeHistory.filter(t => t.status === 'CLOSED').length} closed trades from this backtest session. 
+                                    You have {(backtestTradeHistory[selectedAssetInfo?.symbol] || []).filter(t => t.status === 'CLOSED').length} closed trade(s) for <strong>{selectedAssetInfo?.name}</strong> from this backtest session.
                                     Would you like to save them to your trading history?
                                 </p>
                                 <div style={{ display: 'flex', gap: '15px' }}>
