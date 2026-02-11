@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./AIModelBuilder";
+import AIModelBuilder from "./ai_model_builder.jsx";
 
 // Light theme (default)
 const lightTheme = {
@@ -406,6 +406,172 @@ const getStyles = (theme) => ({
     margin: '20px auto'
   }
 });
+// ─── Open Position Card ────────────────────────────────────────────────────
+function OpenPositionCard({ trade, currentPrice, theme, styles, onNavigate, onEdit, onClose, isCurrentAsset }) {
+    const entryPrice = parseFloat(trade.entry_price);
+    const qty        = parseFloat(trade.quantity);
+
+    let unrealisedPnL = null;
+    let unrealisedPct = null;
+
+    if (currentPrice && entryPrice) {
+        if (trade.order_type === 'BUY') {
+            unrealisedPnL = (currentPrice - entryPrice) * qty;
+            unrealisedPct = ((currentPrice - entryPrice) / entryPrice) * 100;
+        } else {
+            unrealisedPnL = (entryPrice - currentPrice) * qty;
+            unrealisedPct = ((entryPrice - currentPrice) / entryPrice) * 100;
+        }
+    }
+
+    const pnlColour = unrealisedPnL === null ? theme.text.tertiary
+        : unrealisedPnL >= 0 ? theme.accent.green : theme.accent.red;
+
+    return (
+        <div style={{
+            background: theme.bg.tertiary,
+            border: `1px solid ${isCurrentAsset ? theme.blue[400] : theme.border.light}`,
+            borderLeft: `5px solid ${trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red}`,
+            borderRadius: '12px',
+            padding: '16px 20px',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: '12px',
+            alignItems: 'center'
+        }}>
+            {/* Left: info */}
+            <div>
+                {/* Asset name — clickable */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={onNavigate}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            color: theme.blue[isCurrentAsset ? 400 : 600],
+                            fontSize: '1.05rem',
+                            fontWeight: '700',
+                            textDecoration: 'underline',
+                            textUnderlineOffset: '3px'
+                        }}
+                        title="Navigate to this asset's chart"
+                    >
+                        {trade.asset_name || trade.asset_symbol}
+                    </button>
+                    <span style={{ fontSize: '0.8rem', color: theme.text.tertiary }}>{trade.asset_symbol}</span>
+                    {isCurrentAsset && (
+                        <span style={{ fontSize: '0.75rem', background: theme.blue[500], color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
+                            Viewing
+                        </span>
+                    )}
+                    <span style={{
+                        fontSize: '0.8rem',
+                        background: trade.order_type === 'BUY' ? `${theme.accent.green}25` : `${theme.accent.red}25`,
+                        color: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red,
+                        padding: '2px 10px', borderRadius: '10px', fontWeight: '700'
+                    }}>
+                        {trade.order_type}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: theme.text.tertiary }}>
+                        {trade.asset_class}
+                    </span>
+                </div>
+
+                {/* Price row */}
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '0.9rem' }}>
+                    <div>
+                        <span style={{ color: theme.text.tertiary }}>Entry </span>
+                        <strong style={{ color: theme.text.primary }}>${entryPrice.toFixed(2)}</strong>
+                    </div>
+                    {currentPrice && (
+                        <div>
+                            <span style={{ color: theme.text.tertiary }}>Current </span>
+                            <strong style={{ color: theme.blue[600] }}>${currentPrice.toFixed(2)}</strong>
+                        </div>
+                    )}
+                    <div>
+                        <span style={{ color: theme.text.tertiary }}>Qty </span>
+                        <strong style={{ color: theme.text.primary }}>{qty}</strong>
+                    </div>
+                    {trade.stop_loss && (
+                        <div>
+                            <span style={{ color: theme.text.tertiary }}>SL </span>
+                            <strong style={{ color: theme.accent.red }}>${parseFloat(trade.stop_loss).toFixed(2)}</strong>
+                        </div>
+                    )}
+                    {trade.take_profit && (
+                        <div>
+                            <span style={{ color: theme.text.tertiary }}>TP </span>
+                            <strong style={{ color: theme.accent.green }}>${parseFloat(trade.take_profit).toFixed(2)}</strong>
+                        </div>
+                    )}
+                </div>
+
+                {/* Unrealised P&L */}
+                {unrealisedPnL !== null && (
+                    <div style={{ marginTop: '8px', fontSize: '0.95rem', fontWeight: '700', color: pnlColour }}>
+                        Unrealised P&L: {unrealisedPnL >= 0 ? '+' : ''}${unrealisedPnL.toFixed(2)} ({unrealisedPct >= 0 ? '+' : ''}{unrealisedPct.toFixed(2)}%)
+                    </div>
+                )}
+                {!currentPrice && (
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: theme.text.tertiary, fontStyle: 'italic' }}>
+                        Navigate to this asset to see live P&L
+                    </div>
+                )}
+
+                <div style={{ marginTop: '6px', fontSize: '0.8rem', color: theme.text.tertiary }}>
+                    Opened {new Date(trade.entry_timestamp).toLocaleString()}
+                </div>
+            </div>
+
+            {/* Right: action buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '120px' }}>
+                <button
+                    onClick={onNavigate}
+                    style={{
+                        ...styles.buttonSecondary,
+                        padding: '8px 14px',
+                        fontSize: '0.85rem',
+                        background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+                        color: 'white',
+                        border: 'none',
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    📈 View Chart
+                </button>
+                <button
+                    onClick={onEdit}
+                    style={{
+                        ...styles.buttonSecondary,
+                        padding: '8px 14px',
+                        fontSize: '0.85rem',
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    ✏️ Edit
+                </button>
+                <button
+                    onClick={onClose}
+                    style={{
+                        ...styles.buttonSecondary,
+                        padding: '8px 14px',
+                        fontSize: '0.85rem',
+                        background: theme.accent.red,
+                        color: 'white',
+                        border: 'none',
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    🔴 Close
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function Charts() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
@@ -457,6 +623,11 @@ export default function Charts() {
     const [overallStats, setOverallStats] = useState(null);
     const [assetClassStats, setAssetClassStats] = useState({});
     const [assetBreakdown, setAssetBreakdown] = useState([]);
+    
+    // Open positions across all assets
+    const [allOpenPositions, setAllOpenPositions] = useState([]);
+    const [showOpenPositions, setShowOpenPositions] = useState(false);
+    const [loadingOpenPositions, setLoadingOpenPositions] = useState(false);
     
     // Loading and error states
     const [isExecutingTrade, setIsExecutingTrade] = useState(false);
@@ -1026,6 +1197,48 @@ export default function Charts() {
         } catch (error) {
             console.error('Error fetching overall performance:', error);
         }
+    };
+
+    // Fetch all open positions across all assets
+    const fetchAllOpenPositions = async () => {
+        setLoadingOpenPositions(true);
+        try {
+            const response = await fetch(`${BACKEND_API_URL}/api/snowai-fetch-all-open-positions/`);
+            const result = await response.json();
+            if (result.success) {
+                setAllOpenPositions(result.open_positions);
+            } else {
+                // Fallback: fetch from already-loaded trade history
+                setAllOpenPositions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching open positions:', error);
+            setAllOpenPositions([]);
+        } finally {
+            setLoadingOpenPositions(false);
+        }
+    };
+
+    // Switch to a different asset (same as selecting from the search modal)
+    const switchToAsset = (assetSymbol, assetClass) => {
+        // Find asset info in allAssets
+        const classKey = assetClass?.toLowerCase() || '';
+        const assetList = allAssets[classKey] || [];
+        const found = assetList.find(a => a.symbol === assetSymbol);
+        
+        if (found) {
+            setSelectedAsset(found.symbol);
+            setSelectedTimeframe('1H');
+            setShowOpenPositions(false);
+        } else {
+            // If not in loaded list, just set the symbol directly
+            setSelectedAsset(assetSymbol);
+            setSelectedTimeframe('1H');
+            setShowOpenPositions(false);
+        }
+        
+        // Clear scroll position so new asset fits content
+        lastScrollPositionRef.current = null;
     };
 
     // Edit position
@@ -1727,6 +1940,22 @@ export default function Charts() {
                                     
                                     <button
                                         onClick={() => {
+                                            setShowOpenPositions(true);
+                                            if (!backtestMode) fetchAllOpenPositions();
+                                        }}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            background: `linear-gradient(135deg, ${theme.accent.orange} 0%, #b45309 100%)`,
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '10px 20px'
+                                        }}
+                                    >
+                                        📂 Open Positions
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => {
                                             setShowOverallPerformance(true);
                                             fetchOverallPerformance();
                                         }}
@@ -2329,6 +2558,111 @@ export default function Charts() {
                         </div>
                     )}
                     
+                    {/* Open Positions Modal */}
+                    {showOpenPositions && (
+                        <div style={styles.modal} onClick={() => setShowOpenPositions(false)}>
+                            <div style={{...styles.modalContent, maxWidth: '900px'}} onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                                    <div>
+                                        <h2 style={{ color: theme.text.primary, margin: '0 0 4px 0' }}>
+                                            📂 Open Positions
+                                        </h2>
+                                        <p style={{ color: theme.text.secondary, margin: 0, fontSize: '0.9rem' }}>
+                                            {backtestMode ? 'Current backtest session' : 'All live open positions across assets'} · Click an asset to navigate to its chart
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setShowOpenPositions(false)} style={{ background: 'transparent', border: 'none', color: theme.text.primary, fontSize: '2rem', cursor: 'pointer' }}>×</button>
+                                </div>
+
+                                {/* Backtest open positions */}
+                                {backtestMode && (() => {
+                                    const allBtOpen = Object.entries(backtestTradeHistory)
+                                        .flatMap(([sym, trades]) => trades.filter(t => t.status === 'OPEN'));
+                                    return allBtOpen.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: theme.text.tertiary }}>
+                                            No open backtest positions
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto' }}>
+                                            {allBtOpen.map(trade => (
+                                                <OpenPositionCard
+                                                    key={trade.trade_id}
+                                                    trade={trade}
+                                                    currentPrice={trade.asset_symbol === selectedAsset ? currentPrice : null}
+                                                    theme={theme}
+                                                    styles={styles}
+                                                    onNavigate={() => switchToAsset(trade.asset_symbol, trade.asset_class)}
+                                                    onEdit={() => { setShowOpenPositions(false); openEditPosition(trade); }}
+                                                    onClose={() => { closeTrade(trade.trade_id); }}
+                                                    isCurrentAsset={trade.asset_symbol === selectedAsset}
+                                                />
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Live open positions */}
+                                {!backtestMode && (
+                                    loadingOpenPositions ? (
+                                        <div style={{ textAlign: 'center', padding: '40px' }}>
+                                            <div style={styles.loadingSpinner} />
+                                            <p style={{ color: theme.text.secondary, marginTop: '15px' }}>Loading open positions...</p>
+                                        </div>
+                                    ) : allOpenPositions.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: theme.text.tertiary }}>
+                                            <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📭</div>
+                                            <p>No open positions found</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* Summary row */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                                                <div style={styles.statCard}>
+                                                    <div style={{ ...styles.statValue, fontSize: '1.6rem', color: theme.blue[600] }}>{allOpenPositions.length}</div>
+                                                    <div style={styles.statLabel}>Open Positions</div>
+                                                </div>
+                                                <div style={styles.statCard}>
+                                                    <div style={{ ...styles.statValue, fontSize: '1.6rem', color: theme.accent.green }}>
+                                                        {allOpenPositions.filter(t => t.order_type === 'BUY').length}
+                                                    </div>
+                                                    <div style={styles.statLabel}>Long (BUY)</div>
+                                                </div>
+                                                <div style={styles.statCard}>
+                                                    <div style={{ ...styles.statValue, fontSize: '1.6rem', color: theme.accent.red }}>
+                                                        {allOpenPositions.filter(t => t.order_type === 'SELL').length}
+                                                    </div>
+                                                    <div style={styles.statLabel}>Short (SELL)</div>
+                                                </div>
+                                                <div style={styles.statCard}>
+                                                    <div style={{ ...styles.statValue, fontSize: '1.6rem', color: theme.accent.purple }}>
+                                                        {new Set(allOpenPositions.map(t => t.asset_symbol)).size}
+                                                    </div>
+                                                    <div style={styles.statLabel}>Assets</div>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '50vh', overflowY: 'auto' }}>
+                                                {allOpenPositions.map(trade => (
+                                                    <OpenPositionCard
+                                                        key={trade.trade_id}
+                                                        trade={trade}
+                                                        currentPrice={trade.asset_symbol === selectedAsset ? currentPrice : null}
+                                                        theme={theme}
+                                                        styles={styles}
+                                                        onNavigate={() => switchToAsset(trade.asset_symbol, trade.asset_class)}
+                                                        onEdit={() => { setShowOpenPositions(false); openEditPosition(trade); }}
+                                                        onClose={() => { closeTrade(trade.trade_id); setAllOpenPositions(p => p.filter(t => t.trade_id !== trade.trade_id)); }}
+                                                        isCurrentAsset={trade.asset_symbol === selectedAsset}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </>
+                                    )
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Edit Position Modal */}
                     {editingTrade && (
                         <div style={styles.modal} onClick={() => setEditingTrade(null)}>
