@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./ai_model_builder";
+import AIModelBuilder from "./ai_model_builder.jsx";
 
 // Light theme (default)
 const lightTheme = {
@@ -606,6 +606,8 @@ export default function Charts() {
     const [quantity, setQuantity] = useState(1);
     const [stopLoss, setStopLoss] = useState('');
     const [takeProfit, setTakeProfit] = useState('');
+    const [slPct, setSlPct] = useState('');
+    const [tpPct, setTpPct] = useState('');
     const [tradeNotes, setTradeNotes] = useState('');
     
     // Trade history states
@@ -745,9 +747,14 @@ export default function Charts() {
 
     useEffect(() => {
         setSelectedAssetInfo(getCurrentAssetInfo());
-        // Clear trade history when switching assets
+        // Clear trade history + chart overlays when switching assets
         setTradeHistory([]);
         setTradeStats(null);
+        // Clear chart markers + price lines for old asset
+        const series = candlestickSeriesRef.current || lineSeriesRef.current;
+        if (series) {
+            try { series.setMarkers([]); } catch(e) {}
+        }
     }, [selectedAsset, allAssets]);
 
     // Fetch OpenAI API key
@@ -1155,6 +1162,8 @@ export default function Charts() {
                 setTimeout(() => setSuccessMessage(''), 3000);
                 setStopLoss('');
                 setTakeProfit('');
+                setSlPct('');
+                setTpPct('');
                 setTradeNotes('');
                 setShowTradePanel(false);
             } catch (error) {
@@ -2103,85 +2112,101 @@ export default function Charts() {
                                     <div style={styles.tradeModalOverlay}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                             <h3 style={{ margin: 0, color: theme.blue[700] }}>💼 Execute Trade</h3>
-                                            <button
-                                                onClick={() => setShowTradePanel(false)}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    fontSize: '1.5rem',
-                                                    cursor: 'pointer',
-                                                    color: theme.text.secondary
+                                            <button onClick={() => setShowTradePanel(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: theme.text.secondary }}>×</button>
+                                        </div>
+
+                                        {/* BUY / SELL toggle */}
+                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                                            {['BUY','SELL'].map(t => (
+                                                <button key={t} onClick={() => {
+                                                    setOrderType(t);
+                                                    // Recalc SL/TP when direction flips
+                                                    if (slPct) {
+                                                        const sl = t === 'BUY' ? currentPrice*(1-parseFloat(slPct)/100) : currentPrice*(1+parseFloat(slPct)/100);
+                                                        setStopLoss(sl.toFixed(4));
+                                                    }
+                                                    if (tpPct) {
+                                                        const tp = t === 'BUY' ? currentPrice*(1+parseFloat(tpPct)/100) : currentPrice*(1-parseFloat(tpPct)/100);
+                                                        setTakeProfit(tp.toFixed(4));
+                                                    }
                                                 }}
-                                            >
-                                                ×
-                                            </button>
+                                                style={{ flex:1, padding:'10px', border:'none', borderRadius:'8px', fontWeight:'700', cursor:'pointer',
+                                                    background: orderType===t ? (t==='BUY'?theme.accent.green:theme.accent.red) : theme.bg.tertiary,
+                                                    color: orderType===t ? 'white' : theme.text.secondary,
+                                                    border: `2px solid ${orderType===t ? 'transparent' : theme.border.medium}`
+                                                }}>{t==='BUY' ? '🟢 BUY' : '🔴 SELL'}</button>
+                                            ))}
                                         </div>
-                                        
-                                        <div style={styles.formGroup}>
-                                            <label style={styles.label}>Order Type</label>
-                                            <select 
-                                                style={styles.select}
-                                                value={orderType}
-                                                onChange={(e) => setOrderType(e.target.value)}
-                                            >
-                                                <option value="BUY">🟢 BUY</option>
-                                                <option value="SELL">🔴 SELL</option>
-                                            </select>
-                                        </div>
-                                        
+
+                                        {/* Quantity */}
                                         <div style={styles.formGroup}>
                                             <label style={styles.label}>Quantity</label>
-                                            <input
-                                                type="number"
-                                                style={styles.input}
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(parseFloat(e.target.value))}
-                                                min="0.01"
-                                                step="0.01"
-                                            />
+                                            <input type="number" style={styles.input} value={quantity} onChange={e => setQuantity(parseFloat(e.target.value))} min="0.01" step="0.01" />
                                         </div>
-                                        
+
+                                        {/* Stop Loss — price OR % */}
                                         <div style={styles.formGroup}>
-                                            <label style={styles.label}>Stop Loss (Optional)</label>
-                                            <input
-                                                type="number"
-                                                style={styles.input}
-                                                placeholder="Enter stop loss"
-                                                value={stopLoss}
-                                                onChange={(e) => setStopLoss(e.target.value)}
-                                                step="0.01"
-                                            />
+                                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                                                <label style={{...styles.label, margin:0}}>Stop Loss</label>
+                                                <div style={{ display:'flex', gap:'6px' }}>
+                                                    <input type="number" placeholder="%" value={slPct} min="0" step="0.1"
+                                                        onChange={e => {
+                                                            setSlPct(e.target.value);
+                                                            if (e.target.value && currentPrice) {
+                                                                const sl = orderType==='BUY' ? currentPrice*(1-parseFloat(e.target.value)/100) : currentPrice*(1+parseFloat(e.target.value)/100);
+                                                                setStopLoss(sl.toFixed(4));
+                                                            } else { setStopLoss(''); }
+                                                        }}
+                                                        style={{...styles.input, width:'70px', padding:'6px 8px', fontSize:'0.85rem', textAlign:'center'}} />
+                                                    <span style={{ color:theme.text.tertiary, lineHeight:'34px', fontSize:'0.8rem' }}>%</span>
+                                                </div>
+                                            </div>
+                                            <input type="number" style={styles.input} placeholder="Price level (or use % above)" value={stopLoss}
+                                                onChange={e => { setStopLoss(e.target.value); setSlPct(''); }} step="0.0001" />
+                                            {stopLoss && <div style={{ fontSize:'0.78rem', color:theme.accent.red, marginTop:'3px' }}>SL @ ${parseFloat(stopLoss).toFixed(4)} · Risk: ${Math.abs((parseFloat(stopLoss)-currentPrice)*quantity).toFixed(2)}</div>}
                                         </div>
-                                        
+
+                                        {/* Take Profit — price OR % */}
                                         <div style={styles.formGroup}>
-                                            <label style={styles.label}>Take Profit (Optional)</label>
-                                            <input
-                                                type="number"
-                                                style={styles.input}
-                                                placeholder="Enter take profit"
-                                                value={takeProfit}
-                                                onChange={(e) => setTakeProfit(e.target.value)}
-                                                step="0.01"
-                                            />
+                                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
+                                                <label style={{...styles.label, margin:0}}>Take Profit</label>
+                                                <div style={{ display:'flex', gap:'6px' }}>
+                                                    <input type="number" placeholder="%" value={tpPct} min="0" step="0.1"
+                                                        onChange={e => {
+                                                            setTpPct(e.target.value);
+                                                            if (e.target.value && currentPrice) {
+                                                                const tp = orderType==='BUY' ? currentPrice*(1+parseFloat(e.target.value)/100) : currentPrice*(1-parseFloat(e.target.value)/100);
+                                                                setTakeProfit(tp.toFixed(4));
+                                                            } else { setTakeProfit(''); }
+                                                        }}
+                                                        style={{...styles.input, width:'70px', padding:'6px 8px', fontSize:'0.85rem', textAlign:'center'}} />
+                                                    <span style={{ color:theme.text.tertiary, lineHeight:'34px', fontSize:'0.8rem' }}>%</span>
+                                                </div>
+                                            </div>
+                                            <input type="number" style={styles.input} placeholder="Price level (or use % above)" value={takeProfit}
+                                                onChange={e => { setTakeProfit(e.target.value); setTpPct(''); }} step="0.0001" />
+                                            {takeProfit && <div style={{ fontSize:'0.78rem', color:theme.accent.green, marginTop:'3px' }}>TP @ ${parseFloat(takeProfit).toFixed(4)} · Gain: ${Math.abs((parseFloat(takeProfit)-currentPrice)*quantity).toFixed(2)}</div>}
                                         </div>
-                                        
+
+                                        {/* R:R ratio */}
+                                        {stopLoss && takeProfit && (
+                                            <div style={{ padding:'10px', background:`${theme.accent.cyan}15`, borderRadius:'8px', marginBottom:'12px', fontSize:'0.85rem', textAlign:'center' }}>
+                                                <span style={{ color:theme.text.secondary }}>Risk/Reward: </span>
+                                                <strong style={{ color:theme.accent.cyan }}>
+                                                    1 : {(Math.abs(parseFloat(takeProfit)-currentPrice) / Math.abs(parseFloat(stopLoss)-currentPrice)).toFixed(2)}
+                                                </strong>
+                                            </div>
+                                        )}
+
                                         <div style={styles.formGroup}>
                                             <label style={styles.label}>Notes (Optional)</label>
-                                            <input
-                                                type="text"
-                                                style={styles.input}
-                                                placeholder="Trade notes..."
-                                                value={tradeNotes}
-                                                onChange={(e) => setTradeNotes(e.target.value)}
-                                            />
+                                            <input type="text" style={styles.input} placeholder="Trade notes..." value={tradeNotes} onChange={e => setTradeNotes(e.target.value)} />
                                         </div>
-                                        
-                                        <button
-                                            style={{...styles.buttonPrimary, opacity: isExecutingTrade ? 0.6 : 1}}
-                                            onClick={executeTrade}
-                                            disabled={isExecutingTrade}
-                                        >
-                                            {isExecutingTrade ? '⏳ Executing...' : `${orderType === 'BUY' ? '🟢' : '🔴'} Execute @ $${currentPrice.toFixed(2)}`}
+
+                                        <button style={{...styles.buttonPrimary, opacity: isExecutingTrade ? 0.6 : 1,
+                                            background: orderType==='BUY' ? `linear-gradient(135deg,${theme.accent.green},#059669)` : `linear-gradient(135deg,${theme.accent.red},#b91c1c)`
+                                        }} onClick={executeTrade} disabled={isExecutingTrade}>
+                                            {isExecutingTrade ? '⏳ Executing...' : `${orderType==='BUY'?'🟢':'🔴'} ${orderType} @ $${currentPrice.toFixed(4)}`}
                                         </button>
                                     </div>
                                 )}
