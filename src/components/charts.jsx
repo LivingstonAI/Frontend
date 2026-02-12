@@ -1489,30 +1489,73 @@ export default function Charts() {
 
     // Start backtest - proper implementation
     const startBacktest = async () => {
-        if (backtestData.length === 0) {
-            alert('Please wait for market data to load first');
+        setErrorMessage('');
+        
+        // Always fetch fresh data for the current asset before starting backtest
+        const assetInfo = getCurrentAssetInfo();
+        let freshData = [];
+        
+        try {
+            setSuccessMessage('⏳ Loading chart data for backtest...');
+            
+            if (assetInfo.binanceSymbol) {
+                const response = await fetch(
+                    `https://api.binance.com/api/v3/klines?symbol=${assetInfo.binanceSymbol}&interval=${timeframes[timeframe].binanceInterval}&limit=500`
+                );
+                const rawData = await response.json();
+                freshData = rawData.map((kline) => ({
+                    time: Math.floor(kline[0] / 1000),
+                    open: parseFloat(kline[1]),
+                    high: parseFloat(kline[2]),
+                    low: parseFloat(kline[3]),
+                    close: parseFloat(kline[4]),
+                    volume: parseFloat(kline[5])
+                }));
+            } else {
+                const response = await fetch(`${BACKEND_API_URL}/api/snowai-market-ohlc/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: assetInfo.yfinanceSymbol || assetInfo.symbol,
+                        interval: timeframes[timeframe].interval,
+                        period: timeframes[timeframe].yfinancePeriod
+                    })
+                });
+                const result = await response.json();
+                freshData = result.data || [];
+            }
+        } catch (error) {
+            setErrorMessage(`❌ Failed to load data: ${error.message}`);
+            setTimeout(() => setErrorMessage(''), 4000);
             return;
         }
-
+        
+        if (!freshData || freshData.length < 2) {
+            setErrorMessage('❌ Not enough data to backtest this asset/timeframe');
+            setTimeout(() => setErrorMessage(''), 4000);
+            return;
+        }
+        
+        setSuccessMessage('');
+        setBacktestData(freshData);
         setBacktestMode(true);
         setBacktestCurrentIndex(0);
         setBacktestBalance(10000);
+        setBacktestEquityCurve([]);
         setBacktestTrades([]);
         setBacktestPaused(false);
         
-        // Clear chart and show first candle only
+        // Start chart from first candle
         if (candlestickSeriesRef.current) {
-            candlestickSeriesRef.current.setData([backtestData[0]]);
+            candlestickSeriesRef.current.setData([freshData[0]]);
         } else if (lineSeriesRef.current) {
-            lineSeriesRef.current.setData([{ time: backtestData[0].time, value: backtestData[0].close }]);
+            lineSeriesRef.current.setData([{ time: freshData[0].time, value: freshData[0].close }]);
         }
         
-        setCurrentPrice(backtestData[0].close);
-        
-        const assetInfo = getCurrentAssetInfo();
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        setCurrentPrice(freshData[0].close);
         
         try {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const response = await fetch(`${BACKEND_API_URL}/api/snowai-start-paper-trading-backtest/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1520,18 +1563,16 @@ export default function Charts() {
                     asset_symbol: assetInfo.symbol,
                     asset_name: assetInfo.name,
                     timeframe: timeframe,
-                    start_date: new Date(backtestData[0].time * 1000).toISOString(),
-                    end_date: new Date(backtestData[backtestData.length - 1].time * 1000).toISOString(),
-                    initial_balance: 10000
+                    start_date: new Date(freshData[0].time * 1000).toISOString(),
+                    end_date: new Date(freshData[freshData.length - 1].time * 1000).toISOString(),
+                    initial_balance: 10000,
+                    timezone: tz
                 })
             });
-            
             const result = await response.json();
-            if (result.success) {
-                setBacktestSession(result.session_data);
-            }
+            if (result.success) setBacktestSession(result.session_data);
         } catch (error) {
-            console.error('Error starting backtest:', error);
+            console.error('Error registering backtest session:', error);
         }
     };
 
