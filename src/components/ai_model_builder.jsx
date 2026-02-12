@@ -71,6 +71,40 @@ export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
     const showErr = (msg) => { setError(msg); setTimeout(() => setError(''), 4000); };
     const showOk  = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 3000); };
 
+    const SYSTEM_PROMPT = `You are a Python quantitative analyst generating OHLC signal functions for a trading terminal.
+
+STRICT RULES:
+1. Return ONLY raw Python code — no markdown, no backticks, no prose
+2. Function accepts a pandas DataFrame with columns: open, high, low, close, volume, timestamp
+3. Must return a boolean (True/False)
+4. Only use: pandas, numpy, or Python stdlib
+5. Include a one-line docstring
+6. Start directly with imports or def
+
+REFERENCE FUNCTIONS — already available in the runtime. You may CALL these directly without redefining or importing them:
+
+  is_stable_market(data, lookback_period=30) -> bool
+    True if market MSS >= 47 (trending, low volatility, good conditions)
+
+  is_high_trend_elasticity(data, lookback_period=30, threshold=0.50) -> bool
+    True if average retracements are shallow (<50% of trend moves) — strong momentum
+
+  get_mss_value(data, lookback_period=30) -> float
+    Returns raw MSS score 0-100
+
+  calculate_trend_elasticity(data, lookback_period=30) -> dict
+    Returns: {elasticity, category, description, r_squared, consistency, slope_direction}
+
+EXAMPLE using reference functions:
+  def is_strong_uptrend_signal(df):
+      """True if market is stable, elastic, and latest close is above 20-bar SMA."""
+      if not is_stable_market(df) or not is_high_trend_elasticity(df):
+          return False
+      sma = df['close'].rolling(20).mean().iloc[-1]
+      return float(df['close'].iloc[-1]) > float(sma)
+
+NEVER include: @csrf_exempt, def view(request), JsonResponse, yf.Ticker, requests, Django, Flask`;
+
     const generateModel = async () => {
         if (!modelPrompt.trim()) { showErr('Describe the signal'); return; }
         if (!modelName.trim()) { showErr('Enter a function name'); return; }
@@ -82,8 +116,8 @@ export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
                 body: JSON.stringify({
                     model: 'gpt-4o-mini',
                     messages: [
-                        { role: 'system', content: 'Python quant analyst. Return ONLY raw Python, no markdown. Function accepts pandas DataFrame (open,high,low,close,volume,timestamp) and returns bool. No Django/Flask/HTTP.' },
-                        { role: 'user', content: `Signal: ${modelPrompt}\nFunction: ${modelName}\nContext: ${modelDescription||'none'}\nReturn raw Python only.` }
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: `Signal: ${modelPrompt}\nFunction name: ${modelName}\nContext: ${modelDescription||'none'}\nReturn raw Python only.` }
                     ],
                     temperature: 0.7, max_tokens: 2000
                 })
@@ -121,16 +155,19 @@ export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
         if (!baseCode) { showErr('No code to improve'); return; }
         setIsImproving(true);
         try {
+            const errorCtx = detailModel?.error_log
+                ? `\n\nERROR LOG FROM LAST RUN (fix this too):\n${detailModel.error_log}`
+                : '';
             const res = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
                 body: JSON.stringify({
                     model: 'gpt-4o-mini',
                     messages: [
-                        { role: 'system', content: 'You are a Python quant analyst. Improve the given OHLC signal function as requested. Return ONLY raw Python code, no markdown, no prose. Keep the same function name and signature. Function must return bool.' },
-                        { role: 'user', content: `Current code:\n\n${baseCode}\n\nImprovement request: ${improvePrompt}\n\nReturn improved code only.` }
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: `Improve this function:\n\n${baseCode}${errorCtx}\n\nRequested improvement: ${improvePrompt}\n\nReturn ONLY the improved raw Python. Keep function name and bool return.` }
                     ],
-                    temperature: 0.6, max_tokens: 2000
+                    temperature: 0.5, max_tokens: 2000
                 })
             });
             if (!res.ok) throw new Error(`OpenAI ${res.status}`);
@@ -303,14 +340,21 @@ export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
                         ))}
                     </div>
 
-                    {/* Error log */}
-                    {detailModel.error_log && (
-                        <div style={{ background:`${theme.accent.red}10`, border:`1px solid ${theme.accent.red}`, borderRadius:'10px', padding:'14px', marginTop:'16px' }}>
-                            <div style={{ fontWeight:'700', color:theme.accent.red, marginBottom:'6px' }}>⚠️ Last Error Log</div>
-                            <pre style={{ margin:0, fontSize:'0.78rem', color:theme.accent.red, overflow:'auto', maxHeight:'150px', whiteSpace:'pre-wrap' }}>{detailModel.error_log}</pre>
-                            <div style={{ fontSize:'0.8rem', color:theme.text.secondary, marginTop:'8px' }}>Use the AI Improve tool below to fix this error.</div>
-                        </div>
-                    )}
+                    {/* Error log — always shown */}
+                    <div style={{ marginTop:'16px' }}>
+                        {detailModel.error_log ? (
+                            <div style={{ background:`${theme.accent.red}10`, border:`1px solid ${theme.accent.red}`, borderRadius:'10px', padding:'14px' }}>
+                                <div style={{ fontWeight:'700', color:theme.accent.red, marginBottom:'6px' }}>⚠️ Last Error Log</div>
+                                <pre style={{ margin:0, fontSize:'0.78rem', color:theme.accent.red, overflow:'auto', maxHeight:'150px', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{detailModel.error_log}</pre>
+                                <div style={{ fontSize:'0.8rem', color:theme.text.secondary, marginTop:'8px' }}>Use the AI Improve tool below → type "fix the error above".</div>
+                            </div>
+                        ) : (
+                            <div style={{ background:`${theme.accent.green}10`, border:`1px solid ${theme.accent.green}`, borderRadius:'10px', padding:'12px 14px', display:'flex', alignItems:'center', gap:'10px' }}>
+                                <span style={{ fontSize:'1.2rem' }}>✅</span>
+                                <span style={{ color:theme.accent.green, fontWeight:'600', fontSize:'0.88rem' }}>No errors found — last run completed cleanly.</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Current code */}

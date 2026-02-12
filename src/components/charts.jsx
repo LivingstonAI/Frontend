@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import AIModelBuilder from "./ai_model_builder.jsx";
+import AIModelBuilder from "./ai_model_builder";
 
 // Light theme (default)
 const lightTheme = {
@@ -630,6 +630,11 @@ export default function Charts() {
     const [allOpenPositions, setAllOpenPositions] = useState([]);
     const [showOpenPositions, setShowOpenPositions] = useState(false);
     const [loadingOpenPositions, setLoadingOpenPositions] = useState(false);
+
+    // Market Stability Score panel
+    const [mssData, setMssData] = useState(null);
+    const [loadingMss, setLoadingMss] = useState(false);
+    const [showMssPanel, setShowMssPanel] = useState(false);
     
     // Loading and error states
     const [isExecutingTrade, setIsExecutingTrade] = useState(false);
@@ -750,6 +755,9 @@ export default function Charts() {
         // Clear trade history + chart overlays when switching assets
         setTradeHistory([]);
         setTradeStats(null);
+        // Clear MSS so it doesn't show stale data for previous asset
+        setMssData(null);
+        setShowMssPanel(false);
         // Clear chart markers + price lines for old asset
         const series = candlestickSeriesRef.current || lineSeriesRef.current;
         if (series) {
@@ -1272,6 +1280,35 @@ export default function Charts() {
             setAllOpenPositions([]);
         } finally {
             setLoadingOpenPositions(false);
+        }
+    };
+
+    // Fetch Market Stability Score for the currently viewed asset
+    const fetchMss = async () => {
+        if (!selectedAssetInfo) return;
+        setLoadingMss(true);
+        setMssData(null);
+        try {
+            const sym = selectedAssetInfo.yfinanceSymbol || selectedAssetInfo.symbol;
+            const response = await fetch(`${BACKEND_API_URL}/api/mss/calculate/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbols: [sym], period: 60 })
+            });
+            const result = await response.json();
+            if (result.success && result.data && result.data.length > 0) {
+                setMssData(result.data[0]);
+                setShowMssPanel(true);
+            } else {
+                setMssData(null);
+                setErrorMessage('Could not compute MSS for this asset.');
+                setTimeout(() => setErrorMessage(''), 3000);
+            }
+        } catch (e) {
+            setErrorMessage(`MSS fetch error: ${e.message}`);
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setLoadingMss(false);
         }
     };
 
@@ -1882,7 +1919,7 @@ export default function Charts() {
                             <div style={styles.sectionTitle}>
                                 🎯 Current Asset: {selectedAssetInfo?.name || selectedAsset}
                             </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                                 {selectedAssetInfo?.assetClass === 'Stocks' && (
                                     <button
                                         onClick={fetchStockInfo}
@@ -1899,6 +1936,19 @@ export default function Charts() {
                                     </button>
                                 )}
                                 <button
+                                    onClick={() => { if (showMssPanel && mssData) { setShowMssPanel(false); } else { fetchMss(); } }}
+                                    disabled={loadingMss}
+                                    style={{
+                                        ...styles.buttonSecondary,
+                                        background: loadingMss ? theme.bg.tertiary : showMssPanel ? `linear-gradient(135deg,${theme.accent.purple},#6d28d9)` : `linear-gradient(135deg,${theme.accent.orange},#b45309)`,
+                                        color: (loadingMss) ? theme.text.secondary : 'white',
+                                        border: 'none',
+                                        cursor: loadingMss ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {loadingMss ? '⏳ Analyzing...' : showMssPanel ? '📉 Hide MSS' : '📉 Market Score'}
+                                </button>
+                                <button
                                     onClick={() => setShowAssetModal(true)}
                                     style={{
                                         ...styles.buttonSecondary,
@@ -1912,6 +1962,62 @@ export default function Charts() {
                             </div>
                         </div>
                         
+                        {/* MSS Panel — inline, shown when user clicks Market Score */}
+                        {showMssPanel && mssData && (() => {
+                            const mss = mssData.mss;
+                            const cat = mssData.category; // stable / choppy / volatile
+                            const catColor = cat === 'stable' ? theme.accent.green : cat === 'choppy' ? theme.accent.orange : theme.accent.red;
+                            const catIcon  = cat === 'stable' ? '✅' : cat === 'choppy' ? '⚠️' : '🚨';
+                            const mssBarWidth = `${Math.min(mss, 100)}%`;
+                            return (
+                                <div style={{ background: theme.bg.tertiary, borderRadius: '12px', padding: '16px 18px', marginBottom: '14px', border: `1px solid ${catColor}40` }}>
+                                    {/* Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                                        <div>
+                                            <span style={{ fontWeight: '700', color: theme.text.primary, fontSize: '0.95rem' }}>📉 Market Stability Score</span>
+                                            <span style={{ marginLeft: '10px', fontSize: '0.78rem', color: theme.text.tertiary }}>60-day · {mssData.symbol}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontSize: '1.4rem', fontWeight: '800', color: catColor }}>{mss.toFixed(1)}</span>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: catColor, background: `${catColor}18`, padding: '3px 10px', borderRadius: '10px' }}>{catIcon} {mssData.status}</span>
+                                            <button onClick={() => setShowMssPanel(false)} style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
+                                        </div>
+                                    </div>
+
+                                    {/* MSS progress bar */}
+                                    <div style={{ background: theme.bg.elevated, borderRadius: '8px', height: '10px', marginBottom: '14px', overflow: 'hidden' }}>
+                                        <div style={{ width: mssBarWidth, height: '100%', borderRadius: '8px', background: `linear-gradient(90deg, ${catColor}80, ${catColor})`, transition: 'width 0.6s ease' }} />
+                                    </div>
+
+                                    {/* Metric grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
+                                        {[
+                                            ['R²', `${(mssData.r_squared * 100).toFixed(1)}%`, 'Trend clarity', theme.blue[600]],
+                                            ['Consistency', `${(mssData.trend_consistency * 100).toFixed(1)}%`, 'Directional %', theme.accent.cyan],
+                                            ['Strength',    `${(mssData.trend_strength * 100).toFixed(1)}%`, 'Slope magnitude', theme.accent.purple],
+                                            ['Volatility',  `${(mssData.volatility * 100).toFixed(2)}%`, 'Daily σ', mssData.volatility > 0.03 ? theme.accent.red : theme.accent.green],
+                                            ['Liquidity',   `${mssData.liquidity_factor}×`, 'Vol factor', theme.accent.orange],
+                                            ['Price Δ',     `${mssData.price_change >= 0 ? '+' : ''}${mssData.price_change.toFixed(2)}%`, '60-day return', mssData.price_change >= 0 ? theme.accent.green : theme.accent.red],
+                                        ].map(([label, value, sub, color]) => (
+                                            <div key={label} style={{ background: theme.bg.elevated, borderRadius: '8px', padding: '10px 12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.68rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '2px' }}>{label}</div>
+                                                <div style={{ fontSize: '1rem', fontWeight: '700', color }}>{value}</div>
+                                                <div style={{ fontSize: '0.65rem', color: theme.text.tertiary, marginTop: '1px' }}>{sub}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Trading verdict */}
+                                    <div style={{ marginTop: '12px', padding: '10px 14px', background: `${catColor}12`, borderRadius: '8px', border: `1px solid ${catColor}30`, fontSize: '0.84rem', color: theme.text.secondary }}>
+                                        <strong style={{ color: catColor }}>{catIcon} {cat === 'stable' ? 'Good conditions' : cat === 'choppy' ? 'Trade cautiously' : 'Avoid trading'}: </strong>
+                                        {cat === 'stable'   && `Trending market with clear direction. MSS ${mss.toFixed(0)} ≥ 47. R² of ${(mssData.r_squared*100).toFixed(0)}% shows strong trend clarity.`}
+                                        {cat === 'choppy'   && `Market is in between — some trend present but not ideal. Consider tighter stops. MSS ${mss.toFixed(0)} is 30–47.`}
+                                        {cat === 'volatile' && `Choppy, unpredictable price action. MSS ${mss.toFixed(0)} < 30. High volatility (${(mssData.volatility*100).toFixed(2)}% daily σ) reduces edge.`}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px' }}>
                             <span style={{ color: theme.text.secondary, fontWeight: '600' }}>⏰ Timeframe:</span>
                             {Object.keys(timeframes).map(key => (
