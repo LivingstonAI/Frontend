@@ -686,7 +686,9 @@ export default function Charts() {
     const [backtestModelSl, setBacktestModelSl] = useState('4');
     const [backtestModelOpen, setBacktestModelOpen] = useState(false);
     const [showBacktestConfig, setShowBacktestConfig] = useState(false);
-    const [expandedModelCode, setExpandedModelCode] = useState(null); // model_id whose code is expanded
+    const [expandedModelCode, setExpandedModelCode] = useState(null);
+    const [codePreviewPrompt, setCodePreviewPrompt] = useState(null); // { modelId, modelCode, modelNotes }
+    const [codePreviewModel,  setCodePreviewModel]  = useState(null); // same shape — full screen view
 
     const timeframes = {
         '1M': { label: '1 Minute', interval: '1m', binanceInterval: '1m', yfinancePeriod: '1d', updateInterval: 10000 },
@@ -2484,47 +2486,62 @@ export default function Charts() {
                                                     </div>
 
                                                     {forwardTestModels.map((m, idx) => {
-                                                        // Defensive field mapping — handle whatever shape the API returns
                                                         const modelId    = m.model_id || m.id || `model-${idx}`;
                                                         const modelCode  = m.cleaned_model_code || m.code || m.model_code || '';
                                                         const modelNotes = m.notes || m.description || '';
-                                                        const modelDate  = m.created_at || m.date || m.timestamp || '';
+                                                        const modelDate  = m.created_at || m.date || '';
                                                         const isSelected = selectedBacktestModel?.model_id === modelId;
-                                                        const codeVisible = expandedModelCode === modelId;
                                                         return (
                                                             <div key={modelId} style={{
-                                                                borderRadius: '10px',
-                                                                border: `2px solid ${isSelected ? theme.accent.purple : codeVisible ? theme.accent.orange : theme.border.medium}`,
-                                                                background: isSelected ? `${theme.accent.purple}15` : theme.bg.tertiary,
-                                                                overflow: 'hidden',
-                                                                minHeight: '52px',
+                                                                display: 'flex', alignItems: 'center', gap: '10px',
+                                                                padding: '11px 14px', borderRadius: '10px',
+                                                                border: `2px solid ${isSelected ? theme.accent.purple : theme.border.light}`,
+                                                                background: isSelected ? `${theme.accent.purple}12` : theme.bg.elevated,
                                                             }}>
-                                                                {/* ── Top row ── */}
-                                                                <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                                    {/* Left: name + meta — click to expand code */}
-                                                                    <div onClick={() => setExpandedModelCode(codeVisible ? null : modelId)}
-                                                                        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                                                                        <div style={{ fontWeight: '700', fontSize: '0.9rem', color: isSelected ? theme.accent.purple : theme.text.primary,
-                                                                            display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
-                                                                            <span style={{ color: theme.text.secondary }}>{codeVisible ? '▼' : '▶'}</span>
-                                                                            <span>{modelId}</span>
-                                                                            {isSelected && <span style={{ fontSize: '0.7rem', background: `${theme.accent.purple}30`, color: theme.accent.purple, padding: '1px 8px', borderRadius: '8px' }}>ACTIVE</span>}
-                                                                        </div>
-                                                                        {modelNotes
-                                                                            ? <div style={{ fontSize: '0.76rem', color: theme.text.secondary, marginTop: '3px' }}>{modelNotes}</div>
-                                                                            : null}
-                                                                        <div style={{ fontSize: '0.7rem', color: theme.text.tertiary, marginTop: '3px' }}>
-                                                                            {modelDate ? new Date(modelDate).toLocaleDateString() : ''}
-                                                                            {modelCode ? ` · ${modelCode.split('\n').length} lines` : ' · no code'}
-                                                                            {' · click to '}{codeVisible ? 'hide' : 'view'}{' code'}
-                                                                        </div>
+                                                                {/* Left: model info */}
+                                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                                    <div style={{ fontWeight: '700', fontSize: '0.9rem',
+                                                                        color: isSelected ? theme.accent.purple : theme.text.primary,
+                                                                        display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        {modelId}
+                                                                        {isSelected && (
+                                                                            <span style={{ fontSize: '0.68rem', fontWeight: '700',
+                                                                                background: `${theme.accent.purple}25`, color: theme.accent.purple,
+                                                                                padding: '1px 8px', borderRadius: '8px', letterSpacing: '0.03em' }}>
+                                                                                ACTIVE
+                                                                            </span>
+                                                                        )}
                                                                     </div>
-                                                                    {/* Right: Use / Remove */}
+                                                                    {modelNotes && (
+                                                                        <div style={{ fontSize: '0.75rem', color: theme.text.secondary, marginTop: '2px' }}>{modelNotes}</div>
+                                                                    )}
+                                                                    <div style={{ fontSize: '0.7rem', color: theme.text.tertiary, marginTop: '2px' }}>
+                                                                        {modelDate ? new Date(modelDate).toLocaleDateString() : ''}
+                                                                        {modelCode ? ` · ${modelCode.split('\n').length} lines` : ''}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Right: actions */}
+                                                                <div style={{ display: 'flex', gap: '7px', flexShrink: 0 }}>
+                                                                    {/* 👁 Code button */}
+                                                                    <button
+                                                                        onClick={e => { e.stopPropagation(); setCodePreviewPrompt({ modelId, modelCode, modelNotes }); }}
+                                                                        style={{
+                                                                            padding: '6px 12px', fontSize: '0.8rem', borderRadius: '7px',
+                                                                            border: `1px solid ${theme.border.medium}`,
+                                                                            background: theme.bg.tertiary,
+                                                                            color: theme.text.secondary,
+                                                                            cursor: 'pointer', fontWeight: '600',
+                                                                            display: 'flex', alignItems: 'center', gap: '5px',
+                                                                        }}>
+                                                                        👁 Code
+                                                                    </button>
+                                                                    {/* ✓ Use / ✕ Remove */}
                                                                     <button
                                                                         onClick={e => { e.stopPropagation(); setSelectedBacktestModel(isSelected ? null : { ...m, model_id: modelId, cleaned_model_code: modelCode }); }}
                                                                         style={{
-                                                                            padding: '7px 16px', fontSize: '0.82rem', borderRadius: '7px', fontWeight: '700',
-                                                                            cursor: 'pointer', flexShrink: 0,
+                                                                            padding: '6px 14px', fontSize: '0.8rem', borderRadius: '7px', fontWeight: '700',
+                                                                            cursor: 'pointer',
                                                                             background: isSelected ? 'transparent' : `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`,
                                                                             color: isSelected ? theme.accent.red : 'white',
                                                                             border: isSelected ? `1.5px solid ${theme.accent.red}` : 'none',
@@ -2532,34 +2549,6 @@ export default function Charts() {
                                                                         {isSelected ? '✕ Remove' : '✓ Use'}
                                                                     </button>
                                                                 </div>
-
-                                                                {/* ── Code drawer ── */}
-                                                                {codeVisible && (
-                                                                    <div style={{ borderTop: `1px solid ${theme.border.light}` }}>
-                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 14px', background: theme.bg.elevated }}>
-                                                                            <span style={{ fontSize: '0.72rem', color: theme.text.tertiary, fontFamily: 'monospace' }}>
-                                                                                {modelCode ? `${modelCode.split('\n').length} lines` : 'no code'} · {modelId}
-                                                                            </span>
-                                                                            <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(modelCode); }}
-                                                                                style={{ fontSize: '0.72rem', color: theme.accent.cyan, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                                                                                📋 Copy
-                                                                            </button>
-                                                                        </div>
-                                                                        <pre style={{
-                                                                            margin: 0, padding: '14px 16px',
-                                                                            background: theme.bg.elevated,
-                                                                            color: theme.text.primary,
-                                                                            fontSize: '0.8rem', lineHeight: '1.7',
-                                                                            fontFamily: '"Fira Code","JetBrains Mono",Consolas,monospace',
-                                                                            height: '260px', overflowY: 'scroll', overflowX: 'auto',
-                                                                            whiteSpace: 'pre', tabSize: 4,
-                                                                            borderTop: `1px solid ${theme.border.light}`,
-                                                                            boxSizing: 'border-box',
-                                                                        }}>
-                                                                            <code>{modelCode || '# No code stored for this model'}</code>
-                                                                        </pre>
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         );
                                                     })}
@@ -2790,6 +2779,112 @@ export default function Charts() {
                         </>
                     )}
                     
+                    {/* ── Code Preview Prompt Modal ───────────────────────────── */}
+                    {codePreviewPrompt && (
+                        <div style={{ ...styles.modal, zIndex: 1100 }} onClick={() => setCodePreviewPrompt(null)}>
+                            <div onClick={e => e.stopPropagation()} style={{
+                                background: theme.bg.secondary, borderRadius: '16px',
+                                padding: '32px 36px', maxWidth: '420px', width: '90%',
+                                border: `1px solid ${theme.border.medium}`,
+                                boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+                                textAlign: 'center',
+                            }}>
+                                <div style={{ fontSize: '2.4rem', marginBottom: '14px' }}>👁</div>
+                                <h3 style={{ margin: '0 0 10px', color: theme.text.primary, fontSize: '1.1rem', fontWeight: '700' }}>
+                                    View model code?
+                                </h3>
+                                <p style={{ margin: '0 0 24px', color: theme.text.secondary, fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                    Want to see the code for{' '}
+                                    <span style={{ fontWeight: '700', color: theme.accent.purple, fontFamily: 'monospace' }}>
+                                        {codePreviewPrompt.modelId}
+                                    </span>
+                                    {codePreviewPrompt.modelNotes ? (
+                                        <span style={{ color: theme.text.tertiary }}>{' '}— {codePreviewPrompt.modelNotes}</span>
+                                    ) : null}
+                                    ?
+                                </p>
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                    <button
+                                        onClick={() => { setCodePreviewModel(codePreviewPrompt); setCodePreviewPrompt(null); }}
+                                        style={{
+                                            padding: '10px 28px', borderRadius: '9px', fontWeight: '700', fontSize: '0.9rem',
+                                            background: `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`,
+                                            color: 'white', border: 'none', cursor: 'pointer',
+                                        }}>
+                                        Yes, show me
+                                    </button>
+                                    <button
+                                        onClick={() => setCodePreviewPrompt(null)}
+                                        style={{
+                                            padding: '10px 22px', borderRadius: '9px', fontWeight: '600', fontSize: '0.9rem',
+                                            background: 'transparent', color: theme.text.secondary,
+                                            border: `1.5px solid ${theme.border.medium}`, cursor: 'pointer',
+                                        }}>
+                                        No thanks
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Full Code Viewer Modal ───────────────────────────────── */}
+                    {codePreviewModel && (
+                        <div style={{ ...styles.modal, zIndex: 1100 }} onClick={() => setCodePreviewModel(null)}>
+                            <div onClick={e => e.stopPropagation()} style={{
+                                background: theme.bg.secondary, borderRadius: '14px',
+                                width: '92%', maxWidth: '780px',
+                                border: `1px solid ${theme.border.medium}`,
+                                boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+                                overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                                maxHeight: '85vh',
+                            }}>
+                                {/* Modal header */}
+                                <div style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '16px 20px', borderBottom: `1px solid ${theme.border.light}`,
+                                    background: theme.bg.tertiary, flexShrink: 0,
+                                }}>
+                                    <div>
+                                        <div style={{ fontWeight: '800', fontSize: '1rem', color: theme.accent.purple, fontFamily: 'monospace' }}>
+                                            👁 {codePreviewModel.modelId}
+                                        </div>
+                                        {codePreviewModel.modelNotes && (
+                                            <div style={{ fontSize: '0.78rem', color: theme.text.secondary, marginTop: '2px' }}>{codePreviewModel.modelNotes}</div>
+                                        )}
+                                        <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginTop: '2px' }}>
+                                            {codePreviewModel.modelCode ? `${codePreviewModel.modelCode.split('\n').length} lines` : 'no code'}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <button
+                                            onClick={() => navigator.clipboard.writeText(codePreviewModel.modelCode || '')}
+                                            style={{ fontSize: '0.8rem', color: theme.accent.cyan, background: 'transparent', border: `1px solid ${theme.accent.cyan}`, borderRadius: '7px', padding: '5px 12px', cursor: 'pointer' }}>
+                                            📋 Copy
+                                        </button>
+                                        <button
+                                            onClick={() => setCodePreviewModel(null)}
+                                            style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1 }}>
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* Code block */}
+                                <pre style={{
+                                    margin: 0, padding: '20px 24px',
+                                    background: isDarkTheme ? '#0d1117' : '#f6f8fa',
+                                    color: isDarkTheme ? '#e6edf3' : '#24292f',
+                                    fontSize: '0.85rem', lineHeight: '1.75',
+                                    fontFamily: '"Fira Code","JetBrains Mono","Cascadia Code",Consolas,monospace',
+                                    overflowY: 'auto', overflowX: 'auto',
+                                    whiteSpace: 'pre', tabSize: 4,
+                                    flex: 1,
+                                }}>
+                                    <code>{codePreviewModel.modelCode || '# No code stored for this model'}</code>
+                                </pre>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── Backtest Watchlist Modal ───────────────────────────── */}
                     {showWatchlistModal && (
                         <div style={styles.modal} onClick={() => setShowWatchlistModal(false)}>
