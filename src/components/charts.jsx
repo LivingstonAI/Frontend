@@ -2056,19 +2056,35 @@ export default function Charts() {
                                         {loadingStockInfo ? '⏳ Loading...' : '📊 Stock Info'}
                                     </button>
                                 )}
-                                <button
-                                    onClick={() => { if (showMssPanel && mssData) { setShowMssPanel(false); } else { fetchMss(); } }}
-                                    disabled={loadingMss}
-                                    style={{
-                                        ...styles.buttonSecondary,
-                                        background: loadingMss ? theme.bg.tertiary : showMssPanel ? `linear-gradient(135deg,${theme.accent.purple},#6d28d9)` : `linear-gradient(135deg,${theme.accent.orange},#b45309)`,
-                                        color: (loadingMss) ? theme.text.secondary : 'white',
-                                        border: 'none',
-                                        cursor: loadingMss ? 'not-allowed' : 'pointer'
-                                    }}
-                                >
-                                    {loadingMss ? '⏳ Analyzing...' : showMssPanel ? '📉 Hide MSS' : '📉 Market Score'}
-                                </button>
+                                {/* MSS button + lookback input — always visible together */}
+                                <div style={{ display: 'flex', alignItems: 'center', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${theme.border.medium}` }}>
+                                    {/* Free number input with "d" suffix */}
+                                    <input
+                                        type="number" min="5" max="730" value={mssLookback}
+                                        onChange={e => setMssLookback(Math.max(5, parseInt(e.target.value) || 60))}
+                                        onKeyDown={e => { if (e.key === 'Enter') fetchMss(); }}
+                                        style={{
+                                            width: '46px', padding: '8px 4px 8px 10px',
+                                            background: theme.bg.tertiary, border: 'none', outline: 'none',
+                                            color: theme.text.primary, fontSize: '0.85rem', textAlign: 'right',
+                                        }}
+                                    />
+                                    <span style={{ padding: '0 6px 0 2px', background: theme.bg.tertiary, color: theme.text.tertiary, fontSize: '0.78rem', lineHeight: '36px', borderRight: `1px solid ${theme.border.medium}` }}>d</span>
+                                    <button
+                                        onClick={() => { if (showMssPanel && mssData) { setShowMssPanel(false); } else { fetchMss(); } }}
+                                        disabled={loadingMss}
+                                        style={{
+                                            ...styles.buttonSecondary,
+                                            borderRadius: 0, border: 'none',
+                                            background: loadingMss ? theme.bg.tertiary : showMssPanel ? `linear-gradient(135deg,${theme.accent.purple},#6d28d9)` : `linear-gradient(135deg,${theme.accent.orange},#b45309)`,
+                                            color: loadingMss ? theme.text.secondary : 'white',
+                                            cursor: loadingMss ? 'not-allowed' : 'pointer',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {loadingMss ? '⏳' : showMssPanel ? '📉 Hide MSS' : '📉 Market Score'}
+                                    </button>
+                                </div>
                                 <button
                                     onClick={() => setShowAssetModal(true)}
                                     style={{
@@ -2098,35 +2114,18 @@ export default function Charts() {
                                             <span style={{ fontWeight: '700', color: theme.text.primary, fontSize: '0.95rem' }}>📉 Market Stability Score</span>
                                             <span style={{ marginLeft: '10px', fontSize: '0.78rem', color: theme.text.tertiary }}>{mssLookback}d · {mssData.symbol}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                            {/* Lookback: preset chips + free-type input */}
-                                            <span style={{ fontSize: '0.73rem', color: theme.text.tertiary, whiteSpace: 'nowrap' }}>Lookback:</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                            {/* Quick re-fetch chips */}
                                             {[14, 20, 30, 60, 90, 180].map(d => (
-                                                <button key={d} onClick={() => setMssLookback(d)}
-                                                    style={{ padding: '3px 7px', fontSize: '0.72rem', borderRadius: '5px',
+                                                <button key={d} onClick={() => { setMssLookback(d); setTimeout(fetchMss, 0); }}
+                                                    style={{ padding: '3px 8px', fontSize: '0.72rem', borderRadius: '5px',
                                                         border: `1px solid ${mssLookback===d ? catColor : theme.border.medium}`,
                                                         background: mssLookback===d ? `${catColor}20` : theme.bg.elevated,
                                                         color: mssLookback===d ? catColor : theme.text.secondary, cursor: 'pointer' }}>
                                                     {d}d
                                                 </button>
                                             ))}
-                                            {/* Free number input — shows "Xd" suffix inline */}
-                                            <div style={{ display: 'flex', alignItems: 'center', background: theme.bg.elevated, border: `1px solid ${theme.border.medium}`, borderRadius: '5px', overflow: 'hidden' }}>
-                                                <input
-                                                    type="number" min="5" max="730" value={mssLookback}
-                                                    onChange={e => setMssLookback(Math.max(5, parseInt(e.target.value) || 60))}
-                                                    onKeyDown={e => { if (e.key === 'Enter') fetchMss(); }}
-                                                    style={{ width: '44px', padding: '3px 5px', background: 'transparent', border: 'none', outline: 'none',
-                                                        color: theme.text.primary, fontSize: '0.78rem', textAlign: 'right' }} />
-                                                <span style={{ fontSize: '0.72rem', color: theme.text.tertiary, paddingRight: '6px' }}>d</span>
-                                            </div>
-                                            <button onClick={() => fetchMss()} disabled={loadingMss}
-                                                style={{ padding: '3px 9px', fontSize: '0.72rem', borderRadius: '5px',
-                                                    border: `1px solid ${catColor}`, background: `${catColor}15`,
-                                                    color: catColor, cursor: loadingMss ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
-                                                {loadingMss ? '⏳' : '↻ Run'}
-                                            </button>
-                                            <span style={{ fontSize: '1.4rem', fontWeight: '800', color: catColor }}>{mss.toFixed(1)}</span>
+                                            <span style={{ fontSize: '1.4rem', fontWeight: '800', color: catColor, marginLeft: '4px' }}>{mss.toFixed(1)}</span>
                                             <span style={{ fontSize: '0.8rem', fontWeight: '700', color: catColor, background: `${catColor}18`, padding: '3px 10px', borderRadius: '10px' }}>{catIcon} {mssData.status}</span>
                                             <button onClick={() => setShowMssPanel(false)} style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
                                         </div>
@@ -2396,7 +2395,7 @@ export default function Charts() {
                                                     No models found in SnowAIForwardTestingModel — run manually or save a model first.
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '340px', overflowY: 'auto' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto', paddingRight: '2px' }}>
                                                     {/* None option */}
                                                     <div onClick={() => setSelectedBacktestModel(null)}
                                                         style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
@@ -2406,62 +2405,76 @@ export default function Charts() {
                                                             🖐 Manual only — no auto-trading
                                                         </span>
                                                     </div>
+
                                                     {forwardTestModels.map(m => {
                                                         const isSelected = selectedBacktestModel?.model_id === m.model_id;
-                                                        const codeExpanded = expandedModelCode === m.model_id;
+                                                        const codeVisible = expandedModelCode === m.model_id;
                                                         return (
-                                                            <div key={m.model_id} style={{ borderRadius: '8px', border: `2px solid ${isSelected ? theme.accent.purple : theme.border.light}`,
-                                                                background: isSelected ? `${theme.accent.purple}10` : theme.bg.elevated, overflow: 'hidden' }}>
-                                                                {/* Card header — click to SELECT */}
-                                                                <div onClick={() => setSelectedBacktestModel(isSelected ? null : m)}
-                                                                    style={{ padding: '10px 12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                                    <div style={{ minWidth: 0 }}>
-                                                                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: isSelected ? theme.accent.purple : theme.text.primary,
+                                                            <div key={m.model_id} style={{
+                                                                borderRadius: '10px',
+                                                                border: `2px solid ${isSelected ? theme.accent.purple : codeVisible ? theme.accent.orange : theme.border.light}`,
+                                                                background: isSelected ? `${theme.accent.purple}12` : theme.bg.elevated,
+                                                                overflow: 'hidden',
+                                                                transition: 'border-color 0.15s'
+                                                            }}>
+                                                                {/* ── Top row ── */}
+                                                                <div style={{ padding: '11px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                    {/* Left: name + notes — clicking shows/hides code */}
+                                                                    <div onClick={() => setExpandedModelCode(codeVisible ? null : m.model_id)}
+                                                                        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                                                                        <div style={{ fontWeight: '700', fontSize: '0.9rem',
+                                                                            color: isSelected ? theme.accent.purple : theme.text.primary,
                                                                             display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                            {isSelected && <span style={{ fontSize: '0.75rem' }}>✅</span>}
+                                                                            <span style={{ fontSize: '0.8rem' }}>{codeVisible ? '▼' : '▶'}</span>
                                                                             {m.model_id}
+                                                                            {isSelected && <span style={{ fontSize: '0.72rem', background: `${theme.accent.purple}30`, color: theme.accent.purple, padding: '1px 7px', borderRadius: '8px', fontWeight: '700' }}>ACTIVE</span>}
                                                                         </div>
                                                                         {m.notes && <div style={{ fontSize: '0.76rem', color: theme.text.tertiary, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.notes}</div>}
+                                                                        <div style={{ fontSize: '0.7rem', color: theme.text.tertiary, marginTop: '2px' }}>{new Date(m.created_at).toLocaleDateString()} · click to {codeVisible ? 'hide' : 'view'} code</div>
                                                                     </div>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                                                                        <span style={{ fontSize: '0.7rem', color: theme.text.tertiary }}>{new Date(m.created_at).toLocaleDateString()}</span>
-                                                                        {/* Toggle code preview — stopPropagation so it doesn't also select */}
-                                                                        <button
-                                                                            onClick={e => { e.stopPropagation(); setExpandedModelCode(codeExpanded ? null : m.model_id); }}
-                                                                            style={{ padding: '3px 9px', fontSize: '0.72rem', borderRadius: '5px', border: `1px solid ${theme.border.medium}`,
-                                                                                background: codeExpanded ? `${theme.accent.orange}20` : theme.bg.tertiary,
-                                                                                color: codeExpanded ? theme.accent.orange : theme.text.secondary, cursor: 'pointer', fontWeight: '600' }}>
-                                                                            {codeExpanded ? '▲ Hide' : '👁 Code'}
-                                                                        </button>
-                                                                    </div>
+                                                                    {/* Right: select/deselect button */}
+                                                                    <button
+                                                                        onClick={e => { e.stopPropagation(); setSelectedBacktestModel(isSelected ? null : m); }}
+                                                                        style={{
+                                                                            padding: '6px 14px', fontSize: '0.8rem', borderRadius: '7px', fontWeight: '700',
+                                                                            cursor: 'pointer', border: 'none', flexShrink: 0,
+                                                                            background: isSelected
+                                                                                ? `${theme.accent.red}20`
+                                                                                : `linear-gradient(135deg, ${theme.accent.purple}, #6d28d9)`,
+                                                                            color: isSelected ? theme.accent.red : 'white',
+                                                                            border: isSelected ? `1px solid ${theme.accent.red}` : 'none',
+                                                                        }}>
+                                                                        {isSelected ? '✕ Deselect' : '✓ Use'}
+                                                                    </button>
                                                                 </div>
-                                                                {/* Code preview drawer */}
-                                                                {codeExpanded && (
-                                                                    <div style={{ borderTop: `1px solid ${theme.border.light}`, padding: '0' }}>
+
+                                                                {/* ── Code drawer — slides open on card click ── */}
+                                                                {codeVisible && (
+                                                                    <div style={{ borderTop: `1px solid ${theme.border.light}` }}>
+                                                                        {/* Drawer toolbar */}
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                            padding: '6px 12px', background: theme.bg.tertiary }}>
+                                                                            padding: '6px 13px', background: theme.bg.tertiary }}>
                                                                             <span style={{ fontSize: '0.72rem', color: theme.text.tertiary, fontFamily: 'monospace' }}>
-                                                                                {m.model_id} · {m.cleaned_model_code?.split('\n').length || 0} lines
+                                                                                {m.cleaned_model_code?.split('\n').length || 0} lines · {m.model_id}
                                                                             </span>
-                                                                            <button onClick={() => { navigator.clipboard.writeText(m.cleaned_model_code || ''); }}
-                                                                                style={{ fontSize: '0.7rem', color: theme.accent.cyan, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                                                                                📋 Copy
+                                                                            <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(m.cleaned_model_code || ''); }}
+                                                                                style={{ fontSize: '0.72rem', color: theme.accent.cyan, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                                                                                📋 Copy code
                                                                             </button>
                                                                         </div>
+                                                                        {/* Code block */}
                                                                         <pre style={{
-                                                                            margin: 0, padding: '12px 14px',
-                                                                            background: theme.bg.primary || theme.bg.tertiary,
+                                                                            margin: 0, padding: '14px 16px',
+                                                                            background: `${theme.bg.primary || '#0d1117'}`,
                                                                             color: theme.text.primary,
-                                                                            fontSize: '0.78rem', lineHeight: '1.65',
-                                                                            fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
-                                                                            maxHeight: '240px', overflowY: 'auto',
-                                                                            whiteSpace: 'pre', overflowX: 'auto',
+                                                                            fontSize: '0.8rem', lineHeight: '1.7',
+                                                                            fontFamily: '"Fira Code","JetBrains Mono","Cascadia Code",Consolas,monospace',
+                                                                            maxHeight: '280px', overflowY: 'auto', overflowX: 'auto',
+                                                                            whiteSpace: 'pre',
                                                                             borderTop: `1px solid ${theme.border.light}`,
-                                                                            // Syntax-like colour hints via a wrapper trick
+                                                                            tabSize: 4,
                                                                         }}>
-                                                                            {/* Basic keyword highlighting using spans via dangerouslySetInnerHTML would need sanitising,
-                                                                                so we render raw text — still readable in monospace */}
-                                                                            <code style={{ display: 'block' }}>{m.cleaned_model_code || '# No code stored'}</code>
+                                                                            <code>{m.cleaned_model_code || '# No code stored for this model'}</code>
                                                                         </pre>
                                                                     </div>
                                                                 )}
