@@ -635,6 +635,7 @@ export default function Charts() {
     const [mssData, setMssData] = useState(null);
     const [loadingMss, setLoadingMss] = useState(false);
     const [showMssPanel, setShowMssPanel] = useState(false);
+    const [mssLookback, setMssLookback] = useState(60);
     
     // Loading and error states
     const [isExecutingTrade, setIsExecutingTrade] = useState(false);
@@ -660,7 +661,7 @@ export default function Charts() {
     // Backtest states
     const [backtestMode, setBacktestMode] = useState(false);
     const [backtestSession, setBacktestSession] = useState(null);
-    const [backtestSpeed, setBacktestSpeed] = useState(5); // 5 seconds per candle
+    const [backtestSpeed, setBacktestSpeed] = useState(1);
     const [backtestCurrentIndex, setBacktestCurrentIndex] = useState(0);
     const [backtestBalance, setBacktestBalance] = useState(10000);
     const [backtestTrades, setBacktestTrades] = useState([]);
@@ -669,6 +670,14 @@ export default function Charts() {
     const [showSaveBacktestModal, setShowSaveBacktestModal] = useState(false);
     const [backtestTradeHistory, setBacktestTradeHistory] = useState({});
     const [backtestEquityCurve, setBacktestEquityCurve] = useState([]);
+
+    // Strategy model selection for backtest
+    const [forwardTestModels, setForwardTestModels] = useState([]);
+    const [selectedBacktestModel, setSelectedBacktestModel] = useState(null);
+    const [backtestModelTp, setBacktestModelTp] = useState('8');
+    const [backtestModelSl, setBacktestModelSl] = useState('4');
+    const [backtestModelOpen, setBacktestModelOpen] = useState(false);
+    const [showBacktestConfig, setShowBacktestConfig] = useState(false);
 
     const timeframes = {
         '1M': { label: '1 Minute', interval: '1m', binanceInterval: '1m', yfinancePeriod: '1d', updateInterval: 10000 },
@@ -1293,7 +1302,7 @@ export default function Charts() {
             const response = await fetch(`${BACKEND_API_URL}/api/mss/calculate/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbols: [sym], period: 60 })
+                body: JSON.stringify({ symbols: [sym], period: mssLookback })
             });
             const result = await response.json();
             if (result.success && result.data && result.data.length > 0) {
@@ -1622,14 +1631,13 @@ export default function Charts() {
         }
     };
 
-    // Backtest loop - show candles one by one
+    // Backtest loop - show candles one by one, optionally fire model signal
     useEffect(() => {
         if (backtestMode && !backtestPaused && backtestCurrentIndex < backtestData.length) {
-            backtestIntervalRef.current = setTimeout(() => {
+            backtestIntervalRef.current = setTimeout(async () => {
                 const newIndex = backtestCurrentIndex + 1;
                 
                 if (newIndex < backtestData.length) {
-                    // Update chart with candles up to current index
                     const visibleData = backtestData.slice(0, newIndex + 1);
                     
                     if (candlestickSeriesRef.current) {
@@ -1641,19 +1649,129 @@ export default function Charts() {
                     const currentCandle = backtestData[newIndex];
                     setCurrentPrice(currentCandle.close);
                     setBacktestCurrentIndex(newIndex);
-                    
-                    // DO NOT touch the chart position at all during backtest
+
+                    // ── Auto-trade from selected model ─────────────────────────────
+                    if (selectedBacktestModel && !backtestModelOpen) {
+                        const result = await runBacktestModelSignal(
+                            selectedBacktestModel.cleaned_model_code,
+                            visibleData
+                        );
+                        if (result.signal === 'buy' || result.signal === 'sell') {
+                            const orderType = result.signal === 'buy' ? 'BUY' : 'SELL';
+                            const price     = currentCandle.close;
+                            // Model's set_take_profit / set_stop_loss take precedence over UI sliders
+                            const tpVal  = result.take_profit || parseFloat(backtestModelTp) || 8;
+                            const slVal  = result.stop_loss   || parseFloat(backtestModelSl)  || 4;
+                            const tpType = result.take_profit_type || 'PERCENTAGE';
+                            const slType = result.stop_loss_type   || 'PERCENTAGE';
+
+                            // Compute actual price levels
+                            let tp, sl;
+                            if (tpType === 'PERCENTAGE') {
+                                tp = orderType === 'BUY' ? price * (1 + tpVal/100) : price * (1 - tpVal/100);
+                            } else {
+                                // PRICE — treat value as absolute price distance
+                                tp = orderType === 'BUY' ? price + tpVal : price - tpVal;
+                            }
+                            if (slType === 'PERCENTAGE') {
+                                sl = orderType === 'BUY' ? price * (1 - slVal/100) : price * (1 + slVal/100);
+                            } else {
+                                sl = orderType === 'BUY' ? price - slVal : price + slVal;
+                            }
+
+                            const newTrade = {
+                                trade_id:        `BACKTEST_MODEL_${Date.now()}`,
+                                asset_symbol:    selectedAsset,
+                                asset_name:      selectedAssetInfo?.name || selectedAsset,
+                                asset_class:     selectedAssetInfo?.assetClass || 'Unknown',
+                                order_type:      orderType,
+                                entry_price:     price,
+                                quantity:        1,
+                                stop_loss:       sl,
+                                take_profit:     tp,
+                                entry_timestamp: new Date(currentCandle.time * 1000).toISOString(),
+                                status:          'OPEN',
+                                profit_loss:     null,
+                                is_model_trade:  true,
+                                model_id:        selectedBacktestModel.model_id,
+                            };
+
+                            const currentAsset = selectedAsset;
+                            const assetTrades  = backtestTradeHistory[currentAsset] || [];
+                            setBacktestTradeHistory(prev => ({ ...prev, [currentAsset]: [...assetTrades, newTrade] }));
+                            setBacktestModelOpen(true);
+                            setSuccessMessage(`🤖 Model signal: ${orderType} @ $${price.toFixed(4)}`);
+                            setTimeout(() => setSuccessMessage(''), 3000);
+                        }
+                    }
+
+                    // ── Check open model positions for TP/SL ──────────────────────
+                    if (backtestModelOpen) {
+                        const currentAsset = selectedAsset;
+                        const assetTrades  = backtestTradeHistory[currentAsset] || [];
+                        const updatedTrades = assetTrades.map(trade => {
+                            if (trade.status !== 'OPEN' || !trade.is_model_trade) return trade;
+                            const price   = currentCandle.close;
+                            const isBuy   = trade.order_type === 'BUY';
+                            const hitTp   = isBuy ? price >= trade.take_profit  : price <= trade.take_profit;
+                            const hitSl   = isBuy ? price <= trade.stop_loss    : price >= trade.stop_loss;
+                            if (hitTp || hitSl) {
+                                const pl = isBuy
+                                    ? (price - trade.entry_price) * trade.quantity
+                                    : (trade.entry_price - price) * trade.quantity;
+                                setBacktestModelOpen(false);
+                                return { ...trade, status: 'CLOSED', exit_price: price,
+                                    exit_timestamp: new Date(currentCandle.time*1000).toISOString(),
+                                    profit_loss: pl, exit_reason: hitTp ? 'TP' : 'SL' };
+                            }
+                            return trade;
+                        });
+                        const newBalance = updatedTrades.reduce((bal, t) => {
+                            if (t.status==='CLOSED' && assetTrades.find(o => o.trade_id===t.trade_id && o.status==='OPEN'))
+                                return bal + t.profit_loss;
+                            return bal;
+                        }, backtestBalance);
+                        setBacktestTradeHistory(prev => ({ ...prev, [currentAsset]: updatedTrades }));
+                        if (newBalance !== backtestBalance) {
+                            setBacktestBalance(newBalance);
+                            setBacktestEquityCurve(prev => [...prev, { time: currentCandle.time, value: newBalance }]);
+                        }
+                    }
                 }
                 
             }, backtestSpeed * 1000);
         }
         
-        return () => {
-            if (backtestIntervalRef.current) {
-                clearTimeout(backtestIntervalRef.current);
-            }
-        };
-    }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, backtestData]);
+        return () => { if (backtestIntervalRef.current) clearTimeout(backtestIntervalRef.current); };
+    }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, backtestData, selectedBacktestModel, backtestModelOpen]);
+
+    // Fetch saved forward-test models from SnowAIForwardTestingModel
+    const fetchForwardTestModels = async () => {
+        try {
+            const r = await fetch(`${BACKEND_API_URL}/api/snowai-list-forward-test-models/`);
+            const d = await r.json();
+            if (d.success) setForwardTestModels(d.models || []);
+        } catch (e) { console.error('Error fetching forward test models:', e); }
+    };
+
+    // Run the selected model's code against candles[0..currentIndex] via a backend exec call
+    // Returns { signal: 'buy'|'sell'|null, tp: number, sl: number }
+    const runBacktestModelSignal = async (modelCode, dataset) => {
+        try {
+            const r = await fetch(`${BACKEND_API_URL}/api/snowai-run-backtest-model-signal/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: modelCode,
+                    dataset: dataset,            // OHLCV rows
+                    take_profit: parseFloat(backtestModelTp) || 8,
+                    stop_loss:   parseFloat(backtestModelSl)  || 4,
+                })
+            });
+            const d = await r.json();
+            return d.success ? d : { signal: null };
+        } catch(e) { return { signal: null }; }
+    };
 
     // Stop backtest
     const stopBacktest = () => {
@@ -1674,6 +1792,8 @@ export default function Charts() {
         setShowSaveBacktestModal(false);
         setBacktestBalance(10000);
         setBacktestEquityCurve([]);
+        setBacktestModelOpen(false);
+        setShowBacktestConfig(false);
         
         // Clear chart markers
         const series = candlestickSeriesRef.current || lineSeriesRef.current;
@@ -1975,9 +2095,28 @@ export default function Charts() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                                         <div>
                                             <span style={{ fontWeight: '700', color: theme.text.primary, fontSize: '0.95rem' }}>📉 Market Stability Score</span>
-                                            <span style={{ marginLeft: '10px', fontSize: '0.78rem', color: theme.text.tertiary }}>60-day · {mssData.symbol}</span>
+                                            <span style={{ marginLeft: '10px', fontSize: '0.78rem', color: theme.text.tertiary }}>{mssLookback}-day · {mssData.symbol}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            {/* Lookback period control */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <span style={{ fontSize: '0.75rem', color: theme.text.tertiary, whiteSpace: 'nowrap' }}>Lookback:</span>
+                                                <div style={{ display: 'flex', gap: '3px' }}>
+                                                    {[14, 30, 60, 90, 180].map(d => (
+                                                        <button key={d} onClick={() => { setMssLookback(d); }}
+                                                            style={{ padding: '3px 7px', fontSize: '0.72rem', borderRadius: '5px', border: `1px solid ${mssLookback===d ? catColor : theme.border.medium}`,
+                                                                background: mssLookback===d ? `${catColor}20` : theme.bg.elevated,
+                                                                color: mssLookback===d ? catColor : theme.text.secondary, cursor: 'pointer' }}>
+                                                            {d}d
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <button onClick={() => fetchMss()} disabled={loadingMss}
+                                                    style={{ padding: '3px 8px', fontSize: '0.72rem', borderRadius: '5px', border: `1px solid ${theme.accent.cyan}`,
+                                                        background: `${theme.accent.cyan}15`, color: theme.accent.cyan, cursor: 'pointer' }}>
+                                                    {loadingMss ? '⏳' : '↻ Recalc'}
+                                                </button>
+                                            </div>
                                             <span style={{ fontSize: '1.4rem', fontWeight: '800', color: catColor }}>{mss.toFixed(1)}</span>
                                             <span style={{ fontSize: '0.8rem', fontWeight: '700', color: catColor, background: `${catColor}18`, padding: '3px 10px', borderRadius: '10px' }}>{catIcon} {mssData.status}</span>
                                             <button onClick={() => setShowMssPanel(false)} style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
@@ -2188,7 +2327,7 @@ export default function Charts() {
                                     
                                     {tradingMode === 'BACKTEST' && !backtestMode && (
                                         <button
-                                            onClick={startBacktest}
+                                            onClick={() => { fetchForwardTestModels(); setShowBacktestConfig(prev => !prev); }}
                                             style={{
                                                 ...styles.buttonSecondary,
                                                 background: `linear-gradient(135deg, ${theme.accent.cyan} 0%, #0891b2 100%)`,
@@ -2202,6 +2341,112 @@ export default function Charts() {
                                     )}
                                 </div>
                                 
+                                {/* ── Pre-backtest config panel ─────────────────────────── */}
+                                {tradingMode === 'BACKTEST' && !backtestMode && showBacktestConfig && (
+                                    <div style={{ background: theme.bg.tertiary, borderRadius: '12px', padding: '20px', marginBottom: '12px', border: `2px solid ${theme.accent.cyan}40` }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                            <h3 style={{ margin: 0, color: theme.text.primary, fontSize: '1rem' }}>⚙️ Backtest Configuration</h3>
+                                            <button onClick={() => setShowBacktestConfig(false)} style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, cursor: 'pointer', fontSize: '1.3rem' }}>×</button>
+                                        </div>
+
+                                        {/* Speed control */}
+                                        <div style={{ marginBottom: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                <label style={styles.label}>⏱ Candle Speed</label>
+                                                <span style={{ fontWeight: '700', color: theme.accent.cyan, fontSize: '0.95rem' }}>
+                                                    {backtestSpeed < 1 ? `${(backtestSpeed * 1000).toFixed(0)}ms` : `${backtestSpeed}s`} / candle
+                                                </span>
+                                            </div>
+                                            <input type="range" min="0.05" max="10" step="0.05" value={backtestSpeed}
+                                                onChange={e => setBacktestSpeed(parseFloat(e.target.value))}
+                                                style={{ width: '100%', accentColor: theme.accent.cyan }} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: theme.text.tertiary, marginTop: '2px' }}>
+                                                <span>50ms (fastest)</span><span>5s</span><span>10s (slowest)</span>
+                                            </div>
+                                            {/* Quick preset buttons */}
+                                            <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                                                {[['50ms',0.05],['200ms',0.2],['500ms',0.5],['1s',1],['2s',2],['5s',5]].map(([label,val]) => (
+                                                    <button key={label} onClick={() => setBacktestSpeed(val)}
+                                                        style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '6px', border: `1px solid ${backtestSpeed===val ? theme.accent.cyan : theme.border.medium}`,
+                                                            background: backtestSpeed===val ? `${theme.accent.cyan}20` : theme.bg.elevated,
+                                                            color: backtestSpeed===val ? theme.accent.cyan : theme.text.secondary, cursor: 'pointer' }}>
+                                                        {label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Strategy model selector */}
+                                        <div style={{ marginBottom: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                <label style={styles.label}>🤖 Strategy Model (optional)</label>
+                                                <button onClick={fetchForwardTestModels} style={{ fontSize: '0.75rem', color: theme.accent.cyan, background: 'transparent', border: 'none', cursor: 'pointer' }}>🔄 Refresh</button>
+                                            </div>
+                                            {forwardTestModels.length === 0 ? (
+                                                <div style={{ fontSize: '0.82rem', color: theme.text.tertiary, padding: '10px', background: theme.bg.elevated, borderRadius: '8px', textAlign: 'center' }}>
+                                                    No models found in SnowAIForwardTestingModel — run manually or save a model first.
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                                                    {/* None option */}
+                                                    <div onClick={() => setSelectedBacktestModel(null)}
+                                                        style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', border: `2px solid ${!selectedBacktestModel ? theme.accent.cyan : theme.border.light}`,
+                                                            background: !selectedBacktestModel ? `${theme.accent.cyan}12` : theme.bg.elevated }}>
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: !selectedBacktestModel ? theme.accent.cyan : theme.text.secondary }}>
+                                                            🖐 Manual only — no auto-trading
+                                                        </span>
+                                                    </div>
+                                                    {forwardTestModels.map(m => (
+                                                        <div key={m.model_id} onClick={() => setSelectedBacktestModel(m)}
+                                                            style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', border: `2px solid ${selectedBacktestModel?.model_id===m.model_id ? theme.accent.purple : theme.border.light}`,
+                                                                background: selectedBacktestModel?.model_id===m.model_id ? `${theme.accent.purple}12` : theme.bg.elevated }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ fontWeight: '700', fontSize: '0.88rem', color: selectedBacktestModel?.model_id===m.model_id ? theme.accent.purple : theme.text.primary }}>
+                                                                    {m.model_id}
+                                                                </span>
+                                                                <span style={{ fontSize: '0.72rem', color: theme.text.tertiary }}>{new Date(m.created_at).toLocaleDateString()}</span>
+                                                            </div>
+                                                            {m.notes && <div style={{ fontSize: '0.78rem', color: theme.text.tertiary, marginTop: '3px' }}>{m.notes}</div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* TP / SL for auto-model — only shown when a model is selected */}
+                                        {selectedBacktestModel && (
+                                            <div style={{ marginBottom: '16px', padding: '14px', background: `${theme.accent.purple}10`, borderRadius: '10px', border: `1px solid ${theme.accent.purple}30` }}>
+                                                <div style={{ fontSize: '0.82rem', fontWeight: '600', color: theme.accent.purple, marginBottom: '10px' }}>
+                                                    🤖 Auto-trade settings for <strong>{selectedBacktestModel.model_id}</strong>
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                    <div>
+                                                        <label style={styles.label}>Take Profit %</label>
+                                                        <input type="number" value={backtestModelTp} onChange={e => setBacktestModelTp(e.target.value)} min="0" step="0.5"
+                                                            style={styles.input} placeholder="8" />
+                                                        {currentPrice > 0 && <div style={{ fontSize:'0.75rem', color:theme.accent.green, marginTop:'2px' }}>
+                                                            TP @ ${(currentPrice * (1 + parseFloat(backtestModelTp||0)/100)).toFixed(4)}
+                                                        </div>}
+                                                    </div>
+                                                    <div>
+                                                        <label style={styles.label}>Stop Loss %</label>
+                                                        <input type="number" value={backtestModelSl} onChange={e => setBacktestModelSl(e.target.value)} min="0" step="0.5"
+                                                            style={styles.input} placeholder="4" />
+                                                        {currentPrice > 0 && <div style={{ fontSize:'0.75rem', color:theme.accent.red, marginTop:'2px' }}>
+                                                            SL @ ${(currentPrice * (1 - parseFloat(backtestModelSl||0)/100)).toFixed(4)}
+                                                        </div>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <button onClick={() => { setShowBacktestConfig(false); startBacktest(); }}
+                                            style={{ ...styles.buttonPrimary, width: '100%', background: `linear-gradient(135deg, ${theme.accent.cyan} 0%, #0891b2 100%)` }}>
+                                            ⚡ Launch Backtest{selectedBacktestModel ? ` with ${selectedBacktestModel.model_id}` : ' — Manual Mode'}
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div 
                                     ref={chartContainerRef}
                                     style={{ 
@@ -2317,46 +2562,76 @@ export default function Charts() {
                                     </div>
                                 )}
                                 
-                                {backtestMode && (
-                                    <div style={{
-                                        marginTop: '15px',
-                                        padding: '15px',
-                                        background: theme.bg.tertiary,
-                                        borderRadius: '10px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        border: `2px solid ${theme.blue[400]}`
-                                    }}>
-                                        <div>
-                                            <strong style={{ color: theme.blue[600] }}>Backtest Progress:</strong>{' '}
-                                            {backtestCurrentIndex} / {backtestData.length} candles
+                                {backtestMode && (() => {
+                                    const currentAsset = selectedAsset;
+                                    const assetTrades  = backtestTradeHistory[currentAsset] || [];
+                                    const closed = assetTrades.filter(t => t.status === 'CLOSED');
+                                    const open   = assetTrades.filter(t => t.status === 'OPEN');
+                                    const totalPl = closed.reduce((s,t) => s + (t.profit_loss||0), 0);
+                                    const wins    = closed.filter(t => (t.profit_loss||0) > 0).length;
+                                    const wr      = closed.length > 0 ? ((wins/closed.length)*100).toFixed(0) : '—';
+                                    const pct     = backtestData.length > 0 ? ((backtestCurrentIndex/backtestData.length)*100).toFixed(1) : 0;
+                                    return (
+                                        <div style={{ marginTop: '12px', background: theme.bg.tertiary, borderRadius: '10px', padding: '12px 16px', border: `2px solid ${theme.blue[400]}` }}>
+                                            {/* Progress bar */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                                <div style={{ flex: 1, background: theme.bg.elevated, borderRadius: '6px', height: '7px', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, ${theme.accent.cyan}, ${theme.blue[500]})`, transition: 'width 0.3s' }} />
+                                                </div>
+                                                <span style={{ fontSize: '0.78rem', color: theme.text.tertiary, whiteSpace: 'nowrap' }}>{backtestCurrentIndex}/{backtestData.length}</span>
+                                                <span style={{ fontSize: '0.78rem', color: theme.accent.cyan, fontWeight: '700', whiteSpace: 'nowrap' }}>{pct}%</span>
+                                            </div>
+
+                                            {/* Stats row */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '6px', marginBottom: '10px' }}>
+                                                {[
+                                                    ['Balance',  `$${backtestBalance.toFixed(2)}`, totalPl>=0?theme.accent.green:theme.accent.red],
+                                                    ['P&L',      `${totalPl>=0?'+':''}$${totalPl.toFixed(2)}`, totalPl>=0?theme.accent.green:theme.accent.red],
+                                                    ['Win Rate', `${wr}%`, theme.accent.cyan],
+                                                    ['Trades',   `${closed.length}/${assetTrades.length}`, theme.text.primary],
+                                                    ['Open',     open.length, theme.blue[500]],
+                                                    ['Speed',    backtestSpeed<1?`${(backtestSpeed*1000).toFixed(0)}ms`:`${backtestSpeed}s`, theme.accent.orange],
+                                                ].map(([l,v,c]) => (
+                                                    <div key={l} style={{ background: theme.bg.elevated, borderRadius: '7px', padding: '6px 8px', textAlign: 'center' }}>
+                                                        <div style={{ fontSize: '0.65rem', color: theme.text.tertiary, textTransform: 'uppercase' }}>{l}</div>
+                                                        <div style={{ fontSize: '0.88rem', fontWeight: '700', color: c }}>{v}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Speed scrubber (live, while running) */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                                <span style={{ fontSize: '0.75rem', color: theme.text.tertiary, whiteSpace: 'nowrap' }}>⏱ Speed:</span>
+                                                <input type="range" min="0.05" max="10" step="0.05" value={backtestSpeed}
+                                                    onChange={e => setBacktestSpeed(parseFloat(e.target.value))}
+                                                    style={{ flex: 1, accentColor: theme.accent.cyan }} />
+                                                <span style={{ fontSize: '0.78rem', color: theme.accent.cyan, fontWeight: '700', minWidth: '40px' }}>
+                                                    {backtestSpeed<1?`${(backtestSpeed*1000).toFixed(0)}ms`:`${backtestSpeed}s`}
+                                                </span>
+                                            </div>
+
+                                            {/* Active model badge */}
+                                            {selectedBacktestModel && (
+                                                <div style={{ fontSize: '0.78rem', color: theme.accent.purple, background: `${theme.accent.purple}12`, padding: '5px 10px', borderRadius: '6px', marginBottom: '10px' }}>
+                                                    🤖 Auto-trading: <strong>{selectedBacktestModel.model_id}</strong> · TP {backtestModelTp}% · SL {backtestModelSl}%
+                                                    {backtestModelOpen && <span style={{ color: theme.blue[500], marginLeft: '8px' }}>● Position open</span>}
+                                                </div>
+                                            )}
+
+                                            {/* Pause / Stop */}
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button onClick={() => setBacktestPaused(!backtestPaused)}
+                                                    style={{ ...styles.buttonSecondary, flex: 1 }}>
+                                                    {backtestPaused ? '▶️ Resume' : '⏸️ Pause'}
+                                                </button>
+                                                <button onClick={stopBacktest}
+                                                    style={{ ...styles.buttonSecondary, flex: 0.5, background: theme.accent.red, color: 'white', border: 'none' }}>
+                                                    ⏹️ Stop
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <strong style={{ color: theme.blue[600] }}>Balance:</strong>{' '}
-                                            ${backtestBalance.toFixed(2)}
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <button
-                                                onClick={() => setBacktestPaused(!backtestPaused)}
-                                                style={styles.buttonSecondary}
-                                            >
-                                                {backtestPaused ? '▶️ Resume' : '⏸️ Pause'}
-                                            </button>
-                                            <button
-                                                onClick={stopBacktest}
-                                                style={{
-                                                    ...styles.buttonSecondary,
-                                                    background: theme.accent.red,
-                                                    color: 'white',
-                                                    border: 'none'
-                                                }}
-                                            >
-                                                ⏹️ Stop
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
                         </>
                     )}
