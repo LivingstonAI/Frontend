@@ -678,6 +678,7 @@ export default function Charts() {
     const [backtestModelSl, setBacktestModelSl] = useState('4');
     const [backtestModelOpen, setBacktestModelOpen] = useState(false);
     const [showBacktestConfig, setShowBacktestConfig] = useState(false);
+    const [expandedModelCode, setExpandedModelCode] = useState(null); // model_id whose code is expanded
 
     const timeframes = {
         '1M': { label: '1 Minute', interval: '1m', binanceInterval: '1m', yfinancePeriod: '1d', updateInterval: 10000 },
@@ -2095,28 +2096,36 @@ export default function Charts() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                                         <div>
                                             <span style={{ fontWeight: '700', color: theme.text.primary, fontSize: '0.95rem' }}>📉 Market Stability Score</span>
-                                            <span style={{ marginLeft: '10px', fontSize: '0.78rem', color: theme.text.tertiary }}>{mssLookback}-day · {mssData.symbol}</span>
+                                            <span style={{ marginLeft: '10px', fontSize: '0.78rem', color: theme.text.tertiary }}>{mssLookback}d · {mssData.symbol}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                            {/* Lookback period control */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                <span style={{ fontSize: '0.75rem', color: theme.text.tertiary, whiteSpace: 'nowrap' }}>Lookback:</span>
-                                                <div style={{ display: 'flex', gap: '3px' }}>
-                                                    {[14, 30, 60, 90, 180].map(d => (
-                                                        <button key={d} onClick={() => { setMssLookback(d); }}
-                                                            style={{ padding: '3px 7px', fontSize: '0.72rem', borderRadius: '5px', border: `1px solid ${mssLookback===d ? catColor : theme.border.medium}`,
-                                                                background: mssLookback===d ? `${catColor}20` : theme.bg.elevated,
-                                                                color: mssLookback===d ? catColor : theme.text.secondary, cursor: 'pointer' }}>
-                                                            {d}d
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                <button onClick={() => fetchMss()} disabled={loadingMss}
-                                                    style={{ padding: '3px 8px', fontSize: '0.72rem', borderRadius: '5px', border: `1px solid ${theme.accent.cyan}`,
-                                                        background: `${theme.accent.cyan}15`, color: theme.accent.cyan, cursor: 'pointer' }}>
-                                                    {loadingMss ? '⏳' : '↻ Recalc'}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            {/* Lookback: preset chips + free-type input */}
+                                            <span style={{ fontSize: '0.73rem', color: theme.text.tertiary, whiteSpace: 'nowrap' }}>Lookback:</span>
+                                            {[14, 20, 30, 60, 90, 180].map(d => (
+                                                <button key={d} onClick={() => setMssLookback(d)}
+                                                    style={{ padding: '3px 7px', fontSize: '0.72rem', borderRadius: '5px',
+                                                        border: `1px solid ${mssLookback===d ? catColor : theme.border.medium}`,
+                                                        background: mssLookback===d ? `${catColor}20` : theme.bg.elevated,
+                                                        color: mssLookback===d ? catColor : theme.text.secondary, cursor: 'pointer' }}>
+                                                    {d}d
                                                 </button>
+                                            ))}
+                                            {/* Free number input — shows "Xd" suffix inline */}
+                                            <div style={{ display: 'flex', alignItems: 'center', background: theme.bg.elevated, border: `1px solid ${theme.border.medium}`, borderRadius: '5px', overflow: 'hidden' }}>
+                                                <input
+                                                    type="number" min="5" max="730" value={mssLookback}
+                                                    onChange={e => setMssLookback(Math.max(5, parseInt(e.target.value) || 60))}
+                                                    onKeyDown={e => { if (e.key === 'Enter') fetchMss(); }}
+                                                    style={{ width: '44px', padding: '3px 5px', background: 'transparent', border: 'none', outline: 'none',
+                                                        color: theme.text.primary, fontSize: '0.78rem', textAlign: 'right' }} />
+                                                <span style={{ fontSize: '0.72rem', color: theme.text.tertiary, paddingRight: '6px' }}>d</span>
                                             </div>
+                                            <button onClick={() => fetchMss()} disabled={loadingMss}
+                                                style={{ padding: '3px 9px', fontSize: '0.72rem', borderRadius: '5px',
+                                                    border: `1px solid ${catColor}`, background: `${catColor}15`,
+                                                    color: catColor, cursor: loadingMss ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                                                {loadingMss ? '⏳' : '↻ Run'}
+                                            </button>
                                             <span style={{ fontSize: '1.4rem', fontWeight: '800', color: catColor }}>{mss.toFixed(1)}</span>
                                             <span style={{ fontSize: '0.8rem', fontWeight: '700', color: catColor, background: `${catColor}18`, padding: '3px 10px', borderRadius: '10px' }}>{catIcon} {mssData.status}</span>
                                             <button onClick={() => setShowMssPanel(false)} style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
@@ -2387,28 +2396,78 @@ export default function Charts() {
                                                     No models found in SnowAIForwardTestingModel — run manually or save a model first.
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '340px', overflowY: 'auto' }}>
                                                     {/* None option */}
                                                     <div onClick={() => setSelectedBacktestModel(null)}
-                                                        style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', border: `2px solid ${!selectedBacktestModel ? theme.accent.cyan : theme.border.light}`,
+                                                        style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                                                            border: `2px solid ${!selectedBacktestModel ? theme.accent.cyan : theme.border.light}`,
                                                             background: !selectedBacktestModel ? `${theme.accent.cyan}12` : theme.bg.elevated }}>
                                                         <span style={{ fontSize: '0.85rem', fontWeight: '600', color: !selectedBacktestModel ? theme.accent.cyan : theme.text.secondary }}>
                                                             🖐 Manual only — no auto-trading
                                                         </span>
                                                     </div>
-                                                    {forwardTestModels.map(m => (
-                                                        <div key={m.model_id} onClick={() => setSelectedBacktestModel(m)}
-                                                            style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', border: `2px solid ${selectedBacktestModel?.model_id===m.model_id ? theme.accent.purple : theme.border.light}`,
-                                                                background: selectedBacktestModel?.model_id===m.model_id ? `${theme.accent.purple}12` : theme.bg.elevated }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <span style={{ fontWeight: '700', fontSize: '0.88rem', color: selectedBacktestModel?.model_id===m.model_id ? theme.accent.purple : theme.text.primary }}>
-                                                                    {m.model_id}
-                                                                </span>
-                                                                <span style={{ fontSize: '0.72rem', color: theme.text.tertiary }}>{new Date(m.created_at).toLocaleDateString()}</span>
+                                                    {forwardTestModels.map(m => {
+                                                        const isSelected = selectedBacktestModel?.model_id === m.model_id;
+                                                        const codeExpanded = expandedModelCode === m.model_id;
+                                                        return (
+                                                            <div key={m.model_id} style={{ borderRadius: '8px', border: `2px solid ${isSelected ? theme.accent.purple : theme.border.light}`,
+                                                                background: isSelected ? `${theme.accent.purple}10` : theme.bg.elevated, overflow: 'hidden' }}>
+                                                                {/* Card header — click to SELECT */}
+                                                                <div onClick={() => setSelectedBacktestModel(isSelected ? null : m)}
+                                                                    style={{ padding: '10px 12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                    <div style={{ minWidth: 0 }}>
+                                                                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: isSelected ? theme.accent.purple : theme.text.primary,
+                                                                            display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            {isSelected && <span style={{ fontSize: '0.75rem' }}>✅</span>}
+                                                                            {m.model_id}
+                                                                        </div>
+                                                                        {m.notes && <div style={{ fontSize: '0.76rem', color: theme.text.tertiary, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.notes}</div>}
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                                                        <span style={{ fontSize: '0.7rem', color: theme.text.tertiary }}>{new Date(m.created_at).toLocaleDateString()}</span>
+                                                                        {/* Toggle code preview — stopPropagation so it doesn't also select */}
+                                                                        <button
+                                                                            onClick={e => { e.stopPropagation(); setExpandedModelCode(codeExpanded ? null : m.model_id); }}
+                                                                            style={{ padding: '3px 9px', fontSize: '0.72rem', borderRadius: '5px', border: `1px solid ${theme.border.medium}`,
+                                                                                background: codeExpanded ? `${theme.accent.orange}20` : theme.bg.tertiary,
+                                                                                color: codeExpanded ? theme.accent.orange : theme.text.secondary, cursor: 'pointer', fontWeight: '600' }}>
+                                                                            {codeExpanded ? '▲ Hide' : '👁 Code'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                {/* Code preview drawer */}
+                                                                {codeExpanded && (
+                                                                    <div style={{ borderTop: `1px solid ${theme.border.light}`, padding: '0' }}>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                            padding: '6px 12px', background: theme.bg.tertiary }}>
+                                                                            <span style={{ fontSize: '0.72rem', color: theme.text.tertiary, fontFamily: 'monospace' }}>
+                                                                                {m.model_id} · {m.cleaned_model_code?.split('\n').length || 0} lines
+                                                                            </span>
+                                                                            <button onClick={() => { navigator.clipboard.writeText(m.cleaned_model_code || ''); }}
+                                                                                style={{ fontSize: '0.7rem', color: theme.accent.cyan, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                                                                                📋 Copy
+                                                                            </button>
+                                                                        </div>
+                                                                        <pre style={{
+                                                                            margin: 0, padding: '12px 14px',
+                                                                            background: theme.bg.primary || theme.bg.tertiary,
+                                                                            color: theme.text.primary,
+                                                                            fontSize: '0.78rem', lineHeight: '1.65',
+                                                                            fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+                                                                            maxHeight: '240px', overflowY: 'auto',
+                                                                            whiteSpace: 'pre', overflowX: 'auto',
+                                                                            borderTop: `1px solid ${theme.border.light}`,
+                                                                            // Syntax-like colour hints via a wrapper trick
+                                                                        }}>
+                                                                            {/* Basic keyword highlighting using spans via dangerouslySetInnerHTML would need sanitising,
+                                                                                so we render raw text — still readable in monospace */}
+                                                                            <code style={{ display: 'block' }}>{m.cleaned_model_code || '# No code stored'}</code>
+                                                                        </pre>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            {m.notes && <div style={{ fontSize: '0.78rem', color: theme.text.tertiary, marginTop: '3px' }}>{m.notes}</div>}
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
