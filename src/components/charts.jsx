@@ -617,6 +617,14 @@ export default function Charts() {
     
     // Asset selection modal
     const [showAssetModal, setShowAssetModal] = useState(false);
+
+    // Backtest watchlist
+    const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+    const [watchlistAssets, setWatchlistAssets]       = useState([]);
+    const [watchlistLoading, setWatchlistLoading]     = useState(false);
+    const [watchlistAddForm, setWatchlistAddForm]     = useState({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
+    const [watchlistAddOpen, setWatchlistAddOpen]     = useState(false);
+    const [watchlistSaving, setWatchlistSaving]       = useState(false);
     const [assetSearchQuery, setAssetSearchQuery] = useState('');
     const [allAssets, setAllAssets] = useState({});
     
@@ -1747,6 +1755,60 @@ export default function Charts() {
     }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, backtestData, selectedBacktestModel, backtestModelOpen]);
 
     // Fetch saved forward-test models from SnowAIForwardTestingModel
+    // ── Backtest Watchlist ─────────────────────────────────────────────────────
+    const fetchWatchlist = async () => {
+        setWatchlistLoading(true);
+        try {
+            const r = await fetch(`${BACKEND_API_URL}/api/backtest-watchlist/`);
+            const d = await r.json();
+            if (d.success) setWatchlistAssets(d.assets || []);
+        } catch(e) { console.error('Watchlist fetch error:', e); }
+        finally { setWatchlistLoading(false); }
+    };
+
+    const addWatchlistAsset = async () => {
+        if (!watchlistAddForm.symbol || !watchlistAddForm.name) return;
+        setWatchlistSaving(true);
+        try {
+            const r = await fetch(`${BACKEND_API_URL}/api/backtest-watchlist/add/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...watchlistAddForm,
+                    symbol: watchlistAddForm.symbol.toUpperCase(),
+                    yfinance_symbol: watchlistAddForm.yfinance_symbol || watchlistAddForm.symbol.toUpperCase(),
+                })
+            });
+            const d = await r.json();
+            if (d.success) {
+                await fetchWatchlist();
+                setWatchlistAddForm({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
+                setWatchlistAddOpen(false);
+            }
+        } catch(e) { console.error('Watchlist add error:', e); }
+        finally { setWatchlistSaving(false); }
+    };
+
+    const deleteWatchlistAsset = async (id) => {
+        try {
+            const r = await fetch(`${BACKEND_API_URL}/api/backtest-watchlist/delete/${id}/`, { method: 'DELETE' });
+            const d = await r.json();
+            if (d.success) setWatchlistAssets(prev => prev.filter(a => a.id !== id));
+        } catch(e) { console.error('Watchlist delete error:', e); }
+    };
+
+    const selectWatchlistAsset = (asset) => {
+        // Try to find exact match in allAssets, otherwise just set symbol directly
+        const match = allAssets.find(a =>
+            a.symbol === asset.symbol ||
+            a.symbol === asset.yfinance_symbol ||
+            a.yfinanceSymbol === asset.yfinance_symbol
+        );
+        if (match) setSelectedAsset(match.symbol);
+        else setSelectedAsset(asset.yfinance_symbol || asset.symbol);
+        setShowWatchlistModal(false);
+    };
+
     const fetchForwardTestModels = async () => {
         try {
             const r = await fetch(`${BACKEND_API_URL}/api/snowai-list-forward-test-models/`);
@@ -2090,6 +2152,17 @@ export default function Charts() {
                                     </button>
                                 </div>
                                 <button
+                                    onClick={() => { setShowWatchlistModal(true); fetchWatchlist(); }}
+                                    style={{
+                                        ...styles.buttonSecondary,
+                                        background: `linear-gradient(135deg, #d97706 0%, #b45309 100%)`,
+                                        color: 'white',
+                                        border: 'none'
+                                    }}
+                                >
+                                    ⭐ Watchlist
+                                </button>
+                                <button
                                     onClick={() => setShowAssetModal(true)}
                                     style={{
                                         ...styles.buttonSecondary,
@@ -2399,7 +2472,7 @@ export default function Charts() {
                                                     No models found in SnowAIForwardTestingModel — run manually or save a model first.
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto', paddingRight: '2px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '520px', overflowY: 'auto', paddingRight: '2px' }}>
                                                     {/* None option */}
                                                     <div onClick={() => setSelectedBacktestModel(null)}
                                                         style={{ padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
@@ -2478,9 +2551,10 @@ export default function Charts() {
                                                                             color: theme.text.primary,
                                                                             fontSize: '0.8rem', lineHeight: '1.7',
                                                                             fontFamily: '"Fira Code","JetBrains Mono",Consolas,monospace',
-                                                                            maxHeight: '280px', overflowY: 'auto', overflowX: 'auto',
+                                                                            height: '260px', overflowY: 'scroll', overflowX: 'auto',
                                                                             whiteSpace: 'pre', tabSize: 4,
                                                                             borderTop: `1px solid ${theme.border.light}`,
+                                                                            boxSizing: 'border-box',
                                                                         }}>
                                                                             <code>{modelCode || '# No code stored for this model'}</code>
                                                                         </pre>
@@ -2716,6 +2790,146 @@ export default function Charts() {
                         </>
                     )}
                     
+                    {/* ── Backtest Watchlist Modal ───────────────────────────── */}
+                    {showWatchlistModal && (
+                        <div style={styles.modal} onClick={() => setShowWatchlistModal(false)}>
+                            <div style={{ ...styles.modalContent, maxWidth: '680px' }} onClick={e => e.stopPropagation()}>
+
+                                {/* Header */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                    <h2 style={{ margin: 0, color: theme.text.primary, fontSize: '1.2rem' }}>⭐ Backtest Watchlist</h2>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <button onClick={() => setWatchlistAddOpen(p => !p)}
+                                            style={{ ...styles.buttonSecondary, background: `linear-gradient(135deg,${theme.accent.green},#059669)`, color: 'white', border: 'none', fontSize: '0.85rem' }}>
+                                            {watchlistAddOpen ? '✕ Cancel' : '＋ Add Asset'}
+                                        </button>
+                                        <button onClick={() => setShowWatchlistModal(false)}
+                                            style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, fontSize: '1.8rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                                    </div>
+                                </div>
+
+                                {/* Add form */}
+                                {watchlistAddOpen && (
+                                    <div style={{ marginBottom: '20px', padding: '18px', background: theme.bg.tertiary, borderRadius: '12px', border: `1px solid ${theme.accent.green}30` }}>
+                                        <div style={{ fontWeight: '700', color: theme.accent.green, marginBottom: '14px', fontSize: '0.9rem' }}>＋ New Watchlist Asset</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                                            <div>
+                                                <label style={styles.label}>Symbol *</label>
+                                                <input style={styles.input} placeholder="e.g. AAPL" value={watchlistAddForm.symbol}
+                                                    onChange={e => setWatchlistAddForm(p => ({ ...p, symbol: e.target.value.toUpperCase() }))} />
+                                            </div>
+                                            <div>
+                                                <label style={styles.label}>Name *</label>
+                                                <input style={styles.input} placeholder="e.g. Apple Inc." value={watchlistAddForm.name}
+                                                    onChange={e => setWatchlistAddForm(p => ({ ...p, name: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label style={styles.label}>Asset Class</label>
+                                                <select style={styles.input} value={watchlistAddForm.asset_class}
+                                                    onChange={e => setWatchlistAddForm(p => ({ ...p, asset_class: e.target.value }))}>
+                                                    {['Stocks','Crypto','Forex','ETF','Commodities','Indices','Other'].map(c => (
+                                                        <option key={c} value={c}>{c}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={styles.label}>yFinance Symbol <span style={{ color: theme.text.tertiary }}>(if different)</span></label>
+                                                <input style={styles.input} placeholder="e.g. BTC-USD" value={watchlistAddForm.yfinance_symbol}
+                                                    onChange={e => setWatchlistAddForm(p => ({ ...p, yfinance_symbol: e.target.value }))} />
+                                            </div>
+                                        </div>
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <label style={styles.label}>Notes (optional)</label>
+                                            <input style={styles.input} placeholder="Why is this on your radar?" value={watchlistAddForm.notes}
+                                                onChange={e => setWatchlistAddForm(p => ({ ...p, notes: e.target.value }))} />
+                                        </div>
+                                        <button onClick={addWatchlistAsset} disabled={watchlistSaving || !watchlistAddForm.symbol || !watchlistAddForm.name}
+                                            style={{ ...styles.buttonPrimary, opacity: (watchlistSaving || !watchlistAddForm.symbol || !watchlistAddForm.name) ? 0.5 : 1,
+                                                background: `linear-gradient(135deg,${theme.accent.green},#059669)` }}>
+                                            {watchlistSaving ? '⏳ Saving...' : '✓ Save Asset'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Asset list grouped by class */}
+                                {watchlistLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '30px', color: theme.text.tertiary }}>⏳ Loading watchlist...</div>
+                                ) : watchlistAssets.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: theme.text.tertiary }}>
+                                        <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>⭐</div>
+                                        <div style={{ fontWeight: '600', marginBottom: '6px' }}>Watchlist is empty</div>
+                                        <div style={{ fontSize: '0.85rem' }}>Add assets you want quick access to for backtesting</div>
+                                    </div>
+                                ) : (() => {
+                                    // Group by asset_class
+                                    const groups = watchlistAssets.reduce((acc, a) => {
+                                        (acc[a.asset_class] = acc[a.asset_class] || []).push(a);
+                                        return acc;
+                                    }, {});
+                                    const classColours = {
+                                        Stocks: theme.blue[500], Crypto: theme.accent.orange,
+                                        Forex: theme.accent.cyan, ETF: theme.accent.purple,
+                                        Commodities: theme.accent.green, Indices: theme.accent.pink || '#ec4899',
+                                        Other: theme.text.tertiary,
+                                    };
+                                    return (
+                                        <div style={{ maxHeight: '500px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                            {Object.entries(groups).map(([cls, assets]) => (
+                                                <div key={cls}>
+                                                    {/* Group header */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px',
+                                                        paddingBottom: '6px', borderBottom: `2px solid ${classColours[cls] || theme.border.medium}40` }}>
+                                                        <span style={{ fontWeight: '800', fontSize: '0.88rem', color: classColours[cls] || theme.text.primary }}>{cls}</span>
+                                                        <span style={{ fontSize: '0.75rem', color: theme.text.tertiary }}>{assets.length} asset{assets.length !== 1 ? 's' : ''}</span>
+                                                    </div>
+                                                    {/* Asset cards */}
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '8px' }}>
+                                                        {assets.map(asset => (
+                                                            <div key={asset.id} style={{
+                                                                background: theme.bg.tertiary, borderRadius: '10px', padding: '12px 14px',
+                                                                border: `1px solid ${theme.border.light}`, position: 'relative',
+                                                                cursor: 'pointer', transition: 'border-color 0.15s',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.borderColor = classColours[cls] || theme.accent.cyan}
+                                                            onMouseLeave={e => e.currentTarget.style.borderColor = theme.border.light}>
+                                                                {/* Main content — click to navigate */}
+                                                                <div onClick={() => selectWatchlistAsset(asset)} style={{ paddingRight: '28px' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
+                                                                        <span style={{ fontWeight: '800', fontSize: '1rem', color: theme.text.primary }}>{asset.symbol}</span>
+                                                                        <span style={{ fontSize: '0.72rem', color: classColours[cls] || theme.text.tertiary,
+                                                                            background: `${classColours[cls]}18`, padding: '1px 7px', borderRadius: '8px' }}>
+                                                                            {asset.asset_class}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.82rem', color: theme.text.secondary, marginBottom: asset.notes ? '4px' : 0 }}>{asset.name}</div>
+                                                                    {asset.notes && <div style={{ fontSize: '0.74rem', color: theme.text.tertiary, fontStyle: 'italic' }}>{asset.notes}</div>}
+                                                                    <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginTop: '6px' }}>
+                                                                        Click to load →
+                                                                    </div>
+                                                                </div>
+                                                                {/* Delete button */}
+                                                                <button
+                                                                    onClick={e => { e.stopPropagation(); deleteWatchlistAsset(asset.id); }}
+                                                                    style={{ position: 'absolute', top: '8px', right: '8px',
+                                                                        background: 'transparent', border: 'none', color: theme.text.tertiary,
+                                                                        cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '2px 4px',
+                                                                        borderRadius: '4px' }}
+                                                                    title="Remove from watchlist"
+                                                                >
+                                                                    🗑
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Asset Selection Modal */}
                     {showAssetModal && (
                         <div style={styles.modal} onClick={() => setShowAssetModal(false)}>
@@ -2914,23 +3128,101 @@ export default function Charts() {
                                     );
                                 })()}
                                 
+                                {/* Trade rows — split by model vs manual in backtest mode */}
                                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                                    {(backtestMode 
-                                        ? (backtestTradeHistory[selectedAssetInfo?.symbol] || [])
-                                        : tradeHistory
-                                    ).map(trade => {
-                                        // Compute live unrealised P&L for open trades
+                                    {backtestMode ? (() => {
+                                        const allTrades = backtestTradeHistory[selectedAssetInfo?.symbol] || [];
+                                        const modelTrades  = allTrades.filter(t => t.is_model_trade);
+                                        const manualTrades = allTrades.filter(t => !t.is_model_trade);
+
+                                        const renderTradeCard = (trade) => {
+                                            const isOpen = trade.status === 'OPEN';
+                                            const ep  = parseFloat(trade.entry_price);
+                                            const qty = parseFloat(trade.quantity);
+                                            let uPnL = null, uPct = null;
+                                            if (isOpen && currentPrice && ep && trade.asset_symbol === selectedAsset) {
+                                                uPnL = trade.order_type === 'BUY' ? (currentPrice - ep) * qty : (ep - currentPrice) * qty;
+                                                uPct = trade.order_type === 'BUY' ? ((currentPrice - ep) / ep) * 100 : ((ep - currentPrice) / ep) * 100;
+                                            }
+                                            const pl = parseFloat(trade.profit_loss || 0);
+                                            const borderColour = isOpen
+                                                ? (uPnL === null ? theme.blue[400] : uPnL >= 0 ? theme.accent.green : theme.accent.red)
+                                                : (trade.profit_loss !== null ? (pl > 0 ? theme.accent.green : theme.accent.red) : theme.border.light);
+                                            return (
+                                                <div key={trade.trade_id} style={{ ...styles.tradeCard, borderLeft: `5px solid ${borderColour}`, marginBottom: '10px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                            <span style={{ ...styles.badge, background: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red, color: 'white' }}>{trade.order_type}</span>
+                                                            <span style={{ ...styles.badge, background: isOpen ? theme.blue[500] : theme.bg.tertiary, color: isOpen ? 'white' : theme.text.secondary }}>{trade.status}</span>
+                                                            {trade.exit_reason && <span style={{ fontSize: '0.75rem', color: trade.exit_reason === 'TP' ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>{trade.exit_reason}</span>}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.8rem', color: theme.text.tertiary }}>{new Date(trade.entry_timestamp).toLocaleString()}</div>
+                                                    </div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px,1fr))', gap: '8px' }}>
+                                                        <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Entry</div><div style={{ color: theme.text.primary, fontWeight: '600' }}>${ep.toFixed(4)}</div></div>
+                                                        {trade.exit_price && <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Exit</div><div style={{ color: theme.text.primary, fontWeight: '600' }}>${parseFloat(trade.exit_price).toFixed(4)}</div></div>}
+                                                        {trade.take_profit && <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>TP</div><div style={{ color: theme.accent.green, fontWeight: '600' }}>${parseFloat(trade.take_profit).toFixed(4)}</div></div>}
+                                                        {trade.stop_loss   && <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>SL</div><div style={{ color: theme.accent.red,   fontWeight: '600' }}>${parseFloat(trade.stop_loss).toFixed(4)}</div></div>}
+                                                        {!isOpen && trade.profit_loss !== null && (
+                                                            <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>P&L</div>
+                                                            <div style={{ color: pl >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>{pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div></div>
+                                                        )}
+                                                        {isOpen && uPnL !== null && (
+                                                            <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Live P&L</div>
+                                                            <div style={{ color: uPnL >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>{uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)} ({uPct?.toFixed(2)}%)</div></div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        };
+
+                                        return (
+                                            <div>
+                                                {/* ── Model trades section ── */}
+                                                <div style={{ marginBottom: '20px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '8px', borderBottom: `2px solid ${theme.accent.purple}40` }}>
+                                                        <span style={{ fontSize: '0.95rem', fontWeight: '800', color: theme.accent.purple }}>🤖 Model Trades</span>
+                                                        <span style={{ fontSize: '0.78rem', color: theme.text.tertiary }}>
+                                                            {modelTrades.length} trades · {modelTrades.filter(t => t.status === 'CLOSED').length} closed · {' '}
+                                                            P&L: <span style={{ fontWeight: '700', color: (() => { const s = modelTrades.reduce((a,t) => a + parseFloat(t.profit_loss||0), 0); return s >= 0 ? theme.accent.green : theme.accent.red; })() }}>
+                                                                {(() => { const s = modelTrades.reduce((a,t) => a + parseFloat(t.profit_loss||0), 0); return `${s >= 0 ? '+' : ''}$${s.toFixed(2)}`; })()}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                    {modelTrades.length === 0
+                                                        ? <div style={{ fontSize: '0.85rem', color: theme.text.tertiary, padding: '12px', background: theme.bg.tertiary, borderRadius: '8px', textAlign: 'center' }}>No model signals fired yet</div>
+                                                        : modelTrades.map(renderTradeCard)
+                                                    }
+                                                </div>
+
+                                                {/* ── Manual trades section ── */}
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '8px', borderBottom: `2px solid ${theme.blue[400]}40` }}>
+                                                        <span style={{ fontSize: '0.95rem', fontWeight: '800', color: theme.blue[500] }}>✍️ Manual Trades</span>
+                                                        <span style={{ fontSize: '0.78rem', color: theme.text.tertiary }}>
+                                                            {manualTrades.length} trades · {manualTrades.filter(t => t.status === 'CLOSED').length} closed · {' '}
+                                                            P&L: <span style={{ fontWeight: '700', color: (() => { const s = manualTrades.reduce((a,t) => a + parseFloat(t.profit_loss||0), 0); return s >= 0 ? theme.accent.green : theme.accent.red; })() }}>
+                                                                {(() => { const s = manualTrades.reduce((a,t) => a + parseFloat(t.profit_loss||0), 0); return `${s >= 0 ? '+' : ''}$${s.toFixed(2)}`; })()}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                    {manualTrades.length === 0
+                                                        ? <div style={{ fontSize: '0.85rem', color: theme.text.tertiary, padding: '12px', background: theme.bg.tertiary, borderRadius: '8px', textAlign: 'center' }}>No manual trades placed yet</div>
+                                                        : manualTrades.map(renderTradeCard)
+                                                    }
+                                                </div>
+                                            </div>
+                                        );
+                                    })()
+
+                                    : tradeHistory.map(trade => {
                                         const isOpen = trade.status === 'OPEN';
                                         const ep  = parseFloat(trade.entry_price);
                                         const qty = parseFloat(trade.quantity);
                                         let uPnL = null, uPct = null;
                                         if (isOpen && currentPrice && ep && trade.asset_symbol === selectedAsset) {
-                                            uPnL = trade.order_type === 'BUY'
-                                                ? (currentPrice - ep) * qty
-                                                : (ep - currentPrice) * qty;
-                                            uPct = trade.order_type === 'BUY'
-                                                ? ((currentPrice - ep) / ep) * 100
-                                                : ((ep - currentPrice) / ep) * 100;
+                                            uPnL = trade.order_type === 'BUY' ? (currentPrice - ep) * qty : (ep - currentPrice) * qty;
+                                            uPct = trade.order_type === 'BUY' ? ((currentPrice - ep) / ep) * 100 : ((ep - currentPrice) / ep) * 100;
                                         }
                                         const borderColour = isOpen
                                             ? (uPnL === null ? theme.blue[400] : uPnL >= 0 ? theme.accent.green : theme.accent.red)
@@ -3071,8 +3363,6 @@ export default function Charts() {
                             </div>
                         </div>
                     )}
-                    
-                    {/* Overall Performance Modal */}
                     {showOverallPerformance && overallStats && (
                         <div style={styles.modal} onClick={() => setShowOverallPerformance(false)}>
                             <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
