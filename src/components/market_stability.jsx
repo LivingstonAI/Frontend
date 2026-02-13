@@ -9707,7 +9707,7 @@ return (
 
                         <button
                             className="trend-age-bulk-btn"
-                            onClick={() => fetchTrendAgeBulk(filteredAssets.map(asset => asset.symbol))}
+                            onClick={() => fetchTrendAgeBulk(mssData.map(asset => asset.symbol))}
                             disabled={loadingTrendAge}
                         >
                             {loadingTrendAge ? '⏳ Analyzing...' : '📊 Trend Age Analyzer'}
