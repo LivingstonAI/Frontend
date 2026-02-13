@@ -572,7 +572,7 @@ function OpenPositionCard({ trade, currentPrice, theme, styles, onNavigate, onEd
     );
 }
 
-export default function Charts() {
+export default function Chart() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
     const chartContainerRef = useRef(null);
@@ -1162,6 +1162,8 @@ export default function Charts() {
         if (backtestMode) {
             try {
                 const tradeId = `BACKTEST_${Date.now()}`;
+                // Size position to full current balance so % moves track equity correctly
+                const backtestQty = backtestBalance / currentPrice;
                 const newTrade = {
                     trade_id: tradeId,
                     asset_symbol: selectedAssetInfo.symbol,
@@ -1169,11 +1171,17 @@ export default function Charts() {
                     asset_class: selectedAssetInfo.assetClass,
                     order_type: orderType,
                     entry_price: currentPrice,
-                    quantity: quantity,
-                    stop_loss: stopLoss || null,
-                    take_profit: takeProfit || null,
+                    quantity: backtestQty,
+                    balance_at_entry: backtestBalance,
+                    stop_loss: stopLoss ? parseFloat(stopLoss) : null,
+                    take_profit: takeProfit ? parseFloat(takeProfit) : null,
+                    // Store raw % targets if they were entered as pct
+                    tp_pct: tpPct ? parseFloat(tpPct) : (takeProfit ? ((Math.abs(parseFloat(takeProfit) - currentPrice) / currentPrice) * 100) : null),
+                    sl_pct: slPct ? parseFloat(slPct) : (stopLoss  ? ((Math.abs(parseFloat(stopLoss)   - currentPrice) / currentPrice) * 100) : null),
                     status: 'OPEN',
                     entry_timestamp: new Date().toISOString(),
+                    profit_loss: null,
+                    profit_loss_percentage: null,
                     notes: tradeNotes,
                     is_backtest: true
                 };
@@ -1473,17 +1481,18 @@ export default function Charts() {
             const updatedTrades = assetTrades.map(trade => {
                 if (trade.trade_id === tradeId && trade.status === 'OPEN') {
                     const exitPrice = currentPrice;
-                    let profitLoss, profitLossPct;
-                    
+                    let profitLoss;
+
                     if (trade.order_type === 'BUY') {
                         profitLoss = (exitPrice - trade.entry_price) * trade.quantity;
-                        profitLossPct = ((exitPrice - trade.entry_price) / trade.entry_price) * 100;
                     } else {
                         profitLoss = (trade.entry_price - exitPrice) * trade.quantity;
-                        profitLossPct = ((trade.entry_price - exitPrice) / trade.entry_price) * 100;
                     }
-                    
-                    // Calculate new balance
+
+                    // % of equity at entry — not price movement %
+                    const balanceAtEntry = trade.balance_at_entry || trade.entry_price * trade.quantity;
+                    const profitLossPct  = (profitLoss / balanceAtEntry) * 100;
+
                     newBalance = backtestBalance + profitLoss;
                     
                     return {
@@ -1697,12 +1706,18 @@ export default function Charts() {
                                 asset_class:     selectedAssetInfo?.assetClass || 'Unknown',
                                 order_type:      orderType,
                                 entry_price:     price,
-                                quantity:        1,
+                                // Quantity = full balance ÷ price → so P&L tracks equity %, not raw price dollars
+                                quantity:        backtestBalance / price,
+                                balance_at_entry: backtestBalance,
                                 stop_loss:       sl,
                                 take_profit:     tp,
+                                // Store the original % targets for display
+                                tp_pct:          tpType === 'PERCENTAGE' ? tpVal : ((Math.abs(tp - price) / price) * 100),
+                                sl_pct:          slType === 'PERCENTAGE' ? slVal : ((Math.abs(sl - price) / price) * 100),
                                 entry_timestamp: new Date(currentCandle.time * 1000).toISOString(),
                                 status:          'OPEN',
                                 profit_loss:     null,
+                                profit_loss_percentage: null,
                                 is_model_trade:  true,
                                 model_id:        selectedBacktestModel.model_id,
                             };
@@ -1722,18 +1737,28 @@ export default function Charts() {
                         const assetTrades  = backtestTradeHistory[currentAsset] || [];
                         const updatedTrades = assetTrades.map(trade => {
                             if (trade.status !== 'OPEN' || !trade.is_model_trade) return trade;
-                            const price   = currentCandle.close;
-                            const isBuy   = trade.order_type === 'BUY';
-                            const hitTp   = isBuy ? price >= trade.take_profit  : price <= trade.take_profit;
-                            const hitSl   = isBuy ? price <= trade.stop_loss    : price >= trade.stop_loss;
+                            const price = currentCandle.close;
+                            const isBuy = trade.order_type === 'BUY';
+                            const hitTp = isBuy ? price >= trade.take_profit : price <= trade.take_profit;
+                            const hitSl = isBuy ? price <= trade.stop_loss   : price >= trade.stop_loss;
                             if (hitTp || hitSl) {
+                                // P&L in dollars (quantity already sized to full balance / entry_price)
                                 const pl = isBuy
                                     ? (price - trade.entry_price) * trade.quantity
                                     : (trade.entry_price - price) * trade.quantity;
+                                // P&L as % of equity at entry — what you actually care about
+                                const balanceAtEntry = trade.balance_at_entry || trade.entry_price * trade.quantity;
+                                const plPct = (pl / balanceAtEntry) * 100;
                                 setBacktestModelOpen(false);
-                                return { ...trade, status: 'CLOSED', exit_price: price,
-                                    exit_timestamp: new Date(currentCandle.time*1000).toISOString(),
-                                    profit_loss: pl, exit_reason: hitTp ? 'TP' : 'SL' };
+                                return {
+                                    ...trade,
+                                    status: 'CLOSED',
+                                    exit_price: price,
+                                    exit_timestamp: new Date(currentCandle.time * 1000).toISOString(),
+                                    profit_loss: pl,
+                                    profit_loss_percentage: plPct,
+                                    exit_reason: hitTp ? 'TP' : 'SL',
+                                };
                             }
                             return trade;
                         });
@@ -3232,39 +3257,105 @@ export default function Charts() {
 
                                         const renderTradeCard = (trade) => {
                                             const isOpen = trade.status === 'OPEN';
-                                            const ep  = parseFloat(trade.entry_price);
-                                            const qty = parseFloat(trade.quantity);
+                                            const ep     = parseFloat(trade.entry_price);
+                                            const qty    = parseFloat(trade.quantity);
+                                            const balAtEntry = trade.balance_at_entry || (ep * qty);
+
+                                            // Live unrealised P&L (open trades only)
                                             let uPnL = null, uPct = null;
                                             if (isOpen && currentPrice && ep && trade.asset_symbol === selectedAsset) {
-                                                uPnL = trade.order_type === 'BUY' ? (currentPrice - ep) * qty : (ep - currentPrice) * qty;
-                                                uPct = trade.order_type === 'BUY' ? ((currentPrice - ep) / ep) * 100 : ((ep - currentPrice) / ep) * 100;
+                                                uPnL = trade.order_type === 'BUY'
+                                                    ? (currentPrice - ep) * qty
+                                                    : (ep - currentPrice) * qty;
+                                                // Equity % — P&L relative to balance at entry
+                                                uPct = (uPnL / balAtEntry) * 100;
                                             }
+
                                             const pl = parseFloat(trade.profit_loss || 0);
+                                            // Stored equity %, or compute on the fly if missing
+                                            const plPct = trade.profit_loss_percentage != null
+                                                ? parseFloat(trade.profit_loss_percentage)
+                                                : (trade.profit_loss != null ? (pl / balAtEntry) * 100 : null);
+
                                             const borderColour = isOpen
                                                 ? (uPnL === null ? theme.blue[400] : uPnL >= 0 ? theme.accent.green : theme.accent.red)
                                                 : (trade.profit_loss !== null ? (pl > 0 ? theme.accent.green : theme.accent.red) : theme.border.light);
+
                                             return (
                                                 <div key={trade.trade_id} style={{ ...styles.tradeCard, borderLeft: `5px solid ${borderColour}`, marginBottom: '10px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                             <span style={{ ...styles.badge, background: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red, color: 'white' }}>{trade.order_type}</span>
                                                             <span style={{ ...styles.badge, background: isOpen ? theme.blue[500] : theme.bg.tertiary, color: isOpen ? 'white' : theme.text.secondary }}>{trade.status}</span>
-                                                            {trade.exit_reason && <span style={{ fontSize: '0.75rem', color: trade.exit_reason === 'TP' ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>{trade.exit_reason}</span>}
+                                                            {trade.exit_reason && (
+                                                                <span style={{ fontSize: '0.75rem', fontWeight: '800', letterSpacing: '0.04em',
+                                                                    color: trade.exit_reason === 'TP' ? theme.accent.green : trade.exit_reason === 'SL' ? theme.accent.red : theme.text.secondary }}>
+                                                                    {trade.exit_reason}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div style={{ fontSize: '0.8rem', color: theme.text.tertiary }}>{new Date(trade.entry_timestamp).toLocaleString()}</div>
                                                     </div>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px,1fr))', gap: '8px' }}>
-                                                        <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Entry</div><div style={{ color: theme.text.primary, fontWeight: '600' }}>${ep.toFixed(4)}</div></div>
-                                                        {trade.exit_price && <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Exit</div><div style={{ color: theme.text.primary, fontWeight: '600' }}>${parseFloat(trade.exit_price).toFixed(4)}</div></div>}
-                                                        {trade.take_profit && <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>TP</div><div style={{ color: theme.accent.green, fontWeight: '600' }}>${parseFloat(trade.take_profit).toFixed(4)}</div></div>}
-                                                        {trade.stop_loss   && <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>SL</div><div style={{ color: theme.accent.red,   fontWeight: '600' }}>${parseFloat(trade.stop_loss).toFixed(4)}</div></div>}
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px,1fr))', gap: '8px' }}>
+                                                        <div>
+                                                            <div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Entry</div>
+                                                            <div style={{ color: theme.text.primary, fontWeight: '600' }}>${ep.toFixed(4)}</div>
+                                                        </div>
+                                                        {trade.exit_price && (
+                                                            <div>
+                                                                <div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Exit</div>
+                                                                <div style={{ color: theme.text.primary, fontWeight: '600' }}>${parseFloat(trade.exit_price).toFixed(4)}</div>
+                                                            </div>
+                                                        )}
+                                                        {trade.take_profit && (
+                                                            <div>
+                                                                <div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>TP</div>
+                                                                <div style={{ color: theme.accent.green, fontWeight: '600' }}>
+                                                                    ${parseFloat(trade.take_profit).toFixed(4)}
+                                                                    {trade.tp_pct != null && (
+                                                                        <span style={{ fontSize: '0.72rem', opacity: 0.75, marginLeft: '3px' }}>
+                                                                            ({parseFloat(trade.tp_pct).toFixed(2)}%)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {trade.stop_loss && (
+                                                            <div>
+                                                                <div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>SL</div>
+                                                                <div style={{ color: theme.accent.red, fontWeight: '600' }}>
+                                                                    ${parseFloat(trade.stop_loss).toFixed(4)}
+                                                                    {trade.sl_pct != null && (
+                                                                        <span style={{ fontSize: '0.72rem', opacity: 0.75, marginLeft: '3px' }}>
+                                                                            ({parseFloat(trade.sl_pct).toFixed(2)}%)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                         {!isOpen && trade.profit_loss !== null && (
-                                                            <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>P&L</div>
-                                                            <div style={{ color: pl >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>{pl >= 0 ? '+' : ''}${pl.toFixed(2)}</div></div>
+                                                            <div>
+                                                                <div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>P&L (equity)</div>
+                                                                <div style={{ color: pl >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>
+                                                                    {pl >= 0 ? '+' : ''}${pl.toFixed(2)}
+                                                                    {plPct != null && (
+                                                                        <span style={{ fontSize: '0.82rem', marginLeft: '4px' }}>
+                                                                            ({plPct >= 0 ? '+' : ''}{plPct.toFixed(2)}%)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         )}
                                                         {isOpen && uPnL !== null && (
-                                                            <div><div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Live P&L</div>
-                                                            <div style={{ color: uPnL >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>{uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)} ({uPct?.toFixed(2)}%)</div></div>
+                                                            <div>
+                                                                <div style={{ color: theme.text.tertiary, fontSize: '0.78rem' }}>Live P&L (equity)</div>
+                                                                <div style={{ color: uPnL >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700' }}>
+                                                                    {uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)}
+                                                                    <span style={{ fontSize: '0.82rem', marginLeft: '4px' }}>
+                                                                        ({uPct >= 0 ? '+' : ''}{uPct?.toFixed(2)}%)
+                                                                    </span>
+                                                                </div>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
