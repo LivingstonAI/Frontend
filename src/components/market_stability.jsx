@@ -4,6 +4,285 @@ import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
+
+// ============================================================
+// CSS — Trend Age Estimator
+// ============================================================
+
+const trendAgeStyles = `
+/* Trend Age Button */
+.trend-age-bulk-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(139,92,246,0.3);
+}
+.trend-age-bulk-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(139,92,246,0.4);
+}
+.trend-age-bulk-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.trend-age-card-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.trend-age-card-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+/* Modal */
+.trend-age-modal {
+    /* Reuse corr-modal styles */
+}
+
+/* Sorting Controls */
+.trend-age-sort-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 14px 28px;
+    background: rgba(139,92,246,0.08);
+    border-bottom: 1px solid #334155;
+}
+.trend-age-sort-label {
+    font-size: 12px;
+    color: #8b5cf6;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.trend-age-sort-btn {
+    padding: 6px 14px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.trend-age-sort-btn:hover {
+    border-color: #8b5cf6;
+    color: #8b5cf6;
+}
+.trend-age-sort-btn.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border-color: #8b5cf6;
+    color: white;
+}
+
+/* Trend Age Grid */
+.trend-age-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    padding: 18px 28px;
+}
+.trend-age-card {
+    background: #1e293b;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+}
+.trend-age-card:hover {
+    border-color: #8b5cf6;
+    transform: translateY(-2px);
+}
+.trend-age-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.trend-age-symbol {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+.trend-age-classification {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: white;
+}
+.trend-age-days {
+    font-size: 28px;
+    font-weight: 700;
+    color: #a78bfa;
+    margin-bottom: 4px;
+}
+.trend-age-days-label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+}
+.trend-age-description {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #334155;
+}
+.trend-age-r-values {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+.trend-age-r-item {
+    background: rgba(139,92,246,0.1);
+    border-radius: 6px;
+    padding: 6px;
+    text-align: center;
+}
+.trend-age-r-label {
+    font-size: 9px;
+    color: #8b5cf6;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.trend-age-r-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #c4b5fd;
+    margin-top: 2px;
+}
+
+/* Per-Card Panel */
+.trend-age-panel {
+    background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+    border: 2px solid #8b5cf6;
+    border-radius: 12px;
+    margin-top: 14px;
+    overflow: hidden;
+    animation: popPanelSlide 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.trend-age-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: rgba(139,92,246,0.15);
+    user-select: none;
+}
+.trend-age-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e9d5ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.trend-age-panel-chevron {
+    font-size: 12px;
+    color: #8b5cf6;
+    transition: transform 0.25s;
+}
+.trend-age-panel-chevron.open {
+    transform: rotate(180deg);
+}
+.trend-age-panel-body {
+    padding: 16px;
+    animation: corrAccFade 0.2s ease;
+}
+
+/* R² Progression Chart */
+.r-squared-progression {
+    background: rgba(139,92,246,0.08);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+.r-squared-prog-title {
+    font-size: 11px;
+    color: #8b5cf6;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.r-squared-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 80px;
+}
+.r-squared-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.r-squared-bar {
+    width: 100%;
+    background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 100%);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+}
+.r-squared-bar-label {
+    font-size: 9px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Trend Info Grid */
+.trend-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.trend-info-item {
+    background: rgba(139,92,246,0.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.trend-info-label {
+    font-size: 10px;
+    color: #8b5cf6;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.trend-info-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e9d5ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .trend-age-grid {
+        grid-template-columns: 1fr;
+    }
+    .trend-age-sort-controls {
+        flex-wrap: wrap;
+    }
+}
+`;
+
+
 // ============================================================
 // CSS — Trade Execution Modal
 // ============================================================
@@ -4568,6 +4847,277 @@ export default function MarketStabilityScore() {
     // STATE ADDITIONS
     // ============================================================
 
+    const [trendAgeData, setTrendAgeData] = useState(null);
+    const [loadingTrendAge, setLoadingTrendAge] = useState(false);
+    const [showTrendAgeModal, setShowTrendAgeModal] = useState(false);
+    const [trendAgeSortBy, setTrendAgeSortBy] = useState('shortest'); // shortest, longest, newest, established
+
+    const [trendAgePanelData, setTrendAgePanelData] = useState({});     // { symbol: data }
+    const [loadingTrendAgePanel, setLoadingTrendAgePanel] = useState({}); // { symbol: bool }
+    const [showTrendAgePanel, setShowTrendAgePanel] = useState({});      // { symbol: bool }
+
+
+    // ============================================================
+    // FUNCTIONS
+    // ============================================================
+
+    const fetchTrendAgeBulk = async (symbols) => {
+        setLoadingTrendAge(true);
+        try {
+            const res = await fetch(`${baseUrl}/api/mss-trend-age-estimator-bulk/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbols })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTrendAgeData(data);
+                setShowTrendAgeModal(true);
+            } else alert(`Error: ${data.error}`);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to fetch trend age analysis.');
+        } finally {
+            setLoadingTrendAge(false);
+        }
+    };
+
+    const fetchTrendAgeSingle = async (symbol) => {
+        setLoadingTrendAgePanel(prev => ({ ...prev, [symbol]: true }));
+        try {
+            const res = await fetch(`${baseUrl}/api/mss-trend-age-estimator-single/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTrendAgePanelData(prev => ({ ...prev, [symbol]: data }));
+                setShowTrendAgePanel(prev => ({ ...prev, [symbol]: true }));
+            } else alert(`Error: ${data.error}`);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to fetch trend age analysis.');
+        } finally {
+            setLoadingTrendAgePanel(prev => ({ ...prev, [symbol]: false }));
+        }
+    };
+
+    const sortTrendAgeResults = (results, sortBy) => {
+        const sorted = [...results];
+        switch (sortBy) {
+            case 'shortest':
+                sorted.sort((a, b) => a.trend_age_days - b.trend_age_days);
+                break;
+            case 'longest':
+                sorted.sort((a, b) => b.trend_age_days - a.trend_age_days);
+                break;
+            case 'newest':
+                sorted.sort((a, b) => {
+                    const aIsNew = ['NEW', 'EMERGING'].includes(a.trend_classification);
+                    const bIsNew = ['NEW', 'EMERGING'].includes(b.trend_classification);
+                    if (aIsNew && !bIsNew) return -1;
+                    if (!aIsNew && bIsNew) return 1;
+                    return a.trend_age_days - b.trend_age_days;
+                });
+                break;
+            case 'established':
+                sorted.sort((a, b) => {
+                    const aIsEst = ['ESTABLISHED', 'MATURE'].includes(a.trend_classification);
+                    const bIsEst = ['ESTABLISHED', 'MATURE'].includes(b.trend_classification);
+                    if (aIsEst && !bIsEst) return -1;
+                    if (!aIsEst && bIsEst) return 1;
+                    return b.trend_age_days - a.trend_age_days;
+                });
+                break;
+            default:
+                break;
+        }
+        return sorted;
+    };
+
+
+    // ============================================================
+    // COMPONENT — TrendAgeModal
+    // ============================================================
+
+    const TrendAgeModal = ({ data, sortBy, onSortChange, onClose }) => {
+        const sortedResults = sortTrendAgeResults(data.results, sortBy);
+        
+        return (
+            <div className="corr-modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+            <div className="corr-modal trend-age-modal">
+                {/* Header */}
+                <div className="corr-modal-header">
+                    <h2>📊 Trend Age Estimator</h2>
+                    <button className="corr-modal-close" onClick={onClose}>✕</button>
+                </div>
+
+                {/* Summary */}
+                <div style={{ padding: '14px 28px', fontSize: '13px', color: '#94a3b8' }}>
+                    Analyzed <strong style={{ color: '#e2e8f0' }}>{data.total_analyzed}</strong> assets across {data.timeframes_analyzed.join(', ')} day timeframes using R² comparison.
+                </div>
+
+                {/* Sort Controls */}
+                <div className="trend-age-sort-controls">
+                    <span className="trend-age-sort-label">Sort By:</span>
+                    <button
+                        className={`trend-age-sort-btn ${sortBy === 'shortest' ? 'active' : ''}`}
+                        onClick={() => onSortChange('shortest')}
+                    >
+                        Shortest First
+                    </button>
+                    <button
+                        className={`trend-age-sort-btn ${sortBy === 'longest' ? 'active' : ''}`}
+                        onClick={() => onSortChange('longest')}
+                    >
+                        Longest First
+                    </button>
+                    <button
+                        className={`trend-age-sort-btn ${sortBy === 'newest' ? 'active' : ''}`}
+                        onClick={() => onSortChange('newest')}
+                    >
+                        New Trends
+                    </button>
+                    <button
+                        className={`trend-age-sort-btn ${sortBy === 'established' ? 'active' : ''}`}
+                        onClick={() => onSortChange('established')}
+                    >
+                        Established
+                    </button>
+                </div>
+
+                {/* Grid */}
+                <div className="trend-age-grid">
+                    {sortedResults.map((result, i) => (
+                        <div key={i} className="trend-age-card">
+                            <div className="trend-age-card-header">
+                                <div className="trend-age-symbol">{result.symbol}</div>
+                                <div className="trend-age-classification" style={{ background: result.classification_color }}>
+                                    {result.trend_classification}
+                                </div>
+                            </div>
+
+                            <div className="trend-age-days">{result.trend_age_days}</div>
+                            <div className="trend-age-days-label">Days Old (Estimated)</div>
+
+                            <div className="trend-age-description">{result.description}</div>
+
+                            {/* R² Values */}
+                            <div className="trend-age-r-values">
+                                {Object.entries(result.r_squared).map(([tf, val]) => (
+                                    <div key={tf} className="trend-age-r-item">
+                                        <div className="trend-age-r-label">{tf}</div>
+                                        <div className="trend-age-r-value">{val}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Trend Alignment */}
+                            <div style={{ marginTop: '8px', fontSize: '11px', color: result.alignment_color, fontWeight: 600 }}>
+                                {result.trend_alignment === 'ALIGNED' ? '✓' : '⚠'} {result.trend_alignment}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="corr-modal-footer">
+                    {data.timestamp && new Date(data.timestamp).toLocaleString()}
+                </div>
+            </div>
+            </div>
+        );
+    };
+
+
+    // ============================================================
+    // COMPONENT — TrendAgePanel
+    // ============================================================
+
+    const TrendAgePanel = ({ symbol, data, onToggle, isOpen }) => {
+        const classification = data.classification || {};
+        const progression = data.r_squared_progression || [];
+        
+        return (
+            <div className="trend-age-panel">
+                <div className="trend-age-panel-header" onClick={onToggle}>
+                    <div className="trend-age-panel-title">
+                        <span style={{ fontSize: '18px' }}>📊</span>
+                        Trend Age — {symbol}
+                    </div>
+                    <span className={`trend-age-panel-chevron ${isOpen ? 'open' : ''}`}>▼</span>
+                </div>
+
+                {isOpen && (
+                    <div className="trend-age-panel-body">
+                        {/* Classification */}
+                        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                            <div style={{ fontSize: '36px', fontWeight: 700, color: '#a78bfa' }}>
+                                {classification.trend_age_days} days
+                            </div>
+                            <div style={{
+                                display: 'inline-block',
+                                padding: '6px 16px',
+                                borderRadius: '16px',
+                                background: classification.classification_color,
+                                color: 'white',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                marginTop: '8px'
+                            }}>
+                                {classification.trend_classification}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#c4b5fd', marginTop: '8px' }}>
+                                {classification.description}
+                            </div>
+                        </div>
+
+                        {/* R² Progression */}
+                        {progression.length > 0 && (
+                            <div className="r-squared-progression">
+                                <div className="r-squared-prog-title">R² Across Timeframes</div>
+                                <div className="r-squared-bars">
+                                    {progression.map((item, i) => (
+                                        <div key={i} className="r-squared-bar-wrap">
+                                            <div
+                                                className="r-squared-bar"
+                                                style={{ height: `${item.r_squared * 100}%` }}
+                                                title={`${item.timeframe}d: ${item.r_squared}`}
+                                            />
+                                            <div className="r-squared-bar-label">{item.timeframe}d</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Trend Info */}
+                        <div className="trend-info-grid">
+                            <div className="trend-info-item">
+                                <div className="trend-info-label">R² Gradient</div>
+                                <div className="trend-info-value" style={{
+                                    color: classification.r_gradient > 0 ? '#10b981' : '#ef4444'
+                                }}>
+                                    {classification.r_gradient > 0 ? '+' : ''}{classification.r_gradient}
+                                </div>
+                            </div>
+                            <div className="trend-info-item">
+                                <div className="trend-info-label">Alignment</div>
+                                <div className="trend-info-value" style={{ color: classification.alignment_color }}>
+                                    {classification.trend_alignment}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // ============================================================
+    // STATE ADDITIONS
+    // ============================================================
+
     const [showTradeModal, setShowTradeModal] = useState(false);
     const [tradeModalAsset, setTradeModalAsset] = useState(null);
     const [tradeFormData, setTradeFormData] = useState({
@@ -8805,7 +9355,7 @@ const StockAlignmentPanel = ({ symbol, data, onToggle, isOpen }) => {
 
 return (
     <div>
-        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}{institutionalRetailStyles}{sectorDeepDiveStyles}{assetInterestStyles}{tradeExecutionStyles}</style>
+        <style>{styles}{correlationModalStyles}{techSubsectorModalStyles}{institutionalRetailStyles}{sectorDeepDiveStyles}{assetInterestStyles}{tradeExecutionStyles}{trendAgeStyles}</style>
         <Header />
         <SideNavs />
         <div className="mss-wrapper">
@@ -9098,6 +9648,7 @@ return (
                         {loadingCommodityVsMaterials ? '🌾 Analyzing...' : '🌾 Commodities vs Materials'}
                     </button><br /><br />
 
+
                     <button
                         className="mss-calculate-btn"
                         onClick={fetchSp500VsTech}
@@ -9152,8 +9703,16 @@ return (
                         onClick={toggleShowSavedOnly}
                     >
                         {showingSavedOnly ? '✓ Showing Saved Assets' : '⭐ Show Saved Assets'}
-                    </button>
-                    
+                    </button><br /><br />
+
+                        <button
+                            className="trend-age-bulk-btn"
+                            onClick={() => fetchTrendAgeBulk(allSymbols)}
+                            disabled={loadingTrendAge}
+                        >
+                            {loadingTrendAge ? '⏳ Analyzing...' : '📊 Trend Age Analyzer'}
+                        </button>
+                                        
 
 
                 </div>
@@ -9664,6 +10223,19 @@ return (
                                             Execute Trade
                                         </button>
 
+                                        <button
+                                            className="trend-age-card-btn"
+                                            onClick={() => {
+                                                if (trendAgePanelData[asset.symbol])
+                                                    setShowTrendAgePanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }));
+                                                else
+                                                    fetchTrendAgeSingle(asset.symbol);
+                                            }}
+                                            disabled={loadingTrendAgePanel[asset.symbol]}
+                                        >
+                                            {loadingTrendAgePanel[asset.symbol] ? '⏳' : '📊 Trend Age'}
+                                        </button>
+
 
                                         <div style={{ 
                                             display: 'flex', 
@@ -9784,6 +10356,8 @@ return (
                                         onToggle={() => setShowTechPeerPanel(p => ({ ...p, [asset.symbol]: !p[asset.symbol] }))}
                                     />
                                 )}
+
+
 
                                 
 
@@ -10005,6 +10579,17 @@ return (
                                         }))}
                                     />
                                 )}
+
+                                {trendAgePanelData[asset.symbol] && (
+                                        <TrendAgePanel
+                                            symbol={asset.symbol}
+                                            data={trendAgePanelData[asset.symbol]}
+                                            isOpen={showTrendAgePanel[asset.symbol]}
+                                            onToggle={() => setShowTrendAgePanel(p => ({
+                                                ...p, [asset.symbol]: !p[asset.symbol]
+                                            }))}
+                                        />
+                                    )}
 
                                 {priceTargetData[asset.symbol] && (
                                 <div className="retracement-analysis-container" style={{
@@ -11259,6 +11844,16 @@ return (
                     submitting={submittingTrade}
                 />
             )}
+
+            {showTrendAgeModal && trendAgeData && (
+                <TrendAgeModal
+                    data={trendAgeData}
+                    sortBy={trendAgeSortBy}
+                    onSortChange={setTrendAgeSortBy}
+                    onClose={() => setShowTrendAgeModal(false)}
+                />
+            )}
+
         </div>
     );
 }
