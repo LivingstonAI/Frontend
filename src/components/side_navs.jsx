@@ -5,6 +5,7 @@ import { FaSun, FaMoon, FaMusic, FaSave, FaChartLine, FaAngleDown, FaAngleUp, Fa
 import { useAudio } from './audio_context';
 import AssetTracker from "./asset_tracker";
 
+
 // Import all the songs (keeping the original imports)
 import jingleBells from '../jingle_bells.mp3';
 import snowStorm from '../Snowstorm Sound Effect - Winter Storm - Blizzard.mp3';
