@@ -21,7 +21,7 @@ const loadScript = (src) => {
   });
 };
 
-const App = () => {
+const DomainExpansion = () => {
   // --- Refs ---
   const containerRef = useRef(null);
   const videoRef = useRef(null);
@@ -489,4 +489,4 @@ const styles = {
     }
 };
 
-export default App;
+export default DomainExpansion;
