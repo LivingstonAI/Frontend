@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import AIModelBuilder from "./ai_model_builder";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
 // Light theme (default)
 const lightTheme = {
@@ -654,8 +654,29 @@ export default function Charts() {
     
     // Loading and error states
     const [isExecutingTrade, setIsExecutingTrade] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage]   = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+
+    // ── Toast notification system ─────────────────────────────────────────────
+    const [toasts, setToasts] = useState([]);
+    const toastIdRef = useRef(0);
+
+    const addToast = useCallback((message, type = 'info', duration = 3500) => {
+        const id = ++toastIdRef.current;
+        setToasts(prev => [...prev, { id, message, type, duration }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration + 400);
+    }, []);
+
+    // Intercept the existing setters so every existing call site becomes a toast automatically
+    const wrappedSetSuccess = useCallback((msg) => {
+        setSuccessMessage(msg);
+        if (msg) addToast(msg, 'success');
+    }, [addToast]);
+
+    const wrappedSetError = useCallback((msg) => {
+        setErrorMessage(msg);
+        if (msg) addToast(msg, 'error');
+    }, [addToast]);
     
     // Edit position state
     const [editingTrade, setEditingTrade] = useState(null);
@@ -811,13 +832,13 @@ export default function Charts() {
     // Generate model code using LLM
     const generateModelCode = async () => {
         if (!modelPrompt.trim()) {
-            setErrorMessage('Please enter a description for your model');
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError('Please enter a description for your model');
+            setTimeout(() => wrappedSetError(''), 3000);
             return;
         }
         
         setIsGeneratingCode(true);
-        setErrorMessage('');
+        wrappedSetError('');
         
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -847,16 +868,16 @@ export default function Charts() {
             
             if (data.choices && data.choices[0]) {
                 setGeneratedCode(data.choices[0].message.content);
-                setSuccessMessage('✅ Code generated successfully!');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                wrappedSetSuccess('✅ Code generated successfully!');
+                setTimeout(() => wrappedSetSuccess(''), 3000);
             } else {
-                setErrorMessage('Failed to generate code');
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError('Failed to generate code');
+                setTimeout(() => wrappedSetError(''), 3000);
             }
         } catch (error) {
             console.error('Error generating code:', error);
-            setErrorMessage(`Failed to generate code: ${error.message}`);
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError(`Failed to generate code: ${error.message}`);
+            setTimeout(() => wrappedSetError(''), 3000);
         } finally {
             setIsGeneratingCode(false);
         }
@@ -1156,14 +1177,14 @@ export default function Charts() {
     // Execute trade
     const executeTrade = async () => {
         if (!currentPrice) {
-            setErrorMessage('Wait for price data to load');
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError('Wait for price data to load');
+            setTimeout(() => wrappedSetError(''), 3000);
             return;
         }
 
         setIsExecutingTrade(true);
-        setErrorMessage('');
-        setSuccessMessage('');
+        wrappedSetError('');
+        wrappedSetSuccess('');
 
         // If in backtest mode, handle locally without API call
         if (backtestMode) {
@@ -1201,8 +1222,8 @@ export default function Charts() {
                     [currentAsset]: [...assetTrades, newTrade]
                 });
                 
-                setSuccessMessage(`✅ ${orderType} order placed in backtest!`);
-                setTimeout(() => setSuccessMessage(''), 3000);
+                wrappedSetSuccess(`✅ ${orderType} order placed in backtest!`);
+                setTimeout(() => wrappedSetSuccess(''), 3000);
                 setStopLoss('');
                 setTakeProfit('');
                 setSlPct('');
@@ -1210,8 +1231,8 @@ export default function Charts() {
                 setTradeNotes('');
                 setShowTradePanel(false);
             } catch (error) {
-                setErrorMessage(`❌ Error: ${error.message}`);
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError(`❌ Error: ${error.message}`);
+                setTimeout(() => wrappedSetError(''), 3000);
             } finally {
                 setIsExecutingTrade(false);
             }
@@ -1244,21 +1265,21 @@ export default function Charts() {
             const result = await response.json();
             
             if (result.success) {
-                setSuccessMessage(`✅ ${orderType} order placed successfully!`);
-                setTimeout(() => setSuccessMessage(''), 3000);
+                wrappedSetSuccess(`✅ ${orderType} order placed successfully!`);
+                setTimeout(() => wrappedSetSuccess(''), 3000);
                 setStopLoss('');
                 setTakeProfit('');
                 setTradeNotes('');
                 setShowTradePanel(false);
                 fetchTradeHistory();
             } else {
-                setErrorMessage(`❌ Error: ${result.error}`);
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError(`❌ Error: ${result.error}`);
+                setTimeout(() => wrappedSetError(''), 3000);
             }
         } catch (error) {
             console.error('Error executing trade:', error);
-            setErrorMessage(`❌ Failed to execute trade: ${error.message}`);
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError(`❌ Failed to execute trade: ${error.message}`);
+            setTimeout(() => wrappedSetError(''), 3000);
         } finally {
             setIsExecutingTrade(false);
         }
@@ -1336,12 +1357,12 @@ export default function Charts() {
                 setShowMssPanel(true);
             } else {
                 setMssData(null);
-                setErrorMessage('Could not compute MSS for this asset.');
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError('Could not compute MSS for this asset.');
+                setTimeout(() => wrappedSetError(''), 3000);
             }
         } catch (e) {
-            setErrorMessage(`MSS fetch error: ${e.message}`);
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError(`MSS fetch error: ${e.message}`);
+            setTimeout(() => wrappedSetError(''), 3000);
         } finally {
             setLoadingMss(false);
         }
@@ -1403,8 +1424,8 @@ export default function Charts() {
                     : t
             );
             setBacktestTradeHistory({ ...backtestTradeHistory, [currentAsset]: updatedTrades });
-            setSuccessMessage('✅ Backtest position updated!');
-            setTimeout(() => setSuccessMessage(''), 3000);
+            wrappedSetSuccess('✅ Backtest position updated!');
+            setTimeout(() => wrappedSetSuccess(''), 3000);
             setEditingTrade(null);
             return;
         }
@@ -1427,16 +1448,16 @@ export default function Charts() {
             });
             const result = await response.json();
             if (result.success) {
-                setSuccessMessage('✅ Position updated!');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                wrappedSetSuccess('✅ Position updated!');
+                setTimeout(() => wrappedSetSuccess(''), 3000);
                 fetchTradeHistory();
             } else {
-                setErrorMessage(`❌ Error: ${result.error}`);
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError(`❌ Error: ${result.error}`);
+                setTimeout(() => wrappedSetError(''), 3000);
             }
         } catch (error) {
-            setErrorMessage(`❌ Failed to update position: ${error.message}`);
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError(`❌ Failed to update position: ${error.message}`);
+            setTimeout(() => wrappedSetError(''), 3000);
         } finally {
             setIsExecutingTrade(false);
             setEditingTrade(null);
@@ -1464,13 +1485,13 @@ export default function Charts() {
                 setStockInfo(result.data);
                 setShowStockInfo(true);
             } else {
-                setErrorMessage(`Failed to fetch stock info: ${result.error}`);
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError(`Failed to fetch stock info: ${result.error}`);
+                setTimeout(() => wrappedSetError(''), 3000);
             }
         } catch (error) {
             console.error('Error fetching stock info:', error);
-            setErrorMessage(`Failed to fetch stock info: ${error.message}`);
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError(`Failed to fetch stock info: ${error.message}`);
+            setTimeout(() => wrappedSetError(''), 3000);
         } finally {
             setLoadingStockInfo(false);
         }
@@ -1529,8 +1550,8 @@ export default function Charts() {
                 profitLoss: newBalance - backtestBalance
             }]);
             
-            setSuccessMessage(`✅ Backtest trade closed! New balance: $${newBalance.toFixed(2)}`);
-            setTimeout(() => setSuccessMessage(''), 3000);
+            wrappedSetSuccess(`✅ Backtest trade closed! New balance: $${newBalance.toFixed(2)}`);
+            setTimeout(() => wrappedSetSuccess(''), 3000);
             return;
         }
         
@@ -1553,17 +1574,17 @@ export default function Charts() {
             const result = await response.json();
             
             if (result.success) {
-                setSuccessMessage('✅ Trade closed successfully!');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                wrappedSetSuccess('✅ Trade closed successfully!');
+                setTimeout(() => wrappedSetSuccess(''), 3000);
                 fetchTradeHistory();
             } else {
-                setErrorMessage(`❌ Error closing trade: ${result.error}`);
-                setTimeout(() => setErrorMessage(''), 3000);
+                wrappedSetError(`❌ Error closing trade: ${result.error}`);
+                setTimeout(() => wrappedSetError(''), 3000);
             }
         } catch (error) {
             console.error('Error closing trade:', error);
-            setErrorMessage(`❌ Failed to close trade: ${error.message}`);
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError(`❌ Failed to close trade: ${error.message}`);
+            setTimeout(() => wrappedSetError(''), 3000);
         } finally {
             setIsExecutingTrade(false);
         }
@@ -1571,14 +1592,14 @@ export default function Charts() {
 
     // Start backtest - proper implementation
     const startBacktest = async () => {
-        setErrorMessage('');
+        wrappedSetError('');
         
         // Always fetch fresh data for the current asset before starting backtest
         const assetInfo = getCurrentAssetInfo();
         let freshData = [];
         
         try {
-            setSuccessMessage('⏳ Loading chart data for backtest...');
+            addToast('Loading chart data for backtest…', 'info', 2500);
             
             if (assetInfo.binanceSymbol) {
                 const response = await fetch(
@@ -1607,18 +1628,18 @@ export default function Charts() {
                 freshData = result.data || [];
             }
         } catch (error) {
-            setErrorMessage(`❌ Failed to load data: ${error.message}`);
-            setTimeout(() => setErrorMessage(''), 4000);
+            wrappedSetError(`❌ Failed to load data: ${error.message}`);
+            setTimeout(() => wrappedSetError(''), 4000);
             return;
         }
         
         if (!freshData || freshData.length < 2) {
-            setErrorMessage('❌ Not enough data to backtest this asset/timeframe');
-            setTimeout(() => setErrorMessage(''), 4000);
+            wrappedSetError('❌ Not enough data to backtest this asset/timeframe');
+            setTimeout(() => wrappedSetError(''), 4000);
             return;
         }
         
-        setSuccessMessage('');
+        wrappedSetSuccess('');
         setBacktestData(freshData);
         setBacktestMode(true);
         setBacktestCurrentIndex(0);
@@ -1733,8 +1754,8 @@ export default function Charts() {
                             const assetTrades  = backtestTradeHistory[currentAsset] || [];
                             setBacktestTradeHistory(prev => ({ ...prev, [currentAsset]: [...assetTrades, newTrade] }));
                             setBacktestModelOpen(true);
-                            setSuccessMessage(`🤖 Model signal: ${orderType} @ $${price.toFixed(4)}`);
-                            setTimeout(() => setSuccessMessage(''), 3000);
+                            addToast(`🤖 Model signal: ${orderType} @ $${price.toFixed(4)}`, 'warning', 3500);
+                            setTimeout(() => wrappedSetSuccess(''), 3000);
                         }
                     }
 
@@ -2149,13 +2170,13 @@ export default function Charts() {
             delete updatedHistory[currentAsset];
             setBacktestTradeHistory(updatedHistory);
             
-            setSuccessMessage('✅ Backtest results saved successfully!');
-            setTimeout(() => setSuccessMessage(''), 3000);
+            wrappedSetSuccess('✅ Backtest results saved successfully!');
+            setTimeout(() => wrappedSetSuccess(''), 3000);
             finalizeBacktestStop();
         } catch (error) {
             console.error('Error saving backtest results:', error);
-            setErrorMessage('❌ Error saving backtest results');
-            setTimeout(() => setErrorMessage(''), 3000);
+            wrappedSetError('❌ Error saving backtest results');
+            setTimeout(() => wrappedSetError(''), 3000);
         }
     };
 
@@ -2182,6 +2203,16 @@ export default function Charts() {
                     @keyframes spin {
                         0% { transform: rotate(0deg); }
                         100% { transform: rotate(360deg); }
+                    }
+
+                    @keyframes toastIn {
+                        from { opacity: 0; transform: translateX(60px) scale(0.9); }
+                        to   { opacity: 1; transform: translateX(0)    scale(1);   }
+                    }
+
+                    @keyframes toastProgress {
+                        from { transform: scaleX(1); }
+                        to   { transform: scaleX(0); }
                     }
                     
                     input:focus, select:focus {
@@ -2285,36 +2316,6 @@ export default function Charts() {
                             marginBottom: '20px'
                         }}>
                             {error}
-                        </div>
-                    )}
-                    
-                    {/* Success Message */}
-                    {successMessage && (
-                        <div style={{ 
-                            background: `${theme.accent.green}20`,
-                            border: `2px solid ${theme.accent.green}`,
-                            color: theme.accent.green,
-                            padding: '15px',
-                            borderRadius: '12px',
-                            marginBottom: '20px',
-                            fontWeight: '600'
-                        }}>
-                            {successMessage}
-                        </div>
-                    )}
-                    
-                    {/* Error Message */}
-                    {errorMessage && (
-                        <div style={{ 
-                            background: `${theme.accent.red}20`,
-                            border: `2px solid ${theme.accent.red}`,
-                            color: theme.accent.red,
-                            padding: '15px',
-                            borderRadius: '12px',
-                            marginBottom: '20px',
-                            fontWeight: '600'
-                        }}>
-                            {errorMessage}
                         </div>
                     )}
                     
@@ -3143,8 +3144,12 @@ export default function Charts() {
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                                         {/* Once-off: seed stocks */}
                                         <button onClick={async () => {
+                                            addToast('Seeding stock universe…', 'info', 2000);
                                             const r = await fetch(`${BACKEND_API_URL}/api/backtest-create-snowai-account/`, { method: 'POST' });
-                                            await fetch(`${BACKEND_API_URL}/api/backtest-bulk-fill-watchlist/`, { method: 'POST' });
+                                            const res = await fetch(`${BACKEND_API_URL}/api/backtest-bulk-fill-watchlist/`, { method: 'POST' });
+                                            const d = await res.json();
+                                            if (d.success) addToast(`Added ${d.added} stocks (${d.skipped} already existed)`, 'success');
+                                            else addToast('Failed to seed stocks', 'error');
                                             await fetchWatchlist();
                                         }} style={{ ...styles.buttonSecondary, fontSize: '0.78rem', background: theme.bg.tertiary, border: `1px solid ${theme.border.medium}`, color: theme.text.secondary }}>
                                             📦 Fill Stocks
@@ -4388,8 +4393,8 @@ export default function Charts() {
                                             <button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(generatedCode);
-                                                    setSuccessMessage('✅ Code copied to clipboard!');
-                                                    setTimeout(() => setSuccessMessage(''), 3000);
+                                                    addToast('Code copied to clipboard', 'info', 2000);
+                                                    setTimeout(() => wrappedSetSuccess(''), 3000);
                                                 }}
                                                 style={styles.buttonSecondary}
                                             >
@@ -4534,6 +4539,71 @@ export default function Charts() {
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* ── Toast notifications ──────────────────────────────────────────
+                Fixed stack in bottom-right corner. Auto-dismisses with a
+                shrinking progress bar. Stacks multiple toasts independently. */}
+            <div style={{
+                position: 'fixed', bottom: '24px', right: '24px',
+                display: 'flex', flexDirection: 'column-reverse', gap: '10px',
+                zIndex: 9999, pointerEvents: 'none',
+            }}>
+                {toasts.map(toast => {
+                    const cfg = {
+                        success: { bg: '#166534', border: '#22c55e', icon: '✓', bar: '#22c55e' },
+                        error:   { bg: '#7f1d1d', border: '#ef4444', icon: '✕', bar: '#ef4444' },
+                        info:    { bg: '#1e3a5f', border: '#60a5fa', icon: 'ℹ', bar: '#60a5fa' },
+                        warning: { bg: '#78350f', border: '#f59e0b', icon: '⚠', bar: '#f59e0b' },
+                    }[toast.type] || { bg: '#1e293b', border: '#64748b', icon: '•', bar: '#64748b' };
+
+                    // Strip leading emoji/symbol prefixes already in message (✅ ❌ 🤖 etc)
+                    const cleanMsg = toast.message.replace(/^[\u{1F300}-\u{1FAFF}✅❌⚠️ℹ️✓✕⏳🤖📊🔄]+\s*/u, '');
+
+                    return (
+                        <div key={toast.id} style={{
+                            pointerEvents: 'all',
+                            minWidth: '280px', maxWidth: '380px',
+                            background: cfg.bg,
+                            border: `1px solid ${cfg.border}40`,
+                            borderLeft: `4px solid ${cfg.border}`,
+                            borderRadius: '10px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                            overflow: 'hidden',
+                            animation: 'toastIn 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px' }}>
+                                <span style={{
+                                    width: '20px', height: '20px', borderRadius: '50%',
+                                    background: `${cfg.border}25`, border: `1.5px solid ${cfg.border}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '0.7rem', fontWeight: '900', color: cfg.border,
+                                    flexShrink: 0, marginTop: '1px',
+                                }}>{cfg.icon}</span>
+                                <span style={{
+                                    fontSize: '0.85rem', lineHeight: '1.45',
+                                    color: '#f1f5f9', fontWeight: '500', flex: 1,
+                                }}>{cleanMsg}</span>
+                                <button
+                                    onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                                    style={{
+                                        background: 'transparent', border: 'none',
+                                        color: '#94a3b8', cursor: 'pointer',
+                                        fontSize: '1rem', lineHeight: 1, padding: '0 0 0 4px',
+                                        flexShrink: 0,
+                                    }}>×</button>
+                            </div>
+                            {/* Progress bar */}
+                            <div style={{ height: '3px', background: `${cfg.border}20` }}>
+                                <div style={{
+                                    height: '100%', background: cfg.border,
+                                    animation: `toastProgress ${toast.duration}ms linear forwards`,
+                                    transformOrigin: 'left',
+                                }} />
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
