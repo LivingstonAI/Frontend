@@ -1965,7 +1965,7 @@ export default function Charts() {
                         asset:                  assetSymbol,
                         order_type:             trade.order_type,
                         strategy:               modelId || 'SnowAI Model',
-                        outcome:                (trade.profit_loss || 0) >= 0 ? 'Profit' : 'Loss',
+                        outcome:                (trade.profit_loss || 0) >= 0 ? 'Win' : 'Loss',
                         amount:                 parseFloat((trade.profit_loss || 0).toFixed(4)),
                         profit_loss_percentage: parseFloat((trade.profit_loss_percentage || 0).toFixed(4)),
                         entry_price:            trade.entry_price,
@@ -2271,33 +2271,36 @@ export default function Charts() {
                     {/* Batch Test Running Banner */}
                     {batchTestRunning && (
                         <div style={{
-                            background: `${theme.accent.purple}18`,
-                            border: `2px solid ${theme.accent.purple}50`,
-                            borderRadius: '12px', padding: '12px 18px', marginBottom: '16px',
+                            background: `linear-gradient(135deg, ${theme.accent.purple}25, ${theme.accent.purple}10)`,
+                            border: `2px solid ${theme.accent.purple}`,
+                            borderRadius: '14px', padding: '16px 20px', marginBottom: '16px',
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            boxShadow: `0 0 24px ${theme.accent.purple}30`,
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '10px', height: '10px', borderRadius: '50%',
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '50%',
                                     background: theme.accent.purple,
-                                    animation: 'spin 1.2s linear infinite',
-                                    boxShadow: `0 0 6px ${theme.accent.purple}` }} />
+                                    animation: 'spin 1s linear infinite',
+                                    boxShadow: `0 0 10px ${theme.accent.purple}` }} />
                                 <div>
-                                    <div style={{ fontWeight: '700', color: theme.accent.purple, fontSize: '0.9rem' }}>
-                                        🚀 Batch testing in progress
+                                    <div style={{ fontWeight: '800', color: theme.accent.purple, fontSize: '1rem', letterSpacing: '-0.01em' }}>
+                                        🚀 Batch test running — {batchTestCurrent?.symbol || '…'}
                                     </div>
-                                    {batchTestCurrent && (
-                                        <div style={{ fontSize: '0.78rem', color: theme.text.secondary, marginTop: '1px' }}>
-                                            Currently: <strong>{batchTestCurrent.symbol}</strong> · {batchTestQueue.length} remaining · {batchTestResults.length} done
-                                            <span style={{ opacity: 0.55, marginLeft: '6px' }}>· adjust speed slider to control pace</span>
-                                        </div>
-                                    )}
+                                    <div style={{ fontSize: '0.8rem', color: theme.text.secondary, marginTop: '3px' }}>
+                                        {batchTestResults.length} done · {batchTestQueue.length} remaining
+                                        <span style={{ opacity: 0.5, marginLeft: '8px' }}>· speed slider controls pace</span>
+                                    </div>
                                 </div>
                             </div>
-                            <button onClick={stopBatchTest}
-                                style={{ padding: '6px 14px', background: theme.accent.red, color: 'white',
-                                    border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
-                                ⏹ Stop
-                            </button>
+                            <button onClick={stopBatchTest} style={{
+                                padding: '10px 22px',
+                                background: theme.accent.red,
+                                color: 'white', border: 'none', borderRadius: '10px',
+                                fontWeight: '800', fontSize: '1rem', cursor: 'pointer',
+                                boxShadow: `0 4px 14px ${theme.accent.red}50`,
+                                letterSpacing: '0.02em',
+                                flexShrink: 0,
+                            }}>⏹ STOP</button>
                         </div>
                     )}
 
@@ -3202,6 +3205,20 @@ export default function Charts() {
                                             await fetchWatchlist();
                                         }} style={{ ...styles.buttonSecondary, fontSize: '0.78rem', background: theme.bg.tertiary, border: `1px solid ${theme.border.medium}`, color: theme.text.secondary }}>
                                             📦 Fill Stocks
+                                        </button>
+                                        {/* Delete all AccountTrades + re-seed watchlist */}
+                                        <button onClick={async () => {
+                                            if (!window.confirm('Delete ALL batch trade entries from the database and re-seed the watchlist for a fresh run?')) return;
+                                            addToast('Wiping trade entries…', 'info', 2000);
+                                            const delRes = await fetch(`${BACKEND_API_URL}/api/backtest-delete-all-trades/`, { method: 'DELETE' });
+                                            const delData = await delRes.json();
+                                            // Also re-seed watchlist with all stocks
+                                            await fetch(`${BACKEND_API_URL}/api/backtest-bulk-fill-watchlist/`, { method: 'POST' });
+                                            await fetchWatchlist();
+                                            if (delData.success) addToast(`🗑 Deleted ${delData.deleted} trade(s) · Watchlist re-seeded`, 'success', 4000);
+                                            else addToast('Error deleting trades', 'error');
+                                        }} style={{ ...styles.buttonSecondary, fontSize: '0.78rem', background: `${theme.accent.red}15`, border: `1px solid ${theme.accent.red}50`, color: theme.accent.red }}>
+                                            🗑 Reset & Re-seed
                                         </button>
                                         {/* Test All button */}
                                         {!batchTestRunning ? (
@@ -4586,6 +4603,35 @@ export default function Charts() {
                     )}
                 </div>
             </div>
+
+            {/* ── Floating STOP button — always visible during batch ────── */}
+            {batchTestRunning && (
+                <div style={{
+                    position: 'fixed', bottom: '24px', left: '24px', zIndex: 9998,
+                    animation: 'toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                }}>
+                    <button onClick={stopBatchTest} style={{
+                        padding: '14px 28px',
+                        background: `linear-gradient(135deg, #dc2626, #991b1b)`,
+                        color: 'white', border: '2px solid #ef4444',
+                        borderRadius: '14px', fontWeight: '900', fontSize: '1.1rem',
+                        cursor: 'pointer', letterSpacing: '0.04em',
+                        boxShadow: '0 8px 32px rgba(220,38,38,0.55), 0 0 0 4px rgba(220,38,38,0.15)',
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        transition: 'transform 0.1s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                        <span style={{ fontSize: '1.3rem' }}>⏹</span>
+                        <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                            <div>STOP BATCH</div>
+                            <div style={{ fontSize: '0.65rem', fontWeight: '400', opacity: 0.8 }}>
+                                {batchTestResults.length} done · {batchTestQueue.length} left
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            )}
 
             {/* ── Toast notifications ──────────────────────────────────────────
                 Fixed stack in bottom-right corner. Auto-dismisses with a
