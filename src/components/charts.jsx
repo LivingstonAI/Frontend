@@ -3,6 +3,7 @@ import SideNavs from "./side_navs";
 import AIModelBuilder from "./ai_model_builder";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
+
 // Light theme (default)
 const lightTheme = {
   bg: {
@@ -624,11 +625,13 @@ export default function Charts() {
     const [watchlistLoading, setWatchlistLoading]     = useState(false);
 
     // Batch "Test All" state
-    const [batchTestRunning, setBatchTestRunning]     = useState(false);
-    const [batchTestQueue,   setBatchTestQueue]       = useState([]); // remaining asset ids
-    const [batchTestCurrent, setBatchTestCurrent]     = useState(null); // { id, symbol, name }
-    const [batchTestResults, setBatchTestResults]     = useState([]); // { symbol, trades, pl, plPct }
-    const [batchTestStopped, setBatchTestStopped]     = useState(false);
+    const [batchTestRunning, setBatchTestRunning]         = useState(false);
+    const [batchTestQueue,   setBatchTestQueue]           = useState([]);
+    const [batchTestCurrent, setBatchTestCurrent]         = useState(null);
+    const [batchTestResults, setBatchTestResults]         = useState([]);
+    const [batchTestStopped, setBatchTestStopped]         = useState(false);
+    const [showBatchModelPicker, setShowBatchModelPicker] = useState(false);
+    const [batchTestModel,       setBatchTestModel]       = useState(null); // model chosen for this batch run
     const [watchlistAddForm, setWatchlistAddForm]     = useState({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
     const [watchlistAddOpen, setWatchlistAddOpen]     = useState(false);
     const [watchlistSaving, setWatchlistSaving]       = useState(false);
@@ -1842,9 +1845,9 @@ export default function Charts() {
                 const candles  = ohlcJson.data || [];
                 if (candles.length < 30) throw new Error(`Not enough data for ${asset.symbol}`);
 
-                // 2. Pick model
-                const modelToUse = selectedBacktestModel || forwardTestModels[0];
-                if (!modelToUse) throw new Error('No model available — select one first');
+                // 2. Pick model — always the one chosen at batch-start time
+                const modelToUse = batchTestModel;
+                if (!modelToUse) throw new Error('No model selected for batch test');
                 const modelId   = modelToUse.model_id;
                 const modelCode = modelToUse.cleaned_model_code || '';
 
@@ -1945,7 +1948,7 @@ export default function Charts() {
 
         runAsset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [batchTestRunning, batchTestQueue, batchTestStopped]);
+    }, [batchTestRunning, batchTestQueue, batchTestStopped, batchTestModel]);
 
     // Fetch saved forward-test models from SnowAIForwardTestingModel
     // ── Backtest Watchlist ─────────────────────────────────────────────────────
@@ -3133,6 +3136,105 @@ export default function Charts() {
                         </div>
                     )}
 
+                    {/* ── Batch Test Model Picker ─────────────────────────── */}
+                    {showBatchModelPicker && (
+                        <div style={{ ...styles.modal, zIndex: 1100 }} onClick={() => setShowBatchModelPicker(false)}>
+                            <div onClick={e => e.stopPropagation()} style={{
+                                background: theme.bg.secondary, borderRadius: '16px',
+                                padding: '28px 32px', width: '90%', maxWidth: '520px',
+                                border: `1px solid ${theme.border.medium}`,
+                                boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+                            }}>
+                                {/* Header */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '800', fontSize: '1.1rem', color: theme.text.primary }}>🚀 Test All Assets</div>
+                                        <div style={{ fontSize: '0.82rem', color: theme.text.tertiary, marginTop: '4px' }}>
+                                            {watchlistAssets.length} assets · 8% TP / 4% SL · 1Y daily data
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowBatchModelPicker(false)}
+                                        style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                                </div>
+
+                                <div style={{ height: '1px', background: theme.border.light, margin: '18px 0' }} />
+
+                                {/* Model list */}
+                                <div style={{ marginBottom: '6px', fontSize: '0.8rem', fontWeight: '700', color: theme.text.secondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                    Choose a model
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto', marginBottom: '20px' }}>
+                                    {forwardTestModels.length === 0 ? (
+                                        <div style={{ padding: '20px', textAlign: 'center', color: theme.text.tertiary, fontSize: '0.85rem', background: theme.bg.tertiary, borderRadius: '10px' }}>
+                                            No models found — save a model first
+                                        </div>
+                                    ) : forwardTestModels.map((m, idx) => {
+                                        const modelId    = m.model_id || m.id || `model-${idx}`;
+                                        const modelCode  = m.cleaned_model_code || m.code || m.model_code || '';
+                                        const modelNotes = m.notes || m.description || '';
+                                        const modelDate  = m.created_at || m.date || '';
+                                        const isPicked   = batchTestModel?.model_id === modelId;
+                                        return (
+                                            <div key={modelId}
+                                                onClick={() => setBatchTestModel({ ...m, model_id: modelId, cleaned_model_code: modelCode })}
+                                                style={{
+                                                    padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
+                                                    border: `2px solid ${isPicked ? theme.accent.purple : theme.border.light}`,
+                                                    background: isPicked ? `${theme.accent.purple}15` : theme.bg.tertiary,
+                                                    transition: 'border-color 0.15s',
+                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                }}>
+                                                <div style={{ minWidth: 0 }}>
+                                                    <div style={{ fontWeight: '700', fontSize: '0.9rem', color: isPicked ? theme.accent.purple : theme.text.primary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {modelId}
+                                                        {isPicked && <span style={{ fontSize: '0.68rem', background: `${theme.accent.purple}25`, color: theme.accent.purple, padding: '1px 8px', borderRadius: '8px' }}>SELECTED</span>}
+                                                    </div>
+                                                    {modelNotes && <div style={{ fontSize: '0.75rem', color: theme.text.secondary, marginTop: '2px' }}>{modelNotes}</div>}
+                                                    <div style={{ fontSize: '0.7rem', color: theme.text.tertiary, marginTop: '2px' }}>
+                                                        {modelDate ? new Date(modelDate).toLocaleDateString() : ''}
+                                                        {modelCode ? ` · ${modelCode.split('\n').length} lines` : ''}
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+                                                    border: `2px solid ${isPicked ? theme.accent.purple : theme.border.medium}`,
+                                                    background: isPicked ? theme.accent.purple : 'transparent',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    {isPicked && <span style={{ color: 'white', fontSize: '0.65rem', fontWeight: '900' }}>✓</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Start button */}
+                                <button
+                                    disabled={!batchTestModel}
+                                    onClick={() => {
+                                        if (!batchTestModel) return;
+                                        setBatchTestQueue([...watchlistAssets]);
+                                        setBatchTestResults([]);
+                                        setBatchTestStopped(false);
+                                        setBatchTestRunning(true);
+                                        setShowBatchModelPicker(false);
+                                        setShowWatchlistModal(false);
+                                        addToast(`Batch test started with model ${batchTestModel.model_id} · ${watchlistAssets.length} assets`, 'info', 4000);
+                                    }}
+                                    style={{
+                                        width: '100%', padding: '13px', borderRadius: '10px', fontWeight: '800',
+                                        fontSize: '0.95rem', cursor: batchTestModel ? 'pointer' : 'not-allowed',
+                                        background: batchTestModel ? `linear-gradient(135deg,${theme.accent.purple},#6d28d9)` : theme.bg.tertiary,
+                                        color: batchTestModel ? 'white' : theme.text.tertiary,
+                                        border: 'none', transition: 'opacity 0.15s',
+                                        opacity: batchTestModel ? 1 : 0.5,
+                                    }}>
+                                    {batchTestModel ? `🚀 Start — ${batchTestModel.model_id}` : 'Select a model above'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── Backtest Watchlist Modal ───────────────────────────── */}
                     {showWatchlistModal && (
                         <div style={styles.modal} onClick={() => setShowWatchlistModal(false)}>
@@ -3158,11 +3260,8 @@ export default function Charts() {
                                         {!batchTestRunning ? (
                                             <button onClick={() => {
                                                 if (watchlistAssets.length === 0) return;
-                                                setBatchTestQueue([...watchlistAssets]);
-                                                setBatchTestResults([]);
-                                                setBatchTestStopped(false);
-                                                setBatchTestRunning(true);
-                                                setShowWatchlistModal(false);
+                                                fetchForwardTestModels();
+                                                setShowBatchModelPicker(true);
                                             }} style={{ ...styles.buttonSecondary, background: `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`, color: 'white', border: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
                                                 🚀 Test All
                                             </button>
