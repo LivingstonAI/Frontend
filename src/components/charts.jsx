@@ -3,7 +3,6 @@ import SideNavs from "./side_navs";
 import AIModelBuilder from "./ai_model_builder";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
-
 // Light theme (default)
 const lightTheme = {
   bg: {
@@ -633,6 +632,8 @@ export default function Charts() {
     const [batchTestStopped, setBatchTestStopped]         = useState(false);
     const [showBatchModelPicker, setShowBatchModelPicker] = useState(false);
     const [batchTestModel,       setBatchTestModel]       = useState(null); // model chosen for this batch run
+    const [batchTestTp,          setBatchTestTp]          = useState('8');  // TP % for entire batch
+    const [batchTestSl,          setBatchTestSl]          = useState('4');  // SL % for entire batch
     const [watchlistAddForm, setWatchlistAddForm]     = useState({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
     const [watchlistAddOpen, setWatchlistAddOpen]     = useState(false);
     const [watchlistSaving, setWatchlistSaving]       = useState(false);
@@ -1878,9 +1879,9 @@ export default function Charts() {
         const yfsym = asset.yfinance_symbol || asset.symbol;
         setSelectedAsset(yfsym);
         setSelectedBacktestModel(batchTestModel);
-        setBacktestModelTp('8');
-        setBacktestModelSl('4');
-        setBacktestSpeed(0.05); // max speed for batch — user can slow down via slider
+        setBacktestModelTp(batchTestTp);
+        setBacktestModelSl(batchTestSl);
+        // Speed is NOT reset — user's slider setting persists across assets
         // Small delay so asset/chart state settles before startBacktest fires
         setTimeout(() => { startBacktest(); }, 600);
 
@@ -3100,7 +3101,7 @@ export default function Charts() {
                                     <div>
                                         <div style={{ fontWeight: '800', fontSize: '1.1rem', color: theme.text.primary }}>🚀 Test All Assets</div>
                                         <div style={{ fontSize: '0.82rem', color: theme.text.tertiary, marginTop: '4px' }}>
-                                            {watchlistAssets.length} assets · 8% TP / 4% SL · 1Y daily data
+                                            {watchlistAssets.length} assets · {batchTestTp}% TP / {batchTestSl}% SL · 1Y daily data
                                         </div>
                                     </div>
                                     <button onClick={() => setShowBatchModelPicker(false)}
@@ -3158,6 +3159,31 @@ export default function Charts() {
                                     })}
                                 </div>
 
+                                {/* TP / SL controls for entire batch */}
+                                <div style={{ marginBottom: '18px' }}>
+                                    <div style={{ marginBottom: '6px', fontSize: '0.8rem', fontWeight: '700', color: theme.text.secondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                        TP / SL for batch
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div style={{ background: theme.bg.tertiary, padding: '10px 12px', borderRadius: '10px', border: `1px solid ${theme.border.light}` }}>
+                                            <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginBottom: '4px', fontWeight: '600' }}>Take Profit %</div>
+                                            <input type="number" value={batchTestTp} onChange={e => setBatchTestTp(e.target.value)}
+                                                min="0" step="0.5"
+                                                style={{ width: '100%', padding: '6px 8px', fontSize: '0.9rem', fontWeight: '700',
+                                                    background: theme.bg.elevated, color: theme.accent.green,
+                                                    border: `1px solid ${theme.border.medium}`, borderRadius: '6px' }} />
+                                        </div>
+                                        <div style={{ background: theme.bg.tertiary, padding: '10px 12px', borderRadius: '10px', border: `1px solid ${theme.border.light}` }}>
+                                            <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginBottom: '4px', fontWeight: '600' }}>Stop Loss %</div>
+                                            <input type="number" value={batchTestSl} onChange={e => setBatchTestSl(e.target.value)}
+                                                min="0" step="0.5"
+                                                style={{ width: '100%', padding: '6px 8px', fontSize: '0.9rem', fontWeight: '700',
+                                                    background: theme.bg.elevated, color: theme.accent.red,
+                                                    border: `1px solid ${theme.border.medium}`, borderRadius: '6px' }} />
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Start button */}
                                 <button
                                     disabled={!batchTestModel}
@@ -3169,7 +3195,7 @@ export default function Charts() {
                                         setBatchTestRunning(true);
                                         setShowBatchModelPicker(false);
                                         setShowWatchlistModal(false);
-                                        addToast(`Batch test started with model ${batchTestModel.model_id} · ${watchlistAssets.length} assets`, 'info', 4000);
+                                        addToast(`Batch test started with model ${batchTestModel.model_id} · ${watchlistAssets.length} assets · ${batchTestTp}% TP / ${batchTestSl}% SL`, 'info', 4500);
                                     }}
                                     style={{
                                         width: '100%', padding: '13px', borderRadius: '10px', fontWeight: '800',
