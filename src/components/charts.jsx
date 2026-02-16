@@ -572,7 +572,7 @@ function OpenPositionCard({ trade, currentPrice, theme, styles, onNavigate, onEd
     );
 }
 
-export default function Chart() {
+export default function Charts() {
     const BACKEND_API_URL = 'https://backend-production-c0ab.up.railway.app';
     
     const chartContainerRef = useRef(null);
@@ -622,6 +622,13 @@ export default function Chart() {
     const [showWatchlistModal, setShowWatchlistModal] = useState(false);
     const [watchlistAssets, setWatchlistAssets]       = useState([]);
     const [watchlistLoading, setWatchlistLoading]     = useState(false);
+
+    // Batch "Test All" state
+    const [batchTestRunning, setBatchTestRunning]     = useState(false);
+    const [batchTestQueue,   setBatchTestQueue]       = useState([]); // remaining asset ids
+    const [batchTestCurrent, setBatchTestCurrent]     = useState(null); // { id, symbol, name }
+    const [batchTestResults, setBatchTestResults]     = useState([]); // { symbol, trades, pl, plPct }
+    const [batchTestStopped, setBatchTestStopped]     = useState(false);
     const [watchlistAddForm, setWatchlistAddForm]     = useState({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
     const [watchlistAddOpen, setWatchlistAddOpen]     = useState(false);
     const [watchlistSaving, setWatchlistSaving]       = useState(false);
@@ -1781,6 +1788,144 @@ export default function Chart() {
         return () => { if (backtestIntervalRef.current) clearTimeout(backtestIntervalRef.current); };
     }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, backtestData, selectedBacktestModel, backtestModelOpen]);
 
+    // ── Batch test orchestrator ───────────────────────────────────────────────
+    // One asset at a time: fetch daily OHLC → simulate candle-by-candle with 8TP/4SL → save → delete → next
+    useEffect(() => {
+        if (!batchTestRunning || batchTestStopped || batchTestQueue.length === 0) {
+            if (batchTestRunning && batchTestQueue.length === 0) {
+                setBatchTestRunning(false);
+                setBatchTestCurrent(null);
+            }
+            return;
+        }
+
+        const asset = batchTestQueue[0];
+        setBatchTestCurrent(asset);
+
+        const TP_PCT = 8;
+        const SL_PCT = 4;
+
+        const runAsset = async () => {
+            try {
+                // 1. Fetch 1-year daily OHLC
+                const ohlcResp = await fetch(`${BACKEND_API_URL}/api/snowai-market-ohlc/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: asset.yfinance_symbol || asset.symbol,
+                        interval: '1d',
+                        period: '1y',
+                    })
+                });
+                const ohlcJson = await ohlcResp.json();
+                const candles  = ohlcJson.data || [];
+                if (candles.length < 30) throw new Error(`Not enough data for ${asset.symbol}`);
+
+                // 2. Pick model
+                const modelToUse = selectedBacktestModel || forwardTestModels[0];
+                if (!modelToUse) throw new Error('No model available — select one first');
+                const modelId   = modelToUse.model_id;
+                const modelCode = modelToUse.cleaned_model_code || '';
+
+                // 3. Simulate candle-by-candle
+                let balance  = 10000;
+                const trades = [];
+                let openTrade = null;
+
+                for (let i = 20; i < candles.length; i++) {
+                    if (batchTestStopped) break;
+                    const candle = candles[i];
+                    const price  = candle.close;
+
+                    // Check TP/SL on open trade
+                    if (openTrade) {
+                        const isBuy = openTrade.order_type === 'BUY';
+                        const hitTp = isBuy ? price >= openTrade.take_profit : price <= openTrade.take_profit;
+                        const hitSl = isBuy ? price <= openTrade.stop_loss   : price >= openTrade.stop_loss;
+                        if (hitTp || hitSl) {
+                            const pl    = isBuy
+                                ? (price - openTrade.entry_price) * openTrade.quantity
+                                : (openTrade.entry_price - price) * openTrade.quantity;
+                            const plPct = (pl / openTrade.balance_at_entry) * 100;
+                            balance    += pl;
+                            trades.push({
+                                ...openTrade,
+                                status:                 'CLOSED',
+                                exit_price:             price,
+                                exit_timestamp:         new Date(candle.time * 1000).toISOString(),
+                                profit_loss:            pl,
+                                profit_loss_percentage: plPct,
+                                exit_reason:            hitTp ? 'TP' : 'SL',
+                            });
+                            openTrade = null;
+                        }
+                    }
+
+                    // Fire signal if no open position
+                    if (!openTrade) {
+                        const slice  = candles.slice(0, i + 1);
+                        const result = await runBacktestModelSignal(modelCode, slice);
+                        if (result.signal === 'buy' || result.signal === 'sell') {
+                            const orderType = result.signal === 'buy' ? 'BUY' : 'SELL';
+                            const tp = orderType === 'BUY' ? price * (1 + TP_PCT/100) : price * (1 - TP_PCT/100);
+                            const sl = orderType === 'BUY' ? price * (1 - SL_PCT/100) : price * (1 + SL_PCT/100);
+                            openTrade = {
+                                trade_id:        `BATCH_${asset.symbol}_${Date.now()}`,
+                                asset_symbol:    asset.symbol,
+                                order_type:      orderType,
+                                entry_price:     price,
+                                quantity:        balance / price,
+                                balance_at_entry: balance,
+                                take_profit:     tp,
+                                stop_loss:       sl,
+                                tp_pct:          TP_PCT,
+                                sl_pct:          SL_PCT,
+                                status:          'OPEN',
+                                entry_timestamp: new Date(candle.time * 1000).toISOString(),
+                                is_model_trade:  true,
+                                model_id:        modelId,
+                            };
+                        }
+                    }
+                }
+
+                // 4. Save each closed trade to AccountTrades
+                const closed = trades.filter(t => t.status === 'CLOSED');
+                for (const trade of closed) {
+                    await saveAssetResultsToAccountTrades(asset.symbol, [trade], modelId);
+                }
+
+                // 5. Record summary
+                const totalPl  = closed.reduce((s, t) => s + (t.profit_loss || 0), 0);
+                const totalPct = closed.reduce((s, t) => s + (t.profit_loss_percentage || 0), 0);
+                setBatchTestResults(prev => [...prev, {
+                    symbol: asset.symbol,
+                    trades: closed.length,
+                    pl:     totalPl,
+                    plPct:  totalPct,
+                }]);
+
+                // 6. Remove from watchlist
+                await deleteWatchlistAsset(asset.id);
+
+            } catch (err) {
+                console.error(`Batch test error for ${asset.symbol}:`, err);
+                // Emit a failed result so the user knows
+                setBatchTestResults(prev => [...prev, {
+                    symbol: asset.symbol, trades: 0, pl: 0, plPct: 0, error: err.message,
+                }]);
+            }
+
+            // 7. Advance queue (triggers next iteration)
+            if (!batchTestStopped) {
+                setBatchTestQueue(prev => prev.slice(1));
+            }
+        };
+
+        runAsset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [batchTestRunning, batchTestQueue, batchTestStopped]);
+
     // Fetch saved forward-test models from SnowAIForwardTestingModel
     // ── Backtest Watchlist ─────────────────────────────────────────────────────
     const fetchWatchlist = async () => {
@@ -1825,7 +1970,6 @@ export default function Chart() {
     };
 
     const selectWatchlistAsset = (asset) => {
-        // Try to find exact match in allAssets, otherwise just set symbol directly
         const match = allAssets.find(a =>
             a.symbol === asset.symbol ||
             a.symbol === asset.yfinance_symbol ||
@@ -1834,6 +1978,59 @@ export default function Chart() {
         if (match) setSelectedAsset(match.symbol);
         else setSelectedAsset(asset.yfinance_symbol || asset.symbol);
         setShowWatchlistModal(false);
+    };
+
+    // Save a single asset's backtest results to AccountTrades
+    const saveAssetResultsToAccountTrades = async (assetSymbol, assetTrades, modelId) => {
+        const closed = assetTrades.filter(t => t.status === 'CLOSED');
+        if (closed.length === 0) return { saved: 0 };
+        let saved = 0;
+        for (const trade of closed) {
+            try {
+                const entryDate = new Date(trade.entry_timestamp);
+                const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                const dayEntered = days[entryDate.getDay()];
+                await fetch(`${BACKEND_API_URL}/api/backtest-save-account-trade/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        asset:                  assetSymbol,
+                        order_type:             trade.order_type,
+                        strategy:               modelId || 'SnowAI Model',
+                        outcome:                (trade.profit_loss || 0) >= 0 ? 'Profit' : 'Loss',
+                        amount:                 parseFloat((trade.profit_loss || 0).toFixed(4)),
+                        profit_loss_percentage: parseFloat((trade.profit_loss_percentage || 0).toFixed(4)),
+                        entry_price:            trade.entry_price,
+                        exit_price:             trade.exit_price,
+                        take_profit:            trade.take_profit,
+                        stop_loss:              trade.stop_loss,
+                        tp_pct:                 trade.tp_pct,
+                        sl_pct:                 trade.sl_pct,
+                        exit_reason:            trade.exit_reason || 'MANUAL',
+                        day_of_week_entered:    dayEntered,
+                        date_entered:           trade.entry_timestamp,
+                    })
+                });
+                saved++;
+            } catch(e) { console.error('saveAccountTrade error:', e); }
+        }
+        return { saved };
+    };
+
+    // ── Batch Test All ────────────────────────────────────────────────────────
+    const startBatchTest = async (modelToUse) => {
+        await fetchWatchlist();
+        // Queue will be set from fresh watchlist in the effect below
+        setBatchTestRunning(true);
+        setBatchTestStopped(false);
+        setBatchTestResults([]);
+        setShowWatchlistModal(false);
+    };
+
+    const stopBatchTest = () => {
+        setBatchTestStopped(true);
+        setBatchTestRunning(false);
+        setBatchTestCurrent(null);
     };
 
     const fetchForwardTestModels = async () => {
@@ -1888,23 +2085,16 @@ export default function Chart() {
         setBacktestEquityCurve([]);
         setBacktestModelOpen(false);
         setShowBacktestConfig(false);
-        
+
         // Clear chart markers
         const series = candlestickSeriesRef.current || lineSeriesRef.current;
         if (series) {
             try { series.setMarkers([]); } catch(e) {}
         }
-        
-        // Restore full market data
-        if (candlestickSeriesRef.current && marketData.length > 0) {
-            candlestickSeriesRef.current.setData(marketData);
-        } else if (lineSeriesRef.current && marketData.length > 0) {
-            lineSeriesRef.current.setData(marketData.map(d => ({ time: d.time, value: d.close })));
-        }
-        
-        if (marketData.length > 0) {
-            setCurrentPrice(marketData[marketData.length - 1].close);
-        }
+
+        // Re-fetch live market data fresh — restoring from stale backtestData state
+        // causes blank charts when switching assets after save
+        setTimeout(() => fetchMarketData(true), 100);
     };
     
     const saveBacktestResults = async () => {
@@ -2128,6 +2318,38 @@ export default function Chart() {
                         </div>
                     )}
                     
+                    {/* Batch Test Running Banner */}
+                    {batchTestRunning && (
+                        <div style={{
+                            background: `${theme.accent.purple}18`,
+                            border: `2px solid ${theme.accent.purple}50`,
+                            borderRadius: '12px', padding: '12px 18px', marginBottom: '16px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '10px', height: '10px', borderRadius: '50%',
+                                    background: theme.accent.purple,
+                                    animation: 'spin 1.2s linear infinite',
+                                    boxShadow: `0 0 6px ${theme.accent.purple}` }} />
+                                <div>
+                                    <div style={{ fontWeight: '700', color: theme.accent.purple, fontSize: '0.9rem' }}>
+                                        🚀 Batch testing in progress
+                                    </div>
+                                    {batchTestCurrent && (
+                                        <div style={{ fontSize: '0.78rem', color: theme.text.secondary, marginTop: '1px' }}>
+                                            Currently: <strong>{batchTestCurrent.symbol}</strong> · {batchTestQueue.length} remaining · {batchTestResults.length} done
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <button onClick={stopBatchTest}
+                                style={{ padding: '6px 14px', background: theme.accent.red, color: 'white',
+                                    border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
+                                ⏹ Stop
+                            </button>
+                        </div>
+                    )}
+
                     <div style={styles.controlPanel}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <div style={styles.sectionTitle}>
@@ -2918,7 +3140,33 @@ export default function Chart() {
                                 {/* Header */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                     <h2 style={{ margin: 0, color: theme.text.primary, fontSize: '1.2rem' }}>⭐ Backtest Watchlist</h2>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {/* Once-off: seed stocks */}
+                                        <button onClick={async () => {
+                                            const r = await fetch(`${BACKEND_API_URL}/api/backtest-create-snowai-account/`, { method: 'POST' });
+                                            await fetch(`${BACKEND_API_URL}/api/backtest-bulk-fill-watchlist/`, { method: 'POST' });
+                                            await fetchWatchlist();
+                                        }} style={{ ...styles.buttonSecondary, fontSize: '0.78rem', background: theme.bg.tertiary, border: `1px solid ${theme.border.medium}`, color: theme.text.secondary }}>
+                                            📦 Fill Stocks
+                                        </button>
+                                        {/* Test All button */}
+                                        {!batchTestRunning ? (
+                                            <button onClick={() => {
+                                                if (watchlistAssets.length === 0) return;
+                                                setBatchTestQueue([...watchlistAssets]);
+                                                setBatchTestResults([]);
+                                                setBatchTestStopped(false);
+                                                setBatchTestRunning(true);
+                                                setShowWatchlistModal(false);
+                                            }} style={{ ...styles.buttonSecondary, background: `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`, color: 'white', border: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
+                                                🚀 Test All
+                                            </button>
+                                        ) : (
+                                            <button onClick={stopBatchTest}
+                                                style={{ ...styles.buttonSecondary, background: theme.accent.red, color: 'white', border: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
+                                                ⏹ Stop Testing
+                                            </button>
+                                        )}
                                         <button onClick={() => setWatchlistAddOpen(p => !p)}
                                             style={{ ...styles.buttonSecondary, background: `linear-gradient(135deg,${theme.accent.green},#059669)`, color: 'white', border: 'none', fontSize: '0.85rem' }}>
                                             {watchlistAddOpen ? '✕ Cancel' : '＋ Add Asset'}
@@ -2927,6 +3175,62 @@ export default function Chart() {
                                             style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, fontSize: '1.8rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
                                     </div>
                                 </div>
+
+                                {/* Batch test status banner */}
+                                {batchTestRunning && (
+                                    <div style={{ marginBottom: '16px', padding: '12px 16px', background: `${theme.accent.purple}15`,
+                                        border: `1px solid ${theme.accent.purple}40`, borderRadius: '10px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div>
+                                            <div style={{ fontWeight: '700', color: theme.accent.purple, fontSize: '0.9rem' }}>
+                                                🚀 Batch test running…
+                                            </div>
+                                            {batchTestCurrent && (
+                                                <div style={{ fontSize: '0.8rem', color: theme.text.secondary, marginTop: '2px' }}>
+                                                    Testing <strong>{batchTestCurrent.symbol}</strong> — {batchTestQueue.length} remaining
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: theme.text.tertiary }}>
+                                            {batchTestResults.length} done
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Batch results summary (after stop or finish) */}
+                                {batchTestResults.length > 0 && !batchTestRunning && (
+                                    <div style={{ marginBottom: '16px', padding: '14px 16px', background: theme.bg.tertiary, borderRadius: '10px', border: `1px solid ${theme.border.light}` }}>
+                                        <div style={{ fontWeight: '700', color: theme.text.primary, marginBottom: '10px' }}>
+                                            📊 Batch Test Results — {batchTestResults.length} assets
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
+                                            {batchTestResults.map(r => (
+                                                <div key={r.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem',
+                                                    padding: '5px 8px', background: theme.bg.elevated, borderRadius: '6px' }}>
+                                                    <span style={{ fontWeight: '600', color: theme.text.primary }}>{r.symbol}</span>
+                                                    <span style={{ color: theme.text.tertiary }}>{r.trades} trades</span>
+                                                    <span style={{ fontWeight: '700', color: r.pl >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                        {r.pl >= 0 ? '+' : ''}${r.pl.toFixed(2)} ({r.plPct >= 0 ? '+' : ''}{r.plPct.toFixed(2)}%)
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Average */}
+                                        {batchTestResults.length > 0 && (() => {
+                                            const avgPl = batchTestResults.reduce((s,r) => s + r.pl, 0) / batchTestResults.length;
+                                            const avgPct = batchTestResults.reduce((s,r) => s + r.plPct, 0) / batchTestResults.length;
+                                            return (
+                                                <div style={{ marginTop: '10px', padding: '8px', background: `${theme.accent.purple}15`, borderRadius: '7px',
+                                                    display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '700' }}>
+                                                    <span style={{ color: theme.accent.purple }}>Average per asset</span>
+                                                    <span style={{ color: avgPl >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                        {avgPl >= 0 ? '+' : ''}${avgPl.toFixed(2)} ({avgPct >= 0 ? '+' : ''}{avgPct.toFixed(2)}%)
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
 
                                 {/* Add form */}
                                 {watchlistAddOpen && (
