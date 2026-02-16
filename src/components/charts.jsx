@@ -582,6 +582,7 @@ export default function Charts() {
     const lineSeriesRef = useRef(null);
     const backtestIntervalRef = useRef(null);
     const lastScrollPositionRef = useRef(null);
+    const batchOnCompleteRef = useRef(null); // called by backtest loop when all candles exhausted
     
     // Theme state
     const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -1804,6 +1805,12 @@ export default function Charts() {
                             setBacktestEquityCurve(prev => [...prev, { time: currentCandle.time, value: newBalance }]);
                         }
                     }
+                } else {
+                    // ── All candles exhausted ──────────────────────────────────
+                    // If we're in batch mode, fire the completion callback
+                    if (batchOnCompleteRef.current) {
+                        batchOnCompleteRef.current();
+                    }
                 }
                 
             }, backtestSpeed * 1000);
@@ -1813,142 +1820,79 @@ export default function Charts() {
     }, [backtestMode, backtestPaused, backtestCurrentIndex, backtestSpeed, backtestData, selectedBacktestModel, backtestModelOpen]);
 
     // ── Batch test orchestrator ───────────────────────────────────────────────
-    // One asset at a time: fetch daily OHLC → simulate candle-by-candle with 8TP/4SL → save → delete → next
+    // Uses the real on-screen backtest — sets the asset, sets the model, calls
+    // startBacktest(), then waits for all candles to finish (batchOnCompleteRef).
+    // The user sees every candle animate exactly like a normal backtest.
     useEffect(() => {
-        if (!batchTestRunning || batchTestStopped || batchTestQueue.length === 0) {
+        if (!batchTestRunning || batchTestStopped) {
             if (batchTestRunning && batchTestQueue.length === 0) {
                 setBatchTestRunning(false);
                 setBatchTestCurrent(null);
+                batchOnCompleteRef.current = null;
+                addToast(`✅ Batch test complete — ${batchTestResults.length} assets tested`, 'success', 5000);
             }
             return;
         }
+        if (batchTestQueue.length === 0) {
+            setBatchTestRunning(false);
+            setBatchTestCurrent(null);
+            batchOnCompleteRef.current = null;
+            addToast(`✅ Batch test complete — ${batchTestResults.length} assets tested`, 'success', 5000);
+            return;
+        }
+        // Don't start a new asset while one is still running on screen
+        if (backtestMode) return;
 
         const asset = batchTestQueue[0];
         setBatchTestCurrent(asset);
 
-        const TP_PCT = 8;
-        const SL_PCT = 4;
+        // Wire the completion callback BEFORE starting so the loop can call it
+        batchOnCompleteRef.current = async () => {
+            // All candles done — grab closed trades for this asset
+            const symbol      = asset.yfinance_symbol || asset.symbol;
+            const assetTrades = backtestTradeHistoryRef.current?.[symbol] || [];
+            const closed      = assetTrades.filter(t => t.status === 'CLOSED');
 
-        const runAsset = async () => {
-            try {
-                // 1. Fetch 1-year daily OHLC
-                const ohlcResp = await fetch(`${BACKEND_API_URL}/api/snowai-market-ohlc/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        symbol: asset.yfinance_symbol || asset.symbol,
-                        interval: '1d',
-                        period: '1y',
-                    })
-                });
-                const ohlcJson = await ohlcResp.json();
-                const candles  = ohlcJson.data || [];
-                if (candles.length < 30) throw new Error(`Not enough data for ${asset.symbol}`);
-
-                // 2. Pick model — always the one chosen at batch-start time
-                const modelToUse = batchTestModel;
-                if (!modelToUse) throw new Error('No model selected for batch test');
-                const modelId   = modelToUse.model_id;
-                const modelCode = modelToUse.cleaned_model_code || '';
-
-                // 3. Simulate candle-by-candle
-                let balance  = 10000;
-                const trades = [];
-                let openTrade = null;
-
-                for (let i = 20; i < candles.length; i++) {
-                    if (batchTestStopped) break;
-                    const candle = candles[i];
-                    const price  = candle.close;
-
-                    // Check TP/SL on open trade
-                    if (openTrade) {
-                        const isBuy = openTrade.order_type === 'BUY';
-                        const hitTp = isBuy ? price >= openTrade.take_profit : price <= openTrade.take_profit;
-                        const hitSl = isBuy ? price <= openTrade.stop_loss   : price >= openTrade.stop_loss;
-                        if (hitTp || hitSl) {
-                            const pl    = isBuy
-                                ? (price - openTrade.entry_price) * openTrade.quantity
-                                : (openTrade.entry_price - price) * openTrade.quantity;
-                            const plPct = (pl / openTrade.balance_at_entry) * 100;
-                            balance    += pl;
-                            trades.push({
-                                ...openTrade,
-                                status:                 'CLOSED',
-                                exit_price:             price,
-                                exit_timestamp:         new Date(candle.time * 1000).toISOString(),
-                                profit_loss:            pl,
-                                profit_loss_percentage: plPct,
-                                exit_reason:            hitTp ? 'TP' : 'SL',
-                            });
-                            openTrade = null;
-                        }
-                    }
-
-                    // Fire signal if no open position
-                    if (!openTrade) {
-                        const slice  = candles.slice(0, i + 1);
-                        const result = await runBacktestModelSignal(modelCode, slice);
-                        if (result.signal === 'buy' || result.signal === 'sell') {
-                            const orderType = result.signal === 'buy' ? 'BUY' : 'SELL';
-                            const tp = orderType === 'BUY' ? price * (1 + TP_PCT/100) : price * (1 - TP_PCT/100);
-                            const sl = orderType === 'BUY' ? price * (1 - SL_PCT/100) : price * (1 + SL_PCT/100);
-                            openTrade = {
-                                trade_id:        `BATCH_${asset.symbol}_${Date.now()}`,
-                                asset_symbol:    asset.symbol,
-                                order_type:      orderType,
-                                entry_price:     price,
-                                quantity:        balance / price,
-                                balance_at_entry: balance,
-                                take_profit:     tp,
-                                stop_loss:       sl,
-                                tp_pct:          TP_PCT,
-                                sl_pct:          SL_PCT,
-                                status:          'OPEN',
-                                entry_timestamp: new Date(candle.time * 1000).toISOString(),
-                                is_model_trade:  true,
-                                model_id:        modelId,
-                            };
-                        }
-                    }
-                }
-
-                // 4. Save each closed trade to AccountTrades
-                const closed = trades.filter(t => t.status === 'CLOSED');
-                for (const trade of closed) {
-                    await saveAssetResultsToAccountTrades(asset.symbol, [trade], modelId);
-                }
-
-                // 5. Record summary
-                const totalPl  = closed.reduce((s, t) => s + (t.profit_loss || 0), 0);
-                const totalPct = closed.reduce((s, t) => s + (t.profit_loss_percentage || 0), 0);
-                setBatchTestResults(prev => [...prev, {
-                    symbol: asset.symbol,
-                    trades: closed.length,
-                    pl:     totalPl,
-                    plPct:  totalPct,
-                }]);
-
-                // 6. Remove from watchlist
-                await deleteWatchlistAsset(asset.id);
-
-            } catch (err) {
-                console.error(`Batch test error for ${asset.symbol}:`, err);
-                // Emit a failed result so the user knows
-                setBatchTestResults(prev => [...prev, {
-                    symbol: asset.symbol, trades: 0, pl: 0, plPct: 0, error: err.message,
-                }]);
+            const modelId = batchTestModel?.model_id || 'unknown';
+            for (const trade of closed) {
+                await saveAssetResultsToAccountTrades(symbol, [trade], modelId);
             }
 
-            // 7. Advance queue (triggers next iteration)
-            if (!batchTestStopped) {
-                setBatchTestQueue(prev => prev.slice(1));
-            }
+            const totalPl  = closed.reduce((s, t) => s + (t.profit_loss || 0), 0);
+            const totalPct = closed.reduce((s, t) => s + (t.profit_loss_percentage || 0), 0);
+            setBatchTestResults(prev => [...prev, {
+                symbol: asset.symbol, trades: closed.length, pl: totalPl, plPct: totalPct,
+            }]);
+
+            addToast(`${asset.symbol} done — ${closed.length} trades, ${totalPl >= 0 ? '+' : ''}$${totalPl.toFixed(2)}`, 'info', 3000);
+            await deleteWatchlistAsset(asset.id);
+
+            // Stop the current backtest (will trigger finalizeBacktestStop → fetchMarketData)
+            // then advance the queue — the queue change re-runs this effect for the next asset
+            finalizeBacktestStop();
+            setBatchTestQueue(prev => prev.slice(1));
+            batchOnCompleteRef.current = null;
         };
 
-        runAsset();
+        // Set asset + model + timeframe then start the visual backtest
+        const yfsym = asset.yfinance_symbol || asset.symbol;
+        setSelectedAsset(yfsym);
+        setSelectedBacktestModel(batchTestModel);
+        setBacktestModelTp('8');
+        setBacktestModelSl('4');
+        setBacktestSpeed(0.05); // max speed for batch — user can slow down via slider
+        // Small delay so asset/chart state settles before startBacktest fires
+        setTimeout(() => { startBacktest(); }, 600);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [batchTestRunning, batchTestQueue, batchTestStopped, batchTestModel]);
+    }, [batchTestRunning, batchTestStopped, batchTestQueue, backtestMode]);
+
+    // Keep a ref to backtestTradeHistory so the async batchOnCompleteRef callback
+    // can read the latest value without a stale closure
+    const backtestTradeHistoryRef = useRef({});
+    useEffect(() => {
+        backtestTradeHistoryRef.current = backtestTradeHistory;
+    }, [backtestTradeHistory]);
 
     // Fetch saved forward-test models from SnowAIForwardTestingModel
     // ── Backtest Watchlist ─────────────────────────────────────────────────────
@@ -2055,6 +1999,8 @@ export default function Charts() {
         setBatchTestStopped(true);
         setBatchTestRunning(false);
         setBatchTestCurrent(null);
+        batchOnCompleteRef.current = null; // prevent auto-advance after stop
+        if (backtestMode) finalizeBacktestStop(); // stop visual backtest if running
     };
 
     const fetchForwardTestModels = async () => {
@@ -2342,6 +2288,7 @@ export default function Charts() {
                                     {batchTestCurrent && (
                                         <div style={{ fontSize: '0.78rem', color: theme.text.secondary, marginTop: '1px' }}>
                                             Currently: <strong>{batchTestCurrent.symbol}</strong> · {batchTestQueue.length} remaining · {batchTestResults.length} done
+                                            <span style={{ opacity: 0.55, marginLeft: '6px' }}>· adjust speed slider to control pace</span>
                                         </div>
                                     )}
                                 </div>
