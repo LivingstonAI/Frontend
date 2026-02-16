@@ -38,9 +38,10 @@ const DomainExpansion = () => {
   const [techName, setTechName] = useState('CURSED ENERGY');
   const [techId, setTechId] = useState('neutral');
   const [loading, setLoading] = useState(true);
+  const [showManual, setShowManual] = useState(false);
 
   // --- Constants ---
-  const COUNT = 20000;
+  const COUNT = 25000;
 
   // --- Particle Formations (Pure Logic) ---
   const getRed = (i) => {
@@ -93,6 +94,62 @@ const DomainExpansion = () => {
     } else return { x: 0, y: 0, z: 0, r: 0, g: 0, b: 0, s: 0 };
   };
 
+  const getMahoraga = (i) => {
+    if (i < COUNT * 0.4) {
+        const angle = (i / (COUNT * 0.4)) * Math.PI * 2;
+        const r = 22;
+        const noise = (Math.random() - 0.5) * 2; 
+        return { x: (r + noise) * Math.cos(angle), y: (r + noise) * Math.sin(angle) + 20, z: noise, r: 1.0, g: 0.85, b: 0.2, s: 1.5 };
+    } else if (i < COUNT * 0.7) {
+        const spokeIndex = Math.floor((i - COUNT * 0.4) / ((COUNT * 0.3) / 8));
+        const progress = Math.random(); 
+        const angle = (spokeIndex * (Math.PI * 2 / 8));
+        const r = progress * 22;
+        return { x: r * Math.cos(angle), y: r * Math.sin(angle) + 20, z: (Math.random()-0.5)*1.5, r: 0.9, g: 0.7, b: 0.1, s: 1.2 };
+    } else {
+        return { x: (Math.random()-0.5)*70, y: (Math.random()-0.5)*60 + 20, z: (Math.random()-0.5)*60, r: 0.8, g: 0.6, b: 0.0, s: 0.6 };
+    }
+  };
+
+  const getChimera = (i) => {
+    // Floor of shadows + rising tendrils
+    if (i < COUNT * 0.5) {
+        // The shadow fluid floor
+        const r = Math.random() * 60;
+        const angle = Math.random() * Math.PI * 2;
+        return { x: r * Math.cos(angle), y: -25 + (Math.random()*2), z: r * Math.sin(angle), r: 0, g: 0.1, b: 0.1, s: 1.5 };
+    } else {
+        // Rising irregular shapes/frogs/shikigami essence
+        const r = Math.random() * 40;
+        const angle = Math.random() * Math.PI * 2;
+        const h = -25 + Math.random() * 50;
+        return { x: r * Math.cos(angle), y: h, z: r * Math.sin(angle), r: 0.0, g: 0.3, b: 0.25, s: 0.8 + Math.random() };
+    }
+  };
+
+  const getCoffin = (i) => {
+    // Volcanic Mountain shape
+    const progress = i / COUNT;
+    const h = -20 + progress * 50;
+    // Cone shape radius
+    const maxR = 40 * (1 - progress); 
+    const r = Math.random() * maxR;
+    const angle = Math.random() * Math.PI * 2;
+    
+    // Core magma vs outer rock
+    const isMagma = Math.random() > 0.7;
+    
+    return { 
+        x: r * Math.cos(angle), 
+        y: h, 
+        z: r * Math.sin(angle), 
+        r: isMagma ? 1.0 : 0.2, 
+        g: isMagma ? 0.3 : 0.1, 
+        b: 0.0, 
+        s: isMagma ? 2.0 : 0.8 
+    };
+  };
+
   // --- Logic: Update Particle Targets ---
   const updateTechnique = (tech) => {
     const state = threeState.current;
@@ -101,14 +158,17 @@ const DomainExpansion = () => {
     state.currentTech = tech;
     setTechId(tech);
 
-    // Update UI Text
+    // Update UI Text & Bloom
     let label = "CURSED ENERGY";
     let bloomStrength = 1.0;
 
     if (tech === 'shrine') { label = "Domain Expansion: Malevolent Shrine"; bloomStrength = 2.5; }
     else if (tech === 'purple') { label = "Secret Technique: Hollow Purple"; bloomStrength = 4.0; }
     else if (tech === 'void') { label = "Domain Expansion: Infinite Void"; bloomStrength = 2.0; }
-    else if (tech === 'red') { label = "Reverse Cursed Technique: Red"; bloomStrength = 2.5; }
+    else if (tech === 'red') { label = "Cursed Technique Reversal: Red"; bloomStrength = 2.5; }
+    else if (tech === 'mahoraga') { label = "Divine General Mahoraga"; bloomStrength = 3.0; }
+    else if (tech === 'chimera') { label = "Domain Expansion: Chimera Shadow Garden"; bloomStrength = 1.8; }
+    else if (tech === 'coffin') { label = "Domain Expansion: Coffin of the Iron Mountain"; bloomStrength = 3.5; }
     else { label = "Neutral State"; bloomStrength = 1.0; }
 
     setTechName(label);
@@ -128,6 +188,9 @@ const DomainExpansion = () => {
       else if (tech === 'void') p = getVoid(i);
       else if (tech === 'purple') p = getPurple(i);
       else if (tech === 'shrine') p = getShrine(i);
+      else if (tech === 'mahoraga') p = getMahoraga(i);
+      else if (tech === 'chimera') p = getChimera(i);
+      else if (tech === 'coffin') p = getCoffin(i);
 
       state.targetPositions[i * 3] = p.x;
       state.targetPositions[i * 3 + 1] = p.y;
@@ -234,6 +297,9 @@ const DomainExpansion = () => {
         if (currentTech === 'shrine') glowColor = '#ff0000';
         else if (currentTech === 'purple') glowColor = '#bb00ff';
         else if (currentTech === 'red') glowColor = '#ff3333';
+        else if (currentTech === 'mahoraga') glowColor = '#ffd700'; 
+        else if (currentTech === 'chimera') glowColor = '#006644';
+        else if (currentTech === 'coffin') glowColor = '#ff6600';
         
         if (results.multiHandLandmarks) {
             results.multiHandLandmarks.forEach((lm) => {
@@ -244,10 +310,41 @@ const DomainExpansion = () => {
                 // Simple Euclidean distance between thumb tip and index tip
                 const pinch = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);
                 
-                if (pinch < 0.04) detected = 'purple';
-                else if (isUp(8,6) && isUp(12,10) && isUp(16,14) && isUp(20,18)) detected = 'shrine';
-                else if (isUp(8,6) && isUp(12,10) && !isUp(16,14)) detected = 'void';
-                else if (isUp(8,6) && !isUp(12,10)) detected = 'red';
+                // Finger States
+                const thumbUp = isUp(4,3);
+                const indexUp = isUp(8,6);
+                const middleUp = isUp(12,10);
+                const ringUp = isUp(16,14);
+                const pinkyUp = isUp(20,18);
+
+                // --- Detection Logic ---
+                if (pinch < 0.04) {
+                    detected = 'purple';
+                }
+                else if (!indexUp && !middleUp && !ringUp && !pinkyUp) {
+                    // Fist (All fingers down)
+                    detected = 'mahoraga';
+                }
+                else if (indexUp && middleUp && ringUp && pinkyUp) {
+                    // Open Palm
+                    detected = 'shrine';
+                }
+                else if (indexUp && !middleUp && !ringUp && pinkyUp) {
+                    // Rock Sign / Devil Horns
+                    detected = 'chimera';
+                }
+                else if (thumbUp && indexUp && middleUp && !ringUp && !pinkyUp) {
+                    // 3 Fingers
+                    detected = 'coffin';
+                }
+                else if (indexUp && middleUp && !ringUp && !pinkyUp) {
+                    // Peace Sign / Two fingers
+                    detected = 'void';
+                }
+                else if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+                    // One finger
+                    detected = 'red';
+                }
             });
         }
         updateTechnique(detected);
@@ -314,8 +411,19 @@ const DomainExpansion = () => {
         state.particles.rotation.y += 0.05;
       } else if (state.currentTech === 'shrine') {
         state.particles.rotation.set(0, 0, 0); 
+      } else if (state.currentTech === 'mahoraga') {
+        state.particles.rotation.z += 0.01;
+        state.particles.rotation.x = 0.5; 
+      } else if (state.currentTech === 'chimera') {
+        state.particles.rotation.y += 0.02; // Slow swirl
+        state.particles.rotation.x = 0; 
+      } else if (state.currentTech === 'coffin') {
+        state.particles.rotation.y -= 0.005; // Slow rotate
+        state.particles.rotation.x = 0;
       } else {
         state.particles.rotation.y += 0.005;
+        state.particles.rotation.x = 0;
+        state.particles.rotation.z = 0;
       }
 
       state.composer.render();
@@ -344,8 +452,6 @@ const DomainExpansion = () => {
             threeState.current.renderer.dispose();
             if(containerRef.current) containerRef.current.innerHTML = '';
         }
-        // Note: MediaPipe camera cleanup is tricky without ref to the camera instance directly, 
-        // but removing the component usually stops the video stream eventually.
     };
   }, []);
 
@@ -356,6 +462,9 @@ const DomainExpansion = () => {
         case 'purple': return '#bb00ff';
         case 'red': return '#ff3333';
         case 'void': return '#00ffff';
+        case 'mahoraga': return '#ffd700';
+        case 'chimera': return '#00aa77';
+        case 'coffin': return '#ff8800';
         default: return '#00ffff';
     }
   };
@@ -369,6 +478,10 @@ const DomainExpansion = () => {
         {`
             body { margin: 0; background-color: #000; overflow: hidden; }
             @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 0.4; } 100% { opacity: 0.8; } }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+            ::-webkit-scrollbar { width: 6px; }
+            ::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
+            ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
         `}
         </style>
 
@@ -377,6 +490,72 @@ const DomainExpansion = () => {
 
         {/* 3D Background */}
         <div ref={containerRef} style={styles.threeContainer}></div>
+
+        {/* Manual Toggle Button */}
+        <button 
+            style={styles.manualButton} 
+            onClick={() => setShowManual(!showManual)}
+        >
+            {showManual ? "CLOSE MANUAL" : "SORCERER MANUAL"}
+        </button>
+
+        {/* Manual Overlay */}
+        {showManual && (
+            <div style={styles.manualOverlay}>
+                <h2 style={styles.manualTitle}>GRIMOIRE OF TECHNIQUES</h2>
+                <div style={styles.manualGrid}>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#bb00ff'}}>👌</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#bb00ff'}}>HOLLOW PURPLE</div>
+                            <div style={styles.techDesc}>Pinch Thumb & Index</div>
+                        </div>
+                    </div>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#ff0000'}}>✋</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#ff0000'}}>MALEVOLENT SHRINE</div>
+                            <div style={styles.techDesc}>Open Palm (All Fingers Up)</div>
+                        </div>
+                    </div>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#00ffff'}}>✌️</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#00ffff'}}>INFINITE VOID</div>
+                            <div style={styles.techDesc}>Index & Middle Finger Up</div>
+                        </div>
+                    </div>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#ff3333'}}>👆</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#ff3333'}}>REVERSE: RED</div>
+                            <div style={styles.techDesc}>Index Finger Only</div>
+                        </div>
+                    </div>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#ffd700'}}>✊</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#ffd700'}}>MAHORAGA</div>
+                            <div style={styles.techDesc}>Closed Fist</div>
+                        </div>
+                    </div>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#00aa77'}}>🤘</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#00aa77'}}>CHIMERA SHADOW</div>
+                            <div style={styles.techDesc}>Index & Pinky Up (Rock)</div>
+                        </div>
+                    </div>
+                    <div style={styles.manualItem}>
+                        <div style={{...styles.techIcon, borderColor: '#ff8800'}}>🤟</div>
+                        <div>
+                            <div style={{...styles.techTitle, color: '#ff8800'}}>IRON COFFIN</div>
+                            <div style={styles.techDesc}>Thumb, Index & Middle Up</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* UI Overlay */}
         <div style={styles.ui}>
@@ -427,7 +606,7 @@ const styles = {
     },
     ui: {
         position: 'absolute',
-        top: '10%',
+        top: '8%',
         width: '100%',
         textAlign: 'center',
         color: '#fff',
@@ -472,7 +651,7 @@ const styles = {
         height: '100%',
         objectFit: 'cover',
         opacity: 0.8,
-        display: 'block', // Ensures no extra space below video
+        display: 'block', 
     },
     canvas: {
         position: 'absolute',
@@ -486,6 +665,80 @@ const styles = {
         fontSize: '0.8rem',
         color: '#888',
         animation: 'pulse 1.5s infinite',
+    },
+    // Manual Styles
+    manualButton: {
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        zIndex: 50,
+        background: 'rgba(0,0,0,0.6)',
+        border: '1px solid rgba(255,255,255,0.3)',
+        color: '#fff',
+        padding: '10px 20px',
+        fontFamily: "'Courier New', sans-serif",
+        cursor: 'pointer',
+        backdropFilter: 'blur(5px)',
+        letterSpacing: '2px',
+        fontSize: '0.8rem',
+        transition: 'all 0.3s',
+    },
+    manualOverlay: {
+        position: 'absolute',
+        top: '80px',
+        right: '20px',
+        width: '300px',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+        background: 'rgba(10, 10, 15, 0.9)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        padding: '20px',
+        zIndex: 49,
+        color: '#eee',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.8)',
+        borderRadius: '8px',
+        animation: 'fadeIn 0.3s ease-out',
+    },
+    manualTitle: {
+        fontSize: '1rem',
+        borderBottom: '1px solid #333',
+        paddingBottom: '10px',
+        marginBottom: '15px',
+        color: '#888',
+        letterSpacing: '2px',
+        textAlign: 'center',
+    },
+    manualGrid: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px',
+    },
+    manualItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '15px',
+    },
+    techIcon: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        border: '2px solid #555',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.2rem',
+        background: 'rgba(0,0,0,0.5)',
+        flexShrink: 0,
+    },
+    techTitle: {
+        fontSize: '0.9rem',
+        fontWeight: 'bold',
+        letterSpacing: '1px',
+    },
+    techDesc: {
+        fontSize: '0.75rem',
+        color: '#aaa',
+        marginTop: '2px',
     }
 };
 
