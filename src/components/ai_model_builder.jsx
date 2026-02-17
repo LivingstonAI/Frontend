@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function AIModelBuilder({ theme, styles, BACKEND_API_URL }) {
+export default function AIModelBuilder({ theme, styles, BACKEND_API_URL, onBacktestModel, onTimeframeSensitivity }) {
     const [openaiApiKey, setOpenaiApiKey] = useState('');
     const [activeTab, setActiveTab] = useState('build');
     const [error, setError] = useState('');
@@ -251,7 +251,54 @@ NEVER include: @csrf_exempt, def view(request), JsonResponse, yf.Ticker, request
                             <h3 style={{ color:theme.text.primary, margin:0 }}>📝 Generated Code</h3>
                             <button onClick={()=>copyCode(generatedCode)} style={{ ...styles.buttonSecondary, background:`linear-gradient(135deg,${theme.blue[500]},${theme.blue[600]})`, color:'white', border:'none' }}>📋 Copy</button>
                         </div>
-                        <pre style={{ background:theme.bg.tertiary, padding:'14px', borderRadius:'9px', overflow:'auto', maxHeight:'240px', color:theme.text.primary, fontSize:'0.85rem', lineHeight:'1.6', border:`1px solid ${theme.border.medium}`, marginBottom:'22px' }}><code>{generatedCode}</code></pre>
+                        <pre style={{ background:theme.bg.tertiary, padding:'14px', borderRadius:'9px', overflow:'auto', maxHeight:'240px', color:theme.text.primary, fontSize:'0.85rem', lineHeight:'1.6', border:`1px solid ${theme.border.medium}`, marginBottom:'16px' }}><code>{generatedCode}</code></pre>
+
+                        {/* ── Quick backtest / TF test ──────────────────────── */}
+                        {(onBacktestModel || onTimeframeSensitivity) && (
+                            <div style={{ background:theme.bg.tertiary, borderRadius:'12px', padding:'16px', marginBottom:'20px', border:`1px solid ${theme.border.light}` }}>
+                                <div style={{ fontSize:'0.78rem', fontWeight:'700', color:theme.text.tertiary, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'12px' }}>
+                                    ⚡ Quick Test — run on chart without saving
+                                </div>
+                                <div style={{ display:'grid', gridTemplateColumns:'1fr 80px 80px', gap:'10px', marginBottom:'12px' }}>
+                                    <div>
+                                        <label style={styles.label}>Asset (leave blank = current chart)</label>
+                                        <input value={assetSymbol} onChange={e=>setAssetSymbol(e.target.value)}
+                                            placeholder="e.g. AAPL, BTCUSD"
+                                            style={{ ...styles.input, marginBottom:0 }} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>TP %</label>
+                                        <input type="number" value={takeProfitPct} onChange={e=>setTakeProfitPct(e.target.value)}
+                                            min="0" step="0.5" style={{ ...styles.input, marginBottom:0 }} />
+                                    </div>
+                                    <div>
+                                        <label style={styles.label}>SL %</label>
+                                        <input type="number" value={stopLossPct} onChange={e=>setStopLossPct(e.target.value)}
+                                            min="0" step="0.5" style={{ ...styles.input, marginBottom:0 }} />
+                                    </div>
+                                </div>
+                                <div style={{ display:'flex', gap:'10px' }}>
+                                    {onBacktestModel && (
+                                        <button onClick={() => onBacktestModel({
+                                            code: generatedCode, modelName, asset: assetSymbol || null,
+                                            tp: parseFloat(takeProfitPct) || 8, sl: parseFloat(stopLossPct) || 4,
+                                        })} style={{ ...styles.buttonPrimary, flex:1,
+                                            background:`linear-gradient(135deg,${theme.accent.cyan},#0891b2)` }}>
+                                            ▶ Backtest on Chart
+                                        </button>
+                                    )}
+                                    {onTimeframeSensitivity && (
+                                        <button onClick={() => onTimeframeSensitivity({
+                                            code: generatedCode, modelName, asset: assetSymbol || null,
+                                            tp: parseFloat(takeProfitPct) || 8, sl: parseFloat(stopLossPct) || 4,
+                                        })} style={{ ...styles.buttonPrimary, flex:1,
+                                            background:`linear-gradient(135deg,${theme.accent.purple},#6d28d9)` }}>
+                                            ⏱ Timeframe Sensitivity
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         <h3 style={{ color:theme.text.primary, margin:'0 0 14px' }}>⚙️ Deploy Config</h3>
                         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'11px', marginBottom:'16px' }}>
@@ -403,11 +450,20 @@ NEVER include: @csrf_exempt, def view(request), JsonResponse, yf.Ticker, request
                                 <button onClick={()=>copyCode(improvedCode)} style={{ ...styles.buttonSecondary, fontSize:'0.82rem' }}>📋 Copy</button>
                             </div>
                             <pre style={{ background:theme.bg.tertiary, padding:'14px', borderRadius:'9px', overflow:'auto', maxHeight:'260px', color:theme.text.primary, fontSize:'0.85rem', lineHeight:'1.6', border:`1px solid ${theme.accent.cyan}`, marginBottom:'12px' }}><code>{improvedCode}</code></pre>
-                            <div style={{ display:'flex', gap:'10px' }}>
+                            <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
                                 <button onClick={()=>saveModel(improvedCode, detailModel.function_name, detailModel.id)} disabled={isSavingImproved}
                                     style={{ ...styles.buttonPrimary, flex:1, background:`linear-gradient(135deg,${theme.accent.green},#059669)`, opacity:isSavingImproved?0.6:1 }}>
                                     {isSavingImproved?'⏳ Saving...':'💾 Replace Code with Improved Version'}
                                 </button>
+                                {onBacktestModel && (
+                                    <button onClick={() => onBacktestModel({
+                                        code: improvedCode, modelName: detailModel.function_name,
+                                        asset: detailModel.asset_symbol || null,
+                                        tp: detailModel.take_profit_pct || 8, sl: detailModel.stop_loss_pct || 4,
+                                    })} style={{ ...styles.buttonPrimary, flex:1, background:`linear-gradient(135deg,${theme.accent.cyan},#0891b2)` }}>
+                                        ▶ Backtest Improved
+                                    </button>
+                                )}
                                 <button onClick={()=>setImprovedCode('')} style={{ ...styles.buttonSecondary, flex:0.3 }}>Discard</button>
                             </div>
                         </div>
