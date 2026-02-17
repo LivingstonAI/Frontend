@@ -3,6 +3,7 @@ import SideNavs from "./side_navs";
 import AIModelBuilder from "./ai_model_builder";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
+
 // Light theme (default)
 const lightTheme = {
   bg: {
@@ -931,14 +932,14 @@ export default function Charts() {
                     `https://api.binance.com/api/v3/klines?symbol=${assetInfo.binanceSymbol}&interval=${timeframes[timeframe].binanceInterval}&limit=1000`
                 );
                 const rawData = await response.json();
-                data = rawData.map((kline) => ({
+                data = Array.isArray(rawData) ? rawData.map((kline) => ({
                     time: Math.floor(kline[0] / 1000),
                     open: parseFloat(kline[1]),
                     high: parseFloat(kline[2]),
                     low: parseFloat(kline[3]),
                     close: parseFloat(kline[4]),
                     volume: parseFloat(kline[5])
-                }));
+                })) : [];
             } else {
                 const response = await fetch(`${BACKEND_API_URL}/api/snowai-market-ohlc/`, {
                     method: 'POST',
@@ -950,18 +951,22 @@ export default function Charts() {
                     })
                 });
                 const result = await response.json();
-                data = result.data;
+                data = result.data || [];
             }
             
+            // Guard: never set undefined/null — always an array
+            if (!Array.isArray(data) || data.length === 0) {
+                console.warn(`fetchMarketData: no data for ${assetInfo.symbol}`);
+                return;
+            }
+
             setMarketData(data);
-            setBacktestData(data); // Store for backtest
+            setBacktestData(data);
             
-            if (data.length > 0) {
-                const latest = data[data.length - 1];
-                const first = data[0];
-                setCurrentPrice(latest.close);
-                setPriceChange(((latest.close - first.close) / first.close) * 100);
-            }
+            const latest = data[data.length - 1];
+            const first  = data[0];
+            setCurrentPrice(latest.close);
+            setPriceChange(((latest.close - first.close) / first.close) * 100);
             
         } catch (error) {
             console.error('Error fetching market data:', error);
@@ -988,7 +993,7 @@ export default function Charts() {
 
     // Initialize chart ONCE
     useEffect(() => {
-        if (!tvLoaded || !chartContainerRef.current || marketData.length === 0) return;
+        if (!tvLoaded || !chartContainerRef.current || !Array.isArray(marketData) || marketData.length === 0) return;
 
         try {
             // Save current scroll position before recreating chart
@@ -1070,11 +1075,11 @@ export default function Charts() {
         } catch (error) {
             console.error('Error initializing chart:', error);
         }
-    }, [tvLoaded, chartType, marketData.length > 0, isDarkTheme]);
+    }, [tvLoaded, chartType, Array.isArray(marketData) && marketData.length > 0, isDarkTheme]);
 
     // Update chart data WITHOUT recreating chart (only when data changes, not on every render)
     useEffect(() => {
-        if (!chartRef.current || marketData.length === 0) return;
+        if (!chartRef.current || !Array.isArray(marketData) || marketData.length === 0) return;
         
         // Only update if we already have a series reference (chart is initialized)
         if (!candlestickSeriesRef.current && !lineSeriesRef.current) return;
@@ -1611,14 +1616,14 @@ export default function Charts() {
                     `https://api.binance.com/api/v3/klines?symbol=${assetInfo.binanceSymbol}&interval=${timeframes[timeframe].binanceInterval}&limit=500`
                 );
                 const rawData = await response.json();
-                freshData = rawData.map((kline) => ({
+                freshData = Array.isArray(rawData) ? rawData.map((kline) => ({
                     time: Math.floor(kline[0] / 1000),
                     open: parseFloat(kline[1]),
                     high: parseFloat(kline[2]),
                     low: parseFloat(kline[3]),
                     close: parseFloat(kline[4]),
                     volume: parseFloat(kline[5])
-                }));
+                })) : [];
             } else {
                 const response = await fetch(`${BACKEND_API_URL}/api/snowai-market-ohlc/`, {
                     method: 'POST',
@@ -1629,21 +1634,39 @@ export default function Charts() {
                         period: timeframes[timeframe].yfinancePeriod
                     })
                 });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
                 freshData = result.data || [];
             }
         } catch (error) {
-            wrappedSetError(`❌ Failed to load data: ${error.message}`);
-            setTimeout(() => wrappedSetError(''), 4000);
-            return;
+            addToast(`⚠ Skipping ${assetInfo.symbol} — ${error.message}`, 'warning', 4000);
+            // If in batch mode, skip this asset and advance the queue
+            if (batchTestRunning && batchOnCompleteRef.current) {
+                batchOnCompleteRef.current = null;
+                setBatchTestResults(prev => [...prev, {
+                    symbol: assetInfo.symbol, trades: 0, pl: 0, plPct: 0, error: error.message,
+                }]);
+                await deleteWatchlistAsset(batchTestQueue[0]?.id);
+                setBatchTestQueue(prev => prev.slice(1));
+            }
+            return false;
         }
         
         if (!freshData || freshData.length < 2) {
-            wrappedSetError('❌ Not enough data to backtest this asset/timeframe');
-            setTimeout(() => wrappedSetError(''), 4000);
+            addToast(`⚠ Skipping ${assetInfo.symbol} — no data`, 'warning', 3000);
+            // Batch: skip and advance
+            if (batchTestRunning) {
+                batchOnCompleteRef.current = null;
+                setBatchTestResults(prev => [...prev, {
+                    symbol: assetInfo.symbol, trades: 0, pl: 0, plPct: 0, error: 'No data',
+                }]);
+                await deleteWatchlistAsset(batchTestQueue[0]?.id);
+                setBatchTestQueue(prev => prev.slice(1));
+            }
             return;
         }
         
+        // ── Success — data loaded, start the visual backtest ──────────────────
         wrappedSetSuccess('');
         setBacktestData(freshData);
         setBacktestMode(true);
@@ -2486,7 +2509,7 @@ export default function Charts() {
                         </div>
                     )}
                     
-                    {!isInitialLoad && marketData.length > 0 && (
+                    {!isInitialLoad && Array.isArray(marketData) && marketData.length > 0 && (
                         <>
                             <div style={styles.priceDisplay}>
                                 <div>
