@@ -635,6 +635,12 @@ export default function Charts() {
     const [batchTestModel,       setBatchTestModel]       = useState(null); // model chosen for this batch run
     const [batchTestTp,          setBatchTestTp]          = useState('8');  // TP % for entire batch
     const [batchTestSl,          setBatchTestSl]          = useState('4');  // SL % for entire batch
+
+    // Timeframe sensitivity test state
+    const [tfSensitivityMode,    setTfSensitivityMode]    = useState(false);
+    const [tfSensitivityQueue,   setTfSensitivityQueue]   = useState([]);
+    const [tfSensitivityResults, setTfSensitivityResults] = useState([]);
+    const [showTfResults,        setShowTfResults]         = useState(false);
     const [watchlistAddForm, setWatchlistAddForm]     = useState({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
     const [watchlistAddOpen, setWatchlistAddOpen]     = useState(false);
     const [watchlistSaving, setWatchlistSaving]       = useState(false);
@@ -1918,6 +1924,51 @@ export default function Charts() {
         backtestTradeHistoryRef.current = backtestTradeHistory;
     }, [backtestTradeHistory]);
 
+    // ── Timeframe Sensitivity orchestrator ────────────────────────────────────
+    // Same asset, same model, different timeframe each run.
+    // Piggybacks on the same backtest loop — just overrides `timeframe` before each start.
+    useEffect(() => {
+        if (!tfSensitivityMode || tfSensitivityQueue.length === 0 || backtestMode) return;
+
+        const entry = tfSensitivityQueue[0];
+        const tf    = entry._overrideTimeframe;
+
+        batchOnCompleteRef.current = async () => {
+            const symbol      = entry.yfinance_symbol || entry.symbol;
+            const assetTrades = backtestTradeHistoryRef.current?.[symbol] || [];
+            const closed      = assetTrades.filter(t => t.status === 'CLOSED');
+            const totalPl     = closed.reduce((s, t) => s + (t.profit_loss || 0), 0);
+            const wins        = closed.filter(t => (t.profit_loss || 0) > 0).length;
+
+            setTfSensitivityResults(prev => [...prev, {
+                timeframe: tf,
+                trades:    closed.length,
+                wins,
+                winRate:   closed.length ? ((wins / closed.length) * 100).toFixed(1) : '—',
+                pl:        totalPl,
+                plPct:     closed.length ? (closed.reduce((s,t) => s + (t.profit_loss_percentage || 0), 0) / closed.length).toFixed(2) : '—',
+            }]);
+
+            addToast(`${tf} done — ${closed.length} trades · ${totalPl >= 0 ? '+' : ''}$${totalPl.toFixed(2)}`, 'info', 3000);
+            finalizeBacktestStop();
+            setTfSensitivityQueue(prev => prev.slice(1));
+            batchOnCompleteRef.current = null;
+
+            if (tfSensitivityQueue.length <= 1) {
+                // Last timeframe done
+                setTfSensitivityMode(false);
+                setShowTfResults(true);
+                addToast('✅ Timeframe sensitivity test complete!', 'success', 4000);
+            }
+        };
+
+        // Override timeframe then start
+        setTimeframe(tf);
+        setTimeout(() => startBacktest(), 600);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tfSensitivityMode, tfSensitivityQueue, backtestMode]);
+
     // Fetch saved forward-test models from SnowAIForwardTestingModel
     // ── Backtest Watchlist ─────────────────────────────────────────────────────
     const fetchWatchlist = async () => {
@@ -3106,6 +3157,82 @@ export default function Charts() {
                                 }}>
                                     <code>{codePreviewModel.modelCode || '# No code stored for this model'}</code>
                                 </pre>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Timeframe Sensitivity Results ─────────────────────── */}
+                    {showTfResults && tfSensitivityResults.length > 0 && (
+                        <div style={{ ...styles.modal, zIndex: 1100 }} onClick={() => setShowTfResults(false)}>
+                            <div onClick={e => e.stopPropagation()} style={{
+                                background: theme.bg.secondary, borderRadius: '18px',
+                                padding: '28px 32px', width: '90%', maxWidth: '580px',
+                                border: `1px solid ${theme.border.medium}`,
+                                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '800', fontSize: '1.15rem', color: theme.text.primary }}>⏱ Timeframe Sensitivity</div>
+                                        <div style={{ fontSize: '0.82rem', color: theme.text.tertiary, marginTop: '4px' }}>
+                                            {selectedAsset} · {batchTestModel?.model_id} · {batchTestTp}% TP / {batchTestSl}% SL
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowTfResults(false)}
+                                        style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                                </div>
+
+                                {/* Best timeframe callout */}
+                                {(() => {
+                                    const best = [...tfSensitivityResults].sort((a, b) => b.pl - a.pl)[0];
+                                    return best ? (
+                                        <div style={{ padding: '14px 18px', borderRadius: '12px', marginBottom: '20px',
+                                            background: `${theme.accent.green}15`, border: `1px solid ${theme.accent.green}40` }}>
+                                            <div style={{ fontSize: '0.78rem', color: theme.accent.green, fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🏆 Best Timeframe</div>
+                                            <div style={{ fontWeight: '800', fontSize: '1.4rem', color: theme.accent.green }}>{best.timeframe}</div>
+                                            <div style={{ fontSize: '0.83rem', color: theme.text.secondary, marginTop: '2px' }}>
+                                                {best.trades} trades · {best.winRate}% win rate · +${parseFloat(best.pl).toFixed(2)} P&L
+                                            </div>
+                                        </div>
+                                    ) : null;
+                                })()}
+
+                                {/* Results table */}
+                                <div style={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${theme.border.light}` }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 1fr 1fr', background: theme.bg.tertiary, padding: '10px 14px' }}>
+                                        {['TF', 'Trades', 'Win Rate', 'P&L', 'Avg P&L%'].map(h => (
+                                            <div key={h} style={{ fontSize: '0.72rem', fontWeight: '700', color: theme.text.tertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
+                                        ))}
+                                    </div>
+                                    {[...tfSensitivityResults].sort((a, b) => b.pl - a.pl).map((r, i) => {
+                                        const isTop = i === 0;
+                                        return (
+                                            <div key={r.timeframe} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 1fr 1fr',
+                                                padding: '12px 14px', alignItems: 'center',
+                                                borderTop: `1px solid ${theme.border.light}`,
+                                                background: isTop ? `${theme.accent.green}08` : 'transparent' }}>
+                                                <div style={{ fontWeight: '800', fontSize: '0.95rem', color: isTop ? theme.accent.green : theme.text.primary }}>
+                                                    {r.timeframe} {isTop ? '🏆' : ''}
+                                                </div>
+                                                <div style={{ color: theme.text.secondary, fontSize: '0.88rem' }}>{r.trades}</div>
+                                                <div style={{ color: parseFloat(r.winRate) >= 50 ? theme.accent.green : theme.accent.red, fontWeight: '600', fontSize: '0.88rem' }}>
+                                                    {r.winRate}%
+                                                </div>
+                                                <div style={{ color: r.pl >= 0 ? theme.accent.green : theme.accent.red, fontWeight: '700', fontSize: '0.88rem' }}>
+                                                    {r.pl >= 0 ? '+' : ''}${parseFloat(r.pl).toFixed(2)}
+                                                </div>
+                                                <div style={{ color: parseFloat(r.plPct) >= 0 ? theme.accent.green : theme.accent.red, fontSize: '0.88rem' }}>
+                                                    {r.plPct >= 0 ? '+' : ''}{r.plPct}%
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <button onClick={() => setShowTfResults(false)} style={{
+                                    marginTop: '20px', width: '100%', padding: '12px', borderRadius: '10px',
+                                    background: theme.bg.tertiary, border: `1px solid ${theme.border.medium}`,
+                                    color: theme.text.secondary, fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem',
+                                }}>Close</button>
                             </div>
                         </div>
                     )}
@@ -4646,6 +4773,50 @@ export default function Charts() {
                                     theme={theme} 
                                     styles={styles}
                                     BACKEND_API_URL={BACKEND_API_URL}
+                                    onBacktestModel={({ code, modelName, asset, tp, sl }) => {
+                                        // Close the builder panel, set up backtest, fire it
+                                        setShowModelCreator(false);
+                                        // Create a temporary model object the backtest loop can use
+                                        const tempModel = {
+                                            model_id: modelName || 'preview',
+                                            cleaned_model_code: code,
+                                        };
+                                        if (asset) setSelectedAsset(asset);
+                                        setSelectedBacktestModel(tempModel);
+                                        setBacktestModelTp(String(tp || 8));
+                                        setBacktestModelSl(String(sl || 4));
+                                        setTimeout(() => startBacktest(), 400);
+                                    }}
+                                    onTimeframeSensitivity={({ code, modelName, asset, tp, sl }) => {
+                                        // Close builder, run timeframe sweep via batch mechanism
+                                        setShowModelCreator(false);
+                                        const sym = asset || selectedAsset;
+                                        setSelectedAsset(sym);
+                                        const tempModel = {
+                                            model_id: modelName || 'tf_test',
+                                            cleaned_model_code: code,
+                                        };
+                                        setSelectedBacktestModel(tempModel);
+                                        setBacktestModelTp(String(tp || 8));
+                                        setBacktestModelSl(String(sl || 4));
+                                        // Build a fake queue — one entry per timeframe
+                                        const tfQueue = ['1D','4H','1H','15M','5M'].map(tf => ({
+                                            id: `tf_${tf}`,
+                                            symbol: sym,
+                                            name: `${sym} ${tf}`,
+                                            yfinance_symbol: sym,
+                                            _overrideTimeframe: tf,
+                                            _isTfTest: true,
+                                        }));
+                                        setBatchTestModel(tempModel);
+                                        setBatchTestTp(String(tp || 8));
+                                        setBatchTestSl(String(sl || 4));
+                                        setBatchTestResults([]);
+                                        setBatchTestStopped(false);
+                                        setTfSensitivityMode(true);
+                                        setTfSensitivityQueue(tfQueue);
+                                        addToast(`Running ${sym} across 5 timeframes…`, 'info', 3000);
+                                    }}
                                 />
                             </div>
                         </div>
