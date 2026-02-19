@@ -3,7 +3,6 @@ import SideNavs from "./side_navs";
 import AIModelBuilder from "./ai_model_builder";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
-
 // Light theme (default)
 const lightTheme = {
   bg: {
@@ -635,12 +634,17 @@ export default function Charts() {
     const [batchTestModel,       setBatchTestModel]       = useState(null); // model chosen for this batch run
     const [batchTestTp,          setBatchTestTp]          = useState('8');  // TP % for entire batch
     const [batchTestSl,          setBatchTestSl]          = useState('4');  // SL % for entire batch
+    const [batchAssetLimit,      setBatchAssetLimit]      = useState('');   // limit number of assets (blank = all)
 
     // Timeframe sensitivity test state
     const [tfSensitivityMode,    setTfSensitivityMode]    = useState(false);
     const [tfSensitivityQueue,   setTfSensitivityQueue]   = useState([]);
     const [tfSensitivityResults, setTfSensitivityResults] = useState([]);
     const [showTfResults,        setShowTfResults]         = useState(false);
+
+    // Generated code viewer (for AI backtest)
+    const [showGeneratedCode,    setShowGeneratedCode]    = useState(false);
+    const [generatedCodeData,    setGeneratedCodeData]    = useState(null); // {code, modelName}
     const [watchlistAddForm, setWatchlistAddForm]     = useState({ symbol: '', name: '', asset_class: 'Stocks', yfinance_symbol: '', notes: '' });
     const [watchlistAddOpen, setWatchlistAddOpen]     = useState(false);
     const [watchlistSaving, setWatchlistSaving]       = useState(false);
@@ -2033,6 +2037,11 @@ export default function Charts() {
                 const entryDate = new Date(trade.entry_timestamp);
                 const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
                 const dayEntered = days[entryDate.getDay()];
+                const rawAmount = Math.abs(parseFloat((trade.profit_loss || 0).toFixed(4)));
+                const outcome   = (trade.profit_loss || 0) >= 0 ? 'Win' : 'Loss';
+                // Store as POSITIVE regardless — equity curve logic elsewhere handles negation for Loss
+                const amount    = rawAmount;
+
                 await fetch(`${BACKEND_API_URL}/api/backtest-save-account-trade/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2040,8 +2049,8 @@ export default function Charts() {
                         asset:                  assetSymbol,
                         order_type:             trade.order_type,
                         strategy:               modelId || 'SnowAI Model',
-                        outcome:                (trade.profit_loss || 0) >= 0 ? 'Win' : 'Loss',
-                        amount:                 parseFloat((trade.profit_loss || 0).toFixed(4)),
+                        outcome,
+                        amount,
                         profit_loss_percentage: parseFloat((trade.profit_loss_percentage || 0).toFixed(4)),
                         entry_price:            trade.entry_price,
                         exit_price:             trade.exit_price,
@@ -3334,18 +3343,38 @@ export default function Charts() {
                                     </div>
                                 </div>
 
+                                {/* Asset limit */}
+                                <div style={{ marginBottom: '18px' }}>
+                                    <div style={{ marginBottom: '6px', fontSize: '0.8rem', fontWeight: '700', color: theme.text.secondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                        Limit assets (optional)
+                                    </div>
+                                    <div style={{ background: theme.bg.tertiary, padding: '10px 12px', borderRadius: '10px', border: `1px solid ${theme.border.light}` }}>
+                                        <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginBottom: '4px', fontWeight: '600' }}>
+                                            Test only first N assets (blank = all {watchlistAssets.length})
+                                        </div>
+                                        <input type="number" value={batchAssetLimit} onChange={e => setBatchAssetLimit(e.target.value)}
+                                            placeholder={`All ${watchlistAssets.length} assets`}
+                                            min="1" max={watchlistAssets.length}
+                                            style={{ width: '100%', padding: '6px 8px', fontSize: '0.9rem', fontWeight: '600',
+                                                background: theme.bg.elevated, color: theme.text.primary,
+                                                border: `1px solid ${theme.border.medium}`, borderRadius: '6px' }} />
+                                    </div>
+                                </div>
+
                                 {/* Start button */}
                                 <button
                                     disabled={!batchTestModel}
                                     onClick={() => {
                                         if (!batchTestModel) return;
-                                        setBatchTestQueue([...watchlistAssets]);
+                                        const limit = parseInt(batchAssetLimit) || watchlistAssets.length;
+                                        const queue = watchlistAssets.slice(0, limit);
+                                        setBatchTestQueue(queue);
                                         setBatchTestResults([]);
                                         setBatchTestStopped(false);
                                         setBatchTestRunning(true);
                                         setShowBatchModelPicker(false);
                                         setShowWatchlistModal(false);
-                                        addToast(`Batch test started with model ${batchTestModel.model_id} · ${watchlistAssets.length} assets · ${batchTestTp}% TP / ${batchTestSl}% SL`, 'info', 4500);
+                                        addToast(`Batch test started with model ${batchTestModel.model_id} · ${queue.length} assets · ${batchTestTp}% TP / ${batchTestSl}% SL`, 'info', 4500);
                                     }}
                                     style={{
                                         width: '100%', padding: '13px', borderRadius: '10px', fontWeight: '800',
@@ -3395,6 +3424,17 @@ export default function Charts() {
                                             else addToast('Error deleting trades', 'error');
                                         }} style={{ ...styles.buttonSecondary, fontSize: '0.78rem', background: `${theme.accent.red}15`, border: `1px solid ${theme.accent.red}50`, color: theme.accent.red }}>
                                             🗑 Reset & Re-seed
+                                        </button>
+                                        {/* Fix Loss positives — once-off repair */}
+                                        <button onClick={async () => {
+                                            if (!window.confirm('Fix all existing Loss trades to have POSITIVE amounts?\n\n(Equity curve logic elsewhere handles the negation — amounts should be stored positive.)')) return;
+                                            addToast('Fixing loss trades…', 'info', 2000);
+                                            const res = await fetch(`${BACKEND_API_URL}/api/backtest-fix-loss-positives/`, { method: 'POST' });
+                                            const data = await res.json();
+                                            if (data.success) addToast(`✅ ${data.message}`, 'success', 4000);
+                                            else addToast('Error fixing trades', 'error');
+                                        }} style={{ ...styles.buttonSecondary, fontSize: '0.78rem', background: `${theme.accent.orange}15`, border: `1px solid ${theme.accent.orange}50`, color: theme.accent.orange }}>
+                                            🔧 Fix Loss Positives
                                         </button>
                                         {/* Test All button */}
                                         {!batchTestRunning ? (
@@ -4776,6 +4816,8 @@ export default function Charts() {
                                     onBacktestModel={({ code, modelName, asset, tp, sl }) => {
                                         // Close the builder panel, set up backtest, fire it
                                         setShowModelCreator(false);
+                                        // Store code for the viewer
+                                        setGeneratedCodeData({ code, modelName });
                                         // Create a temporary model object the backtest loop can use
                                         const tempModel = {
                                             model_id: modelName || 'preview',
@@ -4785,7 +4827,11 @@ export default function Charts() {
                                         setSelectedBacktestModel(tempModel);
                                         setBacktestModelTp(String(tp || 8));
                                         setBacktestModelSl(String(sl || 4));
-                                        setTimeout(() => startBacktest(), 400);
+                                        setTimeout(() => {
+                                            startBacktest();
+                                            // Show code viewer after backtest starts
+                                            setTimeout(() => setShowGeneratedCode(true), 800);
+                                        }, 400);
                                     }}
                                     onTimeframeSensitivity={({ code, modelName, asset, tp, sl }) => {
                                         // Close builder, run timeframe sweep via batch mechanism
@@ -4823,6 +4869,51 @@ export default function Charts() {
                     )}
                 </div>
             </div>
+
+            {/* ── Floating generated code viewer — shows during AI backtest ── */}
+            {showGeneratedCode && generatedCodeData && (
+                <div style={{
+                    position: 'fixed', bottom: '24px', right: '24px', zIndex: 9997,
+                    width: '380px', maxHeight: '60vh',
+                    background: theme.bg.elevated, borderRadius: '14px',
+                    border: `1px solid ${theme.border.medium}`,
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                    display: 'flex', flexDirection: 'column',
+                    animation: 'toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                }}>
+                    {/* Header */}
+                    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${theme.border.light}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontWeight: '800', fontSize: '0.95rem', color: theme.text.primary }}>📝 Generated Code</div>
+                            <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginTop: '2px' }}>{generatedCodeData.modelName}</div>
+                        </div>
+                        <button onClick={() => setShowGeneratedCode(false)}
+                            style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                    </div>
+                    {/* Code */}
+                    <div style={{ flex: 1, overflow: 'auto', padding: '12px' }}>
+                        <pre style={{
+                            margin: 0, padding: '12px', borderRadius: '8px',
+                            background: theme.bg.tertiary, color: theme.text.primary,
+                            fontSize: '0.8rem', lineHeight: '1.5',
+                            border: `1px solid ${theme.border.light}`,
+                            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        }}><code>{generatedCodeData.code}</code></pre>
+                    </div>
+                    {/* Copy button */}
+                    <div style={{ padding: '10px 12px', borderTop: `1px solid ${theme.border.light}` }}>
+                        <button onClick={() => {
+                            navigator.clipboard.writeText(generatedCodeData.code);
+                            addToast('Code copied!', 'info', 2000);
+                        }} style={{
+                            width: '100%', padding: '8px', borderRadius: '8px',
+                            background: `linear-gradient(135deg,${theme.blue[500]},${theme.blue[600]})`,
+                            color: 'white', border: 'none', fontWeight: '600',
+                            cursor: 'pointer', fontSize: '0.85rem',
+                        }}>📋 Copy Code</button>
+                    </div>
+                </div>
+            )}
 
             {/* ── Floating STOP button — always visible during batch ────── */}
             {batchTestRunning && (
