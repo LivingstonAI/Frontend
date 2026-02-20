@@ -3,6 +3,7 @@ import SideNavs from "./side_navs";
 import AIModelBuilder from "./ai_model_builder";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
+
 // Light theme (default)
 const lightTheme = {
   bg: {
@@ -3252,6 +3253,7 @@ export default function Charts() {
                             <div onClick={e => e.stopPropagation()} style={{
                                 background: theme.bg.secondary, borderRadius: '16px',
                                 padding: '28px 32px', width: '90%', maxWidth: '520px',
+                                maxHeight: '90vh', overflowY: 'auto',
                                 border: `1px solid ${theme.border.medium}`,
                                 boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
                             }}>
