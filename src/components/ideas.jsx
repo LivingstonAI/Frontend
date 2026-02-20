@@ -72,111 +72,268 @@ const STOCK_LIST = [
     "BABA","JD","PDD","BIDU","NIO","XPEV","LI",
 ];
 
-const GRADE_CONFIG = {
-    "A+": { color: "#00C896", bg: "rgba(0,200,150,0.12)", label: "Elite Trend Quality" },
-    "A":  { color: "#22D3EE", bg: "rgba(34,211,238,0.12)", label: "Excellent Trend Quality" },
-    "B+": { color: "#818CF8", bg: "rgba(129,140,248,0.12)", label: "Strong Trend Quality" },
-    "B":  { color: "#A78BFA", bg: "rgba(167,139,250,0.12)", label: "Good Trend Quality" },
-    "C+": { color: "#FCD34D", bg: "rgba(252,211,77,0.12)", label: "Moderate Trend Quality" },
-    "C":  { color: "#FB923C", bg: "rgba(251,146,60,0.12)", label: "Weak Trend Quality" },
-    "D":  { color: "#F87171", bg: "rgba(248,113,113,0.12)", label: "Poor Trend Quality" },
-};
+// ─── Trend Persistence Batch Scanner ─────────────────────────────────────────
+// Scans all stocks, caches results in window.storage, shows narrative + searchable list
 
-function getGrade(score) {
-    if (score >= 90) return "A+";
-    if (score >= 80) return "A";
-    if (score >= 70) return "B+";
-    if (score >= 60) return "B";
-    if (score >= 50) return "C+";
-    if (score >= 40) return "C";
-    return "D";
+const STORAGE_KEY = "ideas_hub_trend_scan_v1";
+
+function tierColor(persistence) {
+    if (persistence >= 68) return { bg: "#DCFCE7", text: "#15803D", border: "#86EFAC" };
+    if (persistence >= 50) return { bg: "#DBEAFE", text: "#1D4ED8", border: "#93C5FD" };
+    if (persistence >= 35) return { bg: "#FEF9C3", text: "#A16207", border: "#FDE047" };
+    return { bg: "#FEE2E2", text: "#B91C1C", border: "#FCA5A5" };
 }
 
-function ScoreBar({ label, value, color }) {
+function tierLabel(persistence) {
+    if (persistence >= 68) return "Strong Holder";
+    if (persistence >= 50) return "Moderate Holder";
+    if (persistence >= 35) return "Weak Holder";
+    return "Trend Fader";
+}
+
+function NarrativeSummary({ stocks }) {
+    if (!stocks || stocks.length === 0) return null;
+
+    const high   = stocks.filter(s => s.persistence >= 68);
+    const mid    = stocks.filter(s => s.persistence >= 50 && s.persistence < 68);
+    const low    = stocks.filter(s => s.persistence >= 35 && s.persistence < 50);
+    const faders = stocks.filter(s => s.persistence < 35);
+
+    const topNames  = high.slice(0, 5).map(s => s.symbol).join(", ");
+    const midNames  = mid.slice(0, 4).map(s => s.symbol).join(", ");
+    const fadNames  = faders.slice(0, 4).map(s => s.symbol).join(", ");
+
+    const avgHighPersist = high.length ? (high.reduce((a, b) => a + b.persistence, 0) / high.length).toFixed(0) : 0;
+    const avgLowPersist  = faders.length ? (faders.reduce((a, b) => a + b.persistence, 0) / faders.length).toFixed(0) : 0;
+
+    const bullHigh = high.filter(s => s.direction === "Bullish").length;
+    const bearHigh = high.length - bullHigh;
+
     return (
-        <div style={barStyles.wrapper}>
-            <div style={barStyles.labelRow}>
-                <span style={barStyles.label}>{label}</span>
-                <span style={{ ...barStyles.value, color }}>{value.toFixed(1)}%</span>
-            </div>
-            <div style={barStyles.track}>
-                <div style={{
-                    ...barStyles.fill,
-                    width: `${Math.min(value, 100)}%`,
-                    background: color,
-                }} />
+        <div style={tqaStyles.narrative}>
+            <p style={tqaStyles.narrativeTitle}>📊 What the data says</p>
+
+            {high.length > 0 && (
+                <p style={tqaStyles.narrativePara}>
+                    <strong style={{ color: "#15803D" }}>High-quality, well-known stocks</strong> like{" "}
+                    <span style={{ color: "#15803D", fontWeight: 600 }}>{topNames}</span>{" "}
+                    are showing the strongest trend persistence — averaging <strong>{avgHighPersist}%</strong> likelihood
+                    of maintaining their current direction. Of these, {bullHigh} are trending bullish and {bearHigh} bearish.
+                    These companies have the fundamentals to back their moves: strong margins, healthy balance sheets,
+                    and consistent institutional interest. Their trends tend to hold because conviction drives them,
+                    not hype.
+                </p>
+            )}
+
+            {mid.length > 0 && (
+                <p style={tqaStyles.narrativePara}>
+                    <strong style={{ color: "#1D4ED8" }}>Mid-tier stocks</strong>
+                    {midNames ? <> like <span style={{ color: "#1D4ED8", fontWeight: 600 }}>{midNames}</span></> : ""}{" "}
+                    sit in the middle ground — they're trending, but with moderate conviction.
+                    These can go either way depending on broader market conditions. Worth watching,
+                    but confirmation before acting is wise.
+                </p>
+            )}
+
+            {faders.length > 0 && (
+                <p style={tqaStyles.narrativePara}>
+                    <strong style={{ color: "#B91C1C" }}>Lower-quality or speculative stocks</strong>
+                    {fadNames ? <> like <span style={{ color: "#B91C1C", fontWeight: 600 }}>{fadNames}</span></> : ""}{" "}
+                    score the lowest — averaging just <strong>{avgLowPersist}%</strong> persistence likelihood.
+                    These may show a trend on the chart, but weaker fundamentals mean the move is likely
+                    driven by momentum or sentiment rather than real value. Reversals here are common.
+                </p>
+            )}
+
+            <div style={tqaStyles.narrativeStats}>
+                {[
+                    { label: "Strong Holders", val: high.length, color: "#15803D", bg: "#DCFCE7" },
+                    { label: "Moderate", val: mid.length, color: "#1D4ED8", bg: "#DBEAFE" },
+                    { label: "Weak", val: low.length, color: "#A16207", bg: "#FEF9C3" },
+                    { label: "Faders", val: faders.length, color: "#B91C1C", bg: "#FEE2E2" },
+                ].map(s => (
+                    <div key={s.label} style={{ ...tqaStyles.narrativeStat, background: s.bg }}>
+                        <span style={{ fontSize: "18px", fontWeight: "800", color: s.color }}>{s.val}</span>
+                        <span style={{ fontSize: "10px", color: s.color, fontWeight: "600" }}>{s.label}</span>
+                    </div>
+                ))}
             </div>
         </div>
     );
 }
 
-const barStyles = {
-    wrapper: { marginBottom: "12px" },
-    labelRow: { display: "flex", justifyContent: "space-between", marginBottom: "5px" },
-    label: { fontSize: "12px", color: "#94A3B8" },
-    value: { fontSize: "12px", fontWeight: "700", fontFamily: "'DM Mono', monospace" },
-    track: { height: "6px", backgroundColor: "rgba(255,255,255,0.07)", borderRadius: "3px", overflow: "hidden" },
-    fill: { height: "100%", borderRadius: "3px", transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)" },
-};
+function StockRow({ stock, expanded, onToggle }) {
+    const c = tierColor(stock.persistence);
+    const dirColor = stock.direction === "Bullish" ? "#15803D" : "#B91C1C";
+    return (
+        <div style={{ borderBottom: "1px solid #F1F5F9" }}>
+            <div
+                onClick={onToggle}
+                style={{ display: "flex", alignItems: "center", padding: "10px 14px", cursor: "pointer", gap: "10px", transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+                {/* Symbol */}
+                <span style={{ fontWeight: "700", fontSize: "13px", color: "#0F172A", width: "56px", flexShrink: 0 }}>{stock.symbol}</span>
+
+                {/* Direction badge */}
+                <span style={{ fontSize: "11px", fontWeight: "600", color: dirColor, width: "58px", flexShrink: 0 }}>
+                    {stock.direction === "Bullish" ? "▲" : "▼"} {stock.direction}
+                </span>
+
+                {/* Persistence bar */}
+                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ flex: 1, height: "6px", backgroundColor: "#E2E8F0", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${stock.persistence}%`, background: c.text, borderRadius: "3px", transition: "width 0.6s ease" }} />
+                    </div>
+                    <span style={{ fontSize: "12px", fontWeight: "700", color: c.text, width: "36px", flexShrink: 0 }}>{stock.persistence.toFixed(0)}%</span>
+                </div>
+
+                {/* Tier badge */}
+                <span style={{ ...tqaStyles.tierBadge, background: c.bg, color: c.text, border: `1px solid ${c.border}`, display: "none" }} className="tqa-tier-badge">
+                    {tierLabel(stock.persistence)}
+                </span>
+
+                {/* Quality score */}
+                <span style={{ fontSize: "11px", color: "#94A3B8", width: "40px", textAlign: "right", flexShrink: 0 }}>Q:{stock.quality.toFixed(0)}</span>
+
+                {/* Chevron */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "rotate(0)" }}>
+                    <polyline points="6 9 12 15 18 9" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+            </div>
+
+            {expanded && (
+                <div style={{ padding: "0 14px 12px 14px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", animation: "tqa-fadeUp 0.2s ease" }}>
+                    <p style={{ fontSize: "12px", color: "#475569", margin: "10px 0 8px", lineHeight: 1.6 }}>{stock.insight}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {[
+                            { label: "Quality", val: stock.quality.toFixed(0) + "/100" },
+                            { label: "Trend", val: stock.trend_quality.toFixed(0) + "/100" },
+                            { label: "Return", val: (stock.period_return > 0 ? "+" : "") + stock.period_return.toFixed(1) + "%" },
+                            { label: "Max DD", val: stock.max_drawdown.toFixed(1) + "%" },
+                        ].map(d => (
+                            <div key={d.label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "6px 10px", textAlign: "center" }}>
+                                <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{d.val}</div>
+                                <div style={{ fontSize: "10px", color: "#94A3B8" }}>{d.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 function StockTrendModal() {
-    const [open, setOpen] = useState(false);
-    const [symbol, setSymbol] = useState("");
-    const [customSymbol, setCustomSymbol] = useState("");
-    const [period, setPeriod] = useState("6mo");
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
+    const [open, setOpen]           = useState(false);
+    const [scanning, setScanning]   = useState(false);
+    const [progress, setProgress]   = useState({ done: 0, total: 0, current: "" });
+    const [stocks, setStocks]       = useState(null);       // cached results
+    const [cacheDate, setCacheDate] = useState(null);
+    const [error, setError]         = useState(null);
+    const [search, setSearch]       = useState("");
+    const [expanded, setExpanded]   = useState({});
+    const [filterDir, setFilterDir] = useState("All");
+    const [listOpen, setListOpen]   = useState(false);
+    const [storageLoading, setStorageLoading] = useState(false);
 
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
 
-    const analyze = async () => {
-        const ticker = customSymbol.trim().toUpperCase() || symbol;
-        if (!ticker) { setError("Please select or type a stock symbol."); return; }
-        setLoading(true);
-        setResult(null);
-        setError(null);
+    // Load cached data from storage on open
+    const loadCache = async () => {
+        setStorageLoading(true);
         try {
-            const res = await fetch(`${baseUrl}/ideas_hub_analyze_stock_trend_quality`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ symbol: ticker, period }),
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || "Failed to analyze");
+            const res = await window.storage.get(STORAGE_KEY);
+            if (res && res.value) {
+                const parsed = JSON.parse(res.value);
+                setStocks(parsed.stocks);
+                setCacheDate(parsed.date);
             }
-            const data = await res.json();
-            setResult(data);
         } catch (e) {
-            setError(e.message);
+            // No cache yet — that's fine
         } finally {
-            setLoading(false);
+            setStorageLoading(false);
         }
     };
 
-    const grade = result ? getGrade(result.overall_score) : null;
-    const gradeConf = grade ? GRADE_CONFIG[grade] : null;
+    const handleOpen = () => {
+        setOpen(true);
+        if (!stocks) loadCache();
+    };
+
+    const runScan = async () => {
+        setScanning(true);
+        setError(null);
+        setProgress({ done: 0, total: STOCK_LIST.length, current: "" });
+
+        const results = [];
+        // Process in small batches to avoid hammering the server
+        const BATCH = 5;
+        for (let i = 0; i < STOCK_LIST.length; i += BATCH) {
+            const batch = STOCK_LIST.slice(i, i + BATCH);
+            await Promise.all(batch.map(async (sym) => {
+                try {
+                    const res = await fetch(`${baseUrl}/ideas_hub_analyze_stock_trend_quality`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ symbol: sym, period: "6mo" }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        results.push({
+                            symbol:        data.symbol,
+                            persistence:   data.trend_persistence_likelihood,
+                            quality:       data.company_quality_score,
+                            trend_quality: data.overall_trend_quality,
+                            direction:     data.direction,
+                            period_return: data.period_return,
+                            max_drawdown:  data.max_drawdown,
+                            insight:       data.insight,
+                        });
+                    }
+                } catch (_) {}
+                setProgress(p => ({ ...p, done: p.done + 1, current: sym }));
+            }));
+        }
+
+        // Sort by persistence desc
+        results.sort((a, b) => b.persistence - a.persistence);
+
+        const payload = { stocks: results, date: new Date().toLocaleString() };
+        try {
+            await window.storage.set(STORAGE_KEY, JSON.stringify(payload));
+        } catch (_) {}
+
+        setStocks(results);
+        setCacheDate(payload.date);
+        setScanning(false);
+    };
+
+    const filtered = (stocks || []).filter(s => {
+        const matchSearch = s.symbol.includes(search.toUpperCase()) || s.insight.toLowerCase().includes(search.toLowerCase());
+        const matchDir    = filterDir === "All" || s.direction === filterDir;
+        return matchSearch && matchDir;
+    });
+
+    const progressPct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
     return (
         <>
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
                 @keyframes tqa-spin { to { transform: rotate(360deg); } }
-                @keyframes tqa-fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-                .tqa-trigger-btn:hover { opacity: 0.85; transform: translateY(-1px); }
-                .tqa-analyze-btn:hover:not(:disabled) { opacity: 0.88; }
-                .tqa-analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-                .tqa-close-btn:hover { background: rgba(255,255,255,0.1) !important; color: #CBD5E1 !important; }
-                @media (max-width: 480px) {
-                    .tqa-controls-grid { grid-template-columns: 1fr !important; }
-                    .tqa-stats-row { grid-template-columns: repeat(2, 1fr) !important; }
-                    .tqa-score-flex { flex-direction: column !important; align-items: flex-start !important; gap: 12px; }
+                @keyframes tqa-fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+                .tqa-trigger-btn:hover { background: #1D4ED8 !important; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.4) !important; }
+                .tqa-close-btn:hover { background: #F1F5F9 !important; }
+                .tqa-scan-btn:hover:not(:disabled) { background: #15803D !important; }
+                .tqa-scan-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+                .tqa-rescan-btn:hover { background: #EFF6FF !important; }
+                @media (max-width: 520px) {
+                    .tqa-search-row { flex-direction: column !important; }
                 }
             `}</style>
 
-            {/* ── Trigger Button ── */}
-            <button className="tqa-trigger-btn btn" onClick={() => setOpen(true)} style={tqaStyles.triggerBtn}>
+            <button className="tqa-trigger-btn btn" onClick={handleOpen} style={tqaStyles.triggerBtn}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: "7px", flexShrink: 0 }}>
                     <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                     <polyline points="16 7 22 7 22 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -184,16 +341,17 @@ function StockTrendModal() {
                 Trend Analyzer
             </button>
 
-            {/* ── Modal Overlay ── */}
             {open && (
-                <div style={tqaStyles.overlay} onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+                <div style={tqaStyles.overlay} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
                     <div style={tqaStyles.modal}>
 
-                        {/* Modal Header */}
+                        {/* ── Modal Header ── */}
                         <div style={tqaStyles.modalHeader}>
                             <div>
-                                <p style={tqaStyles.modalTitle}>Trend Quality Analyzer</p>
-                                <p style={tqaStyles.modalSubtitle}>How well does a stock hold its trend?</p>
+                                <p style={tqaStyles.modalTitle}>Trend Persistence Analyzer</p>
+                                <p style={tqaStyles.modalSubtitle}>
+                                    Which stocks are likely to hold their trend based on company quality?
+                                </p>
                             </div>
                             <button className="tqa-close-btn" style={tqaStyles.closeBtn} onClick={() => setOpen(false)}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -203,110 +361,135 @@ function StockTrendModal() {
                             </button>
                         </div>
 
-                        {/* Controls */}
-                        <div className="tqa-controls-grid" style={tqaStyles.controls}>
-                            <div style={tqaStyles.controlGroup}>
-                                <label style={tqaStyles.ctrlLabel}>Select Stock</label>
-                                <select
-                                    style={tqaStyles.selectStyle}
-                                    value={symbol}
-                                    onChange={e => { setSymbol(e.target.value); setCustomSymbol(""); }}
-                                >
-                                    <option value="">-- Choose from list --</option>
-                                    {STOCK_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                            </div>
-                            <div style={tqaStyles.controlGroup}>
-                                <label style={tqaStyles.ctrlLabel}>Or Type Symbol</label>
-                                <input
-                                    style={tqaStyles.inputStyle}
-                                    placeholder="e.g. MSFT, BABA..."
-                                    value={customSymbol}
-                                    onChange={e => { setCustomSymbol(e.target.value.toUpperCase()); setSymbol(""); }}
-                                />
-                            </div>
-                            <div style={tqaStyles.controlGroup}>
-                                <label style={tqaStyles.ctrlLabel}>Time Period</label>
-                                <select style={tqaStyles.selectStyle} value={period} onChange={e => setPeriod(e.target.value)}>
-                                    <option value="3mo">3 Months</option>
-                                    <option value="6mo">6 Months</option>
-                                    <option value="1y">1 Year</option>
-                                    <option value="2y">2 Years</option>
-                                </select>
-                            </div>
-                            <button className="tqa-analyze-btn" style={tqaStyles.analyzeBtn} onClick={analyze} disabled={loading}>
-                                {loading ? (
-                                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ animation: "tqa-spin 1s linear infinite" }}>
-                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
-                                        </svg>
-                                        Analyzing...
-                                    </span>
-                                ) : "Analyze →"}
-                            </button>
-                        </div>
+                        <div style={{ padding: "16px 22px 22px" }}>
 
-                        {error && <div style={tqaStyles.errorBox}>{error}</div>}
+                            {/* ── No cache yet ── */}
+                            {storageLoading && (
+                                <div style={tqaStyles.emptyState}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ animation: "tqa-spin 1s linear infinite" }}>
+                                        <circle cx="12" cy="12" r="10" stroke="#2563EB" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                    </svg>
+                                    <span style={{ fontSize: "13px", color: "#64748B" }}>Loading saved results...</span>
+                                </div>
+                            )}
 
-                        {/* Results */}
-                        {result && gradeConf && (
-                            <div style={tqaStyles.results}>
-                                {/* Score Hero Card */}
-                                <div style={{ ...tqaStyles.scoreCard, background: gradeConf.bg, borderColor: gradeConf.color + "40" }}>
-                                    <div className="tqa-score-flex" style={tqaStyles.scoreFlex}>
-                                        <div>
-                                            <p style={{ ...tqaStyles.gradeText, color: gradeConf.color }}>{grade}</p>
-                                            <p style={tqaStyles.gradeLabel}>{gradeConf.label}</p>
-                                        </div>
-                                        <div style={tqaStyles.scoreCircle(gradeConf.color)}>
-                                            <span style={{ ...tqaStyles.scoreNum, color: gradeConf.color }}>{result.overall_score.toFixed(0)}</span>
-                                            <span style={tqaStyles.scoreMax}>/100</span>
-                                        </div>
-                                    </div>
-                                    <div style={{ marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                                        <span style={{
-                                            ...tqaStyles.dirBadge,
-                                            background: result.direction === "Bullish" ? "rgba(0,200,150,0.2)" : "rgba(248,113,113,0.2)",
-                                            color: result.direction === "Bullish" ? "#00C896" : "#F87171"
-                                        }}>
-                                            {result.direction === "Bullish" ? "▲" : "▼"} {result.direction} Trend
+                            {!storageLoading && !stocks && !scanning && (
+                                <div style={tqaStyles.emptyState}>
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="#CBD5E1" strokeWidth="1.5"/>
+                                        <path d="M12 8v4l3 3" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round"/>
+                                    </svg>
+                                    <p style={{ fontSize: "14px", color: "#64748B", textAlign: "center", margin: "8px 0 0", lineHeight: 1.6 }}>
+                                        No scan results yet. Run the scan once and results will be saved — you won't need to run it again unless you want fresh data.
+                                    </p>
+                                    <button className="tqa-scan-btn" onClick={runScan} style={tqaStyles.scanBtn}>
+                                        🚀 Run Full Scan ({STOCK_LIST.length} stocks)
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* ── Scanning progress ── */}
+                            {scanning && (
+                                <div style={tqaStyles.progressBox}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                        <span style={{ fontSize: "13px", fontWeight: "600", color: "#0F172A" }}>
+                                            Scanning stocks... {progress.done}/{progress.total}
                                         </span>
-                                        <span style={tqaStyles.tickerBadge}>{result.symbol} · {result.period}</span>
+                                        <span style={{ fontSize: "13px", color: "#64748B" }}>{progressPct}%</span>
+                                    </div>
+                                    <div style={{ height: "8px", backgroundColor: "#E2E8F0", borderRadius: "4px", overflow: "hidden", marginBottom: "8px" }}>
+                                        <div style={{ height: "100%", width: `${progressPct}%`, background: "linear-gradient(90deg, #2563EB, #7C3AED)", borderRadius: "4px", transition: "width 0.3s ease" }} />
+                                    </div>
+                                    {progress.current && (
+                                        <p style={{ fontSize: "11px", color: "#94A3B8", margin: 0 }}>Currently analyzing: <strong>{progress.current}</strong></p>
+                                    )}
+                                    <p style={{ fontSize: "11px", color: "#94A3B8", margin: "6px 0 0" }}>
+                                        This runs once and saves automatically. Grab a coffee ☕
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* ── Results ── */}
+                            {stocks && !scanning && (
+                                <div style={{ animation: "tqa-fadeUp 0.3s ease" }}>
+
+                                    {/* Cache info + rescan */}
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                                        <span style={{ fontSize: "11px", color: "#94A3B8" }}>
+                                            Last scanned: <strong>{cacheDate}</strong> · {stocks.length} stocks
+                                        </span>
+                                        <button className="tqa-rescan-btn" onClick={runScan} style={tqaStyles.rescanBtn}>
+                                            ↻ Refresh
+                                        </button>
+                                    </div>
+
+                                    {/* Narrative summary */}
+                                    <NarrativeSummary stocks={stocks} />
+
+                                    {/* Expandable searchable list */}
+                                    <div style={{ marginTop: "16px" }}>
+                                        <button
+                                            onClick={() => setListOpen(v => !v)}
+                                            style={tqaStyles.listToggleBtn}
+                                        >
+                                            <span style={{ fontWeight: "600", fontSize: "13px", color: "#0F172A" }}>
+                                                {listOpen ? "▲" : "▼"} View All Stocks ({stocks.length})
+                                            </span>
+                                            <span style={{ fontSize: "11px", color: "#94A3B8" }}>click to {listOpen ? "collapse" : "expand"}</span>
+                                        </button>
+
+                                        {listOpen && (
+                                            <div style={tqaStyles.listContainer}>
+                                                {/* Search + filter row */}
+                                                <div className="tqa-search-row" style={{ display: "flex", gap: "8px", padding: "10px 14px", borderBottom: "1px solid #F1F5F9" }}>
+                                                    <input
+                                                        placeholder="Search symbol or keyword..."
+                                                        value={search}
+                                                        onChange={e => setSearch(e.target.value)}
+                                                        style={{ ...tqaStyles.searchInput, flex: 1 }}
+                                                    />
+                                                    <select
+                                                        value={filterDir}
+                                                        onChange={e => setFilterDir(e.target.value)}
+                                                        style={tqaStyles.filterSelect}
+                                                    >
+                                                        <option value="All">All Directions</option>
+                                                        <option value="Bullish">▲ Bullish</option>
+                                                        <option value="Bearish">▼ Bearish</option>
+                                                    </select>
+                                                </div>
+
+                                                {/* Column headers */}
+                                                <div style={{ display: "flex", padding: "6px 14px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9" }}>
+                                                    <span style={{ width: "56px", fontSize: "10px", fontWeight: "700", color: "#94A3B8", flexShrink: 0 }}>SYMBOL</span>
+                                                    <span style={{ width: "58px", fontSize: "10px", fontWeight: "700", color: "#94A3B8", flexShrink: 0 }}>TREND</span>
+                                                    <span style={{ flex: 1, fontSize: "10px", fontWeight: "700", color: "#94A3B8" }}>PERSISTENCE LIKELIHOOD</span>
+                                                    <span style={{ width: "40px", fontSize: "10px", fontWeight: "700", color: "#94A3B8", textAlign: "right", flexShrink: 0 }}>QUAL</span>
+                                                    <span style={{ width: "20px", flexShrink: 0 }}></span>
+                                                </div>
+
+                                                {/* Rows */}
+                                                <div style={{ maxHeight: "380px", overflowY: "auto" }}>
+                                                    {filtered.length === 0 && (
+                                                        <p style={{ padding: "20px", textAlign: "center", color: "#94A3B8", fontSize: "13px" }}>No stocks match your search.</p>
+                                                    )}
+                                                    {filtered.map(stock => (
+                                                        <StockRow
+                                                            key={stock.symbol}
+                                                            stock={stock}
+                                                            expanded={!!expanded[stock.symbol]}
+                                                            onToggle={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Sub-metric bars */}
-                                <div style={tqaStyles.metricsSection}>
-                                    <p style={tqaStyles.metricsSectionTitle}>Breakdown</p>
-                                    <ScoreBar label="Trend Consistency (R²)" value={result.r2_score * 100} color="#22D3EE" />
-                                    <ScoreBar label="Trend Strength (ADX)" value={result.adx_score} color="#818CF8" />
-                                    <ScoreBar label="Low Volatility Score" value={result.low_volatility_score} color="#34D399" />
-                                    <ScoreBar label="Drawdown Recovery" value={result.drawdown_score} color="#FCD34D" />
-                                    <ScoreBar label="Momentum Persistence" value={result.momentum_score} color="#F472B6" />
-                                </div>
-
-                                {/* Insight */}
-                                <div style={tqaStyles.insightBox}>
-                                    <p style={tqaStyles.insightTitle}>📊 Interpretation</p>
-                                    <p style={tqaStyles.insightText}>{result.insight}</p>
-                                </div>
-
-                                {/* Stats row */}
-                                <div className="tqa-stats-row" style={tqaStyles.statsRow}>
-                                    {[
-                                        { label: "Period Return", value: `${result.period_return > 0 ? "+" : ""}${result.period_return.toFixed(2)}%`, color: result.period_return >= 0 ? "#00C896" : "#F87171" },
-                                        { label: "Avg Daily Vol", value: `${result.avg_daily_volatility.toFixed(2)}%`, color: "#94A3B8" },
-                                        { label: "Max Drawdown", value: `${result.max_drawdown.toFixed(2)}%`, color: "#FB923C" },
-                                        { label: "Trend Days", value: result.data_points, color: "#818CF8" },
-                                    ].map(s => (
-                                        <div key={s.label} style={tqaStyles.statCell}>
-                                            <span style={{ ...tqaStyles.statValue, color: s.color }}>{s.value}</span>
-                                            <span style={tqaStyles.statLabel}>{s.label}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                            {error && <div style={tqaStyles.errorBox}>{error}</div>}
+                        </div>
                     </div>
                 </div>
             )}
@@ -316,123 +499,104 @@ function StockTrendModal() {
 
 const tqaStyles = {
     triggerBtn: {
-        display: "flex",
-        alignItems: "center",
-        background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
-        color: "#22D3EE",
-        border: "1px solid rgba(34,211,238,0.3)",
-        padding: "0.55rem 1.1rem",
-        borderRadius: "6px",
-        fontWeight: "600",
-        fontSize: "13px",
-        cursor: "pointer",
-        boxShadow: "0 0 16px rgba(34,211,238,0.1)",
-        transition: "all 0.2s ease",
-        whiteSpace: "nowrap",
+        display: "flex", alignItems: "center",
+        background: "#2563EB", color: "#fff",
+        border: "none", padding: "0.55rem 1.1rem",
+        borderRadius: "6px", fontWeight: "600", fontSize: "13px",
+        cursor: "pointer", transition: "all 0.2s ease", whiteSpace: "nowrap",
+        boxShadow: "0 2px 8px rgba(37,99,235,0.3)",
     },
     overlay: {
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.75)",
-        backdropFilter: "blur(8px)",
+        background: "rgba(15,23,42,0.45)",
+        backdropFilter: "blur(6px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         zIndex: 9999, padding: "16px",
     },
     modal: {
-        background: "linear-gradient(160deg, #0F172A 0%, #111827 100%)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: "16px",
-        width: "100%", maxWidth: "560px",
+        background: "#fff", border: "1px solid #E2E8F0",
+        borderRadius: "16px", width: "100%", maxWidth: "660px",
         maxHeight: "92vh", overflowY: "auto",
-        boxShadow: "0 25px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
-        animation: "tqa-fadeUp 0.35s cubic-bezier(0.34,1.2,0.64,1)",
+        boxShadow: "0 20px 60px rgba(15,23,42,0.15)",
+        animation: "tqa-fadeUp 0.3s cubic-bezier(0.34,1.2,0.64,1)",
     },
     modalHeader: {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-        padding: "22px 22px 0",
+        padding: "20px 22px 16px", borderBottom: "1px solid #F1F5F9",
+        position: "sticky", top: 0, background: "#fff", zIndex: 10,
     },
-    modalTitle: {
-        fontSize: "18px", fontWeight: "700", color: "#F1F5F9", margin: 0,
-        letterSpacing: "-0.3px",
-    },
-    modalSubtitle: {
-        fontSize: "12px", color: "#64748B", margin: "4px 0 0",
-    },
+    modalTitle: { fontSize: "17px", fontWeight: "700", color: "#0F172A", margin: 0 },
+    modalSubtitle: { fontSize: "12px", color: "#94A3B8", margin: "3px 0 0" },
     closeBtn: {
-        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-        color: "#64748B", borderRadius: "8px", padding: "6px", cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0, transition: "all 0.15s ease",
+        background: "#F8FAFC", border: "1px solid #E2E8F0",
+        color: "#64748B", borderRadius: "8px", padding: "6px",
+        cursor: "pointer", display: "flex", alignItems: "center",
+        justifyContent: "center", flexShrink: 0, transition: "all 0.15s",
     },
-    controls: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "12px",
-        padding: "18px 22px",
+    emptyState: {
+        display: "flex", flexDirection: "column", alignItems: "center",
+        gap: "12px", padding: "32px 16px", textAlign: "center",
     },
-    controlGroup: { display: "flex", flexDirection: "column", gap: "5px" },
-    ctrlLabel: { fontSize: "10px", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.8px" },
-    selectStyle: {
-        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: "8px", padding: "8px 10px", color: "#CBD5E1",
-        fontSize: "13px", cursor: "pointer", width: "100%",
+    scanBtn: {
+        background: "#16A34A", color: "#fff", border: "none",
+        borderRadius: "8px", padding: "12px 24px",
+        fontWeight: "700", fontSize: "14px", cursor: "pointer",
+        transition: "background 0.2s", marginTop: "8px",
+        boxShadow: "0 2px 8px rgba(22,163,74,0.3)",
     },
-    inputStyle: {
-        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: "8px", padding: "8px 10px", color: "#CBD5E1",
-        fontSize: "13px", width: "100%", outline: "none",
-        boxSizing: "border-box",
+    progressBox: {
+        background: "#F8FAFC", border: "1px solid #E2E8F0",
+        borderRadius: "12px", padding: "20px",
     },
-    analyzeBtn: {
-        gridColumn: "1 / -1",
-        background: "linear-gradient(135deg, #22D3EE, #818CF8)",
-        border: "none", borderRadius: "10px", padding: "11px",
-        color: "#0F172A", fontWeight: "700", fontSize: "14px",
-        cursor: "pointer", transition: "opacity 0.2s",
-        letterSpacing: "0.3px",
+    rescanBtn: {
+        background: "#fff", border: "1px solid #E2E8F0",
+        borderRadius: "6px", padding: "5px 12px",
+        fontSize: "12px", fontWeight: "600", color: "#64748B",
+        cursor: "pointer", transition: "background 0.15s",
+    },
+    narrative: {
+        background: "#EFF6FF", border: "1px solid #BFDBFE",
+        borderRadius: "12px", padding: "16px", marginBottom: "4px",
+    },
+    narrativeTitle: { fontSize: "12px", fontWeight: "700", color: "#2563EB", margin: "0 0 10px" },
+    narrativePara: { fontSize: "13px", color: "#1E3A5F", margin: "0 0 10px", lineHeight: 1.7 },
+    narrativeStats: {
+        display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap",
+    },
+    narrativeStat: {
+        borderRadius: "10px", padding: "8px 14px",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: "2px",
+        flex: "1 1 60px",
+    },
+    listToggleBtn: {
+        width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0",
+        borderRadius: "10px", padding: "12px 16px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        cursor: "pointer", transition: "background 0.15s",
+    },
+    listContainer: {
+        border: "1px solid #E2E8F0", borderRadius: "10px",
+        overflow: "hidden", marginTop: "8px",
+        animation: "tqa-fadeUp 0.2s ease",
+    },
+    searchInput: {
+        background: "#F8FAFC", border: "1px solid #E2E8F0",
+        borderRadius: "7px", padding: "7px 11px", fontSize: "13px",
+        color: "#0F172A", outline: "none", boxSizing: "border-box",
+    },
+    filterSelect: {
+        background: "#F8FAFC", border: "1px solid #E2E8F0",
+        borderRadius: "7px", padding: "7px 11px", fontSize: "13px",
+        color: "#0F172A", cursor: "pointer",
+    },
+    tierBadge: {
+        borderRadius: "20px", padding: "3px 10px",
+        fontSize: "10px", fontWeight: "700",
     },
     errorBox: {
-        margin: "0 22px 14px", background: "rgba(248,113,113,0.1)",
-        border: "1px solid rgba(248,113,113,0.3)", borderRadius: "8px",
-        padding: "10px 14px", color: "#F87171", fontSize: "13px",
+        marginTop: "14px", background: "#FEF2F2", border: "1px solid #FECACA",
+        borderRadius: "8px", padding: "10px 14px", color: "#DC2626", fontSize: "13px",
     },
-    results: { padding: "0 22px 22px", animation: "tqa-fadeUp 0.4s ease" },
-    scoreCard: {
-        borderRadius: "12px", border: "1px solid",
-        padding: "18px", marginBottom: "16px",
-    },
-    scoreFlex: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-    gradeText: { fontSize: "38px", fontWeight: "800", margin: 0, fontFamily: "'DM Mono', monospace", lineHeight: 1 },
-    gradeLabel: { fontSize: "12px", color: "#94A3B8", margin: "5px 0 0", fontWeight: "500" },
-    scoreCircle: (color) => ({
-        width: "66px", height: "66px", borderRadius: "50%",
-        border: `3px solid ${color}40`,
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        background: `${color}10`, flexShrink: 0,
-    }),
-    scoreNum: { fontSize: "20px", fontWeight: "800", lineHeight: 1, fontFamily: "'DM Mono', monospace" },
-    scoreMax: { fontSize: "9px", color: "#475569", marginTop: "1px" },
-    dirBadge: { borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "600" },
-    tickerBadge: { fontSize: "12px", color: "#64748B", fontFamily: "'DM Mono', monospace", display: "flex", alignItems: "center" },
-    metricsSection: { marginBottom: "16px" },
-    metricsSectionTitle: { fontSize: "10px", fontWeight: "700", color: "#475569", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "12px" },
-    insightBox: {
-        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: "10px", padding: "14px", marginBottom: "14px",
-    },
-    insightTitle: { fontSize: "11px", fontWeight: "700", color: "#64748B", margin: "0 0 7px" },
-    insightText: { fontSize: "13px", color: "#CBD5E1", margin: 0, lineHeight: 1.65 },
-    statsRow: {
-        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px",
-    },
-    statCell: {
-        background: "rgba(255,255,255,0.03)", borderRadius: "10px",
-        padding: "11px 8px", display: "flex", flexDirection: "column",
-        alignItems: "center", gap: "4px",
-        border: "1px solid rgba(255,255,255,0.05)",
-    },
-    statValue: { fontSize: "13px", fontWeight: "700", fontFamily: "'DM Mono', monospace" },
-    statLabel: { fontSize: "10px", color: "#475569", textAlign: "center", lineHeight: 1.3 },
 };
 
 // ─── Main IdeasSection ────────────────────────────────────────────────────────
