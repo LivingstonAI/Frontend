@@ -440,18 +440,21 @@ function StockTrendModal() {
 
                                         {listOpen && (
                                             <div style={tqaStyles.listContainer}>
-                                                {/* Search + filter row */}
-                                                <div className="tqa-search-row" style={{ display: "flex", gap: "8px", padding: "10px 14px", borderBottom: "1px solid #F1F5F9" }}>
+                                                {/* Search row */}
+                                                <div style={{ padding: "10px 14px 6px", borderBottom: "none" }}>
                                                     <input
                                                         placeholder="Search symbol or keyword..."
                                                         value={search}
                                                         onChange={e => setSearch(e.target.value)}
-                                                        style={{ ...tqaStyles.searchInput, flex: 1 }}
+                                                        style={{ ...tqaStyles.searchInput, width: "100%", boxSizing: "border-box" }}
                                                     />
+                                                </div>
+                                                {/* Filter row */}
+                                                <div style={{ padding: "0 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
                                                     <select
                                                         value={filterDir}
                                                         onChange={e => setFilterDir(e.target.value)}
-                                                        style={tqaStyles.filterSelect}
+                                                        style={{ ...tqaStyles.filterSelect, width: "100%" }}
                                                     >
                                                         <option value="All">All Directions</option>
                                                         <option value="Bullish">▲ Bullish</option>
