@@ -24,18 +24,29 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
     const fileInputRef = useRef(null);
     const prevTickerRef = useRef(null);
 
-    // Load voices
+    // Load voices — browsers load them async, need retry + event
     useEffect(() => {
         const load = () => {
             const v = window.speechSynthesis.getVoices();
-            setVoices(v);
-            if (!selectedVoiceName && v.length > 0) {
-                const def = v.find(x => x.default) || v[0];
-                setSelectedVoiceName(def.name);
+            if (v.length > 0) {
+                setVoices(v);
+                setSelectedVoiceName(prev => {
+                    if (prev) return prev; // keep persisted choice
+                    try { const saved = localStorage.getItem('sabrina_voice'); if (saved) return saved; } catch {}
+                    const english = v.find(x => x.lang.startsWith('en') && x.default)
+                        || v.find(x => x.lang.startsWith('en'))
+                        || v[0];
+                    return english?.name || '';
+                });
             }
         };
-        load();
-        window.speechSynthesis.onvoiceschanged = load;
+
+        load(); // try immediately
+        window.speechSynthesis.onvoiceschanged = load; // fire when ready
+
+        // Some browsers (Chrome) need a small delay nudge
+        const t = setTimeout(load, 200);
+        return () => clearTimeout(t);
     }, []);
 
     // Persist voice choice
@@ -281,23 +292,40 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                             padding: '10px 14px',
                             backgroundColor: '#1a1a2e',
                             borderBottom: '1px solid rgba(124,58,237,0.2)',
-                            display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap',
+                            flexShrink: 0,
                         }}>
-                            <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', fontWeight: '600', flexShrink: 0 }}>Voice:</span>
-                            <select
-                                value={selectedVoiceName}
-                                onChange={e => setSelectedVoiceName(e.target.value)}
-                                style={{
-                                    flex: 1, minWidth: 0, padding: '5px 8px',
-                                    backgroundColor: '#0f0f14', border: '1px solid rgba(124,58,237,0.3)',
-                                    borderRadius: '8px', color: '#f0f0f0', fontSize: '12px', outline: 'none',
-                                }}
-                            >
-                                {voices.map((v, i) => (
-                                    <option key={i} value={v.name}>{v.name} ({v.lang})</option>
-                                ))}
-                            </select>
-                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', flexShrink: 0 }}>Tap 🔊 on any message</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '600' }}>🔊 Voice</span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>
+                                    {voices.length > 0 ? `${voices.length} available` : 'Loading…'}
+                                </span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginLeft: 'auto' }}>
+                                    Click 🔊 on any reply to read it
+                                </span>
+                            </div>
+                            {voices.length > 0 ? (
+                                <select
+                                    value={selectedVoiceName}
+                                    onChange={e => setSelectedVoiceName(e.target.value)}
+                                    style={{
+                                        width: '100%', padding: '7px 10px',
+                                        backgroundColor: '#0f0f14',
+                                        border: '1px solid rgba(124,58,237,0.4)',
+                                        borderRadius: '8px', color: '#f0f0f0',
+                                        fontSize: '12px', outline: 'none', cursor: 'pointer',
+                                    }}
+                                >
+                                    {voices.map((v, i) => (
+                                        <option key={i} value={v.name}>
+                                            {v.name} — {v.lang}{v.default ? ' ★' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', padding: '6px 0' }}>
+                                    No voices loaded yet — try clicking the 🔊 button on a message first
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1138,32 +1166,54 @@ Return this exact JSON structure:
                                         </div>
                                     )}
                                     {(() => {
-                                        // Extract clean highlight text from various formats the API returns
-                                        let hlText = '';
-                                        if (item.highlights) {
-                                            if (typeof item.highlights === 'string') {
-                                                // Could be a stringified dict like "{'highlight': '...', 'sentiment': ...}"
-                                                const match = item.highlights.match(/'highlight'\s*:\s*'([\s\S]*?)'\s*,\s*'sentiment'/);
-                                                if (match) {
-                                                    hlText = match[1];
+                                        const extractHighlight = (raw) => {
+                                            if (!raw) return '';
+                                            let text = '';
+
+                                            // Case 1: already a clean string with no dict artifacts
+                                            if (typeof raw === 'string') {
+                                                // Skip if it looks like a Python dict repr or contains [+N characters]
+                                                const isTruncatedRepr = /\[[\+\d]+ characters\]/.test(raw);
+                                                const isPythonDict = raw.trim().startsWith('{') && raw.includes("'highlight'");
+
+                                                if (!isTruncatedRepr && !isPythonDict) {
+                                                    text = raw;
                                                 } else {
-                                                    hlText = item.highlights;
+                                                    // Try to pull 'highlight' value out of stringified Python dict
+                                                    // Handles: {'highlight': 'some text', 'sentiment': 0.5, ...}
+                                                    const m = raw.match(/'highlight'\s*:\s*'([\s\S]+?)'\s*,\s*'sentiment'/);
+                                                    if (m) text = m[1];
                                                 }
-                                            } else if (typeof item.highlights === 'object' && item.highlights !== null) {
-                                                hlText = item.highlights.highlight || item.highlights.text || '';
-                                            } else if (Array.isArray(item.highlights) && item.highlights.length > 0) {
-                                                const first = item.highlights[0];
-                                                hlText = typeof first === 'string' ? first : (first?.highlight || first?.text || '');
                                             }
-                                        }
-                                        // Strip any residual HTML tags from the highlight
-                                        hlText = hlText.replace(/<[^>]+>/g, '').replace(/\\n/g, ' ').trim();
-                                        // Truncate
-                                        if (hlText.length > 280) hlText = hlText.substring(0, 280) + '…';
-                                        return hlText ? (
+                                            // Case 2: actual JS object
+                                            else if (typeof raw === 'object' && !Array.isArray(raw) && raw !== null) {
+                                                text = raw.highlight || raw.text || raw.content || '';
+                                            }
+                                            // Case 3: array of highlights — take the first one
+                                            else if (Array.isArray(raw) && raw.length > 0) {
+                                                const first = raw[0];
+                                                if (typeof first === 'string') text = first;
+                                                else if (typeof first === 'object') text = first?.highlight || first?.text || '';
+                                            }
+
+                                            // Clean up: strip HTML tags, unescape, normalise whitespace
+                                            return text
+                                                .replace(/<[^>]+>/g, '')        // strip HTML
+                                                .replace(/&amp;/g, '&')
+                                                .replace(/&lt;/g, '<')
+                                                .replace(/&gt;/g, '>')
+                                                .replace(/\\n/g, ' ')
+                                                .replace(/\s+/g, ' ')
+                                                .trim();
+                                        };
+
+                                        const hlText = extractHighlight(item.highlights);
+                                        const display = hlText.length > 280 ? hlText.substring(0, 280) + '…' : hlText;
+
+                                        return display ? (
                                             <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '8px', padding: '10px 14px', borderLeft: `3px solid ${sentiment.dot}`, marginBottom: '10px' }}>
                                                 <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', marginBottom: '4px', letterSpacing: '0.08em' }}>KEY HIGHLIGHT</div>
-                                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{hlText}</div>
+                                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{display}</div>
                                             </div>
                                         ) : null;
                                     })()}
