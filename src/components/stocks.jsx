@@ -6,37 +6,70 @@ import SideNavs from "./side_navs";
 // ─── Sabrina AI Chatbot Component ────────────────────────────────────────────
 function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        {
-            role: 'assistant',
-            content: `Hey! I'm Sabrina 😼 Your AI stock analyst. I've got the full rundown on ${ticker || 'your stocks'} — ask me anything about financials, news, what's moving the price, or whether to be bullish or bearish. Let's get it.`
-        }
-    ]);
+    const [messages, setMessages] = useState([{
+        role: 'assistant',
+        content: `Hey! I'm Sabrina 😼 Your AI stock analyst. Search a stock to load live data, or just ask me anything about markets, investing, or finance right now. What's on your mind?`
+    }]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [orbPulse, setOrbPulse] = useState(true);
+    const [pendingImage, setPendingImage] = useState(null); // { dataUrl, base64, mimeType }
+    const [speakingMsgIdx, setSpeakingMsgIdx] = useState(null);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoiceName, setSelectedVoiceName] = useState(() => {
+        try { return localStorage.getItem('sabrina_voice') || ''; } catch { return ''; }
+    });
+    const [showVoicePanel, setShowVoicePanel] = useState(false);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const prevTickerRef = useRef(null);
+
+    // Load voices
+    useEffect(() => {
+        const load = () => {
+            const v = window.speechSynthesis.getVoices();
+            setVoices(v);
+            if (!selectedVoiceName && v.length > 0) {
+                const def = v.find(x => x.default) || v[0];
+                setSelectedVoiceName(def.name);
+            }
+        };
+        load();
+        window.speechSynthesis.onvoiceschanged = load;
+    }, []);
+
+    // Persist voice choice
+    useEffect(() => {
+        try { if (selectedVoiceName) localStorage.setItem('sabrina_voice', selectedVoiceName); } catch {}
+    }, [selectedVoiceName]);
 
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Greet when a new ticker loads
     useEffect(() => {
-        // Update greeting when ticker changes
-        if (ticker) {
+        if (ticker && ticker !== prevTickerRef.current) {
+            prevTickerRef.current = ticker;
             setMessages([{
                 role: 'assistant',
-                content: `Hey! I'm Sabrina 😼 I've loaded everything on **${ticker}**. Current price, earnings history, financials, news — I see it all. What do you want to know?`
+                content: `**${ticker}** data loaded 😼 I've got price, earnings, financials and news all in front of me. What do you want to know?`
             }]);
         }
     }, [ticker]);
 
-    const buildSystemPrompt = () => {
-        let context = `You are Sabrina, a sharp, confident AI stock analyst assistant named after Sabrina Pasterski (the physicist). You're knowledgeable, direct, and occasionally witty. You have access to real-time stock data for the user's current stock.`;
+    // Stop speech when chat closes
+    useEffect(() => {
+        if (!isOpen) { window.speechSynthesis.cancel(); setSpeakingMsgIdx(null); }
+    }, [isOpen]);
 
-        if (stockData) {
+    const buildSystemPrompt = () => {
+        const hasData = !!stockData;
+        let context = `You are Sabrina, a sharp, confident AI stock analyst assistant named after Sabrina Pasterski (the physicist). You're knowledgeable, direct, and occasionally witty.`;
+
+        if (!hasData) {
+            context += `\n\nIMPORTANT: No stock is currently loaded in the screener. You do NOT have access to live market data right now. You can still answer general finance and investing questions from your training knowledge, but be upfront that you don't have real-time prices or current data unless the user loads a stock first. Don't make up numbers.`;
+        } else {
             context += `\n\nCURRENT STOCK DATA for ${stockData.longName || ticker} (${ticker}):
 - Current Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'}
 - Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
@@ -44,244 +77,286 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
 - 52-Week High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}
 - 52-Week Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}
 - Dividend Yield: ${stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) + '%' : 'N/A'}
-- Sector: ${stockData.sector || 'N/A'}
-- Industry: ${stockData.industry || 'N/A'}
-- Business Summary: ${stockData.longBusinessSummary?.substring(0, 500) || 'N/A'}`;
-        }
+- Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}
+- Business: ${stockData.longBusinessSummary?.substring(0, 400) || 'N/A'}`;
 
-        if (earnings && earnings.length > 0) {
-            const recentEarnings = earnings.slice(0, 8);
-            context += `\n\nRECENT QUARTERLY EARNINGS:`;
-            recentEarnings.forEach(e => {
-                context += `\n- ${e.quarter}: Revenue $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, Earnings $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`;
-            });
+            if (earnings?.length > 0) {
+                context += `\n\nRECENT QUARTERLY EARNINGS:`;
+                earnings.slice(0, 8).forEach(e => {
+                    context += `\n- ${e.quarter}: Revenue $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, Earnings $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`;
+                });
+            }
+            if (financials?.data) {
+                context += `\n\nANNUAL FINANCIALS:`;
+                financials.data.forEach(row => {
+                    const vals = row.values?.map((v, i) => `${financials.columns?.[i]}: $${v ? (v / 1e9).toFixed(2) + 'B' : 'N/A'}`).join(', ');
+                    context += `\n- ${row.metric}: ${vals}`;
+                });
+            }
+            if (news?.length > 0) {
+                context += `\n\nRECENT NEWS:`;
+                news.slice(0, 5).forEach(item => {
+                    if (item?.title) context += `\n- ${item.title} (${item.publisher || 'Unknown'})`;
+                });
+            }
         }
-
-        if (financials && financials.data) {
-            context += `\n\nANNUAL FINANCIALS (in billions):`;
-            financials.data.forEach(row => {
-                const values = row.values?.map((v, i) => `${financials.columns?.[i]}: $${v ? (v / 1e9).toFixed(2) + 'B' : 'N/A'}`).join(', ');
-                context += `\n- ${row.metric}: ${values}`;
-            });
-        }
-
-        if (news && news.length > 0) {
-            context += `\n\nRECENT NEWS HEADLINES:`;
-            news.slice(0, 5).forEach(item => {
-                if (item?.title) context += `\n- ${item.title} (${item.publisher || 'Unknown'})`;
-            });
-        }
-
-        context += `\n\nBe concise but insightful. Use markdown for formatting when helpful. Don't be overly cautious — give real analysis.`;
+        context += `\n\nBe concise but insightful. Use **bold** for key figures. Don't be overly cautious — give real analysis.`;
         return context;
     };
 
     const sendMessage = async () => {
-        if (!input.trim() || loading) return;
+        if ((!input.trim() && !pendingImage) || loading) return;
         if (!openaiKey) {
-            setMessages(prev => [...prev, 
-                { role: 'user', content: input },
-                { role: 'assistant', content: "Hmm, can't reach my brain right now — OpenAI key isn't loaded yet. Try again in a sec 😅" }
+            setMessages(prev => [...prev,
+                { role: 'user', content: input, image: pendingImage?.dataUrl },
+                { role: 'assistant', content: "Can't reach my brain right now — OpenAI key not loaded yet. Try again in a sec 😅" }
             ]);
-            setInput('');
+            setInput(''); setPendingImage(null);
             return;
         }
 
-        const userMessage = { role: 'user', content: input };
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
+        const userMsg = { role: 'user', content: input, image: pendingImage?.dataUrl };
+        setMessages(prev => [...prev, userMsg]);
+        const currentInput = input;
+        const currentImage = pendingImage;
+        setInput(''); setPendingImage(null);
         setLoading(true);
+
+        // Build OpenAI messages — include images where present
+        const apiMessages = [
+            { role: 'system', content: buildSystemPrompt() },
+            ...messages
+                .filter(m => m.role !== 'system')
+                .map(m => {
+                    if (m.image) {
+                        return {
+                            role: m.role,
+                            content: [
+                                { type: 'image_url', image_url: { url: m.image } },
+                                { type: 'text', text: m.content || '(image attached)' }
+                            ]
+                        };
+                    }
+                    return { role: m.role, content: m.content };
+                }),
+        ];
+
+        // Add the current user message
+        if (currentImage) {
+            apiMessages.push({
+                role: 'user',
+                content: [
+                    { type: 'image_url', image_url: { url: currentImage.dataUrl } },
+                    { type: 'text', text: currentInput || '(image attached)' }
+                ]
+            });
+        } else {
+            apiMessages.push({ role: 'user', content: currentInput });
+        }
 
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openaiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        { role: 'system', content: buildSystemPrompt() },
-                        ...messages.filter(m => m.role !== 'system'),
-                        userMessage
-                    ],
-                    max_tokens: 600,
-                    temperature: 0.7
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages: apiMessages, max_tokens: 700, temperature: 0.7 })
             });
-
             const data = await response.json();
-            const reply = data.choices?.[0]?.message?.content || "Hmm, I lost my train of thought. Try again?";
+            const reply = data.choices?.[0]?.message?.content || "Hmm, lost my train of thought. Try again?";
             setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-        } catch (err) {
-            setMessages(prev => [...prev, { role: 'assistant', content: "Network hiccup. Give me a sec and try again 😼" }]);
+        } catch {
+            setMessages(prev => [...prev, { role: 'assistant', content: "Network hiccup — give me a sec 😼" }]);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
+    const handleImagePick = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const dataUrl = ev.target.result;
+            setPendingImage({ dataUrl, mimeType: file.type });
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
     };
 
-    const renderMessage = (text) => {
-        // Simple markdown-like rendering
-        return text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n/g, '<br/>');
+    const handleSpeak = (text, idx) => {
+        if (speakingMsgIdx === idx) {
+            window.speechSynthesis.cancel();
+            setSpeakingMsgIdx(null);
+            return;
+        }
+        window.speechSynthesis.cancel();
+        // Strip markdown for speech
+        const plain = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/<[^>]+>/g, '');
+        const utt = new SpeechSynthesisUtterance(plain);
+        const voice = voices.find(v => v.name === selectedVoiceName);
+        if (voice) utt.voice = voice;
+        utt.onend = () => setSpeakingMsgIdx(null);
+        utt.onerror = () => setSpeakingMsgIdx(null);
+        window.speechSynthesis.speak(utt);
+        setSpeakingMsgIdx(idx);
+    };
+
+    const renderMessage = (text) => text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br/>');
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     };
 
     return (
         <>
-            {/* Orb Button */}
+            {/* ── Orb ── */}
             <div
-                onClick={() => { setIsOpen(!isOpen); setOrbPulse(false); }}
-                style={{
-                    position: 'fixed',
-                    bottom: '30px',
-                    right: '30px',
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #7c3aed, #db2777, #f59e0b)',
-                    boxShadow: orbPulse
-                        ? '0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5)'
-                        : '0 8px 32px rgba(124,58,237,0.4)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 10000,
-                    fontSize: '28px',
-                    animation: orbPulse ? 'sabrinaPulse 2s infinite' : 'none',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    userSelect: 'none',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onClick={() => { setIsOpen(o => !o); setOrbPulse(false); }}
                 title="Chat with Sabrina"
+                style={{
+                    position: 'fixed', bottom: '30px', right: '30px',
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #7c3aed, #db2777, #f59e0b)',
+                    boxShadow: orbPulse ? '0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5)' : '0 8px 32px rgba(124,58,237,0.4)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 10000, fontSize: '28px',
+                    animation: orbPulse ? 'sabrinaPulse 2s infinite' : 'none',
+                    transition: 'transform 0.2s', userSelect: 'none',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
                 {isOpen ? '✕' : '😼'}
             </div>
 
-            {/* Chat Panel */}
+            {/* ── Chat Panel ── */}
             {isOpen && (
                 <div style={{
-                    position: 'fixed',
-                    bottom: '110px',
-                    right: '20px',
-                    width: 'min(420px, calc(100vw - 40px))',
-                    height: 'min(580px, calc(100vh - 160px))',
-                    backgroundColor: '#0f0f14',
-                    borderRadius: '20px',
+                    position: 'fixed', bottom: '110px', right: '20px',
+                    width: 'min(430px, calc(100vw - 40px))',
+                    height: 'min(600px, calc(100vh - 160px))',
+                    backgroundColor: '#0f0f14', borderRadius: '20px',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.3)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    zIndex: 9999,
-                    overflow: 'hidden',
-                    fontFamily: "'Segoe UI', system-ui, sans-serif",
+                    display: 'flex', flexDirection: 'column', zIndex: 9999,
+                    overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, sans-serif",
                 }}>
                     {/* Header */}
                     <div style={{
-                        padding: '16px 20px',
+                        padding: '14px 16px',
                         background: 'linear-gradient(135deg, #7c3aed, #db2777)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        flexShrink: 0,
+                        display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0,
                     }}>
                         <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
+                            width: '38px', height: '38px', borderRadius: '50%',
                             background: 'rgba(255,255,255,0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '20px',
-                            flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '19px', flexShrink: 0,
                         }}>😼</div>
-                        <div>
-                            <div style={{ color: '#fff', fontWeight: '700', fontSize: '16px', lineHeight: 1.2 }}>Sabrina</div>
-                            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
-                                {ticker ? `Analyzing ${ticker}` : 'AI Stock Analyst'}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: 1.2 }}>Sabrina</div>
+                            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px' }}>
+                                {ticker ? `Loaded: ${ticker}` : 'No stock loaded — ask anything'}
                                 {' · '}
                                 <span style={{ color: '#86efac' }}>● Online</span>
                             </div>
                         </div>
-                        <div style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
-                            GPT-4o mini
-                        </div>
+                        {/* Voice settings toggle */}
+                        <button
+                            onClick={() => setShowVoicePanel(v => !v)}
+                            title="Voice settings"
+                            style={{
+                                background: showVoicePanel ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                                border: 'none', borderRadius: '8px', padding: '6px 8px',
+                                color: '#fff', fontSize: '14px', cursor: 'pointer', flexShrink: 0,
+                                transition: 'background 0.15s',
+                            }}
+                        >🔊</button>
                     </div>
 
+                    {/* Voice panel (collapsible) */}
+                    {showVoicePanel && (
+                        <div style={{
+                            padding: '10px 14px',
+                            backgroundColor: '#1a1a2e',
+                            borderBottom: '1px solid rgba(124,58,237,0.2)',
+                            display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, flexWrap: 'wrap',
+                        }}>
+                            <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', fontWeight: '600', flexShrink: 0 }}>Voice:</span>
+                            <select
+                                value={selectedVoiceName}
+                                onChange={e => setSelectedVoiceName(e.target.value)}
+                                style={{
+                                    flex: 1, minWidth: 0, padding: '5px 8px',
+                                    backgroundColor: '#0f0f14', border: '1px solid rgba(124,58,237,0.3)',
+                                    borderRadius: '8px', color: '#f0f0f0', fontSize: '12px', outline: 'none',
+                                }}
+                            >
+                                {voices.map((v, i) => (
+                                    <option key={i} value={v.name}>{v.name} ({v.lang})</option>
+                                ))}
+                            </select>
+                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', flexShrink: 0 }}>Tap 🔊 on any message</span>
+                        </div>
+                    )}
+
                     {/* Messages */}
-                    <div style={{
-                        flex: 1,
-                        overflowY: 'auto',
-                        padding: '16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px',
-                    }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {messages.map((msg, idx) => (
-                            <div key={idx} style={{
-                                display: 'flex',
-                                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                            }}>
+                            <div key={idx} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: '6px', alignItems: 'flex-end' }}>
                                 {msg.role === 'assistant' && (
                                     <div style={{
-                                        width: '28px',
-                                        height: '28px',
-                                        borderRadius: '50%',
+                                        width: '26px', height: '26px', borderRadius: '50%',
                                         background: 'linear-gradient(135deg, #7c3aed, #db2777)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '14px',
-                                        marginRight: '8px',
-                                        flexShrink: 0,
-                                        alignSelf: 'flex-end',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '13px', flexShrink: 0,
                                     }}>😼</div>
                                 )}
-                                <div style={{
-                                    maxWidth: '75%',
-                                    padding: '10px 14px',
-                                    borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                                    backgroundColor: msg.role === 'user' ? '#7c3aed' : '#1e1e2e',
-                                    color: '#f0f0f0',
-                                    fontSize: '14px',
-                                    lineHeight: '1.5',
-                                    border: msg.role === 'assistant' ? '1px solid rgba(124,58,237,0.2)' : 'none',
-                                }}
-                                    dangerouslySetInnerHTML={{ __html: renderMessage(msg.content) }}
-                                />
+                                <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                                    {/* Image preview in message */}
+                                    {msg.image && (
+                                        <img src={msg.image} alt="uploaded" style={{ maxWidth: '100%', maxHeight: '160px', borderRadius: '10px', objectFit: 'cover' }} />
+                                    )}
+                                    {msg.content && (
+                                        <div style={{
+                                            padding: '9px 13px',
+                                            borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                                            backgroundColor: msg.role === 'user' ? '#7c3aed' : '#1e1e2e',
+                                            color: '#f0f0f0', fontSize: '13.5px', lineHeight: '1.5',
+                                            border: msg.role === 'assistant' ? '1px solid rgba(124,58,237,0.2)' : 'none',
+                                        }}
+                                            dangerouslySetInnerHTML={{ __html: renderMessage(msg.content) }}
+                                        />
+                                    )}
+                                    {/* Speak button on assistant messages */}
+                                    {msg.role === 'assistant' && msg.content && (
+                                        <button
+                                            onClick={() => handleSpeak(msg.content, idx)}
+                                            title={speakingMsgIdx === idx ? 'Stop reading' : 'Read aloud'}
+                                            style={{
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                fontSize: '13px', padding: '2px 6px', borderRadius: '6px',
+                                                color: speakingMsgIdx === idx ? '#f59e0b' : 'rgba(255,255,255,0.3)',
+                                                transition: 'color 0.15s',
+                                                alignSelf: 'flex-start',
+                                            }}
+                                            onMouseEnter={e => { if (speakingMsgIdx !== idx) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                                            onMouseLeave={e => { if (speakingMsgIdx !== idx) e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
+                                        >
+                                            {speakingMsgIdx === idx ? '⏹ Stop' : '🔊'}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
+
                         {loading && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{
-                                    width: '28px', height: '28px', borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #7c3aed, #db2777)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
-                                }}>😼</div>
-                                <div style={{
-                                    padding: '10px 14px',
-                                    backgroundColor: '#1e1e2e',
-                                    borderRadius: '18px 18px 18px 4px',
-                                    border: '1px solid rgba(124,58,237,0.2)',
-                                    display: 'flex', gap: '4px', alignItems: 'center'
-                                }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #db2777)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>😼</div>
+                                <div style={{ padding: '9px 13px', backgroundColor: '#1e1e2e', borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', gap: '4px', alignItems: 'center' }}>
                                     {[0, 1, 2].map(i => (
-                                        <div key={i} style={{
-                                            width: '6px', height: '6px', borderRadius: '50%',
-                                            backgroundColor: '#7c3aed',
-                                            animation: `sabrnaTyping 1.2s ${i * 0.2}s infinite`,
-                                        }} />
+                                        <div key={i} style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#7c3aed', animation: `sabrnaTyping 1.2s ${i * 0.2}s infinite` }} />
                                     ))}
                                 </div>
                             </div>
@@ -289,64 +364,78 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input */}
+                    {/* Pending image preview */}
+                    {pendingImage && (
+                        <div style={{
+                            padding: '8px 14px',
+                            backgroundColor: '#1a1a2e',
+                            borderTop: '1px solid rgba(124,58,237,0.15)',
+                            display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0,
+                        }}>
+                            <img src={pendingImage.dataUrl} alt="pending" style={{ height: '48px', width: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', flex: 1 }}>Image ready to send</span>
+                            <button onClick={() => setPendingImage(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '16px', cursor: 'pointer' }}>✕</button>
+                        </div>
+                    )}
+
+                    {/* Input bar */}
                     <div style={{
-                        padding: '12px 16px',
+                        padding: '10px 12px',
                         borderTop: '1px solid rgba(255,255,255,0.07)',
-                        display: 'flex',
-                        gap: '10px',
                         backgroundColor: '#0f0f14',
-                        flexShrink: 0,
+                        display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0,
                     }}>
+                        {/* Image upload button */}
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} style={{ display: 'none' }} />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Attach image"
+                            style={{
+                                background: pendingImage ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.07)',
+                                border: '1px solid rgba(124,58,237,0.3)',
+                                borderRadius: '10px', padding: '8px 10px',
+                                color: '#ccc', fontSize: '15px', cursor: 'pointer', flexShrink: 0,
+                                transition: 'background 0.15s',
+                            }}
+                        >🖼️</button>
+
                         <input
                             value={input}
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={ticker ? `Ask about ${ticker}...` : "Ask me anything..."}
+                            placeholder={ticker ? `Ask about ${ticker}...` : 'Ask me anything...'}
                             style={{
-                                flex: 1,
-                                padding: '10px 14px',
+                                flex: 1, padding: '9px 13px', minWidth: 0,
                                 backgroundColor: '#1e1e2e',
                                 border: '1px solid rgba(124,58,237,0.3)',
-                                borderRadius: '12px',
-                                color: '#f0f0f0',
-                                fontSize: '14px',
-                                outline: 'none',
-                                minWidth: 0,
+                                borderRadius: '12px', color: '#f0f0f0',
+                                fontSize: '13.5px', outline: 'none',
                             }}
                         />
                         <button
                             onClick={sendMessage}
-                            disabled={loading || !input.trim()}
+                            disabled={loading || (!input.trim() && !pendingImage)}
                             style={{
-                                padding: '10px 16px',
-                                background: loading || !input.trim()
-                                    ? 'rgba(124,58,237,0.3)'
-                                    : 'linear-gradient(135deg, #7c3aed, #db2777)',
-                                border: 'none',
-                                borderRadius: '12px',
-                                color: '#fff',
-                                fontSize: '16px',
-                                cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-                                flexShrink: 0,
-                                transition: 'opacity 0.2s',
+                                padding: '9px 14px', flexShrink: 0,
+                                background: loading || (!input.trim() && !pendingImage) ? 'rgba(124,58,237,0.25)' : 'linear-gradient(135deg, #7c3aed, #db2777)',
+                                border: 'none', borderRadius: '12px', color: '#fff',
+                                fontSize: '16px', cursor: loading || (!input.trim() && !pendingImage) ? 'not-allowed' : 'pointer',
+                                transition: 'background 0.15s',
                             }}
-                        >
-                            ↑
-                        </button>
+                        >↑</button>
                     </div>
                 </div>
             )}
 
             <style>{`
                 @keyframes sabrinaPulse {
-                    0% { box-shadow: 0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5); }
-                    70% { box-shadow: 0 0 0 16px rgba(124,58,237,0), 0 8px 32px rgba(124,58,237,0.3); }
+                    0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5); }
+                    70%  { box-shadow: 0 0 0 16px rgba(124,58,237,0), 0 8px 32px rgba(124,58,237,0.3); }
                     100% { box-shadow: 0 0 0 0 rgba(124,58,237,0), 0 8px 32px rgba(124,58,237,0.5); }
                 }
                 @keyframes sabrnaTyping {
                     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-                    30% { transform: translateY(-4px); opacity: 1; }
+                    30%           { transform: translateY(-4px); opacity: 1; }
                 }
             `}</style>
         </>
@@ -1048,14 +1137,36 @@ Return this exact JSON structure:
                                             {item.description.length > 200 ? item.description.substring(0, 200) + '...' : item.description}
                                         </div>
                                     )}
-                                    {item.highlights && item.highlights.length > 0 && (
-                                        <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '8px', padding: '10px 14px', borderLeft: `3px solid ${sentiment.dot}`, marginBottom: '10px' }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', marginBottom: '4px', letterSpacing: '0.08em' }}>KEY HIGHLIGHT</div>
-                                            <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>
-                                                {typeof item.highlights === 'string' ? item.highlights.substring(0, 300) : JSON.stringify(item.highlights).substring(0, 300)}
+                                    {(() => {
+                                        // Extract clean highlight text from various formats the API returns
+                                        let hlText = '';
+                                        if (item.highlights) {
+                                            if (typeof item.highlights === 'string') {
+                                                // Could be a stringified dict like "{'highlight': '...', 'sentiment': ...}"
+                                                const match = item.highlights.match(/'highlight'\s*:\s*'([\s\S]*?)'\s*,\s*'sentiment'/);
+                                                if (match) {
+                                                    hlText = match[1];
+                                                } else {
+                                                    hlText = item.highlights;
+                                                }
+                                            } else if (typeof item.highlights === 'object' && item.highlights !== null) {
+                                                hlText = item.highlights.highlight || item.highlights.text || '';
+                                            } else if (Array.isArray(item.highlights) && item.highlights.length > 0) {
+                                                const first = item.highlights[0];
+                                                hlText = typeof first === 'string' ? first : (first?.highlight || first?.text || '');
+                                            }
+                                        }
+                                        // Strip any residual HTML tags from the highlight
+                                        hlText = hlText.replace(/<[^>]+>/g, '').replace(/\\n/g, ' ').trim();
+                                        // Truncate
+                                        if (hlText.length > 280) hlText = hlText.substring(0, 280) + '…';
+                                        return hlText ? (
+                                            <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '8px', padding: '10px 14px', borderLeft: `3px solid ${sentiment.dot}`, marginBottom: '10px' }}>
+                                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', marginBottom: '4px', letterSpacing: '0.08em' }}>KEY HIGHLIGHT</div>
+                                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{hlText}</div>
                                             </div>
-                                        </div>
-                                    )}
+                                        ) : null;
+                                    })()}
                                     {item.url && <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600' }}>↗ Read full article</div>}
                                 </div>
                             );
@@ -1788,17 +1899,15 @@ export default function SnowAIStockScreener() {
                 </div>
             </div>
 
-            {/* Sabrina AI Chatbot — always rendered when a stock is loaded */}
-            {stockData && (
-                <SabrinaChat
-                    stockData={stockData}
-                    financials={financials}
-                    earnings={earnings}
-                    news={news}
-                    ticker={ticker}
-                    openaiKey={OPENAI_API_KEY}
-                />
-            )}
+            {/* Sabrina AI Chatbot — always available */}
+            <SabrinaChat
+                stockData={stockData}
+                financials={financials}
+                earnings={earnings}
+                news={news}
+                ticker={ticker}
+                openaiKey={OPENAI_API_KEY}
+            />
         </div>
     );
 }
