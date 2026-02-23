@@ -1296,7 +1296,7 @@ Return this exact JSON structure:
                                         Open external article?
                                     </div>
                                     <div style={{ fontSize: '13px', color: '#888' }}>
-                                        {'You'll be taken to '}
+                                        {"You'll be taken to "}
                                         <strong style={{ color: '#2563eb' }}>
                                             {(() => { try { return new URL(pendingArticle.url).hostname.replace('www.', ''); } catch { return pendingArticle.url; } })()}
                                         </strong>
