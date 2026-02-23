@@ -785,6 +785,7 @@ function EnhancedNewsSection({ ticker, baseUrl, existingNews, openaiKey, stockDa
     const [newsError, setNewsError] = useState(null);
     const [hasFetched, setHasFetched] = useState(false);
     const [activeNewsTab, setActiveNewsTab] = useState('yahoo');
+    const [pendingArticle, setPendingArticle] = useState(null);
 
     // Analysis states
     const [showAnalysisModal, setShowAnalysisModal] = useState(false);
@@ -1107,7 +1108,7 @@ Return this exact JSON structure:
                         existingNews.filter(n => n?.title).map((item, idx) => {
                             const sentiment = getSentimentColor(item.title);
                             return (
-                                <div key={idx} onClick={() => item.link && window.open(item.link, '_blank')}
+                                <div key={idx} onClick={() => item.link && setPendingArticle({ title: item.title, publisher: item.publisher, url: item.link })}
                                     style={{
                                         padding: '16px 18px', backgroundColor: sentiment.bg,
                                         borderRadius: '12px', border: `1px solid ${sentiment.border}`,
@@ -1145,7 +1146,7 @@ Return this exact JSON structure:
                         marketauxNews.map((item, idx) => {
                             const sentiment = getSentimentColor(item.title);
                             return (
-                                <div key={idx} onClick={() => item.url && window.open(item.url, '_blank')}
+                                <div key={idx} onClick={() => item.url && setPendingArticle({ title: item.title, source: item.source, url: item.url })}
                                     style={{
                                         padding: '18px 20px', backgroundColor: sentiment.bg,
                                         borderRadius: '14px', border: `1px solid ${sentiment.border}`,
@@ -1166,45 +1167,67 @@ Return this exact JSON structure:
                                         </div>
                                     )}
                                     {(() => {
-                                        const extractHighlight = (raw) => {
-                                            if (!raw) return '';
-                                            let text = '';
+                                        // Debug: log raw highlights to console so we can see exact format
+                                        if (item.highlights) console.log('[SnowAI highlights]', JSON.stringify(item.highlights));
 
-                                            // Case 1: already a clean string with no dict artifacts
-                                            if (typeof raw === 'string') {
-                                                // Skip if it looks like a Python dict repr or contains [+N characters]
-                                                const isTruncatedRepr = /\[[\+\d]+ characters\]/.test(raw);
-                                                const isPythonDict = raw.trim().startsWith('{') && raw.includes("'highlight'");
-
-                                                if (!isTruncatedRepr && !isPythonDict) {
-                                                    text = raw;
-                                                } else {
-                                                    // Try to pull 'highlight' value out of stringified Python dict
-                                                    // Handles: {'highlight': 'some text', 'sentiment': 0.5, ...}
-                                                    const m = raw.match(/'highlight'\s*:\s*'([\s\S]+?)'\s*,\s*'sentiment'/);
-                                                    if (m) text = m[1];
-                                                }
-                                            }
-                                            // Case 2: actual JS object
-                                            else if (typeof raw === 'object' && !Array.isArray(raw) && raw !== null) {
-                                                text = raw.highlight || raw.text || raw.content || '';
-                                            }
-                                            // Case 3: array of highlights — take the first one
-                                            else if (Array.isArray(raw) && raw.length > 0) {
-                                                const first = raw[0];
-                                                if (typeof first === 'string') text = first;
-                                                else if (typeof first === 'object') text = first?.highlight || first?.text || '';
-                                            }
-
-                                            // Clean up: strip HTML tags, unescape, normalise whitespace
-                                            return text
-                                                .replace(/<[^>]+>/g, '')        // strip HTML
-                                                .replace(/&amp;/g, '&')
-                                                .replace(/&lt;/g, '<')
-                                                .replace(/&gt;/g, '>')
-                                                .replace(/\\n/g, ' ')
-                                                .replace(/\s+/g, ' ')
+                                        const cleanText = (t) => {
+                                            if (!t) return '';
+                                            return String(t)
+                                                .replace(/<[^>]+>/g, '')
+                                                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+                                                .replace(/\\n/g, ' ').replace(/\s+/g, ' ')
+                                                .replace(/^[\s,']+|[\s,']+$/g, '')
                                                 .trim();
+                                        };
+
+                                        const extractHighlight = (raw) => {
+                                            if (raw == null) return '';
+
+                                            // JS object with highlight key
+                                            if (typeof raw === 'object' && !Array.isArray(raw)) {
+                                                return cleanText(raw.highlight || raw.text || raw.content || '');
+                                            }
+
+                                            // Array — grab first item
+                                            if (Array.isArray(raw)) {
+                                                if (raw.length === 0) return '';
+                                                const first = raw[0];
+                                                if (typeof first === 'object') return cleanText(first.highlight || first.text || '');
+                                                return cleanText(String(first));
+                                            }
+
+                                            // String handling
+                                            const s = String(raw).trim();
+
+                                            // Pure plain string with no dict artifacts → use directly
+                                            if (!s.includes("'highlight'") && !s.includes('"highlight"') && !/\[\+?\d+ characters\]/.test(s)) {
+                                                return cleanText(s);
+                                            }
+
+                                            // Python dict repr: {'highlight': 'text with apostrophe\'s here', 'sentiment': 0.5, ...}
+                                            // GREEDY match from 'highlight': ' up to the LAST ', 'sentiment' occurrence
+                                            // This handles apostrophes inside the text
+                                            const pyMatch = s.match(/'highlight'\s*:\s*'([\s\S]*)',\s*'sentiment'/);
+                                            if (pyMatch) return cleanText(pyMatch[1]);
+
+                                            // Truncated repr: text[+345 characters] — extract what came before
+                                            const truncMatch = s.match(/^([\s\S]+?)\[\+?\d+ characters\]/);
+                                            if (truncMatch) {
+                                                // Also strip leading dict key if present: {'highlight': 'ACTUAL TEXT
+                                                let extracted = truncMatch[1];
+                                                const keyMatch = extracted.match(/'highlight'\s*:\s*'([\s\S]+)/);
+                                                if (keyMatch) extracted = keyMatch[1];
+                                                return extracted.length > 15 ? cleanText(extracted) : '';
+                                            }
+
+                                            // JSON-quoted key: {"highlight": "text"}
+                                            try {
+                                                const parsed = JSON.parse(s);
+                                                return cleanText(parsed.highlight || parsed.text || '');
+                                            } catch {}
+
+                                            // Last resort: just clean whatever we have
+                                            return cleanText(s);
                                         };
 
                                         const hlText = extractHighlight(item.highlights);
@@ -1229,7 +1252,107 @@ Return this exact JSON structure:
 
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes articleModalPop {
+                    from { opacity: 0; transform: scale(0.93) translateY(10px); }
+                    to   { opacity: 1; transform: scale(1) translateY(0); }
+                }
             `}</style>
+
+            {/* Article Link Confirm Modal */}
+            {pendingArticle && (
+                <div
+                    onClick={() => setPendingArticle(null)}
+                    style={{
+                        position: 'fixed', inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.35)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 10002, padding: '20px',
+                        backdropFilter: 'blur(3px)',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: 'min(420px, 100%)',
+                            backgroundColor: '#fff',
+                            borderRadius: '16px',
+                            boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',
+                            overflow: 'hidden',
+                            fontFamily: "'Segoe UI', system-ui, sans-serif",
+                            animation: 'articleModalPop 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                        }}
+                    >
+                        <div style={{ height: '4px', background: 'linear-gradient(90deg, #2563eb, #60a5fa)' }} />
+                        <div style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
+                                <div style={{
+                                    width: '44px', height: '44px', borderRadius: '10px',
+                                    backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '22px', flexShrink: 0,
+                                }}>🔗</div>
+                                <div>
+                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#1a1a1a', marginBottom: '3px' }}>
+                                        Open external article?
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: '#888' }}>
+                                        {'You'll be taken to '}
+                                        <strong style={{ color: '#2563eb' }}>
+                                            {(() => { try { return new URL(pendingArticle.url).hostname.replace('www.', ''); } catch { return pendingArticle.url; } })()}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{
+                                backgroundColor: '#f8f9fa', borderRadius: '10px',
+                                padding: '12px 14px', border: '1px solid #e8e8e8', marginBottom: '20px',
+                            }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a', lineHeight: '1.4', marginBottom: '6px' }}>
+                                    {pendingArticle.title}
+                                </div>
+                                {(pendingArticle.publisher || pendingArticle.source) && (
+                                    <span style={{
+                                        fontSize: '11px', fontWeight: '600', color: '#555',
+                                        backgroundColor: '#fff', padding: '2px 8px',
+                                        borderRadius: '8px', border: '1px solid #e0e0e0',
+                                    }}>
+                                        {pendingArticle.publisher || pendingArticle.source}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button
+                                    onClick={() => { window.open(pendingArticle.url, '_blank'); setPendingArticle(null); }}
+                                    style={{
+                                        flex: 1, padding: '11px 16px', backgroundColor: '#2563eb',
+                                        border: 'none', borderRadius: '10px', color: '#fff',
+                                        fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                        transition: 'background 0.15s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#2563eb'}
+                                >
+                                    <span>↗</span> Yes, open article
+                                </button>
+                                <button
+                                    onClick={() => setPendingArticle(null)}
+                                    style={{
+                                        flex: 1, padding: '11px 16px', backgroundColor: '#fff',
+                                        border: '1px solid #e0e0e0', borderRadius: '10px', color: '#555',
+                                        fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                                        transition: 'background 0.15s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f4f4f4'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fff'}
+                                >
+                                    Stay here
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Analysis Modal */}
             <NewsAnalysisModal
