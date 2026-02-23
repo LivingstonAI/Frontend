@@ -226,13 +226,14 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
             <div
                 onClick={() => { setIsOpen(o => !o); setOrbPulse(false); }}
                 title="Chat with Sabrina"
+                className="sabrina-orb"
                 style={{
-                    position: 'fixed', bottom: '30px', right: '30px',
-                    width: '64px', height: '64px', borderRadius: '50%',
+                    position: 'fixed', bottom: '24px', right: '24px',
+                    width: '56px', height: '56px', borderRadius: '50%',
                     background: 'linear-gradient(135deg, #7c3aed, #db2777, #f59e0b)',
                     boxShadow: orbPulse ? '0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5)' : '0 8px 32px rgba(124,58,237,0.4)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 10000, fontSize: '28px',
+                    zIndex: 10000, fontSize: '24px',
                     animation: orbPulse ? 'sabrinaPulse 2s infinite' : 'none',
                     transition: 'transform 0.2s', userSelect: 'none',
                 }}
@@ -244,11 +245,18 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
 
             {/* ── Chat Panel ── */}
             {isOpen && (
-                <div style={{
-                    position: 'fixed', bottom: '110px', right: '20px',
-                    width: 'min(430px, calc(100vw - 40px))',
-                    height: 'min(600px, calc(100vh - 160px))',
-                    backgroundColor: '#0f0f14', borderRadius: '20px',
+                <div className="sabrina-panel" style={{
+                    position: 'fixed',
+                    // Desktop: anchored bottom-right above orb
+                    // Mobile: full screen overlay
+                    bottom: 0, right: 0,
+                    width: '100vw', height: '100dvh',
+                    maxWidth: '430px', maxHeight: 'calc(100dvh - 90px)',
+                    // On small screens snap to full bottom sheet
+                    borderRadius: window.innerWidth < 480 ? '20px 20px 0 0' : '20px',
+                    marginBottom: window.innerWidth < 480 ? 0 : '90px',
+                    marginRight: window.innerWidth < 480 ? 0 : '20px',
+                    backgroundColor: '#0f0f14',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.3)',
                     display: 'flex', flexDirection: 'column', zIndex: 9999,
                     overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, sans-serif",
@@ -464,6 +472,27 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                 @keyframes sabrnaTyping {
                     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
                     30%           { transform: translateY(-4px); opacity: 1; }
+                }
+                @media (max-width: 480px) {
+                    /* Sabrina chat panel full-screen on mobile */
+                    .sabrina-panel {
+                        bottom: 0 !important;
+                        right: 0 !important;
+                        left: 0 !important;
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                        height: calc(100dvh - 72px) !important;
+                        max-height: calc(100dvh - 72px) !important;
+                        border-radius: 20px 20px 0 0 !important;
+                        margin: 0 !important;
+                    }
+                    .sabrina-orb {
+                        bottom: 16px !important;
+                        right: 16px !important;
+                        width: 52px !important;
+                        height: 52px !important;
+                        font-size: 22px !important;
+                    }
                 }
             `}</style>
         </>
@@ -1168,7 +1197,8 @@ Return this exact JSON structure:
                                     )}
                                     {(() => {
                                         // Debug: log raw highlights to console so we can see exact format
-                                        if (item.highlights) console.log('[SnowAI highlights]', JSON.stringify(item.highlights));
+                                        // Backend debug: open browser console to see raw format
+                                        if (item.highlights) console.log('[SnowAI highlights raw]', typeof item.highlights, JSON.stringify(item.highlights).substring(0, 300));
 
                                         const cleanText = (t) => {
                                             if (!t) return '';
