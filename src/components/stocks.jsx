@@ -808,12 +808,25 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
 }
 
 // ─── News Section Component ───────────────────────────────────────────────────
-function EnhancedNewsSection({ ticker, baseUrl, existingNews, openaiKey, stockData }) {
-    const [marketauxNews, setMarketauxNews] = useState([]);
-    const [fetchingNews, setFetchingNews] = useState(false);
-    const [newsError, setNewsError] = useState(null);
-    const [hasFetched, setHasFetched] = useState(false);
-    const [activeNewsTab, setActiveNewsTab] = useState('yahoo');
+function EnhancedNewsSection({
+    ticker, baseUrl, existingNews, openaiKey, stockData,
+    hoistedMarketauxNews, setHoistedMarketauxNews,
+    hoistedFetchingNews, setHoistedFetchingNews,
+    hoistedNewsError, setHoistedNewsError,
+    hoistedHasFetched, setHoistedHasFetched,
+    hoistedActiveNewsTab, setHoistedActiveNewsTab,
+}) {
+    // Use hoisted state when available (props), fall back to local for backward compat
+    const marketauxNews   = hoistedMarketauxNews  ?? [];
+    const setMarketauxNews = hoistedMarketauxNews !== undefined ? setHoistedMarketauxNews : useState([])[1];
+    const fetchingNews    = hoistedFetchingNews   ?? false;
+    const setFetchingNews = hoistedFetchingNews   !== undefined ? setHoistedFetchingNews  : useState(false)[1];
+    const newsError       = hoistedNewsError      ?? null;
+    const setNewsError    = hoistedNewsError      !== undefined ? setHoistedNewsError     : useState(null)[1];
+    const hasFetched      = hoistedHasFetched     ?? false;
+    const setHasFetched   = hoistedHasFetched     !== undefined ? setHoistedHasFetched    : useState(false)[1];
+    const activeNewsTab   = hoistedActiveNewsTab  ?? 'yahoo';
+    const setActiveNewsTab = hoistedActiveNewsTab !== undefined ? setHoistedActiveNewsTab  : useState('yahoo')[1];
     const [pendingArticle, setPendingArticle] = useState(null);
 
     // Analysis states
@@ -1420,6 +1433,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
     const [chartLoaded, setChartLoaded] = useState(false);
     const [chartError, setChartError] = useState(null);
     const [chartInterval, setChartInterval] = useState('1D');
+    const [chartTheme, setChartTheme] = useState('light'); // 'light' | 'dark' | 'hud'
     const [chartType, setChartType] = useState('candlestick'); // 'candlestick' | 'line' | 'area'
     const [loadingChart, setLoadingChart] = useState(false);
     const [sabrinaLoading, setSabrinaLoading] = useState(false);
@@ -1427,7 +1441,23 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
     const [recError, setRecError] = useState(null);
     const [screenshotting, setScreenshotting] = useState(false);
 
-    const intervals = ['1D', '1W', '1M', '3M', '6M', '1Y', '2Y'];
+    // Lower → Higher timeframes with smart default lookbacks
+    const intervalConfig = {
+        '1m':  { label: '1m',  group: 'Intraday' },
+        '5m':  { label: '5m',  group: 'Intraday' },
+        '15m': { label: '15m', group: 'Intraday' },
+        '30m': { label: '30m', group: 'Intraday' },
+        '1h':  { label: '1H',  group: 'Intraday' },
+        '4h':  { label: '4H',  group: 'Intraday' },
+        '1D':  { label: '1D',  group: 'Daily+'   },
+        '1W':  { label: '1W',  group: 'Daily+'   },
+        '1M':  { label: '1M',  group: 'Daily+'   },
+        '3M':  { label: '3M',  group: 'Daily+'   },
+        '6M':  { label: '6M',  group: 'Daily+'   },
+        '1Y':  { label: '1Y',  group: 'Daily+'   },
+        '2Y':  { label: '2Y',  group: 'Daily+'   },
+    };
+    const intervals = Object.keys(intervalConfig);
 
     // ── Load TradingView Lightweight Charts from CDN ──
     useEffect(() => {
@@ -1439,19 +1469,38 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
         document.head.appendChild(script);
     }, []);
 
-    // ── Fetch OHLCV via Django backend (yfinance) — no CORS issues ──
+    // ── Fetch OHLCV via Django backend (yfinance) — full interval support ──
     const fetchOHLCV = async (sym, interval) => {
-        const baseUrl = 'https://backend-production-c0ab.up.railway.app';
-        const res = await fetch(`${baseUrl}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ticker: sym, interval }),
         });
         if (!res.ok) throw new Error(`Server error ${res.status}`);
         const json = await res.json();
-        if (!json.candles?.length) throw new Error('No chart data returned');
-        // Backend returns { time, open, high, low, close, volume } — add value alias for line/area series
+        if (!json.candles?.length) throw new Error('No data returned for ' + sym);
         return json.candles.map(c => ({ ...c, value: c.close }));
+    };
+
+    // Theme config lookup
+    const getThemeConfig = (theme) => {
+        if (theme === 'dark') return {
+            bg: '#0f0f14', text: '#e0e0e0', grid: '#1e1e2e',
+            border: '#2a2a3a', upColor: '#10b981', downColor: '#ef4444',
+            lineColor: '#60a5fa', areaTop: 'rgba(96,165,250,0.25)', areaBot: 'rgba(96,165,250,0.02)',
+        };
+        if (theme === 'hud') return {
+            bg: '#020b18', text: '#00d4ff', grid: '#0a2540',
+            border: '#0d3a5c', upColor: '#00ffcc', downColor: '#ff4d6a',
+            lineColor: '#00d4ff', areaTop: 'rgba(0,212,255,0.2)', areaBot: 'rgba(0,212,255,0.02)',
+        };
+        // light (default)
+        return {
+            bg: '#ffffff', text: '#333333', grid: '#f0f0f0',
+            border: '#e0e0e0', upColor: '#10b981', downColor: '#ef4444',
+            lineColor: '#2563eb', areaTop: 'rgba(37,99,235,0.2)', areaBot: 'rgba(37,99,235,0.02)',
+        };
     };
 
     // ── Build / update chart ──
@@ -1463,14 +1512,15 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
         if (chartRef.current) { try { chartRef.current.remove(); } catch {} chartRef.current = null; seriesRef.current = null; }
 
         const container = chartContainerRef.current;
+        const th = getThemeConfig(chartTheme);
         const chart = LC.createChart(container, {
             width: container.clientWidth,
-            height: container.clientHeight || 340,
-            layout: { background: { color: '#fff' }, textColor: '#333' },
-            grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+            height: container.clientHeight || 360,
+            layout: { background: { color: th.bg }, textColor: th.text },
+            grid: { vertLines: { color: th.grid }, horzLines: { color: th.grid } },
             crosshair: { mode: LC.CrosshairMode.Normal },
-            rightPriceScale: { borderColor: '#e0e0e0' },
-            timeScale: { borderColor: '#e0e0e0', timeVisible: true, secondsVisible: false },
+            rightPriceScale: { borderColor: th.border },
+            timeScale: { borderColor: th.border, timeVisible: true, secondsVisible: false },
             watermark: { visible: false },
         });
         chartRef.current = chart;
@@ -1495,18 +1545,18 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
                 let series;
                 if (chartType === 'candlestick') {
                     series = chart.addCandlestickSeries({
-                        upColor: '#10b981', downColor: '#ef4444',
-                        borderUpColor: '#10b981', borderDownColor: '#ef4444',
-                        wickUpColor: '#10b981', wickDownColor: '#ef4444',
+                        upColor: th.upColor, downColor: th.downColor,
+                        borderUpColor: th.upColor, borderDownColor: th.downColor,
+                        wickUpColor: th.upColor, wickDownColor: th.downColor,
                     });
                     series.setData(data);
                 } else if (chartType === 'area') {
                     series = chart.addAreaSeries({
-                        lineColor: '#2563eb', topColor: 'rgba(37,99,235,0.2)', bottomColor: 'rgba(37,99,235,0.02)', lineWidth: 2,
+                        lineColor: th.lineColor, topColor: th.areaTop, bottomColor: th.areaBot, lineWidth: 2,
                     });
                     series.setData(data.map(d => ({ time: d.time, value: d.value })));
                 } else {
-                    series = chart.addLineSeries({ color: '#2563eb', lineWidth: 2 });
+                    series = chart.addLineSeries({ color: th.lineColor, lineWidth: 2 });
                     series.setData(data.map(d => ({ time: d.time, value: d.value })));
                 }
                 seriesRef.current = series;
@@ -1520,7 +1570,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
 
         loadData();
         return () => { ro.disconnect(); };
-    }, [chartLoaded, ticker, chartInterval, chartType]);
+    }, [chartLoaded, ticker, chartInterval, chartType, chartTheme]);
 
     // ── Ask Sabrina for a full recommendation ──
     const askSabrinaForRec = async (imageDataUrl = null) => {
@@ -1625,41 +1675,81 @@ Respond ONLY with a JSON object (no markdown, no backticks):
             {/* ── Chart Card ── */}
             <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginBottom: '20px' }}>
 
-                {/* Chart toolbar — two rows on mobile */}
-                <div style={{ padding: '12px 14px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa', borderRadius: '12px 12px 0 0' }}>
-                    {/* Row 1: title + chart type */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
-                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a1a' }}>
-                            📊 {ticker}
+                {/* Chart toolbar — theme-aware, grouped intervals */}
+                {(() => {
+                    const th = getThemeConfig(chartTheme);
+                    const toolbarBg     = chartTheme === 'light' ? '#fafafa' : chartTheme === 'dark' ? '#1a1a2e' : '#020f1f';
+                    const toolbarBorder = chartTheme === 'light' ? '#f0f0f0' : chartTheme === 'dark' ? '#2a2a3a' : '#0d3a5c';
+                    const titleColor    = chartTheme === 'hud'   ? '#00d4ff' : chartTheme === 'dark' ? '#e0e0e0' : '#1a1a1a';
+                    const btnBase       = chartTheme === 'light' ? { bg: '#fff', text: '#555', border: '#e0e0e0' }
+                                       : chartTheme === 'dark'  ? { bg: '#1e1e2e', text: '#aaa', border: '#2a2a3a' }
+                                       :                          { bg: '#0a1f35', text: '#00aacc', border: '#0d3a5c' };
+                    const btnActive     = chartTheme === 'hud'   ? { bg: '#00d4ff', text: '#020b18', border: '#00d4ff' }
+                                       :                          { bg: '#2563eb',  text: '#fff',    border: '#2563eb' };
+                    const intraday  = intervals.filter(iv => intervalConfig[iv].group === 'Intraday');
+                    const daily     = intervals.filter(iv => intervalConfig[iv].group === 'Daily+');
+                    return (
+                        <div style={{ padding: '12px 14px', borderBottom: `1px solid ${toolbarBorder}`, backgroundColor: toolbarBg, borderRadius: '12px 12px 0 0' }}>
+                            {/* Row 1: title + chart type + theme */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: '15px', fontWeight: '700', color: titleColor, marginRight: '4px' }}>
+                                    {chartTheme === 'hud' ? '⬡' : '📊'} {ticker}
+                                </div>
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    {[['candlestick','🕯 Candle'],['area','📉 Area'],['line','〰 Line']].map(([t, lbl]) => {
+                                        const active = chartType === t;
+                                        return <button key={t} onClick={() => setChartType(t)} style={{
+                                            padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                            border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                            backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                            color: active ? btnActive.text : btnBase.text,
+                                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}>{lbl}</button>;
+                                    })}
+                                </div>
+                                {/* Theme switcher — pushed to the right */}
+                                <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                                    {[['light','☀️'],['dark','🌙'],['hud','⬡ HUD']].map(([t, lbl]) => {
+                                        const active = chartTheme === t;
+                                        return <button key={t} onClick={() => setChartTheme(t)} style={{
+                                            padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                            border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                            backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                            color: active ? btnActive.text : btnBase.text,
+                                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}>{lbl}</button>;
+                                    })}
+                                </div>
+                            </div>
+                            {/* Row 2: interval groups */}
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ fontSize: '10px', fontWeight: '700', color: btnBase.text, opacity: 0.6, letterSpacing: '0.07em', flexShrink: 0 }}>INTRADAY</span>
+                                {intraday.map(iv => {
+                                    const active = chartInterval === iv;
+                                    return <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                        backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                        color: active ? btnActive.text : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>{intervalConfig[iv].label}</button>;
+                                })}
+                                <div style={{ width: '1px', height: '18px', backgroundColor: toolbarBorder, flexShrink: 0 }} />
+                                <span style={{ fontSize: '10px', fontWeight: '700', color: btnBase.text, opacity: 0.6, letterSpacing: '0.07em', flexShrink: 0 }}>DAILY+</span>
+                                {daily.map(iv => {
+                                    const active = chartInterval === iv;
+                                    return <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                        backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                        color: active ? btnActive.text : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>{intervalConfig[iv].label}</button>;
+                                })}
+                            </div>
                         </div>
-                        {/* Chart type pills */}
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                            {[['candlestick', '🕯 Candle'], ['area', '📉 Area'], ['line', '〰 Line']].map(([t, label]) => (
-                                <button key={t} onClick={() => setChartType(t)} style={{
-                                    padding: '4px 10px', fontSize: '12px', fontWeight: '600',
-                                    borderRadius: '6px', border: '1px solid',
-                                    borderColor: chartType === t ? '#2563eb' : '#e0e0e0',
-                                    backgroundColor: chartType === t ? '#2563eb' : '#fff',
-                                    color: chartType === t ? '#fff' : '#666',
-                                    cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                                }}>{label}</button>
-                            ))}
-                        </div>
-                    </div>
-                    {/* Row 2: interval pills */}
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {intervals.map(iv => (
-                            <button key={iv} onClick={() => setChartInterval(iv)} style={{
-                                padding: '5px 11px', fontSize: '12px', fontWeight: '700',
-                                borderRadius: '6px', border: '1px solid',
-                                borderColor: chartInterval === iv ? '#2563eb' : '#e0e0e0',
-                                backgroundColor: chartInterval === iv ? '#2563eb' : '#fff',
-                                color: chartInterval === iv ? '#fff' : '#555',
-                                cursor: 'pointer', transition: 'all 0.15s',
-                            }}>{iv}</button>
-                        ))}
-                    </div>
-                </div>
+                    );
+                })()}
 
                 {/* Chart container — explicit height so LightweightCharts renders correctly */}
                 <div style={{ position: 'relative', width: '100%', height: '360px' }}>
@@ -1681,8 +1771,8 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
                 </div>
 
-                {/* Chart action bar */}
-                <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fafafa', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Chart action bar — theme-aware */}
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
                     <button
                         onClick={captureAndAnalyse}
                         disabled={sabrinaLoading || screenshotting || !chartLoaded}
@@ -2005,6 +2095,12 @@ export default function SnowAIStockScreener() {
     const [showAnalysisModal, setShowAnalysisModal] = useState(false);
     const [analysisFilterCategory, setAnalysisFilterCategory] = useState('All');
     const [mainCachedNewsAnalyses, setMainCachedNewsAnalyses] = useState({});
+    // ── Hoisted news state (persists across tab switches) ──
+    const [hoistedMarketauxNews, setHoistedMarketauxNews] = useState([]);
+    const [hoistedFetchingNews, setHoistedFetchingNews] = useState(false);
+    const [hoistedNewsError, setHoistedNewsError] = useState(null);
+    const [hoistedHasFetched, setHoistedHasFetched] = useState(false);
+    const [hoistedActiveNewsTab, setHoistedActiveNewsTab] = useState('yahoo');
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
 
     useEffect(() => {
@@ -2057,6 +2153,11 @@ export default function SnowAIStockScreener() {
                 setEarnings(data.earnings);
                 setNews(data.news || []);
                 setTicker(symbol);
+                // Reset hoisted news state for fresh ticker
+                setHoistedMarketauxNews([]);
+                setHoistedHasFetched(false);
+                setHoistedNewsError(null);
+                setHoistedActiveNewsTab('yahoo');
             } else {
                 setError(data.error || 'Failed to fetch stock data');
             }
@@ -2624,6 +2725,16 @@ export default function SnowAIStockScreener() {
                                             existingNews={news}
                                             openaiKey={OPENAI_API_KEY}
                                             stockData={stockData}
+                                            hoistedMarketauxNews={hoistedMarketauxNews}
+                                            setHoistedMarketauxNews={setHoistedMarketauxNews}
+                                            hoistedFetchingNews={hoistedFetchingNews}
+                                            setHoistedFetchingNews={setHoistedFetchingNews}
+                                            hoistedNewsError={hoistedNewsError}
+                                            setHoistedNewsError={setHoistedNewsError}
+                                            hoistedHasFetched={hoistedHasFetched}
+                                            setHoistedHasFetched={setHoistedHasFetched}
+                                            hoistedActiveNewsTab={hoistedActiveNewsTab}
+                                            setHoistedActiveNewsTab={setHoistedActiveNewsTab}
                                         />
                                     </div>
                                 )}
