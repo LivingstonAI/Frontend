@@ -1443,6 +1443,11 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [sabrinaRec, setSabrinaRec] = useState(null); // persisted rec per ticker
     const [recError, setRecError] = useState(null);
     const [screenshotting, setScreenshotting] = useState(false);
+    const [refreshTick, setRefreshTick] = useState(0);      // manual refresh trigger
+    const [autoRefresh, setAutoRefresh] = useState(false);   // auto-refresh toggle
+    const [refreshing, setRefreshing] = useState(false);     // spinner for refresh
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const autoRefreshRef = useRef(null);
 
     // Lower → Higher timeframes with smart default lookbacks
     const intervalConfig = {
@@ -1506,12 +1511,12 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
     };
 
-    // ── Build / update chart ──
+    // ── Effect A: Create/recreate chart instance (ticker · theme · chartType change) ──
+    // Destroys old chart, builds fresh, fits content on first load
     useEffect(() => {
         if (!chartLoaded || !chartContainerRef.current || !ticker) return;
         const LC = window.LightweightCharts;
 
-        // Destroy old chart
         if (chartRef.current) { try { chartRef.current.remove(); } catch {} chartRef.current = null; seriesRef.current = null; }
 
         const container = chartContainerRef.current;
@@ -1528,52 +1533,90 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         });
         chartRef.current = chart;
 
-        // Resize observer
         const ro = new ResizeObserver(() => {
-            if (chartRef.current && container.clientWidth > 0) {
+            if (chartRef.current && container.clientWidth > 0)
                 chartRef.current.applyOptions({ width: container.clientWidth });
-            }
         });
         ro.observe(container);
 
-        const loadData = async () => {
+        // Initial data load — fitContent on first load
+        const initialLoad = async () => {
             setLoadingChart(true);
             setChartError(null);
             try {
                 const data = await fetchOHLCV(ticker, chartInterval);
-
-                // Remove old series
-                if (seriesRef.current) { try { chart.removeSeries(seriesRef.current); } catch {} seriesRef.current = null; }
-
+                if (!chartRef.current) return;
+                const th2 = getThemeConfig(chartTheme);
                 let series;
                 if (chartType === 'candlestick') {
-                    series = chart.addCandlestickSeries({
-                        upColor: th.upColor, downColor: th.downColor,
-                        borderUpColor: th.upColor, borderDownColor: th.downColor,
-                        wickUpColor: th.upColor, wickDownColor: th.downColor,
-                    });
+                    series = chart.addCandlestickSeries({ upColor: th2.upColor, downColor: th2.downColor, borderUpColor: th2.upColor, borderDownColor: th2.downColor, wickUpColor: th2.upColor, wickDownColor: th2.downColor });
                     series.setData(data);
                 } else if (chartType === 'area') {
-                    series = chart.addAreaSeries({
-                        lineColor: th.lineColor, topColor: th.areaTop, bottomColor: th.areaBot, lineWidth: 2,
-                    });
+                    series = chart.addAreaSeries({ lineColor: th2.lineColor, topColor: th2.areaTop, bottomColor: th2.areaBot, lineWidth: 2 });
                     series.setData(data.map(d => ({ time: d.time, value: d.value })));
                 } else {
-                    series = chart.addLineSeries({ color: th.lineColor, lineWidth: 2 });
+                    series = chart.addLineSeries({ color: th2.lineColor, lineWidth: 2 });
                     series.setData(data.map(d => ({ time: d.time, value: d.value })));
                 }
                 seriesRef.current = series;
-                chart.timeScale().fitContent();
+                chart.timeScale().fitContent(); // fit only on fresh chart
+                setLastRefreshed(new Date());
             } catch (e) {
                 setChartError('Could not load chart data. Check ticker or try again.');
             } finally {
                 setLoadingChart(false);
             }
         };
-
-        loadData();
+        initialLoad();
         return () => { ro.disconnect(); };
-    }, [chartLoaded, ticker, chartInterval, chartType, chartTheme]);
+    }, [chartLoaded, ticker, chartType, chartTheme]); // ← NO chartInterval here
+
+    // ── Effect B: Refresh data only (interval change · manual refresh · auto-refresh) ──
+    // Preserves scroll/zoom position — does NOT recreate the chart instance
+    useEffect(() => {
+        if (!chartRef.current || !seriesRef.current || !ticker) return;
+
+        const refreshData = async () => {
+            setRefreshing(true);
+            setChartError(null);
+            try {
+                const data = await fetchOHLCV(ticker, chartInterval);
+                if (!seriesRef.current || !chartRef.current) return;
+
+                // Save current visible range so we can restore it after update
+                const visibleRange = chartRef.current.timeScale().getVisibleRange();
+
+                // Update series data in-place — no chart recreation
+                const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
+                seriesRef.current.setData(data.map(mapData));
+
+                // Restore position OR fitContent if this is the very first data for this interval
+                if (visibleRange && visibleRange.from && visibleRange.to) {
+                    chartRef.current.timeScale().setVisibleRange(visibleRange);
+                } else {
+                    chartRef.current.timeScale().fitContent();
+                }
+                setLastRefreshed(new Date());
+            } catch (e) {
+                setChartError('Refresh failed. Check connection.');
+            } finally {
+                setRefreshing(false);
+            }
+        };
+
+        refreshData();
+    }, [chartInterval, refreshTick]); // ← interval changes + manual refresh trigger
+
+    // ── Auto-refresh interval (30s) ──
+    useEffect(() => {
+        if (autoRefreshRef.current) { clearInterval(autoRefreshRef.current); autoRefreshRef.current = null; }
+        if (autoRefresh && ticker) {
+            autoRefreshRef.current = setInterval(() => {
+                setRefreshTick(t => t + 1); // nudges Effect B without rebuilding chart
+            }, 30000);
+        }
+        return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+    }, [autoRefresh, ticker]);
 
     // ── Ask Sabrina for a full recommendation ──
     const askSabrinaForRec = async (imageDataUrl = null) => {
@@ -1591,10 +1634,23 @@ Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}`
             `  ${e.quarter}: Rev $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, EPS $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`
         ).join('\n') : '';
 
-        const yahooHeadlines = news?.filter(n => n?.title).slice(0, 4).map(n => `  - ${n.title}`) || [];
-        const mktxHeadlines  = marketauxNews?.filter(n => n?.title).slice(0, 4).map(n => `  - [Marketaux] ${n.title}`) || [];
-        const allHeadlines   = [...yahooHeadlines, ...mktxHeadlines];
-        const newsInfo = allHeadlines.length ? `\nRecent Headlines (${allHeadlines.length} articles):\n` + allHeadlines.join('\n') : '';
+        const yahooArticles = (news?.filter(n => n?.title) || []).slice(0, 4).map(n => {
+            const parts = [`  • ${n.title}`];
+            if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
+            return parts.join('\n');
+        });
+        const mktxArticles = (marketauxNews?.filter(n => n?.title) || []).slice(0, 4).map(n => {
+            const parts = [`  • [Marketaux] ${n.title}`];
+            if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
+            if (n.highlights && typeof n.highlights === 'string' && n.highlights.length > 10) {
+                parts.push(`    KEY QUOTE: "${n.highlights.substring(0, 200).trim()}"`);
+            }
+            return parts.join('\n');
+        });
+        const allArticles = [...yahooArticles, ...mktxArticles];
+        const newsInfo = allArticles.length
+            ? `\nNews Articles (${allArticles.length} total):\n` + allArticles.join('\n\n')
+            : '';
 
         const aiInsightsInfo = cachedNewsAnalysis ? `\nNews AI Analysis: ${cachedNewsAnalysis.bias} bias (${cachedNewsAnalysis.confidence}% confidence)\nTL;DR: ${cachedNewsAnalysis.tldr}` : '';
 
@@ -1793,7 +1849,46 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
 
                 {/* Chart action bar — theme-aware */}
-                <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
+                    {/* Manual refresh */}
+                    <button
+                        onClick={() => setRefreshTick(t => t + 1)}
+                        disabled={refreshing || loadingChart}
+                        title="Refresh chart data"
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '13px', fontWeight: '700',
+                            border: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: refreshing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        <span style={{ display: 'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span>
+                    </button>
+                    {/* Auto-refresh toggle */}
+                    <button
+                        onClick={() => setAutoRefresh(a => !a)}
+                        title={autoRefresh ? 'Auto-refresh ON (30s) — click to disable' : 'Enable auto-refresh every 30s'}
+                        style={{
+                            padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0')}`,
+                            backgroundColor: autoRefresh ? (chartTheme==='hud'?'rgba(0,212,255,0.12)':'rgba(16,185,129,0.1)') : (chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff'),
+                            color: autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'rgba(0,212,255,0.4)':chartTheme==='dark'?'#555':'#aaa'),
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : 'currentColor', display: 'inline-block', opacity: autoRefresh ? 1 : 0.35 }} />
+                        {autoRefresh ? '30s' : 'Auto'}
+                    </button>
+                    {/* Last refreshed */}
+                    {lastRefreshed && (
+                        <span style={{ fontSize: '11px', color: chartTheme==='hud'?'rgba(0,212,255,0.35)':chartTheme==='dark'?'#3a3a4a':'#ccc' }}>
+                            {lastRefreshed.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
+                        </span>
+                    )}
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
                     <button
                         onClick={captureAndAnalyse}
                         disabled={sabrinaLoading || screenshotting || !chartLoaded}
