@@ -815,37 +815,40 @@ function EnhancedNewsSection({
     hoistedNewsError, setHoistedNewsError,
     hoistedHasFetched, setHoistedHasFetched,
     hoistedActiveNewsTab, setHoistedActiveNewsTab,
+    hoistedCachedAnalyses, setHoistedCachedAnalyses,
+    hoistedShowAnalysisModal, setHoistedShowAnalysisModal,
 }) {
-    // Use hoisted state when available (props), fall back to local for backward compat
-    const marketauxNews   = hoistedMarketauxNews  ?? [];
-    const setMarketauxNews = hoistedMarketauxNews !== undefined ? setHoistedMarketauxNews : useState([])[1];
-    const fetchingNews    = hoistedFetchingNews   ?? false;
-    const setFetchingNews = hoistedFetchingNews   !== undefined ? setHoistedFetchingNews  : useState(false)[1];
-    const newsError       = hoistedNewsError      ?? null;
-    const setNewsError    = hoistedNewsError      !== undefined ? setHoistedNewsError     : useState(null)[1];
-    const hasFetched      = hoistedHasFetched     ?? false;
-    const setHasFetched   = hoistedHasFetched     !== undefined ? setHoistedHasFetched    : useState(false)[1];
-    const activeNewsTab   = hoistedActiveNewsTab  ?? 'yahoo';
-    const setActiveNewsTab = hoistedActiveNewsTab !== undefined ? setHoistedActiveNewsTab  : useState('yahoo')[1];
+    // Use hoisted state — all persists across tab switches
+    const marketauxNews    = hoistedMarketauxNews  ?? [];
+    const setMarketauxNews = setHoistedMarketauxNews  || useState([])[1];
+    const fetchingNews     = hoistedFetchingNews   ?? false;
+    const setFetchingNews  = setHoistedFetchingNews  || useState(false)[1];
+    const newsError        = hoistedNewsError      ?? null;
+    const setNewsError     = setHoistedNewsError    || useState(null)[1];
+    const hasFetched       = hoistedHasFetched     ?? false;
+    const setHasFetched    = setHoistedHasFetched   || useState(false)[1];
+    const activeNewsTab    = hoistedActiveNewsTab  ?? 'yahoo';
+    const setActiveNewsTab = setHoistedActiveNewsTab || useState('yahoo')[1];
     const [pendingArticle, setPendingArticle] = useState(null);
 
-    // Analysis states
-    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-    const [isAnalysing, setIsAnalysing] = useState(false);
-    const [analysisError, setAnalysisError] = useState(null);
-    const [cachedAnalyses, setCachedAnalyses] = useState({}); // { [ticker]: analysis }
+    // Analysis states — use hoisted versions so they survive tab switches
+    const showAnalysisModal    = hoistedShowAnalysisModal   ?? false;
+    const setShowAnalysisModal = setHoistedShowAnalysisModal || useState(false)[1];
+    const cachedAnalyses       = hoistedCachedAnalyses      ?? {};
+    const setCachedAnalyses    = setHoistedCachedAnalyses   || useState({})[1];
+    const [isAnalysing,    setIsAnalysing]    = useState(false);
+    const [analysisError,  setAnalysisError]  = useState(null);
 
-    // Load cached analyses from storage on mount
+    // Load cached analyses from storage on mount (only once)
     useEffect(() => {
         const loadCached = async () => {
             try {
                 const result = await window.storage.get('news-analyses');
                 if (result?.value) {
-                    setCachedAnalyses(JSON.parse(result.value));
+                    const parsed = JSON.parse(result.value);
+                    setCachedAnalyses(parsed);
                 }
-            } catch {
-                // no cached data yet — fresh start
-            }
+            } catch {}
         };
         loadCached();
     }, []);
@@ -1426,7 +1429,7 @@ function EmptyNewsState({ message }) {
 }
 
 // ─── Chart & Insights Tab ─────────────────────────────────────────────────────
-function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cachedNewsAnalysis }) {
+function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis }) {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
@@ -1588,7 +1591,10 @@ Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}`
             `  ${e.quarter}: Rev $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, EPS $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`
         ).join('\n') : '';
 
-        const newsInfo = news?.length ? `\nRecent Headlines:\n` + news.slice(0, 5).filter(n => n?.title).map(n => `  - ${n.title}`).join('\n') : '';
+        const yahooHeadlines = news?.filter(n => n?.title).slice(0, 4).map(n => `  - ${n.title}`) || [];
+        const mktxHeadlines  = marketauxNews?.filter(n => n?.title).slice(0, 4).map(n => `  - [Marketaux] ${n.title}`) || [];
+        const allHeadlines   = [...yahooHeadlines, ...mktxHeadlines];
+        const newsInfo = allHeadlines.length ? `\nRecent Headlines (${allHeadlines.length} articles):\n` + allHeadlines.join('\n') : '';
 
         const aiInsightsInfo = cachedNewsAnalysis ? `\nNews AI Analysis: ${cachedNewsAnalysis.bias} bias (${cachedNewsAnalysis.confidence}% confidence)\nTL;DR: ${cachedNewsAnalysis.tldr}` : '';
 
@@ -1670,10 +1676,16 @@ Respond ONLY with a JSON object (no markdown, no backticks):
     const recentEarnings = earnings?.slice(0, 6).filter(e => e.revenue || e.earnings) || [];
 
     return (
-        <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+        <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif", backgroundColor: 'transparent' }}>
 
             {/* ── Chart Card ── */}
-            <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginBottom: '20px' }}>
+            {(() => {
+            const th = getThemeConfig(chartTheme);
+            const cardBg     = th.bg;
+            const cardBorder = chartTheme === 'light' ? '#e8e8e8' : chartTheme === 'dark' ? '#2a2a3a' : '#0d3a5c';
+            const cardShadow = chartTheme === 'hud'   ? '0 2px 16px rgba(0,212,255,0.12)' : chartTheme === 'dark' ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.06)';
+            return (
+            <div style={{ backgroundColor: cardBg, borderRadius: '12px', border: `1px solid ${cardBorder}`, boxShadow: cardShadow, marginBottom: '20px' }}>
 
                 {/* Chart toolbar — theme-aware, grouped intervals */}
                 {(() => {
@@ -1753,21 +1765,30 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                 {/* Chart container — explicit height so LightweightCharts renders correctly */}
                 <div style={{ position: 'relative', width: '100%', height: '360px' }}>
-                    {(loadingChart || !chartLoaded) && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.9)', zIndex: 2, borderRadius: '0 0 0 0' }}>
+                    {(loadingChart || !chartLoaded) && (() => {
+                        const th2 = getThemeConfig(chartTheme);
+                        const overlayBg   = chartTheme === 'dark' ? 'rgba(15,15,20,0.88)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.88)' : 'rgba(255,255,255,0.9)';
+                        const overlayText = chartTheme === 'hud' ? '#00d4ff' : chartTheme === 'dark' ? '#aaa' : '#666';
+                        return (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: overlayBg, zIndex: 2 }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '28px', marginBottom: '8px', animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
-                                <div style={{ color: '#666', fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library…' : 'Fetching data…'}</div>
+                                <div style={{ color: overlayText, fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library…' : 'Fetching data…'}</div>
                             </div>
                         </div>
-                    )}
-                    {chartError && !loadingChart && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}>
+                        );
+                    })()}
+                    {chartError && !loadingChart && (() => {
+                        const th3 = getThemeConfig(chartTheme);
+                        const errBg = chartTheme === 'dark' ? 'rgba(15,15,20,0.95)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.95)' : 'rgba(255,255,255,0.97)';
+                        return (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px', backgroundColor: errBg }}>
                             <div style={{ fontSize: '32px' }}>⚠️</div>
                             <div style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
-                            <button onClick={() => { setChartError(null); setChartInterval(chartInterval); }} style={{ marginTop: '8px', padding: '6px 14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
+                            <button onClick={() => { setChartError(null); setChartInterval(chartInterval); }} style={{ marginTop: '8px', padding: '6px 14px', backgroundColor: chartTheme==='hud'?'#00d4ff':'#2563eb', color: chartTheme==='hud'?'#020b18':'#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
                         </div>
-                    )}
+                        );
+                    })()}
                     <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
                 </div>
 
@@ -1805,12 +1826,13 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     </button>
 
                     {sabrinaRec && (
-                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#aaa' }}>
+                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: chartTheme==='hud'?'rgba(0,212,255,0.5)':chartTheme==='dark'?'#555':'#aaa' }}>
                             Last rec: {sabrinaRec.generatedAt} {sabrinaRec.hadChart ? '· 📸 with chart' : '· 📋 fundamentals only'}
                         </div>
                     )}
                 </div>
             </div>
+            ); })()}
 
             {recError && (
                 <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#b91c1c', fontSize: '14px', marginBottom: '16px' }}>
@@ -2101,6 +2123,9 @@ export default function SnowAIStockScreener() {
     const [hoistedNewsError, setHoistedNewsError] = useState(null);
     const [hoistedHasFetched, setHoistedHasFetched] = useState(false);
     const [hoistedActiveNewsTab, setHoistedActiveNewsTab] = useState('yahoo');
+    // ── Hoisted news analysis state (so "View Analysis" button never disappears) ──
+    const [hoistedCachedAnalyses, setHoistedCachedAnalyses] = useState({});
+    const [hoistedShowAnalysisModal, setHoistedShowAnalysisModal] = useState(false);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
 
     useEffect(() => {
@@ -2158,6 +2183,7 @@ export default function SnowAIStockScreener() {
                 setHoistedHasFetched(false);
                 setHoistedNewsError(null);
                 setHoistedActiveNewsTab('yahoo');
+                setHoistedShowAnalysisModal(false);
             } else {
                 setError(data.error || 'Failed to fetch stock data');
             }
@@ -2698,12 +2724,13 @@ export default function SnowAIStockScreener() {
 
                                 {/* ── Chart & Insights Tab ── */}
                                 {activeTab === 'chart' && (
-                                    <div style={styles.contentCard}>
+                                    <div style={{ ...styles.contentCard, padding: 0, backgroundColor: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
                                         <ChartInsightsTab
                                             ticker={ticker}
                                             stockData={stockData}
                                             earnings={earnings}
                                             news={news}
+                                            marketauxNews={hoistedMarketauxNews}
                                             openaiKey={OPENAI_API_KEY}
                                             cachedNewsAnalysis={mainCachedNewsAnalyses[ticker] || null}
                                         />
@@ -2735,6 +2762,10 @@ export default function SnowAIStockScreener() {
                                             setHoistedHasFetched={setHoistedHasFetched}
                                             hoistedActiveNewsTab={hoistedActiveNewsTab}
                                             setHoistedActiveNewsTab={setHoistedActiveNewsTab}
+                                            hoistedCachedAnalyses={hoistedCachedAnalyses}
+                                            setHoistedCachedAnalyses={setHoistedCachedAnalyses}
+                                            hoistedShowAnalysisModal={hoistedShowAnalysisModal}
+                                            setHoistedShowAnalysisModal={setHoistedShowAnalysisModal}
                                         />
                                     </div>
                                 )}
