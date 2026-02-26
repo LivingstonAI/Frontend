@@ -1412,6 +1412,515 @@ function EmptyNewsState({ message }) {
     );
 }
 
+// ─── Chart & Insights Tab ─────────────────────────────────────────────────────
+function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cachedNewsAnalysis }) {
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    const seriesRef = useRef(null);
+    const [chartLoaded, setChartLoaded] = useState(false);
+    const [chartError, setChartError] = useState(null);
+    const [chartInterval, setChartInterval] = useState('1D');
+    const [chartType, setChartType] = useState('candlestick'); // 'candlestick' | 'line' | 'area'
+    const [loadingChart, setLoadingChart] = useState(false);
+    const [sabrinaLoading, setSabrinaLoading] = useState(false);
+    const [sabrinaRec, setSabrinaRec] = useState(null); // persisted rec per ticker
+    const [recError, setRecError] = useState(null);
+    const [screenshotting, setScreenshotting] = useState(false);
+
+    const intervals = ['1D', '1W', '1M', '3M', '6M', '1Y', '2Y'];
+
+    // ── Load TradingView Lightweight Charts from CDN ──
+    useEffect(() => {
+        if (window.LightweightCharts) { setChartLoaded(true); return; }
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+        script.onload = () => setChartLoaded(true);
+        script.onerror = () => setChartError('Failed to load chart library.');
+        document.head.appendChild(script);
+    }, []);
+
+    // ── Fetch OHLCV data from Yahoo Finance via proxy ──
+    const fetchOHLCV = async (sym, interval) => {
+        const rangeMap = { '1D': '5d', '1W': '1mo', '1M': '3mo', '3M': '6mo', '6M': '1y', '1Y': '2y', '2Y': '5y' };
+        const ivMap    = { '1D': '15m', '1W': '60m', '1M': '1d', '3M': '1d', '6M': '1d', '1Y': '1wk', '2Y': '1wk' };
+        const range = rangeMap[interval] || '3mo';
+        const iv    = ivMap[interval] || '1d';
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=${range}&interval=${iv}&includePrePost=false`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const result = json?.chart?.result?.[0];
+        if (!result) throw new Error('No chart data');
+        const ts = result.timestamps;
+        const q  = result.indicators?.quote?.[0];
+        const adjClose = result.indicators?.adjclose?.[0]?.adjclose;
+        return ts.map((t, i) => ({
+            time: Math.floor(t),
+            open:  q.open[i]  != null ? +q.open[i].toFixed(2)  : null,
+            high:  q.high[i]  != null ? +q.high[i].toFixed(2)  : null,
+            low:   q.low[i]   != null ? +q.low[i].toFixed(2)   : null,
+            close: (adjClose?.[i] ?? q.close?.[i]) != null ? +((adjClose?.[i] ?? q.close?.[i]).toFixed(2)) : null,
+            value: (adjClose?.[i] ?? q.close?.[i]) != null ? +((adjClose?.[i] ?? q.close?.[i]).toFixed(2)) : null,
+        })).filter(d => d.close != null);
+    };
+
+    // ── Build / update chart ──
+    useEffect(() => {
+        if (!chartLoaded || !chartContainerRef.current || !ticker) return;
+        const LC = window.LightweightCharts;
+
+        // Destroy old chart
+        if (chartRef.current) { try { chartRef.current.remove(); } catch {} chartRef.current = null; seriesRef.current = null; }
+
+        const container = chartContainerRef.current;
+        const chart = LC.createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight || 340,
+            layout: { background: { color: '#fff' }, textColor: '#333' },
+            grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+            crosshair: { mode: LC.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: '#e0e0e0' },
+            timeScale: { borderColor: '#e0e0e0', timeVisible: true, secondsVisible: false },
+            watermark: { visible: false },
+        });
+        chartRef.current = chart;
+
+        // Resize observer
+        const ro = new ResizeObserver(() => {
+            if (chartRef.current && container.clientWidth > 0) {
+                chartRef.current.applyOptions({ width: container.clientWidth });
+            }
+        });
+        ro.observe(container);
+
+        const loadData = async () => {
+            setLoadingChart(true);
+            setChartError(null);
+            try {
+                const data = await fetchOHLCV(ticker, chartInterval);
+
+                // Remove old series
+                if (seriesRef.current) { try { chart.removeSeries(seriesRef.current); } catch {} seriesRef.current = null; }
+
+                let series;
+                if (chartType === 'candlestick') {
+                    series = chart.addCandlestickSeries({
+                        upColor: '#10b981', downColor: '#ef4444',
+                        borderUpColor: '#10b981', borderDownColor: '#ef4444',
+                        wickUpColor: '#10b981', wickDownColor: '#ef4444',
+                    });
+                    series.setData(data);
+                } else if (chartType === 'area') {
+                    series = chart.addAreaSeries({
+                        lineColor: '#2563eb', topColor: 'rgba(37,99,235,0.2)', bottomColor: 'rgba(37,99,235,0.02)', lineWidth: 2,
+                    });
+                    series.setData(data.map(d => ({ time: d.time, value: d.value })));
+                } else {
+                    series = chart.addLineSeries({ color: '#2563eb', lineWidth: 2 });
+                    series.setData(data.map(d => ({ time: d.time, value: d.value })));
+                }
+                seriesRef.current = series;
+                chart.timeScale().fitContent();
+            } catch (e) {
+                setChartError('Could not load chart data. Check ticker or try again.');
+            } finally {
+                setLoadingChart(false);
+            }
+        };
+
+        loadData();
+        return () => { ro.disconnect(); };
+    }, [chartLoaded, ticker, chartInterval, chartType]);
+
+    // ── Ask Sabrina for a full recommendation ──
+    const askSabrinaForRec = async (imageDataUrl = null) => {
+        if (!openaiKey) { setRecError('OpenAI key not loaded yet.'); return; }
+        setSabrinaLoading(true);
+        setRecError(null);
+
+        const priceInfo = stockData ? `
+Ticker: ${ticker} | Name: ${stockData.longName || ticker}
+Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+P/E: ${stockData.trailingPE?.toFixed(2) || 'N/A'} | 52W High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'} | 52W Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}
+Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}` : `Ticker: ${ticker}`;
+
+        const earningsInfo = earnings?.length ? `\nRecent Earnings (last 4Q):\n` + earnings.slice(0, 4).map(e =>
+            `  ${e.quarter}: Rev $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, EPS $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`
+        ).join('\n') : '';
+
+        const newsInfo = news?.length ? `\nRecent Headlines:\n` + news.slice(0, 5).filter(n => n?.title).map(n => `  - ${n.title}`).join('\n') : '';
+
+        const aiInsightsInfo = cachedNewsAnalysis ? `\nNews AI Analysis: ${cachedNewsAnalysis.bias} bias (${cachedNewsAnalysis.confidence}% confidence)\nTL;DR: ${cachedNewsAnalysis.tldr}` : '';
+
+        const textPrompt = `You are Sabrina, a sharp AI stock analyst. Give me a comprehensive trading recommendation for ${ticker}.
+
+AVAILABLE DATA:
+${priceInfo}${earningsInfo}${newsInfo}${aiInsightsInfo}
+${imageDataUrl ? '\nA chart screenshot has been attached. Analyse the price action, trend, support/resistance levels, and any patterns visible.' : '\nNo chart image provided — base analysis on the fundamental data above.'}
+
+Respond ONLY with a JSON object (no markdown, no backticks):
+{
+  "verdict": "BUY" | "SELL" | "HOLD" | "WATCH",
+  "confidence": <0-100>,
+  "priceTarget": "<e.g. $195-210 in 3-6 months or N/A>",
+  "timeframe": "<e.g. Short-term (1-3 months)>",
+  "summary": "<2-3 sentences, sharp and direct>",
+  "bullCase": "<1-2 sentences>",
+  "bearCase": "<1-2 sentences>",
+  "keyLevels": "<support and resistance if chart provided, else N/A>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>"],
+  "risks": ["<risk 1>", "<risk 2>"],
+  "sabrinaQuote": "<one punchy first-person take, 1 sentence, with personality>"
+}`;
+
+        try {
+            const messages = imageDataUrl ? [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: imageDataUrl } },
+                        { type: 'text', text: textPrompt }
+                    ]
+                }
+            ] : [{ role: 'user', content: textPrompt }];
+
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 900, temperature: 0.65 })
+            });
+            const data = await res.json();
+            const raw = data.choices?.[0]?.message?.content || '';
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            setSabrinaRec({ ...parsed, generatedAt: new Date().toLocaleString(), hadChart: !!imageDataUrl });
+        } catch (e) {
+            setRecError('Sabrina hit a snag. Try again 😼');
+        } finally {
+            setSabrinaLoading(false);
+        }
+    };
+
+    // ── Capture chart as image then send to Sabrina ──
+    const captureAndAnalyse = async () => {
+        setScreenshotting(true);
+        try {
+            // TradingView Lightweight Charts has a built-in screenshot method
+            if (chartRef.current) {
+                const canvas = chartRef.current.takeScreenshot();
+                const dataUrl = canvas.toDataURL('image/png');
+                await askSabrinaForRec(dataUrl);
+            } else {
+                await askSabrinaForRec(null);
+            }
+        } catch {
+            await askSabrinaForRec(null);
+        } finally {
+            setScreenshotting(false);
+        }
+    };
+
+    const verdictConfig = {
+        BUY:   { color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', icon: '📈', label: 'BUY' },
+        SELL:  { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', icon: '📉', label: 'SELL' },
+        HOLD:  { color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', icon: '✋', label: 'HOLD' },
+        WATCH: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '👁', label: 'WATCH' },
+    };
+    const vc = verdictConfig[sabrinaRec?.verdict] || verdictConfig.WATCH;
+
+    const recentEarnings = earnings?.slice(0, 6).filter(e => e.revenue || e.earnings) || [];
+
+    return (
+        <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+
+            {/* ── Chart Card ── */}
+            <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden', marginBottom: '20px' }}>
+
+                {/* Chart toolbar */}
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', backgroundColor: '#fafafa' }}>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a1a', marginRight: '4px' }}>
+                        📊 {ticker} Chart
+                    </div>
+
+                    {/* Interval selector */}
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {intervals.map(iv => (
+                            <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                padding: '5px 10px', fontSize: '12px', fontWeight: '600',
+                                borderRadius: '6px', border: '1px solid',
+                                borderColor: chartInterval === iv ? '#2563eb' : '#e0e0e0',
+                                backgroundColor: chartInterval === iv ? '#2563eb' : '#fff',
+                                color: chartInterval === iv ? '#fff' : '#555',
+                                cursor: 'pointer', transition: 'all 0.15s',
+                            }}>{iv}</button>
+                        ))}
+                    </div>
+
+                    {/* Chart type selector */}
+                    <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+                        {[['candlestick', '🕯'], ['area', '📉'], ['line', '〰']].map(([t, icon]) => (
+                            <button key={t} onClick={() => setChartType(t)} style={{
+                                padding: '5px 10px', fontSize: '13px', borderRadius: '6px',
+                                border: '1px solid', borderColor: chartType === t ? '#2563eb' : '#e0e0e0',
+                                backgroundColor: chartType === t ? '#eff6ff' : '#fff',
+                                cursor: 'pointer', transition: 'all 0.15s',
+                            }} title={t}>{icon}</button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Chart container */}
+                <div style={{ position: 'relative', height: '340px', minHeight: '240px' }}>
+                    {(loadingChart || !chartLoaded) && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.85)', zIndex: 2 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '28px', marginBottom: '8px', animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
+                                <div style={{ color: '#666', fontSize: '14px' }}>Loading chart…</div>
+                            </div>
+                        </div>
+                    )}
+                    {chartError && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ fontSize: '32px' }}>⚠️</div>
+                            <div style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
+                        </div>
+                    )}
+                    <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+                </div>
+
+                {/* Chart action bar */}
+                <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fafafa', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <button
+                        onClick={captureAndAnalyse}
+                        disabled={sabrinaLoading || screenshotting || !chartLoaded}
+                        style={{
+                            padding: '9px 18px', borderRadius: '10px',
+                            background: sabrinaLoading || screenshotting ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg, #7c3aed, #db2777)',
+                            border: 'none', color: '#fff', fontSize: '13px', fontWeight: '700',
+                            cursor: sabrinaLoading || screenshotting ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            transition: 'opacity 0.2s',
+                        }}
+                    >
+                        {screenshotting ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>📸</span> Capturing…</> :
+                         sabrinaLoading ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Analysing…</> :
+                         <>😼 Send Chart to Sabrina</>}
+                    </button>
+
+                    <button
+                        onClick={() => askSabrinaForRec(null)}
+                        disabled={sabrinaLoading}
+                        style={{
+                            padding: '9px 16px', borderRadius: '10px',
+                            backgroundColor: '#fff', border: '1px solid #e0e0e0',
+                            color: '#555', fontSize: '13px', fontWeight: '600',
+                            cursor: sabrinaLoading ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                        }}
+                    >
+                        📋 Fundamentals Only
+                    </button>
+
+                    {sabrinaRec && (
+                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#aaa' }}>
+                            Last rec: {sabrinaRec.generatedAt} {sabrinaRec.hadChart ? '· 📸 with chart' : '· 📋 fundamentals only'}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {recError && (
+                <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#b91c1c', fontSize: '14px', marginBottom: '16px' }}>
+                    ⚠️ {recError}
+                </div>
+            )}
+
+            {/* ── Sabrina's Recommendation Card ── */}
+            {sabrinaRec && (
+                <div style={{ backgroundColor: vc.bg, border: `2px solid ${vc.border}`, borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                    {/* Verdict header */}
+                    <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${vc.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '36px', lineHeight: 1, flexShrink: 0 }}>{vc.icon}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '22px', fontWeight: '800', color: vc.color }}>{vc.label}</span>
+                                    <span style={{ backgroundColor: vc.color, color: '#fff', fontSize: '12px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px' }}>
+                                        {sabrinaRec.confidence}% confidence
+                                    </span>
+                                    {sabrinaRec.priceTarget && sabrinaRec.priceTarget !== 'N/A' && (
+                                        <span style={{ backgroundColor: '#fff', border: `1px solid ${vc.border}`, color: '#555', fontSize: '12px', fontWeight: '600', padding: '3px 10px', borderRadius: '20px' }}>
+                                            🎯 {sabrinaRec.priceTarget}
+                                        </span>
+                                    )}
+                                    {sabrinaRec.timeframe && (
+                                        <span style={{ fontSize: '12px', color: '#888' }}>· {sabrinaRec.timeframe}</span>
+                                    )}
+                                </div>
+                                <div style={{ fontSize: '15px', color: '#333', lineHeight: '1.6' }}>{sabrinaRec.summary}</div>
+                            </div>
+                        </div>
+
+                        {/* Sabrina quote */}
+                        {sabrinaRec.sabrinaQuote && (
+                            <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', borderLeft: '3px solid #7c3aed', borderRadius: '8px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '18px', flexShrink: 0 }}>😼</span>
+                                <div style={{ fontSize: '14px', color: '#4c1d95', fontStyle: 'italic', lineHeight: '1.5' }}>"{sabrinaRec.sabrinaQuote}"</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bull / Bear / Levels grid */}
+                    <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                        {sabrinaRec.bullCase && (
+                            <div style={{ backgroundColor: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', letterSpacing: '0.08em', marginBottom: '6px' }}>📈 BULL CASE</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.bullCase}</div>
+                            </div>
+                        )}
+                        {sabrinaRec.bearCase && (
+                            <div style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', letterSpacing: '0.08em', marginBottom: '6px' }}>📉 BEAR CASE</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.bearCase}</div>
+                            </div>
+                        )}
+                        {sabrinaRec.keyLevels && sabrinaRec.keyLevels !== 'N/A' && (
+                            <div style={{ backgroundColor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#2563eb', letterSpacing: '0.08em', marginBottom: '6px' }}>📐 KEY LEVELS</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.keyLevels}</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Catalysts + Risks */}
+                    {((sabrinaRec.catalysts?.length > 0) || (sabrinaRec.risks?.length > 0)) && (
+                        <div style={{ padding: '0 20px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                            {sabrinaRec.catalysts?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>🚀 CATALYSTS</div>
+                                    {sabrinaRec.catalysts.map((c, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#10b981', fontWeight: '700', flexShrink: 0 }}>{i + 1}.</span>{c}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {sabrinaRec.risks?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>⚠️ RISKS</div>
+                                    {sabrinaRec.risks.map((r, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#ef4444', fontWeight: '700', flexShrink: 0 }}>↘</span>{r}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── Bottom context panels ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+
+                {/* News Insights */}
+                {(news?.filter(n => n?.title).length > 0 || cachedNewsAnalysis) && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>📰 News Context</div>
+                        </div>
+                        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {/* AI news analysis badge */}
+                            {cachedNewsAnalysis && (() => {
+                                const bColors = { BULLISH: '#10b981', BEARISH: '#ef4444', NEUTRAL: '#f59e0b', MIXED: '#2563eb' };
+                                const bIcons  = { BULLISH: '📈', BEARISH: '📉', NEUTRAL: '➡️', MIXED: '🔀' };
+                                const bc = bColors[cachedNewsAnalysis.bias] || '#2563eb';
+                                return (
+                                    <div style={{ padding: '10px 12px', backgroundColor: bc + '10', border: `1px solid ${bc}30`, borderLeft: `3px solid ${bc}`, borderRadius: '8px' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: bc, marginBottom: '4px', letterSpacing: '0.07em' }}>
+                                            {bIcons[cachedNewsAnalysis.bias]} AI NEWS ANALYSIS · {cachedNewsAnalysis.bias} · {cachedNewsAnalysis.confidence}%
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{cachedNewsAnalysis.tldr}</div>
+                                    </div>
+                                );
+                            })()}
+                            {/* Top headlines */}
+                            {news?.filter(n => n?.title).slice(0, 4).map((item, i) => {
+                                const lower = item.title.toLowerCase();
+                                const bull = ['surge','rally','gain','beat','soar','rise','record','profit'].some(w => lower.includes(w));
+                                const bear = ['fall','drop','decline','miss','loss','crash','warn','layoff'].some(w => lower.includes(w));
+                                const dot = bull ? '#10b981' : bear ? '#ef4444' : '#f59e0b';
+                                return (
+                                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: dot, flexShrink: 0, marginTop: '5px' }} />
+                                        <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4' }}>{item.title}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Earnings Snapshot */}
+                {recentEarnings.length > 0 && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>💰 Recent Earnings</div>
+                        </div>
+                        <div style={{ padding: '14px 16px' }}>
+                            {recentEarnings.map((e, i) => {
+                                const rev = e.revenue ? (e.revenue / 1e9).toFixed(1) : null;
+                                const eps = e.earnings ? (e.earnings / 1e9).toFixed(2) : null;
+                                const prev = recentEarnings[i + 1];
+                                const revTrend = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '▲' : '▼') : '';
+                                const revColor = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '#10b981' : '#ef4444') : '#999';
+                                return (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < recentEarnings.length - 1 ? '1px solid #f4f4f4' : 'none' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#666', flexShrink: 0 }}>{e.quarter}</div>
+                                        <div style={{ display: 'flex', gap: '14px', fontSize: '13px' }}>
+                                            {rev && <span style={{ color: '#333' }}>Rev <strong>${rev}B</strong> <span style={{ color: revColor, fontSize: '11px' }}>{revTrend}</span></span>}
+                                            {eps && <span style={{ color: '#333' }}>EPS <strong style={{ color: parseFloat(eps) >= 0 ? '#10b981' : '#ef4444' }}>${eps}B</strong></span>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Stock Key Stats */}
+                {stockData && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>📌 Key Stats</div>
+                        </div>
+                        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {[
+                                ['Price',       `$${stockData.currentPrice?.toFixed(2) || 'N/A'}`],
+                                ['Market Cap',  stockData.marketCap ? `$${(stockData.marketCap/1e9).toFixed(1)}B` : 'N/A'],
+                                ['P/E Ratio',   stockData.trailingPE?.toFixed(2) || 'N/A'],
+                                ['52W High',    `$${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}`],
+                                ['52W Low',     `$${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}`],
+                                ['Div Yield',   stockData.dividendYield ? `${(stockData.dividendYield*100).toFixed(2)}%` : 'N/A'],
+                            ].map(([label, value]) => (
+                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', color: '#888', fontWeight: '500' }}>{label}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a' }}>{value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @media (max-width: 600px) {
+                    .chart-toolbar { flex-direction: column; align-items: flex-start !important; }
+                }
+            `}</style>
+        </div>
+    );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function SnowAIStockScreener() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -1500,6 +2009,7 @@ export default function SnowAIStockScreener() {
     const [aiAnalysisResults, setAiAnalysisResults] = useState(null);
     const [showAnalysisModal, setShowAnalysisModal] = useState(false);
     const [analysisFilterCategory, setAnalysisFilterCategory] = useState('All');
+    const [mainCachedNewsAnalyses, setMainCachedNewsAnalyses] = useState({});
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
 
     useEffect(() => {
@@ -1526,6 +2036,18 @@ export default function SnowAIStockScreener() {
         };
         fetchOpenAIKey();
     }, []);
+
+    // Sync cached news analyses so ChartInsightsTab can read them
+    useEffect(() => {
+        const syncNewsAnalyses = async () => {
+            try {
+                const result = await window.storage.get('news-analyses');
+                if (result?.value) setMainCachedNewsAnalyses(JSON.parse(result.value));
+            } catch {}
+        };
+        syncNewsAnalyses();
+        // Re-sync whenever tab changes to 'chart' so it's always fresh
+    }, [activeTab]);
 
     const fetchStockData = async (symbol) => {
         if (!symbol) return;
@@ -1967,9 +2489,15 @@ export default function SnowAIStockScreener() {
                                 </div>
 
                                 <div style={styles.tabContainer}>
-                                    {['overview', 'financials', 'earnings', 'news'].map(tab => (
-                                        <button key={tab} style={{ ...styles.tab, ...(activeTab === tab ? styles.activeTabStyle : {}) }} onClick={() => setActiveTab(tab)}>
-                                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                    {[
+                                        { id: 'overview',   label: 'Overview' },
+                                        { id: 'financials', label: 'Financials' },
+                                        { id: 'earnings',   label: 'Earnings' },
+                                        { id: 'chart',      label: '📊 Chart' },
+                                        { id: 'news',       label: 'News' },
+                                    ].map(({ id, label }) => (
+                                        <button key={id} style={{ ...styles.tab, ...(activeTab === id ? styles.activeTabStyle : {}) }} onClick={() => setActiveTab(id)}>
+                                            {label}
                                         </button>
                                     ))}
                                 </div>
@@ -2069,6 +2597,20 @@ export default function SnowAIStockScreener() {
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* ── Chart & Insights Tab ── */}
+                                {activeTab === 'chart' && (
+                                    <div style={styles.contentCard}>
+                                        <ChartInsightsTab
+                                            ticker={ticker}
+                                            stockData={stockData}
+                                            earnings={earnings}
+                                            news={news}
+                                            openaiKey={OPENAI_API_KEY}
+                                            cachedNewsAnalysis={mainCachedNewsAnalyses[ticker] || null}
+                                        />
                                     </div>
                                 )}
 
