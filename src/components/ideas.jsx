@@ -602,6 +602,276 @@ const tqaStyles = {
     },
 };
 
+// ─── Trend Age Analyzer ──────────────────────────────────────────────────────
+
+const TIMEFRAMES = [
+    { days: 15,  label: "15d" },
+    { days: 20,  label: "20d" },
+    { days: 30,  label: "30d" },
+    { days: 45,  label: "45d" },
+    { days: 60,  label: "60d" },
+    { days: 90,  label: "90d" },
+    { days: 180, label: "180d" },
+];
+
+function classifyTrendAge(r2s) {
+    const short = r2s.slice(0, 3);
+    const mid   = r2s.slice(3, 5);
+    const long  = r2s.slice(5, 7);
+    const avgShort = short.reduce((a, b) => a + b, 0) / short.length;
+    const avgMid   = mid.reduce((a, b) => a + b, 0) / mid.length;
+    const avgLong  = long.reduce((a, b) => a + b, 0) / long.length;
+
+    if (avgShort > 0.55 && avgMid > 0.55 && avgLong > 0.55)
+        return { age: "Mature", emoji: "💪", color: "#15803D", bg: "#DCFCE7", border: "#86EFAC",
+            description: "Strong R² across all timeframes. This trend has been clean and consistent for a long time — well-established with strong institutional backing. High conviction, but watch for exhaustion signs.",
+            action: "Strong hold. Trend has durability but may be late-stage for new entries." };
+    if (avgShort > 0.50 && avgLong < 0.40)
+        return { age: "Early / Young", emoji: "🌱", color: "#1D4ED8", bg: "#DBEAFE", border: "#93C5FD",
+            description: "R² is high on short timeframes but drops off on longer ones. The trend is clean and directional recently, but hasn't been running long enough to show up on higher timeframes. This is a relatively early-stage trend.",
+            action: "Potentially high-upside entry if fundamentals support it. Trend is fresh." };
+    if (avgShort < 0.35 && avgLong > 0.50)
+        return { age: "Aging / Exhausting", emoji: "⏳", color: "#D97706", bg: "#FEF9C3", border: "#FDE047",
+            description: "R² is high on longer timeframes but dropping on shorter ones. The big trend is there, but recent price action is getting choppy and losing direction. Classic late-stage behaviour — distribution or consolidation likely.",
+            action: "Caution. The trend exists but is losing steam. Watch for reversal signals." };
+    if (avgShort > 0.45 && avgMid > 0.40 && avgLong < 0.45)
+        return { age: "Developing", emoji: "📈", color: "#7C3AED", bg: "#EDE9FE", border: "#C4B5FD",
+            description: "R² is solid on short and mid timeframes but hasn't yet shown up on longer ones. The trend is building momentum — past the very early stage but not yet fully established.",
+            action: "Good risk/reward if direction is confirmed. Trend is gaining credibility." };
+    if (avgMid > 0.50 && avgShort < 0.40 && avgLong < 0.40)
+        return { age: "Choppy / Consolidating", emoji: "〰️", color: "#B91C1C", bg: "#FEE2E2", border: "#FCA5A5",
+            description: "R² is only meaningful at mid-range timeframes. Short-term is noisy and long-term has no clear direction. Likely in a consolidation phase or range-bound.",
+            action: "Avoid trend-following. Wait for a breakout with improving R² across timeframes." };
+    if (avgShort < 0.30 && avgMid < 0.30 && avgLong < 0.30)
+        return { age: "No Clear Trend", emoji: "🔀", color: "#64748B", bg: "#F1F5F9", border: "#CBD5E1",
+            description: "R² is low across all timeframes. Price action is essentially random — no sustained directional move exists at any measured timeframe.",
+            action: "No trend to trade. This is a range or noise market." };
+    return { age: "Mixed / Unclear", emoji: "🔍", color: "#64748B", bg: "#F8FAFC", border: "#E2E8F0",
+        description: "R² pattern doesn't fit a clear trend-age profile. The stock shows inconsistent trend quality across timeframes — could be transitioning between phases.",
+        action: "Monitor for clarity. Check back after a few more sessions." };
+}
+
+function R2Heatmap({ r2s }) {
+    return (
+        <div style={{ display: "flex", gap: "4px", alignItems: "flex-end" }}>
+            {TIMEFRAMES.map((tf, i) => {
+                const v = r2s[i] ?? 0;
+                const pct = Math.round(v * 100);
+                const col = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
+                return (
+                    <div key={tf.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", flex: 1 }}>
+                        <span style={{ fontSize: "10px", fontWeight: "700", color: col }}>{pct}%</span>
+                        <div style={{ width: "100%", height: "48px", background: "#F1F5F9", borderRadius: "4px", display: "flex", alignItems: "flex-end", overflow: "hidden" }}>
+                            <div style={{ width: "100%", height: `${pct}%`, background: col, borderRadius: "4px", transition: "height 0.7s cubic-bezier(0.34,1.2,0.64,1)" }} />
+                        </div>
+                        <span style={{ fontSize: "9px", color: "#94A3B8" }}>{tf.label}</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function TrendAgeModal() {
+    const [open, setOpen] = useState(false);
+    const [symbol, setSymbol] = useState("");
+    const [customSymbol, setCustomSymbol] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+    const [error, setError] = useState(null);
+    const baseUrl = "https://backend-production-c0ab.up.railway.app";
+
+    const analyze = async () => {
+        const ticker = (customSymbol.trim() || symbol).toUpperCase();
+        if (!ticker) { setError("Please select or enter a symbol."); return; }
+        setLoading(true); setResult(null); setError(null);
+        try {
+            const res = await fetch(`${baseUrl}/ideas_hub_trend_age_analysis_v1`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: ticker }),
+            });
+            if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed"); }
+            setResult(await res.json());
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+
+    const cl = result ? classifyTrendAge(result.r2_by_timeframe.map(t => t.r2)) : null;
+    const avgR2 = result ? Math.round(result.r2_by_timeframe.reduce((a, b) => a + b.r2, 0) / result.r2_by_timeframe.length * 100) : 0;
+
+    return (
+        <>
+            <style>{`
+                @keyframes ta-spin { to { transform: rotate(360deg); } }
+                @keyframes ta-fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+                .ta-trigger-btn:hover { background: #6D28D9 !important; transform: translateY(-1px); }
+                .ta-analyze-btn:hover:not(:disabled) { background: #1D4ED8 !important; }
+                .ta-analyze-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+                .ta-close-btn:hover { background: #F1F5F9 !important; }
+                @media (max-width: 520px) { .ta-controls { grid-template-columns: 1fr !important; } }
+            `}</style>
+
+            <button className="ta-trigger-btn btn" onClick={() => setOpen(true)} style={taStyles.triggerBtn}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: "7px", flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5"/>
+                    <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                </svg>
+                Trend Age
+            </button>
+
+            {open && (
+                <div style={taStyles.overlay} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
+                    <div style={taStyles.modal}>
+                        <div style={taStyles.header}>
+                            <div>
+                                <p style={taStyles.title}>Trend Age Analyzer</p>
+                                <p style={taStyles.subtitle}>Early, developing, mature, or exhausting? R² across 7 timeframes tells you.</p>
+                            </div>
+                            <button className="ta-close-btn" style={taStyles.closeBtn} onClick={() => setOpen(false)}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                    <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div style={{ padding: "16px 22px 22px" }}>
+                            <div className="ta-controls" style={taStyles.controls}>
+                                <div style={taStyles.controlGroup}>
+                                    <label style={taStyles.ctrlLabel}>Select Stock</label>
+                                    <select style={taStyles.select} value={symbol} onChange={e => { setSymbol(e.target.value); setCustomSymbol(""); }}>
+                                        <option value="">-- Choose from list --</option>
+                                        {STOCK_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div style={taStyles.controlGroup}>
+                                    <label style={taStyles.ctrlLabel}>Or Type Symbol</label>
+                                    <input style={taStyles.input} placeholder="e.g. NVDA, TSLA..."
+                                        value={customSymbol} onChange={e => { setCustomSymbol(e.target.value.toUpperCase()); setSymbol(""); }} />
+                                </div>
+                                <button className="ta-analyze-btn" style={taStyles.analyzeBtn} onClick={analyze} disabled={loading}>
+                                    {loading ? (
+                                        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                            </svg>
+                                            Analyzing 7 timeframes...
+                                        </span>
+                                    ) : "Analyze Trend Age →"}
+                                </button>
+                            </div>
+
+                            {error && <div style={taStyles.errorBox}>{error}</div>}
+
+                            {result && cl && (
+                                <div style={{ animation: "ta-fadeUp 0.3s ease" }}>
+                                    {/* Hero classification card */}
+                                    <div style={{ ...taStyles.heroCard, background: cl.bg, borderColor: cl.border }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
+                                            <div>
+                                                <div style={{ fontSize: "26px", lineHeight: 1 }}>{cl.emoji}</div>
+                                                <div style={{ fontSize: "22px", fontWeight: "800", color: cl.color, marginTop: "5px" }}>{cl.age}</div>
+                                                <div style={{ display: "flex", gap: "7px", marginTop: "8px", flexWrap: "wrap" }}>
+                                                    <span style={{ ...taStyles.badge, background: result.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: result.direction === "Bullish" ? "#15803D" : "#B91C1C" }}>
+                                                        {result.direction === "Bullish" ? "▲" : "▼"} {result.direction}
+                                                    </span>
+                                                    <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569" }}>{result.symbol}</span>
+                                                    <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569" }}>Avg R²: {avgR2}%</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: "36px" }}>
+                                                {cl.age === "Mature" ? "🔝" : cl.age === "Early / Young" ? "🚀" : cl.age === "Aging / Exhausting" ? "📉" : cl.age === "Developing" ? "📊" : "🔀"}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* R² heatmap */}
+                                    <div style={taStyles.section}>
+                                        <p style={taStyles.sectionLabel}>R² by Timeframe — how clean is the trend at each horizon?</p>
+                                        <R2Heatmap r2s={result.r2_by_timeframe.map(t => t.r2)} />
+                                        <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+                                            {[["≥60%","#15803D","Strong"], ["40-59%","#2563EB","Moderate"], ["25-39%","#D97706","Weak"], ["<25%","#DC2626","Noise"]].map(([range, color, label]) => (
+                                                <div key={label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                                    <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: color }} />
+                                                    <span style={{ fontSize: "10px", color: "#64748B" }}>{range} = {label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* What this means + what to do */}
+                                    <div style={taStyles.insightBox}>
+                                        <p style={taStyles.insightTitle}>🔍 What this means</p>
+                                        <p style={taStyles.insightText}>{cl.description}</p>
+                                    </div>
+                                    <div style={{ ...taStyles.insightBox, background: "#F0FDF4", borderColor: "#BBF7D0", marginBottom: "16px" }}>
+                                        <p style={{ ...taStyles.insightTitle, color: "#15803D" }}>⚡ What to do</p>
+                                        <p style={taStyles.insightText}>{cl.action}</p>
+                                    </div>
+
+                                    {/* Per-timeframe table */}
+                                    <div style={taStyles.section}>
+                                        <p style={taStyles.sectionLabel}>Per-Timeframe Detail</p>
+                                        <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
+                                            <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px 90px", padding: "7px 14px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9" }}>
+                                                {["Period","R² Bar","R²","Direction"].map(h => (
+                                                    <span key={h} style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
+                                                ))}
+                                            </div>
+                                            {result.r2_by_timeframe.map((tf, i) => {
+                                                const pct = Math.round(tf.r2 * 100);
+                                                const col = tf.r2 >= 0.6 ? "#15803D" : tf.r2 >= 0.4 ? "#2563EB" : tf.r2 >= 0.25 ? "#D97706" : "#DC2626";
+                                                return (
+                                                    <div key={tf.label} style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px 90px", padding: "9px 14px", borderBottom: i < result.r2_by_timeframe.length - 1 ? "1px solid #F1F5F9" : "none", alignItems: "center" }}>
+                                                        <span style={{ fontSize: "12px", fontWeight: "600", color: "#0F172A" }}>{tf.label}</span>
+                                                        <div style={{ height: "6px", background: "#F1F5F9", borderRadius: "3px", overflow: "hidden", marginRight: "12px" }}>
+                                                            <div style={{ height: "100%", width: `${pct}%`, background: col, borderRadius: "3px" }} />
+                                                        </div>
+                                                        <span style={{ fontSize: "12px", fontWeight: "700", color: col }}>{pct}%</span>
+                                                        <span style={{ fontSize: "11px", fontWeight: "600", color: tf.direction === "Bullish" ? "#15803D" : "#B91C1C" }}>
+                                                            {tf.direction === "Bullish" ? "▲" : "▼"} {tf.direction}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
+const taStyles = {
+    triggerBtn: { display: "flex", alignItems: "center", background: "#7C3AED", color: "#fff", border: "none", padding: "0.55rem 1.1rem", borderRadius: "6px", fontWeight: "600", fontSize: "13px", cursor: "pointer", transition: "all 0.2s ease", whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "16px" },
+    modal: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: "16px", width: "100%", maxWidth: "580px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(15,23,42,0.15)", animation: "ta-fadeUp 0.3s cubic-bezier(0.34,1.2,0.64,1)" },
+    header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "20px 22px 16px", borderBottom: "1px solid #F1F5F9", position: "sticky", top: 0, background: "#fff", zIndex: 10 },
+    title: { fontSize: "17px", fontWeight: "700", color: "#0F172A", margin: 0 },
+    subtitle: { fontSize: "12px", color: "#94A3B8", margin: "3px 0 0" },
+    closeBtn: { background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#64748B", borderRadius: "8px", padding: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" },
+    controls: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" },
+    controlGroup: { display: "flex", flexDirection: "column", gap: "4px" },
+    ctrlLabel: { fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.7px" },
+    select: { background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "8px 10px", color: "#0F172A", fontSize: "13px", cursor: "pointer", width: "100%" },
+    input: { background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "8px 10px", color: "#0F172A", fontSize: "13px", width: "100%", outline: "none", boxSizing: "border-box" },
+    analyzeBtn: { gridColumn: "1 / -1", background: "#2563EB", border: "none", borderRadius: "8px", padding: "11px", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: "pointer", transition: "background 0.2s" },
+    errorBox: { background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", padding: "10px 14px", color: "#DC2626", fontSize: "13px", marginBottom: "14px" },
+    heroCard: { border: "1px solid", borderRadius: "12px", padding: "18px", marginBottom: "16px" },
+    badge: { borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "600", display: "inline-block" },
+    section: { marginBottom: "16px" },
+    sectionLabel: { fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.7px", marginBottom: "10px" },
+    insightBox: { background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "10px", padding: "14px", marginBottom: "12px" },
+    insightTitle: { fontSize: "11px", fontWeight: "700", color: "#2563EB", margin: "0 0 6px" },
+    insightText: { fontSize: "13px", color: "#1E3A5F", margin: 0, lineHeight: 1.65 },
+};
+
+
 // ─── Main IdeasSection ────────────────────────────────────────────────────────
 
 export default function IdeasSection() {
@@ -826,6 +1096,7 @@ export default function IdeasSection() {
                     <p style={styles.sectionTitle}>Ideas Hub</p>
                     <div style={styles.headerActions}>
                         <StockTrendModal />
+                        <TrendAgeModal />
                         <button
                             style={styles.createButton}
                             onClick={toggleCreateForm}
