@@ -673,32 +673,129 @@ function R2Heatmap({ r2s }) {
 }
 
 function TrendAgeModal() {
-    const [open, setOpen] = useState(false);
-    const [symbol, setSymbol] = useState("");
+    const [open, setOpen]       = useState(false);
+    const [tab, setTab]         = useState("single");   // "single" | "bulk"
+
+    // Single analysis state
+    const [symbol, setSymbol]           = useState("");
     const [customSymbol, setCustomSymbol] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
+    const [loading, setLoading]         = useState(false);
+    const [result, setResult]           = useState(null);
+    const [singleError, setSingleError] = useState(null);
+
+    // Bulk scan state
+    const TA_BULK_CACHE_KEY = "ideas_hub_trend_age_bulk_v1";
+    const [bulkStocks, setBulkStocks]       = useState(null);
+    const [bulkDate, setBulkDate]           = useState(null);
+    const [scanning, setScanning]           = useState(false);
+    const [progress, setProgress]           = useState({ done: 0, total: 0, current: "" });
+    const [cacheLoading, setCacheLoading]   = useState(false);
+    const [bulkError, setBulkError]         = useState(null);
+    const [search, setSearch]               = useState("");
+    const [filterAge, setFilterAge]         = useState("All");
+    const [filterDir, setFilterDir]         = useState("All");
+    const [expanded, setExpanded]           = useState({});
+
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
 
-    const analyze = async () => {
+    // ── Load cache when opening bulk tab ──────────────────────────────────────
+    const loadBulkCache = async () => {
+        setCacheLoading(true);
+        try {
+            const res = await window.storage.get(TA_BULK_CACHE_KEY);
+            if (res && res.value) {
+                const parsed = JSON.parse(res.value);
+                setBulkStocks(parsed.stocks);
+                setBulkDate(parsed.date);
+            }
+        } catch (_) {}
+        finally { setCacheLoading(false); }
+    };
+
+    const handleOpen = () => {
+        setOpen(true);
+        if (!bulkStocks) loadBulkCache();
+    };
+
+    // ── Single analysis ───────────────────────────────────────────────────────
+    const analyzeSingle = async () => {
         const ticker = (customSymbol.trim() || symbol).toUpperCase();
-        if (!ticker) { setError("Please select or enter a symbol."); return; }
-        setLoading(true); setResult(null); setError(null);
+        if (!ticker) { setSingleError("Please select or enter a symbol."); return; }
+        setLoading(true); setResult(null); setSingleError(null);
         try {
             const res = await fetch(`${baseUrl}/ideas_hub_trend_age_analysis_v1`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+                method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ symbol: ticker }),
             });
             if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed"); }
             setResult(await res.json());
-        } catch (e) { setError(e.message); }
+        } catch (e) { setSingleError(e.message); }
         finally { setLoading(false); }
     };
 
-    const cl = result ? classifyTrendAge(result.r2_by_timeframe.map(t => t.r2)) : null;
-    const avgR2 = result ? Math.round(result.r2_by_timeframe.reduce((a, b) => a + b.r2, 0) / result.r2_by_timeframe.length * 100) : 0;
+    // ── Bulk scan ─────────────────────────────────────────────────────────────
+    const runBulkScan = async () => {
+        setScanning(true); setBulkError(null);
+        setProgress({ done: 0, total: STOCK_LIST.length, current: "" });
+        const results = [];
+        const BATCH = 5;
+        for (let i = 0; i < STOCK_LIST.length; i += BATCH) {
+            const batch = STOCK_LIST.slice(i, i + BATCH);
+            await Promise.all(batch.map(async (sym) => {
+                try {
+                    const res = await fetch(`${baseUrl}/ideas_hub_trend_age_analysis_v1`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ symbol: sym }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const cl = classifyTrendAge(data.r2_by_timeframe.map(t => t.r2));
+                        results.push({
+                            symbol:     data.symbol,
+                            direction:  data.direction,
+                            age:        cl.age,
+                            emoji:      cl.emoji,
+                            color:      cl.color,
+                            bg:         cl.bg,
+                            border:     cl.border,
+                            action:     cl.action,
+                            short_avg:  data.short_avg_r2,
+                            mid_avg:    data.mid_avg_r2,
+                            long_avg:   data.long_avg_r2,
+                            avg_r2:     Math.round(data.r2_by_timeframe.reduce((a,b) => a + b.r2, 0) / data.r2_by_timeframe.length * 100),
+                            r2s:        data.r2_by_timeframe.map(t => t.r2),
+                        });
+                    }
+                } catch (_) {}
+                setProgress(p => ({ ...p, done: p.done + 1, current: sym }));
+            }));
+        }
+        results.sort((a, b) => b.avg_r2 - a.avg_r2);
+        const payload = { stocks: results, date: new Date().toLocaleString() };
+        try { await window.storage.set(TA_BULK_CACHE_KEY, JSON.stringify(payload)); } catch (_) {}
+        setBulkStocks(results); setBulkDate(payload.date); setScanning(false);
+    };
+
+    // ── Derived ───────────────────────────────────────────────────────────────
+    const cl     = result ? classifyTrendAge(result.r2_by_timeframe.map(t => t.r2)) : null;
+    const avgR2  = result ? Math.round(result.r2_by_timeframe.reduce((a,b) => a + b.r2, 0) / result.r2_by_timeframe.length * 100) : 0;
+    const progPct = progress.total > 0 ? Math.round(progress.done / progress.total * 100) : 0;
+
+    const AGE_OPTIONS = ["All","Early / Young","Developing","Mature","Aging / Exhausting","Choppy / Consolidating","No Clear Trend","Mixed / Unclear"];
+
+    const filtered = (bulkStocks || []).filter(s => {
+        const mSearch = s.symbol.includes(search.toUpperCase()) || s.age.toLowerCase().includes(search.toLowerCase());
+        const mAge    = filterAge === "All" || s.age === filterAge;
+        const mDir    = filterDir === "All" || s.direction === filterDir;
+        return mSearch && mAge && mDir;
+    });
+
+    // ── Bulk stats summary ────────────────────────────────────────────────────
+    const bulkSummary = bulkStocks ? (() => {
+        const counts = {};
+        AGE_OPTIONS.slice(1).forEach(a => { counts[a] = bulkStocks.filter(s => s.age === a).length; });
+        return counts;
+    })() : null;
 
     return (
         <>
@@ -709,10 +806,14 @@ function TrendAgeModal() {
                 .ta-analyze-btn:hover:not(:disabled) { background: #1D4ED8 !important; }
                 .ta-analyze-btn:disabled { opacity: 0.55; cursor: not-allowed; }
                 .ta-close-btn:hover { background: #F1F5F9 !important; }
+                .ta-tab:hover { background: #F1F5F9 !important; }
+                .ta-scan-btn:hover:not(:disabled) { background: #6D28D9 !important; }
+                .ta-rescan-btn:hover { background: #EFF6FF !important; }
+                .ta-bulk-row:hover { background: #F8FAFC !important; }
                 @media (max-width: 520px) { .ta-controls { grid-template-columns: 1fr !important; } }
             `}</style>
 
-            <button className="ta-trigger-btn btn" onClick={() => setOpen(true)} style={taStyles.triggerBtn}>
+            <button className="ta-trigger-btn btn" onClick={handleOpen} style={taStyles.triggerBtn}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ marginRight: "7px", flexShrink: 0 }}>
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5"/>
                     <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
@@ -722,11 +823,13 @@ function TrendAgeModal() {
 
             {open && (
                 <div style={taStyles.overlay} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
-                    <div style={taStyles.modal}>
+                    <div style={{ ...taStyles.modal, maxWidth: tab === "bulk" ? "700px" : "580px" }}>
+
+                        {/* ── Header ── */}
                         <div style={taStyles.header}>
                             <div>
                                 <p style={taStyles.title}>Trend Age Analyzer</p>
-                                <p style={taStyles.subtitle}>Early, developing, mature, or exhausting? R² across 7 timeframes tells you.</p>
+                                <p style={taStyles.subtitle}>Where is a trend in its lifecycle — single stock or full bulk scan?</p>
                             </div>
                             <button className="ta-close-btn" style={taStyles.closeBtn} onClick={() => setOpen(false)}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -736,108 +839,282 @@ function TrendAgeModal() {
                             </button>
                         </div>
 
-                        <div style={{ padding: "16px 22px 22px" }}>
-                            <div className="ta-controls" style={taStyles.controls}>
-                                <div style={taStyles.controlGroup}>
-                                    <label style={taStyles.ctrlLabel}>Select Stock</label>
-                                    <select style={taStyles.select} value={symbol} onChange={e => { setSymbol(e.target.value); setCustomSymbol(""); }}>
-                                        <option value="">-- Choose from list --</option>
-                                        {STOCK_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                                <div style={taStyles.controlGroup}>
-                                    <label style={taStyles.ctrlLabel}>Or Type Symbol</label>
-                                    <input style={taStyles.input} placeholder="e.g. NVDA, TSLA..."
-                                        value={customSymbol} onChange={e => { setCustomSymbol(e.target.value.toUpperCase()); setSymbol(""); }} />
-                                </div>
-                                <button className="ta-analyze-btn" style={taStyles.analyzeBtn} onClick={analyze} disabled={loading}>
-                                    {loading ? (
-                                        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
-                                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
-                                            </svg>
-                                            Analyzing 7 timeframes...
-                                        </span>
-                                    ) : "Analyze Trend Age →"}
+                        {/* ── Tabs ── */}
+                        <div style={taStyles.tabRow}>
+                            {[["single","🔍 Single Stock"],["bulk","📊 Bulk Scan"]].map(([t, label]) => (
+                                <button key={t} className="ta-tab" onClick={() => setTab(t)}
+                                    style={{ ...taStyles.tab, ...(tab === t ? taStyles.tabActive : {}) }}>
+                                    {label}
                                 </button>
-                            </div>
+                            ))}
+                        </div>
 
-                            {error && <div style={taStyles.errorBox}>{error}</div>}
+                        <div style={{ padding: "16px 22px 22px" }}>
 
-                            {result && cl && (
-                                <div style={{ animation: "ta-fadeUp 0.3s ease" }}>
-                                    {/* Hero classification card */}
-                                    <div style={{ ...taStyles.heroCard, background: cl.bg, borderColor: cl.border }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
-                                            <div>
-                                                <div style={{ fontSize: "26px", lineHeight: 1 }}>{cl.emoji}</div>
-                                                <div style={{ fontSize: "22px", fontWeight: "800", color: cl.color, marginTop: "5px" }}>{cl.age}</div>
-                                                <div style={{ display: "flex", gap: "7px", marginTop: "8px", flexWrap: "wrap" }}>
-                                                    <span style={{ ...taStyles.badge, background: result.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: result.direction === "Bullish" ? "#15803D" : "#B91C1C" }}>
-                                                        {result.direction === "Bullish" ? "▲" : "▼"} {result.direction}
-                                                    </span>
-                                                    <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569" }}>{result.symbol}</span>
-                                                    <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569" }}>Avg R²: {avgR2}%</span>
-                                                </div>
-                                            </div>
-                                            <div style={{ fontSize: "36px" }}>
-                                                {cl.age === "Mature" ? "🔝" : cl.age === "Early / Young" ? "🚀" : cl.age === "Aging / Exhausting" ? "📉" : cl.age === "Developing" ? "📊" : "🔀"}
-                                            </div>
+                            {/* ════════════════ SINGLE TAB ════════════════ */}
+                            {tab === "single" && (
+                                <>
+                                    <div className="ta-controls" style={taStyles.controls}>
+                                        <div style={taStyles.controlGroup}>
+                                            <label style={taStyles.ctrlLabel}>Select Stock</label>
+                                            <select style={taStyles.select} value={symbol} onChange={e => { setSymbol(e.target.value); setCustomSymbol(""); }}>
+                                                <option value="">-- Choose from list --</option>
+                                                {STOCK_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
                                         </div>
-                                    </div>
-
-                                    {/* R² heatmap */}
-                                    <div style={taStyles.section}>
-                                        <p style={taStyles.sectionLabel}>R² by Timeframe — how clean is the trend at each horizon?</p>
-                                        <R2Heatmap r2s={result.r2_by_timeframe.map(t => t.r2)} />
-                                        <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-                                            {[["≥60%","#15803D","Strong"], ["40-59%","#2563EB","Moderate"], ["25-39%","#D97706","Weak"], ["<25%","#DC2626","Noise"]].map(([range, color, label]) => (
-                                                <div key={label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                                                    <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: color }} />
-                                                    <span style={{ fontSize: "10px", color: "#64748B" }}>{range} = {label}</span>
-                                                </div>
-                                            ))}
+                                        <div style={taStyles.controlGroup}>
+                                            <label style={taStyles.ctrlLabel}>Or Type Symbol</label>
+                                            <input style={taStyles.input} placeholder="e.g. NVDA, TSLA..."
+                                                value={customSymbol} onChange={e => { setCustomSymbol(e.target.value.toUpperCase()); setSymbol(""); }} />
                                         </div>
+                                        <button className="ta-analyze-btn" style={taStyles.analyzeBtn} onClick={analyzeSingle} disabled={loading}>
+                                            {loading ? (
+                                                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                                    </svg>
+                                                    Analyzing 7 timeframes...
+                                                </span>
+                                            ) : "Analyze Trend Age →"}
+                                        </button>
                                     </div>
 
-                                    {/* What this means + what to do */}
-                                    <div style={taStyles.insightBox}>
-                                        <p style={taStyles.insightTitle}>🔍 What this means</p>
-                                        <p style={taStyles.insightText}>{cl.description}</p>
-                                    </div>
-                                    <div style={{ ...taStyles.insightBox, background: "#F0FDF4", borderColor: "#BBF7D0", marginBottom: "16px" }}>
-                                        <p style={{ ...taStyles.insightTitle, color: "#15803D" }}>⚡ What to do</p>
-                                        <p style={taStyles.insightText}>{cl.action}</p>
-                                    </div>
+                                    {singleError && <div style={taStyles.errorBox}>{singleError}</div>}
 
-                                    {/* Per-timeframe table */}
-                                    <div style={taStyles.section}>
-                                        <p style={taStyles.sectionLabel}>Per-Timeframe Detail</p>
-                                        <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
-                                            <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px 90px", padding: "7px 14px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9" }}>
-                                                {["Period","R² Bar","R²","Direction"].map(h => (
-                                                    <span key={h} style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
-                                                ))}
-                                            </div>
-                                            {result.r2_by_timeframe.map((tf, i) => {
-                                                const pct = Math.round(tf.r2 * 100);
-                                                const col = tf.r2 >= 0.6 ? "#15803D" : tf.r2 >= 0.4 ? "#2563EB" : tf.r2 >= 0.25 ? "#D97706" : "#DC2626";
-                                                return (
-                                                    <div key={tf.label} style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px 90px", padding: "9px 14px", borderBottom: i < result.r2_by_timeframe.length - 1 ? "1px solid #F1F5F9" : "none", alignItems: "center" }}>
-                                                        <span style={{ fontSize: "12px", fontWeight: "600", color: "#0F172A" }}>{tf.label}</span>
-                                                        <div style={{ height: "6px", background: "#F1F5F9", borderRadius: "3px", overflow: "hidden", marginRight: "12px" }}>
-                                                            <div style={{ height: "100%", width: `${pct}%`, background: col, borderRadius: "3px" }} />
+                                    {result && cl && (
+                                        <div style={{ animation: "ta-fadeUp 0.3s ease" }}>
+                                            <div style={{ ...taStyles.heroCard, background: cl.bg, borderColor: cl.border }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
+                                                    <div>
+                                                        <div style={{ fontSize: "26px", lineHeight: 1 }}>{cl.emoji}</div>
+                                                        <div style={{ fontSize: "22px", fontWeight: "800", color: cl.color, marginTop: "5px" }}>{cl.age}</div>
+                                                        <div style={{ display: "flex", gap: "7px", marginTop: "8px", flexWrap: "wrap" }}>
+                                                            <span style={{ ...taStyles.badge, background: result.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: result.direction === "Bullish" ? "#15803D" : "#B91C1C" }}>
+                                                                {result.direction === "Bullish" ? "▲" : "▼"} {result.direction}
+                                                            </span>
+                                                            <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569" }}>{result.symbol}</span>
+                                                            <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569" }}>Avg R²: {avgR2}%</span>
                                                         </div>
-                                                        <span style={{ fontSize: "12px", fontWeight: "700", color: col }}>{pct}%</span>
-                                                        <span style={{ fontSize: "11px", fontWeight: "600", color: tf.direction === "Bullish" ? "#15803D" : "#B91C1C" }}>
-                                                            {tf.direction === "Bullish" ? "▲" : "▼"} {tf.direction}
-                                                        </span>
                                                     </div>
-                                                );
-                                            })}
+                                                    <div style={{ fontSize: "36px" }}>
+                                                        {cl.age === "Mature" ? "🔝" : cl.age === "Early / Young" ? "🚀" : cl.age === "Aging / Exhausting" ? "📉" : cl.age === "Developing" ? "📊" : "🔀"}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={taStyles.section}>
+                                                <p style={taStyles.sectionLabel}>R² by Timeframe</p>
+                                                <R2Heatmap r2s={result.r2_by_timeframe.map(t => t.r2)} />
+                                                <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+                                                    {[["≥60%","#15803D","Strong"],["40-59%","#2563EB","Moderate"],["25-39%","#D97706","Weak"],["<25%","#DC2626","Noise"]].map(([r,c,l]) => (
+                                                        <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                                            <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: c }} />
+                                                            <span style={{ fontSize: "10px", color: "#64748B" }}>{r} = {l}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div style={taStyles.insightBox}>
+                                                <p style={taStyles.insightTitle}>🔍 What this means</p>
+                                                <p style={taStyles.insightText}>{cl.description}</p>
+                                            </div>
+                                            <div style={{ ...taStyles.insightBox, background: "#F0FDF4", borderColor: "#BBF7D0", marginBottom: "16px" }}>
+                                                <p style={{ ...taStyles.insightTitle, color: "#15803D" }}>⚡ What to do</p>
+                                                <p style={taStyles.insightText}>{cl.action}</p>
+                                            </div>
+
+                                            <div style={taStyles.section}>
+                                                <p style={taStyles.sectionLabel}>Per-Timeframe Detail</p>
+                                                <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
+                                                    <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px 90px", padding: "7px 14px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9" }}>
+                                                        {["Period","R² Bar","R²","Direction"].map(h => (
+                                                            <span key={h} style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
+                                                        ))}
+                                                    </div>
+                                                    {result.r2_by_timeframe.map((tf, i) => {
+                                                        const pct = Math.round(tf.r2 * 100);
+                                                        const col = tf.r2 >= 0.6 ? "#15803D" : tf.r2 >= 0.4 ? "#2563EB" : tf.r2 >= 0.25 ? "#D97706" : "#DC2626";
+                                                        return (
+                                                            <div key={tf.label} style={{ display: "grid", gridTemplateColumns: "60px 1fr 70px 90px", padding: "9px 14px", borderBottom: i < result.r2_by_timeframe.length - 1 ? "1px solid #F1F5F9" : "none", alignItems: "center" }}>
+                                                                <span style={{ fontSize: "12px", fontWeight: "600", color: "#0F172A" }}>{tf.label}</span>
+                                                                <div style={{ height: "6px", background: "#F1F5F9", borderRadius: "3px", overflow: "hidden", marginRight: "12px" }}>
+                                                                    <div style={{ height: "100%", width: `${pct}%`, background: col, borderRadius: "3px" }} />
+                                                                </div>
+                                                                <span style={{ fontSize: "12px", fontWeight: "700", color: col }}>{pct}%</span>
+                                                                <span style={{ fontSize: "11px", fontWeight: "600", color: tf.direction === "Bullish" ? "#15803D" : "#B91C1C" }}>
+                                                                    {tf.direction === "Bullish" ? "▲" : "▼"} {tf.direction}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* ════════════════ BULK TAB ════════════════ */}
+                            {tab === "bulk" && (
+                                <>
+                                    {cacheLoading && (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "20px 0", color: "#64748B", fontSize: "13px" }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                                                <circle cx="12" cy="12" r="10" stroke="#7C3AED" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                            </svg>
+                                            Loading saved results...
+                                        </div>
+                                    )}
+
+                                    {!cacheLoading && !bulkStocks && !scanning && (
+                                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "28px 0", textAlign: "center" }}>
+                                            <div style={{ fontSize: "40px" }}>🕐</div>
+                                            <p style={{ fontSize: "14px", color: "#64748B", margin: 0, lineHeight: 1.6 }}>
+                                                No bulk scan yet. Run it once and results are cached — open the modal instantly next time.
+                                            </p>
+                                            <button className="ta-scan-btn" onClick={runBulkScan} style={taStyles.scanBtn}>
+                                                🚀 Run Bulk Trend Age Scan ({STOCK_LIST.length} stocks)
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {scanning && (
+                                        <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "12px", padding: "20px" }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                                <span style={{ fontSize: "13px", fontWeight: "600", color: "#0F172A" }}>Scanning... {progress.done}/{progress.total}</span>
+                                                <span style={{ fontSize: "13px", color: "#64748B" }}>{progPct}%</span>
+                                            </div>
+                                            <div style={{ height: "8px", background: "#E2E8F0", borderRadius: "4px", overflow: "hidden", marginBottom: "8px" }}>
+                                                <div style={{ height: "100%", width: `${progPct}%`, background: "linear-gradient(90deg, #7C3AED, #2563EB)", borderRadius: "4px", transition: "width 0.3s ease" }} />
+                                            </div>
+                                            {progress.current && <p style={{ fontSize: "11px", color: "#94A3B8", margin: 0 }}>Analyzing: <strong>{progress.current}</strong></p>}
+                                        </div>
+                                    )}
+
+                                    {bulkStocks && !scanning && (
+                                        <div style={{ animation: "ta-fadeUp 0.3s ease" }}>
+
+                                            {/* Cache bar */}
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                                                <span style={{ fontSize: "11px", color: "#94A3B8" }}>Last scanned: <strong>{bulkDate}</strong> · {bulkStocks.length} stocks</span>
+                                                <button className="ta-rescan-btn" onClick={runBulkScan} style={taStyles.rescanBtn}>↻ Refresh</button>
+                                            </div>
+
+                                            {/* Age distribution chips */}
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginBottom: "16px" }}>
+                                                {Object.entries(bulkSummary).filter(([,v]) => v > 0).map(([age, count]) => {
+                                                    const sample = bulkStocks.find(s => s.age === age);
+                                                    return (
+                                                        <div key={age} onClick={() => setFilterAge(filterAge === age ? "All" : age)}
+                                                            style={{ background: filterAge === age ? sample?.bg : "#F8FAFC", border: `1px solid ${filterAge === age ? sample?.border : "#E2E8F0"}`, borderRadius: "20px", padding: "5px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", transition: "all 0.15s" }}>
+                                                            <span style={{ fontSize: "12px" }}>{sample?.emoji}</span>
+                                                            <span style={{ fontSize: "11px", fontWeight: "600", color: filterAge === age ? sample?.color : "#475569" }}>{age}</span>
+                                                            <span style={{ fontSize: "11px", color: "#94A3B8" }}>{count}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Search + direction filter */}
+                                            <div style={{ marginBottom: "8px" }}>
+                                                <input placeholder="Search symbol..." value={search} onChange={e => setSearch(e.target.value)}
+                                                    style={{ ...taStyles.input, width: "100%", boxSizing: "border-box", marginBottom: "7px" }} />
+                                                <select value={filterDir} onChange={e => setFilterDir(e.target.value)} style={{ ...taStyles.select, width: "100%" }}>
+                                                    <option value="All">All Directions</option>
+                                                    <option value="Bullish">▲ Bullish</option>
+                                                    <option value="Bearish">▼ Bearish</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Results list */}
+                                            <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
+                                                {/* Column headers */}
+                                                <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
+                                                    {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d",""].map(h => (
+                                                        <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
+                                                    ))}
+                                                </div>
+
+                                                <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                                                    {filtered.length === 0 && (
+                                                        <p style={{ padding: "20px", textAlign: "center", color: "#94A3B8", fontSize: "13px" }}>No stocks match your filters.</p>
+                                                    )}
+                                                    {filtered.map(stock => (
+                                                        <div key={stock.symbol}>
+                                                            <div className="ta-bulk-row"
+                                                                onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
+                                                                style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
+
+                                                                <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</span>
+
+                                                                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                                                                    <span style={{ fontSize: "12px" }}>{stock.emoji}</span>
+                                                                    <span style={{ fontSize: "10px", fontWeight: "600", color: stock.color, lineHeight: 1.2 }}>{stock.age.split("/")[0].trim()}</span>
+                                                                </div>
+
+                                                                {/* Mini sparkline of R² across timeframes */}
+                                                                <div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "22px" }}>
+                                                                    {stock.r2s.map((v, i) => {
+                                                                        const h = Math.max(3, Math.round(v * 22));
+                                                                        const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
+                                                                        return <div key={i} style={{ flex: 1, height: `${h}px`, background: c, borderRadius: "2px" }} />;
+                                                                    })}
+                                                                </div>
+
+                                                                {[stock.short_avg, stock.mid_avg, stock.long_avg].map((v, i) => {
+                                                                    const pct = Math.round(v * 100);
+                                                                    const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
+                                                                    return <span key={i} style={{ fontSize: "11px", fontWeight: "700", color: c, textAlign: "center" }}>{pct}%</span>;
+                                                                })}
+
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ transition: "transform 0.2s", transform: expanded[stock.symbol] ? "rotate(180deg)" : "rotate(0)", justifySelf: "center" }}>
+                                                                    <polyline points="6 9 12 15 18 9" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                </svg>
+                                                            </div>
+
+                                                            {expanded[stock.symbol] && (
+                                                                <div style={{ padding: "10px 12px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", animation: "ta-fadeUp 0.15s ease" }}>
+                                                                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+                                                                        <span style={{ ...taStyles.badge, background: stock.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: stock.direction === "Bullish" ? "#15803D" : "#B91C1C", fontSize: "10px" }}>
+                                                                            {stock.direction === "Bullish" ? "▲" : "▼"} {stock.direction}
+                                                                        </span>
+                                                                        <span style={{ ...taStyles.badge, background: stock.bg, color: stock.color, border: `1px solid ${stock.border}`, fontSize: "10px" }}>
+                                                                            {stock.emoji} {stock.age}
+                                                                        </span>
+                                                                        <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569", fontSize: "10px" }}>
+                                                                            Avg R²: {stock.avg_r2}%
+                                                                        </span>
+                                                                    </div>
+                                                                    <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: 1.6 }}>{stock.action}</p>
+                                                                    {/* Mini per-TF row */}
+                                                                    <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
+                                                                        {TIMEFRAMES.map((tf, i) => {
+                                                                            const v = stock.r2s[i] ?? 0;
+                                                                            const pct = Math.round(v * 100);
+                                                                            const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
+                                                                            return (
+                                                                                <div key={tf.label} style={{ flex: 1, textAlign: "center" }}>
+                                                                                    <div style={{ fontSize: "10px", fontWeight: "700", color: c }}>{pct}%</div>
+                                                                                    <div style={{ height: "4px", background: "#E2E8F0", borderRadius: "2px", margin: "3px 0", overflow: "hidden" }}>
+                                                                                        <div style={{ height: "100%", width: `${pct}%`, background: c, borderRadius: "2px" }} />
+                                                                                    </div>
+                                                                                    <div style={{ fontSize: "9px", color: "#94A3B8" }}>{tf.label}</div>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {bulkError && <div style={{ ...taStyles.errorBox, marginTop: "12px" }}>{bulkError}</div>}
+                                </>
                             )}
                         </div>
                     </div>
@@ -850,17 +1127,22 @@ function TrendAgeModal() {
 const taStyles = {
     triggerBtn: { display: "flex", alignItems: "center", background: "#7C3AED", color: "#fff", border: "none", padding: "0.55rem 1.1rem", borderRadius: "6px", fontWeight: "600", fontSize: "13px", cursor: "pointer", transition: "all 0.2s ease", whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" },
     overlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "16px" },
-    modal: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: "16px", width: "100%", maxWidth: "580px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(15,23,42,0.15)", animation: "ta-fadeUp 0.3s cubic-bezier(0.34,1.2,0.64,1)" },
+    modal: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: "16px", width: "100%", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(15,23,42,0.15)", animation: "ta-fadeUp 0.3s cubic-bezier(0.34,1.2,0.64,1)" },
     header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "20px 22px 16px", borderBottom: "1px solid #F1F5F9", position: "sticky", top: 0, background: "#fff", zIndex: 10 },
     title: { fontSize: "17px", fontWeight: "700", color: "#0F172A", margin: 0 },
     subtitle: { fontSize: "12px", color: "#94A3B8", margin: "3px 0 0" },
     closeBtn: { background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#64748B", borderRadius: "8px", padding: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" },
+    tabRow: { display: "flex", borderBottom: "1px solid #F1F5F9", padding: "0 22px" },
+    tab: { background: "transparent", border: "none", padding: "10px 16px", fontSize: "13px", fontWeight: "600", color: "#64748B", cursor: "pointer", borderBottom: "2px solid transparent", transition: "all 0.15s", marginBottom: "-1px" },
+    tabActive: { color: "#7C3AED", borderBottomColor: "#7C3AED", background: "transparent" },
     controls: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" },
     controlGroup: { display: "flex", flexDirection: "column", gap: "4px" },
     ctrlLabel: { fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.7px" },
     select: { background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "8px 10px", color: "#0F172A", fontSize: "13px", cursor: "pointer", width: "100%" },
     input: { background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "8px 10px", color: "#0F172A", fontSize: "13px", width: "100%", outline: "none", boxSizing: "border-box" },
     analyzeBtn: { gridColumn: "1 / -1", background: "#2563EB", border: "none", borderRadius: "8px", padding: "11px", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: "pointer", transition: "background 0.2s" },
+    scanBtn: { background: "#7C3AED", color: "#fff", border: "none", borderRadius: "8px", padding: "12px 24px", fontWeight: "700", fontSize: "14px", cursor: "pointer", transition: "background 0.2s", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" },
+    rescanBtn: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: "6px", padding: "5px 12px", fontSize: "12px", fontWeight: "600", color: "#64748B", cursor: "pointer", transition: "background 0.15s" },
     errorBox: { background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", padding: "10px 14px", color: "#DC2626", fontSize: "13px", marginBottom: "14px" },
     heroCard: { border: "1px solid", borderRadius: "12px", padding: "18px", marginBottom: "16px" },
     badge: { borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "600", display: "inline-block" },
@@ -870,6 +1152,7 @@ const taStyles = {
     insightTitle: { fontSize: "11px", fontWeight: "700", color: "#2563EB", margin: "0 0 6px" },
     insightText: { fontSize: "13px", color: "#1E3A5F", margin: 0, lineHeight: 1.65 },
 };
+
 
 
 // ─── Main IdeasSection ────────────────────────────────────────────────────────
