@@ -1439,28 +1439,19 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, openaiKey, cached
         document.head.appendChild(script);
     }, []);
 
-    // ── Fetch OHLCV data from Yahoo Finance via proxy ──
+    // ── Fetch OHLCV via Django backend (yfinance) — no CORS issues ──
     const fetchOHLCV = async (sym, interval) => {
-        const rangeMap = { '1D': '5d', '1W': '1mo', '1M': '3mo', '3M': '6mo', '6M': '1y', '1Y': '2y', '2Y': '5y' };
-        const ivMap    = { '1D': '15m', '1W': '60m', '1M': '1d', '3M': '1d', '6M': '1d', '1Y': '1wk', '2Y': '1wk' };
-        const range = rangeMap[interval] || '3mo';
-        const iv    = ivMap[interval] || '1d';
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=${range}&interval=${iv}&includePrePost=false`;
-        const res = await fetch(url);
+        const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+        const res = await fetch(`${baseUrl}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker: sym, interval }),
+        });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
         const json = await res.json();
-        const result = json?.chart?.result?.[0];
-        if (!result) throw new Error('No chart data');
-        const ts = result.timestamps;
-        const q  = result.indicators?.quote?.[0];
-        const adjClose = result.indicators?.adjclose?.[0]?.adjclose;
-        return ts.map((t, i) => ({
-            time: Math.floor(t),
-            open:  q.open[i]  != null ? +q.open[i].toFixed(2)  : null,
-            high:  q.high[i]  != null ? +q.high[i].toFixed(2)  : null,
-            low:   q.low[i]   != null ? +q.low[i].toFixed(2)   : null,
-            close: (adjClose?.[i] ?? q.close?.[i]) != null ? +((adjClose?.[i] ?? q.close?.[i]).toFixed(2)) : null,
-            value: (adjClose?.[i] ?? q.close?.[i]) != null ? +((adjClose?.[i] ?? q.close?.[i]).toFixed(2)) : null,
-        })).filter(d => d.close != null);
+        if (!json.candles?.length) throw new Error('No chart data returned');
+        // Backend returns { time, open, high, low, close, volume } — add value alias for line/area series
+        return json.candles.map(c => ({ ...c, value: c.close }));
     };
 
     // ── Build / update chart ──
@@ -1632,19 +1623,34 @@ Respond ONLY with a JSON object (no markdown, no backticks):
         <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
 
             {/* ── Chart Card ── */}
-            <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden', marginBottom: '20px' }}>
+            <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginBottom: '20px' }}>
 
-                {/* Chart toolbar */}
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', backgroundColor: '#fafafa' }}>
-                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a1a', marginRight: '4px' }}>
-                        📊 {ticker} Chart
+                {/* Chart toolbar — two rows on mobile */}
+                <div style={{ padding: '12px 14px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa', borderRadius: '12px 12px 0 0' }}>
+                    {/* Row 1: title + chart type */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a1a1a' }}>
+                            📊 {ticker}
+                        </div>
+                        {/* Chart type pills */}
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {[['candlestick', '🕯 Candle'], ['area', '📉 Area'], ['line', '〰 Line']].map(([t, label]) => (
+                                <button key={t} onClick={() => setChartType(t)} style={{
+                                    padding: '4px 10px', fontSize: '12px', fontWeight: '600',
+                                    borderRadius: '6px', border: '1px solid',
+                                    borderColor: chartType === t ? '#2563eb' : '#e0e0e0',
+                                    backgroundColor: chartType === t ? '#2563eb' : '#fff',
+                                    color: chartType === t ? '#fff' : '#666',
+                                    cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                }}>{label}</button>
+                            ))}
+                        </div>
                     </div>
-
-                    {/* Interval selector */}
+                    {/* Row 2: interval pills */}
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         {intervals.map(iv => (
                             <button key={iv} onClick={() => setChartInterval(iv)} style={{
-                                padding: '5px 10px', fontSize: '12px', fontWeight: '600',
+                                padding: '5px 11px', fontSize: '12px', fontWeight: '700',
                                 borderRadius: '6px', border: '1px solid',
                                 borderColor: chartInterval === iv ? '#2563eb' : '#e0e0e0',
                                 backgroundColor: chartInterval === iv ? '#2563eb' : '#fff',
@@ -1653,34 +1659,23 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             }}>{iv}</button>
                         ))}
                     </div>
-
-                    {/* Chart type selector */}
-                    <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
-                        {[['candlestick', '🕯'], ['area', '📉'], ['line', '〰']].map(([t, icon]) => (
-                            <button key={t} onClick={() => setChartType(t)} style={{
-                                padding: '5px 10px', fontSize: '13px', borderRadius: '6px',
-                                border: '1px solid', borderColor: chartType === t ? '#2563eb' : '#e0e0e0',
-                                backgroundColor: chartType === t ? '#eff6ff' : '#fff',
-                                cursor: 'pointer', transition: 'all 0.15s',
-                            }} title={t}>{icon}</button>
-                        ))}
-                    </div>
                 </div>
 
-                {/* Chart container */}
-                <div style={{ position: 'relative', height: '340px', minHeight: '240px' }}>
+                {/* Chart container — explicit height so LightweightCharts renders correctly */}
+                <div style={{ position: 'relative', width: '100%', height: '360px' }}>
                     {(loadingChart || !chartLoaded) && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.85)', zIndex: 2 }}>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.9)', zIndex: 2, borderRadius: '0 0 0 0' }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '28px', marginBottom: '8px', animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
-                                <div style={{ color: '#666', fontSize: '14px' }}>Loading chart…</div>
+                                <div style={{ color: '#666', fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library…' : 'Fetching data…'}</div>
                             </div>
                         </div>
                     )}
-                    {chartError && (
+                    {chartError && !loadingChart && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}>
                             <div style={{ fontSize: '32px' }}>⚠️</div>
-                            <div style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
+                            <div style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
+                            <button onClick={() => { setChartError(null); setChartInterval(chartInterval); }} style={{ marginTop: '8px', padding: '6px 14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
                         </div>
                     )}
                     <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
