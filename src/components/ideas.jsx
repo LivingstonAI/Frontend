@@ -927,8 +927,8 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
                 )}
             </div>
 
-            {/* ── Chart container ── */}
-            <div style={{ flex: 1, position: "relative", minHeight: isFullscreen ? 0 : `${height}px` }}>
+            {/* ── Chart container — explicit pixel height so LightweightCharts gets a real size ── */}
+            <div style={{ position: "relative", width: "100%", height: isFullscreen ? "calc(100vh - 80px)" : `${height}px` }}>
                 {loading && (
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: th.layout.background.color, zIndex: 5, gap: "10px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
@@ -1112,7 +1112,7 @@ function TrendAgeModal() {
 
             {open && (
                 <div style={taStyles.overlay} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
-                    <div style={{ ...taStyles.modal, maxWidth: tab === "bulk" ? "700px" : "580px" }}>
+                    <div style={{ ...taStyles.modal, maxWidth: tab === "bulk" ? "860px" : "580px" }}>
 
                         {/* ── Header ── */}
                         <div style={taStyles.header}>
@@ -1346,38 +1346,20 @@ function TrendAgeModal() {
                                             {/* Results list */}
                                             <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
                                                 {/* Column headers */}
-                                                {/* All-charts grid mode */}
-                                                {allChartsMode && (
-                                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "12px", padding: "12px", maxHeight: "70vh", overflowY: "auto" }}>
-                                                        {filtered.map(stock => (
-                                                            <div key={stock.symbol} style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid #E2E8F0" }}>
-                                                                <TradingViewChart
-                                                                    symbol={stock.symbol}
-                                                                    theme={globalChartTheme}
-                                                                    chartType={globalChartType}
-                                                                    interval={globalChartInterval}
-                                                                    height={260}
-                                                                    fullscreenable={true}
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {/* Normal table view */}
-                                                {!allChartsMode && (<>
+                                                {/* ── Stock table — always visible ── */}
                                                 <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 32px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
                                                     {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d","",""].map(h => (
                                                         <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
                                                     ))}
                                                 </div>
 
-                                                <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                                                <div style={{ maxHeight: "420px", overflowY: "auto" }}>
                                                     {filtered.length === 0 && (
                                                         <p style={{ padding: "20px", textAlign: "center", color: "#94A3B8", fontSize: "13px" }}>No stocks match your filters.</p>
                                                     )}
                                                     {filtered.map(stock => (
                                                         <div key={stock.symbol}>
+                                                            {/* ── Row ── */}
                                                             <div className="ta-bulk-row"
                                                                 onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
                                                                 style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 32px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
@@ -1403,10 +1385,10 @@ function TrendAgeModal() {
                                                                     return <span key={i} style={{ fontSize: "11px", fontWeight: "700", color: c, textAlign: "center" }}>{pct}%</span>;
                                                                 })}
 
-                                                                {/* Chart button — stops row expand propagation */}
+                                                                {/* 📈 chart toggle button */}
                                                                 <button
                                                                     onClick={e => { e.stopPropagation(); setChartOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
-                                                                    title="View chart"
+                                                                    title="Toggle chart"
                                                                     style={{ background: chartOpen[stock.symbol] ? "#7C3AED" : "transparent", border: "1px solid", borderColor: chartOpen[stock.symbol] ? "#7C3AED" : "#E2E8F0", borderRadius: "5px", padding: "3px 5px", cursor: "pointer", fontSize: "12px", color: chartOpen[stock.symbol] ? "#fff" : "#64748B", justifySelf: "center", transition: "all 0.15s" }}>
                                                                     📈
                                                                 </button>
@@ -1416,57 +1398,98 @@ function TrendAgeModal() {
                                                                 </svg>
                                                             </div>
 
-                                                            {/* Inline chart */}
-                                                            {chartOpen[stock.symbol] && (
-                                                                <div style={{ borderBottom: "1px solid #F1F5F9" }}>
-                                                                    <TradingViewChart
-                                                                        symbol={stock.symbol}
-                                                                        theme="light"
-                                                                        chartType="candle"
-                                                                        interval="1d"
-                                                                        height={300}
-                                                                        fullscreenable={true}
-                                                                        onClose={() => setChartOpen(p => ({ ...p, [stock.symbol]: false }))}
-                                                                    />
-                                                                </div>
-                                                            )}
+                                                            {/* ── Expanded: stats LEFT + chart RIGHT (side by side) ── */}
+                                                            {(expanded[stock.symbol] || chartOpen[stock.symbol]) && (
+                                                                <div style={{ borderBottom: "1px solid #F1F5F9", background: "#F8FAFC", animation: "ta-fadeUp 0.15s ease" }}>
+                                                                    <div style={{ display: "grid", gridTemplateColumns: chartOpen[stock.symbol] ? "220px 1fr" : "1fr", gap: 0 }}>
 
-                                                            {expanded[stock.symbol] && (
-                                                                <div style={{ padding: "10px 12px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", animation: "ta-fadeUp 0.15s ease" }}>
-                                                                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                                                                        <span style={{ ...taStyles.badge, background: stock.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: stock.direction === "Bullish" ? "#15803D" : "#B91C1C", fontSize: "10px" }}>
-                                                                            {stock.direction === "Bullish" ? "▲" : "▼"} {stock.direction}
-                                                                        </span>
-                                                                        <span style={{ ...taStyles.badge, background: stock.bg, color: stock.color, border: `1px solid ${stock.border}`, fontSize: "10px" }}>
-                                                                            {stock.emoji} {stock.age}
-                                                                        </span>
-                                                                        <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569", fontSize: "10px" }}>
-                                                                            Avg R²: {stock.avg_r2}%
-                                                                        </span>
-                                                                    </div>
-                                                                    <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: 1.6 }}>{stock.action}</p>
-                                                                    <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
-                                                                        {TIMEFRAMES.map((tf, i) => {
-                                                                            const v = stock.r2s[i] ?? 0;
-                                                                            const pct = Math.round(v * 100);
-                                                                            const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
-                                                                            return (
-                                                                                <div key={tf.label} style={{ flex: 1, textAlign: "center" }}>
-                                                                                    <div style={{ fontSize: "10px", fontWeight: "700", color: c }}>{pct}%</div>
-                                                                                    <div style={{ height: "4px", background: "#E2E8F0", borderRadius: "2px", margin: "3px 0", overflow: "hidden" }}>
-                                                                                        <div style={{ height: "100%", width: `${pct}%`, background: c, borderRadius: "2px" }} />
-                                                                                    </div>
-                                                                                    <div style={{ fontSize: "9px", color: "#94A3B8" }}>{tf.label}</div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
+                                                                        {/* LEFT — trend age stats (always shown when expanded or chart open) */}
+                                                                        <div style={{ padding: "12px", borderRight: chartOpen[stock.symbol] ? "1px solid #E2E8F0" : "none" }}>
+                                                                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
+                                                                                <span style={{ ...taStyles.badge, background: stock.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: stock.direction === "Bullish" ? "#15803D" : "#B91C1C", fontSize: "10px" }}>
+                                                                                    {stock.direction === "Bullish" ? "▲" : "▼"} {stock.direction}
+                                                                                </span>
+                                                                                <span style={{ ...taStyles.badge, background: stock.bg, color: stock.color, border: `1px solid ${stock.border}`, fontSize: "10px" }}>
+                                                                                    {stock.emoji} {stock.age}
+                                                                                </span>
+                                                                                <span style={{ ...taStyles.badge, background: "#F1F5F9", color: "#475569", fontSize: "10px" }}>
+                                                                                    Avg R²: {stock.avg_r2}%
+                                                                                </span>
+                                                                            </div>
+                                                                            <p style={{ fontSize: "11px", color: "#475569", margin: "0 0 10px", lineHeight: 1.6 }}>{stock.action}</p>
+                                                                            {/* Per-TF breakdown */}
+                                                                            <div style={{ display: "flex", gap: "4px" }}>
+                                                                                {TIMEFRAMES.map((tf, i) => {
+                                                                                    const v = stock.r2s[i] ?? 0;
+                                                                                    const pct = Math.round(v * 100);
+                                                                                    const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
+                                                                                    return (
+                                                                                        <div key={tf.label} style={{ flex: 1, textAlign: "center" }}>
+                                                                                            <div style={{ fontSize: "9px", fontWeight: "700", color: c }}>{pct}%</div>
+                                                                                            <div style={{ height: "3px", background: "#E2E8F0", borderRadius: "2px", margin: "3px 0", overflow: "hidden" }}>
+                                                                                                <div style={{ height: "100%", width: `${pct}%`, background: c, borderRadius: "2px" }} />
+                                                                                            </div>
+                                                                                            <div style={{ fontSize: "8px", color: "#94A3B8" }}>{tf.label}</div>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* RIGHT — chart (only when chartOpen) */}
+                                                                        {chartOpen[stock.symbol] && (
+                                                                            <div>
+                                                                                <TradingViewChart
+                                                                                    symbol={stock.symbol}
+                                                                                    theme="light"
+                                                                                    chartType="candle"
+                                                                                    interval="1d"
+                                                                                    height={220}
+                                                                                    fullscreenable={true}
+                                                                                    onClose={() => setChartOpen(p => ({ ...p, [stock.symbol]: false }))}
+                                                                                />
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     ))}
                                                 </div>
-                                                </>)}
+
+                                                {/* ── All-charts grid — BELOW the table, visible alongside it ── */}
+                                                {allChartsMode && filtered.length > 0 && (
+                                                    <div style={{ borderTop: "2px solid #E2E8F0" }}>
+                                                        <div style={{ padding: "10px 12px 6px", background: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                            <span style={{ fontSize: "11px", fontWeight: "700", color: "#7C3AED" }}>📊 All Charts — {filtered.length} stocks</span>
+                                                            <span style={{ fontSize: "10px", color: "#94A3B8" }}>Showing {filtered.length} charts · use filters above to narrow</span>
+                                                        </div>
+                                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "10px", padding: "10px 12px 14px", maxHeight: "65vh", overflowY: "auto" }}>
+                                                            {filtered.map(stock => (
+                                                                <div key={stock.symbol}>
+                                                                    {/* Mini stats strip above each chart */}
+                                                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
+                                                                        <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</span>
+                                                                        <span style={{ fontSize: "11px" }}>{stock.emoji}</span>
+                                                                        <span style={{ fontSize: "10px", fontWeight: "600", color: stock.color }}>{stock.age}</span>
+                                                                        <span style={{ fontSize: "10px", color: stock.direction === "Bullish" ? "#15803D" : "#B91C1C", fontWeight: "600" }}>
+                                                                            {stock.direction === "Bullish" ? "▲" : "▼"} {stock.direction}
+                                                                        </span>
+                                                                        <span style={{ fontSize: "10px", color: "#94A3B8", marginLeft: "auto" }}>R²avg: {stock.avg_r2}%</span>
+                                                                    </div>
+                                                                    <TradingViewChart
+                                                                        symbol={stock.symbol}
+                                                                        theme={globalChartTheme}
+                                                                        chartType={globalChartType}
+                                                                        interval={globalChartInterval}
+                                                                        height={240}
+                                                                        fullscreenable={true}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
