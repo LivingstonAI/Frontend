@@ -835,25 +835,48 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
         if (_tvLibLoaded) fetchAndRender(symbol, localInterval, localType, localTheme);
     }, [localTheme, localType, localInterval]);
 
-    // Resize observer
+    // Resize observer — also re-fires when fullscreen toggles
     useEffect(() => {
         if (!containerRef.current) return;
-        const ro = new ResizeObserver(() => {
+        const measure = () => {
             if (chartRef.current && containerRef.current) {
-                chartRef.current.applyOptions({
-                    width: containerRef.current.clientWidth,
-                    height: containerRef.current.clientHeight,
-                });
+                const w = containerRef.current.clientWidth;
+                const h = containerRef.current.clientHeight;
+                if (w > 0 && h > 0) {
+                    chartRef.current.applyOptions({ width: w, height: h });
+                }
             }
-        });
+        };
+        const ro = new ResizeObserver(measure);
         ro.observe(containerRef.current);
         return () => ro.disconnect();
     }, []);
 
+    // Re-measure immediately whenever fullscreen state flips
+    useEffect(() => {
+        // Small delay lets the DOM settle after the fixed overlay appears
+        const t = setTimeout(() => {
+            if (chartRef.current && containerRef.current) {
+                const w = containerRef.current.clientWidth;
+                const h = containerRef.current.clientHeight;
+                if (w > 0 && h > 0) {
+                    chartRef.current.applyOptions({ width: w, height: h });
+                    chartRef.current.timeScale().fitContent();
+                }
+            }
+        }, 50);
+        return () => clearTimeout(t);
+    }, [isFullscreen]);
+
     const wrapStyle = isFullscreen ? {
         position: "fixed", inset: 0, zIndex: 99999,
         background: "#000", display: "flex", flexDirection: "column",
-    } : { borderRadius: "10px", overflow: "hidden", border: "1px solid #E2E8F0" };
+        overflow: "hidden",
+    } : {
+        borderRadius: "10px", overflow: "hidden",
+        border: "1px solid #E2E8F0",
+        display: "flex", flexDirection: "column",
+    };
 
     const toolbarBg = localTheme === "light" ? "#F8FAFC" : localTheme === "dark" ? "#1E293B" : "#071120";
     const toolbarBorder = localTheme === "light" ? "#E2E8F0" : localTheme === "dark" ? "#334155" : "rgba(56,189,248,0.2)";
@@ -877,8 +900,8 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
 
     return (
         <div style={wrapStyle}>
-            {/* ── Toolbar ── */}
-            <div style={{ background: toolbarBg, borderBottom: `1px solid ${toolbarBorder}`, padding: "6px 10px", display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
+            {/* ── Toolbar — single scrollable line in fullscreen to avoid pushing chart down ── */}
+            <div style={{ background: toolbarBg, borderBottom: `1px solid ${toolbarBorder}`, padding: "6px 10px", display: "flex", alignItems: "center", gap: "4px", flexWrap: isFullscreen ? "nowrap" : "wrap", overflowX: isFullscreen ? "auto" : "visible", flexShrink: 0 }}>
                 {/* Symbol label */}
                 <span style={{ fontSize: "12px", fontWeight: "700", color: activeText, marginRight: "6px", fontFamily: "monospace" }}>{symbol}</span>
 
@@ -927,8 +950,8 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
                 )}
             </div>
 
-            {/* ── Chart container — explicit pixel height so LightweightCharts gets a real size ── */}
-            <div style={{ position: "relative", width: "100%", height: isFullscreen ? "calc(100vh - 80px)" : `${height}px` }}>
+            {/* ── Chart container — flex:1 in fullscreen fills all remaining space, explicit px otherwise ── */}
+            <div style={{ position: "relative", width: "100%", ...(isFullscreen ? { flex: 1, minHeight: 0 } : { height: `${height}px` }) }}>
                 {loading && (
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: th.layout.background.color, zIndex: 5, gap: "10px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
@@ -942,7 +965,7 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
                         <span style={{ fontSize: "12px", color: "#EF4444" }}>⚠ {error}</span>
                     </div>
                 )}
-                <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+                <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
             </div>
 
             {/* ── Status bar ── */}
@@ -1628,6 +1651,7 @@ function TrendAgeModal() {
                                                                         <span style={{ fontSize: "10px", color: "#94A3B8", marginLeft: "auto" }}>R²avg: {stock.avg_r2}%</span>
                                                                     </div>
                                                                     <TradingViewChart
+                                                                        key={`${stock.symbol}-${globalChartTheme}-${globalChartType}-${globalChartInterval}`}
                                                                         symbol={stock.symbol}
                                                                         theme={globalChartTheme}
                                                                         chartType={globalChartType}
