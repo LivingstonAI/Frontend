@@ -1448,6 +1448,11 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [refreshing, setRefreshing] = useState(false);     // spinner for refresh
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const autoRefreshRef = useRef(null);
+    const twapSeriesRef  = useRef(null); // TWAP line series
+    const bandTopRef     = useRef(null); // deviation band top
+    const bandBotRef     = useRef(null); // deviation band bottom
+    const [showTWAP, setShowTWAP]   = useState(false);
+    const [twapStats, setTwapStats] = useState(null); // { twap, current, deviation, signal }
 
     // Lower → Higher timeframes with smart default lookbacks
     const intervalConfig = {
@@ -1476,6 +1481,50 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         script.onerror = () => setChartError('Failed to load chart library.');
         document.head.appendChild(script);
     }, []);
+
+    // ── TWAP + Deviation Band computation ──────────────────────────────────────
+    // Uses trapezoidal integration of close price over time (unix seconds)
+    // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
+    // Band = TWAP ± 1 stddev of (price - TWAP) over the whole dataset
+    const computeTWAP = (data) => {
+        if (!data || data.length < 2) return { twap: [], bandTop: [], bandBot: [], stats: null };
+
+        // Step 1: trapezoidal integral → running TWAP
+        const twapPoints = [];
+        let integral = 0;
+        for (let i = 0; i < data.length; i++) {
+            if (i > 0) {
+                const dt   = data[i].time - data[i-1].time; // seconds between bars
+                const avgP = (data[i].value + data[i-1].value) / 2;
+                integral  += avgP * dt;
+            }
+            const elapsed = data[i].time - data[0].time || 1;
+            twapPoints.push({ time: data[i].time, value: parseFloat((integral / elapsed).toFixed(4)) });
+        }
+
+        // Step 2: deviation of price from TWAP
+        const deviations = data.map((d, i) => d.value - twapPoints[i].value);
+        const mean = deviations.reduce((s, v) => s + v, 0) / deviations.length;
+        const std  = Math.sqrt(deviations.reduce((s, v) => s + (v - mean) ** 2, 0) / deviations.length);
+
+        // Step 3: band series
+        const bandTop = twapPoints.map(p => ({ time: p.time, value: parseFloat((p.value + std).toFixed(4)) }));
+        const bandBot = twapPoints.map(p => ({ time: p.time, value: parseFloat((p.value - std).toFixed(4)) }));
+
+        // Step 4: current stats for Sabrina + UI
+        const lastTWAP    = twapPoints[twapPoints.length - 1]?.value;
+        const lastPrice   = data[data.length - 1]?.value;
+        const lastDev     = lastPrice - lastTWAP;
+        const devPct      = parseFloat(((lastDev / lastTWAP) * 100).toFixed(2));
+        const signal      = devPct >  1.5 ? 'EXTENDED_ABOVE'
+                          : devPct < -1.5 ? 'EXTENDED_BELOW'
+                          : 'NEAR_TWAP';
+        return {
+            twap:    twapPoints,
+            bandTop, bandBot,
+            stats: { twap: lastTWAP?.toFixed(2), current: lastPrice?.toFixed(2), deviation: devPct, std: std.toFixed(2), signal },
+        };
+    };
 
     // ── Fetch OHLCV via Django backend (yfinance) — full interval support ──
     const fetchOHLCV = async (sym, interval) => {
@@ -1559,6 +1608,27 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                     series.setData(data.map(d => ({ time: d.time, value: d.value })));
                 }
                 seriesRef.current = series;
+
+                // TWAP overlay
+                if (twapSeriesRef.current)  { try { chart.removeSeries(twapSeriesRef.current); } catch {} twapSeriesRef.current = null; }
+                if (bandTopRef.current)     { try { chart.removeSeries(bandTopRef.current);    } catch {} bandTopRef.current = null; }
+                if (bandBotRef.current)     { try { chart.removeSeries(bandBotRef.current);    } catch {} bandBotRef.current = null; }
+                if (showTWAP) {
+                    const { twap, bandTop, bandBot, stats } = computeTWAP(data);
+                    const twapLine = chart.addLineSeries({ color: '#f59e0b', lineWidth: 2, lineStyle: 1, title: 'TWAP', lastValueVisible: true, priceLineVisible: false });
+                    twapLine.setData(twap);
+                    twapSeriesRef.current = twapLine;
+                    const bTop = chart.addLineSeries({ color: 'rgba(245,158,11,0.3)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+                    bTop.setData(bandTop);
+                    bandTopRef.current = bTop;
+                    const bBot = chart.addLineSeries({ color: 'rgba(245,158,11,0.3)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+                    bBot.setData(bandBot);
+                    bandBotRef.current = bBot;
+                    setTwapStats(stats);
+                } else {
+                    setTwapStats(null);
+                }
+
                 chart.timeScale().fitContent(); // fit only on fresh chart
                 setLastRefreshed(new Date());
             } catch (e) {
@@ -1589,6 +1659,15 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 // Update series data in-place — no chart recreation
                 const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
                 seriesRef.current.setData(data.map(mapData));
+
+                // Update TWAP overlay in-place
+                if (showTWAP && twapSeriesRef.current) {
+                    const { twap, bandTop, bandBot, stats } = computeTWAP(data);
+                    twapSeriesRef.current.setData(twap);
+                    if (bandTopRef.current) bandTopRef.current.setData(bandTop);
+                    if (bandBotRef.current) bandBotRef.current.setData(bandBot);
+                    setTwapStats(stats);
+                }
 
                 // Restore position OR fitContent if this is the very first data for this interval
                 if (visibleRange && visibleRange.from && visibleRange.to) {
@@ -1654,10 +1733,15 @@ Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}`
 
         const aiInsightsInfo = cachedNewsAnalysis ? `\nNews AI Analysis: ${cachedNewsAnalysis.bias} bias (${cachedNewsAnalysis.confidence}% confidence)\nTL;DR: ${cachedNewsAnalysis.tldr}` : '';
 
+        const twapInfo = twapStats ? `\nTWAP Analysis (time-weighted avg price via integral):
+  TWAP: $${twapStats.twap} | Current: $${twapStats.current}
+  Deviation from TWAP: ${twapStats.deviation > 0 ? '+' : ''}${twapStats.deviation}% (±1σ = $${twapStats.std})
+  Signal: ${twapStats.signal === 'EXTENDED_ABOVE' ? 'Price is EXTENDED above TWAP — mean reversion risk downward' : twapStats.signal === 'EXTENDED_BELOW' ? 'Price is EXTENDED below TWAP — potential mean reversion bounce' : 'Price is NEAR TWAP — no strong mean reversion pressure'}` : '';
+
         const textPrompt = `You are Sabrina, a sharp AI stock analyst. Give me a comprehensive trading recommendation for ${ticker}.
 
 AVAILABLE DATA:
-${priceInfo}${earningsInfo}${newsInfo}${aiInsightsInfo}
+${priceInfo}${earningsInfo}${newsInfo}${aiInsightsInfo}${twapInfo}
 ${imageDataUrl ? '\nA chart screenshot has been attached. Analyse the price action, trend, support/resistance levels, and any patterns visible.' : '\nNo chart image provided — base analysis on the fundamental data above.'}
 
 Respond ONLY with a JSON object (no markdown, no backticks):
@@ -1775,6 +1859,15 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                         }}>{lbl}</button>;
                                     })}
                                 </div>
+                                {/* TWAP toggle */}
+                                <button onClick={() => setShowTWAP(s => !s)} style={{
+                                    padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                    border: `1px solid ${showTWAP ? '#f59e0b' : btnBase.border}`,
+                                    backgroundColor: showTWAP ? 'rgba(245,158,11,0.12)' : btnBase.bg,
+                                    color: showTWAP ? '#f59e0b' : btnBase.text,
+                                    cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                }}>∫ TWAP</button>
+
                                 {/* Theme switcher — pushed to the right */}
                                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
                                     {[['light','☀️'],['dark','🌙'],['hud','⬡ HUD']].map(([t, lbl]) => {
@@ -1848,6 +1941,39 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
                 </div>
 
+                {/* TWAP stats strip */}
+                {showTWAP && twapStats && (() => {
+                    const stripBg  = chartTheme === 'hud' ? '#020f1f' : chartTheme === 'dark' ? '#141420' : '#fffbeb';
+                    const stripBdr = chartTheme === 'hud' ? '#0d3a5c' : chartTheme === 'dark' ? '#2a2a3a' : '#fde68a';
+                    const isAbove  = twapStats.signal === 'EXTENDED_ABOVE';
+                    const isBelow  = twapStats.signal === 'EXTENDED_BELOW';
+                    const sigColor = isAbove ? '#ef4444' : isBelow ? '#10b981' : '#f59e0b';
+                    const sigLabel = isAbove ? '↑ Extended Above — mean reversion risk ↓'
+                                   : isBelow ? '↓ Extended Below — potential bounce ↑'
+                                   : '↔ Near TWAP — balanced';
+                    return (
+                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${stripBdr}`, backgroundColor: stripBg, display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', letterSpacing: '0.06em' }}>∫ TWAP</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: chartTheme === 'light' ? '#333' : '#e0e0e0' }}>${twapStats.twap}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>Deviation</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: twapStats.deviation > 0 ? '#ef4444' : '#10b981' }}>
+                                    {twapStats.deviation > 0 ? '+' : ''}{twapStats.deviation}%
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>±1σ</span>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: chartTheme === 'light' ? '#555' : '#aaa' }}>${twapStats.std}</span>
+                            </div>
+                            <div style={{ padding: '3px 10px', borderRadius: '20px', backgroundColor: sigColor + '18', border: `1px solid ${sigColor}40`, fontSize: '11px', fontWeight: '700', color: sigColor }}>
+                                {sigLabel}
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 {/* Chart action bar — theme-aware */}
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
                     {/* Manual refresh */}
@@ -1888,6 +2014,27 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             {lastRefreshed.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
                         </span>
                     )}
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* TradingView link */}
+                    <a
+                        href={`https://www.tradingview.com/chart/?symbol=${ticker}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open ${ticker} on TradingView`}
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#2962ff',
+                            textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2962ff'; e.currentTarget.style.color = '#2962ff'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'; e.currentTarget.style.color = chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#2962ff'; }}
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v2H5v14h14v-5h2v7H3V3zm11 0h7v7h-2V6.414l-9.293 9.293-1.414-1.414L17.586 5H14V3z"/></svg>
+                        TradingView
+                    </a>
                     <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
                     <button
                         onClick={captureAndAnalyse}
