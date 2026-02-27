@@ -744,7 +744,8 @@ function loadTVLib(cb) {
 
 function TradingViewChart({ symbol, theme = "light", chartType = "candle", interval = "1d", height = 320, onClose, fullscreenable = true }) {
     const { useEffect, useRef, useState } = React;
-    const containerRef = useRef(null);
+    const containerRef = useRef(null);  // the outer sizing div
+    const canvasRef    = useRef(null);  // the div LightweightCharts renders into
     const chartRef     = useRef(null);
     const seriesRef    = useRef(null);
 
@@ -759,8 +760,24 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
     const th = CHART_THEMES[localTheme];
 
+    // Always get exact pixel dimensions of the canvas container
+    const getDims = () => {
+        if (!canvasRef.current) return { w: 0, h: 0 };
+        return { w: canvasRef.current.clientWidth, h: canvasRef.current.clientHeight };
+    };
+
+    const resizeChart = () => {
+        if (!chartRef.current || !canvasRef.current) return;
+        const { w, h } = getDims();
+        if (w > 0 && h > 0) {
+            // chart.resize() actually resizes the internal canvas — applyOptions does not
+            chartRef.current.resize(w, h);
+            chartRef.current.timeScale().fitContent();
+        }
+    };
+
     const fetchAndRender = async (sym, intv, type, themeKey) => {
-        if (!containerRef.current || !window.LightweightCharts) return;
+        if (!canvasRef.current || !window.LightweightCharts) return;
         setLoading(true);
         setError(null);
         try {
@@ -774,16 +791,16 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
 
             const t = CHART_THEMES[themeKey];
 
-            // Destroy old chart if exists
             if (chartRef.current) {
                 try { chartRef.current.remove(); } catch (_) {}
                 chartRef.current = null;
                 seriesRef.current = null;
             }
 
-            const chart = window.LightweightCharts.createChart(containerRef.current, {
-                width:  containerRef.current.clientWidth,
-                height: containerRef.current.clientHeight,
+            const { w, h } = getDims();
+            const chart = window.LightweightCharts.createChart(canvasRef.current, {
+                width:  w || 600,
+                height: h || height,
                 layout: t.layout,
                 grid:   t.grid,
                 crosshair: { mode: 1, ...t.crosshair },
@@ -822,12 +839,10 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
         }
     };
 
-    // Init lib then render
+    // Init
     useEffect(() => {
         loadTVLib(() => fetchAndRender(symbol, localInterval, localType, localTheme));
-        return () => {
-            if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} }
-        };
+        return () => { if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} } };
     }, []);
 
     // Re-render on control changes
@@ -835,37 +850,19 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
         if (_tvLibLoaded) fetchAndRender(symbol, localInterval, localType, localTheme);
     }, [localTheme, localType, localInterval]);
 
-    // Resize observer — also re-fires when fullscreen toggles
+    // ResizeObserver on the OUTER container — fires when it changes size
     useEffect(() => {
         if (!containerRef.current) return;
-        const measure = () => {
-            if (chartRef.current && containerRef.current) {
-                const w = containerRef.current.clientWidth;
-                const h = containerRef.current.clientHeight;
-                if (w > 0 && h > 0) {
-                    chartRef.current.applyOptions({ width: w, height: h });
-                }
-            }
-        };
-        const ro = new ResizeObserver(measure);
+        const ro = new ResizeObserver(() => {
+            requestAnimationFrame(resizeChart);
+        });
         ro.observe(containerRef.current);
         return () => ro.disconnect();
     }, []);
 
-    // Re-measure immediately whenever fullscreen state flips
+    // Fullscreen toggle — wait two rAF ticks for the fixed overlay to fully paint
     useEffect(() => {
-        // Small delay lets the DOM settle after the fixed overlay appears
-        const t = setTimeout(() => {
-            if (chartRef.current && containerRef.current) {
-                const w = containerRef.current.clientWidth;
-                const h = containerRef.current.clientHeight;
-                if (w > 0 && h > 0) {
-                    chartRef.current.applyOptions({ width: w, height: h });
-                    chartRef.current.timeScale().fitContent();
-                }
-            }
-        }, 50);
-        return () => clearTimeout(t);
+        requestAnimationFrame(() => requestAnimationFrame(resizeChart));
     }, [isFullscreen]);
 
     const wrapStyle = isFullscreen ? {
@@ -965,7 +962,7 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
                         <span style={{ fontSize: "12px", color: "#EF4444" }}>⚠ {error}</span>
                     </div>
                 )}
-                <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
+                <div ref={canvasRef} style={{ position: "absolute", inset: 0 }} />
             </div>
 
             {/* ── Status bar ── */}
