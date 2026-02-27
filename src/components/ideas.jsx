@@ -980,6 +980,10 @@ function TrendAgeModal() {
     const [filterDir, setFilterDir]         = useState("All");
     const [expanded, setExpanded]           = useState({});
     const [chartOpen, setChartOpen]         = useState({});   // which rows have chart open
+    const [infoOpen, setInfoOpen]           = useState({});   // which rows have info popover open
+    const [infoData, setInfoData]           = useState({});   // cached info per symbol
+    const [infoLoading, setInfoLoading]     = useState({});   // loading state per symbol
+    const [filterMcap, setFilterMcap]       = useState("All"); // market cap filter
     const [allChartsMode, setAllChartsMode] = useState(false); // global all-charts view
     const [globalChartType,     setGlobalChartType]     = useState("candle");
     const [globalChartTheme,    setGlobalChartTheme]    = useState("light");
@@ -1039,8 +1043,11 @@ function TrendAgeModal() {
                     if (res.ok) {
                         const data = await res.json();
                         const cl = classifyTrendAge(data.r2_by_timeframe.map(t => t.r2));
+                        const mcap = data.market_cap || 0;
+                        const mcTier = mcap >= 200e9 ? "Mega" : mcap >= 10e9 ? "Large" : mcap >= 2e9 ? "Mid" : mcap >= 300e6 ? "Small" : "Micro/Nano";
                         results.push({
                             symbol:     data.symbol,
+                            name:       data.name || data.symbol,
                             direction:  data.direction,
                             age:        cl.age,
                             emoji:      cl.emoji,
@@ -1053,6 +1060,10 @@ function TrendAgeModal() {
                             long_avg:   data.long_avg_r2,
                             avg_r2:     Math.round(data.r2_by_timeframe.reduce((a,b) => a + b.r2, 0) / data.r2_by_timeframe.length * 100),
                             r2s:        data.r2_by_timeframe.map(t => t.r2),
+                            market_cap: mcap,
+                            mc_tier:    mcTier,
+                            sector:     data.sector || "",
+                            price:      data.current_price || 0,
                         });
                     }
                 } catch (_) {}
@@ -1072,12 +1083,38 @@ function TrendAgeModal() {
 
     const AGE_OPTIONS = ["All","Early / Young","Developing","Mature","Aging / Exhausting","Choppy / Consolidating","No Clear Trend","Mixed / Unclear"];
 
+    const MCAP_TIERS = [
+        { label: "All Caps",   value: "All" },
+        { label: "🏔 Mega",    value: "Mega",       min: 200e9,  max: Infinity },
+        { label: "🔵 Large",   value: "Large",      min: 10e9,   max: 200e9    },
+        { label: "🟡 Mid",     value: "Mid",         min: 2e9,    max: 10e9     },
+        { label: "🟠 Small",   value: "Small",      min: 300e6,  max: 2e9      },
+        { label: "⚪ Micro",   value: "Micro/Nano", min: 0,      max: 300e6    },
+    ];
+
     const filtered = (bulkStocks || []).filter(s => {
-        const mSearch = s.symbol.includes(search.toUpperCase()) || s.age.toLowerCase().includes(search.toLowerCase());
+        const mSearch = s.symbol.includes(search.toUpperCase()) || s.age.toLowerCase().includes(search.toLowerCase()) || (s.name || "").toLowerCase().includes(search.toLowerCase());
         const mAge    = filterAge === "All" || s.age === filterAge;
         const mDir    = filterDir === "All" || s.direction === filterDir;
-        return mSearch && mAge && mDir;
+        const mCap    = filterMcap === "All" || s.mc_tier === filterMcap;
+        return mSearch && mAge && mDir && mCap;
     });
+
+    const fetchInfo = async (sym) => {
+        if (infoData[sym] || infoLoading[sym]) return;
+        setInfoLoading(p => ({ ...p, [sym]: true }));
+        try {
+            const res = await fetch(baseUrl + "/ideas_hub_stock_info_v1", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: sym }),
+            });
+            if (res.ok) {
+                const d = await res.json();
+                setInfoData(p => ({ ...p, [sym]: d }));
+            }
+        } catch (_) {}
+        finally { setInfoLoading(p => ({ ...p, [sym]: false })); }
+    };
 
     // ── Bulk stats summary ────────────────────────────────────────────────────
     const bulkSummary = bulkStocks ? (() => {
@@ -1333,22 +1370,32 @@ function TrendAgeModal() {
                                             </div>
 
                                             {/* Search + direction filter */}
-                                            <div style={{ marginBottom: "8px" }}>
-                                                <input placeholder="Search symbol..." value={search} onChange={e => setSearch(e.target.value)}
+                                            <div style={{ marginBottom: "10px" }}>
+                                                <input placeholder="Search symbol or name..." value={search} onChange={e => setSearch(e.target.value)}
                                                     style={{ ...taStyles.input, width: "100%", boxSizing: "border-box", marginBottom: "7px" }} />
-                                                <select value={filterDir} onChange={e => setFilterDir(e.target.value)} style={{ ...taStyles.select, width: "100%" }}>
+                                                <select value={filterDir} onChange={e => setFilterDir(e.target.value)} style={{ ...taStyles.select, width: "100%", marginBottom: "10px" }}>
                                                     <option value="All">All Directions</option>
                                                     <option value="Bullish">▲ Bullish</option>
                                                     <option value="Bearish">▼ Bearish</option>
                                                 </select>
+                                                {/* Market cap filter chips */}
+                                                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+                                                    <span style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.5px", marginRight: "2px" }}>Mkt Cap:</span>
+                                                    {MCAP_TIERS.map(tier => (
+                                                        <button key={tier.value} onClick={() => setFilterMcap(filterMcap === tier.value ? "All" : tier.value)}
+                                                            style={{ background: filterMcap === tier.value ? "#0F172A" : "#F8FAFC", color: filterMcap === tier.value ? "#fff" : "#475569", border: `1px solid ${filterMcap === tier.value ? "#0F172A" : "#E2E8F0"}`, borderRadius: "20px", padding: "4px 11px", fontSize: "11px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+                                                            {tier.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
 
                                             {/* Results list */}
                                             <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
                                                 {/* Column headers */}
                                                 {/* ── Stock table — always visible ── */}
-                                                <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 32px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
-                                                    {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d","",""].map(h => (
+                                                <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 26px 26px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
+                                                    {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d","","",""].map(h => (
                                                         <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
                                                     ))}
                                                 </div>
@@ -1362,7 +1409,7 @@ function TrendAgeModal() {
                                                             {/* ── Row ── */}
                                                             <div className="ta-bulk-row"
                                                                 onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
-                                                                style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 32px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
+                                                                style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 26px 26px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
 
                                                                 <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</span>
 
@@ -1385,6 +1432,14 @@ function TrendAgeModal() {
                                                                     return <span key={i} style={{ fontSize: "11px", fontWeight: "700", color: c, textAlign: "center" }}>{pct}%</span>;
                                                                 })}
 
+                                                                {/* ℹ info button */}
+                                                                <button
+                                                                    onClick={e => { e.stopPropagation(); fetchInfo(stock.symbol); setInfoOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
+                                                                    title="Stock info"
+                                                                    style={{ background: infoOpen[stock.symbol] ? "#0EA5E9" : "transparent", border: "1px solid", borderColor: infoOpen[stock.symbol] ? "#0EA5E9" : "#E2E8F0", borderRadius: "5px", padding: "3px 5px", cursor: "pointer", fontSize: "11px", color: infoOpen[stock.symbol] ? "#fff" : "#64748B", justifySelf: "center", transition: "all 0.15s", fontWeight: "700" }}>
+                                                                    ℹ
+                                                                </button>
+
                                                                 {/* 📈 chart toggle button */}
                                                                 <button
                                                                     onClick={e => { e.stopPropagation(); setChartOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
@@ -1397,6 +1452,101 @@ function TrendAgeModal() {
                                                                     <polyline points="6 9 12 15 18 9" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                                                 </svg>
                                                             </div>
+
+                                                            {/* ── Info panel ── */}
+                                                            {infoOpen[stock.symbol] && (
+                                                                <div style={{ borderBottom: "1px solid #F1F5F9", background: "#F0F9FF", animation: "ta-fadeUp 0.15s ease" }}>
+                                                                    {infoLoading[stock.symbol] && (
+                                                                        <div style={{ padding: "16px", display: "flex", alignItems: "center", gap: "8px", color: "#0EA5E9", fontSize: "12px" }}>
+                                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                                                                                <circle cx="12" cy="12" r="10" stroke="#0EA5E9" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                                                            </svg>
+                                                                            Loading info for {stock.symbol}...
+                                                                        </div>
+                                                                    )}
+                                                                    {infoData[stock.symbol] && (() => {
+                                                                        const d = infoData[stock.symbol];
+                                                                        const chg = d.day_change_pct || 0;
+                                                                        const chgColor = chg >= 0 ? "#15803D" : "#B91C1C";
+                                                                        return (
+                                                                            <div style={{ padding: "12px 14px" }}>
+                                                                                {/* Header row */}
+                                                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
+                                                                                    <div>
+                                                                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                                                            <span style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>{d.name}</span>
+                                                                                            <span style={{ fontSize: "10px", color: "#94A3B8" }}>{d.exchange}</span>
+                                                                                        </div>
+                                                                                        <div style={{ display: "flex", gap: "6px", marginTop: "5px", flexWrap: "wrap" }}>
+                                                                                            <span style={{ background: "#0EA5E9", color: "#fff", borderRadius: "20px", padding: "2px 9px", fontSize: "10px", fontWeight: "700" }}>{d.market_cap_tier}</span>
+                                                                                            <span style={{ background: "#F1F5F9", color: "#475569", borderRadius: "20px", padding: "2px 9px", fontSize: "10px" }}>{d.sector}</span>
+                                                                                            <span style={{ background: "#F1F5F9", color: "#475569", borderRadius: "20px", padding: "2px 9px", fontSize: "10px" }}>{d.industry}</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div style={{ textAlign: "right" }}>
+                                                                                        <div style={{ fontSize: "20px", fontWeight: "800", color: "#0F172A" }}>${d.price}</div>
+                                                                                        <div style={{ fontSize: "12px", fontWeight: "600", color: chgColor }}>{chg >= 0 ? "▲" : "▼"} {Math.abs(chg).toFixed(2)}%</div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {/* Info grid */}
+                                                                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px", marginBottom: "10px" }}>
+                                                                                    {[
+                                                                                        ["Mkt Cap",    d.market_cap_fmt],
+                                                                                        ["P/E (TTM)",  d.pe_trailing],
+                                                                                        ["P/E (Fwd)",  d.pe_forward],
+                                                                                        ["Revenue",    d.revenue],
+                                                                                        ["Rev Growth", d.revenue_growth],
+                                                                                        ["Net Margin", d.net_margin],
+                                                                                        ["Gross Margin",d.gross_margin],
+                                                                                        ["ROE",        d.roe],
+                                                                                        ["D/E Ratio",  d.debt_to_equity],
+                                                                                        ["EPS (TTM)",  d.eps_trailing],
+                                                                                        ["EPS (Fwd)",  d.eps_forward],
+                                                                                        ["Free CF",    d.free_cashflow],
+                                                                                        ["52W High",   d.week_52_high],
+                                                                                        ["52W Low",    d.week_52_low],
+                                                                                        ["Div Yield",  d.dividend_yield],
+                                                                                    ].map(([label, val]) => (
+                                                                                        <div key={label} style={{ background: "#fff", borderRadius: "7px", padding: "6px 8px", border: "1px solid #E0F2FE" }}>
+                                                                                            <div style={{ fontSize: "9px", color: "#94A3B8", textTransform: "uppercase", fontWeight: "700", letterSpacing: "0.4px" }}>{label}</div>
+                                                                                            <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A", marginTop: "1px" }}>{val || "N/A"}</div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+
+                                                                                {/* Analyst row */}
+                                                                                <div style={{ background: "#fff", border: "1px solid #E0F2FE", borderRadius: "8px", padding: "8px 10px", marginBottom: "8px", display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "center" }}>
+                                                                                    <div>
+                                                                                        <div style={{ fontSize: "9px", color: "#94A3B8", textTransform: "uppercase", fontWeight: "700" }}>Analyst Rating</div>
+                                                                                        <div style={{ fontSize: "13px", fontWeight: "700", color: "#0EA5E9", marginTop: "1px" }}>{d.recommendation}</div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <div style={{ fontSize: "9px", color: "#94A3B8", textTransform: "uppercase", fontWeight: "700" }}>Target (Mean)</div>
+                                                                                        <div style={{ fontSize: "13px", fontWeight: "700", color: "#0F172A" }}>${d.target_mean}</div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <div style={{ fontSize: "9px", color: "#94A3B8", textTransform: "uppercase", fontWeight: "700" }}>Range</div>
+                                                                                        <div style={{ fontSize: "12px", color: "#475569" }}>${d.target_low} – ${d.target_high}</div>
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <div style={{ fontSize: "9px", color: "#94A3B8", textTransform: "uppercase", fontWeight: "700" }}>Analysts</div>
+                                                                                        <div style={{ fontSize: "13px", fontWeight: "700", color: "#0F172A" }}>{d.num_analysts}</div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {/* Description */}
+                                                                                {d.description && (
+                                                                                    <p style={{ fontSize: "11px", color: "#475569", margin: 0, lineHeight: 1.65, borderTop: "1px solid #E0F2FE", paddingTop: "8px" }}>
+                                                                                        {d.description}
+                                                                                        {d.website && <> · <a href={d.website} target="_blank" rel="noopener noreferrer" style={{ color: "#0EA5E9" }}>{d.website.replace("https://","")}</a></>}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                            )}
 
                                                             {/* ── Expanded: stats LEFT + chart RIGHT (side by side) ── */}
                                                             {(expanded[stock.symbol] || chartOpen[stock.symbol]) && (
