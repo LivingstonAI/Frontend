@@ -1452,7 +1452,26 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const bandTopRef     = useRef(null); // deviation band top
     const bandBotRef     = useRef(null); // deviation band bottom
     const [showTWAP, setShowTWAP]   = useState(false);
-    const [twapStats, setTwapStats] = useState(null); // { twap, current, deviation, signal }
+    const [twapStats, setTwapStats] = useState(null);
+    // ── Extra indicator refs (backend-computed) ──
+    const rsiSeriesRef  = useRef(null);
+    const bbMidRef      = useRef(null);
+    const bbTopRef      = useRef(null);
+    const bbBotRef      = useRef(null);
+    const ema20Ref      = useRef(null);
+    const ema50Ref      = useRef(null);
+    const ema200Ref     = useRef(null);
+    const rsiChartRef   = useRef(null);  // separate pane chart for RSI
+    const rsiPaneRef    = useRef(null);  // DOM container for RSI pane
+    const [showBB,    setShowBB]    = useState(false);
+    const [showRSI,   setShowRSI]   = useState(false);
+    const [showEMA,   setShowEMA]   = useState(false);
+    const [rsiVal,    setRsiVal]    = useState(null);  // latest RSI value for badge
+    // ── Analyst ratings ──
+    const [analystData,        setAnalystData]        = useState(null);
+    const [analystLoading,     setAnalystLoading]     = useState(false);
+    const [analystError,       setAnalystError]       = useState(null);
+    const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
 
     // Lower → Higher timeframes with smart default lookbacks
     const intervalConfig = {
@@ -1486,58 +1505,107 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     // Uses trapezoidal integration of close price over time (unix seconds)
     // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
     // Band = TWAP ± 1 stddev of (price - TWAP) over the whole dataset
-    const computeTWAP = (data) => {
-        if (!data || data.length < 2) return { twap: [], bandTop: [], bandBot: [], stats: null };
-
-        // Step 1: trapezoidal integral → running TWAP
-        const twapPoints = [];
-        let integral = 0;
-        for (let i = 0; i < data.length; i++) {
-            if (i > 0) {
-                const dt   = data[i].time - data[i-1].time; // seconds between bars
-                const avgP = (data[i].value + data[i-1].value) / 2;
-                integral  += avgP * dt;
-            }
-            const elapsed = data[i].time - data[0].time || 1;
-            twapPoints.push({ time: data[i].time, value: parseFloat((integral / elapsed).toFixed(4)) });
-        }
-
-        // Step 2: deviation of price from TWAP
-        const deviations = data.map((d, i) => d.value - twapPoints[i].value);
-        const mean = deviations.reduce((s, v) => s + v, 0) / deviations.length;
-        const std  = Math.sqrt(deviations.reduce((s, v) => s + (v - mean) ** 2, 0) / deviations.length);
-
-        // Step 3: band series
-        const bandTop = twapPoints.map(p => ({ time: p.time, value: parseFloat((p.value + std).toFixed(4)) }));
-        const bandBot = twapPoints.map(p => ({ time: p.time, value: parseFloat((p.value - std).toFixed(4)) }));
-
-        // Step 4: current stats for Sabrina + UI
-        const lastTWAP    = twapPoints[twapPoints.length - 1]?.value;
-        const lastPrice   = data[data.length - 1]?.value;
-        const lastDev     = lastPrice - lastTWAP;
-        const devPct      = parseFloat(((lastDev / lastTWAP) * 100).toFixed(2));
-        const signal      = devPct >  1.5 ? 'EXTENDED_ABOVE'
-                          : devPct < -1.5 ? 'EXTENDED_BELOW'
-                          : 'NEAR_TWAP';
-        return {
-            twap:    twapPoints,
-            bandTop, bandBot,
-            stats: { twap: lastTWAP?.toFixed(2), current: lastPrice?.toFixed(2), deviation: devPct, std: std.toFixed(2), signal },
-        };
-    };
-
-    // ── Fetch OHLCV via Django backend (yfinance) — full interval support ──
-    const fetchOHLCV = async (sym, interval) => {
+    // ── Fetch OHLCV + backend-computed indicators in one call ──────────────────
+    const fetchChartData = async (sym, interval, activeIndicators) => {
         const BACKEND = 'https://backend-production-c0ab.up.railway.app';
         const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ticker: sym, interval }),
+            body: JSON.stringify({ ticker: sym, interval, indicators: activeIndicators }),
         });
         if (!res.ok) throw new Error(`Server error ${res.status}`);
         const json = await res.json();
         if (!json.candles?.length) throw new Error('No data returned for ' + sym);
-        return json.candles.map(c => ({ ...c, value: c.close }));
+        // Add value alias (needed for line/area series)
+        json.candles = json.candles.map(c => ({ ...c, value: c.close }));
+        return json;
+    };
+
+    // ── Fetch analyst ratings (separate endpoint) ────────────────────────────
+    const fetchAnalystRatings = async (sym) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        setAnalystLoading(true);
+        setAnalystError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_vortex_analyst_ratings_vault/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: sym }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Failed');
+            setAnalystData(json);
+            setShowAnalystPanel(true);
+        } catch (e) {
+            setAnalystError(e.message);
+        } finally {
+            setAnalystLoading(false);
+        }
+    };
+
+    // ── Helper: remove a series safely ──────────────────────────────────────
+    const removeSeries = (chart, ref) => {
+        if (ref.current && chart) { try { chart.removeSeries(ref.current); } catch {} ref.current = null; }
+    };
+
+    // ── Helper: apply backend indicator data to chart ───────────────────────
+    const applyIndicators = (chart, json, th) => {
+        // clear old overlay series
+        removeSeries(chart, twapSeriesRef);
+        removeSeries(chart, bandTopRef);
+        removeSeries(chart, bandBotRef);
+        removeSeries(chart, bbMidRef);
+        removeSeries(chart, bbTopRef);
+        removeSeries(chart, bbBotRef);
+        removeSeries(chart, ema20Ref);
+        removeSeries(chart, ema50Ref);
+        removeSeries(chart, ema200Ref);
+
+        if (json.twap?.length) {
+            const twapLine = chart.addLineSeries({ color: '#f59e0b', lineWidth: 2, lineStyle: 1, title: 'TWAP', lastValueVisible: true, priceLineVisible: false });
+            twapLine.setData(json.twap);
+            twapSeriesRef.current = twapLine;
+            const bTop = chart.addLineSeries({ color: 'rgba(245,158,11,0.25)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bTop.setData(json.twapBandTop);
+            bandTopRef.current = bTop;
+            const bBot = chart.addLineSeries({ color: 'rgba(245,158,11,0.25)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bBot.setData(json.twapBandBot);
+            bandBotRef.current = bBot;
+            setTwapStats(json.twapStats);
+        } else { setTwapStats(null); }
+
+        if (json.bbMid?.length) {
+            const mid = chart.addLineSeries({ color: 'rgba(139,92,246,0.7)', lineWidth: 1, title: 'BB Mid', lastValueVisible: false, priceLineVisible: false });
+            mid.setData(json.bbMid);
+            bbMidRef.current = mid;
+            const top = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            top.setData(json.bbTop);
+            bbTopRef.current = top;
+            const bot = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bot.setData(json.bbBot);
+            bbBotRef.current = bot;
+        }
+
+        if (json.ema20?.length) {
+            const e20 = chart.addLineSeries({ color: '#10b981', lineWidth: 1, title: 'EMA20', lastValueVisible: false, priceLineVisible: false });
+            e20.setData(json.ema20);
+            ema20Ref.current = e20;
+        }
+        if (json.ema50?.length) {
+            const e50 = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'EMA50', lastValueVisible: false, priceLineVisible: false });
+            e50.setData(json.ema50);
+            ema50Ref.current = e50;
+        }
+        if (json.ema200?.length) {
+            const e200 = chart.addLineSeries({ color: '#ef4444', lineWidth: 1, title: 'EMA200', lastValueVisible: false, priceLineVisible: false });
+            e200.setData(json.ema200);
+            ema200Ref.current = e200;
+        }
+
+        // RSI badge (latest value)
+        if (json.rsi?.length) {
+            setRsiVal(json.rsi[json.rsi.length - 1]?.value ?? null);
+        } else { setRsiVal(null); }
     };
 
     // Theme config lookup
@@ -1589,47 +1657,28 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         ro.observe(container);
 
         // Initial data load — fitContent on first load
+        const activeIndicators = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
         const initialLoad = async () => {
             setLoadingChart(true);
             setChartError(null);
             try {
-                const data = await fetchOHLCV(ticker, chartInterval);
+                const json = await fetchChartData(ticker, chartInterval, activeIndicators);
                 if (!chartRef.current) return;
                 const th2 = getThemeConfig(chartTheme);
                 let series;
                 if (chartType === 'candlestick') {
                     series = chart.addCandlestickSeries({ upColor: th2.upColor, downColor: th2.downColor, borderUpColor: th2.upColor, borderDownColor: th2.downColor, wickUpColor: th2.upColor, wickDownColor: th2.downColor });
-                    series.setData(data);
+                    series.setData(json.candles);
                 } else if (chartType === 'area') {
                     series = chart.addAreaSeries({ lineColor: th2.lineColor, topColor: th2.areaTop, bottomColor: th2.areaBot, lineWidth: 2 });
-                    series.setData(data.map(d => ({ time: d.time, value: d.value })));
+                    series.setData(json.candles.map(d => ({ time: d.time, value: d.value })));
                 } else {
                     series = chart.addLineSeries({ color: th2.lineColor, lineWidth: 2 });
-                    series.setData(data.map(d => ({ time: d.time, value: d.value })));
+                    series.setData(json.candles.map(d => ({ time: d.time, value: d.value })));
                 }
                 seriesRef.current = series;
-
-                // TWAP overlay
-                if (twapSeriesRef.current)  { try { chart.removeSeries(twapSeriesRef.current); } catch {} twapSeriesRef.current = null; }
-                if (bandTopRef.current)     { try { chart.removeSeries(bandTopRef.current);    } catch {} bandTopRef.current = null; }
-                if (bandBotRef.current)     { try { chart.removeSeries(bandBotRef.current);    } catch {} bandBotRef.current = null; }
-                if (showTWAP) {
-                    const { twap, bandTop, bandBot, stats } = computeTWAP(data);
-                    const twapLine = chart.addLineSeries({ color: '#f59e0b', lineWidth: 2, lineStyle: 1, title: 'TWAP', lastValueVisible: true, priceLineVisible: false });
-                    twapLine.setData(twap);
-                    twapSeriesRef.current = twapLine;
-                    const bTop = chart.addLineSeries({ color: 'rgba(245,158,11,0.3)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-                    bTop.setData(bandTop);
-                    bandTopRef.current = bTop;
-                    const bBot = chart.addLineSeries({ color: 'rgba(245,158,11,0.3)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-                    bBot.setData(bandBot);
-                    bandBotRef.current = bBot;
-                    setTwapStats(stats);
-                } else {
-                    setTwapStats(null);
-                }
-
-                chart.timeScale().fitContent(); // fit only on fresh chart
+                applyIndicators(chart, json, th2);
+                chart.timeScale().fitContent();
                 setLastRefreshed(new Date());
             } catch (e) {
                 setChartError('Could not load chart data. Check ticker or try again.');
@@ -1639,7 +1688,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
         initialLoad();
         return () => { ro.disconnect(); };
-    }, [chartLoaded, ticker, chartType, chartTheme]); // ← NO chartInterval here
+    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA]); // ← NO chartInterval here
 
     // ── Effect B: Refresh data only (interval change · manual refresh · auto-refresh) ──
     // Preserves scroll/zoom position — does NOT recreate the chart instance
@@ -1650,24 +1699,19 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             setRefreshing(true);
             setChartError(null);
             try {
-                const data = await fetchOHLCV(ticker, chartInterval);
+                const activeInd = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
+                const json = await fetchChartData(ticker, chartInterval, activeInd);
                 if (!seriesRef.current || !chartRef.current) return;
 
                 // Save current visible range so we can restore it after update
                 const visibleRange = chartRef.current.timeScale().getVisibleRange();
 
-                // Update series data in-place — no chart recreation
+                // Update price series in-place
                 const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
-                seriesRef.current.setData(data.map(mapData));
+                seriesRef.current.setData(json.candles.map(mapData));
 
-                // Update TWAP overlay in-place
-                if (showTWAP && twapSeriesRef.current) {
-                    const { twap, bandTop, bandBot, stats } = computeTWAP(data);
-                    twapSeriesRef.current.setData(twap);
-                    if (bandTopRef.current) bandTopRef.current.setData(bandTop);
-                    if (bandBotRef.current) bandBotRef.current.setData(bandBot);
-                    setTwapStats(stats);
-                }
+                // Update all indicator overlays in-place
+                applyIndicators(chartRef.current, json, getThemeConfig(chartTheme));
 
                 // Restore position OR fitContent if this is the very first data for this interval
                 if (visibleRange && visibleRange.from && visibleRange.to) {
@@ -1859,14 +1903,21 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                         }}>{lbl}</button>;
                                     })}
                                 </div>
-                                {/* TWAP toggle */}
-                                <button onClick={() => setShowTWAP(s => !s)} style={{
-                                    padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
-                                    border: `1px solid ${showTWAP ? '#f59e0b' : btnBase.border}`,
-                                    backgroundColor: showTWAP ? 'rgba(245,158,11,0.12)' : btnBase.bg,
-                                    color: showTWAP ? '#f59e0b' : btnBase.text,
-                                    cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                                }}>∫ TWAP</button>
+                                {/* Indicator toggles */}
+                                {[
+                                    { key: 'twap', label: '∫ TWAP',   active: showTWAP, toggle: () => setShowTWAP(s=>!s), color: '#f59e0b' },
+                                    { key: 'bb',   label: 'BB',       active: showBB,   toggle: () => setShowBB(s=>!s),   color: '#8b5cf6' },
+                                    { key: 'ema',  label: 'EMA',      active: showEMA,  toggle: () => setShowEMA(s=>!s),  color: '#10b981' },
+                                    { key: 'rsi',  label: `RSI${rsiVal !== null ? ' ' + rsiVal.toFixed(0) : ''}`, active: showRSI, toggle: () => setShowRSI(s=>!s), color: rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa' },
+                                ].map(({ key, label, active, toggle, color }) => (
+                                    <button key={key} onClick={toggle} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? color : btnBase.border}`,
+                                        backgroundColor: active ? color + '1a' : btnBase.bg,
+                                        color: active ? color : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                    }}>{label}</button>
+                                ))}
 
                                 {/* Theme switcher — pushed to the right */}
                                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
@@ -1974,6 +2025,35 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     );
                 })()}
 
+                {/* Indicator legend strip */}
+                {(showEMA || showBB || (showRSI && rsiVal !== null)) && (() => {
+                    const stripBg  = chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#f8f8ff';
+                    const stripBdr = chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#ede9fe';
+                    const textC    = chartTheme==='light'?'#555':'#aaa';
+                    const rsiColor = rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa';
+                    return (
+                        <div style={{ padding: '7px 16px', borderTop:`1px solid ${stripBdr}`, backgroundColor: stripBg, display:'flex', gap:'16px', flexWrap:'wrap', alignItems:'center' }}>
+                            {showEMA && <span style={{ fontSize:'11px', color: textC }}>
+                                <span style={{ color:'#10b981', fontWeight:'700' }}>─ EMA20</span>
+                                {'  '}<span style={{ color:'#3b82f6', fontWeight:'700' }}>─ EMA50</span>
+                                {'  '}<span style={{ color:'#ef4444', fontWeight:'700' }}>─ EMA200</span>
+                            </span>}
+                            {showBB && <span style={{ fontSize:'11px', color:'#8b5cf6', fontWeight:'700' }}>
+                                ── BB(20,2)
+                            </span>}
+                            {showRSI && rsiVal !== null && (
+                                <span style={{ fontSize:'11px', display:'flex', alignItems:'center', gap:'6px' }}>
+                                    <span style={{ color: textC }}>RSI(14)</span>
+                                    <span style={{ fontWeight:'800', fontSize:'13px', color: rsiColor }}>{rsiVal.toFixed(1)}</span>
+                                    <span style={{ padding:'2px 8px', borderRadius:'20px', backgroundColor: rsiColor+'18', border:`1px solid ${rsiColor}40`, color: rsiColor, fontSize:'10px', fontWeight:'700' }}>
+                                        {rsiVal > 70 ? 'OVERBOUGHT' : rsiVal < 30 ? 'OVERSOLD' : 'NEUTRAL'}
+                                    </span>
+                                </span>
+                            )}
+                        </div>
+                    );
+                })()}
+
                 {/* Chart action bar — theme-aware */}
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
                     {/* Manual refresh */}
@@ -2014,6 +2094,21 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             {lastRefreshed.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
                         </span>
                     )}
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Analyst ratings button */}
+                    <button
+                        onClick={() => analystData ? setShowAnalystPanel(p=>!p) : fetchAnalystRatings(ticker)}
+                        disabled={analystLoading}
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${showAnalystPanel && analystData ? '#10b981' : chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showAnalystPanel && analystData ? 'rgba(16,185,129,0.1)' : chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showAnalystPanel && analystData ? '#10b981' : chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: analystLoading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s',
+                        }}
+                    >
+                        {analystLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🏦'} Analyst Ratings
+                    </button>
                     <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
                     {/* TradingView link */}
                     <a
@@ -2075,6 +2170,118 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             </div>
             ); })()}
+
+            {/* ── Analyst Ratings Panel ── */}
+            {showAnalystPanel && analystData && (() => {
+                const s = analystData.summary;
+                const pt = analystData.priceTarget;
+                const ratings = analystData.recentRatings || [];
+                const history = analystData.history || [];
+                if (!s) return null;
+                const consensusColors = { 'STRONG BUY':'#10b981','BUY':'#34d399','HOLD':'#f59e0b','SELL':'#f87171','STRONG SELL':'#ef4444' };
+                const cc = consensusColors[s.consensus] || '#aaa';
+                const total = s.total || 1;
+                const bars = [
+                    { label:'Strong Buy', val:s.strongBuy, color:'#10b981' },
+                    { label:'Buy',        val:s.buy,       color:'#34d399' },
+                    { label:'Hold',       val:s.hold,      color:'#f59e0b' },
+                    { label:'Sell',       val:s.sell,      color:'#f87171' },
+                    { label:'Strong Sell',val:s.strongSell,color:'#ef4444' },
+                ];
+                const actionColors = { upgrade:'#10b981', downgrade:'#ef4444', initiated:'#3b82f6', reiterated:'#f59e0b', maintain:'#aaa' };
+                return (
+                    <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                        {/* Header */}
+                        <div style={{ padding:'16px 20px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'10px' }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#1a1a1a' }}>🏦 Analyst Ratings — {analystData.ticker}</div>
+                                <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>{s.total} analysts covering this stock</div>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                                {/* Consensus badge */}
+                                <div style={{ padding:'8px 18px', borderRadius:'24px', backgroundColor:cc+'18', border:`2px solid ${cc}40`, fontSize:'14px', fontWeight:'800', color:cc }}>
+                                    {s.consensus}
+                                </div>
+                                {/* Bullish % */}
+                                <div style={{ textAlign:'center' }}>
+                                    <div style={{ fontSize:'22px', fontWeight:'800', color:'#10b981' }}>{s.bullishPct}%</div>
+                                    <div style={{ fontSize:'10px', color:'#aaa', fontWeight:'600' }}>BULLISH</div>
+                                </div>
+                                <button onClick={() => setShowAnalystPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa', padding:'4px' }}>×</button>
+                            </div>
+                        </div>
+
+                        <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'20px' }}>
+                            {/* Rating breakdown bars */}
+                            <div>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'12px' }}>RATING BREAKDOWN</div>
+                                {bars.map(b => (
+                                    <div key={b.label} style={{ marginBottom:'8px' }}>
+                                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'3px' }}>
+                                            <span style={{ color:'#555', fontWeight:'600' }}>{b.label}</span>
+                                            <span style={{ color:b.color, fontWeight:'700' }}>{b.val}</span>
+                                        </div>
+                                        <div style={{ height:'6px', borderRadius:'3px', backgroundColor:'#f0f0f0', overflow:'hidden' }}>
+                                            <div style={{ height:'100%', width:`${(b.val/total)*100}%`, backgroundColor:b.color, borderRadius:'3px', transition:'width 0.6s ease' }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Price target */}
+                            {pt && (
+                                <div>
+                                    <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'12px' }}>PRICE TARGET ({pt.numberOfAnalysts} analysts)</div>
+                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                                        {[
+                                            { label:'Mean Target', val:`$${pt.mean}`, big:true, color:'#2563eb' },
+                                            { label:'Current Price', val:`$${pt.current}`, big:true, color:'#1a1a1a' },
+                                            { label:'Low Target',  val:`$${pt.low}`,  big:false, color:'#ef4444' },
+                                            { label:'High Target', val:`$${pt.high}`, big:false, color:'#10b981' },
+                                        ].map(item => (
+                                            <div key={item.label} style={{ padding:'10px 12px', backgroundColor:'#f8f9fa', borderRadius:'8px', borderLeft:`3px solid ${item.color}` }}>
+                                                <div style={{ fontSize:'10px', color:'#999', fontWeight:'600', marginBottom:'4px' }}>{item.label}</div>
+                                                <div style={{ fontSize: item.big?'20px':'15px', fontWeight:'800', color:item.color }}>{item.val}</div>
+                                                {item.label==='Mean Target' && pt.current && (
+                                                    <div style={{ fontSize:'11px', color: pt.mean >= pt.current ? '#10b981' : '#ef4444', fontWeight:'700', marginTop:'2px' }}>
+                                                        {pt.mean >= pt.current ? '▲' : '▼'} {Math.abs(((pt.mean - pt.current)/pt.current)*100).toFixed(1)}% upside
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Recent individual ratings */}
+                        {ratings.length > 0 && (
+                            <div style={{ padding:'0 20px 18px' }}>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>RECENT ANALYST ACTIONS</div>
+                                <div style={{ display:'flex', flexDirection:'column', gap:'6px', maxHeight:'240px', overflowY:'auto' }}>
+                                    {ratings.map((r, i) => {
+                                        const ac = actionColors[r.action?.toLowerCase()] || '#aaa';
+                                        return (
+                                            <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', backgroundColor:'#f8f9fa', borderRadius:'8px', flexWrap:'wrap' }}>
+                                                <span style={{ fontSize:'11px', color:'#aaa', flexShrink:0, minWidth:'80px' }}>{r.date}</span>
+                                                <span style={{ fontSize:'12px', fontWeight:'700', color:'#333', flex:1, minWidth:'100px' }}>{r.firm}</span>
+                                                <span style={{ padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:'700', backgroundColor:ac+'18', color:ac, border:`1px solid ${ac}30`, flexShrink:0 }}>
+                                                    {r.action || 'Update'}
+                                                </span>
+                                                <span style={{ fontSize:'11px', color:'#555', flexShrink:0 }}>
+                                                    {r.fromGrade && r.toGrade ? `${r.fromGrade} → ${r.toGrade}` : r.toGrade || r.fromGrade || ''}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {analystError && <div style={{ padding:'12px 20px', color:'#ef4444', fontSize:'13px' }}>⚠️ {analystError}</div>}
+                    </div>
+                );
+            })()}
 
             {recError && (
                 <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#b91c1c', fontSize: '14px', marginBottom: '16px' }}>
