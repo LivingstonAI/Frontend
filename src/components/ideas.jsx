@@ -672,6 +672,290 @@ function R2Heatmap({ r2s }) {
     );
 }
 
+
+// ─── TradingView Lightweight Charts Component ─────────────────────────────────
+
+const CHART_INTERVALS = [
+    { label: "1m",  value: "1m"  },
+    { label: "5m",  value: "5m"  },
+    { label: "15m", value: "15m" },
+    { label: "30m", value: "30m" },
+    { label: "1H",  value: "60m" },
+    { label: "4H",  value: "240m"},
+    { label: "1D",  value: "1d"  },
+    { label: "1W",  value: "1wk" },
+    { label: "1M",  value: "1mo" },
+    { label: "3M",  value: "3mo" },
+    { label: "6M",  value: "6mo" },
+    { label: "1Y",  value: "1y"  },
+    { label: "2Y",  value: "2y"  },
+];
+
+const CHART_THEMES = {
+    light: {
+        label: "☀️ Light",
+        layout: { background: { color: "#ffffff" }, textColor: "#374151" },
+        grid: { vertLines: { color: "#F3F4F6" }, horzLines: { color: "#F3F4F6" } },
+        crosshair: { vertLine: { color: "#9CA3AF" }, horzLine: { color: "#9CA3AF" } },
+        upColor: "#16A34A", downColor: "#DC2626",
+        areaTopColor: "rgba(37,99,235,0.4)", areaBottomColor: "rgba(37,99,235,0.02)",
+        lineColor: "#2563EB",
+    },
+    dark: {
+        label: "🌙 Dark",
+        layout: { background: { color: "#0F172A" }, textColor: "#94A3B8" },
+        grid: { vertLines: { color: "#1E293B" }, horzLines: { color: "#1E293B" } },
+        crosshair: { vertLine: { color: "#475569" }, horzLine: { color: "#475569" } },
+        upColor: "#22C55E", downColor: "#EF4444",
+        areaTopColor: "rgba(99,102,241,0.5)", areaBottomColor: "rgba(99,102,241,0.02)",
+        lineColor: "#818CF8",
+    },
+    hud: {
+        label: "💠 HUD",
+        layout: { background: { color: "#020B18" }, textColor: "#38BDF8" },
+        grid: { vertLines: { color: "rgba(56,189,248,0.08)" }, horzLines: { color: "rgba(56,189,248,0.08)" } },
+        crosshair: { vertLine: { color: "rgba(56,189,248,0.6)" }, horzLine: { color: "rgba(56,189,248,0.6)" } },
+        upColor: "#00E5FF", downColor: "#FF4C6A",
+        areaTopColor: "rgba(0,229,255,0.35)", areaBottomColor: "rgba(0,229,255,0.01)",
+        lineColor: "#00E5FF",
+    },
+};
+
+// Load the TradingView lightweight-charts library once
+let _tvLibLoaded = false;
+let _tvLibLoading = false;
+let _tvLibCallbacks = [];
+
+function loadTVLib(cb) {
+    if (_tvLibLoaded) { cb(); return; }
+    _tvLibCallbacks.push(cb);
+    if (_tvLibLoading) return;
+    _tvLibLoading = true;
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js";
+    script.onload = () => {
+        _tvLibLoaded = true;
+        _tvLibLoading = false;
+        _tvLibCallbacks.forEach(fn => fn());
+        _tvLibCallbacks = [];
+    };
+    document.head.appendChild(script);
+}
+
+function TradingViewChart({ symbol, theme = "light", chartType = "candle", interval = "1d", height = 320, onClose, fullscreenable = true }) {
+    const { useEffect, useRef, useState } = React;
+    const containerRef = useRef(null);
+    const chartRef     = useRef(null);
+    const seriesRef    = useRef(null);
+
+    const [localTheme,    setLocalTheme]    = useState(theme);
+    const [localType,     setLocalType]     = useState(chartType);
+    const [localInterval, setLocalInterval] = useState(interval);
+    const [loading,       setLoading]       = useState(true);
+    const [error,         setError]         = useState(null);
+    const [isFullscreen,  setIsFullscreen]  = useState(false);
+    const [lastRefresh,   setLastRefresh]   = useState(null);
+
+    const baseUrl = "https://backend-production-c0ab.up.railway.app";
+    const th = CHART_THEMES[localTheme];
+
+    const fetchAndRender = async (sym, intv, type, themeKey) => {
+        if (!containerRef.current || !window.LightweightCharts) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch(`${baseUrl}/ideas_hub_chart_data_v1`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: sym, interval: intv }),
+            });
+            if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed to fetch"); }
+            const data = await res.json();
+
+            const t = CHART_THEMES[themeKey];
+
+            // Destroy old chart if exists
+            if (chartRef.current) {
+                try { chartRef.current.remove(); } catch (_) {}
+                chartRef.current = null;
+                seriesRef.current = null;
+            }
+
+            const chart = window.LightweightCharts.createChart(containerRef.current, {
+                width:  containerRef.current.clientWidth,
+                height: containerRef.current.clientHeight,
+                layout: t.layout,
+                grid:   t.grid,
+                crosshair: { mode: 1, ...t.crosshair },
+                rightPriceScale: { borderColor: t.grid.vertLines.color },
+                timeScale: { borderColor: t.grid.vertLines.color, timeVisible: true, secondsVisible: false },
+                handleScroll: true,
+                handleScale: true,
+            });
+            chartRef.current = chart;
+
+            let series;
+            if (type === "candle") {
+                series = chart.addCandlestickSeries({
+                    upColor: t.upColor, downColor: t.downColor,
+                    borderUpColor: t.upColor, borderDownColor: t.downColor,
+                    wickUpColor: t.upColor, wickDownColor: t.downColor,
+                });
+                series.setData(data.ohlcv);
+            } else if (type === "area") {
+                series = chart.addAreaSeries({
+                    topColor: t.areaTopColor, bottomColor: t.areaBottomColor,
+                    lineColor: t.lineColor, lineWidth: 2,
+                });
+                series.setData(data.ohlcv.map(d => ({ time: d.time, value: d.close })));
+            } else {
+                series = chart.addLineSeries({ color: t.lineColor, lineWidth: 2 });
+                series.setData(data.ohlcv.map(d => ({ time: d.time, value: d.close })));
+            }
+            seriesRef.current = series;
+            chart.timeScale().fitContent();
+            setLastRefresh(new Date().toLocaleTimeString());
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Init lib then render
+    useEffect(() => {
+        loadTVLib(() => fetchAndRender(symbol, localInterval, localType, localTheme));
+        return () => {
+            if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} }
+        };
+    }, []);
+
+    // Re-render on control changes
+    useEffect(() => {
+        if (_tvLibLoaded) fetchAndRender(symbol, localInterval, localType, localTheme);
+    }, [localTheme, localType, localInterval]);
+
+    // Resize observer
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const ro = new ResizeObserver(() => {
+            if (chartRef.current && containerRef.current) {
+                chartRef.current.applyOptions({
+                    width: containerRef.current.clientWidth,
+                    height: containerRef.current.clientHeight,
+                });
+            }
+        });
+        ro.observe(containerRef.current);
+        return () => ro.disconnect();
+    }, []);
+
+    const wrapStyle = isFullscreen ? {
+        position: "fixed", inset: 0, zIndex: 99999,
+        background: "#000", display: "flex", flexDirection: "column",
+    } : { borderRadius: "10px", overflow: "hidden", border: "1px solid #E2E8F0" };
+
+    const toolbarBg = localTheme === "light" ? "#F8FAFC" : localTheme === "dark" ? "#1E293B" : "#071120";
+    const toolbarBorder = localTheme === "light" ? "#E2E8F0" : localTheme === "dark" ? "#334155" : "rgba(56,189,248,0.2)";
+    const toolbarText = localTheme === "light" ? "#475569" : localTheme === "dark" ? "#94A3B8" : "#38BDF8";
+    const activeBg = localTheme === "hud" ? "rgba(0,229,255,0.15)" : localTheme === "dark" ? "#334155" : "#E0E7FF";
+    const activeText = localTheme === "hud" ? "#00E5FF" : localTheme === "dark" ? "#E2E8F0" : "#2563EB";
+
+    const btnStyle = (active) => ({
+        background: active ? activeBg : "transparent",
+        color: active ? activeText : toolbarText,
+        border: "none", borderRadius: "5px",
+        padding: "3px 8px", fontSize: "11px", fontWeight: active ? "700" : "500",
+        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+    });
+
+    const iconBtnStyle = {
+        background: "transparent", border: "none", color: toolbarText,
+        cursor: "pointer", padding: "3px 6px", borderRadius: "5px",
+        display: "flex", alignItems: "center", fontSize: "14px", transition: "all 0.15s",
+    };
+
+    return (
+        <div style={wrapStyle}>
+            {/* ── Toolbar ── */}
+            <div style={{ background: toolbarBg, borderBottom: `1px solid ${toolbarBorder}`, padding: "6px 10px", display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
+                {/* Symbol label */}
+                <span style={{ fontSize: "12px", fontWeight: "700", color: activeText, marginRight: "6px", fontFamily: "monospace" }}>{symbol}</span>
+
+                {/* Divider */}
+                <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 4px" }} />
+
+                {/* Chart type */}
+                {[["candle","🕯️"],["area","〰"],["line","📈"]].map(([t, icon]) => (
+                    <button key={t} style={btnStyle(localType === t)} onClick={() => setLocalType(t)} title={t}>{icon}</button>
+                ))}
+
+                <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 4px" }} />
+
+                {/* Interval pills — scrollable row */}
+                <div style={{ display: "flex", gap: "2px", flexWrap: "wrap" }}>
+                    {CHART_INTERVALS.map(iv => (
+                        <button key={iv.value} style={btnStyle(localInterval === iv.value)} onClick={() => setLocalInterval(iv.value)}>{iv.label}</button>
+                    ))}
+                </div>
+
+                <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 4px" }} />
+
+                {/* Theme */}
+                {Object.entries(CHART_THEMES).map(([k, v]) => (
+                    <button key={k} style={btnStyle(localTheme === k)} onClick={() => setLocalTheme(k)}>{v.label}</button>
+                ))}
+
+                {/* Spacer */}
+                <div style={{ flex: 1 }} />
+
+                {/* Refresh */}
+                <button style={iconBtnStyle} onClick={() => fetchAndRender(symbol, localInterval, localType, localTheme)} title="Refresh">
+                    ↻
+                </button>
+
+                {/* Fullscreen toggle */}
+                {fullscreenable && (
+                    <button style={iconBtnStyle} onClick={() => setIsFullscreen(f => !f)} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+                        {isFullscreen ? "⊠" : "⛶"}
+                    </button>
+                )}
+
+                {/* Close (when used inline in expanded rows) */}
+                {onClose && (
+                    <button style={{ ...iconBtnStyle, color: "#EF4444" }} onClick={onClose} title="Close chart">✕</button>
+                )}
+            </div>
+
+            {/* ── Chart container ── */}
+            <div style={{ flex: 1, position: "relative", minHeight: isFullscreen ? 0 : `${height}px` }}>
+                {loading && (
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: th.layout.background.color, zIndex: 5, gap: "10px" }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                            <circle cx="12" cy="12" r="10" stroke={th.lineColor || "#2563EB"} strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                        </svg>
+                        <span style={{ fontSize: "12px", color: th.layout.textColor }}>Loading chart data...</span>
+                    </div>
+                )}
+                {error && (
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: th.layout.background.color, zIndex: 5 }}>
+                        <span style={{ fontSize: "12px", color: "#EF4444" }}>⚠ {error}</span>
+                    </div>
+                )}
+                <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+            </div>
+
+            {/* ── Status bar ── */}
+            {lastRefresh && !isFullscreen && (
+                <div style={{ background: toolbarBg, borderTop: `1px solid ${toolbarBorder}`, padding: "3px 10px" }}>
+                    <span style={{ fontSize: "10px", color: toolbarText }}>Last updated: {lastRefresh}</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
+
 function TrendAgeModal() {
     const [open, setOpen]       = useState(false);
     const [tab, setTab]         = useState("single");   // "single" | "bulk"
@@ -695,6 +979,11 @@ function TrendAgeModal() {
     const [filterAge, setFilterAge]         = useState("All");
     const [filterDir, setFilterDir]         = useState("All");
     const [expanded, setExpanded]           = useState({});
+    const [chartOpen, setChartOpen]         = useState({});   // which rows have chart open
+    const [allChartsMode, setAllChartsMode] = useState(false); // global all-charts view
+    const [globalChartType,     setGlobalChartType]     = useState("candle");
+    const [globalChartTheme,    setGlobalChartTheme]    = useState("light");
+    const [globalChartInterval, setGlobalChartInterval] = useState("1d");
 
     const baseUrl = "https://backend-production-c0ab.up.railway.app";
 
@@ -995,11 +1284,38 @@ function TrendAgeModal() {
                                     {bulkStocks && !scanning && (
                                         <div style={{ animation: "ta-fadeUp 0.3s ease" }}>
 
-                                            {/* Cache bar */}
-                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                                            {/* Cache bar + View All Charts */}
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "8px" }}>
                                                 <span style={{ fontSize: "11px", color: "#94A3B8" }}>Last scanned: <strong>{bulkDate}</strong> · {bulkStocks.length} stocks</span>
-                                                <button className="ta-rescan-btn" onClick={runBulkScan} style={taStyles.rescanBtn}>↻ Refresh</button>
+                                                <div style={{ display: "flex", gap: "6px" }}>
+                                                    <button onClick={() => setAllChartsMode(m => !m)} style={{ background: allChartsMode ? "#7C3AED" : "#fff", color: allChartsMode ? "#fff" : "#7C3AED", border: "1px solid #7C3AED", borderRadius: "6px", padding: "5px 12px", fontSize: "12px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s" }}>
+                                                        {allChartsMode ? "📊 Hide All Charts" : "📊 View All Charts"}
+                                                    </button>
+                                                    <button className="ta-rescan-btn" onClick={runBulkScan} style={taStyles.rescanBtn}>↻ Refresh</button>
+                                                </div>
                                             </div>
+
+                                            {/* Global chart controls — shown when allChartsMode is on */}
+                                            {allChartsMode && (
+                                                <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "10px", padding: "10px 14px", marginBottom: "12px", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+                                                    <span style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.6px" }}>Global chart settings:</span>
+                                                    <div style={{ display: "flex", gap: "3px" }}>
+                                                        {[["candle","🕯️"],["area","〰"],["line","📈"]].map(([t,icon]) => (
+                                                            <button key={t} onClick={() => setGlobalChartType(t)} style={{ background: globalChartType === t ? "#7C3AED" : "#fff", color: globalChartType === t ? "#fff" : "#475569", border: "1px solid #E2E8F0", borderRadius: "5px", padding: "3px 8px", fontSize: "11px", cursor: "pointer" }}>{icon} {t}</button>
+                                                        ))}
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: "3px" }}>
+                                                        {Object.entries(CHART_THEMES).map(([k,v]) => (
+                                                            <button key={k} onClick={() => setGlobalChartTheme(k)} style={{ background: globalChartTheme === k ? "#7C3AED" : "#fff", color: globalChartTheme === k ? "#fff" : "#475569", border: "1px solid #E2E8F0", borderRadius: "5px", padding: "3px 8px", fontSize: "11px", cursor: "pointer" }}>{v.label}</button>
+                                                        ))}
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                                                        {CHART_INTERVALS.map(iv => (
+                                                            <button key={iv.value} onClick={() => setGlobalChartInterval(iv.value)} style={{ background: globalChartInterval === iv.value ? "#7C3AED" : "#fff", color: globalChartInterval === iv.value ? "#fff" : "#475569", border: "1px solid #E2E8F0", borderRadius: "5px", padding: "3px 7px", fontSize: "10px", cursor: "pointer" }}>{iv.label}</button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Age distribution chips */}
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginBottom: "16px" }}>
@@ -1030,8 +1346,28 @@ function TrendAgeModal() {
                                             {/* Results list */}
                                             <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
                                                 {/* Column headers */}
-                                                <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
-                                                    {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d",""].map(h => (
+                                                {/* All-charts grid mode */}
+                                                {allChartsMode && (
+                                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "12px", padding: "12px", maxHeight: "70vh", overflowY: "auto" }}>
+                                                        {filtered.map(stock => (
+                                                            <div key={stock.symbol} style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid #E2E8F0" }}>
+                                                                <TradingViewChart
+                                                                    symbol={stock.symbol}
+                                                                    theme={globalChartTheme}
+                                                                    chartType={globalChartType}
+                                                                    interval={globalChartInterval}
+                                                                    height={260}
+                                                                    fullscreenable={true}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Normal table view */}
+                                                {!allChartsMode && (<>
+                                                <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 32px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
+                                                    {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d","",""].map(h => (
                                                         <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
                                                     ))}
                                                 </div>
@@ -1044,7 +1380,7 @@ function TrendAgeModal() {
                                                         <div key={stock.symbol}>
                                                             <div className="ta-bulk-row"
                                                                 onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
-                                                                style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
+                                                                style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 32px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
 
                                                                 <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</span>
 
@@ -1053,7 +1389,6 @@ function TrendAgeModal() {
                                                                     <span style={{ fontSize: "10px", fontWeight: "600", color: stock.color, lineHeight: 1.2 }}>{stock.age.split("/")[0].trim()}</span>
                                                                 </div>
 
-                                                                {/* Mini sparkline of R² across timeframes */}
                                                                 <div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "22px" }}>
                                                                     {stock.r2s.map((v, i) => {
                                                                         const h = Math.max(3, Math.round(v * 22));
@@ -1068,10 +1403,33 @@ function TrendAgeModal() {
                                                                     return <span key={i} style={{ fontSize: "11px", fontWeight: "700", color: c, textAlign: "center" }}>{pct}%</span>;
                                                                 })}
 
+                                                                {/* Chart button — stops row expand propagation */}
+                                                                <button
+                                                                    onClick={e => { e.stopPropagation(); setChartOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
+                                                                    title="View chart"
+                                                                    style={{ background: chartOpen[stock.symbol] ? "#7C3AED" : "transparent", border: "1px solid", borderColor: chartOpen[stock.symbol] ? "#7C3AED" : "#E2E8F0", borderRadius: "5px", padding: "3px 5px", cursor: "pointer", fontSize: "12px", color: chartOpen[stock.symbol] ? "#fff" : "#64748B", justifySelf: "center", transition: "all 0.15s" }}>
+                                                                    📈
+                                                                </button>
+
                                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ transition: "transform 0.2s", transform: expanded[stock.symbol] ? "rotate(180deg)" : "rotate(0)", justifySelf: "center" }}>
                                                                     <polyline points="6 9 12 15 18 9" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                                                 </svg>
                                                             </div>
+
+                                                            {/* Inline chart */}
+                                                            {chartOpen[stock.symbol] && (
+                                                                <div style={{ borderBottom: "1px solid #F1F5F9" }}>
+                                                                    <TradingViewChart
+                                                                        symbol={stock.symbol}
+                                                                        theme="light"
+                                                                        chartType="candle"
+                                                                        interval="1d"
+                                                                        height={300}
+                                                                        fullscreenable={true}
+                                                                        onClose={() => setChartOpen(p => ({ ...p, [stock.symbol]: false }))}
+                                                                    />
+                                                                </div>
+                                                            )}
 
                                                             {expanded[stock.symbol] && (
                                                                 <div style={{ padding: "10px 12px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", animation: "ta-fadeUp 0.15s ease" }}>
@@ -1087,7 +1445,6 @@ function TrendAgeModal() {
                                                                         </span>
                                                                     </div>
                                                                     <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: 1.6 }}>{stock.action}</p>
-                                                                    {/* Mini per-TF row */}
                                                                     <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
                                                                         {TIMEFRAMES.map((tf, i) => {
                                                                             const v = stock.r2s[i] ?? 0;
@@ -1109,6 +1466,7 @@ function TrendAgeModal() {
                                                         </div>
                                                     ))}
                                                 </div>
+                                                </>)}
                                             </div>
                                         </div>
                                     )}
