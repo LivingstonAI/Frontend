@@ -1156,7 +1156,48 @@ function TrendAgeModal() {
                 .ta-scan-btn:hover:not(:disabled) { background: #6D28D9 !important; }
                 .ta-rescan-btn:hover { background: #EFF6FF !important; }
                 .ta-bulk-row:hover { background: #F8FAFC !important; }
-                @media (max-width: 520px) { .ta-controls { grid-template-columns: 1fr !important; } }
+
+                /* ── Row layout ── */
+                .ta-row { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid #F1F5F9; cursor: pointer; transition: background 0.1s; flex-wrap: nowrap; }
+                .ta-row-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+                .ta-row-symbol { font-size: 12px; font-weight: 700; color: #0F172A; white-space: nowrap; min-width: 40px; }
+                .ta-row-age { display: flex; align-items: center; gap: 4px; min-width: 0; }
+                .ta-row-age-text { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+                .ta-row-spark { display: flex; gap: 2px; align-items: flex-end; height: 20px; width: 56px; flex-shrink: 0; }
+                .ta-row-bands { display: flex; gap: 6px; flex-shrink: 0; }
+                .ta-row-band { font-size: 11px; font-weight: 700; width: 34px; text-align: center; }
+                .ta-row-btns { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
+                .ta-col-headers { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #F8FAFC; border-bottom: 1px solid #F1F5F9; }
+
+                /* expanded panels */
+                .ta-expanded-wrap { display: grid; grid-template-columns: 220px 1fr; border-bottom: 1px solid #F1F5F9; background: #F8FAFC; }
+                .ta-expanded-wrap.chart-closed { grid-template-columns: 1fr; }
+                .ta-stats-panel { padding: 12px; border-right: 1px solid #E2E8F0; }
+                .ta-expanded-wrap.chart-closed .ta-stats-panel { border-right: none; }
+                .ta-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+
+                /* ── Mobile ── */
+                @media (max-width: 600px) {
+                    .ta-controls { grid-template-columns: 1fr !important; }
+                    /* hide band columns on mobile — show in expanded only */
+                    .ta-row-bands { display: none; }
+                    /* sparkline narrower */
+                    .ta-row-spark { width: 40px; }
+                    /* age text shorter */
+                    .ta-row-age-text { max-width: 64px; }
+                    /* stacked expanded panels */
+                    .ta-expanded-wrap { grid-template-columns: 1fr !important; }
+                    .ta-expanded-wrap .ta-stats-panel { border-right: none; border-bottom: 1px solid #E2E8F0; }
+                    /* info grid 2 cols on mobile */
+                    .ta-info-grid { grid-template-columns: repeat(2, 1fr) !important; }
+                    /* col headers hide band labels */
+                    .ta-col-band-label { display: none; }
+                }
+                @media (max-width: 400px) {
+                    .ta-row-spark { display: none; }
+                    .ta-row-age-text { max-width: 50px; }
+                    .ta-info-grid { grid-template-columns: 1fr 1fr !important; }
+                }
             `}</style>
 
             <button className="ta-trigger-btn btn" onClick={handleOpen} style={taStyles.triggerBtn}>
@@ -1412,12 +1453,16 @@ function TrendAgeModal() {
 
                                             {/* Results list */}
                                             <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
-                                                {/* Column headers */}
                                                 {/* ── Stock table — always visible ── */}
-                                                <div style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 26px 26px 24px", padding: "7px 12px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9", gap: "4px" }}>
-                                                    {["Symbol","Age","Short→Long R²","15-30d","45-60d","90-180d","","",""].map(h => (
-                                                        <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
-                                                    ))}
+                                                {/* Column headers */}
+                                                <div className="ta-col-headers">
+                                                    <span style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", minWidth: "40px" }}>Symbol</span>
+                                                    <span style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", flex: 1 }}>Age</span>
+                                                    <span style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", width: "56px", flexShrink: 0 }}>R² Shape</span>
+                                                    <span className="ta-col-band-label" style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", width: "34px", textAlign: "center", flexShrink: 0 }}>S</span>
+                                                    <span className="ta-col-band-label" style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", width: "34px", textAlign: "center", flexShrink: 0 }}>M</span>
+                                                    <span className="ta-col-band-label" style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", width: "34px", textAlign: "center", flexShrink: 0 }}>L</span>
+                                                    <span style={{ width: "68px", flexShrink: 0 }} />
                                                 </div>
 
                                                 <div style={{ maxHeight: "420px", overflowY: "auto" }}>
@@ -1426,51 +1471,55 @@ function TrendAgeModal() {
                                                     )}
                                                     {filtered.map(stock => (
                                                         <div key={stock.symbol}>
-                                                            {/* ── Row ── */}
-                                                            <div className="ta-bulk-row"
-                                                                onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
-                                                                style={{ display: "grid", gridTemplateColumns: "56px 90px 1fr 60px 60px 60px 26px 26px 24px", padding: "9px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center", cursor: "pointer", gap: "4px", transition: "background 0.1s" }}>
+                                                            {/* ── Row — flexbox, wraps gracefully on mobile ── */}
+                                                            <div className="ta-row ta-bulk-row"
+                                                                onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}>
 
-                                                                <span style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</span>
-
-                                                                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                                                                    <span style={{ fontSize: "12px" }}>{stock.emoji}</span>
-                                                                    <span style={{ fontSize: "10px", fontWeight: "600", color: stock.color, lineHeight: 1.2 }}>{stock.age.split("/")[0].trim()}</span>
+                                                                {/* Left: symbol + age */}
+                                                                <div className="ta-row-left">
+                                                                    <span className="ta-row-symbol">{stock.symbol}</span>
+                                                                    <div className="ta-row-age">
+                                                                        <span style={{ fontSize: "13px", lineHeight: 1 }}>{stock.emoji}</span>
+                                                                        <span className="ta-row-age-text" style={{ color: stock.color }}>{stock.age.split("/")[0].trim()}</span>
+                                                                    </div>
                                                                 </div>
 
-                                                                <div style={{ display: "flex", gap: "2px", alignItems: "flex-end", height: "22px" }}>
+                                                                {/* Sparkline */}
+                                                                <div className="ta-row-spark">
                                                                     {stock.r2s.map((v, i) => {
-                                                                        const h = Math.max(3, Math.round(v * 22));
+                                                                        const barH = Math.max(3, Math.round(v * 20));
                                                                         const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
-                                                                        return <div key={i} style={{ flex: 1, height: `${h}px`, background: c, borderRadius: "2px" }} />;
+                                                                        return <div key={i} style={{ flex: 1, height: `${barH}px`, background: c, borderRadius: "2px" }} />;
                                                                     })}
                                                                 </div>
 
-                                                                {[stock.short_avg, stock.mid_avg, stock.long_avg].map((v, i) => {
-                                                                    const pct = Math.round(v * 100);
-                                                                    const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
-                                                                    return <span key={i} style={{ fontSize: "11px", fontWeight: "700", color: c, textAlign: "center" }}>{pct}%</span>;
-                                                                })}
+                                                                {/* Band averages — hidden on small mobile via CSS */}
+                                                                <div className="ta-row-bands">
+                                                                    {[stock.short_avg, stock.mid_avg, stock.long_avg].map((v, i) => {
+                                                                        const pct = Math.round(v * 100);
+                                                                        const c = v >= 0.6 ? "#15803D" : v >= 0.4 ? "#2563EB" : v >= 0.25 ? "#D97706" : "#DC2626";
+                                                                        return <span key={i} className="ta-row-band" style={{ color: c }}>{pct}%</span>;
+                                                                    })}
+                                                                </div>
 
-                                                                {/* ℹ info button */}
-                                                                <button
-                                                                    onClick={e => { e.stopPropagation(); fetchInfo(stock.symbol); setInfoOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
-                                                                    title="Stock info"
-                                                                    style={{ background: infoOpen[stock.symbol] ? "#0EA5E9" : "transparent", border: "1px solid", borderColor: infoOpen[stock.symbol] ? "#0EA5E9" : "#E2E8F0", borderRadius: "5px", padding: "3px 5px", cursor: "pointer", fontSize: "11px", color: infoOpen[stock.symbol] ? "#fff" : "#64748B", justifySelf: "center", transition: "all 0.15s", fontWeight: "700" }}>
-                                                                    ℹ
-                                                                </button>
-
-                                                                {/* 📈 chart toggle button */}
-                                                                <button
-                                                                    onClick={e => { e.stopPropagation(); setChartOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
-                                                                    title="Toggle chart"
-                                                                    style={{ background: chartOpen[stock.symbol] ? "#7C3AED" : "transparent", border: "1px solid", borderColor: chartOpen[stock.symbol] ? "#7C3AED" : "#E2E8F0", borderRadius: "5px", padding: "3px 5px", cursor: "pointer", fontSize: "12px", color: chartOpen[stock.symbol] ? "#fff" : "#64748B", justifySelf: "center", transition: "all 0.15s" }}>
-                                                                    📈
-                                                                </button>
-
-                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ transition: "transform 0.2s", transform: expanded[stock.symbol] ? "rotate(180deg)" : "rotate(0)", justifySelf: "center" }}>
-                                                                    <polyline points="6 9 12 15 18 9" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                                                </svg>
+                                                                {/* Action buttons */}
+                                                                <div className="ta-row-btns" onClick={e => e.stopPropagation()}>
+                                                                    <button
+                                                                        onClick={() => { fetchInfo(stock.symbol); setInfoOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
+                                                                        title="Stock info"
+                                                                        style={{ background: infoOpen[stock.symbol] ? "#0EA5E9" : "transparent", border: "1px solid", borderColor: infoOpen[stock.symbol] ? "#0EA5E9" : "#E2E8F0", borderRadius: "5px", padding: "4px 7px", cursor: "pointer", fontSize: "11px", color: infoOpen[stock.symbol] ? "#fff" : "#64748B", transition: "all 0.15s", fontWeight: "700", lineHeight: 1 }}>
+                                                                        ℹ
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setChartOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
+                                                                        title="Toggle chart"
+                                                                        style={{ background: chartOpen[stock.symbol] ? "#7C3AED" : "transparent", border: "1px solid", borderColor: chartOpen[stock.symbol] ? "#7C3AED" : "#E2E8F0", borderRadius: "5px", padding: "4px 7px", cursor: "pointer", fontSize: "12px", color: chartOpen[stock.symbol] ? "#fff" : "#64748B", transition: "all 0.15s", lineHeight: 1 }}>
+                                                                        📈
+                                                                    </button>
+                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ transition: "transform 0.2s", transform: expanded[stock.symbol] ? "rotate(180deg)" : "rotate(0)", flexShrink: 0, cursor: "pointer" }} onClick={() => setExpanded(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}>
+                                                                        <polyline points="6 9 12 15 18 9" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                    </svg>
+                                                                </div>
                                                             </div>
 
                                                             {/* ── Info panel ── */}
@@ -1510,7 +1559,7 @@ function TrendAgeModal() {
                                                                                 </div>
 
                                                                                 {/* Info grid */}
-                                                                                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px", marginBottom: "10px" }}>
+                                                                                <div className="ta-info-grid">
                                                                                     {[
                                                                                         ["Mkt Cap",    d.market_cap_fmt],
                                                                                         ["P/E (TTM)",  d.pe_trailing],
@@ -1568,13 +1617,13 @@ function TrendAgeModal() {
                                                                 </div>
                                                             )}
 
-                                                            {/* ── Expanded: stats LEFT + chart RIGHT (side by side) ── */}
+                                                            {/* ── Expanded: stats LEFT + chart RIGHT (stacks on mobile) ── */}
                                                             {(expanded[stock.symbol] || chartOpen[stock.symbol]) && (
-                                                                <div style={{ borderBottom: "1px solid #F1F5F9", background: "#F8FAFC", animation: "ta-fadeUp 0.15s ease" }}>
-                                                                    <div style={{ display: "grid", gridTemplateColumns: chartOpen[stock.symbol] ? "220px 1fr" : "1fr", gap: 0 }}>
+                                                                <div style={{ animation: "ta-fadeUp 0.15s ease" }}>
+                                                                    <div className={`ta-expanded-wrap${chartOpen[stock.symbol] ? "" : " chart-closed"}`}>
 
-                                                                        {/* LEFT — trend age stats (always shown when expanded or chart open) */}
-                                                                        <div style={{ padding: "12px", borderRight: chartOpen[stock.symbol] ? "1px solid #E2E8F0" : "none" }}>
+                                                                        {/* LEFT — trend age stats */}
+                                                                        <div className="ta-stats-panel">
                                                                             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
                                                                                 <span style={{ ...taStyles.badge, background: stock.direction === "Bullish" ? "#DCFCE7" : "#FEE2E2", color: stock.direction === "Bullish" ? "#15803D" : "#B91C1C", fontSize: "10px" }}>
                                                                                     {stock.direction === "Bullish" ? "▲" : "▼"} {stock.direction}
