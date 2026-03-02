@@ -262,7 +262,7 @@ function ChartPanel({ ticker, label, side, theme, timeframe, isFullscreen, onFul
 
     // Try backend first
     try {
-      const res = await fetch(`${baseUrl}/api/chart-data/`, {
+      const res = await fetch(`${baseUrl}/api/esi_ohlcv_feed_v1/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker: sym, interval, range }),
