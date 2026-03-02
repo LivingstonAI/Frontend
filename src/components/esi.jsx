@@ -170,17 +170,6 @@ export default function EconomicStrengthIndex() {
     }
   }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]);
 
-  // ── Correlation date range (independent of chart) ──
-  const [corrDateRange, setCorrDateRange] = useState('30d');
-
-  // ── ALL assets the engine fetches by itself — no selection needed ──
-  const ALL_CURRENCIES   = ['USD','EUR','GBP','JPY','AUD','CAD','CHF','CNY'];
-  const ALL_FOREX        = ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','EURGBP','EURJPY'];
-  const ALL_INDICES      = ['^GSPC','^DJI','^IXIC','^RUT','^FTSE','^GDAXI','^FCHI','^N225','^HSI','^AXJO'];
-  const ALL_COMMODITIES  = ['GC=F','SI=F','CL=F','BZ=F','NG=F','HG=F','PL=F','PA=F','ZC=F','ZW=F'];
-  // All stocks from SECTOR_MAPPINGS — deduplicated
-  const ALL_STOCKS = useMemo(() => [...new Set(Object.keys(SECTOR_MAPPINGS))], []);
-
   // Name/label lookup
   const ASSET_LABELS = useMemo(() => {
     const m = {};
@@ -188,10 +177,9 @@ export default function EconomicStrengthIndex() {
     forexPairs.forEach(f   => { m[f.pair+'_price']        = f.name; });
     stockIndices.forEach(s => { m[s.symbol+'_index']      = s.displayName; });
     commodities.forEach(c  => { m[c.symbol+'_commodity']  = c.displayName; });
-    // Stocks: bare ticker key (backend returns them as-is)
-    ALL_STOCKS.forEach(t   => { m[t] = t; });
+    Object.keys(SECTOR_MAPPINGS).forEach(t => { m[t] = t; });
     return m;
-  }, [ALL_STOCKS]);
+  }, []);
 
   const labelOf = (key) => {
     if (ASSET_LABELS[key]) return ASSET_LABELS[key];
@@ -203,93 +191,52 @@ export default function EconomicStrengthIndex() {
     if (key.endsWith('_index'))         return 'Index';
     if (key.endsWith('_commodity'))     return 'Commodity';
     if (key.endsWith('_volume_ratio'))  return 'Volume';
-    if (SECTOR_MAPPINGS[key])           return SECTOR_MAPPINGS[key]; // returns sector name e.g. 'Technology'
+    if (SECTOR_MAPPINGS[key])           return SECTOR_MAPPINGS[key];
     return 'ESI';
   };
 
   // Unique sectors for per-sector buttons
   const ALL_SECTORS = useMemo(() => [...new Set(Object.values(SECTOR_MAPPINGS))].sort(), []);
 
-  // ── Static class definitions — always visible, no data needed ──
+  // Static button definitions — always visible regardless of what's loaded
   const STATIC_MACRO_CLASSES = ['ESI','Forex','Index','Commodity'];
   const STATIC_MACRO_CROSS = [
     ['ESI','Forex'],['ESI','Index'],['ESI','Commodity'],
     ['Forex','Index'],['Forex','Commodity'],['Index','Commodity'],
   ];
 
-  // ── Self-fetching correlation engine ──
-  // mode: 'all' | { single: 'ESI'|'Forex'|'Index'|'Commodity'|sectorName } | { cross: [clsA, clsB] } | { sector: 'Technology' }
+  // ── Correlation engine — reads directly from economicData ──
   const runMLAnalysis = async (mode = 'all') => {
+    if (!economicData?.length || economicData.length < 5) {
+      setAnalysisError('No chart data loaded yet. Configure and load some assets from the modal first, then run correlations.');
+      return;
+    }
+
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    setAnalysisStatus('Fetching all asset data…');
+    setAnalysisStatus('Reading loaded chart data…');
     setAiInsights([]);
     setAnalysisError('');
-
-    await new Promise(r => setTimeout(r, 40));
+    await new Promise(r => setTimeout(r, 30));
 
     try {
-      // Determine which stocks to fetch based on mode (fetch only relevant sector if sector-specific)
-      let stocksToFetch = [];
-      if (mode === 'all') {
-        stocksToFetch = ALL_STOCKS;
-      } else if (mode.single && ALL_SECTORS.includes(mode.single)) {
-        stocksToFetch = ALL_STOCKS.filter(t => SECTOR_MAPPINGS[t] === mode.single);
-      } else if (mode.cross) {
-        const [a, b] = mode.cross;
-        const sectorNames = ALL_SECTORS;
-        if (sectorNames.includes(a)) stocksToFetch.push(...ALL_STOCKS.filter(t => SECTOR_MAPPINGS[t] === a));
-        if (sectorNames.includes(b)) stocksToFetch.push(...ALL_STOCKS.filter(t => SECTOR_MAPPINGS[t] === b));
-      } else {
-        stocksToFetch = ALL_STOCKS; // for single macro class, still fetch all stocks for cross potential
-      }
-
-      const isMacroOnly = mode !== 'all' && mode.single && !ALL_SECTORS.includes(mode.single);
-      const fetchStocks = isMacroOnly ? [] : stocksToFetch;
-
-      setAnalysisStatus(`Loading currencies, forex, indices, commodities${fetchStocks.length ? ` & ${fetchStocks.length} stocks` : ''}…`);
-
-      const res = await fetch(`${baseUrl}/api/economic-strength-index/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currencies:    ALL_CURRENCIES,
-          forex_pairs:   ALL_FOREX,
-          stock_indices: ALL_INDICES,
-          commodities:   ALL_COMMODITIES,
-          stocks:        fetchStocks,
-          volume_assets: [],
-          date_range:    corrDateRange,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`API error ${res.status}`);
-      const json = await res.json();
-      const data = json.chart_data;
-
-      if (!data?.length || data.length < 5) {
-        setAnalysisError('Not enough data returned. Try a longer date range.');
-        setIsAnalyzing(false);
-        return;
-      }
-
-      setAnalysisProgress(18);
-      setAnalysisStatus('Classifying series…');
-      await new Promise(r => setTimeout(r, 20));
-
-      // Pull every numeric key and classify
-      const allKeys = Object.keys(data[0])
+      // Classify every numeric key already in economicData
+      const allKeys = Object.keys(economicData[0])
         .filter(k => k !== 'date')
-        .filter(k => data.some(d => d[k] != null && typeof d[k] === 'number'))
+        .filter(k => economicData.some(d => d[k] != null && typeof d[k] === 'number'))
         .map(k => ({ key: k, label: labelOf(k), cls: classOf(k) }));
 
       if (allKeys.length < 2) {
-        setAnalysisError('API returned insufficient numeric series.');
+        setAnalysisError('Not enough data series loaded. Add more assets in the configuration modal.');
         setIsAnalyzing(false);
         return;
       }
 
-      // Build pair list based on mode
+      setAnalysisProgress(10);
+      setAnalysisStatus(`Found ${allKeys.length} series — building pairs…`);
+      await new Promise(r => setTimeout(r, 20));
+
+      // Build pairs based on mode
       let pairs = [];
       if (mode === 'all') {
         for (let i = 0; i < allKeys.length; i++)
@@ -308,20 +255,20 @@ export default function EconomicStrengthIndex() {
       }
 
       if (pairs.length === 0) {
-        setAnalysisError('No pairs found for this selection. The API may not have returned data for that asset class.');
+        setAnalysisError('No data loaded for that asset class. Load those assets in the modal first.');
         setIsAnalyzing(false);
         return;
       }
 
       setAnalysisStatus(`Computing ${pairs.length.toLocaleString()} correlations…`);
-      await new Promise(r => setTimeout(r, 30));
+      await new Promise(r => setTimeout(r, 20));
 
       const findings = [];
-      const BATCH = 25;
+      const BATCH = 30;
 
       for (let i = 0; i < pairs.length; i++) {
         const [kA, kB] = pairs[i];
-        const rows = data.filter(d => d[kA.key] != null && d[kB.key] != null);
+        const rows = economicData.filter(d => d[kA.key] != null && d[kB.key] != null);
 
         if (rows.length >= 5) {
           const score = tf.tidy(() => {
@@ -336,8 +283,7 @@ export default function EconomicStrengthIndex() {
         }
 
         if (i % BATCH === 0) {
-          const pct = 18 + Math.round((i / pairs.length) * 77);
-          setAnalysisProgress(pct);
+          setAnalysisProgress(10 + Math.round((i / pairs.length) * 85));
           setAnalysisStatus(`Pair ${(i+1).toLocaleString()} / ${pairs.length.toLocaleString()}`);
           await new Promise(r => setTimeout(r, 0));
         }
@@ -345,7 +291,7 @@ export default function EconomicStrengthIndex() {
 
       setAnalysisProgress(97);
       setAnalysisStatus('Ranking by strength…');
-      await new Promise(r => setTimeout(r, 30));
+      await new Promise(r => setTimeout(r, 20));
 
       const insights = findings
         .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
@@ -695,17 +641,10 @@ export default function EconomicStrengthIndex() {
                 <div className="ai-header-icon">📡</div>
                 <div>
                   <h6 className="ai-title">Correlation Engine</h6>
-                  <p className="ai-subtitle">Fetches all assets itself · No selection needed · Sorted highest → lowest</p>
+                  <p className="ai-subtitle">Uses your loaded chart data · Select assets in modal first · Sorted highest → lowest</p>
                 </div>
               </div>
               <div className="ai-header-right">
-                <select value={corrDateRange} onChange={e => setCorrDateRange(e.target.value)} className="corr-date-select">
-                  <option value="7d">7 days</option>
-                  <option value="30d">30 days</option>
-                  <option value="90d">90 days</option>
-                  <option value="180d">6 months</option>
-                  <option value="365d">1 year</option>
-                </select>
                 <button
                   onClick={() => runMLAnalysis('all')}
                   disabled={isAnalyzing}
@@ -713,7 +652,7 @@ export default function EconomicStrengthIndex() {
                 >
                   {isAnalyzing
                     ? <><span className="ai-btn-spinner-sm"></span>{analysisProgress}%</>
-                    : '⚡ Analyze All Assets'
+                    : '⚡ Analyze All'
                   }
                 </button>
               </div>
@@ -896,7 +835,7 @@ export default function EconomicStrengthIndex() {
             )}
 
             {aiInsights.length === 0 && !isAnalyzing && !analysisError && (
-              <p className="ai-hint">Click any button above — the engine fetches all assets by itself and computes every pairwise correlation. No setup needed. 🚀</p>
+              <p className="ai-hint">Load assets via the modal above, then click any button to find correlations across everything you've selected. 🚀</p>
             )}
           </div>
 
