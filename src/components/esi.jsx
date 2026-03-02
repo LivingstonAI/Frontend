@@ -181,15 +181,20 @@ export default function EconomicStrengthIndex() {
     return m;
   }, []);
 
-  const labelOf = (key) => ASSET_LABELS[key] ||
-    key.replace(/_price|_index|_commodity|_volume_ratio/g,'').replace(/=F$/,'').replace(/^\^/,'');
+  const labelOf = (key) => {
+  if (ASSET_LABELS[key]) return ASSET_LABELS[key];
+  const ticker = key.replace(/_stock$/, '');           // ← ADD THIS
+  if (ASSET_LABELS[ticker]) return ASSET_LABELS[ticker]; // ← ADD THIS
+  return key.replace(/_price|_index|_commodity|_volume_ratio|_stock/g,'').replace(/=F$/,'').replace(/^\^/,'');
+};
 
   const classOf = (key) => {
-    if (key.endsWith('_price'))         return 'Forex';
-    if (key.endsWith('_index'))         return 'Index';
-    if (key.endsWith('_commodity'))     return 'Commodity';
-    if (key.endsWith('_volume_ratio'))  return 'Volume';
-    if (SECTOR_MAPPINGS[key])           return SECTOR_MAPPINGS[key]; // sector name e.g. 'Technology'
+    if (key.endsWith('_price'))        return 'Forex';
+    if (key.endsWith('_index'))        return 'Index';
+    if (key.endsWith('_commodity'))    return 'Commodity';
+    if (key.endsWith('_volume_ratio')) return 'Volume';
+    if (key.endsWith('_stock'))        return SECTOR_MAPPINGS[key.replace('_stock','')] || 'Stock'; // ← ADD THIS
+    if (SECTOR_MAPPINGS[key])          return SECTOR_MAPPINGS[key];
     return 'ESI';
   };
 
