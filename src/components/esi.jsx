@@ -37,6 +37,562 @@ const SECTOR_COLORS = {
   'Technology': '#6366f1','Financial': '#0ea5e9','Healthcare': '#10b981','Consumer Cyclical': '#f59e0b','Consumer Defensive': '#84cc16','Energy': '#ef4444','Industrials': '#8b5cf6','Communication': '#ec4899','Real Estate': '#14b8a6','Materials': '#f97316','Utilities': '#06b6d4',
 };
 
+// ─── CHART MODAL HELPERS ─────────────────────────────────────────────────────
+
+const resolveYFinanceTicker = (name, cls) => {
+  const ESI_CURRENCY_MAP = {
+    'USD ESI':'DX-Y.NYB','EUR ESI':'EURUSD=X','GBP ESI':'GBPUSD=X',
+    'JPY ESI':'JPY=X','AUD ESI':'AUD=X','CAD ESI':'CAD=X','CHF ESI':'CHF=X','CNY ESI':'CNY=X',
+  };
+  if (ESI_CURRENCY_MAP[name]) return ESI_CURRENCY_MAP[name];
+  if (cls === 'Forex' || name.includes('/')) return name.replace('/', '') + '=X';
+  const INDEX_MAP = {
+    'S&P 500':'^GSPC','Dow Jones':'^DJI','NASDAQ':'^IXIC','Russell 2000':'^RUT',
+    'FTSE 100':'^FTSE','DAX':'^GDAXI','CAC 40':'^FCHI','Nikkei 225':'^N225',
+    'Hang Seng':'^HSI','ASX 200':'^AXJO',
+  };
+  if (INDEX_MAP[name]) return INDEX_MAP[name];
+  const COMMODITY_MAP = {
+    'Gold':'GC=F','Silver':'SI=F','Crude Oil (WTI)':'CL=F','Crude Oil WTI':'CL=F',
+    'Brent Crude':'BZ=F','Natural Gas':'NG=F','Copper':'HG=F','Platinum':'PL=F',
+    'Palladium':'PA=F','Corn':'ZC=F','Wheat':'ZW=F',
+  };
+  if (COMMODITY_MAP[name]) return COMMODITY_MAP[name];
+  return name;
+};
+
+const CHART_TIMEFRAMES = [
+  { label:'5m',  interval:'5m',   range:'5d'  },
+  { label:'15m', interval:'15m',  range:'5d'  },
+  { label:'1H',  interval:'60m',  range:'1mo' },
+  { label:'4H',  interval:'1d',   range:'3mo' }, // yfinance doesn't support 4h natively, use 1d
+  { label:'1D',  interval:'1d',   range:'1y'  },
+  { label:'1W',  interval:'1wk',  range:'2y'  },
+  { label:'1M',  interval:'1mo',  range:'5y'  },
+];
+
+const CHART_THEMES = {
+  light: { bg:'#ffffff', panelBg:'#f8fafc', border:'#e2e8f0', text:'#0f172a', sub:'#64748b', grid:'#f1f5f9', cross:'#94a3b8' },
+  dark:  { bg:'#0f172a', panelBg:'#1e293b', border:'#334155', text:'#f1f5f9', sub:'#94a3b8', grid:'#1e293b',  cross:'#475569' },
+  hud:   { bg:'#000814', panelBg:'#0a1628', border:'#00d4ff33', text:'#00d4ff', sub:'#0099bb', grid:'#00d4ff0d', cross:'#00d4ff' },
+};
+
+const LINE_COLORS = {
+  a: { light:'#2563eb', dark:'#60a5fa', hud:'#00d4ff' },
+  b: { light:'#dc2626', dark:'#f87171', hud:'#ff6b35' },
+};
+
+// ─── STOCK INFO PANEL ────────────────────────────────────────────────────────
+
+// Which classes count as US stocks (not macro assets)
+const isStockClass = (cls) => cls && !['ESI','Forex','Index','Commodity','Volume'].includes(cls);
+
+const ESI_FMT_NUM = (n, decimals = 2) => {
+  if (n == null || isNaN(n)) return '—';
+  if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (Math.abs(n) >= 1e9)  return (n / 1e9).toFixed(2) + 'B';
+  if (Math.abs(n) >= 1e6)  return (n / 1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3)  return n.toLocaleString(undefined, { maximumFractionDigits: decimals });
+  return n.toFixed(decimals);
+};
+
+const ESI_FMT_PCT = (n) => n == null ? '—' : (n * 100).toFixed(2) + '%';
+
+function StockInfoPanel({ ticker, sectorColor, baseUrl, insightId }) {
+  const [open, setOpen]       = useState(false);
+  const [data, setData]       = useState(null);   // cached once fetched
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+
+  const fetch_info = async () => {
+    if (data) { setOpen(o => !o); return; }  // already cached — just toggle
+    setOpen(true);
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${baseUrl}/api/esi_stock_fundamentals_v1/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tickers: [ticker] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setData(json.data?.[ticker] || null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sc = sectorColor || '#6366f1';
+
+  const Stat = ({ label, value, highlight }) => (
+    <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+      <span style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.08em', color:'#94a3b8', fontWeight:700 }}>{label}</span>
+      <span style={{ fontSize:12, fontWeight:700, color: highlight ? sc : '#1e293b', fontFamily:"'IBM Plex Mono', monospace" }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ borderTop:'1px dashed #e2e8f0', marginTop:2 }}>
+      {/* Trigger button */}
+      <button
+        onClick={e => { e.stopPropagation(); fetch_info(); }}
+        className="sip-trigger-btn"
+        style={{ '--sc': sc }}
+      >
+        <span style={{ fontSize:11 }}>🏦</span>
+        <span style={{ fontWeight:700, fontSize:11 }}>{ticker}</span>
+        <span style={{ fontSize:10, opacity:0.7 }}>Stock Info</span>
+        {data && <span style={{ fontSize:9, background:sc+'22', color:sc, padding:'1px 5px', borderRadius:4, fontWeight:700, border:`1px solid ${sc}44` }}>cached</span>}
+        <span style={{ marginLeft:'auto', fontSize:10, color:'#94a3b8', transition:'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+      </button>
+
+      {/* Collapsible content */}
+      {open && (
+        <div style={{ padding:'10px 13px 12px', background:'#fafcff', borderTop:'1px solid #e0eaff' }} onClick={e => e.stopPropagation()}>
+          {loading && (
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0', color:'#64748b', fontSize:12 }}>
+              <div style={{ width:14, height:14, border:'2px solid #dbeafe', borderTopColor:sc, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite', flexShrink:0 }} />
+              Fetching {ticker} fundamentals…
+            </div>
+          )}
+          {error && (
+            <div style={{ padding:'6px 10px', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, color:'#991b1b', fontSize:11 }}>
+              ⚠️ {error}
+              <button onClick={e => { e.stopPropagation(); setData(null); fetch_info(); }} style={{ marginLeft:8, background:'none', border:'none', color:'#2563eb', cursor:'pointer', fontSize:11, textDecoration:'underline' }}>retry</button>
+            </div>
+          )}
+          {data && !loading && (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {/* Company header */}
+              <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                {data.logo_url && (
+                  <img src={data.logo_url} alt="" style={{ width:32, height:32, borderRadius:6, objectFit:'contain', background:'white', border:'1px solid #e2e8f0', flexShrink:0 }} onError={e => e.target.style.display='none'} />
+                )}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:800, fontSize:13, color:'#0f172a', lineHeight:1.2 }}>{data.name || ticker}</div>
+                  <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>{data.sector} · {data.industry}</div>
+                  <div style={{ fontSize:11, color:'#94a3b8' }}>{data.exchange} · {data.country}</div>
+                </div>
+                <div style={{ textAlign:'right', flexShrink:0 }}>
+                  <div style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: data.change_pct >= 0 ? '#16a34a' : '#dc2626' }}>
+                    ${ESI_FMT_NUM(data.price, 2)}
+                  </div>
+                  <div style={{ fontSize:11, fontWeight:700, color: data.change_pct >= 0 ? '#16a34a' : '#dc2626', background: data.change_pct >= 0 ? '#dcfce7' : '#fee2e2', padding:'1px 6px', borderRadius:4, marginTop:2 }}>
+                    {data.change_pct >= 0 ? '▲' : '▼'} {Math.abs(data.change_pct || 0).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Business description */}
+              {data.summary && (
+                <p style={{ fontSize:11, color:'#475569', lineHeight:1.5, margin:0, background:'white', padding:'8px 10px', borderRadius:6, border:'1px solid #e2e8f0', fontStyle:'italic' }}>
+                  {data.summary.length > 280 ? data.summary.slice(0, 280) + '…' : data.summary}
+                </p>
+              )}
+
+              {/* Key metrics grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(90px, 1fr))', gap:'8px 12px', background:'white', padding:'10px 12px', borderRadius:8, border:`1px solid ${sc}22` }}>
+                <Stat label="Market Cap"   value={ESI_FMT_NUM(data.market_cap)} highlight />
+                <Stat label="P/E Ratio"    value={data.pe_ratio ? data.pe_ratio.toFixed(1) : '—'} />
+                <Stat label="P/B Ratio"    value={data.pb_ratio ? data.pb_ratio.toFixed(2) : '—'} />
+                <Stat label="EPS (TTM)"    value={data.eps ? '$' + data.eps.toFixed(2) : '—'} />
+                <Stat label="Rev (TTM)"    value={ESI_FMT_NUM(data.revenue)} highlight />
+                <Stat label="Gross Margin" value={ESI_FMT_PCT(data.gross_margin)} />
+                <Stat label="Profit Margin" value={ESI_FMT_PCT(data.profit_margin)} />
+                <Stat label="ROE"          value={ESI_FMT_PCT(data.roe)} />
+                <Stat label="Debt/Equity"  value={data.debt_equity ? data.debt_equity.toFixed(2) : '—'} />
+                <Stat label="Div Yield"    value={data.dividend_yield ? ESI_FMT_PCT(data.dividend_yield) : 'None'} />
+                <Stat label="52W High"     value={data.week52_high ? '$' + data.week52_high.toFixed(2) : '—'} />
+                <Stat label="52W Low"      value={data.week52_low ? '$' + data.week52_low.toFixed(2) : '—'} />
+                <Stat label="Avg Volume"   value={ESI_FMT_NUM(data.avg_volume, 0)} />
+                <Stat label="Beta"         value={data.beta ? data.beta.toFixed(2) : '—'} />
+                <Stat label="Employees"    value={ESI_FMT_NUM(data.employees, 0)} />
+              </div>
+
+              {/* Analyst targets */}
+              {(data.target_high || data.target_low || data.target_mean) && (
+                <div style={{ background:`linear-gradient(135deg, ${sc}0d, ${sc}05)`, border:`1px solid ${sc}33`, borderRadius:8, padding:'8px 12px' }}>
+                  <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:sc, marginBottom:6 }}>Analyst Price Targets</div>
+                  <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+                    {data.target_low  && <Stat label="Low"  value={'$' + data.target_low.toFixed(2)} />}
+                    {data.target_mean && <Stat label="Mean" value={'$' + data.target_mean.toFixed(2)} highlight />}
+                    {data.target_high && <Stat label="High" value={'$' + data.target_high.toFixed(2)} />}
+                    {data.recommendation && <Stat label="Consensus" value={data.recommendation.toUpperCase()} highlight />}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize:9, color:'#cbd5e1', textAlign:'right' }}>via yfinance · {new Date().toLocaleTimeString()}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SINGLE CHART PANEL ──────────────────────────────────────────────────────
+
+function ChartPanel({ ticker, label, side, theme, timeframe, isFullscreen, onFullscreen, baseUrl }) {
+  const containerRef = useRef(null);
+  const chartRef     = useRef(null);
+  const seriesRef    = useRef(null);
+  const roRef        = useRef(null);
+  const [status, setStatus]     = useState('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [priceInfo, setPriceInfo] = useState(null);
+
+  const t   = CHART_THEMES[theme];
+  const col = LINE_COLORS[side][theme];
+
+  const loadLWC = () => new Promise((resolve, reject) => {
+    if (window.LightweightCharts) { resolve(window.LightweightCharts); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+    s.onload = () => resolve(window.LightweightCharts);
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+
+  const fetchData = async (sym, tf) => {
+    const { interval, range } = CHART_TIMEFRAMES.find(x => x.label === tf) || CHART_TIMEFRAMES[4];
+
+    // Try backend first
+    try {
+      const res = await fetch(`${baseUrl}/api/chart-data/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker: sym, interval, range }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.length > 0) return json.data;
+      }
+    } catch (_) {}
+
+    // Fallback: Yahoo Finance via CORS proxy
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${interval}&range=${range}&includePrePost=false`;
+    const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const result = d?.chart?.result?.[0];
+    if (!result) throw new Error('No data returned');
+    const ts = result.timestamp || [];
+    const q  = result.indicators?.quote?.[0] || {};
+    return ts.map((t, i) => ({ time: t, close: q.close?.[i] })).filter(x => x.close != null);
+  };
+
+  const buildChart = useCallback(async () => {
+    if (!containerRef.current || !ticker) return;
+    setStatus('loading'); setErrorMsg('');
+
+    try {
+      const LWC = await loadLWC();
+
+      // Tear down old chart
+      if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} chartRef.current = null; }
+      if (roRef.current) { roRef.current.disconnect(); roRef.current = null; }
+
+      const rawData = await fetchData(ticker, timeframe);
+
+      const chart = LWC.createChart(containerRef.current, {
+        width:  containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight,
+        layout: { background: { type: 'solid', color: t.bg }, textColor: t.text, fontFamily: "'IBM Plex Mono', 'Courier New', monospace" },
+        grid:   { vertLines: { color: t.grid }, horzLines: { color: t.grid } },
+        crosshair: { mode: 1, vertLine: { color: t.cross, style: 2 }, horzLine: { color: t.cross, style: 2 } },
+        rightPriceScale: { borderColor: t.border, textColor: t.sub },
+        timeScale: { borderColor: t.border, textColor: t.sub, timeVisible: true, secondsVisible: false },
+        handleScroll: true, handleScale: true,
+      });
+
+      const series = chart.addAreaSeries({
+        lineColor: col, topColor: col + '33', bottomColor: col + '05',
+        lineWidth: 2,
+        priceLineVisible: true, priceLineColor: col,
+        crosshairMarkerVisible: true, crosshairMarkerRadius: 5,
+        crosshairMarkerBorderColor: col, crosshairMarkerBackgroundColor: t.bg,
+      });
+
+      // Format + deduplicate data
+      const seen = new Set();
+      const formatted = rawData
+        .map(d => ({ time: typeof d.time === 'number' ? d.time : Math.floor(new Date(d.time).getTime() / 1000), value: d.close ?? d.value ?? d.price }))
+        .filter(d => d.value != null && isFinite(d.value))
+        .sort((a, b) => a.time - b.time)
+        .filter(d => { if (seen.has(d.time)) return false; seen.add(d.time); return true; });
+
+      series.setData(formatted);
+      chart.timeScale().fitContent();
+
+      // Crosshair subscription
+      chart.subscribeCrosshairMove(param => {
+        if (param.seriesData?.has(series)) {
+          const val = param.seriesData.get(series);
+          if (val?.value != null) setPriceInfo(p => ({ ...p, hover: val.value }));
+        }
+      });
+
+      // Last price + change
+      if (formatted.length > 1) {
+        const last  = formatted[formatted.length - 1].value;
+        const first = formatted[0].value;
+        setPriceInfo({ price: last, change: ((last - first) / first) * 100, hover: null });
+      }
+
+      chartRef.current  = chart;
+      seriesRef.current = series;
+
+      // ResizeObserver
+      const ro = new ResizeObserver(() => {
+        if (containerRef.current && chartRef.current) {
+          chartRef.current.applyOptions({ width: containerRef.current.clientWidth, height: containerRef.current.clientHeight });
+        }
+      });
+      ro.observe(containerRef.current);
+      roRef.current = ro;
+
+      setStatus('ok');
+    } catch (err) {
+      setStatus('error'); setErrorMsg(err.message || 'Failed to load chart');
+    }
+  }, [ticker, timeframe, theme]);
+
+  useEffect(() => {
+    buildChart();
+    return () => {
+      if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} }
+      if (roRef.current) roRef.current.disconnect();
+    };
+  }, [buildChart]);
+
+  // Live theme update without full rebuild
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({
+      layout: { background: { color: t.bg }, textColor: t.text },
+      grid: { vertLines: { color: t.grid }, horzLines: { color: t.grid } },
+      crosshair: { vertLine: { color: t.cross }, horzLine: { color: t.cross } },
+      rightPriceScale: { borderColor: t.border, textColor: t.sub },
+      timeScale: { borderColor: t.border, textColor: t.sub },
+    });
+  }, [theme]);
+
+  const fmtPrice = v => {
+    if (v == null) return '—';
+    if (v >= 10000) return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    if (v >= 1000)  return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    if (v < 0.01)   return v.toFixed(6);
+    if (v < 1)      return v.toFixed(5);
+    if (v < 10)     return v.toFixed(4);
+    return v.toFixed(2);
+  };
+
+  const displayPrice = priceInfo?.hover ?? priceInfo?.price;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', flex:1, minHeight:0, background:t.bg, borderRadius:10, overflow:'hidden', border:`1.5px solid ${t.border}`, position:'relative' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', borderBottom:`1px solid ${t.border}`, background:t.panelBg, flexShrink:0, minWidth:0 }}>
+        <div style={{ width:9, height:9, borderRadius:'50%', background:col, flexShrink:0 }} />
+        <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, fontSize:12, color:t.text, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {label}
+        </span>
+        {displayPrice != null && (
+          <span style={{ fontFamily:'monospace', fontSize:12, color:col, fontWeight:800, flexShrink:0 }}>{fmtPrice(displayPrice)}</span>
+        )}
+        {priceInfo?.change != null && (
+          <span style={{ fontSize:11, fontWeight:700, color:priceInfo.change>=0?'#16a34a':'#dc2626', background:priceInfo.change>=0?'#dcfce7':'#fee2e2', padding:'2px 6px', borderRadius:5, flexShrink:0 }}>
+            {priceInfo.change>=0?'+':''}{priceInfo.change.toFixed(2)}%
+          </span>
+        )}
+        <button onClick={onFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:14, padding:'2px 4px', borderRadius:5, flexShrink:0, lineHeight:1 }}>
+          {isFullscreen ? '⊡' : '⤢'}
+        </button>
+      </div>
+      {/* Chart */}
+      <div style={{ flex:1, position:'relative', minHeight:0 }}>
+        {status === 'loading' && (
+          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:t.bg, zIndex:5, gap:10 }}>
+            <div style={{ width:28, height:28, border:`3px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }} />
+            <span style={{ color:t.sub, fontSize:11, fontFamily:'monospace' }}>Loading {ticker}…</span>
+          </div>
+        )}
+        {status === 'error' && (
+          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:t.bg, zIndex:5, padding:20, gap:8 }}>
+            <span style={{ fontSize:22 }}>⚠️</span>
+            <span style={{ color:t.sub, fontSize:11, textAlign:'center', fontFamily:'monospace' }}>{errorMsg}</span>
+            <button onClick={buildChart} style={{ padding:'5px 14px', background:col, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700 }}>Retry</button>
+          </div>
+        )}
+        <div ref={containerRef} style={{ width:'100%', height:'100%' }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── CORRELATION CHART MODAL ─────────────────────────────────────────────────
+
+function CorrelationChartModal({ insight, onClose, baseUrl }) {
+  const [theme, setTheme]               = useState('dark');
+  const [timeframe, setTimeframe]       = useState('1D');
+  const [fullscreen, setFullscreen]     = useState(null); // null | 'a' | 'b'
+  const [layout, setLayout]             = useState('row');
+  const [isMobile, setIsMobile]         = useState(false);
+
+  useEffect(() => {
+    const check = () => { const m = window.innerWidth < 700; setIsMobile(m); if (m) setLayout('col'); };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    if (insight) document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [insight]);
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') { if (fullscreen) setFullscreen(null); else onClose?.(); } };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [fullscreen, onClose]);
+
+  if (!insight) return null;
+
+  const t      = CHART_THEMES[theme];
+  const tickerA = resolveYFinanceTicker(insight.nameA, insight.classA);
+  const tickerB = resolveYFinanceTicker(insight.nameB, insight.classB);
+  const score   = insight.scoreNum ?? parseFloat(insight.score ?? 0);
+  const scoreColor = score > 0.5 ? '#16a34a' : score < -0.5 ? '#dc2626' : '#94a3b8';
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
+      style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding: isMobile ? 0 : 16 }}
+    >
+      <div style={{
+        display:'flex', flexDirection:'column',
+        width:'100%', maxWidth:1440,
+        height: isMobile ? '100dvh' : '92vh', maxHeight: isMobile ? '100dvh' : 940,
+        borderRadius: isMobile ? 0 : 16,
+        overflow:'hidden',
+        background:t.bg, border:`1.5px solid ${t.border}`,
+        boxShadow:'0 40px 120px rgba(0,0,0,0.7)',
+        animation:'esi-modal-in 0.18s ease',
+      }}>
+
+        {/* ── TOOLBAR ── */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', padding:'10px 14px', borderBottom:`1.5px solid ${t.border}`, background:t.panelBg, flexShrink:0 }}>
+          {/* Asset names + score */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0, flexWrap:'wrap' }}>
+            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:800, fontSize:13, color:LINE_COLORS.a[theme], whiteSpace:'nowrap' }}>{insight.nameA}</span>
+            <span style={{ color:t.sub, fontSize:11 }}>↔</span>
+            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:800, fontSize:13, color:LINE_COLORS.b[theme], whiteSpace:'nowrap' }}>{insight.nameB}</span>
+            <span style={{ padding:'2px 9px', borderRadius:7, background:scoreColor+'22', border:`1px solid ${scoreColor}44`, color:scoreColor, fontFamily:'monospace', fontSize:11, fontWeight:800, whiteSpace:'nowrap' }}>
+              ρ {score>=0?'+':''}{typeof score==='number'?score.toFixed(3):score}
+            </span>
+            <span style={{ fontSize:10, color:t.sub, fontStyle:'italic', whiteSpace:'nowrap' }}>{insight.term}</span>
+          </div>
+
+          {/* Timeframe pills */}
+          <div style={{ display:'flex', gap:2, background:t.bg, borderRadius:8, padding:3, border:`1px solid ${t.border}`, flexWrap:'nowrap' }}>
+            {CHART_TIMEFRAMES.map(tf => (
+              <button key={tf.label} onClick={() => setTimeframe(tf.label)} style={{
+                padding:'4px 9px', borderRadius:6, border:'none', cursor:'pointer',
+                fontFamily:"'IBM Plex Mono',monospace", fontSize:11, fontWeight:700,
+                background: timeframe===tf.label ? LINE_COLORS.a[theme] : 'transparent',
+                color: timeframe===tf.label ? '#fff' : t.sub,
+                transition:'all 0.12s', whiteSpace:'nowrap',
+              }}>{tf.label}</button>
+            ))}
+          </div>
+
+          {/* Theme pills */}
+          <div style={{ display:'flex', gap:2, background:t.bg, borderRadius:8, padding:3, border:`1px solid ${t.border}` }}>
+            {[['light','☀️'],['dark','🌙'],['hud','⬡']].map(([th, ic]) => (
+              <button key={th} onClick={() => setTheme(th)} style={{
+                padding:'4px 9px', borderRadius:6, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
+                background: theme===th ? t.border : 'transparent', color:t.text, transition:'all 0.12s',
+              }}>{ic} {th[0].toUpperCase()+th.slice(1)}</button>
+            ))}
+          </div>
+
+          {/* Layout toggle (desktop) */}
+          {!isMobile && (
+            <button onClick={() => setLayout(l => l==='row'?'col':'row')} title="Toggle layout" style={{ padding:'5px 10px', borderRadius:7, border:`1px solid ${t.border}`, background:t.panelBg, color:t.sub, cursor:'pointer', fontSize:13 }}>
+              {layout==='row' ? '⬒' : '⬓'}
+            </button>
+          )}
+
+          {/* Close */}
+          <button onClick={onClose} style={{ padding:'5px 10px', borderRadius:7, border:`1px solid ${t.border}`, background:t.panelBg, color:t.sub, cursor:'pointer', fontSize:16, fontWeight:700, lineHeight:1 }}>✕</button>
+        </div>
+
+        {/* Correlation strength bar */}
+        <div style={{ padding:'5px 14px', background:t.panelBg, borderBottom:`1px solid ${t.border}`, display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.1em', color:t.sub, whiteSpace:'nowrap' }}>Correlation strength</span>
+          <div style={{ flex:1, height:5, background:t.grid, borderRadius:3, position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', left:'50%', top:0, width:1.5, height:'100%', background:t.border }} />
+            <div style={{ position:'absolute', height:'100%', borderRadius:3, background:`linear-gradient(90deg,${scoreColor}88,${scoreColor})`, width:`${Math.abs(score)*50}%`, left: score>=0 ? '50%' : `${50-Math.abs(score)*50}%` }} />
+          </div>
+          <span style={{ fontSize:9, color:t.sub, whiteSpace:'nowrap', fontFamily:'monospace' }}>
+            <span style={{ color:LINE_COLORS.a[theme] }}>■</span> {tickerA} &nbsp; <span style={{ color:LINE_COLORS.b[theme] }}>■</span> {tickerB}
+          </span>
+        </div>
+
+        {/* ── CHARTS ── */}
+        <div style={{
+          flex:1, minHeight:0, display:'flex',
+          flexDirection: fullscreen ? 'column' : (layout==='col' || isMobile) ? 'column' : 'row',
+          gap:8, padding:10, background:t.bg,
+        }}>
+          {(!fullscreen || fullscreen==='a') && (
+            <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column' }}>
+              <ChartPanel
+                key={`${tickerA}-${timeframe}-${theme}`}
+                ticker={tickerA} label={`${insight.nameA}  ·  ${tickerA}`}
+                side="a" theme={theme} timeframe={timeframe}
+                isFullscreen={fullscreen==='a'}
+                onFullscreen={() => setFullscreen(f => f==='a' ? null : 'a')}
+                baseUrl={baseUrl}
+              />
+            </div>
+          )}
+          {(!fullscreen || fullscreen==='b') && (
+            <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column' }}>
+              <ChartPanel
+                key={`${tickerB}-${timeframe}-${theme}`}
+                ticker={tickerB} label={`${insight.nameB}  ·  ${tickerB}`}
+                side="b" theme={theme} timeframe={timeframe}
+                isFullscreen={fullscreen==='b'}
+                onFullscreen={() => setFullscreen(f => f==='b' ? null : 'b')}
+                baseUrl={baseUrl}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding:'6px 14px', borderTop:`1px solid ${t.border}`, background:t.panelBg, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0, flexWrap:'wrap', gap:4 }}>
+          <div style={{ display:'flex', gap:12 }}>
+            <span style={{ fontSize:10, color:t.sub }}><span style={{ color:LINE_COLORS.a[theme], fontWeight:700 }}>■</span> {insight.classA}</span>
+            <span style={{ fontSize:10, color:t.sub }}><span style={{ color:LINE_COLORS.b[theme], fontWeight:700 }}>■</span> {insight.classB}</span>
+          </div>
+          <span style={{ fontSize:9, color:t.sub, fontStyle:'italic' }}>
+            Yahoo Finance · {timeframe} · Scroll=zoom · Drag=pan · <kbd style={{ background:t.bg, border:`1px solid ${t.border}`, borderRadius:3, padding:'1px 4px', fontSize:9, color:t.text }}>Esc</kbd> to close
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
+
 export default function EconomicStrengthIndex() {
   const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -66,6 +622,13 @@ export default function EconomicStrengthIndex() {
   const [corrFilter, setCorrFilter] = useState('all');
   const [collapsedInsights, setCollapsedInsights] = useState({});
   const [corrClassFilter, setCorrClassFilter] = useState('all');
+
+  // ── Chart Modal State ──
+  const [chartInsight, setChartInsight] = useState(null);
+
+  // ── Stock Info State (cache per ticker, persists for session) ──
+  // Passed down as prop so StockInfoPanel can read/write the shared cache
+  // (avoids re-fetching when a card is collapsed then re-expanded)
 
   // ── Asset Definitions ──
   const currencies = [
@@ -122,12 +685,9 @@ export default function EconomicStrengthIndex() {
     ...commodities.map(cm => ({ ...cm, type: 'commodity', id: cm.symbol, name: cm.displayName })),
   ], []);
 
-  // All US stocks from SECTOR_MAPPINGS
-  const allStocks = useMemo(() => 
+  const allStocks = useMemo(() =>
     Object.entries(SECTOR_MAPPINGS).map(([symbol, sector]) => ({
-      symbol,
-      sector,
-      color: SECTOR_COLORS[sector] || '#6b7280',
+      symbol, sector, color: SECTOR_COLORS[sector] || '#6b7280',
     })).sort((a, b) => a.symbol.localeCompare(b.symbol))
   , []);
 
@@ -170,7 +730,6 @@ export default function EconomicStrengthIndex() {
     }
   }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]);
 
-  // Name/label lookup
   const ASSET_LABELS = useMemo(() => {
     const m = {};
     currencies.forEach(c   => { m[c.code]                = `${c.code} ESI`; });
@@ -182,18 +741,18 @@ export default function EconomicStrengthIndex() {
   }, []);
 
   const labelOf = (key) => {
-  if (ASSET_LABELS[key]) return ASSET_LABELS[key];
-  const ticker = key.replace(/_stock$/, '');           // ← ADD THIS
-  if (ASSET_LABELS[ticker]) return ASSET_LABELS[ticker]; // ← ADD THIS
-  return key.replace(/_price|_index|_commodity|_volume_ratio|_stock/g,'').replace(/=F$/,'').replace(/^\^/,'');
-};
+    if (ASSET_LABELS[key]) return ASSET_LABELS[key];
+    const ticker = key.replace(/_stock$/, '');
+    if (ASSET_LABELS[ticker]) return ASSET_LABELS[ticker];
+    return key.replace(/_price|_index|_commodity|_volume_ratio|_stock/g,'').replace(/=F$/,'').replace(/^\^/,'');
+  };
 
   const classOf = (key) => {
     if (key.endsWith('_price'))        return 'Forex';
     if (key.endsWith('_index'))        return 'Index';
     if (key.endsWith('_commodity'))    return 'Commodity';
     if (key.endsWith('_volume_ratio')) return 'Volume';
-    if (key.endsWith('_stock'))        return SECTOR_MAPPINGS[key.replace('_stock','')] || 'Stock'; // ← ADD THIS
+    if (key.endsWith('_stock'))        return SECTOR_MAPPINGS[key.replace('_stock','')] || 'Stock';
     if (SECTOR_MAPPINGS[key])          return SECTOR_MAPPINGS[key];
     return 'ESI';
   };
@@ -206,8 +765,6 @@ export default function EconomicStrengthIndex() {
   ];
 
   // ── Correlation engine ──
-  // Fetches ALL defined assets from the backend (ignores selection state).
-  // mode: 'all' | { single: cls } | { cross: [clsA, clsB] }
   const runMLAnalysis = async (mode = 'all') => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
@@ -217,7 +774,6 @@ export default function EconomicStrengthIndex() {
     await new Promise(r => setTimeout(r, 30));
 
     try {
-      // Figure out which stocks to include based on mode so we don't fetch 500 stocks unnecessarily
       let stocksForMode = [];
       if (mode === 'all') {
         stocksForMode = allStocks.map(s => s.symbol);
@@ -228,7 +784,6 @@ export default function EconomicStrengthIndex() {
         if (ALL_SECTORS.includes(a)) stocksForMode.push(...allStocks.filter(s => s.sector === a).map(s => s.symbol));
         if (ALL_SECTORS.includes(b)) stocksForMode.push(...allStocks.filter(s => s.sector === b).map(s => s.symbol));
       }
-      // For macro-only modes (ESI, Forex, Index, Commodity) we don't need stocks at all
       const isMacroOnlyMode = mode !== 'all' && (
         (mode.single && !ALL_SECTORS.includes(mode.single)) ||
         (mode.cross && !ALL_SECTORS.includes(mode.cross[0]) && !ALL_SECTORS.includes(mode.cross[1]))
@@ -275,7 +830,6 @@ export default function EconomicStrengthIndex() {
         return;
       }
 
-      // Build pairs
       let pairs = [];
       if (mode === 'all') {
         for (let i = 0; i < allKeys.length; i++)
@@ -366,12 +920,12 @@ export default function EconomicStrengthIndex() {
 
   // ── Toggle Handlers ──
   const toggle = (setter) => (val) => setter(p => p.includes(val) ? p.filter(x => x !== val) : [...p, val]);
-  const handleCurrencyToggle = toggle(setSelectedCurrencies);
-  const handleForexToggle = toggle(setSelectedForexPairs);
-  const handleStockIndexToggle = toggle(setSelectedStockIndices);
-  const handleCommodityToggle = toggle(setSelectedCommodities);
+  const handleCurrencyToggle    = toggle(setSelectedCurrencies);
+  const handleForexToggle       = toggle(setSelectedForexPairs);
+  const handleStockIndexToggle  = toggle(setSelectedStockIndices);
+  const handleCommodityToggle   = toggle(setSelectedCommodities);
   const handleVolumeAssetToggle = toggle(setSelectedVolumeAssets);
-  const handleStockToggle = toggle(setSelectedStocks);
+  const handleStockToggle       = toggle(setSelectedStocks);
 
   // ── CSV Download ──
   const convertToCSV = (data, headers) => {
@@ -427,8 +981,8 @@ export default function EconomicStrengthIndex() {
         {payload.map((entry, i) => {
           const isForex = entry.dataKey.includes('_price');
           const isStock = entry.dataKey.includes('_index');
-          const isCom = entry.dataKey.includes('_commodity');
-          const isVol = entry.dataKey.includes('_volume_ratio');
+          const isCom   = entry.dataKey.includes('_commodity');
+          const isVol   = entry.dataKey.includes('_volume_ratio');
           let displayName, val;
           if (isVol) { displayName = `${entry.dataKey.replace('_volume_ratio', '')} Vol`; val = `${entry.value?.toFixed(2)}x`; }
           else if (isForex) { displayName = entry.dataKey.replace('_price', ''); val = entry.value?.toFixed(4); }
@@ -463,16 +1017,15 @@ export default function EconomicStrengthIndex() {
 
   const domains = getYAxisDomains();
 
-  // Total selected count
   const totalSelected = selectedCurrencies.length + selectedForexPairs.length + selectedStockIndices.length + selectedCommodities.length + selectedVolumeAssets.length + selectedStocks.length;
 
   const MODAL_TABS = [
-    { id: 'currencies', label: '🌐 Currencies', count: selectedCurrencies.length },
-    { id: 'forex', label: '💱 Forex', count: selectedForexPairs.length },
-    { id: 'indices', label: '📈 Indices', count: selectedStockIndices.length },
-    { id: 'commodities', label: '🛢️ Commodities', count: selectedCommodities.length },
-    { id: 'volume', label: '📊 Volume', count: selectedVolumeAssets.length },
-    { id: 'stocks', label: '🏢 US Stocks', count: selectedStocks.length },
+    { id: 'currencies', label: '🌐 Currencies',  count: selectedCurrencies.length },
+    { id: 'forex',      label: '💱 Forex',        count: selectedForexPairs.length },
+    { id: 'indices',    label: '📈 Indices',       count: selectedStockIndices.length },
+    { id: 'commodities',label: '🛢️ Commodities',  count: selectedCommodities.length },
+    { id: 'volume',     label: '📊 Volume',        count: selectedVolumeAssets.length },
+    { id: 'stocks',     label: '🏢 US Stocks',     count: selectedStocks.length },
   ];
 
   const allClasses = useMemo(() => {
@@ -508,16 +1061,16 @@ export default function EconomicStrengthIndex() {
             </div>
             {totalSelected > 0 && (
               <div className="selected-chips">
-                {selectedCurrencies.map(c => <span key={c} className="chip chip-esi">{c}</span>)}
-                {selectedForexPairs.map(f => <span key={f} className="chip chip-forex">{f}</span>)}
-                {selectedStockIndices.map(s => <span key={s} className="chip chip-stock">{stockIndices.find(i => i.symbol === s)?.displayName || s}</span>)}
-                {selectedCommodities.map(c => <span key={c} className="chip chip-commodity">{commodities.find(i => i.symbol === c)?.displayName || c}</span>)}
-                {selectedStocks.map(s => <span key={s} className="chip chip-usstock">{s}</span>)}
+                {selectedCurrencies.map(c    => <span key={c} className="chip chip-esi">{c}</span>)}
+                {selectedForexPairs.map(f    => <span key={f} className="chip chip-forex">{f}</span>)}
+                {selectedStockIndices.map(s  => <span key={s} className="chip chip-stock">{stockIndices.find(i => i.symbol === s)?.displayName || s}</span>)}
+                {selectedCommodities.map(c   => <span key={c} className="chip chip-commodity">{commodities.find(i => i.symbol === c)?.displayName || c}</span>)}
+                {selectedStocks.map(s        => <span key={s} className="chip chip-usstock">{s}</span>)}
               </div>
             )}
           </div>
 
-          {/* ── MODAL ── */}
+          {/* ── ASSET CONFIG MODAL ── */}
           {modalOpen && (
             <div className="modal-overlay" onClick={(e) => { if (e.target.classList.contains('modal-overlay')) setModalOpen(false); }}>
               <div className="modal-container">
@@ -525,40 +1078,20 @@ export default function EconomicStrengthIndex() {
                   <h3>Asset Configuration</h3>
                   <button className="modal-close" onClick={() => setModalOpen(false)}>✕</button>
                 </div>
-
-                {/* Tab bar */}
                 <div className="modal-tabs">
                   {MODAL_TABS.map(tab => (
-                    <button
-                      key={tab.id}
-                      className={`modal-tab ${modalTab === tab.id ? 'active' : ''}`}
-                      onClick={() => { setModalTab(tab.id); setModalSearch(''); }}
-                    >
+                    <button key={tab.id} className={`modal-tab ${modalTab === tab.id ? 'active' : ''}`} onClick={() => { setModalTab(tab.id); setModalSearch(''); }}>
                       {tab.label}
                       {tab.count > 0 && <span className="modal-tab-badge">{tab.count}</span>}
                     </button>
                   ))}
                 </div>
-
-                {/* Search (for stocks) */}
-                {(modalTab === 'stocks') && (
+                {modalTab === 'stocks' && (
                   <div className="modal-search-bar">
-                    <input
-                      type="text"
-                      placeholder="Search by ticker or sector..."
-                      value={modalSearch}
-                      onChange={e => setModalSearch(e.target.value)}
-                      className="modal-search-input"
-                    />
-                    {selectedStocks.length > 0 && (
-                      <button className="modal-clear-btn" onClick={() => setSelectedStocks([])}>
-                        Clear All ({selectedStocks.length})
-                      </button>
-                    )}
+                    <input type="text" placeholder="Search by ticker or sector..." value={modalSearch} onChange={e => setModalSearch(e.target.value)} className="modal-search-input" />
+                    {selectedStocks.length > 0 && <button className="modal-clear-btn" onClick={() => setSelectedStocks([])}>Clear All ({selectedStocks.length})</button>}
                   </div>
                 )}
-
-                {/* Tab Content */}
                 <div className="modal-body">
                   {modalTab === 'currencies' && (
                     <div className="modal-grid">
@@ -572,7 +1105,6 @@ export default function EconomicStrengthIndex() {
                       ))}
                     </div>
                   )}
-
                   {modalTab === 'forex' && (
                     <div className="modal-grid">
                       {forexPairs.map(f => (
@@ -584,7 +1116,6 @@ export default function EconomicStrengthIndex() {
                       ))}
                     </div>
                   )}
-
                   {modalTab === 'indices' && (
                     <div className="modal-grid">
                       {stockIndices.map(s => (
@@ -596,7 +1127,6 @@ export default function EconomicStrengthIndex() {
                       ))}
                     </div>
                   )}
-
                   {modalTab === 'commodities' && (
                     <div className="modal-grid">
                       {commodities.map(c => (
@@ -608,7 +1138,6 @@ export default function EconomicStrengthIndex() {
                       ))}
                     </div>
                   )}
-
                   {modalTab === 'volume' && (
                     <div className="modal-grid">
                       {volumeAssets.map(v => (
@@ -621,34 +1150,21 @@ export default function EconomicStrengthIndex() {
                       ))}
                     </div>
                   )}
-
                   {modalTab === 'stocks' && (
                     <>
-                      {/* Sector quick-select */}
                       <div className="sector-quick-bar">
                         {uniqueSectors.map(sector => {
                           const sectorStocks = allStocks.filter(s => s.sector === sector).map(s => s.symbol);
                           const allSelected = sectorStocks.every(s => selectedStocks.includes(s));
                           return (
-                            <button
-                              key={sector}
-                              className={`sector-quick-btn ${allSelected ? 'active' : ''}`}
-                              style={{ '--sector-color': SECTOR_COLORS[sector] || '#6b7280' }}
-                              onClick={() => {
-                                if (allSelected) setSelectedStocks(p => p.filter(s => !sectorStocks.includes(s)));
-                                else setSelectedStocks(p => [...new Set([...p, ...sectorStocks])]);
-                              }}
-                            >
-                              {sector}
-                              <span>{sectorStocks.length}</span>
+                            <button key={sector} className={`sector-quick-btn ${allSelected ? 'active' : ''}`} style={{ '--sector-color': SECTOR_COLORS[sector] || '#6b7280' }}
+                              onClick={() => { if (allSelected) setSelectedStocks(p => p.filter(s => !sectorStocks.includes(s))); else setSelectedStocks(p => [...new Set([...p, ...sectorStocks])]); }}>
+                              {sector}<span>{sectorStocks.length}</span>
                             </button>
                           );
                         })}
                       </div>
-                      <div className="modal-stocks-info">
-                        {selectedStocks.length} / {allStocks.length} selected
-                        {modalFilteredStocks.length !== allStocks.length && ` (showing ${modalFilteredStocks.length})`}
-                      </div>
+                      <div className="modal-stocks-info">{selectedStocks.length} / {allStocks.length} selected{modalFilteredStocks.length !== allStocks.length && ` (showing ${modalFilteredStocks.length})`}</div>
                       <div className="modal-grid modal-grid-stocks">
                         {modalFilteredStocks.map(s => (
                           <label key={s.symbol} className={`modal-item modal-item-stock ${selectedStocks.includes(s.symbol) ? 'selected' : ''}`} style={{ '--item-color': s.color }}>
@@ -662,7 +1178,6 @@ export default function EconomicStrengthIndex() {
                     </>
                   )}
                 </div>
-
                 <div className="modal-footer">
                   <span className="modal-footer-info">{totalSelected} assets selected across all categories</span>
                   <button className="modal-done-btn" onClick={() => setModalOpen(false)}>Done ✓</button>
@@ -673,8 +1188,6 @@ export default function EconomicStrengthIndex() {
 
           {/* ── AI CORRELATION ENGINE ── */}
           <div className="ai-analysis-container">
-
-            {/* Header row */}
             <div className="ai-header">
               <div className="ai-header-left">
                 <div className="ai-header-icon">📡</div>
@@ -684,20 +1197,12 @@ export default function EconomicStrengthIndex() {
                 </div>
               </div>
               <div className="ai-header-right">
-                <button
-                  onClick={() => runMLAnalysis('all')}
-                  disabled={isAnalyzing}
-                  className="ai-analyze-small-btn"
-                >
-                  {isAnalyzing
-                    ? <><span className="ai-btn-spinner-sm"></span>{analysisProgress}%</>
-                    : '⚡ Analyze All'
-                  }
+                <button onClick={() => runMLAnalysis('all')} disabled={isAnalyzing} className="ai-analyze-small-btn">
+                  {isAnalyzing ? <><span className="ai-btn-spinner-sm"></span>{analysisProgress}%</> : '⚡ Analyze All'}
                 </button>
               </div>
             </div>
 
-            {/* Progress bar */}
             {isAnalyzing && (
               <div className="ai-progress-track">
                 <div className="ai-progress-fill" style={{ width: `${analysisProgress}%` }} />
@@ -705,10 +1210,7 @@ export default function EconomicStrengthIndex() {
               </div>
             )}
 
-            {/* ── ALWAYS-VISIBLE CLASS BUTTONS ── */}
             <div className="ai-classes-outer">
-
-              {/* Macro asset classes */}
               <div className="ai-class-group">
                 <div className="ai-class-group-label">Macro asset classes — within</div>
                 <div className="ai-class-cards">
@@ -720,8 +1222,6 @@ export default function EconomicStrengthIndex() {
                   ))}
                 </div>
               </div>
-
-              {/* Macro cross-class */}
               <div className="ai-class-group">
                 <div className="ai-class-group-label">Macro cross-class analysis</div>
                 <div className="ai-class-cards">
@@ -733,39 +1233,23 @@ export default function EconomicStrengthIndex() {
                   ))}
                 </div>
               </div>
-
-              {/* Stock sectors — within sector */}
               <div className="ai-class-group">
                 <div className="ai-class-group-label">US stocks — within sector</div>
                 <div className="ai-class-cards">
                   {ALL_SECTORS.map(sector => (
-                    <button
-                      key={sector}
-                      onClick={() => runMLAnalysis({ single: sector })}
-                      disabled={isAnalyzing}
-                      className="ai-class-card sector-card"
-                      style={{ '--sector-col': SECTOR_COLORS[sector] || '#6b7280' }}
-                    >
+                    <button key={sector} onClick={() => runMLAnalysis({ single: sector })} disabled={isAnalyzing} className="ai-class-card sector-card" style={{ '--sector-col': SECTOR_COLORS[sector] || '#6b7280' }}>
                       <span className="ai-class-card-name">{sector}</span>
                       <span className="ai-class-card-action">Find Correlations →</span>
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Sectors vs macro */}
               <div className="ai-class-group">
                 <div className="ai-class-group-label">US stocks vs macro</div>
                 <div className="ai-class-cards">
                   {ALL_SECTORS.map(sector => (
                     ['ESI','Forex','Index','Commodity'].map(macro => (
-                      <button
-                        key={`${sector}-${macro}`}
-                        onClick={() => runMLAnalysis({ cross: [sector, macro] })}
-                        disabled={isAnalyzing}
-                        className="ai-class-card cross-sector-card"
-                        style={{ '--sector-col': SECTOR_COLORS[sector] || '#6b7280' }}
-                      >
+                      <button key={`${sector}-${macro}`} onClick={() => runMLAnalysis({ cross: [sector, macro] })} disabled={isAnalyzing} className="ai-class-card cross-sector-card" style={{ '--sector-col': SECTOR_COLORS[sector] || '#6b7280' }}>
                         <span className="ai-class-card-name">{sector} <span className="ai-vs">↔</span> {macro}</span>
                         <span className="ai-class-card-action">Find Correlations →</span>
                       </button>
@@ -773,7 +1257,6 @@ export default function EconomicStrengthIndex() {
                   ))}
                 </div>
               </div>
-
             </div>
 
             {analysisError && <div className="ai-error-message">⚠️ {analysisError}</div>}
@@ -782,13 +1265,7 @@ export default function EconomicStrengthIndex() {
             {aiInsights.length > 0 && (
               <>
                 <div className="corr-controls">
-                  <input
-                    type="text"
-                    placeholder="🔍 Search by asset name…"
-                    value={corrSearch}
-                    onChange={e => setCorrSearch(e.target.value)}
-                    className="corr-search"
-                  />
+                  <input type="text" placeholder="🔍 Search by asset name…" value={corrSearch} onChange={e => setCorrSearch(e.target.value)} className="corr-search" />
                   <select value={corrFilter} onChange={e => setCorrFilter(e.target.value)} className="corr-filter">
                     <option value="all">All relationships</option>
                     <option value="strong_pos">Strong Positive (&gt;0.8)</option>
@@ -809,13 +1286,8 @@ export default function EconomicStrengthIndex() {
                   <span className="corr-count">{filteredInsights.length.toLocaleString()} / {aiInsights.length.toLocaleString()}</span>
                   <button className="corr-collapse-all" onClick={() => {
                     const allCollapsed = Object.keys(collapsedInsights).length >= filteredInsights.length;
-                    if (!allCollapsed) {
-                      const all = {};
-                      filteredInsights.forEach(i => { all[i.id] = true; });
-                      setCollapsedInsights(all);
-                    } else {
-                      setCollapsedInsights({});
-                    }
+                    if (!allCollapsed) { const all = {}; filteredInsights.forEach(i => { all[i.id] = true; }); setCollapsedInsights(all); }
+                    else setCollapsedInsights({});
                   }}>
                     {Object.keys(collapsedInsights).length >= filteredInsights.length ? '▶ Expand All' : '▼ Collapse All'}
                   </button>
@@ -824,10 +1296,7 @@ export default function EconomicStrengthIndex() {
                 <div className="ai-results-grid">
                   {filteredInsights.slice(0, 300).map(insight => (
                     <div key={insight.id} className={`ai-card ${insight.styleClass}`}>
-                      <div
-                        className="ai-card-header"
-                        onClick={() => setCollapsedInsights(p => ({ ...p, [insight.id]: !p[insight.id] }))}
-                      >
+                      <div className="ai-card-header" onClick={() => setCollapsedInsights(p => ({ ...p, [insight.id]: !p[insight.id] }))}>
                         <div className="ai-pair-names">
                           <span className="ai-name-a">{insight.nameA}</span>
                           <span className="ai-pair-vs">↔</span>
@@ -837,6 +1306,14 @@ export default function EconomicStrengthIndex() {
                           <span className={`ai-score-badge ${insight.scoreNum > 0.5 ? 'badge-pos' : insight.scoreNum < -0.5 ? 'badge-neg' : 'badge-neu'}`}>
                             {insight.scoreNum > 0 ? '+' : ''}{insight.score}
                           </span>
+                          {/* ── VIEW CHARTS BUTTON ── */}
+                          <button
+                            className="ai-view-chart-btn"
+                            onClick={e => { e.stopPropagation(); setChartInsight(insight); }}
+                            title="View charts"
+                          >
+                            📈
+                          </button>
                           <span className="ai-collapse-icon">{collapsedInsights[insight.id] ? '▶' : '▼'}</span>
                         </div>
                       </div>
@@ -850,24 +1327,38 @@ export default function EconomicStrengthIndex() {
                           <div className="ai-score-bar-wrap">
                             <div className="ai-score-bar-track">
                               <div className="ai-score-bar-center" />
-                              <div
-                                className="ai-score-bar-fill"
-                                style={{
-                                  width: `${Math.abs(insight.scoreNum) * 50}%`,
-                                  left: insight.scoreNum >= 0 ? '50%' : `${50 - Math.abs(insight.scoreNum) * 50}%`,
-                                  background: insight.scoreNum > 0.5 ? '#16a34a' : insight.scoreNum < -0.5 ? '#dc2626' : '#94a3b8',
-                                }}
-                              />
+                              <div className="ai-score-bar-fill" style={{
+                                width: `${Math.abs(insight.scoreNum) * 50}%`,
+                                left: insight.scoreNum >= 0 ? '50%' : `${50 - Math.abs(insight.scoreNum) * 50}%`,
+                                background: insight.scoreNum > 0.5 ? '#16a34a' : insight.scoreNum < -0.5 ? '#dc2626' : '#94a3b8',
+                              }} />
                             </div>
                           </div>
+                          {/* Stock info panels — only shown when the asset is a stock */}
+                          {isStockClass(insight.classA) && (
+                            <StockInfoPanel
+                              key={`sip-a-${insight.id}`}
+                              ticker={insight.nameA}
+                              sectorColor={SECTOR_COLORS[insight.classA] || '#6366f1'}
+                              baseUrl={baseUrl}
+                              insightId={`${insight.id}-a`}
+                            />
+                          )}
+                          {isStockClass(insight.classB) && (
+                            <StockInfoPanel
+                              key={`sip-b-${insight.id}`}
+                              ticker={insight.nameB}
+                              sectorColor={SECTOR_COLORS[insight.classB] || '#6366f1'}
+                              baseUrl={baseUrl}
+                              insightId={`${insight.id}-b`}
+                            />
+                          )}
                         </div>
                       )}
                     </div>
                   ))}
                   {filteredInsights.length > 300 && (
-                    <div className="corr-overflow-notice">
-                      Showing top 300 of {filteredInsights.length.toLocaleString()} pairs — use filters to narrow down.
-                    </div>
+                    <div className="corr-overflow-notice">Showing top 300 of {filteredInsights.length.toLocaleString()} pairs — use filters to narrow down.</div>
                   )}
                 </div>
               </>
@@ -881,7 +1372,7 @@ export default function EconomicStrengthIndex() {
           {/* ── DOWNLOAD ── */}
           {economicData.length > 0 && (
             <div className="esi-download-section">
-              <button onClick={() => {/* same as before */}} className="esi-download-btn download-all-btn">⬇ Download All CSV</button>
+              <button onClick={() => {}} className="esi-download-btn download-all-btn">⬇ Download All CSV</button>
             </div>
           )}
 
@@ -923,7 +1414,18 @@ export default function EconomicStrengthIndex() {
         </div>
       </div>
 
+      {/* ── CORRELATION CHART MODAL ── */}
+      <CorrelationChartModal
+        insight={chartInsight}
+        onClose={() => setChartInsight(null)}
+        baseUrl={baseUrl}
+      />
+
       <style jsx>{`
+        /* ── KEYFRAMES ── */
+        @keyframes esi-spin { to { transform: rotate(360deg); } }
+        @keyframes esi-modal-in { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
         /* ── SELECTOR BAR ── */
         .esi-selector-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
         .open-modal-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #1e293b; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -940,7 +1442,7 @@ export default function EconomicStrengthIndex() {
         .chip-commodity { background: #fef9c3; color: #b45309; }
         .chip-usstock { background: #dcfce7; color: #15803d; }
 
-        /* ── MODAL ── */
+        /* ── ASSET CONFIG MODAL ── */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .modal-container { background: white; border-radius: 16px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 60px rgba(0,0,0,0.3); overflow: hidden; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
@@ -979,70 +1481,26 @@ export default function EconomicStrengthIndex() {
         .modal-done-btn { padding: 10px 28px; background: #1e293b; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
         .modal-done-btn:hover { background: #0f172a; }
 
-        /* ══════════════════════════════
-           AI ANALYSIS — BLUE/WHITE THEME
-        ══════════════════════════════ */
-        .ai-analysis-container {
-          background: #fff;
-          border: 1.5px solid #dbeafe;
-          border-radius: 16px;
-          padding: 24px;
-          margin: 20px 0;
-          box-shadow: 0 4px 24px rgba(37,99,235,0.07);
-        }
-
-        /* Header */
+        /* ── AI ANALYSIS CONTAINER ── */
+        .ai-analysis-container { background: #fff; border: 1.5px solid #dbeafe; border-radius: 16px; padding: 24px; margin: 20px 0; box-shadow: 0 4px 24px rgba(37,99,235,0.07); }
         .ai-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
         .ai-header-left { display: flex; align-items: center; gap: 12px; }
         .ai-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .ai-header-icon { font-size: 26px; line-height: 1; }
         .ai-title { margin: 0 0 2px; font-size: 1.05rem; font-weight: 800; color: #1e3a8a; }
         .ai-subtitle { margin: 0; font-size: 11px; color: #94a3b8; }
-
-        /* Date range select */
-        .corr-date-select {
-          padding: 7px 10px; border: 1.5px solid #dbeafe; border-radius: 8px;
-          font-size: 13px; background: white; color: #1e293b; cursor: pointer; outline: none;
-        }
-        .corr-date-select:focus { border-color: #2563eb; }
-
-        /* Small Analyze All button */
-        .ai-analyze-small-btn {
-          display: inline-flex; align-items: center; gap: 7px;
-          padding: 8px 18px;
-          background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-          color: white; border: none; border-radius: 8px;
-          font-size: 13px; font-weight: 700; cursor: pointer;
-          transition: all 0.18s; white-space: nowrap;
-          box-shadow: 0 2px 10px rgba(37,99,235,0.28);
-        }
-        .ai-analyze-small-btn:hover:not(:disabled) {
-          transform: translateY(-1px); box-shadow: 0 5px 18px rgba(37,99,235,0.38);
-        }
+        .ai-analyze-small-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 18px; background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.18s; white-space: nowrap; box-shadow: 0 2px 10px rgba(37,99,235,0.28); }
+        .ai-analyze-small-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(37,99,235,0.38); }
         .ai-analyze-small-btn:disabled { background: linear-gradient(135deg,#93c5fd,#bfdbfe); box-shadow: none; cursor: not-allowed; }
-        .ai-btn-spinner-sm {
-          width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35);
-          border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite;
-        }
-
-        /* Progress bar */
-        .ai-progress-track {
-          width: 100%; height: 6px; background: #dbeafe; border-radius: 3px;
-          margin-bottom: 16px; overflow: hidden; position: relative;
-        }
+        .ai-btn-spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35); border-top-color: white; border-radius: 50%; animation: esi-spin 0.7s linear infinite; }
+        .ai-progress-track { width: 100%; height: 6px; background: #dbeafe; border-radius: 3px; margin-bottom: 16px; overflow: hidden; position: relative; }
         .ai-progress-fill { height: 100%; background: linear-gradient(90deg,#2563eb,#06b6d4); border-radius: 3px; transition: width 0.12s linear; }
         .ai-progress-txt { position: absolute; top: 10px; left: 0; font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-
-        /* Per-class section */
         .ai-classes-outer { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
         .ai-class-group { background: #f8fbff; border: 1.5px solid #e0eaff; border-radius: 12px; padding: 14px 16px; }
         .ai-class-group-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 10px; }
         .ai-class-cards { display: flex; flex-wrap: wrap; gap: 7px; }
-        .ai-class-card {
-          display: flex; flex-direction: column; gap: 2px; padding: 9px 14px;
-          border-radius: 9px; border: 1.5px solid; cursor: pointer; transition: all 0.14s;
-          background: white; text-align: left;
-        }
+        .ai-class-card { display: flex; flex-direction: column; gap: 2px; padding: 9px 14px; border-radius: 9px; border: 1.5px solid; cursor: pointer; transition: all 0.14s; background: white; text-align: left; }
         .ai-class-card:disabled { opacity: 0.4; cursor: not-allowed; }
         .ai-class-card-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
         .ai-class-card-action { font-size: 10px; font-weight: 500; opacity: 0.55; }
@@ -1051,39 +1509,16 @@ export default function EconomicStrengthIndex() {
         .within-card:hover:not(:disabled) { background: #eff6ff; border-color: #60a5fa; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.16); }
         .cross-card { border-color: #bbf7d0; color: #065f46; }
         .cross-card:hover:not(:disabled) { background: #f0fdf4; border-color: #4ade80; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.16); }
-        .sector-card {
-          border-color: var(--sector-col);
-          color: var(--sector-col);
-        }
-        .sector-card:hover:not(:disabled) {
-          background: color-mix(in srgb, var(--sector-col) 8%, white);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px color-mix(in srgb, var(--sector-col) 30%, transparent);
-        }
-        .cross-sector-card {
-          border-color: color-mix(in srgb, var(--sector-col) 50%, #bbf7d0);
-          color: color-mix(in srgb, var(--sector-col) 70%, #065f46);
-        }
-        .cross-sector-card:hover:not(:disabled) {
-          background: color-mix(in srgb, var(--sector-col) 6%, #f0fdf4);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px color-mix(in srgb, var(--sector-col) 20%, transparent);
-        }
-
-        /* Error + hint */
+        .sector-card { border-color: var(--sector-col); color: var(--sector-col); }
+        .sector-card:hover:not(:disabled) { background: color-mix(in srgb, var(--sector-col) 8%, white); transform: translateY(-2px); box-shadow: 0 4px 12px color-mix(in srgb, var(--sector-col) 30%, transparent); }
+        .cross-sector-card { border-color: color-mix(in srgb, var(--sector-col) 50%, #bbf7d0); color: color-mix(in srgb, var(--sector-col) 70%, #065f46); }
+        .cross-sector-card:hover:not(:disabled) { background: color-mix(in srgb, var(--sector-col) 6%, #f0fdf4); transform: translateY(-2px); box-shadow: 0 4px 12px color-mix(in srgb, var(--sector-col) 20%, transparent); }
         .ai-error-message { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; color: #991b1b; font-size: 13px; margin: 10px 0 14px; }
         .ai-hint { text-align: center; color: #94a3b8; font-size: 13px; padding: 24px 0 6px; font-style: italic; }
 
         /* ── CORRELATION CONTROLS ── */
-        .corr-controls {
-          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          margin-bottom: 14px; padding: 12px 14px;
-          background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 10px;
-        }
-        .corr-search {
-          flex: 1; min-width: 160px; padding: 7px 12px;
-          border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; outline: none; background: white;
-        }
+        .corr-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 14px; background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 10px; }
+        .corr-search { flex: 1; min-width: 160px; padding: 7px 12px; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; outline: none; background: white; }
         .corr-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
         .corr-filter { padding: 7px 10px; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; background: white; color: #1e293b; cursor: pointer; outline: none; }
         .corr-filter:focus { border-color: #2563eb; }
@@ -1107,6 +1542,26 @@ export default function EconomicStrengthIndex() {
         .badge-neg { background: #fee2e2; color: #b91c1c; }
         .badge-neu { background: #f1f5f9; color: #64748b; }
         .ai-collapse-icon { font-size: 9px; color: #cbd5e1; }
+
+        /* ── VIEW CHART BUTTON ── */
+        .ai-view-chart-btn {
+          background: #eff6ff;
+          border: 1.5px solid #bfdbfe;
+          border-radius: 6px;
+          padding: 3px 7px;
+          cursor: pointer;
+          font-size: 13px;
+          line-height: 1;
+          transition: all 0.14s;
+          flex-shrink: 0;
+        }
+        .ai-view-chart-btn:hover {
+          background: #2563eb;
+          border-color: #2563eb;
+          transform: scale(1.1);
+          box-shadow: 0 3px 10px rgba(37,99,235,0.3);
+        }
+
         .ai-card-body { padding: 8px 13px 12px; border-top: 1px solid #f1f5f9; }
         .ai-card-classes { display: flex; align-items: center; gap: 5px; margin-bottom: 7px; flex-wrap: wrap; }
         .ai-class-tag { font-size: 10px; padding: 2px 7px; background: #eff6ff; color: #2563eb; border-radius: 4px; font-weight: 700; border: 1px solid #dbeafe; }
@@ -1115,29 +1570,41 @@ export default function EconomicStrengthIndex() {
         .ai-score-bar-track { width: 100%; height: 7px; background: #f1f5f9; border-radius: 4px; position: relative; overflow: hidden; }
         .ai-score-bar-fill { position: absolute; height: 100%; border-radius: 4px; }
         .ai-score-bar-center { position: absolute; left: 50%; top: 0; width: 1.5px; height: 100%; background: #e2e8f0; z-index: 1; }
-
-        /* Card accent borders */
         .insight-positive-strong { border-left: 3.5px solid #16a34a; }
         .insight-positive { border-left: 3.5px solid #4ade80; }
         .insight-negative-strong { border-left: 3.5px solid #dc2626; }
         .insight-negative { border-left: 3.5px solid #f87171; }
+        /* ── STOCK INFO PANEL ── */
+        .sip-trigger-btn {
+          display: flex; align-items: center; gap: 6px;
+          width: 100%; padding: 7px 13px;
+          background: linear-gradient(135deg, color-mix(in srgb, var(--sc) 6%, white), color-mix(in srgb, var(--sc) 3%, white));
+          border: none; border-top: 1px solid color-mix(in srgb, var(--sc) 15%, #e2e8f0);
+          cursor: pointer; text-align: left;
+          color: color-mix(in srgb, var(--sc) 80%, #1e293b);
+          transition: all 0.15s;
+          font-family: inherit;
+        }
+        .sip-trigger-btn:hover {
+          background: linear-gradient(135deg, color-mix(in srgb, var(--sc) 14%, white), color-mix(in srgb, var(--sc) 8%, white));
+        }
+        .sip-trigger-btn:hover span:first-of-type {
+          transform: scale(1.2);
+        }
+
         .insight-neutral { border-left: 3.5px solid #e2e8f0; }
 
         /* ── CHART ── */
         .esi-chart-container { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
         .esi-loading, .esi-no-data { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #94a3b8; }
-        .esi-spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .esi-spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: esi-spin 0.8s linear infinite; margin-bottom: 12px; }
         .esi-tooltip { background: rgba(15,23,42,0.95); border: 1px solid #334155; border-radius: 8px; padding: 12px; color: white; }
         .esi-tooltip-label { margin: 0 0 6px; font-weight: 600; color: #e2e8f0; font-size: 13px; }
         .esi-tooltip-entry { margin: 3px 0; font-size: 13px; }
-
-        /* ── DOWNLOAD ── */
         .esi-download-section { margin: 10px 0; }
         .esi-download-btn { padding: 9px 18px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; }
         .download-all-btn { background: #10b981; color: white; }
         .download-all-btn:hover { background: #059669; }
-
         .esi-info { background: #f8fafc; border-radius: 8px; padding: 16px; margin-top: 20px; font-size: 13px; color: #64748b; }
         .esi-info h6 { margin: 0 0 6px; color: #475569; font-weight: 700; }
         .esi-info p { margin: 0; }
@@ -1148,19 +1615,13 @@ export default function EconomicStrengthIndex() {
           .modal-overlay { align-items: flex-end; padding: 0; }
           .modal-grid { grid-template-columns: 1fr 1fr; }
           .modal-grid-stocks { grid-template-columns: 1fr 1fr; }
-          .ai-analyze-all-btn { padding: 15px 20px; font-size: 14px; }
-          .ai-btn-main { font-size: 14px; }
-          .ai-classes-outer { gap: 10px; }
-          .ai-class-cards { gap: 6px; }
-          .ai-class-card { min-width: unset; flex: 1 1 calc(50% - 6px); }
           .corr-controls { flex-direction: column; align-items: stretch; }
           .corr-search { width: 100%; min-width: unset; }
           .corr-count { margin-left: 0; }
           .ai-results-grid { grid-template-columns: 1fr; }
           .esi-selector-bar { flex-direction: column; align-items: flex-start; }
           .modal-tabs { overflow-x: auto; flex-wrap: nowrap; padding: 10px 12px; }
-          .ai-header-left { gap: 10px; }
-          .ai-header-icon { font-size: 22px; }
+          .ai-class-card { flex: 1 1 calc(50% - 6px); }
         }
         @media (max-width: 480px) {
           .ai-class-card { flex: 1 1 100%; }
