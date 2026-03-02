@@ -170,117 +170,153 @@ export default function EconomicStrengthIndex() {
     }
   }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]);
 
+  // ── Auto-discover all numeric keys from economicData and classify them ──
+  const discoverKeys = useCallback((data) => {
+    if (!data?.length) return [];
+    const sample = data[0];
+    const discovered = [];
+
+    for (const key of Object.keys(sample)) {
+      if (key === 'date') continue;
+      // Check if there's actual numeric data for this key
+      const hasData = data.some(d => d[key] != null && typeof d[key] === 'number');
+      if (!hasData) continue;
+
+      let cls, label;
+      if (key.endsWith('_price')) {
+        const pair = key.replace('_price', '');
+        cls = 'Forex';
+        label = forexPairs.find(p => p.pair === pair)?.name || pair;
+      } else if (key.endsWith('_index')) {
+        const sym = key.replace('_index', '');
+        cls = 'Index';
+        label = stockIndices.find(s => s.symbol === sym)?.displayName || sym;
+      } else if (key.endsWith('_commodity')) {
+        const sym = key.replace('_commodity', '');
+        cls = 'Commodity';
+        label = commodities.find(c => c.symbol === sym)?.displayName || sym;
+      } else if (key.endsWith('_volume_ratio')) {
+        const id = key.replace('_volume_ratio', '');
+        cls = 'Volume';
+        label = `${volumeAssets.find(a => a.id === id)?.name || id} Vol`;
+      } else {
+        // Bare key = ESI currency
+        cls = 'ESI';
+        label = `${key} ESI`;
+      }
+
+      discovered.push({ key, label, cls });
+    }
+    return discovered;
+  }, [forexPairs, stockIndices, commodities, volumeAssets]);
+
   // ── Smart Correlation Engine ──
-  const runMLAnalysis = async (classOnly = null) => {
+  // mode: 'all' | { single: 'ESI' } | { cross: ['ESI', 'Forex'] }
+  const runMLAnalysis = async (mode = 'all') => {
     if (!economicData || economicData.length < 5) {
-      setAnalysisError('Need at least 5 data points. Select assets and wait for data to load.');
+      setAnalysisError('Need at least 5 data points. Load some assets first!');
       return;
     }
 
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    setAnalysisStatus('Preparing data...');
+    setAnalysisStatus('Discovering data keys...');
     setAiInsights([]);
     setAnalysisError('');
 
     await new Promise(r => setTimeout(r, 50));
 
     try {
-      const activeKeys = [];
-      const prettyNames = {};
-      const keyClass = {};
+      const allKeys = discoverKeys(economicData);
 
-      const addKey = (key, name, cls) => {
-        const sample = economicData.find(d => d[key] !== undefined && d[key] !== null);
-        if (sample !== undefined) { activeKeys.push(key); prettyNames[key] = name; keyClass[key] = cls; }
-      };
-
-      // Only include assets from the specified class (or all)
-      if (!classOnly || classOnly === 'esi') selectedCurrencies.forEach(c => addKey(c, `${c} ESI`, 'ESI'));
-      if (!classOnly || classOnly === 'forex') selectedForexPairs.forEach(f => addKey(`${f}_price`, forexPairs.find(p => p.pair === f)?.name || f, 'Forex'));
-      if (!classOnly || classOnly === 'stock_index') selectedStockIndices.forEach(s => addKey(`${s}_index`, stockIndices.find(i => i.symbol === s)?.displayName || s, 'Index'));
-      if (!classOnly || classOnly === 'commodity') selectedCommodities.forEach(c => addKey(`${c}_commodity`, commodities.find(i => i.symbol === c)?.displayName || c, 'Commodity'));
-      if (!classOnly || classOnly === 'volume') selectedVolumeAssets.forEach(v => addKey(`${v}_volume_ratio`, `${volumeAssets.find(a => a.id === v)?.name || v} Vol`, 'Volume'));
-
-      if (activeKeys.length < 2) {
-        setAnalysisError('Need at least 2 data series selected. Add more assets!');
+      if (allKeys.length < 2) {
+        setAnalysisError('Need at least 2 data series in the chart. Configure assets and load data first!');
         setIsAnalyzing(false);
         return;
       }
 
-      const n = activeKeys.length;
-      const totalPairs = (n * (n - 1)) / 2;
+      // Filter keys based on mode
+      let keysA, keysB, crossMode = false;
+      if (mode === 'all') {
+        keysA = allKeys;
+        keysB = null; // will do all vs all
+      } else if (mode.single) {
+        keysA = allKeys.filter(k => k.cls === mode.single);
+        keysB = null;
+      } else if (mode.cross) {
+        const [clsA, clsB] = mode.cross;
+        keysA = allKeys.filter(k => k.cls === clsA);
+        keysB = allKeys.filter(k => k.cls === clsB);
+        crossMode = true;
+      }
 
-      // Warn if huge
-      setAnalysisStatus(`Computing ${totalPairs.toLocaleString()} pair correlations...`);
-      await new Promise(r => setTimeout(r, 80));
+      if (keysA.length === 0 || (crossMode && keysB.length === 0)) {
+        setAnalysisError('No data found for the selected asset class(es). Make sure those assets are loaded in the chart.');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Build pairs
+      const pairs = [];
+      if (crossMode) {
+        for (const a of keysA) for (const b of keysB) pairs.push([a, b]);
+      } else {
+        const pool = keysA;
+        for (let i = 0; i < pool.length; i++)
+          for (let j = i + 1; j < pool.length; j++)
+            pairs.push([pool[i], pool[j]]);
+      }
+
+      const totalPairs = pairs.length;
+      setAnalysisStatus(`Computing ${totalPairs.toLocaleString()} correlations across ${allKeys.length} series...`);
+      await new Promise(r => setTimeout(r, 60));
 
       const findings = [];
-      let processed = 0;
-      const BATCH = 20;
+      const BATCH = 30;
 
-      for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-          const keyA = activeKeys[i];
-          const keyB = activeKeys[j];
+      for (let i = 0; i < pairs.length; i++) {
+        const [kA, kB] = pairs[i];
 
-          const values = economicData.filter(row =>
-            row[keyA] != null && row[keyB] != null
-          );
+        const rows = economicData.filter(d => d[kA.key] != null && d[kB.key] != null);
+        if (rows.length >= 5) {
+          const score = tf.tidy(() => {
+            const tA = tf.tensor1d(rows.map(d => d[kA.key]));
+            const tB = tf.tensor1d(rows.map(d => d[kB.key]));
+            const mA = tA.mean(); const mB = tB.mean();
+            const nA = tA.sub(mA).div(tA.sub(mA).square().mean().sqrt().add(1e-8));
+            const nB = tB.sub(mB).div(tB.sub(mB).square().mean().sqrt().add(1e-8));
+            return nA.mul(nB).mean().dataSync()[0];
+          });
+          findings.push({ kA, kB, score });
+        }
 
-          if (values.length >= 5) {
-            const inputA = values.map(v => v[keyA]);
-            const inputB = values.map(v => v[keyB]);
-
-            const score = tf.tidy(() => {
-              const tA = tf.tensor1d(inputA);
-              const tB = tf.tensor1d(inputB);
-              const mA = tA.mean(); const mB = tB.mean();
-              const nA = tA.sub(mA).div(tA.sub(mA).square().mean().sqrt().add(1e-8));
-              const nB = tB.sub(mB).div(tB.sub(mB).square().mean().sqrt().add(1e-8));
-              return nA.mul(nB).mean().dataSync()[0];
-            });
-
-            findings.push({
-              keyA, keyB,
-              nameA: prettyNames[keyA],
-              nameB: prettyNames[keyB],
-              classA: keyClass[keyA],
-              classB: keyClass[keyB],
-              score,
-            });
-          }
-
-          processed++;
-          if (processed % BATCH === 0) {
-            setAnalysisProgress(Math.round((processed / totalPairs) * 95));
-            setAnalysisStatus(`Processing pair ${processed.toLocaleString()} / ${totalPairs.toLocaleString()}...`);
-            await new Promise(r => setTimeout(r, 0));
-          }
+        if (i % BATCH === 0) {
+          setAnalysisProgress(Math.round((i / totalPairs) * 95));
+          setAnalysisStatus(`Pair ${i.toLocaleString()} / ${totalPairs.toLocaleString()}...`);
+          await new Promise(r => setTimeout(r, 0));
         }
       }
 
       setAnalysisProgress(98);
-      setAnalysisStatus('Ranking insights...');
-      await new Promise(r => setTimeout(r, 50));
+      setAnalysisStatus('Ranking results...');
+      await new Promise(r => setTimeout(r, 40));
 
       const insights = findings
         .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
         .map(f => {
           const s = f.score;
           let term, styleClass;
-          if (s > 0.8) { term = 'Strong Positive'; styleClass = 'insight-positive-strong'; }
-          else if (s > 0.5) { term = 'Positive Trend'; styleClass = 'insight-positive'; }
-          else if (s > 0.3) { term = 'Weak Positive'; styleClass = 'insight-neutral'; }
-          else if (s < -0.8) { term = 'Strong Inverse'; styleClass = 'insight-negative-strong'; }
-          else if (s < -0.5) { term = 'Inverse Trend'; styleClass = 'insight-negative'; }
-          else if (s < -0.3) { term = 'Weak Inverse'; styleClass = 'insight-neutral'; }
-          else { term = 'No Relationship'; styleClass = 'insight-neutral'; }
-
+          if (s > 0.8)       { term = 'Strong Positive';  styleClass = 'insight-positive-strong'; }
+          else if (s > 0.5)  { term = 'Positive Trend';   styleClass = 'insight-positive'; }
+          else if (s > 0.3)  { term = 'Weak Positive';    styleClass = 'insight-neutral'; }
+          else if (s < -0.8) { term = 'Strong Inverse';   styleClass = 'insight-negative-strong'; }
+          else if (s < -0.5) { term = 'Inverse Trend';    styleClass = 'insight-negative'; }
+          else if (s < -0.3) { term = 'Weak Inverse';     styleClass = 'insight-neutral'; }
+          else               { term = 'No Relationship';  styleClass = 'insight-neutral'; }
           return {
-            id: `${f.keyA}__${f.keyB}`,
-            nameA: f.nameA, nameB: f.nameB,
-            classA: f.classA, classB: f.classB,
+            id: `${f.kA.key}__${f.kB.key}`,
+            nameA: f.kA.label, nameB: f.kB.label,
+            classA: f.kA.cls,  classB: f.kB.cls,
             term, styleClass,
             score: s.toFixed(3),
             scoreNum: s,
@@ -296,6 +332,12 @@ export default function EconomicStrengthIndex() {
       setIsAnalyzing(false);
     }
   };
+
+  // Derive available classes from whatever is currently loaded in economicData
+  const availableClasses = useMemo(() => {
+    if (!economicData?.length) return [];
+    return [...new Set(discoverKeys(economicData).map(k => k.cls))].sort();
+  }, [economicData, discoverKeys]);
 
   // ── Toggle Handlers ──
   const toggle = (setter) => (val) => setter(p => p.includes(val) ? p.filter(x => x !== val) : [...p, val]);
@@ -609,17 +651,27 @@ export default function EconomicStrengthIndex() {
             <div className="ai-header">
               <div className="ai-title-group">
                 <h6>🤖 TensorFlow.js Correlation Engine</h6>
+                <span className="ai-subtitle">Auto-discovers all loaded data — no manual selection needed</span>
                 {isAnalyzing && <span className="ai-status-text">{analysisStatus}</span>}
               </div>
-              <div className="ai-btn-group">
-                <button onClick={() => runMLAnalysis(null)} disabled={isAnalyzing || economicData.length === 0} className="ai-analyze-btn">
-                  {isAnalyzing ? `⏳ ${analysisProgress}%` : '⚡ Analyze All'}
-                </button>
+            </div>
+
+            {/* Analyze All */}
+            <div className="ai-btn-row">
+              <button onClick={() => runMLAnalysis('all')} disabled={isAnalyzing || economicData.length === 0} className="ai-analyze-btn ai-analyze-all">
+                {isAnalyzing ? `⏳ ${analysisProgress}%` : '⚡ Analyze All Loaded Data'}
+              </button>
+            </div>
+
+            {/* Single-class buttons — only shown if we have data */}
+            {availableClasses.length >= 2 && (
+              <div className="ai-class-section">
+                <span className="ai-section-label">Within a class:</span>
                 <div className="ai-class-btns">
-                  {['ESI', 'Forex', 'Index', 'Commodity', 'Volume'].map(cls => (
+                  {availableClasses.map(cls => (
                     <button
                       key={cls}
-                      onClick={() => runMLAnalysis(cls.toLowerCase().replace(' ', '_'))}
+                      onClick={() => runMLAnalysis({ single: cls })}
                       disabled={isAnalyzing || economicData.length === 0}
                       className="ai-class-btn"
                     >
@@ -628,7 +680,28 @@ export default function EconomicStrengthIndex() {
                   ))}
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Cross-class buttons — all unique combos */}
+            {availableClasses.length >= 2 && (
+              <div className="ai-class-section">
+                <span className="ai-section-label">Cross-class analysis:</span>
+                <div className="ai-class-btns">
+                  {availableClasses.flatMap((a, i) =>
+                    availableClasses.slice(i + 1).map(b => (
+                      <button
+                        key={`${a}-${b}`}
+                        onClick={() => runMLAnalysis({ cross: [a, b] })}
+                        disabled={isAnalyzing || economicData.length === 0}
+                        className="ai-class-btn ai-cross-btn"
+                      >
+                        {a} ↔ {b}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
 
             {isAnalyzing && (
               <div className="ai-progress-track">
@@ -732,7 +805,7 @@ export default function EconomicStrengthIndex() {
             )}
 
             {aiInsights.length === 0 && !isAnalyzing && !analysisError && economicData.length > 0 && (
-              <p className="ai-hint">Select assets above then click "Analyze All" to compute correlations. Large selections may take a moment.</p>
+              <p className="ai-hint">Click "Analyze All Loaded Data" — the engine auto-discovers every series in your chart and computes all pairwise correlations. No selection needed!</p>
             )}
           </div>
 
@@ -839,17 +912,23 @@ export default function EconomicStrengthIndex() {
 
         /* ── AI ANALYSIS ── */
         .ai-analysis-container { background: #eff6ff; color: #1e293b; padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #bfdbfe; }
-        .ai-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid #dbeafe; padding-bottom: 14px; flex-wrap: wrap; gap: 12px; }
-        .ai-title-group h6 { margin: 0; font-size: 1.05rem; color: #1e40af; }
-        .ai-status-text { font-size: 0.8rem; color: #64748b; margin-top: 4px; font-style: italic; display: block; }
-        .ai-btn-group { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-        .ai-analyze-btn { background: #2563eb; color: white; border: none; padding: 9px 20px; border-radius: 7px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 14px; white-space: nowrap; }
-        .ai-analyze-btn:hover:not(:disabled) { background: #1d4ed8; }
-        .ai-analyze-btn:disabled { background: #93c5fd; cursor: not-allowed; }
-        .ai-class-btns { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+        .ai-header { margin-bottom: 14px; border-bottom: 1px solid #dbeafe; padding-bottom: 12px; }
+        .ai-title-group h6 { margin: 0 0 2px; font-size: 1.05rem; color: #1e40af; }
+        .ai-subtitle { font-size: 12px; color: #64748b; display: block; margin-bottom: 2px; }
+        .ai-status-text { font-size: 0.8rem; color: #3b82f6; font-style: italic; display: block; margin-top: 4px; font-weight: 500; }
+        .ai-btn-row { margin-bottom: 12px; }
+        .ai-analyze-btn { background: #2563eb; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 14px; white-space: nowrap; }
+        .ai-analyze-all { width: 100%; font-size: 15px; padding: 12px; letter-spacing: 0.02em; }
+        .ai-analyze-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+        .ai-analyze-btn:disabled { background: #93c5fd; cursor: not-allowed; transform: none; box-shadow: none; }
+        .ai-class-section { margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+        .ai-section-label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; padding-top: 6px; min-width: 110px; }
+        .ai-class-btns { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
         .ai-class-btn { padding: 5px 12px; background: white; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: #1e40af; transition: all 0.15s; white-space: nowrap; }
-        .ai-class-btn:hover:not(:disabled) { background: #dbeafe; }
-        .ai-class-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .ai-class-btn:hover:not(:disabled) { background: #dbeafe; border-color: #93c5fd; }
+        .ai-class-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .ai-cross-btn { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .ai-cross-btn:hover:not(:disabled) { background: #dcfce7; border-color: #86efac; }
         .ai-progress-track { width: 100%; height: 8px; background: #dbeafe; border-radius: 4px; margin-bottom: 16px; overflow: hidden; position: relative; }
         .ai-progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width 0.15s linear; border-radius: 4px; }
         .ai-progress-label { position: absolute; right: 8px; top: -18px; font-size: 11px; color: #64748b; }
@@ -921,9 +1000,8 @@ export default function EconomicStrengthIndex() {
           .modal-overlay { align-items: flex-end; padding: 0; }
           .modal-grid { grid-template-columns: 1fr 1fr; }
           .modal-grid-stocks { grid-template-columns: 1fr 1fr; }
-          .ai-btn-group { width: 100%; }
-          .ai-analyze-btn { width: 100%; }
-          .ai-class-btns { justify-content: flex-start; }
+          .ai-class-section { flex-direction: column; gap: 6px; }
+          .ai-section-label { min-width: unset; padding-top: 0; }
           .corr-controls { flex-direction: column; align-items: stretch; }
           .corr-search { width: 100%; }
           .corr-count { margin-left: 0; }
