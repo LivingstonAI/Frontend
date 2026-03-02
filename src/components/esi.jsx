@@ -181,62 +181,96 @@ export default function EconomicStrengthIndex() {
     return m;
   }, []);
 
-  const labelOf = (key) => {
-    if (ASSET_LABELS[key]) return ASSET_LABELS[key];
-    return key.replace(/_price|_index|_commodity|_volume_ratio/g,'').replace(/=F$/,'').replace(/^\^/,'');
-  };
+  const labelOf = (key) => ASSET_LABELS[key] ||
+    key.replace(/_price|_index|_commodity|_volume_ratio/g,'').replace(/=F$/,'').replace(/^\^/,'');
 
   const classOf = (key) => {
     if (key.endsWith('_price'))         return 'Forex';
     if (key.endsWith('_index'))         return 'Index';
     if (key.endsWith('_commodity'))     return 'Commodity';
     if (key.endsWith('_volume_ratio'))  return 'Volume';
-    if (SECTOR_MAPPINGS[key])           return SECTOR_MAPPINGS[key];
+    if (SECTOR_MAPPINGS[key])           return SECTOR_MAPPINGS[key]; // sector name e.g. 'Technology'
     return 'ESI';
   };
 
-  // Unique sectors for per-sector buttons
   const ALL_SECTORS = useMemo(() => [...new Set(Object.values(SECTOR_MAPPINGS))].sort(), []);
-
-  // Static button definitions — always visible regardless of what's loaded
   const STATIC_MACRO_CLASSES = ['ESI','Forex','Index','Commodity'];
   const STATIC_MACRO_CROSS = [
     ['ESI','Forex'],['ESI','Index'],['ESI','Commodity'],
     ['Forex','Index'],['Forex','Commodity'],['Index','Commodity'],
   ];
 
-  // ── Correlation engine — reads directly from economicData ──
+  // ── Correlation engine ──
+  // Fetches ALL defined assets from the backend (ignores selection state).
+  // mode: 'all' | { single: cls } | { cross: [clsA, clsB] }
   const runMLAnalysis = async (mode = 'all') => {
-    if (!economicData?.length || economicData.length < 5) {
-      setAnalysisError('No chart data loaded yet. Configure and load some assets from the modal first, then run correlations.');
-      return;
-    }
-
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    setAnalysisStatus('Reading loaded chart data…');
+    setAnalysisStatus('Fetching all assets…');
     setAiInsights([]);
     setAnalysisError('');
     await new Promise(r => setTimeout(r, 30));
 
     try {
-      // Classify every numeric key already in economicData
-      const allKeys = Object.keys(economicData[0])
-        .filter(k => k !== 'date')
-        .filter(k => economicData.some(d => d[k] != null && typeof d[k] === 'number'))
-        .map(k => ({ key: k, label: labelOf(k), cls: classOf(k) }));
+      // Figure out which stocks to include based on mode so we don't fetch 500 stocks unnecessarily
+      let stocksForMode = [];
+      if (mode === 'all') {
+        stocksForMode = allStocks.map(s => s.symbol);
+      } else if (mode.single && ALL_SECTORS.includes(mode.single)) {
+        stocksForMode = allStocks.filter(s => s.sector === mode.single).map(s => s.symbol);
+      } else if (mode.cross) {
+        const [a, b] = mode.cross;
+        if (ALL_SECTORS.includes(a)) stocksForMode.push(...allStocks.filter(s => s.sector === a).map(s => s.symbol));
+        if (ALL_SECTORS.includes(b)) stocksForMode.push(...allStocks.filter(s => s.sector === b).map(s => s.symbol));
+      }
+      // For macro-only modes (ESI, Forex, Index, Commodity) we don't need stocks at all
+      const isMacroOnlyMode = mode !== 'all' && (
+        (mode.single && !ALL_SECTORS.includes(mode.single)) ||
+        (mode.cross && !ALL_SECTORS.includes(mode.cross[0]) && !ALL_SECTORS.includes(mode.cross[1]))
+      );
 
-      if (allKeys.length < 2) {
-        setAnalysisError('Not enough data series loaded. Add more assets in the configuration modal.');
+      setAnalysisStatus(`Fetching ${isMacroOnlyMode ? 'macro' : `macro + ${stocksForMode.length} stocks`}…`);
+
+      const res = await fetch(`${baseUrl}/api/economic-strength-index/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currencies:    currencies.map(c => c.code),
+          forex_pairs:   forexPairs.map(f => f.pair),
+          stock_indices: stockIndices.map(s => s.symbol),
+          commodities:   commodities.map(c => c.symbol),
+          stocks:        isMacroOnlyMode ? [] : stocksForMode,
+          volume_assets: [],
+          date_range:    dateRange,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const json = await res.json();
+      const data = json.chart_data;
+
+      if (!data?.length || data.length < 5) {
+        setAnalysisError('Not enough data returned. Try a different date range.');
         setIsAnalyzing(false);
         return;
       }
 
-      setAnalysisProgress(10);
-      setAnalysisStatus(`Found ${allKeys.length} series — building pairs…`);
+      setAnalysisProgress(15);
+      setAnalysisStatus('Classifying series…');
       await new Promise(r => setTimeout(r, 20));
 
-      // Build pairs based on mode
+      const allKeys = Object.keys(data[0])
+        .filter(k => k !== 'date')
+        .filter(k => data.some(d => d[k] != null && typeof d[k] === 'number'))
+        .map(k => ({ key: k, label: labelOf(k), cls: classOf(k) }));
+
+      if (allKeys.length < 2) {
+        setAnalysisError('Not enough numeric series returned from API.');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Build pairs
       let pairs = [];
       if (mode === 'all') {
         for (let i = 0; i < allKeys.length; i++)
@@ -255,7 +289,7 @@ export default function EconomicStrengthIndex() {
       }
 
       if (pairs.length === 0) {
-        setAnalysisError('No data loaded for that asset class. Load those assets in the modal first.');
+        setAnalysisError('No pairs found for that selection — the API may not have returned data for that asset class.');
         setIsAnalyzing(false);
         return;
       }
@@ -268,7 +302,7 @@ export default function EconomicStrengthIndex() {
 
       for (let i = 0; i < pairs.length; i++) {
         const [kA, kB] = pairs[i];
-        const rows = economicData.filter(d => d[kA.key] != null && d[kB.key] != null);
+        const rows = data.filter(d => d[kA.key] != null && d[kB.key] != null);
 
         if (rows.length >= 5) {
           const score = tf.tidy(() => {
@@ -283,14 +317,14 @@ export default function EconomicStrengthIndex() {
         }
 
         if (i % BATCH === 0) {
-          setAnalysisProgress(10 + Math.round((i / pairs.length) * 85));
+          setAnalysisProgress(15 + Math.round((i / pairs.length) * 80));
           setAnalysisStatus(`Pair ${(i+1).toLocaleString()} / ${pairs.length.toLocaleString()}`);
           await new Promise(r => setTimeout(r, 0));
         }
       }
 
       setAnalysisProgress(97);
-      setAnalysisStatus('Ranking by strength…');
+      setAnalysisStatus('Ranking…');
       await new Promise(r => setTimeout(r, 20));
 
       const insights = findings
@@ -641,7 +675,7 @@ export default function EconomicStrengthIndex() {
                 <div className="ai-header-icon">📡</div>
                 <div>
                   <h6 className="ai-title">Correlation Engine</h6>
-                  <p className="ai-subtitle">Uses your loaded chart data · Select assets in modal first · Sorted highest → lowest</p>
+                  <p className="ai-subtitle">Uses all defined assets · No selection needed · Results sorted highest → lowest</p>
                 </div>
               </div>
               <div className="ai-header-right">
@@ -835,7 +869,7 @@ export default function EconomicStrengthIndex() {
             )}
 
             {aiInsights.length === 0 && !isAnalyzing && !analysisError && (
-              <p className="ai-hint">Load assets via the modal above, then click any button to find correlations across everything you've selected. 🚀</p>
+              <p className="ai-hint">Click any button — uses all assets defined in the app, no selection required. 🚀</p>
             )}
           </div>
 
