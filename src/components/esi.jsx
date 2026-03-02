@@ -648,58 +648,90 @@ export default function EconomicStrengthIndex() {
 
           {/* ── AI ANALYSIS SECTION ── */}
           <div className="ai-analysis-container">
+
+            {/* Header */}
             <div className="ai-header">
-              <div className="ai-title-group">
-                <h6>🤖 TensorFlow.js Correlation Engine</h6>
-                <span className="ai-subtitle">Auto-discovers all loaded data — no manual selection needed</span>
-                {isAnalyzing && <span className="ai-status-text">{analysisStatus}</span>}
-              </div>
-            </div>
-
-            {/* Analyze All */}
-            <div className="ai-btn-row">
-              <button onClick={() => runMLAnalysis('all')} disabled={isAnalyzing || economicData.length === 0} className="ai-analyze-btn ai-analyze-all">
-                {isAnalyzing ? `⏳ ${analysisProgress}%` : '⚡ Analyze All Loaded Data'}
-              </button>
-            </div>
-
-            {/* Single-class buttons — only shown if we have data */}
-            {availableClasses.length >= 2 && (
-              <div className="ai-class-section">
-                <span className="ai-section-label">Within a class:</span>
-                <div className="ai-class-btns">
-                  {availableClasses.map(cls => (
-                    <button
-                      key={cls}
-                      onClick={() => runMLAnalysis({ single: cls })}
-                      disabled={isAnalyzing || economicData.length === 0}
-                      className="ai-class-btn"
-                    >
-                      {cls} only
-                    </button>
-                  ))}
+              <div className="ai-header-left">
+                <div className="ai-header-icon">📡</div>
+                <div>
+                  <h6 className="ai-title">Correlation Engine</h6>
+                  <p className="ai-subtitle">TensorFlow.js · Auto-discovers all loaded series · No manual selection needed</p>
                 </div>
+              </div>
+              {isAnalyzing && (
+                <div className="ai-live-status">
+                  <div className="ai-pulse"></div>
+                  <span>{analysisStatus || `${analysisProgress}%`}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Analyze All Hero Button */}
+            <button
+              onClick={() => runMLAnalysis('all')}
+              disabled={isAnalyzing || economicData.length === 0}
+              className="ai-analyze-all-btn"
+            >
+              {isAnalyzing ? (
+                <><span className="ai-btn-spinner"></span>Computing… {analysisProgress}%</>
+              ) : (
+                <>
+                  <span className="ai-btn-icon-large">⚡</span>
+                  <span className="ai-btn-text-stack">
+                    <span className="ai-btn-main">Analyze All Loaded Data</span>
+                    <span className="ai-btn-sub">Every series · Every pair · Sorted by strength</span>
+                  </span>
+                </>
+              )}
+            </button>
+
+            {/* Progress bar */}
+            {isAnalyzing && (
+              <div className="ai-progress-track">
+                <div className="ai-progress-fill" style={{ width: `${analysisProgress}%` }} />
               </div>
             )}
 
-            {/* Cross-class buttons — all unique combos */}
-            {availableClasses.length >= 2 && (
-              <div className="ai-class-section">
-                <span className="ai-section-label">Cross-class analysis:</span>
-                <div className="ai-class-btns">
-                  {availableClasses.flatMap((a, i) =>
-                    availableClasses.slice(i + 1).map(b => (
+            {/* Per-Class Blocks */}
+            {availableClasses.length >= 1 && (
+              <div className="ai-classes-outer">
+                <div className="ai-class-group">
+                  <div className="ai-class-group-label">Within asset class</div>
+                  <div className="ai-class-cards">
+                    {availableClasses.map(cls => (
                       <button
-                        key={`${a}-${b}`}
-                        onClick={() => runMLAnalysis({ cross: [a, b] })}
+                        key={cls}
+                        onClick={() => runMLAnalysis({ single: cls })}
                         disabled={isAnalyzing || economicData.length === 0}
-                        className="ai-class-btn ai-cross-btn"
+                        className="ai-class-card within-card"
                       >
-                        {a} ↔ {b}
+                        <span className="ai-class-card-name">{cls}</span>
+                        <span className="ai-class-card-action">Find Correlations →</span>
                       </button>
-                    ))
-                  )}
+                    ))}
+                  </div>
                 </div>
+
+                {availableClasses.length >= 2 && (
+                  <div className="ai-class-group">
+                    <div className="ai-class-group-label">Cross-class analysis</div>
+                    <div className="ai-class-cards">
+                      {availableClasses.flatMap((a, i) =>
+                        availableClasses.slice(i + 1).map(b => (
+                          <button
+                            key={`${a}-${b}`}
+                            onClick={() => runMLAnalysis({ cross: [a, b] })}
+                            disabled={isAnalyzing || economicData.length === 0}
+                            className="ai-class-card cross-card"
+                          >
+                            <span className="ai-class-card-name">{a} <span className="ai-vs">↔</span> {b}</span>
+                            <span className="ai-class-card-action">Find Correlations →</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -910,70 +942,184 @@ export default function EconomicStrengthIndex() {
         .modal-done-btn { padding: 10px 28px; background: #1e293b; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
         .modal-done-btn:hover { background: #0f172a; }
 
-        /* ── AI ANALYSIS ── */
-        .ai-analysis-container { background: #eff6ff; color: #1e293b; padding: 20px; border-radius: 12px; margin: 20px 0; border: 1px solid #bfdbfe; }
-        .ai-header { margin-bottom: 14px; border-bottom: 1px solid #dbeafe; padding-bottom: 12px; }
-        .ai-title-group h6 { margin: 0 0 2px; font-size: 1.05rem; color: #1e40af; }
-        .ai-subtitle { font-size: 12px; color: #64748b; display: block; margin-bottom: 2px; }
-        .ai-status-text { font-size: 0.8rem; color: #3b82f6; font-style: italic; display: block; margin-top: 4px; font-weight: 500; }
-        .ai-btn-row { margin-bottom: 12px; }
-        .ai-analyze-btn { background: #2563eb; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 14px; white-space: nowrap; }
-        .ai-analyze-all { width: 100%; font-size: 15px; padding: 12px; letter-spacing: 0.02em; }
-        .ai-analyze-btn:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
-        .ai-analyze-btn:disabled { background: #93c5fd; cursor: not-allowed; transform: none; box-shadow: none; }
-        .ai-class-section { margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
-        .ai-section-label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; padding-top: 6px; min-width: 110px; }
-        .ai-class-btns { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
-        .ai-class-btn { padding: 5px 12px; background: white; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: #1e40af; transition: all 0.15s; white-space: nowrap; }
-        .ai-class-btn:hover:not(:disabled) { background: #dbeafe; border-color: #93c5fd; }
-        .ai-class-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .ai-cross-btn { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
-        .ai-cross-btn:hover:not(:disabled) { background: #dcfce7; border-color: #86efac; }
-        .ai-progress-track { width: 100%; height: 8px; background: #dbeafe; border-radius: 4px; margin-bottom: 16px; overflow: hidden; position: relative; }
-        .ai-progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width 0.15s linear; border-radius: 4px; }
-        .ai-progress-label { position: absolute; right: 8px; top: -18px; font-size: 11px; color: #64748b; }
-        .ai-error-message { background: #fee2e2; border: 1px solid #fecaca; border-radius: 7px; padding: 10px 14px; color: #991b1b; font-size: 13px; margin-bottom: 12px; }
-        .ai-hint { text-align: center; color: #64748b; font-style: italic; margin: 16px 0; font-size: 14px; }
+        /* ══════════════════════════════
+           AI ANALYSIS — BLUE/WHITE THEME
+        ══════════════════════════════ */
+        .ai-analysis-container {
+          background: #fff;
+          border: 1.5px solid #dbeafe;
+          border-radius: 16px;
+          padding: 24px;
+          margin: 20px 0;
+          box-shadow: 0 4px 24px rgba(37,99,235,0.07);
+        }
 
-        /* ── CORRELATION CONTROLS ── */
-        .corr-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #dbeafe; }
-        .corr-search { flex: 1; min-width: 160px; padding: 7px 12px; border: 1px solid #d1d5db; border-radius: 7px; font-size: 13px; outline: none; }
-        .corr-search:focus { border-color: #3b82f6; }
-        .corr-filter { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 7px; font-size: 13px; background: white; }
-        .corr-count { font-size: 12px; color: #64748b; white-space: nowrap; margin-left: auto; font-weight: 600; }
-        .corr-collapse-all { padding: 6px 12px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; font-weight: 500; color: #475569; }
-        .corr-collapse-all:hover { background: #e2e8f0; }
-        .corr-overflow-notice { grid-column: 1 / -1; text-align: center; padding: 20px; background: #fef9c3; border: 1px solid #fde047; border-radius: 8px; color: #854d0e; font-size: 13px; font-weight: 500; }
+        /* Header */
+        .ai-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .ai-header-left { display: flex; align-items: center; gap: 14px; }
+        .ai-header-icon { font-size: 28px; line-height: 1; }
+        .ai-title { margin: 0 0 3px; font-size: 1.1rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.01em; }
+        .ai-subtitle { margin: 0; font-size: 12px; color: #64748b; }
+        .ai-live-status { display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 6px 14px; font-size: 12px; color: #1d4ed8; font-weight: 600; }
+        .ai-pulse { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; animation: aipulse 1s ease-in-out infinite; flex-shrink: 0; }
+        @keyframes aipulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.65); } }
+
+        /* Hero Analyze All Button */
+        .ai-analyze-all-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          padding: 18px 28px;
+          background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #3b82f6 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.22s;
+          margin-bottom: 20px;
+          box-shadow: 0 4px 18px rgba(37,99,235,0.32);
+          position: relative;
+          overflow: hidden;
+          letter-spacing: -0.01em;
+        }
+        .ai-analyze-all-btn::before {
+          content: '';
+          position: absolute;
+          top: 0; left: -100%;
+          width: 60%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+          transition: left 0.5s;
+        }
+        .ai-analyze-all-btn:hover:not(:disabled)::before { left: 160%; }
+        .ai-analyze-all-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 30px rgba(37,99,235,0.42);
+        }
+        .ai-analyze-all-btn:active:not(:disabled) { transform: translateY(0); }
+        .ai-analyze-all-btn:disabled {
+          background: linear-gradient(135deg, #93c5fd, #bfdbfe);
+          box-shadow: none; cursor: not-allowed; transform: none;
+        }
+        .ai-btn-icon-large { font-size: 24px; flex-shrink: 0; }
+        .ai-btn-text-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+        .ai-btn-main { font-size: 16px; font-weight: 800; line-height: 1.2; }
+        .ai-btn-sub { font-size: 11px; font-weight: 400; opacity: 0.75; }
+        .ai-btn-spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.35); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+
+        /* Progress bar */
+        .ai-progress-track { width: 100%; height: 6px; background: #dbeafe; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        .ai-progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #06b6d4); border-radius: 3px; transition: width 0.12s linear; }
+
+        /* Per-class grid */
+        .ai-classes-outer { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+        .ai-class-group { background: #f8fbff; border: 1.5px solid #e0eaff; border-radius: 12px; padding: 16px 18px; }
+        .ai-class-group-label {
+          font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em;
+          color: #94a3b8; margin-bottom: 12px;
+        }
+        .ai-class-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        /* Individual class card buttons */
+        .ai-class-card {
+          display: flex; flex-direction: column; gap: 3px;
+          padding: 10px 16px; border-radius: 10px; border: 1.5px solid;
+          cursor: pointer; transition: all 0.15s; background: white;
+          text-align: left; min-width: 120px;
+        }
+        .ai-class-card:disabled { opacity: 0.38; cursor: not-allowed; }
+        .ai-class-card-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
+        .ai-class-card-action { font-size: 10px; font-weight: 500; opacity: 0.55; }
+        .ai-vs { color: #94a3b8; font-weight: 300; }
+
+        .within-card { border-color: #bfdbfe; color: #1e40af; }
+        .within-card:hover:not(:disabled) {
+          background: #eff6ff; border-color: #6baed6;
+          transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.18);
+        }
+        .cross-card { border-color: #bbf7d0; color: #065f46; }
+        .cross-card:hover:not(:disabled) {
+          background: #f0fdf4; border-color: #5ab886;
+          transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.18);
+        }
+
+        /* Error + hint */
+        .ai-error-message { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; color: #991b1b; font-size: 13px; margin: 14px 0; }
+        .ai-hint { text-align: center; color: #94a3b8; font-size: 13px; padding: 28px 0 10px; font-style: italic; }
+
+        /* ── CORRELATION RESULTS CONTROLS ── */
+        .corr-controls {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          margin-bottom: 14px; padding: 14px 16px;
+          background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 10px;
+        }
+        .corr-search {
+          flex: 1; min-width: 180px; padding: 8px 14px;
+          border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; outline: none;
+          background: white;
+        }
+        .corr-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .corr-filter {
+          padding: 8px 10px; border: 1.5px solid #dbeafe; border-radius: 8px;
+          font-size: 13px; background: white; color: #1e293b; cursor: pointer;
+        }
+        .corr-filter:focus { border-color: #2563eb; outline: none; }
+        .corr-count {
+          font-size: 12px; color: #2563eb; white-space: nowrap;
+          background: #eff6ff; padding: 4px 12px; border-radius: 20px;
+          font-weight: 700; border: 1px solid #bfdbfe;
+        }
+        .corr-collapse-all {
+          padding: 7px 14px; background: white; border: 1.5px solid #dbeafe;
+          border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap;
+          font-weight: 600; color: #2563eb; transition: all 0.15s;
+        }
+        .corr-collapse-all:hover { background: #eff6ff; }
+        .corr-overflow-notice {
+          grid-column: 1 / -1; text-align: center; padding: 20px;
+          background: #fefce8; border: 1px solid #fde047; border-radius: 10px;
+          color: #854d0e; font-size: 13px; font-weight: 500;
+        }
 
         /* ── INSIGHT CARDS ── */
-        .ai-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
-        .ai-card { background: white; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; transition: box-shadow 0.2s; }
-        .ai-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .ai-card-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; gap: 8px; user-select: none; }
+        .ai-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+        .ai-card {
+          background: white; border-radius: 10px; border: 1.5px solid #e2e8f0;
+          overflow: hidden; transition: box-shadow 0.18s, transform 0.18s;
+        }
+        .ai-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .ai-card-header {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 11px 14px; gap: 8px; cursor: pointer; user-select: none;
+        }
         .ai-pair-title-group { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
         .ai-pair-title { font-weight: 700; font-size: 12px; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ai-pair-vs { color: #94a3b8; font-size: 14px; flex-shrink: 0; }
+        .ai-pair-vs { color: #cbd5e1; font-size: 13px; flex-shrink: 0; }
         .ai-card-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .ai-class-tags { display: flex; gap: 3px; }
-        .ai-class-tag { font-size: 10px; padding: 1px 5px; background: #f1f5f9; color: #64748b; border-radius: 3px; font-weight: 500; }
-        .ai-score-badge { padding: 2px 8px; border-radius: 10px; font-family: monospace; font-size: 12px; font-weight: 700; }
-        .badge-pos { background: #dcfce7; color: #16a34a; }
-        .badge-neg { background: #fee2e2; color: #dc2626; }
+        .ai-class-tag { font-size: 9.5px; padding: 1px 6px; background: #f1f5f9; color: #64748b; border-radius: 4px; font-weight: 600; }
+        .ai-score-badge { padding: 3px 9px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; }
+        .badge-pos { background: #dcfce7; color: #15803d; }
+        .badge-neg { background: #fee2e2; color: #b91c1c; }
         .badge-neu { background: #f1f5f9; color: #64748b; }
-        .ai-collapse-icon { font-size: 10px; color: #94a3b8; }
-        .ai-card-body { padding: 8px 14px 12px; border-top: 1px solid #f1f5f9; }
-        .ai-card-body strong { font-size: 12px; color: #475569; display: block; margin-bottom: 6px; }
-        .ai-score-bar-wrap { margin-top: 4px; }
-        .ai-score-bar-track { width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; position: relative; overflow: hidden; }
-        .ai-score-bar-fill { position: absolute; height: 100%; border-radius: 3px; transition: width 0.3s; }
-        .ai-score-bar-center { position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: #cbd5e1; }
+        .ai-collapse-icon { font-size: 9px; color: #cbd5e1; margin-left: 2px; }
+        .ai-card-body { padding: 10px 14px 13px; border-top: 1px solid #f1f5f9; }
+        .ai-card-body strong { font-size: 11.5px; color: #475569; display: block; margin-bottom: 7px; font-weight: 700; }
+        .ai-score-bar-wrap { margin-top: 2px; }
+        .ai-score-bar-track { width: 100%; height: 7px; background: #f1f5f9; border-radius: 4px; position: relative; overflow: hidden; }
+        .ai-score-bar-fill { position: absolute; height: 100%; border-radius: 4px; }
+        .ai-score-bar-center { position: absolute; left: 50%; top: 0; width: 1.5px; height: 100%; background: #cbd5e1; }
 
-        /* ── CARD BORDER COLORS ── */
-        .insight-positive-strong { border-left: 3px solid #22c55e; }
-        .insight-positive { border-left: 3px solid #86efac; }
-        .insight-negative-strong { border-left: 3px solid #ef4444; }
-        .insight-negative { border-left: 3px solid #fca5a5; }
-        .insight-neutral { border-left: 3px solid #cbd5e1; }
+        /* Card accent borders */
+        .insight-positive-strong { border-left: 3.5px solid #16a34a; }
+        .insight-positive { border-left: 3.5px solid #4ade80; }
+        .insight-negative-strong { border-left: 3.5px solid #dc2626; }
+        .insight-negative { border-left: 3.5px solid #f87171; }
+        .insight-neutral { border-left: 3.5px solid #e2e8f0; }
 
         /* ── CHART ── */
         .esi-chart-container { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -1000,14 +1146,23 @@ export default function EconomicStrengthIndex() {
           .modal-overlay { align-items: flex-end; padding: 0; }
           .modal-grid { grid-template-columns: 1fr 1fr; }
           .modal-grid-stocks { grid-template-columns: 1fr 1fr; }
-          .ai-class-section { flex-direction: column; gap: 6px; }
-          .ai-section-label { min-width: unset; padding-top: 0; }
+          .ai-analyze-all-btn { padding: 15px 20px; font-size: 14px; }
+          .ai-btn-main { font-size: 14px; }
+          .ai-classes-outer { gap: 10px; }
+          .ai-class-cards { gap: 6px; }
+          .ai-class-card { min-width: unset; flex: 1 1 calc(50% - 6px); }
           .corr-controls { flex-direction: column; align-items: stretch; }
-          .corr-search { width: 100%; }
+          .corr-search { width: 100%; min-width: unset; }
           .corr-count { margin-left: 0; }
           .ai-results-grid { grid-template-columns: 1fr; }
           .esi-selector-bar { flex-direction: column; align-items: flex-start; }
           .modal-tabs { overflow-x: auto; flex-wrap: nowrap; padding: 10px 12px; }
+          .ai-header-left { gap: 10px; }
+          .ai-header-icon { font-size: 22px; }
+        }
+        @media (max-width: 480px) {
+          .ai-class-card { flex: 1 1 100%; }
+          .ai-analysis-container { padding: 16px; }
         }
       `}</style>
     </div>
