@@ -170,114 +170,159 @@ export default function EconomicStrengthIndex() {
     }
   }, [selectedCurrencies, selectedForexPairs, selectedStockIndices, selectedVolumeAssets, selectedCommodities, dateRange]);
 
-  // ── Auto-discover all numeric keys from economicData and classify them ──
-  const discoverKeys = useCallback((data) => {
-    if (!data?.length) return [];
-    const sample = data[0];
-    const discovered = [];
+  // ── Correlation date range (independent of chart) ──
+  const [corrDateRange, setCorrDateRange] = useState('30d');
 
-    for (const key of Object.keys(sample)) {
-      if (key === 'date') continue;
-      // Check if there's actual numeric data for this key
-      const hasData = data.some(d => d[key] != null && typeof d[key] === 'number');
-      if (!hasData) continue;
+  // ── ALL assets the engine fetches by itself — no selection needed ──
+  const ALL_CURRENCIES   = ['USD','EUR','GBP','JPY','AUD','CAD','CHF','CNY'];
+  const ALL_FOREX        = ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','EURGBP','EURJPY'];
+  const ALL_INDICES      = ['^GSPC','^DJI','^IXIC','^RUT','^FTSE','^GDAXI','^FCHI','^N225','^HSI','^AXJO'];
+  const ALL_COMMODITIES  = ['GC=F','SI=F','CL=F','BZ=F','NG=F','HG=F','PL=F','PA=F','ZC=F','ZW=F'];
+  // All stocks from SECTOR_MAPPINGS — deduplicated
+  const ALL_STOCKS = useMemo(() => [...new Set(Object.keys(SECTOR_MAPPINGS))], []);
 
-      let cls, label;
-      if (key.endsWith('_price')) {
-        const pair = key.replace('_price', '');
-        cls = 'Forex';
-        label = forexPairs.find(p => p.pair === pair)?.name || pair;
-      } else if (key.endsWith('_index')) {
-        const sym = key.replace('_index', '');
-        cls = 'Index';
-        label = stockIndices.find(s => s.symbol === sym)?.displayName || sym;
-      } else if (key.endsWith('_commodity')) {
-        const sym = key.replace('_commodity', '');
-        cls = 'Commodity';
-        label = commodities.find(c => c.symbol === sym)?.displayName || sym;
-      } else if (key.endsWith('_volume_ratio')) {
-        const id = key.replace('_volume_ratio', '');
-        cls = 'Volume';
-        label = `${volumeAssets.find(a => a.id === id)?.name || id} Vol`;
-      } else {
-        // Bare key = ESI currency
-        cls = 'ESI';
-        label = `${key} ESI`;
-      }
+  // Name/label lookup
+  const ASSET_LABELS = useMemo(() => {
+    const m = {};
+    currencies.forEach(c   => { m[c.code]                = `${c.code} ESI`; });
+    forexPairs.forEach(f   => { m[f.pair+'_price']        = f.name; });
+    stockIndices.forEach(s => { m[s.symbol+'_index']      = s.displayName; });
+    commodities.forEach(c  => { m[c.symbol+'_commodity']  = c.displayName; });
+    // Stocks: bare ticker key (backend returns them as-is)
+    ALL_STOCKS.forEach(t   => { m[t] = t; });
+    return m;
+  }, [ALL_STOCKS]);
 
-      discovered.push({ key, label, cls });
-    }
-    return discovered;
-  }, [forexPairs, stockIndices, commodities, volumeAssets]);
+  const labelOf = (key) => {
+    if (ASSET_LABELS[key]) return ASSET_LABELS[key];
+    return key.replace(/_price|_index|_commodity|_volume_ratio/g,'').replace(/=F$/,'').replace(/^\^/,'');
+  };
 
-  // ── Smart Correlation Engine ──
-  // mode: 'all' | { single: 'ESI' } | { cross: ['ESI', 'Forex'] }
+  const classOf = (key) => {
+    if (key.endsWith('_price'))         return 'Forex';
+    if (key.endsWith('_index'))         return 'Index';
+    if (key.endsWith('_commodity'))     return 'Commodity';
+    if (key.endsWith('_volume_ratio'))  return 'Volume';
+    if (SECTOR_MAPPINGS[key])           return SECTOR_MAPPINGS[key]; // returns sector name e.g. 'Technology'
+    return 'ESI';
+  };
+
+  // Unique sectors for per-sector buttons
+  const ALL_SECTORS = useMemo(() => [...new Set(Object.values(SECTOR_MAPPINGS))].sort(), []);
+
+  // ── Static class definitions — always visible, no data needed ──
+  const STATIC_MACRO_CLASSES = ['ESI','Forex','Index','Commodity'];
+  const STATIC_MACRO_CROSS = [
+    ['ESI','Forex'],['ESI','Index'],['ESI','Commodity'],
+    ['Forex','Index'],['Forex','Commodity'],['Index','Commodity'],
+  ];
+
+  // ── Self-fetching correlation engine ──
+  // mode: 'all' | { single: 'ESI'|'Forex'|'Index'|'Commodity'|sectorName } | { cross: [clsA, clsB] } | { sector: 'Technology' }
   const runMLAnalysis = async (mode = 'all') => {
-    if (!economicData || economicData.length < 5) {
-      setAnalysisError('Need at least 5 data points. Load some assets first!');
-      return;
-    }
-
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    setAnalysisStatus('Discovering data keys...');
+    setAnalysisStatus('Fetching all asset data…');
     setAiInsights([]);
     setAnalysisError('');
 
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 40));
 
     try {
-      const allKeys = discoverKeys(economicData);
+      // Determine which stocks to fetch based on mode (fetch only relevant sector if sector-specific)
+      let stocksToFetch = [];
+      if (mode === 'all') {
+        stocksToFetch = ALL_STOCKS;
+      } else if (mode.single && ALL_SECTORS.includes(mode.single)) {
+        stocksToFetch = ALL_STOCKS.filter(t => SECTOR_MAPPINGS[t] === mode.single);
+      } else if (mode.cross) {
+        const [a, b] = mode.cross;
+        const sectorNames = ALL_SECTORS;
+        if (sectorNames.includes(a)) stocksToFetch.push(...ALL_STOCKS.filter(t => SECTOR_MAPPINGS[t] === a));
+        if (sectorNames.includes(b)) stocksToFetch.push(...ALL_STOCKS.filter(t => SECTOR_MAPPINGS[t] === b));
+      } else {
+        stocksToFetch = ALL_STOCKS; // for single macro class, still fetch all stocks for cross potential
+      }
+
+      const isMacroOnly = mode !== 'all' && mode.single && !ALL_SECTORS.includes(mode.single);
+      const fetchStocks = isMacroOnly ? [] : stocksToFetch;
+
+      setAnalysisStatus(`Loading currencies, forex, indices, commodities${fetchStocks.length ? ` & ${fetchStocks.length} stocks` : ''}…`);
+
+      const res = await fetch(`${baseUrl}/api/economic-strength-index/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currencies:    ALL_CURRENCIES,
+          forex_pairs:   ALL_FOREX,
+          stock_indices: ALL_INDICES,
+          commodities:   ALL_COMMODITIES,
+          stocks:        fetchStocks,
+          volume_assets: [],
+          date_range:    corrDateRange,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const json = await res.json();
+      const data = json.chart_data;
+
+      if (!data?.length || data.length < 5) {
+        setAnalysisError('Not enough data returned. Try a longer date range.');
+        setIsAnalyzing(false);
+        return;
+      }
+
+      setAnalysisProgress(18);
+      setAnalysisStatus('Classifying series…');
+      await new Promise(r => setTimeout(r, 20));
+
+      // Pull every numeric key and classify
+      const allKeys = Object.keys(data[0])
+        .filter(k => k !== 'date')
+        .filter(k => data.some(d => d[k] != null && typeof d[k] === 'number'))
+        .map(k => ({ key: k, label: labelOf(k), cls: classOf(k) }));
 
       if (allKeys.length < 2) {
-        setAnalysisError('Need at least 2 data series in the chart. Configure assets and load data first!');
+        setAnalysisError('API returned insufficient numeric series.');
         setIsAnalyzing(false);
         return;
       }
 
-      // Filter keys based on mode
-      let keysA, keysB, crossMode = false;
+      // Build pair list based on mode
+      let pairs = [];
       if (mode === 'all') {
-        keysA = allKeys;
-        keysB = null; // will do all vs all
+        for (let i = 0; i < allKeys.length; i++)
+          for (let j = i+1; j < allKeys.length; j++)
+            pairs.push([allKeys[i], allKeys[j]]);
       } else if (mode.single) {
-        keysA = allKeys.filter(k => k.cls === mode.single);
-        keysB = null;
+        const pool = allKeys.filter(k => k.cls === mode.single);
+        for (let i = 0; i < pool.length; i++)
+          for (let j = i+1; j < pool.length; j++)
+            pairs.push([pool[i], pool[j]]);
       } else if (mode.cross) {
         const [clsA, clsB] = mode.cross;
-        keysA = allKeys.filter(k => k.cls === clsA);
-        keysB = allKeys.filter(k => k.cls === clsB);
-        crossMode = true;
+        const poolA = allKeys.filter(k => k.cls === clsA);
+        const poolB = allKeys.filter(k => k.cls === clsB);
+        for (const a of poolA) for (const b of poolB) pairs.push([a, b]);
       }
 
-      if (keysA.length === 0 || (crossMode && keysB.length === 0)) {
-        setAnalysisError('No data found for the selected asset class(es). Make sure those assets are loaded in the chart.');
+      if (pairs.length === 0) {
+        setAnalysisError('No pairs found for this selection. The API may not have returned data for that asset class.');
         setIsAnalyzing(false);
         return;
       }
 
-      // Build pairs
-      const pairs = [];
-      if (crossMode) {
-        for (const a of keysA) for (const b of keysB) pairs.push([a, b]);
-      } else {
-        const pool = keysA;
-        for (let i = 0; i < pool.length; i++)
-          for (let j = i + 1; j < pool.length; j++)
-            pairs.push([pool[i], pool[j]]);
-      }
-
-      const totalPairs = pairs.length;
-      setAnalysisStatus(`Computing ${totalPairs.toLocaleString()} correlations across ${allKeys.length} series...`);
-      await new Promise(r => setTimeout(r, 60));
+      setAnalysisStatus(`Computing ${pairs.length.toLocaleString()} correlations…`);
+      await new Promise(r => setTimeout(r, 30));
 
       const findings = [];
-      const BATCH = 30;
+      const BATCH = 25;
 
       for (let i = 0; i < pairs.length; i++) {
         const [kA, kB] = pairs[i];
+        const rows = data.filter(d => d[kA.key] != null && d[kB.key] != null);
 
-        const rows = economicData.filter(d => d[kA.key] != null && d[kB.key] != null);
         if (rows.length >= 5) {
           const score = tf.tidy(() => {
             const tA = tf.tensor1d(rows.map(d => d[kA.key]));
@@ -291,24 +336,25 @@ export default function EconomicStrengthIndex() {
         }
 
         if (i % BATCH === 0) {
-          setAnalysisProgress(Math.round((i / totalPairs) * 95));
-          setAnalysisStatus(`Pair ${i.toLocaleString()} / ${totalPairs.toLocaleString()}...`);
+          const pct = 18 + Math.round((i / pairs.length) * 77);
+          setAnalysisProgress(pct);
+          setAnalysisStatus(`Pair ${(i+1).toLocaleString()} / ${pairs.length.toLocaleString()}`);
           await new Promise(r => setTimeout(r, 0));
         }
       }
 
-      setAnalysisProgress(98);
-      setAnalysisStatus('Ranking results...');
-      await new Promise(r => setTimeout(r, 40));
+      setAnalysisProgress(97);
+      setAnalysisStatus('Ranking by strength…');
+      await new Promise(r => setTimeout(r, 30));
 
       const insights = findings
         .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
         .map(f => {
           const s = f.score;
           let term, styleClass;
-          if (s > 0.8)       { term = 'Strong Positive';  styleClass = 'insight-positive-strong'; }
-          else if (s > 0.5)  { term = 'Positive Trend';   styleClass = 'insight-positive'; }
-          else if (s > 0.3)  { term = 'Weak Positive';    styleClass = 'insight-neutral'; }
+          if      (s >  0.8) { term = 'Strong Positive';  styleClass = 'insight-positive-strong'; }
+          else if (s >  0.5) { term = 'Positive Trend';   styleClass = 'insight-positive'; }
+          else if (s >  0.3) { term = 'Weak Positive';    styleClass = 'insight-neutral'; }
           else if (s < -0.8) { term = 'Strong Inverse';   styleClass = 'insight-negative-strong'; }
           else if (s < -0.5) { term = 'Inverse Trend';    styleClass = 'insight-negative'; }
           else if (s < -0.3) { term = 'Weak Inverse';     styleClass = 'insight-neutral'; }
@@ -327,17 +373,11 @@ export default function EconomicStrengthIndex() {
       setAnalysisProgress(100);
       setAnalysisStatus('');
     } catch (err) {
-      setAnalysisError(`Analysis failed: ${err.message}`);
+      setAnalysisError(`Failed: ${err.message}`);
     } finally {
       setIsAnalyzing(false);
     }
   };
-
-  // Derive available classes from whatever is currently loaded in economicData
-  const availableClasses = useMemo(() => {
-    if (!economicData?.length) return [];
-    return [...new Set(discoverKeys(economicData).map(k => k.cls))].sort();
-  }, [economicData, discoverKeys]);
 
   // ── Toggle Handlers ──
   const toggle = (setter) => (val) => setter(p => p.includes(val) ? p.filter(x => x !== val) : [...p, val]);
@@ -646,113 +686,127 @@ export default function EconomicStrengthIndex() {
             </div>
           )}
 
-          {/* ── AI ANALYSIS SECTION ── */}
+          {/* ── AI CORRELATION ENGINE ── */}
           <div className="ai-analysis-container">
 
-            {/* Header */}
+            {/* Header row */}
             <div className="ai-header">
               <div className="ai-header-left">
                 <div className="ai-header-icon">📡</div>
                 <div>
                   <h6 className="ai-title">Correlation Engine</h6>
-                  <p className="ai-subtitle">TensorFlow.js · Auto-discovers all loaded series · No manual selection needed</p>
+                  <p className="ai-subtitle">Fetches all assets itself · No selection needed · Sorted highest → lowest</p>
                 </div>
               </div>
-              {isAnalyzing && (
-                <div className="ai-live-status">
-                  <div className="ai-pulse"></div>
-                  <span>{analysisStatus || `${analysisProgress}%`}</span>
-                </div>
-              )}
+              <div className="ai-header-right">
+                <select value={corrDateRange} onChange={e => setCorrDateRange(e.target.value)} className="corr-date-select">
+                  <option value="7d">7 days</option>
+                  <option value="30d">30 days</option>
+                  <option value="90d">90 days</option>
+                  <option value="180d">6 months</option>
+                  <option value="365d">1 year</option>
+                </select>
+                <button
+                  onClick={() => runMLAnalysis('all')}
+                  disabled={isAnalyzing}
+                  className="ai-analyze-small-btn"
+                >
+                  {isAnalyzing
+                    ? <><span className="ai-btn-spinner-sm"></span>{analysisProgress}%</>
+                    : '⚡ Analyze All Assets'
+                  }
+                </button>
+              </div>
             </div>
-
-            {/* Analyze All Hero Button */}
-            <button
-              onClick={() => runMLAnalysis('all')}
-              disabled={isAnalyzing || economicData.length === 0}
-              className="ai-analyze-all-btn"
-            >
-              {isAnalyzing ? (
-                <><span className="ai-btn-spinner"></span>Computing… {analysisProgress}%</>
-              ) : (
-                <>
-                  <span className="ai-btn-icon-large">⚡</span>
-                  <span className="ai-btn-text-stack">
-                    <span className="ai-btn-main">Analyze All Loaded Data</span>
-                    <span className="ai-btn-sub">Every series · Every pair · Sorted by strength</span>
-                  </span>
-                </>
-              )}
-            </button>
 
             {/* Progress bar */}
             {isAnalyzing && (
               <div className="ai-progress-track">
                 <div className="ai-progress-fill" style={{ width: `${analysisProgress}%` }} />
+                <span className="ai-progress-txt">{analysisStatus}</span>
               </div>
             )}
 
-            {/* Per-Class Blocks */}
-            {availableClasses.length >= 1 && (
-              <div className="ai-classes-outer">
-                <div className="ai-class-group">
-                  <div className="ai-class-group-label">Within asset class</div>
-                  <div className="ai-class-cards">
-                    {availableClasses.map(cls => (
+            {/* ── ALWAYS-VISIBLE CLASS BUTTONS ── */}
+            <div className="ai-classes-outer">
+
+              {/* Macro asset classes */}
+              <div className="ai-class-group">
+                <div className="ai-class-group-label">Macro asset classes — within</div>
+                <div className="ai-class-cards">
+                  {STATIC_MACRO_CLASSES.map(cls => (
+                    <button key={cls} onClick={() => runMLAnalysis({ single: cls })} disabled={isAnalyzing} className="ai-class-card within-card">
+                      <span className="ai-class-card-name">{cls}</span>
+                      <span className="ai-class-card-action">Find Correlations →</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Macro cross-class */}
+              <div className="ai-class-group">
+                <div className="ai-class-group-label">Macro cross-class analysis</div>
+                <div className="ai-class-cards">
+                  {STATIC_MACRO_CROSS.map(([a, b]) => (
+                    <button key={`${a}-${b}`} onClick={() => runMLAnalysis({ cross: [a, b] })} disabled={isAnalyzing} className="ai-class-card cross-card">
+                      <span className="ai-class-card-name">{a} <span className="ai-vs">↔</span> {b}</span>
+                      <span className="ai-class-card-action">Find Correlations →</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stock sectors — within sector */}
+              <div className="ai-class-group">
+                <div className="ai-class-group-label">US stocks — within sector</div>
+                <div className="ai-class-cards">
+                  {ALL_SECTORS.map(sector => (
+                    <button
+                      key={sector}
+                      onClick={() => runMLAnalysis({ single: sector })}
+                      disabled={isAnalyzing}
+                      className="ai-class-card sector-card"
+                      style={{ '--sector-col': SECTOR_COLORS[sector] || '#6b7280' }}
+                    >
+                      <span className="ai-class-card-name">{sector}</span>
+                      <span className="ai-class-card-action">Find Correlations →</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sectors vs macro */}
+              <div className="ai-class-group">
+                <div className="ai-class-group-label">US stocks vs macro</div>
+                <div className="ai-class-cards">
+                  {ALL_SECTORS.map(sector => (
+                    ['ESI','Forex','Index','Commodity'].map(macro => (
                       <button
-                        key={cls}
-                        onClick={() => runMLAnalysis({ single: cls })}
-                        disabled={isAnalyzing || economicData.length === 0}
-                        className="ai-class-card within-card"
+                        key={`${sector}-${macro}`}
+                        onClick={() => runMLAnalysis({ cross: [sector, macro] })}
+                        disabled={isAnalyzing}
+                        className="ai-class-card cross-sector-card"
+                        style={{ '--sector-col': SECTOR_COLORS[sector] || '#6b7280' }}
                       >
-                        <span className="ai-class-card-name">{cls}</span>
+                        <span className="ai-class-card-name">{sector} <span className="ai-vs">↔</span> {macro}</span>
                         <span className="ai-class-card-action">Find Correlations →</span>
                       </button>
-                    ))}
-                  </div>
+                    ))
+                  ))}
                 </div>
-
-                {availableClasses.length >= 2 && (
-                  <div className="ai-class-group">
-                    <div className="ai-class-group-label">Cross-class analysis</div>
-                    <div className="ai-class-cards">
-                      {availableClasses.flatMap((a, i) =>
-                        availableClasses.slice(i + 1).map(b => (
-                          <button
-                            key={`${a}-${b}`}
-                            onClick={() => runMLAnalysis({ cross: [a, b] })}
-                            disabled={isAnalyzing || economicData.length === 0}
-                            className="ai-class-card cross-card"
-                          >
-                            <span className="ai-class-card-name">{a} <span className="ai-vs">↔</span> {b}</span>
-                            <span className="ai-class-card-action">Find Correlations →</span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
 
-            {isAnalyzing && (
-              <div className="ai-progress-track">
-                <div className="ai-progress-fill" style={{ width: `${analysisProgress}%` }}></div>
-                <span className="ai-progress-label">{analysisProgress}%</span>
-              </div>
-            )}
+            </div>
 
-            {analysisError && (
-              <div className="ai-error-message">⚠️ {analysisError}</div>
-            )}
+            {analysisError && <div className="ai-error-message">⚠️ {analysisError}</div>}
 
+            {/* ── RESULTS ── */}
             {aiInsights.length > 0 && (
               <>
-                {/* Correlation controls */}
                 <div className="corr-controls">
                   <input
                     type="text"
-                    placeholder="🔍 Search assets..."
+                    placeholder="🔍 Search by asset name…"
                     value={corrSearch}
                     onChange={e => setCorrSearch(e.target.value)}
                     className="corr-search"
@@ -767,11 +821,17 @@ export default function EconomicStrengthIndex() {
                   </select>
                   <select value={corrClassFilter} onChange={e => setCorrClassFilter(e.target.value)} className="corr-filter">
                     <option value="all">All classes</option>
-                    {allClasses.map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                    <optgroup label="Macro">
+                      {['ESI','Forex','Index','Commodity'].map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                    </optgroup>
+                    <optgroup label="US Stock Sectors">
+                      {ALL_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </optgroup>
                   </select>
-                  <span className="corr-count">{filteredInsights.length.toLocaleString()} of {aiInsights.length.toLocaleString()} pairs</span>
+                  <span className="corr-count">{filteredInsights.length.toLocaleString()} / {aiInsights.length.toLocaleString()}</span>
                   <button className="corr-collapse-all" onClick={() => {
-                    if (Object.keys(collapsedInsights).length < filteredInsights.length) {
+                    const allCollapsed = Object.keys(collapsedInsights).length >= filteredInsights.length;
+                    if (!allCollapsed) {
                       const all = {};
                       filteredInsights.forEach(i => { all[i.id] = true; });
                       setCollapsedInsights(all);
@@ -779,65 +839,64 @@ export default function EconomicStrengthIndex() {
                       setCollapsedInsights({});
                     }
                   }}>
-                    {Object.keys(collapsedInsights).length < filteredInsights.length ? '▼ Collapse All' : '▶ Expand All'}
+                    {Object.keys(collapsedInsights).length >= filteredInsights.length ? '▶ Expand All' : '▼ Collapse All'}
                   </button>
                 </div>
 
                 <div className="ai-results-grid">
-                  {filteredInsights.slice(0, 200).map(insight => (
+                  {filteredInsights.slice(0, 300).map(insight => (
                     <div key={insight.id} className={`ai-card ${insight.styleClass}`}>
                       <div
                         className="ai-card-header"
                         onClick={() => setCollapsedInsights(p => ({ ...p, [insight.id]: !p[insight.id] }))}
-                        style={{ cursor: 'pointer' }}
                       >
-                        <div className="ai-pair-title-group">
-                          <span className="ai-pair-title">{insight.nameA}</span>
+                        <div className="ai-pair-names">
+                          <span className="ai-name-a">{insight.nameA}</span>
                           <span className="ai-pair-vs">↔</span>
-                          <span className="ai-pair-title">{insight.nameB}</span>
+                          <span className="ai-name-b">{insight.nameB}</span>
                         </div>
                         <div className="ai-card-header-right">
-                          <span className="ai-class-tags">
-                            <span className="ai-class-tag">{insight.classA}</span>
-                            <span className="ai-class-tag">{insight.classB}</span>
-                          </span>
-                          <span className={`ai-score-badge ${parseFloat(insight.score) > 0.5 ? 'badge-pos' : parseFloat(insight.score) < -0.5 ? 'badge-neg' : 'badge-neu'}`}>
-                            {parseFloat(insight.score) > 0 ? '+' : ''}{insight.score}
+                          <span className={`ai-score-badge ${insight.scoreNum > 0.5 ? 'badge-pos' : insight.scoreNum < -0.5 ? 'badge-neg' : 'badge-neu'}`}>
+                            {insight.scoreNum > 0 ? '+' : ''}{insight.score}
                           </span>
                           <span className="ai-collapse-icon">{collapsedInsights[insight.id] ? '▶' : '▼'}</span>
                         </div>
                       </div>
                       {!collapsedInsights[insight.id] && (
                         <div className="ai-card-body">
-                          <strong>{insight.term}</strong>
+                          <div className="ai-card-classes">
+                            <span className="ai-class-tag">{insight.classA}</span>
+                            <span className="ai-class-tag">{insight.classB}</span>
+                            <strong className="ai-term-label">{insight.term}</strong>
+                          </div>
                           <div className="ai-score-bar-wrap">
                             <div className="ai-score-bar-track">
+                              <div className="ai-score-bar-center" />
                               <div
                                 className="ai-score-bar-fill"
                                 style={{
-                                  width: `${Math.abs(parseFloat(insight.score)) * 100}%`,
-                                  marginLeft: parseFloat(insight.score) >= 0 ? '50%' : `${50 - Math.abs(parseFloat(insight.score)) * 50}%`,
-                                  background: parseFloat(insight.score) > 0.5 ? '#22c55e' : parseFloat(insight.score) < -0.5 ? '#ef4444' : '#94a3b8',
+                                  width: `${Math.abs(insight.scoreNum) * 50}%`,
+                                  left: insight.scoreNum >= 0 ? '50%' : `${50 - Math.abs(insight.scoreNum) * 50}%`,
+                                  background: insight.scoreNum > 0.5 ? '#16a34a' : insight.scoreNum < -0.5 ? '#dc2626' : '#94a3b8',
                                 }}
-                              ></div>
-                              <div className="ai-score-bar-center"></div>
+                              />
                             </div>
                           </div>
                         </div>
                       )}
                     </div>
                   ))}
-                  {filteredInsights.length > 200 && (
+                  {filteredInsights.length > 300 && (
                     <div className="corr-overflow-notice">
-                      Showing top 200 of {filteredInsights.length.toLocaleString()} pairs. Use filters to narrow results.
+                      Showing top 300 of {filteredInsights.length.toLocaleString()} pairs — use filters to narrow down.
                     </div>
                   )}
                 </div>
               </>
             )}
 
-            {aiInsights.length === 0 && !isAnalyzing && !analysisError && economicData.length > 0 && (
-              <p className="ai-hint">Click "Analyze All Loaded Data" — the engine auto-discovers every series in your chart and computes all pairwise correlations. No selection needed!</p>
+            {aiInsights.length === 0 && !isAnalyzing && !analysisError && (
+              <p className="ai-hint">Click any button above — the engine fetches all assets by itself and computes every pairwise correlation. No setup needed. 🚀</p>
             )}
           </div>
 
@@ -955,164 +1014,129 @@ export default function EconomicStrengthIndex() {
         }
 
         /* Header */
-        .ai-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .ai-header-left { display: flex; align-items: center; gap: 14px; }
-        .ai-header-icon { font-size: 28px; line-height: 1; }
-        .ai-title { margin: 0 0 3px; font-size: 1.1rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.01em; }
-        .ai-subtitle { margin: 0; font-size: 12px; color: #64748b; }
-        .ai-live-status { display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 20px; padding: 6px 14px; font-size: 12px; color: #1d4ed8; font-weight: 600; }
-        .ai-pulse { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; animation: aipulse 1s ease-in-out infinite; flex-shrink: 0; }
-        @keyframes aipulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.65); } }
+        .ai-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+        .ai-header-left { display: flex; align-items: center; gap: 12px; }
+        .ai-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .ai-header-icon { font-size: 26px; line-height: 1; }
+        .ai-title { margin: 0 0 2px; font-size: 1.05rem; font-weight: 800; color: #1e3a8a; }
+        .ai-subtitle { margin: 0; font-size: 11px; color: #94a3b8; }
 
-        /* Hero Analyze All Button */
-        .ai-analyze-all-btn {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 14px;
-          padding: 18px 28px;
-          background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #3b82f6 100%);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          font-size: 16px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.22s;
-          margin-bottom: 20px;
-          box-shadow: 0 4px 18px rgba(37,99,235,0.32);
-          position: relative;
-          overflow: hidden;
-          letter-spacing: -0.01em;
+        /* Date range select */
+        .corr-date-select {
+          padding: 7px 10px; border: 1.5px solid #dbeafe; border-radius: 8px;
+          font-size: 13px; background: white; color: #1e293b; cursor: pointer; outline: none;
         }
-        .ai-analyze-all-btn::before {
-          content: '';
-          position: absolute;
-          top: 0; left: -100%;
-          width: 60%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
-          transition: left 0.5s;
+        .corr-date-select:focus { border-color: #2563eb; }
+
+        /* Small Analyze All button */
+        .ai-analyze-small-btn {
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 8px 18px;
+          background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+          color: white; border: none; border-radius: 8px;
+          font-size: 13px; font-weight: 700; cursor: pointer;
+          transition: all 0.18s; white-space: nowrap;
+          box-shadow: 0 2px 10px rgba(37,99,235,0.28);
         }
-        .ai-analyze-all-btn:hover:not(:disabled)::before { left: 160%; }
-        .ai-analyze-all-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 30px rgba(37,99,235,0.42);
+        .ai-analyze-small-btn:hover:not(:disabled) {
+          transform: translateY(-1px); box-shadow: 0 5px 18px rgba(37,99,235,0.38);
         }
-        .ai-analyze-all-btn:active:not(:disabled) { transform: translateY(0); }
-        .ai-analyze-all-btn:disabled {
-          background: linear-gradient(135deg, #93c5fd, #bfdbfe);
-          box-shadow: none; cursor: not-allowed; transform: none;
+        .ai-analyze-small-btn:disabled { background: linear-gradient(135deg,#93c5fd,#bfdbfe); box-shadow: none; cursor: not-allowed; }
+        .ai-btn-spinner-sm {
+          width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35);
+          border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite;
         }
-        .ai-btn-icon-large { font-size: 24px; flex-shrink: 0; }
-        .ai-btn-text-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
-        .ai-btn-main { font-size: 16px; font-weight: 800; line-height: 1.2; }
-        .ai-btn-sub { font-size: 11px; font-weight: 400; opacity: 0.75; }
-        .ai-btn-spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.35); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
 
         /* Progress bar */
-        .ai-progress-track { width: 100%; height: 6px; background: #dbeafe; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
-        .ai-progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #06b6d4); border-radius: 3px; transition: width 0.12s linear; }
-
-        /* Per-class grid */
-        .ai-classes-outer { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
-        .ai-class-group { background: #f8fbff; border: 1.5px solid #e0eaff; border-radius: 12px; padding: 16px 18px; }
-        .ai-class-group-label {
-          font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em;
-          color: #94a3b8; margin-bottom: 12px;
+        .ai-progress-track {
+          width: 100%; height: 6px; background: #dbeafe; border-radius: 3px;
+          margin-bottom: 16px; overflow: hidden; position: relative;
         }
-        .ai-class-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ai-progress-fill { height: 100%; background: linear-gradient(90deg,#2563eb,#06b6d4); border-radius: 3px; transition: width 0.12s linear; }
+        .ai-progress-txt { position: absolute; top: 10px; left: 0; font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-        /* Individual class card buttons */
+        /* Per-class section */
+        .ai-classes-outer { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+        .ai-class-group { background: #f8fbff; border: 1.5px solid #e0eaff; border-radius: 12px; padding: 14px 16px; }
+        .ai-class-group-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 10px; }
+        .ai-class-cards { display: flex; flex-wrap: wrap; gap: 7px; }
         .ai-class-card {
-          display: flex; flex-direction: column; gap: 3px;
-          padding: 10px 16px; border-radius: 10px; border: 1.5px solid;
-          cursor: pointer; transition: all 0.15s; background: white;
-          text-align: left; min-width: 120px;
+          display: flex; flex-direction: column; gap: 2px; padding: 9px 14px;
+          border-radius: 9px; border: 1.5px solid; cursor: pointer; transition: all 0.14s;
+          background: white; text-align: left;
         }
-        .ai-class-card:disabled { opacity: 0.38; cursor: not-allowed; }
+        .ai-class-card:disabled { opacity: 0.4; cursor: not-allowed; }
         .ai-class-card-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
         .ai-class-card-action { font-size: 10px; font-weight: 500; opacity: 0.55; }
-        .ai-vs { color: #94a3b8; font-weight: 300; }
-
+        .ai-vs { font-weight: 300; color: #94a3b8; }
         .within-card { border-color: #bfdbfe; color: #1e40af; }
-        .within-card:hover:not(:disabled) {
-          background: #eff6ff; border-color: #6baed6;
-          transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.18);
-        }
+        .within-card:hover:not(:disabled) { background: #eff6ff; border-color: #60a5fa; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.16); }
         .cross-card { border-color: #bbf7d0; color: #065f46; }
-        .cross-card:hover:not(:disabled) {
-          background: #f0fdf4; border-color: #5ab886;
-          transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.18);
+        .cross-card:hover:not(:disabled) { background: #f0fdf4; border-color: #4ade80; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.16); }
+        .sector-card {
+          border-color: var(--sector-col);
+          color: var(--sector-col);
+        }
+        .sector-card:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--sector-col) 8%, white);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px color-mix(in srgb, var(--sector-col) 30%, transparent);
+        }
+        .cross-sector-card {
+          border-color: color-mix(in srgb, var(--sector-col) 50%, #bbf7d0);
+          color: color-mix(in srgb, var(--sector-col) 70%, #065f46);
+        }
+        .cross-sector-card:hover:not(:disabled) {
+          background: color-mix(in srgb, var(--sector-col) 6%, #f0fdf4);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px color-mix(in srgb, var(--sector-col) 20%, transparent);
         }
 
         /* Error + hint */
-        .ai-error-message { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; color: #991b1b; font-size: 13px; margin: 14px 0; }
-        .ai-hint { text-align: center; color: #94a3b8; font-size: 13px; padding: 28px 0 10px; font-style: italic; }
+        .ai-error-message { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; color: #991b1b; font-size: 13px; margin: 10px 0 14px; }
+        .ai-hint { text-align: center; color: #94a3b8; font-size: 13px; padding: 24px 0 6px; font-style: italic; }
 
-        /* ── CORRELATION RESULTS CONTROLS ── */
+        /* ── CORRELATION CONTROLS ── */
         .corr-controls {
           display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          margin-bottom: 14px; padding: 14px 16px;
+          margin-bottom: 14px; padding: 12px 14px;
           background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 10px;
         }
         .corr-search {
-          flex: 1; min-width: 180px; padding: 8px 14px;
-          border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; outline: none;
-          background: white;
+          flex: 1; min-width: 160px; padding: 7px 12px;
+          border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; outline: none; background: white;
         }
-        .corr-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .corr-filter {
-          padding: 8px 10px; border: 1.5px solid #dbeafe; border-radius: 8px;
-          font-size: 13px; background: white; color: #1e293b; cursor: pointer;
-        }
-        .corr-filter:focus { border-color: #2563eb; outline: none; }
-        .corr-count {
-          font-size: 12px; color: #2563eb; white-space: nowrap;
-          background: #eff6ff; padding: 4px 12px; border-radius: 20px;
-          font-weight: 700; border: 1px solid #bfdbfe;
-        }
-        .corr-collapse-all {
-          padding: 7px 14px; background: white; border: 1.5px solid #dbeafe;
-          border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap;
-          font-weight: 600; color: #2563eb; transition: all 0.15s;
-        }
+        .corr-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+        .corr-filter { padding: 7px 10px; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; background: white; color: #1e293b; cursor: pointer; outline: none; }
+        .corr-filter:focus { border-color: #2563eb; }
+        .corr-count { font-size: 12px; color: #2563eb; background: #eff6ff; padding: 4px 11px; border-radius: 20px; font-weight: 700; border: 1px solid #bfdbfe; white-space: nowrap; }
+        .corr-collapse-all { padding: 7px 13px; background: white; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; font-weight: 600; color: #2563eb; transition: all 0.14s; }
         .corr-collapse-all:hover { background: #eff6ff; }
-        .corr-overflow-notice {
-          grid-column: 1 / -1; text-align: center; padding: 20px;
-          background: #fefce8; border: 1px solid #fde047; border-radius: 10px;
-          color: #854d0e; font-size: 13px; font-weight: 500;
-        }
+        .corr-overflow-notice { grid-column: 1/-1; text-align: center; padding: 18px; background: #fefce8; border: 1px solid #fde047; border-radius: 10px; color: #854d0e; font-size: 13px; font-weight: 500; }
 
         /* ── INSIGHT CARDS ── */
-        .ai-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
-        .ai-card {
-          background: white; border-radius: 10px; border: 1.5px solid #e2e8f0;
-          overflow: hidden; transition: box-shadow 0.18s, transform 0.18s;
-        }
-        .ai-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.09); transform: translateY(-1px); }
-        .ai-card-header {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 11px 14px; gap: 8px; cursor: pointer; user-select: none;
-        }
-        .ai-pair-title-group { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
-        .ai-pair-title { font-weight: 700; font-size: 12px; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ai-pair-vs { color: #cbd5e1; font-size: 13px; flex-shrink: 0; }
-        .ai-card-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-        .ai-class-tags { display: flex; gap: 3px; }
-        .ai-class-tag { font-size: 9.5px; padding: 1px 6px; background: #f1f5f9; color: #64748b; border-radius: 4px; font-weight: 600; }
-        .ai-score-badge { padding: 3px 9px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; }
+        .ai-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 9px; }
+        .ai-card { background: white; border-radius: 10px; border: 1.5px solid #e2e8f0; overflow: hidden; transition: box-shadow 0.16s, transform 0.16s; }
+        .ai-card:hover { box-shadow: 0 5px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        .ai-card-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 11px 13px 10px; cursor: pointer; user-select: none; gap: 8px; }
+        .ai-pair-names { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+        .ai-name-a { font-size: 13px; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+        .ai-name-b { font-size: 12px; font-weight: 600; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+        .ai-pair-vs { font-size: 11px; color: #cbd5e1; font-weight: 400; line-height: 1; margin: 1px 0; }
+        .ai-card-header-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+        .ai-score-badge { padding: 3px 9px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 800; }
         .badge-pos { background: #dcfce7; color: #15803d; }
         .badge-neg { background: #fee2e2; color: #b91c1c; }
         .badge-neu { background: #f1f5f9; color: #64748b; }
-        .ai-collapse-icon { font-size: 9px; color: #cbd5e1; margin-left: 2px; }
-        .ai-card-body { padding: 10px 14px 13px; border-top: 1px solid #f1f5f9; }
-        .ai-card-body strong { font-size: 11.5px; color: #475569; display: block; margin-bottom: 7px; font-weight: 700; }
-        .ai-score-bar-wrap { margin-top: 2px; }
+        .ai-collapse-icon { font-size: 9px; color: #cbd5e1; }
+        .ai-card-body { padding: 8px 13px 12px; border-top: 1px solid #f1f5f9; }
+        .ai-card-classes { display: flex; align-items: center; gap: 5px; margin-bottom: 7px; flex-wrap: wrap; }
+        .ai-class-tag { font-size: 10px; padding: 2px 7px; background: #eff6ff; color: #2563eb; border-radius: 4px; font-weight: 700; border: 1px solid #dbeafe; }
+        .ai-term-label { font-size: 11px; font-weight: 700; color: #475569; margin-left: auto; }
+        .ai-score-bar-wrap { margin-top: 4px; }
         .ai-score-bar-track { width: 100%; height: 7px; background: #f1f5f9; border-radius: 4px; position: relative; overflow: hidden; }
         .ai-score-bar-fill { position: absolute; height: 100%; border-radius: 4px; }
-        .ai-score-bar-center { position: absolute; left: 50%; top: 0; width: 1.5px; height: 100%; background: #cbd5e1; }
+        .ai-score-bar-center { position: absolute; left: 50%; top: 0; width: 1.5px; height: 100%; background: #e2e8f0; z-index: 1; }
 
         /* Card accent borders */
         .insight-positive-strong { border-left: 3.5px solid #16a34a; }
