@@ -440,20 +440,8 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
   const [theme, setTheme]               = useState('dark');
   const [timeframe, setTimeframe]       = useState('1D');
   const [fullscreen, setFullscreen]     = useState(null); // null | 'a' | 'b'
-  const [layout, setLayout]             = useState('row');
-  const [isMobile, setIsMobile]         = useState(false);
-  const userToggledLayout               = useRef(false);
-
-  useEffect(() => {
-    const check = () => {
-      const m = window.innerWidth < 700;
-      setIsMobile(m);
-      if (!userToggledLayout.current) setLayout(m ? 'col' : 'row');
-    };
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const isMobile                        = window.innerWidth < 700;
+  const [layout, setLayout]             = useState(isMobile ? 'col' : 'row');
 
   useEffect(() => {
     if (insight) document.body.style.overflow = 'hidden';
@@ -528,7 +516,7 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
 
           {/* Layout toggle (desktop) */}
           {!isMobile && (
-            <button onClick={() => { userToggledLayout.current = true; setLayout(l => l==='row'?'col':'row'); }} title="Toggle layout" style={{ padding:'5px 10px', borderRadius:7, border:`1px solid ${t.border}`, background:t.panelBg, color:t.sub, cursor:'pointer', fontSize:13 }}>
+            <button onClick={() => setLayout(l => l==='row'?'col':'row')} title="Toggle layout" style={{ padding:'5px 10px', borderRadius:7, border:`1px solid ${t.border}`, background:t.panelBg, color:t.sub, cursor:'pointer', fontSize:13 }}>
               {layout==='row' ? '⬒' : '⬓'}
             </button>
           )}
